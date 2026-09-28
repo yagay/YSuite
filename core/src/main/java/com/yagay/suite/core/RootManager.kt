@@ -3,6 +3,7 @@ package com.yagay.suite.core
 import android.content.Context
 import com.topjohnwu.superuser.Shell
 
+/** Process-wide libsu owner for the combined YSuite host. */
 object RootManager {
     @Volatile private var configured = false
 
@@ -17,6 +18,14 @@ object RootManager {
                 .setTimeout(15)
         )
         configured = true
+    }
+
+    /**
+     * Configure libsu without requesting root. Call after feature initialization so any standalone
+     * feature default builder cannot remain the process-wide owner inside YSuite.
+     */
+    fun initialize(context: Context) {
+        configure(context)
     }
 
     fun isAvailable(context: Context): Boolean {
