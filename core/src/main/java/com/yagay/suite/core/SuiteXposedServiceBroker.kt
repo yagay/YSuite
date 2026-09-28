@@ -3,17 +3,15 @@ package com.yagay.suite.core
 import android.content.Context
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
-import java.lang.reflect.Modifier
 import java.util.concurrent.CopyOnWriteArraySet
 
 /**
- * Owns the single libxposed app-side service listener allowed in the YSuite process and fans
- * service lifecycle events back out to the independently buildable feature runtimes.
+ * Owns the single libxposed app-side service listener used by the combined YSuite process and fans
+ * framework lifecycle events back out to independently buildable feature runtimes.
  *
- * Feature runtimes may still call registerListener() while they are being initialized because
- * their standalone APKs need that behaviour. YSuite captures each listener immediately after a
- * feature initializer returns and then reclaims final ownership of XposedServiceHelper. This also
- * covers features enabled later from the host UI.
+ * Feature runtimes keep their standalone registerListener() calls. Their YSuite initializer returns
+ * the listener instance to [capture], then the host immediately re-registers this broker as the
+ * process owner. No dependency on libxposed private fields is required.
  */
 object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     private val listeners = CopyOnWriteArraySet<XposedServiceHelper.OnServiceListener>()
@@ -29,18 +27,15 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         if (runtime is XposedServiceHelper.OnServiceListener && runtime !== this) {
             attach(runtime)
         }
-        // Some reusable feature initializers intentionally return their host Context instead of
-        // their listener singleton (currently YFloat). Capture the listener that the feature just
-        // registered before another feature or the broker replaces it.
-        currentFrameworkListener()?.let(::attach)
     }
 
+    /**
+     * Always re-register. A feature enabled at runtime may have just replaced the process-global
+     * listener with its standalone listener, so the host has to reclaim ownership every time.
+     */
     @Synchronized
     fun takeOwnership(context: Context) {
         appContext = context.applicationContext
-        val current = currentFrameworkListener()
-        if (current === this) return
-        current?.let(::attach)
         XposedServiceHelper.registerListener(this)
         SuiteLog.i(
             context,
@@ -52,6 +47,10 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     fun listenerCount(): Int = listeners.size
 
     override fun onServiceBind(service: XposedService) {
+        // registerListener(this) may replay the same cached framework service after a runtime
+        // feature enable. The newly attached feature has already received a targeted replay from
+        // attach(), so avoid re-running every feature's bind side effects.
+        if (currentService === service) return
         currentService = service
         listeners.forEach { listener ->
             runCatching { listener.onServiceBind(service) }
@@ -60,7 +59,8 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     }
 
     override fun onServiceDied(service: XposedService) {
-        if (currentService === service) currentService = null
+        if (currentService !== service) return
+        currentService = null
         listeners.forEach { listener ->
             runCatching { listener.onServiceDied(service) }
                 .onFailure { failure -> logFailure("died", listener, failure) }
@@ -74,19 +74,6 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
                 .onFailure { failure -> logFailure("replay", listener, failure) }
         }
     }
-
-    private fun currentFrameworkListener(): XposedServiceHelper.OnServiceListener? =
-        runCatching {
-            XposedServiceHelper::class.java.declaredFields
-                .asSequence()
-                .filter { Modifier.isStatic(it.modifiers) }
-                .filter { XposedServiceHelper.OnServiceListener::class.java.isAssignableFrom(it.type) }
-                .mapNotNull { field ->
-                    field.isAccessible = true
-                    field.get(null) as? XposedServiceHelper.OnServiceListener
-                }
-                .firstOrNull()
-        }.getOrNull()
 
     private fun logFailure(
         event: String,
