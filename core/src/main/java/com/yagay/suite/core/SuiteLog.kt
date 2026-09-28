@@ -1,6 +1,9 @@
 package com.yagay.suite.core
 
+import android.content.ContentValues
 import android.content.Context
+import android.os.Environment
+import android.provider.MediaStore
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -34,7 +37,7 @@ object SuiteLog {
         }
     }
 
-    fun export(context: Context, modules: Set<String>? = null): File {
+    fun export(context: Context, modules: Set<String>? = null): String {
         val root = File(context.filesDir, "suite-logs").apply { mkdirs() }
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         val label = when {
@@ -42,17 +45,39 @@ object SuiteLog {
             modules.size == 1 -> modules.first()
             else -> "selected"
         }
-        val out = File(context.cacheDir, "YSuite-$label-logs-$stamp.zip")
-        ZipOutputStream(out.outputStream().buffered()).use { zip ->
-            root.listFiles()?.filter { it.isDirectory }?.forEach { moduleDir ->
-                if (modules != null && moduleDir.name !in modules) return@forEach
-                moduleDir.listFiles()?.filter { it.isFile }?.forEach { file ->
-                    zip.putNextEntry(ZipEntry("${moduleDir.name}/${file.name}"))
-                    file.inputStream().use { it.copyTo(zip) }
-                    zip.closeEntry()
-                }
-            }
+        val fileName = "YSuite-$label-logs-$stamp.zip"
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
-        return out
+        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            ?: error("Unable to create Download/$fileName")
+
+        try {
+            resolver.openOutputStream(uri, "w")?.buffered()?.use { output ->
+                ZipOutputStream(output).use { zip ->
+                    root.listFiles()?.filter { it.isDirectory }?.forEach { moduleDir ->
+                        if (modules != null && moduleDir.name !in modules) return@forEach
+                        moduleDir.listFiles()?.filter { it.isFile }?.forEach { file ->
+                            zip.putNextEntry(ZipEntry("${moduleDir.name}/${file.name}"))
+                            file.inputStream().use { it.copyTo(zip) }
+                            zip.closeEntry()
+                        }
+                    }
+                }
+            } ?: error("Unable to open Download/$fileName")
+
+            values.clear()
+            values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+        } catch (error: Throwable) {
+            resolver.delete(uri, null, null)
+            throw error
+        }
+
+        return "Download/$fileName"
     }
 }
