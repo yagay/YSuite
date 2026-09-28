@@ -41,6 +41,8 @@ android {
 
     defaultConfig {
         minSdk 31
+        buildConfigField 'int', 'VERSION_CODE', '189'
+        buildConfigField 'String', 'VERSION_NAME', '"3.1.37"'
         buildConfigField 'String', 'GOOGLE_HOOK_FINGERPRINT', '"' + yFloatHashFiles(googleHookFiles) + '"'
         buildConfigField 'String', 'SYSTEMUI_HOOK_FINGERPRINT', '"' + yFloatHashFiles(systemUiHookFiles) + '"'
         buildConfigField 'String', 'SYSTEM_SERVER_HOOK_FINGERPRINT', '"' + yFloatHashFiles(systemServerHookFiles) + '"'
@@ -57,6 +59,7 @@ android {
     sourceSets {
         main {
             java.srcDirs '../../features/YFloat/app/src/main/java', 'src/main/java'
+            kotlin.srcDirs '../../features/YFloat/app/src/main/java'
             res.srcDirs '../../features/YFloat/app/src/main/res'
             assets.srcDirs '../../features/YFloat/app/src/main/assets'
         }
