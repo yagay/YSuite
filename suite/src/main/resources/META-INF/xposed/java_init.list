@@ -4,10 +4,10 @@ com.yagay.ypower.hook.YPowerModule
 com.yagay.ypower.hook.SupplementalSecurityModule
 com.yagay.ypower.hook.DeepObservationModule
 com.yagay.YMiniGuard.GuardModule
-com.yagay.ListCleaner.xposed.ListCleanerModule
-com.yagay.ListCleaner.xposed.ComponentStateGuardModule
-com.yagay.ListCleaner.xposed.ComponentDiscoveryFilterModule
-com.yagay.ListCleaner.xposed.SuiteRuntimeProbeBridgeModule
+com.yagay.YEntryCleaner.xposed.YEntryCleanerModule
+com.yagay.YEntryCleaner.xposed.ComponentStateGuardModule
+com.yagay.YEntryCleaner.xposed.ComponentDiscoveryFilterModule
+com.yagay.YEntryCleaner.xposed.SuiteRuntimeProbeBridgeModule
 com.yagay.YNFC.xposed.NfcInjectionModule
 com.yagay.YTaskManager.xposed.TaskManagerModule
 com.yagay.yparam.hook.YParamModule

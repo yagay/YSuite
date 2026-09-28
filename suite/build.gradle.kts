@@ -40,7 +40,7 @@ dependencies {
     implementation(project(":ynotify-feature"))
     implementation(project(":ypower-feature"))
     implementation(project(":yminiguard-feature"))
-    implementation(project(":listcleaner-feature"))
+    implementation(project(":yentrycleaner-feature"))
     implementation(project(":ynfc-feature"))
     implementation(project(":ytask-feature"))
     implementation(project(":yparam-feature"))

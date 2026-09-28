@@ -18,9 +18,9 @@
 	url = https://github.com/yagay/YMiniGuard.git
 	branch = main
 
-[submodule "features/ListCleaner"]
-	path = features/ListCleaner
-	url = https://github.com/yagay/ListCleaner.git
+[submodule "features/YEntryCleaner"]
+	path = features/YEntryCleaner
+	url = https://github.com/yagay/YEntryCleaner.git
 	branch = main
 
 [submodule "features/YNFC"]

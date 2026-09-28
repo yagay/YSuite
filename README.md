@@ -6,11 +6,15 @@ The repository keeps the suite host intentionally small. Feature implementations
 
 ## Included features
 
-- ListCleaner
+- YEntryCleaner
 - YNotify
 - YDiag
 - YPower
 - YMiniGuard
+- YNFC
+- YTaskManager
+- YParam
+- YFloat
 
 ## Structure
 

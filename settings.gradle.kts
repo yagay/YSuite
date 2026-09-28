@@ -26,8 +26,8 @@ include(":ypower-feature")
 project(":ypower-feature").projectDir = file("features/YPower/feature")
 include(":yminiguard-feature")
 project(":yminiguard-feature").projectDir = file("features/YMiniGuard/feature")
-include(":listcleaner-feature")
-project(":listcleaner-feature").projectDir = file("features/ListCleaner/feature")
+include(":yentrycleaner-feature")
+project(":yentrycleaner-feature").projectDir = file("features/YEntryCleaner/feature")
 
 // Thin YSuite adapters compile the original app source trees directly; no business source is copied.
 include(":ynfc-feature")

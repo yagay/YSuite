@@ -27,10 +27,10 @@ data class FeatureSpec(
 object FeatureRegistry {
     val all: List<FeatureSpec> = listOf(
         FeatureSpec(
-            id = "listcleaner",
-            name = "ListCleaner",
-            description = "分享、打开方式与组件列表清理",
-            entryActivityClassName = "com.yagay.ListCleaner.ui.MainActivity",
+            id = "yentrycleaner",
+            name = "YEntryCleaner",
+            description = "分享、打开方式与组件入口清理",
+            entryActivityClassName = "com.yagay.YEntryCleaner.ui.MainActivity",
             requiresRoot = true,
             requiresHook = true,
         ),
