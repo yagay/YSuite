@@ -39,6 +39,7 @@ android {
     sourceSets {
         getByName("main") {
             java.srcDir(generatedYnfcSources)
+            kotlin.srcDir(generatedYnfcSources)
             res.srcDirs("../../features/YNFC/app/src/main/res")
             assets.srcDirs("../../features/YNFC/app/src/main/assets")
         }
