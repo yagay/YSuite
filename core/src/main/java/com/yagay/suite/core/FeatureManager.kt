@@ -31,6 +31,7 @@ object FeatureRegistry {
             name = "YEntryCleaner",
             description = "分享、打开方式与组件入口清理",
             entryActivityClassName = "com.yagay.YEntryCleaner.ui.MainActivity",
+            runtimeInitializerClassName = "com.yagay.YEntryCleaner.YEntryCleanerRuntime",
             requiresRoot = true,
             requiresHook = true,
         ),
@@ -114,11 +115,5 @@ class FeatureStateStore(context: Context) {
 
     fun setEnabled(feature: FeatureSpec, enabled: Boolean) {
         prefs.edit().putBoolean("enabled.${feature.id}", enabled).apply()
-    }
-
-    fun isVisible(feature: FeatureSpec): Boolean = prefs.getBoolean("visible.${feature.id}", true)
-
-    fun setVisible(feature: FeatureSpec, visible: Boolean) {
-        prefs.edit().putBoolean("visible.${feature.id}", visible).apply()
     }
 }

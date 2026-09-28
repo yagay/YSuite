@@ -2,7 +2,7 @@
 
 YSuite is the unified host for my Android/LSPosed projects.
 
-The repository keeps the suite host intentionally small. Feature implementations remain in their own repositories and are included here as Git submodules, so the same source can be built both as a standalone APK and as part of YSuite.
+Each feature remains in its own repository and exposes a reusable `feature` module. The same business source is therefore built both by the standalone APK and by YSuite; YSuite no longer copies app source trees or maintains adapter mirrors.
 
 ## Included features
 
@@ -18,8 +18,18 @@ The repository keeps the suite host intentionally small. Feature implementations
 
 ## Structure
 
-- `suite/` — unified APK host (`com.yagay.YSuite`)
-- `core/` — shared feature switches, Root access and unified logging
+- `suite/` — unified APK host (`com.yagay.YSuite`) and its own `YSuiteApp`
+- `core/` — small shared host layer for feature registry, host switches, Root status and host logging
 - `features/` — feature repositories as Git submodules
 
-The unified app centralizes common host behavior while each standalone project keeps its own package, release process and APK shell.
+Integrated projects use the same pattern wherever practical:
+
+```text
+project/
+├── app/      standalone APK shell
+└── feature/  reusable business/UI/runtime module
+```
+
+YFloat additionally keeps `ppocr-sdk/` as its own reusable module.
+
+YSuite host switches control whether a feature entry/runtime is active inside YSuite. LSPosed Hook activation and target scope remain managed by LSPosed so the host does not introduce a second cross-process hook-control protocol.

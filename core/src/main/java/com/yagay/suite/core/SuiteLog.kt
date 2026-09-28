@@ -13,7 +13,6 @@ object SuiteLog {
     private val lock = Any()
 
     fun i(context: Context, module: String, message: String) = write(context, module, "I", message, null)
-    fun w(context: Context, module: String, message: String, error: Throwable? = null) = write(context, module, "W", message, error)
     fun e(context: Context, module: String, message: String, error: Throwable? = null) = write(context, module, "E", message, error)
 
     fun write(context: Context, module: String, level: String, message: String, error: Throwable? = null) {

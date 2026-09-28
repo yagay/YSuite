@@ -73,11 +73,15 @@ class MainActivity : ComponentActivity() {
                             Text("统一运行环境", style = MaterialTheme.typography.titleMedium)
                             Text("Root：" + when (rootAvailable) { true -> "已授权"; false -> "不可用"; null -> "检测中" })
                             Text("已加入功能：${features.size}")
+                            Text(
+                                "功能开关控制 YSuite 内的入口和宿主运行时；LSPosed Hook 的启用与作用域仍由 LSPosed 管理。",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                             Spacer(Modifier.height(8.dp))
                             OutlinedButton(onClick = {
                                 val file = SuiteLog.export(this@MainActivity)
                                 Toast.makeText(this@MainActivity, "已导出：${file.absolutePath}", Toast.LENGTH_LONG).show()
-                            }) { Text("导出全部日志") }
+                            }) { Text("导出宿主日志") }
                         }
                     }
                 }
@@ -91,13 +95,13 @@ class MainActivity : ComponentActivity() {
                             enabled[feature.id] = next
                             if (next) {
                                 runCatching { feature.initialize(this@MainActivity) }
-                                    .onSuccess { SuiteLog.i(this@MainActivity, feature.id, "enabled") }
+                                    .onSuccess { SuiteLog.i(this@MainActivity, feature.id, "host enabled") }
                                     .onFailure {
-                                        SuiteLog.e(this@MainActivity, feature.id, "enable failed", it)
+                                        SuiteLog.e(this@MainActivity, feature.id, "host enable failed", it)
                                         Toast.makeText(this@MainActivity, "${feature.name} 启用失败：${it.javaClass.simpleName}", Toast.LENGTH_LONG).show()
                                     }
                             } else {
-                                SuiteLog.i(this@MainActivity, feature.id, "disabled; restart target process if hook was already loaded")
+                                SuiteLog.i(this@MainActivity, feature.id, "host disabled; LSPosed scope is managed separately")
                             }
                         },
                         onOpen = {
@@ -106,7 +110,7 @@ class MainActivity : ComponentActivity() {
                         },
                         onExportLog = {
                             val file = SuiteLog.export(this@MainActivity, setOf(feature.id))
-                            Toast.makeText(this@MainActivity, "${feature.name} 日志：${file.absolutePath}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@MainActivity, "${feature.name} 宿主日志：${file.absolutePath}", Toast.LENGTH_LONG).show()
                         },
                     )
                 }
@@ -139,7 +143,7 @@ private fun FeatureCard(
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onOpen, enabled = isEnabled) { Text("打开") }
-                OutlinedButton(onClick = onExportLog) { Text("日志") }
+                OutlinedButton(onClick = onExportLog) { Text("宿主日志") }
             }
         }
     }
