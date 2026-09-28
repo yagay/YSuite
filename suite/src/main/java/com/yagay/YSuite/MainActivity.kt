@@ -38,6 +38,7 @@ import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.RootManager
+import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -47,6 +48,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent { MaterialTheme { FeatureManagerScreen() } }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        SuiteCrashTracker.markActiveFeature(this, null)
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -110,8 +116,22 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         onOpen = {
+                            SuiteCrashTracker.markActiveFeature(this@MainActivity, feature.id)
+                            SuiteLog.i(
+                                this@MainActivity,
+                                feature.id,
+                                "open requested; activity=${feature.entryActivityClassName}",
+                            )
                             runCatching { startActivity(feature.createIntent(this@MainActivity)) }
-                                .onFailure { SuiteLog.e(this@MainActivity, feature.id, "open failed", it) }
+                                .onFailure {
+                                    SuiteLog.e(this@MainActivity, feature.id, "open failed", it)
+                                    SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "${feature.name} 打开失败：${it.javaClass.simpleName}",
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                }
                         },
                         onExportLog = {
                             runCatching { SuiteLog.export(this@MainActivity, setOf(feature.id)) }
