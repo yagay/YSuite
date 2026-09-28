@@ -79,8 +79,13 @@ class MainActivity : ComponentActivity() {
                             )
                             Spacer(Modifier.height(8.dp))
                             OutlinedButton(onClick = {
-                                val file = SuiteLog.export(this@MainActivity)
-                                Toast.makeText(this@MainActivity, "已导出：${file.absolutePath}", Toast.LENGTH_LONG).show()
+                                runCatching { SuiteLog.export(this@MainActivity) }
+                                    .onSuccess { path ->
+                                        Toast.makeText(this@MainActivity, "已保存：$path", Toast.LENGTH_LONG).show()
+                                    }
+                                    .onFailure {
+                                        Toast.makeText(this@MainActivity, "日志保存失败：${it.javaClass.simpleName}", Toast.LENGTH_LONG).show()
+                                    }
                             }) { Text("导出宿主日志") }
                         }
                     }
@@ -109,8 +114,13 @@ class MainActivity : ComponentActivity() {
                                 .onFailure { SuiteLog.e(this@MainActivity, feature.id, "open failed", it) }
                         },
                         onExportLog = {
-                            val file = SuiteLog.export(this@MainActivity, setOf(feature.id))
-                            Toast.makeText(this@MainActivity, "${feature.name} 宿主日志：${file.absolutePath}", Toast.LENGTH_LONG).show()
+                            runCatching { SuiteLog.export(this@MainActivity, setOf(feature.id)) }
+                                .onSuccess { path ->
+                                    Toast.makeText(this@MainActivity, "${feature.name} 宿主日志已保存：$path", Toast.LENGTH_LONG).show()
+                                }
+                                .onFailure {
+                                    Toast.makeText(this@MainActivity, "${feature.name} 日志保存失败：${it.javaClass.simpleName}", Toast.LENGTH_LONG).show()
+                                }
                         },
                     )
                 }
