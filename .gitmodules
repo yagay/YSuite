@@ -1,0 +1,24 @@
+[submodule "features/YDiag"]
+	path = features/YDiag
+	url = https://github.com/yagay/YDiag.git
+	branch = main
+
+[submodule "features/YNotify"]
+	path = features/YNotify
+	url = https://github.com/yagay/YNotify.git
+	branch = main
+
+[submodule "features/YPower"]
+	path = features/YPower
+	url = https://github.com/yagay/YPower.git
+	branch = main
+
+[submodule "features/YMiniGuard"]
+	path = features/YMiniGuard
+	url = https://github.com/yagay/YMiniGuard.git
+	branch = main
+
+[submodule "features/ListCleaner"]
+	path = features/ListCleaner
+	url = https://github.com/yagay/ListCleaner.git
+	branch = main
