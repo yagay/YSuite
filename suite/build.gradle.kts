@@ -11,8 +11,8 @@ android {
         applicationId = "com.yagay.YSuite"
         minSdk = 31
         targetSdk = 37
-        versionCode = 44
-        versionName = "0.2.0"
+        versionCode = 45
+        versionName = "0.2.1"
     }
 
     buildFeatures { compose = true }
