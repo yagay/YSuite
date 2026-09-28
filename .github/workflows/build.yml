@@ -20,7 +20,7 @@ jobs:
           submodules: recursive
 
       - name: Scan feature integration hazards
-        run: python3 tools/scan_feature_integration.py --root .
+        run: python3 tools/scan_feature_integration.py --root . --fail-on-high-risk
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
