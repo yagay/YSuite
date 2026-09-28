@@ -46,6 +46,24 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
 
     fun listenerCount(): Int = listeners.size
 
+    /** Host-level framework status; unlike filesystem probes this reflects the real API service. */
+    fun isConnected(): Boolean = currentService != null
+
+    fun apiVersion(): Int = runCatching { currentService?.apiVersion ?: 0 }.getOrDefault(0)
+
+    fun statusLabel(): String {
+        val service = currentService ?: return "未连接"
+        return runCatching {
+            val name = service.frameworkName.ifBlank { "LSPosed" }
+            val version = service.frameworkVersion
+            buildString {
+                append(name)
+                if (version.isNotBlank()) append(' ').append(version)
+                append(" · API ").append(service.apiVersion)
+            }
+        }.getOrElse { "已连接 · API ${apiVersion()}" }
+    }
+
     override fun onServiceBind(service: XposedService) {
         // registerListener(this) may replay the same cached framework service after a runtime
         // feature enable. The newly attached feature has already received a targeted replay from
