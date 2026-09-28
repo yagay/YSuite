@@ -13,6 +13,7 @@ import java.util.zip.ZipOutputStream
 
 object SuiteLog {
     private const val MAX_LOG_BYTES = 1024L * 1024L
+    private const val EXPORT_SUBDIR = "YSuite"
     private val lock = Any()
 
     fun i(context: Context, module: String, message: String) = write(context, module, "I", message, null)
@@ -46,15 +47,16 @@ object SuiteLog {
             else -> "selected"
         }
         val fileName = "YSuite-$label-logs-$stamp.zip"
+        val relativeDir = "${Environment.DIRECTORY_DOWNLOADS}/$EXPORT_SUBDIR"
         val resolver = context.contentResolver
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
             put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
-            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            put(MediaStore.MediaColumns.RELATIVE_PATH, relativeDir)
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
         val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            ?: error("Unable to create Download/$fileName")
+            ?: error("Unable to create Download/$EXPORT_SUBDIR/$fileName")
 
         try {
             resolver.openOutputStream(uri, "w")?.buffered()?.use { output ->
@@ -68,7 +70,7 @@ object SuiteLog {
                         }
                     }
                 }
-            } ?: error("Unable to open Download/$fileName")
+            } ?: error("Unable to open Download/$EXPORT_SUBDIR/$fileName")
 
             values.clear()
             values.put(MediaStore.MediaColumns.IS_PENDING, 0)
@@ -78,6 +80,6 @@ object SuiteLog {
             throw error
         }
 
-        return "Download/$fileName"
+        return "Download/$EXPORT_SUBDIR/$fileName"
     }
 }
