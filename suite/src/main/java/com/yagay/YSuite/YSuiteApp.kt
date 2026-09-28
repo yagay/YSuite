@@ -10,14 +10,38 @@ class YSuiteApp : Application() {
         super.onCreate()
         val states = FeatureStateStore(this)
         val included = FeatureRegistry.included()
-        included
-            .filter(states::isEnabled)
-            .filter { it.runtimeInitializerClassName != null }
-            .forEach { feature ->
-                runCatching { feature.initialize(this) }
-                    .onSuccess { SuiteLog.i(this, feature.id, "host runtime initialized") }
-                    .onFailure { SuiteLog.e(this, feature.id, "host runtime initialization failed", it) }
+
+        SuiteLog.i(
+            this,
+            "suite",
+            "YSuite host starting; version=${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE}); " +
+                "features=${included.size}; ids=${included.joinToString(",") { it.id }}",
+        )
+
+        included.forEach { feature ->
+            val enabled = states.isEnabled(feature)
+            val initializer = feature.runtimeInitializerClassName
+
+            if (!enabled) {
+                SuiteLog.i(this, feature.id, "host disabled")
+                return@forEach
             }
-        SuiteLog.i(this, "suite", "YSuite host initialized; features=${included.size}")
+
+            if (initializer == null) {
+                SuiteLog.i(this, feature.id, "host enabled; no runtime initializer")
+                return@forEach
+            }
+
+            SuiteLog.i(this, feature.id, "host runtime init requested; class=$initializer")
+            runCatching { feature.initialize(this) }
+                .onSuccess { SuiteLog.i(this, feature.id, "host runtime initialized") }
+                .onFailure { SuiteLog.e(this, feature.id, "host runtime initialization failed; class=$initializer", it) }
+        }
+
+        SuiteLog.i(
+            this,
+            "suite",
+            "YSuite host initialized; version=${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE}); features=${included.size}",
+        )
     }
 }
