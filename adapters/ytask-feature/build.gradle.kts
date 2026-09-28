@@ -22,6 +22,7 @@ android {
     sourceSets {
         getByName("main") {
             java.srcDirs("../../features/YTaskManager/app/src/main/java")
+            kotlin.srcDirs("../../features/YTaskManager/app/src/main/java")
             res.srcDirs("../../features/YTaskManager/app/src/main/res")
             assets.srcDirs("../../features/YTaskManager/app/src/main/assets")
         }
