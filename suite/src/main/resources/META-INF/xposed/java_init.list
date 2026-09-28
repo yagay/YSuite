@@ -1,0 +1,10 @@
+com.yagay.ydiag.xposed.YDiagModule
+com.yagay.YNotify.xposed.YNotifyModule
+com.yagay.ypower.hook.YPowerModule
+com.yagay.ypower.hook.SupplementalSecurityModule
+com.yagay.ypower.hook.DeepObservationModule
+com.yagay.YMiniGuard.GuardModule
+com.yagay.ListCleaner.xposed.ListCleanerModule
+com.yagay.ListCleaner.xposed.ComponentStateGuardModule
+com.yagay.ListCleaner.xposed.ComponentDiscoveryFilterModule
+com.yagay.ListCleaner.xposed.SuiteRuntimeProbeBridgeModule
