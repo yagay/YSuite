@@ -11,15 +11,15 @@ import android.content.Context
  */
 object SuiteCrashTracker {
     @Volatile
-    private var installed = false
+    private var installedHandler: Thread.UncaughtExceptionHandler? = null
 
     fun install(context: Context) {
-        if (installed) return
+        if (installedHandler != null) return
         synchronized(this) {
-            if (installed) return
+            if (installedHandler != null) return
             val appContext = context.applicationContext
             val previous = Thread.getDefaultUncaughtExceptionHandler()
-            Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            val handler = Thread.UncaughtExceptionHandler { thread, error ->
                 val activeFeature = activeFeature(appContext)
                 runCatching {
                     SuiteLog.e(
@@ -39,7 +39,21 @@ object SuiteCrashTracker {
                 }
                 previous?.uncaughtException(thread, error)
             }
-            installed = true
+            installedHandler = handler
+            Thread.setDefaultUncaughtExceptionHandler(handler)
+        }
+    }
+
+    /**
+     * Some standalone feature runtimes install their own process-wide handler during initialization.
+     * In the combined process YSuite must remain the final owner so crashes are attributed once and
+     * exported through the unified log path.
+     */
+    fun reclaim(context: Context) {
+        install(context)
+        val handler = installedHandler ?: return
+        if (Thread.getDefaultUncaughtExceptionHandler() !== handler) {
+            Thread.setDefaultUncaughtExceptionHandler(handler)
         }
     }
 
