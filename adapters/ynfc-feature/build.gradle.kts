@@ -3,7 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val generatedYnfcSources = layout.buildDirectory.dir("generated/ynfc/java")
+val generatedYnfcSources = layout.buildDirectory.dir("generated/ynfc/java").get().asFile
 val prepareYnfcSources by tasks.registering(Sync::class) {
     from(file("../../features/YNFC/app/src/main/java"))
     into(generatedYnfcSources)
