@@ -37,6 +37,12 @@ Each project keeps its actual feature UI/business/runtime here. Both the standal
 
 Feature modules may contain Compose, AppCompat, classic Activity/View, services, providers, databases and Hook code, but host-dependent initialization must be explicit rather than relying on a standalone `Application` side effect.
 
+Reusable feature resources are part of the same final Android resource table when YSuite is built, so feature-owned resource names must be module-specific wherever practical. Use names such as `yentrycleaner_*`, `ynotify_*`, `yfloat_*`, and module-specific theme names such as `Theme.YNFC` rather than generic names such as `AppTheme`, `accessibility_service_config`, or shared launcher names.
+
+Application-level resources belong in the standalone `app/` shell when the reusable feature does not need them. This includes launcher artwork, standalone `app_name` / app description metadata, per-app locale configuration and similar APK identity resources. Do not leak these into `feature/` merely because the standalone APK once kept everything in one module.
+
+YSuite CI runs `tools/scan_feature_integration.py --fail-on-high-risk`. A new cross-feature resource collision is a build failure and should be fixed at its source rather than suppressed.
+
 ### 4. `app/` — standalone shell
 
 Each standalone APK should be thin. It supplies launcher/application/package wiring and the standalone implementation of host services that the feature needs.
@@ -101,10 +107,11 @@ Refactor incrementally. For each module:
 1. move shared business/UI/runtime into `feature` if not already there;
 2. remove dependence on standalone-only `Application` assumptions;
 3. wire shared host services behind small contracts;
-4. adopt shared theme/status/diagnostic components where useful;
-5. verify standalone build;
-6. verify YSuite build;
-7. verify open/return/disable/log export;
-8. only then remove old duplicate/compatibility code.
+4. isolate reusable feature resources from standalone APK identity resources and remove cross-feature resource collisions;
+5. adopt shared theme/status/diagnostic components where useful;
+6. verify standalone build;
+7. verify YSuite build and integration scan;
+8. verify open/return/disable/log export;
+9. only then remove old duplicate/compatibility code.
 
 Compilation alone is not acceptance; behavior in `PRODUCT_REQUIREMENTS.md` and `MODULE_REQUIREMENTS.md` is the acceptance contract.
