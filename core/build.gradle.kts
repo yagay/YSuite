@@ -17,4 +17,5 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("com.github.topjohnwu.libsu:core:6.0.0")
+    implementation("io.github.libxposed:service:102.0.0")
 }
