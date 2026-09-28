@@ -11,8 +11,8 @@ android {
         applicationId = "com.yagay.YSuite"
         minSdk = 31
         targetSdk = 37
-        versionCode = 45
-        versionName = "0.2.1"
+        versionCode = 46
+        versionName = "0.2.2"
     }
 
     buildFeatures { compose = true }
@@ -54,5 +54,10 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+
+    // Host compatibility for feature Activities that still use AppCompat / Material Views.
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("com.google.android.material:material:1.13.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
