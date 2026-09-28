@@ -40,6 +40,7 @@ import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.RootManager
 import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
+import com.yagay.suite.core.SuiteXposedServiceBroker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -106,7 +107,15 @@ class MainActivity : ComponentActivity() {
                             enabled[feature.id] = next
                             if (next) {
                                 runCatching { feature.initialize(this@MainActivity) }
-                                    .onSuccess { SuiteLog.i(this@MainActivity, feature.id, "host enabled") }
+                                    .onSuccess { runtime ->
+                                        // A standalone feature initializer may replace process-global
+                                        // LSPosed/libsu/crash state. Capture it, then restore YSuite as owner.
+                                        SuiteXposedServiceBroker.capture(this@MainActivity, runtime)
+                                        SuiteXposedServiceBroker.takeOwnership(this@MainActivity)
+                                        RootManager.reclaim(this@MainActivity)
+                                        SuiteCrashTracker.reclaim(this@MainActivity)
+                                        SuiteLog.i(this@MainActivity, feature.id, "host enabled")
+                                    }
                                     .onFailure {
                                         SuiteLog.e(this@MainActivity, feature.id, "host enable failed", it)
                                         Toast.makeText(this@MainActivity, "${feature.name} 启用失败：${it.javaClass.simpleName}", Toast.LENGTH_LONG).show()
