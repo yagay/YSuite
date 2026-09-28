@@ -3,6 +3,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val suiteHostVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
+    .orNull?.toIntOrNull() ?: 46
+
 android {
     namespace = "com.yagay.YSuite"
     compileSdk = 37
@@ -11,7 +14,7 @@ android {
         applicationId = "com.yagay.YSuite"
         minSdk = 31
         targetSdk = 37
-        versionCode = 46
+        versionCode = suiteHostVersionCode
         versionName = "0.2.2"
     }
 
