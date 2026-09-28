@@ -2,8 +2,8 @@
 """Scan reusable Android feature modules for YSuite integration hazards.
 
 The scanner is intentionally dependency-free so it can run in GitHub Actions immediately
-after submodules are checked out. It reports resource-table collisions and manifest patterns
-that are safe in standalone APKs but can become ambiguous or unsafe in one merged host APK.
+after submodules are checked out. It reports resource/manifest collisions plus process-global APIs
+that are safe in standalone APKs but must be owned centrally when features share one YSuite process.
 """
 
 from __future__ import annotations
@@ -18,35 +18,24 @@ ANDROID_NS = "http://schemas.android.com/apk/res/android"
 A = "{%s}" % ANDROID_NS
 
 HIGH_RISK_RESOURCE_TYPES = {
-    "anim",
-    "animator",
-    "array",
-    "bool",
-    "color",
-    "dimen",
-    "drawable",
-    "font",
-    "integer",
-    "layout",
-    "menu",
-    "mipmap",
-    "navigation",
-    "plurals",
-    "raw",
-    "string",
-    "style",
-    "transition",
-    "xml",
+    "anim", "animator", "array", "bool", "color", "dimen", "drawable", "font",
+    "integer", "layout", "menu", "mipmap", "navigation", "plurals", "raw", "string",
+    "style", "transition", "xml",
 }
 
 GENERIC_HIGH_RISK_NAMES = {
-    "app_name",
-    "app_description",
-    "apptheme",
-    "theme.app",
-    "file_paths",
-    "share_paths",
+    "app_name", "app_description", "apptheme", "theme.app", "file_paths", "share_paths",
     "accessibility_service_config",
+}
+
+# Standalone features are allowed to use these APIs. In the combined process they are reminders
+# that YSuite must capture/reclaim ownership after feature initialization. Keep these as warnings,
+# not hard failures, because the same source must remain independently buildable.
+PROCESS_GLOBAL_PATTERNS = {
+    "LSPOSED_LISTENER": "XposedServiceHelper.registerListener(",
+    "LIBSU_DEFAULT_BUILDER": "Shell.setDefaultBuilder(",
+    "UNCAUGHT_EXCEPTION_HANDLER": "Thread.setDefaultUncaughtExceptionHandler(",
+    "SHARED_SCOPE_REMOVE": ".removeScope(",
 }
 
 
@@ -77,7 +66,7 @@ def collect_resources(module: pathlib.Path):
             for xml in sorted(folder.glob("*.xml")):
                 try:
                     root = ET.parse(xml).getroot()
-                except Exception as exc:  # report malformed XML without hiding other findings
+                except Exception as exc:
                     parse_errors.append(f"{xml.relative_to(module)}: {exc}")
                     continue
                 for child in root:
@@ -96,12 +85,8 @@ def collect_resources(module: pathlib.Path):
 def manifest_info(module: pathlib.Path):
     manifest = module / "feature" / "src" / "main" / "AndroidManifest.xml"
     findings = {
-        "providers": [],
-        "exported": [],
-        "application_name": None,
-        "application_theme": None,
-        "activity_themes": [],
-        "parse_error": None,
+        "providers": [], "exported": [], "application_name": None, "application_theme": None,
+        "activity_themes": [], "parse_error": None,
     }
     if not manifest.is_file():
         return findings
@@ -135,12 +120,28 @@ def manifest_info(module: pathlib.Path):
     return findings
 
 
+def process_global_findings(module: pathlib.Path) -> list[tuple[str, str, int]]:
+    source_root = module / "feature" / "src" / "main" / "java"
+    findings: list[tuple[str, str, int]] = []
+    if not source_root.is_dir():
+        return findings
+    for source in sorted(list(source_root.rglob("*.java")) + list(source_root.rglob("*.kt"))):
+        try:
+            text = source.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        for line_no, line in enumerate(text.splitlines(), 1):
+            for kind, needle in PROCESS_GLOBAL_PATTERNS.items():
+                if needle in line:
+                    findings.append((kind, str(source.relative_to(module)), line_no))
+    return findings
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=".", help="YSuite repository root")
     parser.add_argument(
-        "--fail-on-high-risk",
-        action="store_true",
+        "--fail-on-high-risk", action="store_true",
         help="exit non-zero when a high-risk cross-feature resource/provider collision exists",
     )
     args = parser.parse_args()
@@ -153,6 +154,7 @@ def main() -> int:
 
     resources_by_key: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
     manifests = {}
+    process_globals = {}
     parse_errors = []
 
     for module in modules:
@@ -161,17 +163,10 @@ def main() -> int:
         for key in resources:
             resources_by_key[key].add(module.name)
         manifests[module.name] = manifest_info(module)
+        process_globals[module.name] = process_global_findings(module)
 
-    collisions = {
-        key: sorted(owners)
-        for key, owners in resources_by_key.items()
-        if len(owners) > 1
-    }
-    high_risk = {
-        key: owners
-        for key, owners in collisions.items()
-        if key[0] in HIGH_RISK_RESOURCE_TYPES
-    }
+    collisions = {key: sorted(owners) for key, owners in resources_by_key.items() if len(owners) > 1}
+    high_risk = {key: owners for key, owners in collisions.items() if key[0] in HIGH_RISK_RESOURCE_TYPES}
 
     print("[integration-scan] modules:", ", ".join(m.name for m in modules))
     print(f"[integration-scan] cross-feature resource collisions: {len(collisions)}")
@@ -205,6 +200,16 @@ def main() -> int:
             manifest_high_risk = True
             rendered = ", ".join(f"{m}:{c}" for m, c in owners)
             print(f"MANIFEST HIGH provider authority collision {authority} <- {rendered}")
+
+    total_process_globals = 0
+    for module_name, findings in process_globals.items():
+        for kind, source, line_no in findings:
+            total_process_globals += 1
+            print(
+                f"PROCESS GLOBAL {module_name}: {kind} at {source}:{line_no} -- "
+                "standalone use is allowed; YSuite must broker/reclaim shared ownership"
+            )
+    print(f"[integration-scan] process-global integration reminders: {total_process_globals}")
 
     for error in parse_errors:
         print(f"PARSE WARN {error}")
