@@ -27,6 +27,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.suite.core.FeatureStateStore
@@ -42,6 +44,7 @@ import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
@@ -63,9 +66,27 @@ class MainActivity : ComponentActivity() {
         val store = remember { FeatureStateStore(this) }
         val enabled = remember { mutableStateMapOf<String, Boolean>().apply { features.forEach { put(it.id, store.isEnabled(it)) } } }
         var rootAvailable by remember { mutableStateOf<Boolean?>(null) }
+        var xposedStatus by remember { mutableStateOf(SuiteXposedServiceBroker.statusLabel()) }
+        var resumeTick by remember { mutableIntStateOf(0) }
 
-        LaunchedEffect(Unit) {
+        LifecycleResumeEffect(Unit) {
+            resumeTick++
+            onPauseOrDispose { }
+        }
+
+        // Root authorization can change while KernelSU is in the foreground. Recheck on every
+        // resume rather than freezing the startup result for the lifetime of the Activity.
+        LaunchedEffect(resumeTick) {
             rootAvailable = withContext(Dispatchers.IO) { RootManager.isAvailable(this@MainActivity) }
+        }
+
+        // The framework service may bind/die while this screen remains visible. Poll the tiny
+        // in-process broker snapshot so the host card never presents stale LSPosed state.
+        LaunchedEffect(Unit) {
+            while (true) {
+                xposedStatus = SuiteXposedServiceBroker.statusLabel()
+                delay(1_000L)
+            }
         }
 
         Scaffold(topBar = { TopAppBar(title = { Text("YSuite") }) }) { padding ->
@@ -78,10 +99,12 @@ class MainActivity : ComponentActivity() {
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp)) {
                             Text("统一运行环境", style = MaterialTheme.typography.titleMedium)
-                            Text("Root：" + when (rootAvailable) { true -> "已授权"; false -> "不可用"; null -> "检测中" })
+                            Text("Root：" + when (rootAvailable) { true -> "已授权"; false -> "不可用 / 未授权"; null -> "检测中" })
+                            Text("LSPosed：$xposedStatus")
+                            Text("已注册功能监听：${SuiteXposedServiceBroker.listenerCount()}")
                             Text("已加入功能：${features.size}")
                             Text(
-                                "功能开关控制 YSuite 内的入口和宿主运行时；LSPosed Hook 的启用与作用域仍由 LSPosed 管理。",
+                                "这里显示 YSuite 宿主的真实 Root 与 LSPosed API 服务状态；具体 Hook 作用域仍由 LSPosed 管理。",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Spacer(Modifier.height(8.dp))
