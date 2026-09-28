@@ -10,11 +10,14 @@ class YSuiteApp : Application() {
         super.onCreate()
         val states = FeatureStateStore(this)
         val included = FeatureRegistry.included()
+        val packageInfo = packageManager.getPackageInfo(packageName, 0)
+        val versionName = packageInfo.versionName ?: "unknown"
+        val versionCode = packageInfo.longVersionCode
 
         SuiteLog.i(
             this,
             "suite",
-            "YSuite host starting; version=${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE}); " +
+            "YSuite host starting; version=$versionName($versionCode); " +
                 "features=${included.size}; ids=${included.joinToString(",") { it.id }}",
         )
 
@@ -41,7 +44,7 @@ class YSuiteApp : Application() {
         SuiteLog.i(
             this,
             "suite",
-            "YSuite host initialized; version=${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE}); features=${included.size}",
+            "YSuite host initialized; version=$versionName($versionCode); features=${included.size}",
         )
     }
 }
