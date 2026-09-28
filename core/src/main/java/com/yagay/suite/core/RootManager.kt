@@ -36,6 +36,14 @@ object RootManager {
 
     fun isAvailable(context: Context): Boolean {
         initialize(context)
-        return runCatching { Shell.getShell().isRoot }.getOrDefault(false)
+        return runCatching {
+            val shell = Shell.getShell()
+            val granted = shell.isRoot
+            // libsu caches the process-wide main shell. If the first request was denied, keeping
+            // that NON_ROOT shell would make later checks stale even after the user grants YSuite
+            // in KernelSU. Close non-root shells so the next resume creates a fresh su session.
+            if (!granted) runCatching { shell.close() }
+            granted
+        }.getOrDefault(false)
     }
 }
