@@ -69,6 +69,39 @@ object FeatureRegistry {
             requiresRoot = true,
             requiresHook = true,
         ),
+        FeatureSpec(
+            id = "ynfc",
+            name = "YNFC",
+            description = "NFC 门禁卡与控制器模拟",
+            entryActivityClassName = "com.yagay.YNFC.MainActivity",
+            requiresRoot = true,
+            requiresHook = true,
+        ),
+        FeatureSpec(
+            id = "ytaskmanager",
+            name = "YTaskManager",
+            description = "进程、性能与系统任务管理",
+            entryActivityClassName = "com.yagay.YTaskManager.MainActivity",
+            requiresRoot = true,
+            requiresHook = true,
+        ),
+        FeatureSpec(
+            id = "yparam",
+            name = "YParam",
+            description = "应用 DPI、语言、定位与参数覆盖",
+            entryActivityClassName = "com.yagay.yparam.ui.MainActivity",
+            runtimeInitializerClassName = "com.yagay.yparam.YParamSuiteRuntime",
+            requiresHook = true,
+        ),
+        FeatureSpec(
+            id = "yfloat",
+            name = "YFloat",
+            description = "悬浮操作、文字选框与快捷动作",
+            entryActivityClassName = "com.yagay.YFloat.MainActivity",
+            runtimeInitializerClassName = "com.yagay.YFloat.YFloatSuiteRuntime",
+            requiresRoot = true,
+            requiresHook = true,
+        ),
     )
 
     fun included(): List<FeatureSpec> = all.filter(FeatureSpec::isIncluded)

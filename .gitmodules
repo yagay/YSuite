@@ -22,3 +22,23 @@
 	path = features/ListCleaner
 	url = https://github.com/yagay/ListCleaner.git
 	branch = main
+
+[submodule "features/YNFC"]
+	path = features/YNFC
+	url = https://github.com/yagay/YNFC.git
+	branch = main
+
+[submodule "features/YTaskManager"]
+	path = features/YTaskManager
+	url = https://github.com/yagay/YTaskManager.git
+	branch = main
+
+[submodule "features/YParam"]
+	path = features/YParam
+	url = https://github.com/yagay/YParam.git
+	branch = main
+
+[submodule "features/YFloat"]
+	path = features/YFloat
+	url = https://github.com/yagay/YFloat.git
+	branch = main

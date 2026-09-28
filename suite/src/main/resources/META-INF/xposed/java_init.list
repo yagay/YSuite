@@ -8,3 +8,7 @@ com.yagay.ListCleaner.xposed.ListCleanerModule
 com.yagay.ListCleaner.xposed.ComponentStateGuardModule
 com.yagay.ListCleaner.xposed.ComponentDiscoveryFilterModule
 com.yagay.ListCleaner.xposed.SuiteRuntimeProbeBridgeModule
+com.yagay.YNFC.xposed.NfcInjectionModule
+com.yagay.YTaskManager.xposed.TaskManagerModule
+com.yagay.yparam.hook.YParamModule
+com.yagay.YFloat.hook.YFloatModule

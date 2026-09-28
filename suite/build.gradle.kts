@@ -11,8 +11,8 @@ android {
         applicationId = "com.yagay.YSuite"
         minSdk = 31
         targetSdk = 37
-        versionCode = 43
-        versionName = "0.1.0"
+        versionCode = 44
+        versionName = "0.2.0"
     }
 
     buildFeatures { compose = true }
@@ -28,6 +28,7 @@ android {
 
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        resources.excludes += "META-INF/DEPENDENCIES"
         resources.merges += "META-INF/xposed/*"
         jniLibs.pickFirsts += setOf("**/libbytehook.so")
     }
@@ -40,6 +41,10 @@ dependencies {
     implementation(project(":ypower-feature"))
     implementation(project(":yminiguard-feature"))
     implementation(project(":listcleaner-feature"))
+    implementation(project(":ynfc-feature"))
+    implementation(project(":ytask-feature"))
+    implementation(project(":yparam-feature"))
+    implementation(project(":yfloat-feature"))
 
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
     implementation(composeBom)
