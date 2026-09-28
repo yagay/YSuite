@@ -23,10 +23,11 @@ data class FeatureSpec(
 
     fun createIntent(context: Context): Intent = Intent(context, Class.forName(entryActivityClassName))
 
-    fun initialize(context: Context) {
-        val className = runtimeInitializerClassName ?: return
+    /** Returns the feature runtime so YSuite can attach shared process-level services to it. */
+    fun initialize(context: Context): Any? {
+        val className = runtimeInitializerClassName ?: return null
         val runtimeClass = Class.forName(className)
-        runtimeClass.getMethod("get", Context::class.java).invoke(null, context.applicationContext)
+        return runtimeClass.getMethod("get", Context::class.java).invoke(null, context.applicationContext)
     }
 }
 
