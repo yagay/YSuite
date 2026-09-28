@@ -11,19 +11,15 @@ import java.util.concurrent.CopyOnWriteArraySet
  * service lifecycle events back out to the independently buildable feature runtimes.
  *
  * Feature runtimes may still call registerListener() while they are being initialized because
- * their standalone APKs need that behaviour. YSuite captures each listener immediately after the
- * feature initializer returns, then takes final ownership of XposedServiceHelper after all
- * features have initialized. This keeps standalone sources independent while preventing features
- * in the shared YSuite process from overwriting each other's listener.
+ * their standalone APKs need that behaviour. YSuite captures each listener immediately after a
+ * feature initializer returns and then reclaims final ownership of XposedServiceHelper. This also
+ * covers features enabled later from the host UI.
  */
 object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     private val listeners = CopyOnWriteArraySet<XposedServiceHelper.OnServiceListener>()
 
     @Volatile
     private var currentService: XposedService? = null
-
-    @Volatile
-    private var ownsFrameworkListener = false
 
     @Volatile
     private var appContext: Context? = null
@@ -35,17 +31,17 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         }
         // Some reusable feature initializers intentionally return their host Context instead of
         // their listener singleton (currently YFloat). Capture the listener that the feature just
-        // registered before the next feature can replace it.
-        captureFrameworkListener()
+        // registered before another feature or the broker replaces it.
+        currentFrameworkListener()?.let(::attach)
     }
 
     @Synchronized
     fun takeOwnership(context: Context) {
         appContext = context.applicationContext
-        captureFrameworkListener()
-        if (ownsFrameworkListener) return
+        val current = currentFrameworkListener()
+        if (current === this) return
+        current?.let(::attach)
         XposedServiceHelper.registerListener(this)
-        ownsFrameworkListener = true
         SuiteLog.i(
             context,
             SuiteContract.HOST_MODULE_ID,
@@ -79,8 +75,7 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         }
     }
 
-    private fun captureFrameworkListener() {
-        if (ownsFrameworkListener) return
+    private fun currentFrameworkListener(): XposedServiceHelper.OnServiceListener? =
         runCatching {
             XposedServiceHelper::class.java.declaredFields
                 .asSequence()
@@ -91,8 +86,7 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
                     field.get(null) as? XposedServiceHelper.OnServiceListener
                 }
                 .firstOrNull()
-        }.getOrNull()?.let(::attach)
-    }
+        }.getOrNull()
 
     private fun logFailure(
         event: String,
