@@ -3,6 +3,12 @@ package com.yagay.suite.core
 import android.content.Context
 import android.content.Intent
 
+/**
+ * Minimal registration contract for one reusable feature.
+ *
+ * Keep feature-specific business logic out of this class. A feature must remain independently
+ * buildable while exposing the same entry/runtime implementation to YSuite.
+ */
 data class FeatureSpec(
     val id: String,
     val name: String,
@@ -111,7 +117,10 @@ object FeatureRegistry {
 }
 
 class FeatureStateStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("ysuite_features", Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences(
+        SuiteContract.FEATURE_STATE_PREFS,
+        Context.MODE_PRIVATE,
+    )
 
     fun isEnabled(feature: FeatureSpec): Boolean = prefs.getBoolean("enabled.${feature.id}", feature.defaultEnabled)
 
