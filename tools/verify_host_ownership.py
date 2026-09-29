@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +34,22 @@ def main() -> int:
     gradle = (ROOT / "suite/build.gradle.kts").read_text(encoding="utf-8")
     if 'resources.merges += "META-INF/xposed/*"' in gradle:
         fail("dependency Xposed metadata must never be merged into the host")
+
+    # LSPosed reports loaded module generations by versionCode. If the root property silently
+    # overrides the app fallback with an older number, stale target processes become impossible to
+    # distinguish from current ones and post-install hot reload cannot work reliably.
+    properties = (ROOT / "gradle.properties").read_text(encoding="utf-8")
+    property_match = re.search(r"^ySuiteHostVersionCode=(\d+)\s*$", properties, re.MULTILINE)
+    fallback_match = re.search(r"orNull\?\.toIntOrNull\(\)\s*\?:\s*(\d+)", gradle)
+    if not property_match or not fallback_match:
+        fail("YSuite host versionCode must be declared in gradle.properties and suite/build.gradle.kts")
+    property_version = int(property_match.group(1))
+    fallback_version = int(fallback_match.group(1))
+    if property_version != fallback_version:
+        fail(
+            "YSuite Hook generation mismatch: "
+            f"gradle.properties={property_version} suite fallback={fallback_version}"
+        )
 
     manifest = (ROOT / "suite/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
     required_host_components = (
@@ -89,6 +106,22 @@ def main() -> int:
             if call in text:
                 fail(f"legacy reclaim/capture path remains in {source_path.name}: {call}")
 
+    # Package replacement hot reload is a host capability. Embedded features must never be the
+    # physical owner of process restart/reload policy.
+    reload_coordinator = ROOT / "core/src/main/java/com/yagay/suite/core/SuiteHookReloadCoordinator.kt"
+    boot_receiver = ROOT / "suite/src/main/java/com/yagay/YSuite/system/SuiteBootReceiver.kt"
+    if not reload_coordinator.is_file():
+        fail("host-owned Hook reload coordinator is missing")
+    boot_text = boot_receiver.read_text(encoding="utf-8")
+    if "requestAfterPackageReplaced" not in boot_text or "ACTION_MY_PACKAGE_REPLACED" not in boot_text:
+        fail("YSuite package replacement must trigger host-owned selective Hook hot reload")
+
+    yfloat_runtime = ROOT / "features/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatSuiteRuntime.java"
+    if yfloat_runtime.is_file():
+        yfloat_text = yfloat_runtime.read_text(encoding="utf-8")
+        if "!SUITE_PACKAGE.equals(app.getPackageName())" not in yfloat_text:
+            fail("embedded YFloat must not own automatic target-process reload in YSuite mode")
+
     # YSuite owns the visual shell too. Plugins may supply their page content, but ordinary host
     # pages must use the shared YUI scaffold/layout primitives and normal feature themes are aliased
     # to Theme.YSuite in the combined APK.
@@ -114,8 +147,10 @@ def main() -> int:
             fail(f"combined host theme override missing: {theme}")
 
     print("[host-ownership] single Xposed entry: OK")
+    print("[host-ownership] Hook generation versionCode consistency: OK")
     print("[host-ownership] Xposed dependency metadata merge disabled: OK")
     print("[host-ownership] sole Accessibility/Notification/Boot/IPC/Provider ownership: OK")
+    print("[host-ownership] host-owned package-replaced Hook hot reload: OK")
     print("[host-ownership] legacy reclaim/capture paths absent: OK")
     print("[host-ownership] shared YUI shell/theme ownership: OK")
     return 0
