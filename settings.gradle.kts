@@ -16,7 +16,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "YSuite"
-include(":core", ":suite")
+include(":core", ":ui", ":suite")
 
 include(":ydiag-feature")
 project(":ydiag-feature").projectDir = file("features/YDiag/feature")
