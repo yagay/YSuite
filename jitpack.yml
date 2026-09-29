@@ -1,4 +1,7 @@
 jdk:
   - openjdk17
+before_install:
+  - wget -q https://services.gradle.org/distributions/gradle-9.4.1-bin.zip -O /tmp/gradle-9.4.1-bin.zip
+  - unzip -q /tmp/gradle-9.4.1-bin.zip -d /tmp
 install:
-  - ./gradlew :ui:publishReleasePublicationToMavenLocal -x test --stacktrace
+  - /tmp/gradle-9.4.1/bin/gradle --no-daemon :ui:publishReleasePublicationToMavenLocal -x test --stacktrace
