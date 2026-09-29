@@ -30,6 +30,8 @@ object SuiteUiCoordinator {
 
     private val originalPadding = WeakHashMap<View, BasePadding>()
 
+    private const val HOST_ACTIVITY = "com.yagay.YSuite.MainActivity"
+
     /** Activities whose transparent/overlay window semantics must not be changed by the host. */
     private val excludedActivities = setOf(
         "com.yagay.YFloat.ResultActivity",
@@ -69,7 +71,6 @@ object SuiteUiCoordinator {
         val window = activity.window
         val decor = window.decorView
 
-        // One consistent edge-to-edge contract for the combined APK.
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
@@ -91,9 +92,28 @@ object SuiteUiCoordinator {
             }
         }
 
-        // Paint the safe-area strips with the YSuite host background instead of leaving a visually
-        // separate white/black band from the feature's standalone theme.
         resolveHostBackground(activity)?.let(content::setBackgroundColor)
+
+        if (activity.javaClass.name == HOST_ACTIVITY) {
+            // MainActivity already owns its Compose top bar and navigation-bar content padding.
+            // Consume only status/cutout insets here without adding another top strip. Navigation
+            // bars remain visible to Compose so WindowInsets.navigationBars keeps working.
+            ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
+                val topTypes = WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout()
+                val horizontal = insets.getInsets(topTypes)
+                view.setPadding(
+                    base.left + horizontal.left,
+                    base.top,
+                    base.right + horizontal.right,
+                    base.bottom,
+                )
+                WindowInsetsCompat.Builder(insets)
+                    .setInsets(topTypes, Insets.NONE)
+                    .build()
+            }
+            ViewCompat.requestApplyInsets(content)
+            return
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
             val types = WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
