@@ -11,18 +11,28 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
     }
 }
 
 rootProject.name = "YSuite"
 
-// A normal YSuite checkout initializes feature submodules and builds the complete host.
-// A Gradle Git source dependency checkout contains YSuite itself but not recursive feature
-// submodules, so it automatically becomes a lightweight :ui-only build.
-val featureSourcesPresent = file("features/YDiag/feature").isDirectory &&
-    file("features/YEntryCleaner/feature").isDirectory &&
-    file("features/YTaskManager/feature").isDirectory
+// YUI has one source of truth and two build modes:
+// 1) a normal YSuite checkout with all feature submodules builds the complete host;
+// 2) a standalone feature resolves YSuite through Gradle sourceControl. Git checks out YSuite
+//    without recursive feature submodules, so this build automatically exposes only :ui.
+val requiredFeatureDirs = listOf(
+    "features/YDiag/feature",
+    "features/YNotify/feature",
+    "features/YPower/feature",
+    "features/YMiniGuard/feature",
+    "features/YEntryCleaner/feature",
+    "features/YNFC/feature",
+    "features/YTaskManager/feature",
+    "features/YParam/feature",
+    "features/YFloat/feature",
+    "features/YFloat/ppocr-sdk",
+)
+val featureSourcesPresent = requiredFeatureDirs.all { file(it).isDirectory }
 
 include(":ui")
 
