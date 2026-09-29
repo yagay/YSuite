@@ -13,6 +13,7 @@ import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.RootManager
 import com.yagay.suite.core.SuiteContract
 import com.yagay.suite.core.SuiteCrashTracker
+import com.yagay.suite.core.SuiteHookReloadCoordinator
 import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
 
@@ -49,6 +50,9 @@ class YSuiteApp : Application() {
         // plugin runtime is initialized. Embedded plugins may only attach/consume these services.
         SuiteXposedServiceBroker.takeOwnership(this)
         RootManager.initialize(this)
+        // A package replacement can arrive while credential storage is locked or before the LSPosed
+        // service is ready. Resume the persisted host-owned reload request after bootstrap.
+        SuiteHookReloadCoordinator.resumePending(this)
 
         val states = FeatureStateStore(this)
         val included = FeatureRegistry.included()
