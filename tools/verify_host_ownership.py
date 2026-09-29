@@ -35,26 +35,60 @@ def main() -> int:
         fail("dependency Xposed metadata must never be merged into the host")
 
     manifest = (ROOT / "suite/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
-    required_services = (
+    required_host_components = (
         ".accessibility.SuiteAccessibilityService",
         ".notification.SuiteNotificationListenerService",
+        ".system.SuiteBootReceiver",
+        ".ipc.SuiteBridgeReceiver",
     )
-    for service in required_services:
-        if service not in manifest:
-            fail(f"shared host service missing: {service}")
+    for component in required_host_components:
+        if component not in manifest:
+            fail(f"shared host component missing: {component}")
 
-    forbidden_live_services = (
-        'android:name="com.yagay.YFloat.LensAccessibilityService"\n            android:',
-        'android:name="com.yagay.YNotify.collector.UiAccessibilityService"\n            android:',
-        'android:name="com.yagay.YNotify.collector.NotificationCaptureService"\n            android:',
+    # Standalone components may remain in feature manifests for independent APK builds, but the
+    # combined host manifest must explicitly remove them and expose only YSuite-owned components.
+    forbidden_plugin_components = (
+        "com.yagay.YFloat.LensAccessibilityService",
+        "com.yagay.YNotify.collector.UiAccessibilityService",
+        "com.yagay.YNotify.collector.NotificationCaptureService",
+        "com.yagay.ypower.root.YPowerRootService",
+        "com.yagay.ypower.root.BootReceiver",
+        "com.yagay.YFloat.FloatServiceBootReceiver",
+        "com.yagay.YNotify.collector.XposedEventReceiver",
+        "com.yagay.YFloat.GoogleCtsBridgeReceiver",
+        "com.yagay.YFloat.GoogleCtsTraceReceiver",
     )
-    for marker in forbidden_live_services:
-        if marker in manifest:
-            fail("standalone special-access service is active in YSuite manifest")
+    for component in forbidden_plugin_components:
+        marker = f'android:name="{component}"'
+        if marker not in manifest:
+            fail(f"combined manifest must explicitly remove standalone component: {component}")
+        # The removal declaration must be local to the same component stanza. Looking ahead a
+        # small bounded window keeps this check readable and resilient to attribute formatting.
+        start = manifest.index(marker)
+        window = manifest[start:start + 260]
+        if 'tools:node="remove"' not in window:
+            fail(f"standalone component is not removed in YSuite: {component}")
+
+    # The old integration model let plugins seize process-global state, then made the host reclaim
+    # it. Sole-host architecture forbids that pattern in both cold-start and hot-enable paths.
+    for source_path in (
+        ROOT / "suite/src/main/java/com/yagay/YSuite/YSuiteApp.kt",
+        ROOT / "suite/src/main/java/com/yagay/YSuite/MainActivity.kt",
+    ):
+        text = source_path.read_text(encoding="utf-8")
+        forbidden_calls = (
+            "SuiteXposedServiceBroker.capture(",
+            "SuiteCrashTracker.reclaim(",
+            "RootManager.reclaim(",
+        )
+        for call in forbidden_calls:
+            if call in text:
+                fail(f"legacy reclaim/capture path remains in {source_path.name}: {call}")
 
     print("[host-ownership] single Xposed entry: OK")
     print("[host-ownership] Xposed dependency metadata merge disabled: OK")
-    print("[host-ownership] shared Accessibility/NotificationListener ownership: OK")
+    print("[host-ownership] sole Accessibility/Notification/Boot/IPC ownership: OK")
+    print("[host-ownership] legacy reclaim/capture paths absent: OK")
     return 0
 
 
