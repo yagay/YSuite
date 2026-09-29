@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.lifecycleScope
 import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.suite.core.FeatureStateStore
@@ -45,6 +46,7 @@ import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
@@ -57,6 +59,24 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         SuiteCrashTracker.markActiveFeature(this, null)
+    }
+
+    private fun exportDiagnostic(modules: Set<String>?, label: String) {
+        Toast.makeText(this, "正在收集 $label 诊断信息…", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { SuiteLog.export(this@MainActivity, modules) }
+            }
+            result.onSuccess { path ->
+                Toast.makeText(this@MainActivity, "$label 已保存：$path", Toast.LENGTH_LONG).show()
+            }.onFailure {
+                Toast.makeText(
+                    this@MainActivity,
+                    "$label 保存失败：${it.javaClass.simpleName}",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -104,19 +124,13 @@ class MainActivity : ComponentActivity() {
                             Text("已注册功能监听：${SuiteXposedServiceBroker.listenerCount()}")
                             Text("已加入功能：${features.size}")
                             Text(
-                                "这里显示 YSuite 宿主的真实 Root 与 LSPosed API 服务状态；具体 Hook 作用域仍由 LSPosed 管理。",
+                                "整体诊断会自动收集公共系统状态、Root、LSPosed、Crash/ANR、Logcat 与各模块专属证据。",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Spacer(Modifier.height(8.dp))
                             OutlinedButton(onClick = {
-                                runCatching { SuiteLog.export(this@MainActivity) }
-                                    .onSuccess { path ->
-                                        Toast.makeText(this@MainActivity, "已保存：$path", Toast.LENGTH_LONG).show()
-                                    }
-                                    .onFailure {
-                                        Toast.makeText(this@MainActivity, "日志保存失败：${it.javaClass.simpleName}", Toast.LENGTH_LONG).show()
-                                    }
-                            }) { Text("导出宿主日志") }
+                                exportDiagnostic(null, "整体诊断")
+                            }) { Text("导出整体诊断") }
                         }
                     }
                 }
@@ -166,13 +180,7 @@ class MainActivity : ComponentActivity() {
                                 }
                         },
                         onExportLog = {
-                            runCatching { SuiteLog.export(this@MainActivity, setOf(feature.id)) }
-                                .onSuccess { path ->
-                                    Toast.makeText(this@MainActivity, "${feature.name} 宿主日志已保存：$path", Toast.LENGTH_LONG).show()
-                                }
-                                .onFailure {
-                                    Toast.makeText(this@MainActivity, "${feature.name} 日志保存失败：${it.javaClass.simpleName}", Toast.LENGTH_LONG).show()
-                                }
+                            exportDiagnostic(setOf(feature.id), "${feature.name} 诊断")
                         },
                     )
                 }
@@ -205,7 +213,7 @@ private fun FeatureCard(
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onOpen, enabled = isEnabled) { Text("打开") }
-                OutlinedButton(onClick = onExportLog) { Text("宿主日志") }
+                OutlinedButton(onClick = onExportLog) { Text("诊断包") }
             }
         }
     }
