@@ -1,4 +1,4 @@
 jdk:
   - openjdk17
 install:
-  - ./gradlew :ui:publishToMavenLocal -x test
+  - ./gradlew :ui:publishReleasePublicationToMavenLocal -x test --stacktrace
