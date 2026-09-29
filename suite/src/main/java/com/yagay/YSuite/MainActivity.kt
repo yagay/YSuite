@@ -1,20 +1,14 @@
 package com.yagay.YSuite
 
-import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,19 +38,18 @@ import com.yagay.suite.core.RootManager
 import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
+import com.yagay.yui.YComposeActivity
+import com.yagay.yui.YDimens
 import com.yagay.yui.YScaffold
-import com.yagay.yui.YTheme
-import com.yagay.yui.YView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        YView.applyComposeWindow(this)
-        setContent { YTheme { FeatureManagerScreen() } }
+class MainActivity : YComposeActivity() {
+    @Composable
+    override fun YContent() {
+        FeatureManagerScreen()
     }
 
     override fun onResume() {
@@ -116,22 +109,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val navigationBottom = WindowInsets.navigationBars
-            .asPaddingValues()
-            .calculateBottomPadding()
-
         YScaffold(title = "YSuite") { scaffoldPadding ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(scaffoldPadding)
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = navigationBottom + 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(horizontal = YDimens.ScreenHorizontal),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
             ) {
                 item {
                     Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp)) {
+                        Column(Modifier.padding(YDimens.CardPadding)) {
                             Text("统一运行环境", style = MaterialTheme.typography.titleMedium)
                             Text(
                                 "Root：" + when (rootAvailable) {
@@ -187,8 +176,8 @@ class MainActivity : ComponentActivity() {
                                 "共享能力：Root、LSPosed、无障碍、悬浮窗、通知、通知监听。新增模块只需在 FeatureSpec 声明需要的能力；需要无障碍或通知事件流时再注册 Bridge，不再新增系统授权 Service。",
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            Spacer(Modifier.height(8.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Spacer(Modifier.height(YDimens.ControlGap))
+                            Row(horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
                                 OutlinedButton(onClick = {
                                     if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
                                         Toast.makeText(
@@ -211,7 +200,7 @@ class MainActivity : ComponentActivity() {
                                 }) { Text("悬浮窗") }
                             }
                             Spacer(Modifier.height(6.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
                                 OutlinedButton(onClick = {
                                     if (!SuitePermissionState.openNotificationListenerSettings(this@MainActivity)) {
                                         Toast.makeText(
@@ -311,7 +300,7 @@ private fun FeatureCard(
     onExportLog: () -> Unit,
 ) {
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(YDimens.CardPadding)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -330,7 +319,7 @@ private fun FeatureCard(
                 Switch(checked = isEnabled, onCheckedChange = onEnabledChange)
             }
             Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
                 Button(onClick = onOpen, enabled = isEnabled) { Text("打开") }
                 OutlinedButton(onClick = onExportLog) { Text("诊断包") }
             }
