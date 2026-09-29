@@ -235,12 +235,12 @@ class MainActivity : YComposeActivity() {
                             enabled[feature.id] = next
                             if (next) {
                                 runCatching { feature.initialize(this@MainActivity) }
-                                    .onSuccess { runtime ->
-                                        SuiteXposedServiceBroker.capture(this@MainActivity, runtime)
-                                        SuiteXposedServiceBroker.takeOwnership(this@MainActivity)
-                                        RootManager.reclaim(this@MainActivity)
-                                        SuiteCrashTracker.reclaim(this@MainActivity)
-                                        SuiteLog.i(this@MainActivity, feature.id, "host enabled")
+                                    .onSuccess {
+                                        SuiteLog.i(
+                                            this@MainActivity,
+                                            feature.id,
+                                            "host enabled; plugin attached to existing YSuite capabilities",
+                                        )
                                     }
                                     .onFailure {
                                         SuiteLog.e(
@@ -259,7 +259,7 @@ class MainActivity : YComposeActivity() {
                                 SuiteLog.i(
                                     this@MainActivity,
                                     feature.id,
-                                    "host disabled; LSPosed scope is managed separately",
+                                    "host disabled; shared capabilities remain owned by YSuite",
                                 )
                             }
                         },
