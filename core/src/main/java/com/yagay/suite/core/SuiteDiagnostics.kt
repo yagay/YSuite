@@ -87,34 +87,62 @@ object SuiteDiagnostics {
         if (rootAvailable) {
             captureRoot(root, coverage, "package-dump.txt", "dumpsys package ${shellQuote(app.packageName)}", 20)
             captureRoot(root, coverage, "appops.txt", "cmd appops get ${shellQuote(app.packageName)} 2>&1", 15)
-            captureRoot(root, coverage, "activity-services.txt",
+            captureRoot(
+                root,
+                coverage,
+                "activity-services.txt",
                 "dumpsys activity services ${shellQuote(app.packageName)}; echo; dumpsys activity exit-info ${shellQuote(app.packageName)}",
-                20)
-            captureRoot(root, coverage, "processes.txt",
+                20,
+            )
+            captureRoot(
+                root,
+                coverage,
+                "processes.txt",
                 "echo '=== target processes ==='; ps -A -o USER,PID,PPID,NAME,ARGS 2>/dev/null | grep -E 'com\\.yagay\\.YSuite|com\\.yagay\\.(YFloat|YNotify|YPower|YMiniGuard|YNFC|YTaskManager|YEntryCleaner)|com\\.yagay\\.ydiag|com\\.yagay\\.yparam' || true; " +
                     "echo; echo '=== activity processes (filtered) ==='; dumpsys activity processes 2>/dev/null | grep -E -i -C 3 'com\\.yagay|YSuite' | head -n 4000",
-                20)
-            captureRoot(root, coverage, "system-access.txt",
+                20,
+            )
+            captureRoot(
+                root,
+                coverage,
+                "system-access.txt",
                 "echo '=== secure accessibility ==='; settings get secure enabled_accessibility_services; " +
                     "echo '=== secure notification listeners ==='; settings get secure enabled_notification_listeners; " +
                     "echo '=== accessibility dumpsys ==='; dumpsys accessibility 2>&1 | head -n 6000",
-                20)
-            captureRoot(root, coverage, "power-state.txt",
+                20,
+            )
+            captureRoot(
+                root,
+                coverage,
+                "power-state.txt",
                 "echo '=== deviceidle ==='; dumpsys deviceidle 2>&1 | head -n 5000; " +
                     "echo '=== power ==='; dumpsys power 2>&1 | head -n 5000",
-                20)
-            captureRoot(root, coverage, "lsposed-files.txt",
+                20,
+            )
+            captureRoot(
+                root,
+                coverage,
+                "lsposed-files.txt",
                 "echo '=== LSPosed log dir ==='; ls -lt /data/adb/lspd/log 2>/dev/null; " +
-                    "for f in /data/adb/lspd/log/*.log; do [ -f \"$f\" ] || continue; echo; echo \"=== $f ===\"; tail -n 1800 \"$f\"; done",
-                30)
-            captureRoot(root, coverage, "crash-history.txt",
+                    "for f in /data/adb/lspd/log/*.log; do [ -f \"\$f\" ] || continue; echo; echo \"=== \$f ===\"; tail -n 1800 \"\$f\"; done",
+                30,
+            )
+            captureRoot(
+                root,
+                coverage,
+                "crash-history.txt",
                 "echo '=== crash buffer ==='; logcat -d -b crash -v threadtime -t 2500 2>&1; " +
-                    "echo; echo '=== ANR files matching YSuite ==='; for f in /data/anr/*; do [ -f \"$f\" ] || continue; grep -qi -E 'com\\.yagay|YSuite' \"$f\" 2>/dev/null && { echo \"--- $f ---\"; tail -n 1200 \"$f\"; }; done; " +
-                    "echo; echo '=== tombstones matching YSuite ==='; for f in /data/tombstones/tombstone_*; do [ -f \"$f\" ] || continue; grep -qi -E 'com\\.yagay|YSuite' \"$f\" 2>/dev/null && { echo \"--- $f ---\"; tail -n 1200 \"$f\"; }; done",
-                35)
-            captureRoot(root, coverage, "logcat-snapshot.txt",
+                    "echo; echo '=== ANR files matching YSuite ==='; for f in /data/anr/*; do [ -f \"\$f\" ] || continue; grep -qi -E 'com\\.yagay|YSuite' \"\$f\" 2>/dev/null && { echo \"--- \$f ---\"; tail -n 1200 \"\$f\"; }; done; " +
+                    "echo; echo '=== tombstones matching YSuite ==='; for f in /data/tombstones/tombstone_*; do [ -f \"\$f\" ] || continue; grep -qi -E 'com\\.yagay|YSuite' \"\$f\" 2>/dev/null && { echo \"--- \$f ---\"; tail -n 1200 \"\$f\"; }; done",
+                35,
+            )
+            captureRoot(
+                root,
+                coverage,
+                "logcat-snapshot.txt",
                 "logcat -d -v threadtime -b main -b system -b crash -b events -t 8000 2>&1",
-                30)
+                30,
+            )
 
             selected.forEach { id -> collectModuleRootEvidence(root, coverage, id, app.packageName) }
         } else {
@@ -217,7 +245,8 @@ object SuiteDiagnostics {
         val power = context.getSystemService(PowerManager::class.java)
         val appOps = context.getSystemService(AppOpsManager::class.java)
         val usageMode = runCatching {
-            appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
+            appOps?.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
+                ?: AppOpsManager.MODE_ERRORED
         }.getOrDefault(AppOpsManager.MODE_ERRORED)
         val notificationGranted = Build.VERSION.SDK_INT < 33 ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
