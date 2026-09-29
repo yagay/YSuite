@@ -37,6 +37,9 @@
         <receiver
             android:name="com.yagay.ypower.root.BootReceiver"
             tools:node="remove" />
+        <receiver
+            android:name="com.yagay.YFloat.FloatServiceBootReceiver"
+            tools:node="remove" />
 
         <service
             android:name=".accessibility.SuiteAccessibilityService"
@@ -66,6 +69,7 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
     </application>
