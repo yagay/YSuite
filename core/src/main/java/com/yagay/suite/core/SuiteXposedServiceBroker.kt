@@ -22,14 +22,6 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     @Volatile
     private var appContext: Context? = null
 
-    /** Backward-compatible host attachment while plugins migrate to attachFromPlugin(). */
-    fun capture(context: Context, runtime: Any?) {
-        appContext = context.applicationContext
-        if (runtime is XposedServiceHelper.OnServiceListener && runtime !== this) {
-            attach("legacy:${runtime.javaClass.name}", runtime)
-        }
-    }
-
     /** Reflection-friendly plugin registration. No plugin calls registerListener() in YSuite mode. */
     @JvmStatic
     fun attachFromPlugin(pluginId: String, listener: Any): Boolean {
