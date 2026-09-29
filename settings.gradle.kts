@@ -11,6 +11,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Third-party dependencies such as libsu still come from JitPack.
+        // YUI itself is NOT published through JitPack; standalone apps resolve :ui from sourceControl.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
