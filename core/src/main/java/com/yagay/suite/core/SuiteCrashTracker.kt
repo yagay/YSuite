@@ -58,7 +58,7 @@ object SuiteCrashTracker {
     }
 
     fun markActiveFeature(context: Context, featureId: String?) {
-        val prefs = context.applicationContext.getSharedPreferences(
+        val prefs = crashStorage(context).getSharedPreferences(
             SuiteContract.CRASH_CONTEXT_PREFS,
             Context.MODE_PRIVATE,
         )
@@ -70,7 +70,11 @@ object SuiteCrashTracker {
     }
 
     fun activeFeature(context: Context): String? =
-        context.applicationContext
+        crashStorage(context)
             .getSharedPreferences(SuiteContract.CRASH_CONTEXT_PREFS, Context.MODE_PRIVATE)
             .getString(SuiteContract.ACTIVE_FEATURE_KEY, null)
+
+    /** Crash attribution must remain available during Direct Boot, before CE storage is unlocked. */
+    private fun crashStorage(context: Context): Context =
+        context.applicationContext.createDeviceProtectedStorageContext()
 }

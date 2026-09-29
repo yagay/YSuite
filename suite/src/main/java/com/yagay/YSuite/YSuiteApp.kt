@@ -1,6 +1,13 @@
 package com.yagay.YSuite
 
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
+import android.os.UserManager
+import android.util.Log
 import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.RootManager
@@ -10,14 +17,35 @@ import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
 
 class YSuiteApp : Application() {
+    @Volatile
+    private var initialized = false
+    private var unlockReceiver: BroadcastReceiver? = null
+
     override fun onCreate() {
         super.onCreate()
+
+        // Crash attribution itself is Direct-Boot safe. Everything else can depend on credential
+        // encrypted storage, so defer the normal host bootstrap until the user is unlocked.
+        SuiteCrashTracker.install(this)
+        if (!isUserUnlocked()) {
+            registerUnlockReceiver()
+            Log.i(TAG, "User locked; deferring YSuite host initialization until ACTION_USER_UNLOCKED")
+            return
+        }
+        initializeUnlockedHost()
+    }
+
+    @Synchronized
+    private fun initializeUnlockedHost() {
+        if (initialized || !isUserUnlocked()) return
+        initialized = true
+        unlockReceiver?.let { receiver -> runCatching { unregisterReceiver(receiver) } }
+        unlockReceiver = null
 
         // Own the combined APK's window/system-bar contract before any feature Activity opens.
         // Standalone feature APKs never load this class, so their UI remains independent.
         SuiteUiCoordinator.install(this)
 
-        SuiteCrashTracker.install(this)
         SuiteCrashTracker.markActiveFeature(this, null)
 
         val states = FeatureStateStore(this)
@@ -70,5 +98,29 @@ class YSuiteApp : Application() {
             "YSuite host initialized; version=$versionName($versionCode); contract=${SuiteContract.REVISION}; " +
                 "features=${included.size}; xposedListeners=${SuiteXposedServiceBroker.listenerCount()}",
         )
+    }
+
+    private fun registerUnlockReceiver() {
+        if (unlockReceiver != null) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == Intent.ACTION_USER_UNLOCKED) initializeUnlockedHost()
+            }
+        }
+        unlockReceiver = receiver
+        val filter = IntentFilter(Intent.ACTION_USER_UNLOCKED)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(receiver, filter)
+        }
+    }
+
+    private fun isUserUnlocked(): Boolean =
+        getSystemService(UserManager::class.java)?.isUserUnlocked != false
+
+    private companion object {
+        const val TAG = "YSuite.App"
     }
 }
