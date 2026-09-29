@@ -55,6 +55,9 @@
         <provider
             android:name="com.yagay.YMiniGuard.EngineStatusProvider"
             tools:node="remove" />
+        <provider
+            android:name="com.yagay.YNFC.ConfigProvider"
+            tools:node="remove" />
 
         <service
             android:name=".accessibility.SuiteAccessibilityService"
@@ -104,5 +107,11 @@
             android:directBootAware="true"
             android:exported="true"
             android:grantUriPermissions="false" />
+
+        <provider
+            android:name=".ipc.SuiteNfcConfigProvider"
+            android:authorities="${applicationId}.ynfc.config"
+            android:directBootAware="true"
+            android:exported="true" />
     </application>
 </manifest>
