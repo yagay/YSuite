@@ -17,20 +17,16 @@ dependencyResolutionManagement {
 
 rootProject.name = "YSuite"
 
-// YUI has to be usable in three environments with the same source:
-// 1) normal YSuite checkout with all feature submodules -> build the complete host;
-// 2) JitPack publication -> configure only :ui;
-// 3) Gradle Git source dependency from a standalone feature repo -> Git checks out YSuite without
-//    recursive feature submodules, so automatically configure only :ui.
-val jitpackBuild = System.getenv("JITPACK")?.equals("true", ignoreCase = true) == true
+// A normal YSuite checkout initializes feature submodules and builds the complete host.
+// A Gradle Git source dependency checkout contains YSuite itself but not recursive feature
+// submodules, so it automatically becomes a lightweight :ui-only build.
 val featureSourcesPresent = file("features/YDiag/feature").isDirectory &&
     file("features/YEntryCleaner/feature").isDirectory &&
     file("features/YTaskManager/feature").isDirectory
-val uiOnlyBuild = jitpackBuild || !featureSourcesPresent
 
 include(":ui")
 
-if (!uiOnlyBuild) {
+if (featureSourcesPresent) {
     include(":core", ":suite")
 
     include(":ydiag-feature")
