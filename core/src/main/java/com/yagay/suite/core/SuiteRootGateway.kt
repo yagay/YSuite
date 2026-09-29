@@ -31,6 +31,28 @@ object SuiteRootGateway {
         }
     }
 
+    /**
+     * Reflection-friendly entry used by independently buildable feature modules when embedded in
+     * YSuite. Absence of this class means the feature is running standalone and may use its own
+     * shell implementation.
+     */
+    @JvmStatic
+    fun executeFromPlugin(
+        pluginId: String,
+        operation: String,
+        command: String,
+        timeoutSeconds: Long,
+    ): Result {
+        val context = RootManager.contextOrNull()
+            ?: return Result(
+                code = Shell.Result.JOB_NOT_EXECUTED,
+                stdout = "",
+                stderr = "YSuite root host is not initialized",
+                error = IllegalStateException("YSuite root host is not initialized"),
+            )
+        return execute(context, pluginId, operation, command, timeoutSeconds)
+    }
+
     @JvmStatic
     fun execute(
         context: Context,
