@@ -49,6 +49,9 @@
         <receiver
             android:name="com.yagay.YFloat.GoogleCtsTraceReceiver"
             tools:node="remove" />
+        <provider
+            android:name="com.yagay.YFloat.GoogleCtsBridgeProvider"
+            tools:node="remove" />
 
         <service
             android:name=".accessibility.SuiteAccessibilityService"
@@ -85,5 +88,11 @@
         <receiver
             android:name=".ipc.SuiteBridgeReceiver"
             android:exported="true" />
+
+        <provider
+            android:name=".ipc.SuiteGoogleBridgeProvider"
+            android:authorities="${applicationId}.googlebridge"
+            android:exported="true"
+            android:grantUriPermissions="false" />
     </application>
 </manifest>
