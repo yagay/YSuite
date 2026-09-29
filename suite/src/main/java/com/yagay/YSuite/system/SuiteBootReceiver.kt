@@ -6,6 +6,7 @@ import android.content.Intent
 import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.SuiteContract
+import com.yagay.suite.core.SuiteHookReloadCoordinator
 import com.yagay.suite.core.SuiteLog
 
 /** The only boot/package-replaced receiver registered by the combined YSuite host. */
@@ -15,6 +16,14 @@ class SuiteBootReceiver : BroadcastReceiver() {
         if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_MY_PACKAGE_REPLACED) return
         val app = context.applicationContext
         val states = FeatureStateStore(app)
+
+        if (action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            val pending = goAsync()
+            val started = SuiteHookReloadCoordinator.requestAfterPackageReplaced(app) {
+                pending.finish()
+            }
+            if (!started) pending.finish()
+        }
 
         FeatureRegistry.included().forEach { feature ->
             val className = feature.bootReceiverClassName ?: return@forEach
