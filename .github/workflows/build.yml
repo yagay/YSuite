@@ -19,6 +19,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Verify YSuite host ownership
+        run: python3 tools/verify_host_ownership.py
+
       - name: Scan feature integration hazards
         run: python3 tools/scan_feature_integration.py --root . --fail-on-high-risk
 
@@ -57,6 +60,32 @@ jobs:
 
       - name: Build compact YSuite APK
         run: gradle --no-daemon --stacktrace :suite:assembleCompact
+
+      - name: Verify single YSuite Xposed entry
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+
+          apks = list(Path("suite/build/outputs/apk/compact").glob("*.apk"))
+          if len(apks) != 1:
+              raise SystemExit(f"Expected exactly one compact APK, found: {apks}")
+
+          expected = ["com.yagay.YSuite.xposed.SuiteXposedModule"]
+          with zipfile.ZipFile(apks[0]) as zf:
+              path = "META-INF/xposed/java_init.list"
+              if path not in zf.namelist():
+                  raise SystemExit(f"Missing {path} in {apks[0]}")
+              text = zf.read(path).decode("utf-8")
+
+          entries = [
+              line.strip() for line in text.splitlines()
+              if line.strip() and not line.lstrip().startswith("#")
+          ]
+          if entries != expected:
+              raise SystemExit(f"Expected one YSuite Xposed entry, found: {entries}")
+          print("Verified single physical Xposed host entry:", entries[0])
+          PY
 
       - name: Verify unified special services
         run: |
