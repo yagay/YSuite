@@ -7,11 +7,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -106,8 +111,6 @@ class MainActivity : ComponentActivity() {
             permissions = SuitePermissionState.snapshot(this@MainActivity)
         }
 
-        // Process-global framework state and special-access bindings can change while Settings,
-        // KernelSU or LSPosed is in the foreground. Keep this inexpensive host snapshot fresh.
         LaunchedEffect(Unit) {
             while (true) {
                 xposedStatus = SuiteXposedServiceBroker.statusLabel()
@@ -116,9 +119,20 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        Scaffold(topBar = { TopAppBar(title = { Text("YSuite") }) }) { padding ->
+        val navigationBottom = WindowInsets.navigationBars
+            .asPaddingValues()
+            .calculateBottomPadding()
+
+        Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            topBar = { TopAppBar(title = { Text("YSuite") }) },
+        ) { scaffoldPadding ->
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = scaffoldPadding.calculateTopPadding())
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(bottom = navigationBottom + 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
@@ -290,8 +304,6 @@ class MainActivity : ComponentActivity() {
                         },
                     )
                 }
-
-                item { Spacer(Modifier.height(24.dp)) }
             }
         }
     }
