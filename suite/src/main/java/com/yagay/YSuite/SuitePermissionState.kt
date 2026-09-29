@@ -13,8 +13,9 @@ import com.yagay.YFloat.AccessibilityState
 import com.yagay.YNotify.data.ListenerStateStore
 import com.yagay.YNotify.util.ServiceGrantStatus
 import com.yagay.YSuite.accessibility.SuiteAccessibilityService
+import com.yagay.YSuite.notification.SuiteNotificationListenerService
 
-/** Host-level permission snapshot used by the YSuite shell. */
+/** Host-level permission snapshot used by the YSuite shell and future shared capability users. */
 object SuitePermissionState {
     private const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
         "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"
@@ -29,6 +30,8 @@ object SuitePermissionState {
         val notificationsGranted: Boolean,
         val notificationListenerGranted: Boolean,
         val notificationListenerConnected: Boolean,
+        val legacyNotificationListenerEnabled: Boolean,
+        val otherNotificationListenerHostEnabled: Boolean,
     )
 
     fun snapshot(context: Context): Snapshot {
@@ -47,7 +50,12 @@ object SuitePermissionState {
                 context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
                 PackageManager.PERMISSION_GRANTED,
             notificationListenerGranted = ServiceGrantStatus.notificationListenerEnabled(context),
-            notificationListenerConnected = ListenerStateStore.isConnected(context),
+            notificationListenerConnected = SuiteNotificationListenerService.isConnected() ||
+                ListenerStateStore.isConnected(context),
+            legacyNotificationListenerEnabled =
+                ServiceGrantStatus.legacySuiteNotificationListenerEnabled(context),
+            otherNotificationListenerHostEnabled =
+                ServiceGrantStatus.otherHostNotificationListenerEnabled(context),
         )
     }
 
@@ -73,11 +81,11 @@ object SuitePermissionState {
     }
 
     fun openNotificationListenerSettings(context: Context): Boolean {
+        val component = ServiceGrantStatus.notificationListenerComponent(context)
         val detail = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
             .putExtra(
                 Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
-                ComponentName(context, com.yagay.YNotify.collector.NotificationCaptureService::class.java)
-                    .flattenToString(),
+                component.flattenToString(),
             )
         if (context !is Activity) detail.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (runCatching { context.startActivity(detail) }.isSuccess) return true
