@@ -13,6 +13,10 @@ class YSuiteApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // Own the combined APK's window/system-bar contract before any feature Activity opens.
+        // Standalone feature APKs never load this class, so their UI remains independent.
+        SuiteUiCoordinator.install(this)
+
         SuiteCrashTracker.install(this)
         SuiteCrashTracker.markActiveFeature(this, null)
 
