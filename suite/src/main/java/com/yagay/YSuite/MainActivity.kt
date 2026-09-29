@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
         val enabled = remember { mutableStateMapOf<String, Boolean>().apply { features.forEach { put(it.id, store.isEnabled(it)) } } }
         var rootAvailable by remember { mutableStateOf<Boolean?>(null) }
         var xposedStatus by remember { mutableStateOf(SuiteXposedServiceBroker.statusLabel()) }
+        var permissions by remember { mutableStateOf(SuitePermissionState.snapshot(this)) }
         var resumeTick by remember { mutableIntStateOf(0) }
 
         LifecycleResumeEffect(Unit) {
@@ -94,17 +95,17 @@ class MainActivity : ComponentActivity() {
             onPauseOrDispose { }
         }
 
-        // Root authorization can change while KernelSU is in the foreground. Recheck on every
-        // resume rather than freezing the startup result for the lifetime of the Activity.
         LaunchedEffect(resumeTick) {
             rootAvailable = withContext(Dispatchers.IO) { RootManager.isAvailable(this@MainActivity) }
+            permissions = SuitePermissionState.snapshot(this@MainActivity)
         }
 
-        // The framework service may bind/die while this screen remains visible. Poll the tiny
-        // in-process broker snapshot so the host card never presents stale LSPosed state.
+        // Process-global framework state and special-access bindings can change while Settings,
+        // KernelSU or LSPosed is in the foreground. Keep this inexpensive host snapshot fresh.
         LaunchedEffect(Unit) {
             while (true) {
                 xposedStatus = SuiteXposedServiceBroker.statusLabel()
+                permissions = SuitePermissionState.snapshot(this@MainActivity)
                 delay(1_000L)
             }
         }
@@ -121,16 +122,60 @@ class MainActivity : ComponentActivity() {
                             Text("统一运行环境", style = MaterialTheme.typography.titleMedium)
                             Text("Root：" + when (rootAvailable) { true -> "已授权"; false -> "不可用 / 未授权"; null -> "检测中" })
                             Text("LSPosed：$xposedStatus")
+                            Text("无障碍：${permissions.accessibilityLabel}")
+                            Text("悬浮窗：${if (permissions.overlayGranted) "已授权" else "未授权"}")
+                            Text("通知：${if (permissions.notificationsGranted) "已授权" else "未授权"}")
+                            Text(
+                                "YNotify 通知监听：" + when {
+                                    permissions.notificationListenerConnected -> "已连接"
+                                    permissions.notificationListenerGranted -> "已授权 · 等待连接"
+                                    else -> "未授权"
+                                },
+                            )
+                            if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) {
+                                Text(
+                                    "检测到旧版 YFloat/YNotify 分模块无障碍授权，请迁移到 YSuite 统一无障碍。",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            if (permissions.otherAccessibilityHostEnabled) {
+                                Text(
+                                    "另一独立版本的无障碍也已开启；建议只保留当前实际使用的版本。",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                             Text("已注册功能监听：${SuiteXposedServiceBroker.listenerCount()}")
                             Text("已加入功能：${features.size}")
                             Text(
-                                "整体诊断会自动收集公共系统状态、Root、LSPosed、Crash/ANR、Logcat 与各模块专属证据。",
+                                "YSuite 内 YFloat 与 YNotify 共用一个无障碍 Service；Root、LSPosed 和包级权限也由统一宿主读取。",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Spacer(Modifier.height(8.dp))
-                            OutlinedButton(onClick = {
-                                exportDiagnostic(null, "整体诊断")
-                            }) { Text("导出整体诊断") }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = {
+                                    if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
+                                        Toast.makeText(this@MainActivity, "无法打开无障碍设置", Toast.LENGTH_LONG).show()
+                                    }
+                                }) { Text(if (permissions.accessibilityEnabled) "无障碍设置" else "开启无障碍") }
+                                OutlinedButton(onClick = {
+                                    if (!SuitePermissionState.openOverlaySettings(this@MainActivity)) {
+                                        Toast.makeText(this@MainActivity, "无法打开悬浮窗设置", Toast.LENGTH_LONG).show()
+                                    }
+                                }) { Text("悬浮窗") }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = {
+                                    if (!SuitePermissionState.openNotificationListenerSettings(this@MainActivity)) {
+                                        Toast.makeText(this@MainActivity, "无法打开通知监听设置", Toast.LENGTH_LONG).show()
+                                    }
+                                }) { Text("通知监听") }
+                                OutlinedButton(onClick = {
+                                    exportDiagnostic(null, "整体诊断")
+                                }) { Text("导出整体诊断") }
+                            }
                         }
                     }
                 }
@@ -145,8 +190,6 @@ class MainActivity : ComponentActivity() {
                             if (next) {
                                 runCatching { feature.initialize(this@MainActivity) }
                                     .onSuccess { runtime ->
-                                        // A standalone feature initializer may replace process-global
-                                        // LSPosed/libsu/crash state. Capture it, then restore YSuite as owner.
                                         SuiteXposedServiceBroker.capture(this@MainActivity, runtime)
                                         SuiteXposedServiceBroker.takeOwnership(this@MainActivity)
                                         RootManager.reclaim(this@MainActivity)
