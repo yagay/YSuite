@@ -63,9 +63,19 @@ object SuiteLog {
                     root.listFiles()?.filter { it.isDirectory }?.forEach { moduleDir ->
                         if (modules != null && moduleDir.name !in modules) return@forEach
                         moduleDir.listFiles()?.filter { it.isFile }?.forEach { file ->
-                            zip.putNextEntry(ZipEntry("${moduleDir.name}/${file.name}"))
-                            file.inputStream().use { it.copyTo(zip) }
-                            zip.closeEntry()
+                            addFile(zip, file, "${moduleDir.name}/${file.name}")
+                        }
+                    }
+
+                    // YFloat predates the shared suite logger and keeps a richer native diagnostic
+                    // file directly under filesDir. Include it whenever YFloat is selected so a
+                    // feature export contains the actual AccessibilityService lifecycle/OEM state.
+                    if (modules == null || "yfloat" in modules) {
+                        listOf(
+                            File(context.filesDir, "yfloat-fl-diagnostic.log"),
+                            File(context.filesDir, "yfloat-fl-diagnostic.log.old")
+                        ).filter { it.isFile }.forEach { file ->
+                            addFile(zip, file, "yfloat/${file.name}")
                         }
                     }
                 }
@@ -80,5 +90,11 @@ object SuiteLog {
         }
 
         return "Download/${SuiteContract.LOG_EXPORT_SUBDIR}/$fileName"
+    }
+
+    private fun addFile(zip: ZipOutputStream, file: File, entryName: String) {
+        zip.putNextEntry(ZipEntry(entryName))
+        file.inputStream().use { it.copyTo(zip) }
+        zip.closeEntry()
     }
 }
