@@ -4,7 +4,7 @@ plugins {
     `maven-publish`
 }
 
-group = "com.github.yagay"
+group = "com.github.yagay.YSuite"
 version = System.getenv("VERSION") ?: "main-SNAPSHOT"
 
 android {
@@ -49,8 +49,8 @@ afterEvaluate {
         publications {
             register<MavenPublication>("release") {
                 from(components["release"])
-                groupId = "com.github.yagay"
-                artifactId = "YSuite"
+                groupId = "com.github.yagay.YSuite"
+                artifactId = "ui"
                 version = project.version.toString()
             }
         }
