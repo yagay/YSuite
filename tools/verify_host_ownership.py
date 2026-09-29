@@ -41,6 +41,8 @@ def main() -> int:
         ".system.SuiteBootReceiver",
         ".ipc.SuiteBridgeReceiver",
         ".ipc.SuiteGoogleBridgeProvider",
+        ".ipc.SuiteMiniGuardStatusProvider",
+        ".ipc.SuiteNfcConfigProvider",
     )
     for component in required_host_components:
         if component not in manifest:
@@ -59,6 +61,8 @@ def main() -> int:
         "com.yagay.YFloat.GoogleCtsBridgeReceiver",
         "com.yagay.YFloat.GoogleCtsTraceReceiver",
         "com.yagay.YFloat.GoogleCtsBridgeProvider",
+        "com.yagay.YMiniGuard.EngineStatusProvider",
+        "com.yagay.YNFC.ConfigProvider",
     )
     for component in forbidden_plugin_components:
         marker = f'android:name="{component}"'
