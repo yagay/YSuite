@@ -17,22 +17,22 @@ dependencyResolutionManagement {
 rootProject.name = "YSuite"
 
 // YUI has one source of truth and two build modes:
-// 1) a normal YSuite checkout with all feature submodules builds the complete host;
-// 2) a standalone feature resolves YSuite through Gradle sourceControl. Git checks out YSuite
-//    without recursive feature submodules, so this build automatically exposes only :ui.
-val requiredFeatureDirs = listOf(
-    "features/YDiag/feature",
-    "features/YNotify/feature",
-    "features/YPower/feature",
-    "features/YMiniGuard/feature",
-    "features/YEntryCleaner/feature",
-    "features/YNFC/feature",
-    "features/YTaskManager/feature",
-    "features/YParam/feature",
-    "features/YFloat/feature",
-    "features/YFloat/ppocr-sdk",
+// 1) a normal YSuite checkout with initialized feature submodules builds the complete host;
+// 2) a standalone feature resolves YSuite through Gradle sourceControl. Git leaves submodule
+//    directories present but uninitialized, so check real build files rather than directories.
+val requiredFeatureBuildFiles = listOf(
+    "features/YDiag/feature/build.gradle.kts",
+    "features/YNotify/feature/build.gradle.kts",
+    "features/YPower/feature/build.gradle.kts",
+    "features/YMiniGuard/feature/build.gradle.kts",
+    "features/YEntryCleaner/feature/build.gradle.kts",
+    "features/YNFC/feature/build.gradle.kts",
+    "features/YTaskManager/feature/build.gradle.kts",
+    "features/YParam/feature/build.gradle.kts",
+    "features/YFloat/feature/build.gradle",
+    "features/YFloat/ppocr-sdk/build.gradle",
 )
-val featureSourcesPresent = requiredFeatureDirs.all { file(it).isDirectory }
+val featureSourcesPresent = requiredFeatureBuildFiles.all { file(it).isFile }
 
 include(":ui")
 
