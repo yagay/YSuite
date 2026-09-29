@@ -64,6 +64,38 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         }.getOrElse { "已连接 · API ${apiVersion()}" }
     }
 
+    /** Export a stable textual snapshot without exposing the process-global service object. */
+    fun diagnosticSnapshot(): String {
+        val service = currentService
+        return buildString {
+            appendLine("connected=${service != null}")
+            appendLine("listenerCount=${listeners.size}")
+            if (service == null) {
+                appendLine("status=LSPosed service not connected")
+                return@buildString
+            }
+            runCatching {
+                appendLine("frameworkName=${service.frameworkName}")
+                appendLine("frameworkVersion=${service.frameworkVersion}")
+                appendLine("apiVersion=${service.apiVersion}")
+                val scope = service.scope.toList().sorted()
+                appendLine("scopeCount=${scope.size}")
+                scope.forEach { appendLine("scope=$it") }
+                if (service.apiVersion >= 102) {
+                    val targets = service.runningTargets.toList()
+                    appendLine("runningTargetCount=${targets.size}")
+                    targets.forEach { target ->
+                        appendLine(
+                            "target=${target.processName}\tstate=${target.state.name}\tloadedVersionCode=${target.loadedVersionCode}",
+                        )
+                    }
+                }
+            }.onFailure {
+                appendLine("snapshotError=${it.javaClass.name}: ${it.message}")
+            }
+        }
+    }
+
     override fun onServiceBind(service: XposedService) {
         // registerListener(this) may replay the same cached framework service after a runtime
         // feature enable. The newly attached feature has already received a targeted replay from
