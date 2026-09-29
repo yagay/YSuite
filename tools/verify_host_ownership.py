@@ -62,8 +62,6 @@ def main() -> int:
         marker = f'android:name="{component}"'
         if marker not in manifest:
             fail(f"combined manifest must explicitly remove standalone component: {component}")
-        # The removal declaration must be local to the same component stanza. Looking ahead a
-        # small bounded window keeps this check readable and resilient to attribute formatting.
         start = manifest.index(marker)
         window = manifest[start:start + 260]
         if 'tools:node="remove"' not in window:
@@ -85,10 +83,35 @@ def main() -> int:
             if call in text:
                 fail(f"legacy reclaim/capture path remains in {source_path.name}: {call}")
 
+    # YSuite owns the visual shell too. Plugins may supply their page content, but ordinary host
+    # pages must use the shared YUI scaffold/layout primitives and normal feature themes are aliased
+    # to Theme.YSuite in the combined APK.
+    ui_framework = ROOT / "ui/src/main/java/com/yagay/yui/YPluginFramework.kt"
+    host_ui = (ROOT / "suite/src/main/java/com/yagay/YSuite/MainActivity.kt").read_text(encoding="utf-8")
+    if not ui_framework.is_file():
+        fail("shared YUI plugin framework is missing")
+    for primitive in ("YPluginScaffold", "YPluginList", "YPluginHeader", "YActionRow"):
+        if primitive not in host_ui:
+            fail(f"YSuite host UI must use shared YUI primitive: {primitive}")
+
+    theme_overrides = (ROOT / "suite/src/main/res/values/feature_theme_overrides.xml").read_text(
+        encoding="utf-8"
+    )
+    for theme in (
+        "Theme.YEntryCleaner",
+        "Theme.YMiniGuard",
+        "Theme.YNFC",
+        "Theme.YParam",
+        "Theme.YTaskManager",
+    ):
+        if f'name="{theme}" parent="Theme.YSuite"' not in theme_overrides:
+            fail(f"combined host theme override missing: {theme}")
+
     print("[host-ownership] single Xposed entry: OK")
     print("[host-ownership] Xposed dependency metadata merge disabled: OK")
     print("[host-ownership] sole Accessibility/Notification/Boot/IPC ownership: OK")
     print("[host-ownership] legacy reclaim/capture paths absent: OK")
+    print("[host-ownership] shared YUI shell/theme ownership: OK")
     return 0
 
 
