@@ -128,6 +128,8 @@ fun YScaffold(
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
@@ -135,6 +137,8 @@ fun YScaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = { YTopBar(title = title, subtitle = subtitle, actions = actions) },
         bottomBar = bottomBar,
+        snackbarHost = snackbarHost,
+        floatingActionButton = floatingActionButton,
         content = content,
     )
 }
