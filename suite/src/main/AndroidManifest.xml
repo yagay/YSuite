@@ -40,6 +40,15 @@
         <receiver
             android:name="com.yagay.YFloat.FloatServiceBootReceiver"
             tools:node="remove" />
+        <receiver
+            android:name="com.yagay.YNotify.collector.XposedEventReceiver"
+            tools:node="remove" />
+        <receiver
+            android:name="com.yagay.YFloat.GoogleCtsBridgeReceiver"
+            tools:node="remove" />
+        <receiver
+            android:name="com.yagay.YFloat.GoogleCtsTraceReceiver"
+            tools:node="remove" />
 
         <service
             android:name=".accessibility.SuiteAccessibilityService"
@@ -72,5 +81,9 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".ipc.SuiteBridgeReceiver"
+            android:exported="true" />
     </application>
 </manifest>
