@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="suite_accessibility_service_label">YSuite 统一无障碍</string>
-    <string name="suite_accessibility_service_desc">为 YFloat 与 YNotify 提供统一的窗口识别、手势、截图和界面事件能力，只需授权一次。</string>
+    <string name="suite_accessibility_service_desc">为 YSuite 功能提供统一的窗口识别、手势、截图和界面事件能力，只需授权一次。</string>
+    <string name="suite_notification_listener_label">YSuite 统一通知监听</string>
 </resources>
