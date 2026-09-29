@@ -15,6 +15,14 @@ data class FeatureSpec(
     val description: String,
     val entryActivityClassName: String,
     val runtimeInitializerClassName: String? = null,
+    /**
+     * Optional standalone-safe bridge consumed by YSuite's one AccessibilityService.
+     *
+     * The class is loaded reflectively so a feature does not depend on YSuite/core. It may expose
+     * public static onServiceConnected(Context), onServiceDisconnected(Context), and
+     * onAccessibilityEvent(Context, AccessibilityEvent) methods.
+     */
+    val accessibilityBridgeClassName: String? = null,
     val requiresRoot: Boolean = false,
     val requiresHook: Boolean = false,
     val defaultEnabled: Boolean = true,
@@ -57,6 +65,7 @@ object FeatureRegistry {
             description = "通知 / Toast / 横幅历史",
             entryActivityClassName = "com.yagay.YNotify.ui.MainActivity",
             runtimeInitializerClassName = "com.yagay.YNotify.YNotifyRuntime",
+            accessibilityBridgeClassName = "com.yagay.YNotify.collector.UiAccessibilityBridge",
             requiresHook = true,
         ),
         FeatureSpec(
