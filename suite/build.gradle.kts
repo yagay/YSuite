@@ -4,7 +4,7 @@ plugins {
 }
 
 val suiteHostVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
-    .orNull?.toIntOrNull() ?: 49
+    .orNull?.toIntOrNull() ?: 50
 val suiteAbiFilters = providers.gradleProperty("ySuiteAbiFilters")
     .orNull
     ?.split(',')
@@ -22,7 +22,7 @@ android {
         minSdk = 31
         targetSdk = 37
         versionCode = suiteHostVersionCode
-        versionName = "0.2.5"
+        versionName = "0.2.6"
 
         // YSuite is currently distributed for modern ARM64 Android devices. Keeping the ABI list
         // at the application boundary prevents transitive OCR/OpenCV/ONNX AARs from re-introducing
