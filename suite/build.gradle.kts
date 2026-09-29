@@ -4,7 +4,7 @@ plugins {
 }
 
 val suiteHostVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
-    .orNull?.toIntOrNull() ?: 48
+    .orNull?.toIntOrNull() ?: 49
 val suiteAbiFilters = providers.gradleProperty("ySuiteAbiFilters")
     .orNull
     ?.split(',')
@@ -22,7 +22,7 @@ android {
         minSdk = 31
         targetSdk = 37
         versionCode = suiteHostVersionCode
-        versionName = "0.2.4"
+        versionName = "0.2.5"
 
         // YSuite is currently distributed for modern ARM64 Android devices. Keeping the ABI list
         // at the application boundary prevents transitive OCR/OpenCV/ONNX AARs from re-introducing
@@ -50,9 +50,6 @@ android {
             )
         }
 
-        // CI/user-facing build: keep debug semantics/logging and debug signing, but remove unused
-        // dependency bytecode/resources. This leaves the ordinary debug variant untouched for
-        // source-level troubleshooting while providing a substantially smaller installable APK.
         create("compact") {
             initWith(getByName("debug"))
             matchingFallbacks += listOf("debug", "release")
@@ -73,8 +70,6 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
         resources.excludes += "META-INF/DEPENDENCIES"
-        // Do not merge Xposed entry metadata from dependencies. YSuite owns the one and only
-        // META-INF/xposed/java_init.list; duplicate feature metadata must fail the build instead.
         jniLibs.pickFirsts += setOf("**/libbytehook.so")
     }
 }
@@ -91,9 +86,6 @@ dependencies {
     implementation(project(":ytask-feature"))
     implementation(project(":yparam-feature"))
     implementation(project(":yfloat-feature"))
-
-    // The framework provides this at runtime. Only the YSuite host is an Xposed entry in the
-    // combined APK; feature XposedModule classes are attached as logical plugins through the host.
     compileOnly("io.github.libxposed:api:102.0.0")
 
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
@@ -104,10 +96,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
-
-    // Host compatibility for feature Activities that still use AppCompat / Material Views.
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.13.0")
-
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
