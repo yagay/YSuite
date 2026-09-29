@@ -24,6 +24,7 @@ class YSuiteApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // YUI is initialized automatically by AndroidX Startup before Application.onCreate().
         // Crash attribution itself is Direct-Boot safe. Everything else can depend on credential
         // encrypted storage, so defer the normal host bootstrap until the user is unlocked.
         SuiteCrashTracker.install(this)
@@ -41,10 +42,6 @@ class YSuiteApp : Application() {
         initialized = true
         unlockReceiver?.let { receiver -> runCatching { unregisterReceiver(receiver) } }
         unlockReceiver = null
-
-        // Own the combined APK's window/system-bar contract before any feature Activity opens.
-        // Standalone feature APKs never load this class, so their UI remains independent.
-        SuiteUiCoordinator.install(this)
 
         SuiteCrashTracker.markActiveFeature(this, null)
 
