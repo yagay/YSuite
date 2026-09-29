@@ -34,9 +34,9 @@ data class FeatureSpec(
      */
     val notificationListenerBridgeClassName: String? = null,
     /**
-     * Optional standalone BroadcastReceiver implementation used as a logical boot handler inside
-     * YSuite. The receiver class is not registered with Android in the combined host; YSuite's one
-     * SuiteBootReceiver instantiates it and dispatches the boot event.
+     * Optional standalone BroadcastReceiver implementation used as a logical lifecycle handler
+     * inside YSuite. The receiver class is not registered with Android in the combined host;
+     * YSuite's one SuiteBootReceiver instantiates it and dispatches supported system events.
      */
     val bootReceiverClassName: String? = null,
     val requiresRoot: Boolean = false,
@@ -159,6 +159,7 @@ object FeatureRegistry {
                 SuiteCapability.OVERLAY,
                 SuiteCapability.NOTIFICATIONS,
             ),
+            bootReceiverClassName = "com.yagay.YFloat.FloatServiceBootReceiver",
             requiresRoot = true,
             requiresHook = true,
         ),
