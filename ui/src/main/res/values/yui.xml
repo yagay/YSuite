@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="yui_screen_horizontal">16dp</dimen>
+    <dimen name="yui_screen_vertical">12dp</dimen>
+    <dimen name="yui_section_gap">12dp</dimen>
+    <dimen name="yui_card_padding">16dp</dimen>
+    <dimen name="yui_card_radius">16dp</dimen>
+    <dimen name="yui_control_gap">8dp</dimen>
+    <dimen name="yui_button_height">48dp</dimen>
+    <dimen name="yui_toolbar_height">44dp</dimen>
+
+    <style name="Theme.YUI" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarDividerColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+        <item name="android:windowLightNavigationBar">?attr/isLightTheme</item>
+        <item name="materialCardViewStyle">@style/Widget.YUI.Card</item>
+        <item name="materialButtonStyle">@style/Widget.YUI.Button</item>
+    </style>
+
+    <style name="Widget.YUI.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">@dimen/yui_card_radius</item>
+    </style>
+
+    <style name="Widget.YUI.Button" parent="Widget.Material3.Button">
+        <item name="android:minHeight">@dimen/yui_button_height</item>
+    </style>
+</resources>
