@@ -40,6 +40,7 @@ def main() -> int:
         ".notification.SuiteNotificationListenerService",
         ".system.SuiteBootReceiver",
         ".ipc.SuiteBridgeReceiver",
+        ".ipc.SuiteGoogleBridgeProvider",
     )
     for component in required_host_components:
         if component not in manifest:
@@ -57,6 +58,7 @@ def main() -> int:
         "com.yagay.YNotify.collector.XposedEventReceiver",
         "com.yagay.YFloat.GoogleCtsBridgeReceiver",
         "com.yagay.YFloat.GoogleCtsTraceReceiver",
+        "com.yagay.YFloat.GoogleCtsBridgeProvider",
     )
     for component in forbidden_plugin_components:
         marker = f'android:name="{component}"'
@@ -109,7 +111,7 @@ def main() -> int:
 
     print("[host-ownership] single Xposed entry: OK")
     print("[host-ownership] Xposed dependency metadata merge disabled: OK")
-    print("[host-ownership] sole Accessibility/Notification/Boot/IPC ownership: OK")
+    print("[host-ownership] sole Accessibility/Notification/Boot/IPC/Provider ownership: OK")
     print("[host-ownership] legacy reclaim/capture paths absent: OK")
     print("[host-ownership] shared YUI shell/theme ownership: OK")
     return 0
