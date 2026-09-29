@@ -65,7 +65,7 @@ jobs:
                   text = path.read_text(encoding="utf-8")
               except Exception:
                   continue
-              if "com.yagay.YSuite.accessibility.SuiteAccessibilityService" in text:
+              if "SuiteAccessibilityService" in text and "SuiteNotificationListenerService" in text:
                   manifest = path
                   break
 
@@ -73,13 +73,24 @@ jobs:
               raise SystemExit("Could not locate merged YSuite manifest")
 
           root = ET.parse(manifest).getroot()
+          package_name = root.get("package") or "com.yagay.YSuite"
+
+          def normalize(name):
+              if not name:
+                  return name
+              if name.startswith("."):
+                  return package_name + name
+              if "." not in name:
+                  return package_name + "." + name
+              return name
+
           services = root.findall(".//service")
           accessibility = [
-              s.get(android + "name") for s in services
+              normalize(s.get(android + "name")) for s in services
               if s.get(android + "permission") == "android.permission.BIND_ACCESSIBILITY_SERVICE"
           ]
           listeners = [
-              s.get(android + "name") for s in services
+              normalize(s.get(android + "name")) for s in services
               if s.get(android + "permission") == "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
           ]
 
@@ -95,7 +106,7 @@ jobs:
               "com.yagay.YNotify.collector.UiAccessibilityService",
               "com.yagay.YNotify.collector.NotificationCaptureService",
           }
-          names = {s.get(android + "name") for s in services}
+          names = {normalize(s.get(android + "name")) for s in services}
           leaked = sorted(legacy & names)
           if leaked:
               raise SystemExit(f"Standalone special services leaked into YSuite: {leaked}")
