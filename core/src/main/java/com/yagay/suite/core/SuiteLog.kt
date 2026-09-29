@@ -46,12 +46,7 @@ object SuiteLog {
         val app = context.applicationContext
         val root = File(app.filesDir, "suite-logs").apply { mkdirs() }
 
-        // Flush YDiag first when its evidence will be included. This also asks an active Perfetto
-        // controller to finish its trace so the newest session is self-contained in the ZIP.
         if (modules == null || "ydiag" in modules) prepareYDiagForExport()
-
-        // Always refresh the diagnostic foundation immediately before packaging so the ZIP records
-        // the state the user actually had when they pressed Export.
         SuiteDiagnostics.collect(app, modules)
 
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
@@ -75,8 +70,13 @@ object SuiteLog {
         try {
             resolver.openOutputStream(uri, "w")?.buffered()?.use { output ->
                 ZipOutputStream(output).use { zip ->
+                    val alwaysInclude = setOf(
+                        "_diagnostics",
+                        SuiteContract.HOST_MODULE_ID,
+                        SuiteContract.CRASH_MODULE_ID,
+                    )
                     root.listFiles()?.filter { it.isDirectory }?.forEach { moduleDir ->
-                        val include = moduleDir.name == "_diagnostics" ||
+                        val include = moduleDir.name in alwaysInclude ||
                             modules == null || moduleDir.name in modules
                         if (!include) return@forEach
                         moduleDir.listFiles()?.filter { it.isFile }?.forEach { file ->
@@ -84,8 +84,6 @@ object SuiteLog {
                         }
                     }
 
-                    // YFloat predates the shared suite logger and keeps a richer native diagnostic
-                    // file directly under filesDir. Include it whenever YFloat is selected.
                     if (modules == null || "yfloat" in modules) {
                         listOf(
                             File(app.filesDir, "yfloat-fl-diagnostic.log"),
@@ -95,9 +93,6 @@ object SuiteLog {
                         }
                     }
 
-                    // YDiag sessions are already the deepest continuous evidence source in the
-                    // suite. Include the newest session as-is so an overall package does not omit
-                    // evidence simply because YDiag stores it outside suite-logs.
                     if (modules == null || "ydiag" in modules) {
                         newestYDiagSession(app)?.let { session ->
                             addTree(zip, session, "ydiag/latest-session")
