@@ -19,10 +19,9 @@ class SuiteBootReceiver : BroadcastReceiver() {
 
         if (action == Intent.ACTION_MY_PACKAGE_REPLACED) {
             val pending = goAsync()
-            val started = SuiteHookReloadCoordinator.requestAfterPackageReplaced(app) {
+            SuiteHookReloadCoordinator.requestAfterPackageReplaced(app) {
                 pending.finish()
             }
-            if (!started) pending.finish()
         }
 
         FeatureRegistry.included().forEach { feature ->
