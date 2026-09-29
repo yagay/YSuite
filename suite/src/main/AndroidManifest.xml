@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name=".YSuiteApp"
         android:allowBackup="false"
@@ -17,8 +20,8 @@
             </intent-filter>
         </activity>
 
-        <!-- Standalone feature APKs keep their own Android special-access services. Inside YSuite
-             they are replaced by host services so each special grant is requested only once. -->
+        <!-- Standalone feature APKs keep their own Android special/system components. Inside YSuite
+             they are replaced by host components so every platform capability has one owner. -->
         <service
             android:name="com.yagay.YFloat.LensAccessibilityService"
             tools:node="remove" />
@@ -27,6 +30,12 @@
             tools:node="remove" />
         <service
             android:name="com.yagay.YNotify.collector.NotificationCaptureService"
+            tools:node="remove" />
+        <service
+            android:name="com.yagay.ypower.root.YPowerRootService"
+            tools:node="remove" />
+        <receiver
+            android:name="com.yagay.ypower.root.BootReceiver"
             tools:node="remove" />
 
         <service
@@ -51,5 +60,13 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <receiver
+            android:name=".system.SuiteBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
