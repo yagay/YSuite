@@ -1,11 +1,9 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
-    `maven-publish`
 }
 
 group = "com.github.yagay.YSuite"
-version = System.getenv("VERSION") ?: "main-SNAPSHOT"
 
 android {
     namespace = "com.yagay.yui"
@@ -17,10 +15,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    publishing {
-        singleVariant("release") { withSourcesJar() }
     }
 }
 
@@ -42,17 +36,4 @@ dependencies {
     api("com.google.android.material:material:1.13.0")
 
     implementation("androidx.startup:startup-runtime:1.2.0")
-}
-
-afterEvaluate {
-    publishing {
-        publications {
-            register<MavenPublication>("release") {
-                from(components["release"])
-                groupId = "com.github.yagay.YSuite"
-                artifactId = "ui"
-                version = project.version.toString()
-            }
-        }
-    }
 }
