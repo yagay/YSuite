@@ -51,6 +51,60 @@ jobs:
       - name: Build YSuite Debug APK
         run: gradle --no-daemon --stacktrace :suite:assembleDebug
 
+      - name: Verify unified special services
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          android = "{http://schemas.android.com/apk/res/android}"
+          candidates = list(Path("suite/build/intermediates").rglob("AndroidManifest.xml"))
+          manifest = None
+          for path in candidates:
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except Exception:
+                  continue
+              if "com.yagay.YSuite.accessibility.SuiteAccessibilityService" in text:
+                  manifest = path
+                  break
+
+          if manifest is None:
+              raise SystemExit("Could not locate merged YSuite manifest")
+
+          root = ET.parse(manifest).getroot()
+          services = root.findall(".//service")
+          accessibility = [
+              s.get(android + "name") for s in services
+              if s.get(android + "permission") == "android.permission.BIND_ACCESSIBILITY_SERVICE"
+          ]
+          listeners = [
+              s.get(android + "name") for s in services
+              if s.get(android + "permission") == "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+          ]
+
+          expected_accessibility = ["com.yagay.YSuite.accessibility.SuiteAccessibilityService"]
+          expected_listener = ["com.yagay.YSuite.notification.SuiteNotificationListenerService"]
+          if accessibility != expected_accessibility:
+              raise SystemExit(f"Expected one shared accessibility service, found: {accessibility}")
+          if listeners != expected_listener:
+              raise SystemExit(f"Expected one shared notification listener, found: {listeners}")
+
+          legacy = {
+              "com.yagay.YFloat.LensAccessibilityService",
+              "com.yagay.YNotify.collector.UiAccessibilityService",
+              "com.yagay.YNotify.collector.NotificationCaptureService",
+          }
+          names = {s.get(android + "name") for s in services}
+          leaked = sorted(legacy & names)
+          if leaked:
+              raise SystemExit(f"Standalone special services leaked into YSuite: {leaked}")
+
+          print(f"Verified shared services in {manifest}")
+          print("Accessibility:", accessibility)
+          print("Notification listener:", listeners)
+          PY
+
       - name: Upload YSuite APK
         uses: actions/upload-artifact@v4
         with:
