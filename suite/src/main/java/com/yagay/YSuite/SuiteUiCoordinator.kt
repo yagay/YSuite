@@ -86,33 +86,15 @@ object SuiteUiCoordinator {
         }
 
         val content = activity.findViewById<View>(android.R.id.content) ?: return
+        resolveHostBackground(activity)?.let(content::setBackgroundColor)
+
+        // The suite home already uses YUI's Compose shell, which owns status/navigation insets.
+        if (activity.javaClass.name == HOST_ACTIVITY) return
+
         val base = synchronized(originalPadding) {
             originalPadding.getOrPut(content) {
                 BasePadding(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom)
             }
-        }
-
-        resolveHostBackground(activity)?.let(content::setBackgroundColor)
-
-        if (activity.javaClass.name == HOST_ACTIVITY) {
-            // MainActivity already owns its Compose top bar and navigation-bar content padding.
-            // Consume only status/cutout insets here without adding another top strip. Navigation
-            // bars remain visible to Compose so WindowInsets.navigationBars keeps working.
-            ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
-                val topTypes = WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout()
-                val horizontal = insets.getInsets(topTypes)
-                view.setPadding(
-                    base.left + horizontal.left,
-                    base.top,
-                    base.right + horizontal.right,
-                    base.bottom,
-                )
-                WindowInsetsCompat.Builder(insets)
-                    .setInsets(topTypes, Insets.NONE)
-                    .build()
-            }
-            ViewCompat.requestApplyInsets(content)
-            return
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
