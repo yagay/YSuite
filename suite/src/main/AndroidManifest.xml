@@ -52,6 +52,9 @@
         <provider
             android:name="com.yagay.YFloat.GoogleCtsBridgeProvider"
             tools:node="remove" />
+        <provider
+            android:name="com.yagay.YMiniGuard.EngineStatusProvider"
+            tools:node="remove" />
 
         <service
             android:name=".accessibility.SuiteAccessibilityService"
@@ -92,6 +95,13 @@
         <provider
             android:name=".ipc.SuiteGoogleBridgeProvider"
             android:authorities="${applicationId}.googlebridge"
+            android:exported="true"
+            android:grantUriPermissions="false" />
+
+        <provider
+            android:name=".ipc.SuiteMiniGuardStatusProvider"
+            android:authorities="${applicationId}.engine_status"
+            android:directBootAware="true"
             android:exported="true"
             android:grantUriPermissions="false" />
     </application>
