@@ -11,7 +11,7 @@ android {
     namespace = "com.yagay.yui"
     compileSdk = 37
 
-    defaultConfig { minSdk = 31 }
+    defaultConfig { minSdk = 26 }
     buildFeatures { compose = true }
 
     compileOptions {
