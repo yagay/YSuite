@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="suite_accessibility_service_label">YSuite Accessibility</string>
+    <string name="suite_accessibility_service_desc">Provides one shared accessibility service for YFloat and YNotify, including window inspection, gestures, screenshots, and UI event capture.</string>
+</resources>
