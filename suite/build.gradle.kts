@@ -4,7 +4,14 @@ plugins {
 }
 
 val suiteHostVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
-    .orNull?.toIntOrNull() ?: 46
+    .orNull?.toIntOrNull() ?: 47
+val suiteAbiFilters = providers.gradleProperty("ySuiteAbiFilters")
+    .orNull
+    ?.split(',')
+    ?.map(String::trim)
+    ?.filter(String::isNotEmpty)
+    ?.takeIf(List<String>::isNotEmpty)
+    ?: listOf("arm64-v8a")
 
 android {
     namespace = "com.yagay.YSuite"
@@ -15,7 +22,15 @@ android {
         minSdk = 31
         targetSdk = 37
         versionCode = suiteHostVersionCode
-        versionName = "0.2.2"
+        versionName = "0.2.3"
+
+        // YSuite is currently distributed for modern ARM64 Android devices. Keeping the ABI list
+        // at the application boundary prevents transitive OCR/OpenCV/ONNX AARs from re-introducing
+        // x86/x86_64/armeabi-v7a native binaries into the final APK. Override with
+        // -PySuiteAbiFilters=arm64-v8a,armeabi-v7a only when a wider compatibility build is needed.
+        ndk {
+            abiFilters.addAll(suiteAbiFilters)
+        }
     }
 
     buildFeatures { compose = true }
@@ -23,6 +38,32 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
+
+        // CI/user-facing build: keep debug semantics/logging and debug signing, but remove unused
+        // dependency bytecode/resources. This leaves the ordinary debug variant untouched for
+        // source-level troubleshooting while providing a substantially smaller installable APK.
+        create("compact") {
+            initWith(getByName("debug"))
+            matchingFallbacks += listOf("debug", "release")
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
     }
 
     sourceSets {

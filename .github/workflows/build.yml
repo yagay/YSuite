@@ -55,8 +55,8 @@ jobs:
           test ! -d /tmp/ysuite-yui-source/features/YDiag/feature
           gradle --no-daemon --stacktrace -p /tmp/ysuite-yui-source :ui:assembleDebug
 
-      - name: Build YSuite Debug APK
-        run: gradle --no-daemon --stacktrace :suite:assembleDebug
+      - name: Build compact YSuite APK
+        run: gradle --no-daemon --stacktrace :suite:assembleCompact
 
       - name: Verify unified special services
         run: |
@@ -123,10 +123,50 @@ jobs:
           print("Notification listener:", listeners)
           PY
 
-      - name: Upload YSuite APK
+      - name: Report compact APK size
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from collections import defaultdict
+          import zipfile
+
+          apks = list(Path("suite/build/outputs/apk/compact").glob("*.apk"))
+          if len(apks) != 1:
+              raise SystemExit(f"Expected exactly one compact APK, found: {apks}")
+
+          apk = apks[0]
+          size_mb = apk.stat().st_size / (1024 * 1024)
+          by_abi = defaultdict(int)
+          native_total = 0
+          with zipfile.ZipFile(apk) as zf:
+              for info in zf.infolist():
+                  if not info.filename.startswith("lib/") or info.is_dir():
+                      continue
+                  parts = info.filename.split("/")
+                  if len(parts) < 3:
+                      continue
+                  by_abi[parts[1]] += info.file_size
+                  native_total += info.file_size
+
+          abis = sorted(by_abi)
+          if abis != ["arm64-v8a"]:
+              raise SystemExit(f"Compact APK must be ARM64-only; found ABIs: {abis}")
+
+          print(f"Compact APK: {apk}")
+          print(f"APK size: {size_mb:.2f} MiB")
+          print(f"Native libraries: {native_total / (1024 * 1024):.2f} MiB")
+          for abi, size in sorted(by_abi.items()):
+              print(f"  {abi}: {size / (1024 * 1024):.2f} MiB")
+
+          # Guard against silently regressing toward the old ~364 MiB universal debug APK.
+          if size_mb > 170:
+              raise SystemExit(f"Compact APK exceeded 170 MiB size budget: {size_mb:.2f} MiB")
+          PY
+
+      - name: Upload compact YSuite APK
         uses: actions/upload-artifact@v4
         with:
-          name: YSuite-debug-${{ github.run_number }}
-          path: suite/build/outputs/apk/debug/*.apk
+          name: YSuite-compact-${{ github.run_number }}
+          path: suite/build/outputs/apk/compact/*.apk
           if-no-files-found: error
           retention-days: 14
