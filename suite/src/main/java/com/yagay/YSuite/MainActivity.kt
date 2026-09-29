@@ -1,17 +1,12 @@
 package com.yagay.YSuite
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.lifecycleScope
 import com.yagay.suite.core.FeatureRegistry
@@ -38,9 +32,12 @@ import com.yagay.suite.core.RootManager
 import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
+import com.yagay.yui.YActionRow
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YDimens
-import com.yagay.yui.YScaffold
+import com.yagay.yui.YPluginHeader
+import com.yagay.yui.YPluginList
+import com.yagay.yui.YPluginScaffold
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -109,124 +106,38 @@ class MainActivity : YComposeActivity() {
             }
         }
 
-        YScaffold(title = "YSuite") { scaffoldPadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(scaffoldPadding)
-                    .padding(horizontal = YDimens.ScreenHorizontal),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
-            ) {
+        YPluginScaffold(
+            title = "YSuite",
+            subtitle = "统一宿主 · 插件共享系统能力",
+        ) { scaffoldPadding ->
+            YPluginList(padding = scaffoldPadding) {
                 item {
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(YDimens.CardPadding)) {
-                            Text("统一运行环境", style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                "Root：" + when (rootAvailable) {
-                                    true -> "已授权"
-                                    false -> "不可用 / 未授权"
-                                    null -> "检测中"
-                                },
-                            )
-                            Text("LSPosed：$xposedStatus")
-                            Text("无障碍：${permissions.accessibilityLabel}")
-                            Text("悬浮窗：${if (permissions.overlayGranted) "已授权" else "未授权"}")
-                            Text("通知：${if (permissions.notificationsGranted) "已授权" else "未授权"}")
-                            Text(
-                                "通知监听：" + when {
-                                    permissions.notificationListenerConnected -> "已连接"
-                                    permissions.notificationListenerGranted -> "已授权 · 等待连接"
-                                    else -> "未授权"
-                                },
-                            )
-
-                            if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) {
-                                Text(
-                                    "检测到旧版分模块无障碍授权，请迁移到 YSuite 统一无障碍。",
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
+                    RuntimeEnvironmentCard(
+                        featureCount = features.size,
+                        rootAvailable = rootAvailable,
+                        xposedStatus = xposedStatus,
+                        permissions = permissions,
+                        onAccessibility = {
+                            if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
+                                Toast.makeText(this@MainActivity, "无法打开无障碍设置", Toast.LENGTH_LONG).show()
                             }
-                            if (permissions.legacyNotificationListenerEnabled && !permissions.notificationListenerGranted) {
-                                Text(
-                                    "检测到旧版 YNotify 通知监听授权，请迁移到 YSuite 统一通知监听。",
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
+                        },
+                        onOverlay = {
+                            if (!SuitePermissionState.openOverlaySettings(this@MainActivity)) {
+                                Toast.makeText(this@MainActivity, "无法打开悬浮窗设置", Toast.LENGTH_LONG).show()
                             }
-                            if (permissions.otherAccessibilityHostEnabled) {
-                                Text(
-                                    "另一独立版本的无障碍也已开启；建议只保留当前实际使用的版本。",
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
+                        },
+                        onNotificationListener = {
+                            if (!SuitePermissionState.openNotificationListenerSettings(this@MainActivity)) {
+                                Toast.makeText(this@MainActivity, "无法打开通知监听设置", Toast.LENGTH_LONG).show()
                             }
-                            if (permissions.otherNotificationListenerHostEnabled) {
-                                Text(
-                                    "另一独立版本的通知监听也已开启；建议只保留当前实际使用的版本。",
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-
-                            Text("已注册功能监听：${SuiteXposedServiceBroker.listenerCount()}")
-                            Text("已加入功能：${features.size}")
-                            Text(
-                                "共享能力：Root、LSPosed、无障碍、悬浮窗、通知、通知监听。新增模块只需在 FeatureSpec 声明需要的能力；需要无障碍或通知事件流时再注册 Bridge，不再新增系统授权 Service。",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            Spacer(Modifier.height(YDimens.ControlGap))
-                            Row(horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
-                                OutlinedButton(onClick = {
-                                    if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "无法打开无障碍设置",
-                                            Toast.LENGTH_LONG,
-                                        ).show()
-                                    }
-                                }) {
-                                    Text(if (permissions.accessibilityEnabled) "无障碍设置" else "开启无障碍")
-                                }
-                                OutlinedButton(onClick = {
-                                    if (!SuitePermissionState.openOverlaySettings(this@MainActivity)) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "无法打开悬浮窗设置",
-                                            Toast.LENGTH_LONG,
-                                        ).show()
-                                    }
-                                }) { Text("悬浮窗") }
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
-                                OutlinedButton(onClick = {
-                                    if (!SuitePermissionState.openNotificationListenerSettings(this@MainActivity)) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "无法打开通知监听设置",
-                                            Toast.LENGTH_LONG,
-                                        ).show()
-                                    }
-                                }) {
-                                    Text(
-                                        if (permissions.notificationListenerGranted) {
-                                            "通知监听设置"
-                                        } else {
-                                            "开启通知监听"
-                                        },
-                                    )
-                                }
-                                OutlinedButton(onClick = {
-                                    exportDiagnostic(null, "整体诊断")
-                                }) { Text("导出整体诊断") }
-                            }
-                        }
-                    }
+                        },
+                        onExport = { exportDiagnostic(null, "整体诊断") },
+                    )
                 }
 
-                items(features, key = { it.id }) { feature ->
+                items(features.size, key = { features[it].id }) { index ->
+                    val feature = features[index]
                     FeatureCard(
                         feature = feature,
                         isEnabled = enabled[feature.id] == true,
@@ -243,12 +154,7 @@ class MainActivity : YComposeActivity() {
                                         )
                                     }
                                     .onFailure {
-                                        SuiteLog.e(
-                                            this@MainActivity,
-                                            feature.id,
-                                            "host enable failed",
-                                            it,
-                                        )
+                                        SuiteLog.e(this@MainActivity, feature.id, "host enable failed", it)
                                         Toast.makeText(
                                             this@MainActivity,
                                             "${feature.name} 启用失败：${it.javaClass.simpleName}",
@@ -281,14 +187,90 @@ class MainActivity : YComposeActivity() {
                                     ).show()
                                 }
                         },
-                        onExportLog = {
-                            exportDiagnostic(setOf(feature.id), "${feature.name} 诊断")
-                        },
+                        onExportLog = { exportDiagnostic(setOf(feature.id), "${feature.name} 诊断") },
                     )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun RuntimeEnvironmentCard(
+    featureCount: Int,
+    rootAvailable: Boolean?,
+    xposedStatus: String,
+    permissions: SuitePermissionSnapshot,
+    onAccessibility: () -> Unit,
+    onOverlay: () -> Unit,
+    onNotificationListener: () -> Unit,
+    onExport: () -> Unit,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(YDimens.CardPadding)) {
+            YPluginHeader(
+                name = "统一运行环境",
+                description = "所有系统能力由 YSuite 持有，功能模块只作为插件消费。",
+                detail = "已加入功能：$featureCount · 已注册 LSPosed 插件监听：${SuiteXposedServiceBroker.listenerCount()}",
+            )
+            Spacer(Modifier.height(YDimens.ControlGap))
+            Text(
+                "Root：" + when (rootAvailable) {
+                    true -> "已授权"
+                    false -> "不可用 / 未授权"
+                    null -> "检测中"
+                },
+            )
+            Text("LSPosed：$xposedStatus")
+            Text("无障碍：${permissions.accessibilityLabel}")
+            Text("悬浮窗：${if (permissions.overlayGranted) "已授权" else "未授权"}")
+            Text("通知：${if (permissions.notificationsGranted) "已授权" else "未授权"}")
+            Text(
+                "通知监听：" + when {
+                    permissions.notificationListenerConnected -> "已连接"
+                    permissions.notificationListenerGranted -> "已授权 · 等待连接"
+                    else -> "未授权"
+                },
+            )
+
+            if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) {
+                HostWarning("检测到旧版分模块无障碍授权，请迁移到 YSuite 统一无障碍。")
+            }
+            if (permissions.legacyNotificationListenerEnabled && !permissions.notificationListenerGranted) {
+                HostWarning("检测到旧版 YNotify 通知监听授权，请迁移到 YSuite 统一通知监听。")
+            }
+            if (permissions.otherAccessibilityHostEnabled) {
+                HostWarning("另一独立版本的无障碍也已开启；建议只保留当前实际使用的版本。")
+            }
+            if (permissions.otherNotificationListenerHostEnabled) {
+                HostWarning("另一独立版本的通知监听也已开启；建议只保留当前实际使用的版本。")
+            }
+
+            Spacer(Modifier.height(YDimens.ControlGap))
+            YActionRow {
+                OutlinedButton(onClick = onAccessibility) {
+                    Text(if (permissions.accessibilityEnabled) "无障碍设置" else "开启无障碍")
+                }
+                OutlinedButton(onClick = onOverlay) { Text("悬浮窗") }
+            }
+            Spacer(Modifier.height(YDimens.ControlGap))
+            YActionRow {
+                OutlinedButton(onClick = onNotificationListener) {
+                    Text(if (permissions.notificationListenerGranted) "通知监听设置" else "开启通知监听")
+                }
+                OutlinedButton(onClick = onExport) { Text("导出整体诊断") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HostWarning(message: String) {
+    Text(
+        message,
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.bodySmall,
+    )
 }
 
 @Composable
@@ -305,21 +287,19 @@ private fun FeatureCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text(feature.name, style = MaterialTheme.typography.titleMedium)
-                    Text(feature.description, style = MaterialTheme.typography.bodyMedium)
-                    val needs = feature.sharedCapabilities.map { it.displayName }
-                    if (needs.isNotEmpty()) {
-                        Text(
-                            "共享：${needs.joinToString(" + ")}",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
+                YPluginHeader(
+                    name = feature.name,
+                    description = feature.description,
+                    detail = feature.sharedCapabilities
+                        .map { it.displayName }
+                        .takeIf { it.isNotEmpty() }
+                        ?.joinToString(prefix = "共享能力：", separator = " + "),
+                    modifier = Modifier.weight(1f),
+                )
                 Switch(checked = isEnabled, onCheckedChange = onEnabledChange)
             }
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
+            Spacer(Modifier.height(YDimens.ControlGap))
+            YActionRow {
                 Button(onClick = onOpen, enabled = isEnabled) { Text("打开") }
                 OutlinedButton(onClick = onExportLog) { Text("诊断包") }
             }
