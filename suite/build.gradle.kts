@@ -73,7 +73,8 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
         resources.excludes += "META-INF/DEPENDENCIES"
-        resources.merges += "META-INF/xposed/*"
+        // Do not merge Xposed entry metadata from dependencies. YSuite owns the one and only
+        // META-INF/xposed/java_init.list; duplicate feature metadata must fail the build instead.
         jniLibs.pickFirsts += setOf("**/libbytehook.so")
     }
 }
@@ -90,6 +91,10 @@ dependencies {
     implementation(project(":ytask-feature"))
     implementation(project(":yparam-feature"))
     implementation(project(":yfloat-feature"))
+
+    // The framework provides this at runtime. Only the YSuite host is an Xposed entry in the
+    // combined APK; feature XposedModule classes are attached as logical plugins through the host.
+    compileOnly("io.github.libxposed:api:102.0.0")
 
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
     implementation(composeBom)
