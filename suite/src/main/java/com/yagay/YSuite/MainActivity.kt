@@ -84,7 +84,11 @@ class MainActivity : ComponentActivity() {
     private fun FeatureManagerScreen() {
         val features = remember { FeatureRegistry.included() }
         val store = remember { FeatureStateStore(this) }
-        val enabled = remember { mutableStateMapOf<String, Boolean>().apply { features.forEach { put(it.id, store.isEnabled(it)) } } }
+        val enabled = remember {
+            mutableStateMapOf<String, Boolean>().apply {
+                features.forEach { put(it.id, store.isEnabled(it)) }
+            }
+        }
         var rootAvailable by remember { mutableStateOf<Boolean?>(null) }
         var xposedStatus by remember { mutableStateOf(SuiteXposedServiceBroker.statusLabel()) }
         var permissions by remember { mutableStateOf(SuitePermissionState.snapshot(this)) }
@@ -96,7 +100,9 @@ class MainActivity : ComponentActivity() {
         }
 
         LaunchedEffect(resumeTick) {
-            rootAvailable = withContext(Dispatchers.IO) { RootManager.isAvailable(this@MainActivity) }
+            rootAvailable = withContext(Dispatchers.IO) {
+                RootManager.isAvailable(this@MainActivity)
+            }
             permissions = SuitePermissionState.snapshot(this@MainActivity)
         }
 
@@ -120,21 +126,35 @@ class MainActivity : ComponentActivity() {
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp)) {
                             Text("统一运行环境", style = MaterialTheme.typography.titleMedium)
-                            Text("Root：" + when (rootAvailable) { true -> "已授权"; false -> "不可用 / 未授权"; null -> "检测中" })
+                            Text(
+                                "Root：" + when (rootAvailable) {
+                                    true -> "已授权"
+                                    false -> "不可用 / 未授权"
+                                    null -> "检测中"
+                                },
+                            )
                             Text("LSPosed：$xposedStatus")
                             Text("无障碍：${permissions.accessibilityLabel}")
                             Text("悬浮窗：${if (permissions.overlayGranted) "已授权" else "未授权"}")
                             Text("通知：${if (permissions.notificationsGranted) "已授权" else "未授权"}")
                             Text(
-                                "YNotify 通知监听：" + when {
+                                "通知监听：" + when {
                                     permissions.notificationListenerConnected -> "已连接"
                                     permissions.notificationListenerGranted -> "已授权 · 等待连接"
                                     else -> "未授权"
                                 },
                             )
+
                             if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) {
                                 Text(
-                                    "检测到旧版 YFloat/YNotify 分模块无障碍授权，请迁移到 YSuite 统一无障碍。",
+                                    "检测到旧版分模块无障碍授权，请迁移到 YSuite 统一无障碍。",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            if (permissions.legacyNotificationListenerEnabled && !permissions.notificationListenerGranted) {
+                                Text(
+                                    "检测到旧版 YNotify 通知监听授权，请迁移到 YSuite 统一通知监听。",
                                     color = MaterialTheme.colorScheme.error,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
@@ -146,22 +166,40 @@ class MainActivity : ComponentActivity() {
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
+                            if (permissions.otherNotificationListenerHostEnabled) {
+                                Text(
+                                    "另一独立版本的通知监听也已开启；建议只保留当前实际使用的版本。",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+
                             Text("已注册功能监听：${SuiteXposedServiceBroker.listenerCount()}")
                             Text("已加入功能：${features.size}")
                             Text(
-                                "YSuite 内 YFloat 与 YNotify 共用一个无障碍 Service；Root、LSPosed 和包级权限也由统一宿主读取。",
+                                "共享能力：Root、LSPosed、无障碍、悬浮窗、通知、通知监听。新增模块只需在 FeatureSpec 声明需要的能力；需要无障碍或通知事件流时再注册 Bridge，不再新增系统授权 Service。",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Spacer(Modifier.height(8.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedButton(onClick = {
                                     if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
-                                        Toast.makeText(this@MainActivity, "无法打开无障碍设置", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "无法打开无障碍设置",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
                                     }
-                                }) { Text(if (permissions.accessibilityEnabled) "无障碍设置" else "开启无障碍") }
+                                }) {
+                                    Text(if (permissions.accessibilityEnabled) "无障碍设置" else "开启无障碍")
+                                }
                                 OutlinedButton(onClick = {
                                     if (!SuitePermissionState.openOverlaySettings(this@MainActivity)) {
-                                        Toast.makeText(this@MainActivity, "无法打开悬浮窗设置", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "无法打开悬浮窗设置",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
                                     }
                                 }) { Text("悬浮窗") }
                             }
@@ -169,9 +207,21 @@ class MainActivity : ComponentActivity() {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedButton(onClick = {
                                     if (!SuitePermissionState.openNotificationListenerSettings(this@MainActivity)) {
-                                        Toast.makeText(this@MainActivity, "无法打开通知监听设置", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "无法打开通知监听设置",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
                                     }
-                                }) { Text("通知监听") }
+                                }) {
+                                    Text(
+                                        if (permissions.notificationListenerGranted) {
+                                            "通知监听设置"
+                                        } else {
+                                            "开启通知监听"
+                                        },
+                                    )
+                                }
                                 OutlinedButton(onClick = {
                                     exportDiagnostic(null, "整体诊断")
                                 }) { Text("导出整体诊断") }
@@ -197,11 +247,24 @@ class MainActivity : ComponentActivity() {
                                         SuiteLog.i(this@MainActivity, feature.id, "host enabled")
                                     }
                                     .onFailure {
-                                        SuiteLog.e(this@MainActivity, feature.id, "host enable failed", it)
-                                        Toast.makeText(this@MainActivity, "${feature.name} 启用失败：${it.javaClass.simpleName}", Toast.LENGTH_LONG).show()
+                                        SuiteLog.e(
+                                            this@MainActivity,
+                                            feature.id,
+                                            "host enable failed",
+                                            it,
+                                        )
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "${feature.name} 启用失败：${it.javaClass.simpleName}",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
                                     }
                             } else {
-                                SuiteLog.i(this@MainActivity, feature.id, "host disabled; LSPosed scope is managed separately")
+                                SuiteLog.i(
+                                    this@MainActivity,
+                                    feature.id,
+                                    "host disabled; LSPosed scope is managed separately",
+                                )
                             }
                         },
                         onOpen = {
@@ -244,12 +307,20 @@ private fun FeatureCard(
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Column(Modifier.weight(1f)) {
                     Text(feature.name, style = MaterialTheme.typography.titleMedium)
                     Text(feature.description, style = MaterialTheme.typography.bodyMedium)
-                    val needs = buildList { if (feature.requiresRoot) add("Root"); if (feature.requiresHook) add("LSPosed") }
-                    if (needs.isNotEmpty()) Text("需要：${needs.joinToString(" + ")}", style = MaterialTheme.typography.bodySmall)
+                    val needs = feature.sharedCapabilities.map { it.displayName }
+                    if (needs.isNotEmpty()) {
+                        Text(
+                            "共享：${needs.joinToString(" + ")}",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
                 Switch(checked = isEnabled, onCheckedChange = onEnabledChange)
             }
