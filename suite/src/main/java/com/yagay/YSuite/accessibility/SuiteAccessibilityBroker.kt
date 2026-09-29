@@ -1,5 +1,6 @@
 package com.yagay.YSuite.accessibility
 
+import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.view.accessibility.AccessibilityEvent
 import com.yagay.suite.core.FeatureRegistry
@@ -13,22 +14,33 @@ import java.util.concurrent.ConcurrentHashMap
  * Extensible dispatcher for YSuite's single AccessibilityService.
  *
  * A feature that needs shared accessibility adds an `accessibilityBridgeClassName` to FeatureSpec.
- * The bridge stays inside that feature and remains standalone-buildable. It only needs optional
- * public static methods with these signatures:
+ * The bridge stays inside that feature and remains standalone-buildable.
+ *
+ * Preferred bridge signatures receive the live AccessibilityService, so future modules can reuse
+ * the same grant for gestures, global actions, windows and screenshots:
+ *
+ *   onServiceConnected(AccessibilityService)
+ *   onServiceDisconnected(AccessibilityService)
+ *   onAccessibilityEvent(AccessibilityService, AccessibilityEvent)
+ *
+ * Context-based signatures are also accepted for lightweight consumers such as YNotify:
  *
  *   onServiceConnected(Context)
  *   onServiceDisconnected(Context)
  *   onAccessibilityEvent(Context, AccessibilityEvent)
- *
- * No feature needs to register another Android AccessibilityService in YSuite.
  */
 object SuiteAccessibilityBroker {
+    private data class BoundMethod(
+        val method: Method,
+        val usesService: Boolean,
+    )
+
     private data class Consumer(
         val featureId: String,
         val className: String,
-        val connect: Method?,
-        val disconnect: Method?,
-        val event: Method?,
+        val connect: BoundMethod?,
+        val disconnect: BoundMethod?,
+        val event: BoundMethod?,
     )
 
     private val consumers = ConcurrentHashMap<String, Consumer>()
@@ -62,21 +74,19 @@ object SuiteAccessibilityBroker {
         }
     }
 
-    fun onServiceConnected(context: Context) {
-        initialize(context)
-        forEachEnabled(context) { consumer -> invoke(consumer.connect, context) }
+    fun onServiceConnected(service: AccessibilityService) {
+        initialize(service)
+        forEachEnabled(service) { consumer -> invoke(consumer.connect, service) }
     }
 
-    fun onAccessibilityEvent(context: Context, event: AccessibilityEvent) {
-        initialize(context)
-        forEachEnabled(context) { consumer -> invoke(consumer.event, context, event) }
+    fun onAccessibilityEvent(service: AccessibilityService, event: AccessibilityEvent) {
+        initialize(service)
+        forEachEnabled(service) { consumer -> invoke(consumer.event, service, event) }
     }
 
-    fun onServiceDisconnected(context: Context) {
-        initialize(context)
-        consumers.values.forEach { consumer ->
-            invoke(consumer.disconnect, context)
-        }
+    fun onServiceDisconnected(service: AccessibilityService) {
+        initialize(service)
+        consumers.values.forEach { consumer -> invoke(consumer.disconnect, service) }
     }
 
     fun consumerCount(): Int = consumers.size
@@ -106,15 +116,36 @@ object SuiteAccessibilityBroker {
         return Consumer(
             featureId = featureId,
             className = className,
-            connect = staticMethod(cls, "onServiceConnected", Context::class.java),
-            disconnect = staticMethod(cls, "onServiceDisconnected", Context::class.java),
-            event = staticMethod(
+            connect = preferredMethod(
+                cls,
+                "onServiceConnected",
+                arrayOf(AccessibilityService::class.java),
+                arrayOf(Context::class.java),
+            ),
+            disconnect = preferredMethod(
+                cls,
+                "onServiceDisconnected",
+                arrayOf(AccessibilityService::class.java),
+                arrayOf(Context::class.java),
+            ),
+            event = preferredMethod(
                 cls,
                 "onAccessibilityEvent",
-                Context::class.java,
-                AccessibilityEvent::class.java,
+                arrayOf(AccessibilityService::class.java, AccessibilityEvent::class.java),
+                arrayOf(Context::class.java, AccessibilityEvent::class.java),
             ),
         )
+    }
+
+    private fun preferredMethod(
+        cls: Class<*>,
+        name: String,
+        serviceParams: Array<Class<*>>,
+        contextParams: Array<Class<*>>,
+    ): BoundMethod? {
+        staticMethod(cls, name, *serviceParams)?.let { return BoundMethod(it, true) }
+        staticMethod(cls, name, *contextParams)?.let { return BoundMethod(it, false) }
+        return null
     }
 
     private fun staticMethod(cls: Class<*>, name: String, vararg params: Class<*>): Method? {
@@ -125,8 +156,9 @@ object SuiteAccessibilityBroker {
         return method
     }
 
-    private fun invoke(method: Method?, vararg args: Any) {
-        if (method == null) return
-        method.invoke(null, *args)
+    private fun invoke(bound: BoundMethod?, service: AccessibilityService, vararg tail: Any) {
+        if (bound == null) return
+        val first: Any = if (bound.usesService) service else service.applicationContext
+        bound.method.invoke(null, first, *tail)
     }
 }
