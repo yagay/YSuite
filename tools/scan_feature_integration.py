@@ -4,6 +4,7 @@
 The scanner is intentionally dependency-free so it can run in GitHub Actions immediately
 after submodules are checked out. It reports resource/manifest collisions plus process-global APIs
 that are safe in standalone APKs but must be owned centrally when features share one YSuite process.
+It also reports UI/window code that should normally be owned by the shared YUI module.
 """
 
 from __future__ import annotations
@@ -36,6 +37,20 @@ PROCESS_GLOBAL_PATTERNS = {
     "LIBSU_DEFAULT_BUILDER": "Shell.setDefaultBuilder(",
     "UNCAUGHT_EXCEPTION_HANDLER": "Thread.setDefaultUncaughtExceptionHandler(",
     "SHARED_SCOPE_REMOVE": ".removeScope(",
+}
+
+# Normal Activities should use YUI for these concerns. Findings stay warnings because screenshot,
+# translucent, overlay and system-integration Activities can legitimately opt out via
+# com.yagay.yui.YUiWindowOptOut.
+SHARED_UI_PATTERNS = {
+    "LOCAL_EDGE_TO_EDGE": "enableEdgeToEdge(",
+    "LOCAL_WINDOW_INSETS_OWNER": "WindowCompat.setDecorFitsSystemWindows(",
+    "LOCAL_SAFE_DRAWING": "WindowInsets.safeDrawing",
+    "LOCAL_NAVIGATION_BAR_PADDING": ".navigationBarsPadding(",
+    "LOCAL_STATUS_BAR_PADDING": ".statusBarsPadding(",
+    "LOCAL_DYNAMIC_LIGHT_SCHEME": "dynamicLightColorScheme(",
+    "LOCAL_DYNAMIC_DARK_SCHEME": "dynamicDarkColorScheme(",
+    "LOCAL_ROOT_MATERIAL_THEME": "MaterialTheme {",
 }
 
 
@@ -120,7 +135,10 @@ def manifest_info(module: pathlib.Path):
     return findings
 
 
-def process_global_findings(module: pathlib.Path) -> list[tuple[str, str, int]]:
+def source_pattern_findings(
+    module: pathlib.Path,
+    patterns: dict[str, str],
+) -> list[tuple[str, str, int]]:
     source_root = module / "feature" / "src" / "main" / "java"
     findings: list[tuple[str, str, int]] = []
     if not source_root.is_dir():
@@ -131,9 +149,43 @@ def process_global_findings(module: pathlib.Path) -> list[tuple[str, str, int]]:
         except Exception:
             continue
         for line_no, line in enumerate(text.splitlines(), 1):
-            for kind, needle in PROCESS_GLOBAL_PATTERNS.items():
+            for kind, needle in patterns.items():
                 if needle in line:
                     findings.append((kind, str(source.relative_to(module)), line_no))
+    return findings
+
+
+def process_global_findings(module: pathlib.Path) -> list[tuple[str, str, int]]:
+    return source_pattern_findings(module, PROCESS_GLOBAL_PATTERNS)
+
+
+def shared_ui_findings(module: pathlib.Path) -> list[tuple[str, str, int]]:
+    return source_pattern_findings(module, SHARED_UI_PATTERNS)
+
+
+def theme_parent_findings(module: pathlib.Path) -> list[tuple[str, str, str | None]]:
+    """Report feature theme aliases that don't delegate to Theme.YUI.
+
+    This is informational because special transparent/dialog/overlay themes need custom parents.
+    """
+    res = module / "feature" / "src" / "main" / "res"
+    findings: list[tuple[str, str, str | None]] = []
+    if not res.is_dir():
+        return findings
+    for folder in sorted(p for p in res.iterdir() if p.is_dir() and p.name.startswith("values")):
+        for xml in sorted(folder.glob("*.xml")):
+            try:
+                root = ET.parse(xml).getroot()
+            except Exception:
+                continue
+            for child in root.findall("style"):
+                name = child.attrib.get("name", "")
+                if not name.startswith("Theme."):
+                    continue
+                parent = child.attrib.get("parent")
+                if parent == "Theme.YUI":
+                    continue
+                findings.append((str(xml.relative_to(module)), name, parent))
     return findings
 
 
@@ -155,6 +207,8 @@ def main() -> int:
     resources_by_key: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
     manifests = {}
     process_globals = {}
+    shared_ui = {}
+    theme_parents = {}
     parse_errors = []
 
     for module in modules:
@@ -164,6 +218,8 @@ def main() -> int:
             resources_by_key[key].add(module.name)
         manifests[module.name] = manifest_info(module)
         process_globals[module.name] = process_global_findings(module)
+        shared_ui[module.name] = shared_ui_findings(module)
+        theme_parents[module.name] = theme_parent_findings(module)
 
     collisions = {key: sorted(owners) for key, owners in resources_by_key.items() if len(owners) > 1}
     high_risk = {key: owners for key, owners in collisions.items() if key[0] in HIGH_RISK_RESOURCE_TYPES}
@@ -210,6 +266,22 @@ def main() -> int:
                 "standalone use is allowed; YSuite must broker/reclaim shared ownership"
             )
     print(f"[integration-scan] process-global integration reminders: {total_process_globals}")
+
+    total_ui_findings = 0
+    for module_name, findings in shared_ui.items():
+        for kind, source, line_no in findings:
+            total_ui_findings += 1
+            print(
+                f"UI OWNERSHIP WARN {module_name}: {kind} at {source}:{line_no} -- "
+                "normal screens should delegate this to YUI; special windows must implement YUiWindowOptOut"
+            )
+        for source, theme_name, parent in theme_parents[module_name]:
+            total_ui_findings += 1
+            print(
+                f"UI THEME WARN {module_name}: {theme_name} parent={parent or '<implicit>'} at {source} -- "
+                "normal app themes should inherit Theme.YUI; keep only intentional special-window themes local"
+            )
+    print(f"[integration-scan] shared-UI ownership reminders: {total_ui_findings}")
 
     for error in parse_errors:
         print(f"PARSE WARN {error}")
