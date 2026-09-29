@@ -39,13 +39,6 @@ object YUiRuntime {
     private val originalPadding = WeakHashMap<View, BasePadding>()
     private var installed = false
 
-    // Compatibility only. New special Activities should implement YUiWindowOptOut instead.
-    private val legacyExcludedActivities = setOf(
-        "com.yagay.YFloat.ResultActivity",
-        "com.yagay.YFloat.ShadeDismissActivity",
-        "com.yagay.YFloat.SecureCaptureProbeActivity",
-    )
-
     @JvmStatic
     fun install(application: Application) {
         if (installed) return
@@ -63,8 +56,7 @@ object YUiRuntime {
         )
     }
 
-    private fun excluded(activity: Activity): Boolean =
-        activity is YUiWindowOptOut || activity.javaClass.name in legacyExcludedActivities
+    private fun excluded(activity: Activity): Boolean = activity is YUiWindowOptOut
 
     private fun schedule(activity: Activity) {
         if (excluded(activity)) return
