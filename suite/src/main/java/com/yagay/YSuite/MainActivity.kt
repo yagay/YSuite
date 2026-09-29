@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,13 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +44,9 @@ import com.yagay.suite.core.RootManager
 import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
+import com.yagay.yui.YScaffold
+import com.yagay.yui.YTheme
+import com.yagay.yui.YView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -56,8 +55,8 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent { MaterialTheme { FeatureManagerScreen() } }
+        YView.applyComposeWindow(this)
+        setContent { YTheme { FeatureManagerScreen() } }
     }
 
     override fun onResume() {
@@ -83,7 +82,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun FeatureManagerScreen() {
         val features = remember { FeatureRegistry.included() }
@@ -122,20 +120,16 @@ class MainActivity : ComponentActivity() {
             .asPaddingValues()
             .calculateBottomPadding()
 
-        Scaffold(
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            topBar = { TopAppBar(title = { Text("YSuite") }) },
-        ) { scaffoldPadding ->
+        YScaffold(title = "YSuite") { scaffoldPadding ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = scaffoldPadding.calculateTopPadding())
+                    .padding(scaffoldPadding)
                     .padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(bottom = navigationBottom + 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
-                    Spacer(Modifier.height(4.dp))
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp)) {
                             Text("统一运行环境", style = MaterialTheme.typography.titleMedium)
