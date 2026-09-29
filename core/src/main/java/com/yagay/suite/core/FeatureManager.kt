@@ -39,6 +39,8 @@ data class FeatureSpec(
      * YSuite's one SuiteBootReceiver instantiates it and dispatches supported system events.
      */
     val bootReceiverClassName: String? = null,
+    /** Logical exported IPC receiver handlers. Android registers only SuiteBridgeReceiver. */
+    val ipcReceiverClassNames: Set<String> = emptySet(),
     val requiresRoot: Boolean = false,
     val requiresHook: Boolean = false,
     val defaultEnabled: Boolean = true,
@@ -90,6 +92,7 @@ object FeatureRegistry {
             ),
             accessibilityBridgeClassName = "com.yagay.YNotify.collector.UiAccessibilityBridge",
             notificationListenerBridgeClassName = "com.yagay.YNotify.collector.NotificationListenerBridge",
+            ipcReceiverClassNames = setOf("com.yagay.YNotify.collector.XposedEventReceiver"),
             requiresHook = true,
         ),
         FeatureSpec(
@@ -160,6 +163,10 @@ object FeatureRegistry {
                 SuiteCapability.NOTIFICATIONS,
             ),
             bootReceiverClassName = "com.yagay.YFloat.FloatServiceBootReceiver",
+            ipcReceiverClassNames = setOf(
+                "com.yagay.YFloat.GoogleCtsBridgeReceiver",
+                "com.yagay.YFloat.GoogleCtsTraceReceiver",
+            ),
             requiresRoot = true,
             requiresHook = true,
         ),
