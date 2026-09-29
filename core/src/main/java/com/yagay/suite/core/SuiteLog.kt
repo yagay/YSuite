@@ -37,17 +37,28 @@ object SuiteLog {
         }
     }
 
+    /**
+     * Export a real diagnostic package, not just files that individual features happened to log.
+     * Every package includes a fresh _diagnostics snapshot. A single-feature export includes the
+     * same common foundation plus that feature's module-specific evidence.
+     */
     fun export(context: Context, modules: Set<String>? = null): String {
-        val root = File(context.filesDir, "suite-logs").apply { mkdirs() }
+        val app = context.applicationContext
+        val root = File(app.filesDir, "suite-logs").apply { mkdirs() }
+
+        // Always refresh the diagnostic foundation immediately before packaging so the ZIP records
+        // the state the user actually had when they pressed Export.
+        SuiteDiagnostics.collect(app, modules)
+
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         val label = when {
             modules == null -> "all"
             modules.size == 1 -> modules.first()
             else -> "selected"
         }
-        val fileName = "YSuite-$label-logs-$stamp.zip"
+        val fileName = "YSuite-$label-diagnostic-$stamp.zip"
         val relativeDir = "${Environment.DIRECTORY_DOWNLOADS}/${SuiteContract.LOG_EXPORT_SUBDIR}"
-        val resolver = context.contentResolver
+        val resolver = app.contentResolver
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
             put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
@@ -61,21 +72,31 @@ object SuiteLog {
             resolver.openOutputStream(uri, "w")?.buffered()?.use { output ->
                 ZipOutputStream(output).use { zip ->
                     root.listFiles()?.filter { it.isDirectory }?.forEach { moduleDir ->
-                        if (modules != null && moduleDir.name !in modules) return@forEach
+                        val include = moduleDir.name == "_diagnostics" ||
+                            modules == null || moduleDir.name in modules
+                        if (!include) return@forEach
                         moduleDir.listFiles()?.filter { it.isFile }?.forEach { file ->
                             addFile(zip, file, "${moduleDir.name}/${file.name}")
                         }
                     }
 
                     // YFloat predates the shared suite logger and keeps a richer native diagnostic
-                    // file directly under filesDir. Include it whenever YFloat is selected so a
-                    // feature export contains the actual AccessibilityService lifecycle/OEM state.
+                    // file directly under filesDir. Include it whenever YFloat is selected.
                     if (modules == null || "yfloat" in modules) {
                         listOf(
-                            File(context.filesDir, "yfloat-fl-diagnostic.log"),
-                            File(context.filesDir, "yfloat-fl-diagnostic.log.old")
+                            File(app.filesDir, "yfloat-fl-diagnostic.log"),
+                            File(app.filesDir, "yfloat-fl-diagnostic.log.old")
                         ).filter { it.isFile }.forEach { file ->
                             addFile(zip, file, "yfloat/${file.name}")
+                        }
+                    }
+
+                    // YDiag sessions are already the deepest continuous evidence source in the
+                    // suite. Include the newest session as-is so an overall package does not omit
+                    // evidence simply because YDiag stores it outside suite-logs.
+                    if (modules == null || "ydiag" in modules) {
+                        newestYDiagSession(app)?.let { session ->
+                            addTree(zip, session, "ydiag/latest-session")
                         }
                     }
                 }
@@ -90,6 +111,20 @@ object SuiteLog {
         }
 
         return "Download/${SuiteContract.LOG_EXPORT_SUBDIR}/$fileName"
+    }
+
+    private fun newestYDiagSession(context: Context): File? =
+        File(context.filesDir, "sessions")
+            .listFiles()
+            .orEmpty()
+            .filter { it.isDirectory }
+            .maxByOrNull { it.lastModified() }
+
+    private fun addTree(zip: ZipOutputStream, root: File, prefix: String) {
+        root.walkTopDown().filter { it.isFile }.forEach { file ->
+            val relative = file.relativeTo(root).invariantSeparatorsPath
+            addFile(zip, file, "$prefix/$relative")
+        }
     }
 
     private fun addFile(zip: ZipOutputStream, file: File, entryName: String) {
