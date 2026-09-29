@@ -5,9 +5,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "2.1.20" apply false
 }
 
-// Standalone feature repositories depend on com.github.yagay.YSuite:ui:main-SNAPSHOT.
-// When those same feature modules are embedded here, always substitute the remote artifact with
-// this build's local :ui project so there is one copy of the classes/resources in the APK.
+// Standalone feature repositories resolve com.github.yagay.YSuite:ui directly from YSuite/main
+// through Gradle sourceControl. When those same feature modules are embedded in YSuite, always
+// substitute that module dependency with this build's local :ui project so the APK contains one
+// shared set of YUI classes/resources and never configures a nested source checkout.
 subprojects {
     configurations.configureEach {
         resolutionStrategy.dependencySubstitution {
