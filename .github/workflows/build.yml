@@ -48,17 +48,12 @@ jobs:
           test -s "${ANDROID_HOME}/platforms/android-37.0/android.jar"
           test -x "${ANDROID_HOME}/build-tools/36.0.0/aapt2"
 
-      - name: Verify isolated YUI publication
-        env:
-          JITPACK: 'true'
-          VERSION: main-SNAPSHOT
+      - name: Verify lightweight YUI source build
         run: |
-          gradle --no-daemon --stacktrace :ui:publishReleasePublicationToMavenLocal
-          POM="$HOME/.m2/repository/com/github/yagay/YSuite/ui/main-SNAPSHOT/ui-main-SNAPSHOT.pom"
-          AAR="$HOME/.m2/repository/com/github/yagay/YSuite/ui/main-SNAPSHOT/ui-main-SNAPSHOT.aar"
-          test -s "$POM"
-          test -s "$AAR"
-          echo "Verified YUI Maven artifact: $POM"
+          rm -rf /tmp/ysuite-yui-source
+          git clone --no-recurse-submodules "file://${GITHUB_WORKSPACE}" /tmp/ysuite-yui-source
+          test ! -d /tmp/ysuite-yui-source/features/YDiag/feature
+          gradle --no-daemon --stacktrace -p /tmp/ysuite-yui-source :ui:assembleDebug
 
       - name: Build YSuite Debug APK
         run: gradle --no-daemon --stacktrace :suite:assembleDebug
