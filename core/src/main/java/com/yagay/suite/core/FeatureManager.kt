@@ -23,6 +23,14 @@ data class FeatureSpec(
      * onAccessibilityEvent(Context, AccessibilityEvent) methods.
      */
     val accessibilityBridgeClassName: String? = null,
+    /**
+     * Optional standalone-safe bridge consumed by YSuite's one NotificationListenerService.
+     *
+     * It may expose public static callback methods accepting NotificationListenerService and the
+     * platform callback arguments. The feature therefore shares the host grant without depending
+     * on YSuite/core and remains independently buildable.
+     */
+    val notificationListenerBridgeClassName: String? = null,
     val requiresRoot: Boolean = false,
     val requiresHook: Boolean = false,
     val defaultEnabled: Boolean = true,
@@ -66,6 +74,7 @@ object FeatureRegistry {
             entryActivityClassName = "com.yagay.YNotify.ui.MainActivity",
             runtimeInitializerClassName = "com.yagay.YNotify.YNotifyRuntime",
             accessibilityBridgeClassName = "com.yagay.YNotify.collector.UiAccessibilityBridge",
+            notificationListenerBridgeClassName = "com.yagay.YNotify.collector.NotificationListenerBridge",
             requiresHook = true,
         ),
         FeatureSpec(
