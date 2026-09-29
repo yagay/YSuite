@@ -3,18 +3,18 @@ package com.yagay.suite.core
 import android.content.Context
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
 
 /**
- * Owns the single libxposed app-side service listener used by the combined YSuite process and fans
- * framework lifecycle events back out to independently buildable feature runtimes.
+ * Sole app-side libxposed service listener for the combined YSuite process.
  *
- * Feature runtimes keep their standalone registerListener() calls. Their YSuite initializer returns
- * the listener instance to [capture], then the host immediately re-registers this broker as the
- * process owner. No dependency on libxposed private fields is required.
+ * Standalone feature APKs may still register their own listener. Embedded plugins instead call the
+ * reflection-friendly [attachFromPlugin] entry and receive framework lifecycle through this broker.
  */
 object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     private val listeners = CopyOnWriteArraySet<XposedServiceHelper.OnServiceListener>()
+    private val pluginListeners = ConcurrentHashMap<String, XposedServiceHelper.OnServiceListener>()
 
     @Volatile
     private var currentService: XposedService? = null
@@ -22,17 +22,24 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     @Volatile
     private var appContext: Context? = null
 
+    /** Backward-compatible host attachment while plugins migrate to attachFromPlugin(). */
     fun capture(context: Context, runtime: Any?) {
         appContext = context.applicationContext
         if (runtime is XposedServiceHelper.OnServiceListener && runtime !== this) {
-            attach(runtime)
+            attach("legacy:${runtime.javaClass.name}", runtime)
         }
     }
 
-    /**
-     * Always re-register. A feature enabled at runtime may have just replaced the process-global
-     * listener with its standalone listener, so the host has to reclaim ownership every time.
-     */
+    /** Reflection-friendly plugin registration. No plugin calls registerListener() in YSuite mode. */
+    @JvmStatic
+    fun attachFromPlugin(pluginId: String, listener: Any): Boolean {
+        val typed = listener as? XposedServiceHelper.OnServiceListener ?: return false
+        if (typed === this) return false
+        attach(pluginId.ifBlank { typed.javaClass.name }, typed)
+        return true
+    }
+
+    /** YSuite registers exactly one framework service listener, before plugin initialization. */
     @Synchronized
     fun takeOwnership(context: Context) {
         appContext = context.applicationContext
@@ -40,8 +47,93 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         SuiteLog.i(
             context,
             SuiteContract.HOST_MODULE_ID,
-            "shared LSPosed broker active; featureListeners=${listeners.size}",
+            "sole LSPosed service broker active; pluginListeners=${pluginListeners.size}",
         )
+    }
+
+    /** Host-owned dynamic scope request used by embedded plugins. */
+    @JvmStatic
+    fun requestScopeFromPlugin(pluginId: String, packages: Array<String>): Boolean {
+        val service = currentService ?: return false
+        val request = packages
+            .asSequence()
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinct()
+            .toList()
+        if (request.isEmpty()) return true
+        val context = appContext
+        return runCatching {
+            service.requestScope(request, object : XposedService.OnScopeEventListener {
+                override fun onScopeRequestApproved(approved: List<String>) {
+                    context?.let {
+                        SuiteLog.i(
+                            it,
+                            pluginId.ifBlank { SuiteContract.HOST_MODULE_ID },
+                            "scope approved by YSuite; packages=${approved.joinToString(",")}",
+                        )
+                    }
+                }
+
+                override fun onScopeRequestFailed(message: String) {
+                    context?.let {
+                        SuiteLog.e(
+                            it,
+                            pluginId.ifBlank { SuiteContract.HOST_MODULE_ID },
+                            "scope request failed in YSuite; packages=${request.joinToString(",")}; message=$message",
+                        )
+                    }
+                }
+            })
+            true
+        }.getOrElse { error ->
+            context?.let {
+                SuiteLog.e(
+                    it,
+                    pluginId.ifBlank { SuiteContract.HOST_MODULE_ID },
+                    "scope request exception; packages=${request.joinToString(",")}",
+                    error,
+                )
+            }
+            false
+        }
+    }
+
+    /**
+     * Removes scope only through the host. Callers should normally disable a plugin capability
+     * instead of removing shared scope; the host checks current scope and applies the operation once.
+     */
+    @JvmStatic
+    fun removeScopeFromPlugin(pluginId: String, packages: Array<String>): Boolean {
+        val service = currentService ?: return false
+        val request = packages
+            .asSequence()
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinct()
+            .toList()
+        if (request.isEmpty()) return true
+        return runCatching {
+            service.removeScope(request)
+            appContext?.let {
+                SuiteLog.i(
+                    it,
+                    pluginId.ifBlank { SuiteContract.HOST_MODULE_ID },
+                    "scope removed by YSuite; packages=${request.joinToString(",")}",
+                )
+            }
+            true
+        }.getOrElse { error ->
+            appContext?.let {
+                SuiteLog.e(
+                    it,
+                    pluginId.ifBlank { SuiteContract.HOST_MODULE_ID },
+                    "scope remove exception; packages=${request.joinToString(",")}",
+                    error,
+                )
+            }
+            false
+        }
     }
 
     fun listenerCount(): Int = listeners.size
@@ -70,6 +162,8 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         return buildString {
             appendLine("connected=${service != null}")
             appendLine("listenerCount=${listeners.size}")
+            appendLine("pluginListenerCount=${pluginListeners.size}")
+            pluginListeners.keys.sorted().forEach { appendLine("pluginListener=$it") }
             if (service == null) {
                 appendLine("status=LSPosed service not connected")
                 return@buildString
@@ -97,9 +191,6 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     }
 
     override fun onServiceBind(service: XposedService) {
-        // registerListener(this) may replay the same cached framework service after a runtime
-        // feature enable. The newly attached feature has already received a targeted replay from
-        // attach(), so avoid re-running every feature's bind side effects.
         if (currentService === service) return
         currentService = service
         listeners.forEach { listener ->
@@ -117,11 +208,21 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         }
     }
 
-    private fun attach(listener: XposedServiceHelper.OnServiceListener) {
-        if (listener === this || !listeners.add(listener)) return
+    private fun attach(pluginId: String, listener: XposedServiceHelper.OnServiceListener) {
+        if (listener === this) return
+        val key = pluginId.ifBlank { listener.javaClass.name }
+        val previous = pluginListeners.putIfAbsent(key, listener)
+        if (previous != null && previous !== listener) {
+            listeners.remove(previous)
+            pluginListeners[key] = listener
+        }
+        if (!listeners.add(listener) && previous === listener) return
         currentService?.let { service ->
             runCatching { listener.onServiceBind(service) }
                 .onFailure { failure -> logFailure("replay", listener, failure) }
+        }
+        appContext?.let {
+            SuiteLog.i(it, key, "LSPosed listener attached to YSuite broker")
         }
     }
 
