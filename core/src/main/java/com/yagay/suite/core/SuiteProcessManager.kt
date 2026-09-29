@@ -15,6 +15,23 @@ object SuiteProcessManager {
         val detail: String,
     )
 
+    /** Reflection-friendly plugin entry so embedded features never kill targets directly. */
+    @JvmStatic
+    fun reloadFromPlugin(
+        pluginId: String,
+        packageName: String,
+        timeoutSeconds: Long,
+    ): ReloadResult {
+        val context = RootManager.contextOrNull()
+            ?: return ReloadResult(
+                packageName = packageName,
+                success = false,
+                killedCount = 0,
+                detail = "YSuite process host is not initialized",
+            )
+        return reloadPackageProcesses(context, pluginId, packageName, timeoutSeconds)
+    }
+
     /**
      * Restarts all processes belonging to one package exactly once at a time.
      * Multiple plugins requesting the same reload are coalesced by package name.
@@ -43,9 +60,9 @@ object SuiteProcessManager {
                 append("COUNT=0; ")
                 append("for PID in $(ps -A -o PID,NAME 2>/dev/null ")
                 append("| awk '$2 ~ /^$escaped(:|$)/ {print $1}'); ")
-                append("do kill -9 \"$PID\" >/dev/null 2>&1 || true; ")
-                append("COUNT=$((COUNT+1)); done; ")
-                append("sleep 0.12; echo \"YSUITE_KILLED=$COUNT\"")
+                append("do kill -9 \"\$PID\" >/dev/null 2>&1 || true; ")
+                append("COUNT=\$((COUNT+1)); done; ")
+                append("sleep 0.12; echo \"YSUITE_KILLED=\$COUNT\"")
             }
             val result = SuiteRootGateway.execute(
                 context = context,
