@@ -33,6 +33,12 @@ data class FeatureSpec(
      * on YSuite/core and remains independently buildable.
      */
     val notificationListenerBridgeClassName: String? = null,
+    /**
+     * Optional standalone BroadcastReceiver implementation used as a logical boot handler inside
+     * YSuite. The receiver class is not registered with Android in the combined host; YSuite's one
+     * SuiteBootReceiver instantiates it and dispatches the boot event.
+     */
+    val bootReceiverClassName: String? = null,
     val requiresRoot: Boolean = false,
     val requiresHook: Boolean = false,
     val defaultEnabled: Boolean = true,
@@ -93,6 +99,7 @@ object FeatureRegistry {
             entryActivityClassName = "com.yagay.ypower.ui.MainActivity",
             runtimeInitializerClassName = "com.yagay.ypower.YPowerRuntime",
             sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED),
+            bootReceiverClassName = "com.yagay.ypower.root.BootReceiver",
             requiresRoot = true,
             requiresHook = true,
         ),
