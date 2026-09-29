@@ -17,13 +17,16 @@
             </intent-filter>
         </activity>
 
-        <!-- Standalone feature APKs keep these services. Inside YSuite they are replaced by one
-             shared service so the user grants Accessibility only once. -->
+        <!-- Standalone feature APKs keep their own Android special-access services. Inside YSuite
+             they are replaced by host services so each special grant is requested only once. -->
         <service
             android:name="com.yagay.YFloat.LensAccessibilityService"
             tools:node="remove" />
         <service
             android:name="com.yagay.YNotify.collector.UiAccessibilityService"
+            tools:node="remove" />
+        <service
+            android:name="com.yagay.YNotify.collector.NotificationCaptureService"
             tools:node="remove" />
 
         <service
@@ -37,6 +40,16 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/suite_accessibility_service_config" />
+        </service>
+
+        <service
+            android:name=".notification.SuiteNotificationListenerService"
+            android:label="@string/suite_notification_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
     </application>
 </manifest>
