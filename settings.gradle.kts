@@ -17,14 +17,20 @@ dependencyResolutionManagement {
 
 rootProject.name = "YSuite"
 
-// JitPack only publishes the shared UI library. Do not configure the full YSuite host or feature
-// git submodules there: JitPack does not need them and a missing/deep feature checkout must never
-// be able to break standalone UI consumers.
+// YUI has to be usable in three environments with the same source:
+// 1) normal YSuite checkout with all feature submodules -> build the complete host;
+// 2) JitPack publication -> configure only :ui;
+// 3) Gradle Git source dependency from a standalone feature repo -> Git checks out YSuite without
+//    recursive feature submodules, so automatically configure only :ui.
 val jitpackBuild = System.getenv("JITPACK")?.equals("true", ignoreCase = true) == true
+val featureSourcesPresent = file("features/YDiag/feature").isDirectory &&
+    file("features/YEntryCleaner/feature").isDirectory &&
+    file("features/YTaskManager/feature").isDirectory
+val uiOnlyBuild = jitpackBuild || !featureSourcesPresent
 
 include(":ui")
 
-if (!jitpackBuild) {
+if (!uiOnlyBuild) {
     include(":core", ":suite")
 
     include(":ydiag-feature")
