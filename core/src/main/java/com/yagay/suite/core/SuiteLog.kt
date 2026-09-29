@@ -46,6 +46,10 @@ object SuiteLog {
         val app = context.applicationContext
         val root = File(app.filesDir, "suite-logs").apply { mkdirs() }
 
+        // Flush YDiag first when its evidence will be included. This also asks an active Perfetto
+        // controller to finish its trace so the newest session is self-contained in the ZIP.
+        if (modules == null || "ydiag" in modules) prepareYDiagForExport()
+
         // Always refresh the diagnostic foundation immediately before packaging so the ZIP records
         // the state the user actually had when they pressed Export.
         SuiteDiagnostics.collect(app, modules)
@@ -111,6 +115,14 @@ object SuiteLog {
         }
 
         return "Download/${SuiteContract.LOG_EXPORT_SUBDIR}/$fileName"
+    }
+
+    private fun prepareYDiagForExport() {
+        runCatching {
+            val serviceClass = Class.forName("com.yagay.ydiag.service.MonitorService")
+            val companion = serviceClass.getField("Companion").get(null)
+            companion.javaClass.getMethod("prepareForExport").invoke(companion)
+        }
     }
 
     private fun newestYDiagSession(context: Context): File? =
