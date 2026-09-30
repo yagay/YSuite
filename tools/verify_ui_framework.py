@@ -14,6 +14,8 @@ YSUITE = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt"
 YPOWER = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java"
 YMINIGUARD = ROOT / "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java"
 YNOTIFY_XML = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_main.xml"
+YENTRY = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainActivity.kt"
+YPARAM = ROOT / "apps/YParam/feature/src/main/java/com/yagay/yparam/ui/MainActivity.java"
 
 
 def fail(message: str) -> None:
@@ -33,8 +35,6 @@ def require(source: str, marker: str, label: str) -> None:
 
 
 def reject_hardcoded_normal_screen_colors(source: str, label: str) -> None:
-    # Migrated normal screens must consume theme/status colors from YUI instead of owning a local
-    # palette. This intentionally ignores integer constants outside normal entry screens.
     matches = sorted(set(re.findall(r"0x(?:FF|ff)[0-9A-Fa-f]{6}", source)))
     if matches:
         fail(f"{label} reintroduced hard-coded ARGB colors: {matches[:8]}")
@@ -48,9 +48,12 @@ def main() -> None:
     ypower = text(YPOWER)
     yminiguard = text(YMINIGUARD)
     ynotify = text(YNOTIFY_XML)
+    yentry = text(YENTRY)
+    yparam = text(YPARAM)
 
     for marker in (
         "fun YFeatureScaffold(",
+        "fun YFeatureCustomScaffold(",
         "fun YFeatureCard(",
         "fun YStatusRow(",
         "fun YSettingSwitch(",
@@ -60,6 +63,7 @@ def main() -> None:
 
     for marker in (
         "fun install(",
+        "fun installFixed(",
         "fun card(",
         "fun statusLine(",
         "fun switchRow(",
@@ -83,6 +87,11 @@ def main() -> None:
     require(ypower, "YViewLayout.card(", "YPower main screen")
     require(yminiguard, "YViewLayout.install(", "YMiniGuard main screen")
     require(yminiguard, "YViewLayout.switchRow(", "YMiniGuard main screen")
+    require(yentry, "YFeatureCustomScaffold(", "YEntryCleaner main screen")
+    require(yparam, "YViewLayout.installFixed(", "YParam main screen")
+    require(yparam, "YViewLayout.searchField(", "YParam main screen")
+    require(yparam, "YViewLayout.switchRow(", "YParam main screen")
+    require(yparam, "YViewLayout.setStatus(", "YParam main screen")
 
     if "Widget.YUI." not in ynotify or "TextAppearance.YUI." not in ynotify:
         fail("YNotify XML main layout must consume shared Widget.YUI and TextAppearance.YUI styles")
@@ -91,10 +100,11 @@ def main() -> None:
 
     reject_hardcoded_normal_screen_colors(ypower, "YPower MainActivity")
     reject_hardcoded_normal_screen_colors(yminiguard, "YMiniGuard MainActivity")
+    reject_hardcoded_normal_screen_colors(yparam, "YParam MainActivity")
 
     print(
         "ui-framework: OK compose=YFeature* view=YViewLayout xml=Widget.YUI "
-        "migrated=YSuite,YPower,YMiniGuard,YNotify"
+        "migrated=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam"
     )
 
 
