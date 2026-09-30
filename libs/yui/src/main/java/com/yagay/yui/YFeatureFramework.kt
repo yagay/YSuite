@@ -5,11 +5,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -33,6 +39,7 @@ enum class YStatusTone {
     Error,
 }
 
+/** Standard feature shell with the shared YUI top bar. */
 @Composable
 fun YFeatureScaffold(
     title: String,
@@ -41,17 +48,90 @@ fun YFeatureScaffold(
     state: YPageState = YPageState.Ready,
     actions: @Composable RowScope.() -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    YPluginScaffold(
+    YScaffold(
         title = title,
         modifier = modifier,
         subtitle = subtitle,
-        state = state,
         actions = actions,
         bottomBar = bottomBar,
-        content = content,
-    )
+        snackbarHost = snackbarHost,
+        floatingActionButton = floatingActionButton,
+    ) { padding ->
+        YFeatureStateContent(padding = padding, state = state, content = content)
+    }
+}
+
+/**
+ * Feature shell for screens whose top bar carries real interaction state such as an expanded search
+ * field. Insets, page states, bottom navigation, snackbars and FAB ownership still remain in YUI.
+ */
+@Composable
+fun YFeatureCustomScaffold(
+    modifier: Modifier = Modifier,
+    state: YPageState = YPageState.Ready,
+    topBar: @Composable () -> Unit,
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        modifier = modifier,
+        contentWindowInsets = WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+        ),
+        topBar = topBar,
+        bottomBar = bottomBar,
+        snackbarHost = snackbarHost,
+        floatingActionButton = floatingActionButton,
+    ) { padding ->
+        YFeatureStateContent(padding = padding, state = state, content = content)
+    }
+}
+
+@Composable
+private fun YFeatureStateContent(
+    padding: PaddingValues,
+    state: YPageState,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    when (state) {
+        YPageState.Ready -> content(padding)
+        is YPageState.Loading -> Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = YDimens.ScreenHorizontal),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            YLoadingState(state.message)
+        }
+        is YPageState.Empty -> Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = YDimens.ScreenHorizontal),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            YEmptyState(state.message)
+        }
+        is YPageState.Error -> Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = YDimens.ScreenHorizontal),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            YErrorState(state.message)
+        }
+    }
 }
 
 @Composable
