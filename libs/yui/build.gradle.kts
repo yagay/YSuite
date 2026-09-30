@@ -5,35 +5,37 @@ plugins {
 
 group = "com.github.yagay.YSuite"
 
+val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
+
 android {
     namespace = "com.yagay.yui"
-    compileSdk = 37
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
-    defaultConfig { minSdk = 26 }
+    defaultConfig { minSdk = libs.versions.minSdkLegacy.get().toInt() }
     buildFeatures { compose = true }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = sharedJavaVersion
+        targetCompatibility = sharedJavaVersion
     }
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
+    val composeBom = platform(libs.androidx.compose.bom)
     api(composeBom)
-    api("androidx.compose.ui:ui")
-    api("androidx.compose.ui:ui-tooling-preview")
-    api("androidx.compose.foundation:foundation")
-    api("androidx.compose.material3:material3")
-    api("androidx.compose.material:material-icons-extended")
+    api(libs.androidx.compose.ui)
+    api(libs.androidx.compose.ui.tooling.preview)
+    api(libs.androidx.compose.foundation)
+    api(libs.androidx.compose.material3)
+    api(libs.androidx.compose.material.icons.extended)
 
-    api("androidx.activity:activity-compose:1.13.0")
-    api("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
-    api("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
-    api("androidx.core:core-ktx:1.17.0")
-    api("androidx.appcompat:appcompat:1.7.1")
-    api("androidx.recyclerview:recyclerview:1.4.0")
-    api("com.google.android.material:material:1.13.0")
+    api(libs.androidx.activity.compose)
+    api(libs.androidx.lifecycle.runtime.compose)
+    api(libs.androidx.lifecycle.viewmodel.compose)
+    api(libs.androidx.core.ktx)
+    api(libs.androidx.appcompat)
+    api(libs.androidx.recyclerview)
+    api(libs.google.material)
 
-    implementation("androidx.startup:startup-runtime:1.2.0")
+    implementation(libs.androidx.startup)
 }

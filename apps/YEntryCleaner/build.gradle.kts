@@ -4,3 +4,19 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
 }
+
+val localSuiteShared = rootProject.findProject(":ysuite-api") != null &&
+    rootProject.findProject(":ysuite-ui") != null
+
+if (localSuiteShared) {
+    subprojects {
+        configurations.configureEach {
+            resolutionStrategy.dependencySubstitution {
+                substitute(module("com.github.yagay.YSuite:api"))
+                    .using(project(":ysuite-api"))
+                substitute(module("com.github.yagay.YSuite:ui"))
+                    .using(project(":ysuite-ui"))
+            }
+        }
+    }
+}
