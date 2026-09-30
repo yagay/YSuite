@@ -111,6 +111,7 @@ object SuiteRootGateway {
     ): Process {
         val context = RootManager.contextOrNull()
             ?: throw IllegalStateException("YSuite root host is not initialized")
+        checkFeatureEnabled(context, pluginId)
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "stream" }
         SuiteLog.i(
@@ -132,6 +133,21 @@ object SuiteRootGateway {
         timeoutSeconds: Long = 15L,
     ): Result {
         val app = context.applicationContext
+        val disabled = disabledFeatureError(app, pluginId)
+        if (disabled != null) {
+            SuiteLog.i(
+                app,
+                SuiteContract.HOST_MODULE_ID,
+                "root blocked; plugin=${pluginId.ifBlank { "unknown" }} reason=${disabled.message}",
+            )
+            return Result(
+                code = Shell.Result.JOB_NOT_EXECUTED,
+                stdout = "",
+                stderr = disabled.message.orEmpty(),
+                error = disabled,
+            )
+        }
+
         RootManager.initialize(app)
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "command" }
@@ -190,6 +206,21 @@ object SuiteRootGateway {
         mergeError: Boolean,
     ): BinaryResult {
         val app = context.applicationContext
+        val disabled = disabledFeatureError(app, pluginId)
+        if (disabled != null) {
+            SuiteLog.i(
+                app,
+                SuiteContract.HOST_MODULE_ID,
+                "root binary blocked; plugin=${pluginId.ifBlank { "unknown" }} reason=${disabled.message}",
+            )
+            return BinaryResult(
+                code = Shell.Result.JOB_NOT_EXECUTED,
+                stdout = ByteArray(0),
+                stderr = disabled.message.orEmpty(),
+                errorMessage = disabled.message,
+            )
+        }
+
         RootManager.initialize(app)
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "binary" }
@@ -295,6 +326,20 @@ object SuiteRootGateway {
             "root binary end; plugin=$safePlugin operation=$safeOperation result=$detail",
         )
         return result
+    }
+
+    private fun checkFeatureEnabled(context: Context, pluginId: String) {
+        disabledFeatureError(context.applicationContext, pluginId)?.let { throw it }
+    }
+
+    private fun disabledFeatureError(context: Context, pluginId: String): SecurityException? {
+        val featureId = pluginId.trim().substringBefore('/')
+        if (featureId.isEmpty() || featureId == SuiteContract.HOST_MODULE_ID || featureId == SuiteContract.CRASH_MODULE_ID) {
+            return null
+        }
+        val feature = FeatureRegistry.all.firstOrNull { it.id == featureId } ?: return null
+        return if (FeatureStateStore(context).isEnabled(feature)) null
+        else SecurityException("YSuite feature is disabled: $featureId")
     }
 
     private fun readerThread(
