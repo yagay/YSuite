@@ -133,6 +133,36 @@ object YViewLayout {
         }
     }
 
+    /** Standard section title for secondary/detail screens. */
+    @JvmStatic
+    @JvmOverloads
+    fun sectionHeader(
+        parent: LinearLayout,
+        title: String,
+        subtitle: String? = null,
+    ): TextView {
+        val heading = TextView(parent.context).apply {
+            text = title
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(onSurface(context))
+            setPadding(0, dp(context, SECTION_GAP), 0, dp(context, 4))
+        }
+        parent.addView(heading, matchWrap())
+        if (!subtitle.isNullOrBlank()) {
+            parent.addView(
+                TextView(parent.context).apply {
+                    text = subtitle
+                    textSize = 12.5f
+                    setTextColor(onSurfaceVariant(context))
+                    setPadding(0, 0, 0, dp(context, CONTROL_GAP))
+                },
+                matchWrap(),
+            )
+        }
+        return heading
+    }
+
     @JvmStatic
     @JvmOverloads
     fun card(
@@ -197,6 +227,40 @@ object YViewLayout {
     ) {
         view.text = text
         setStatusTone(view, tone)
+    }
+
+    /** Standard inline empty-state text for list/detail screens. */
+    @JvmStatic
+    fun emptyState(context: Context, message: String): TextView = TextView(context).apply {
+        text = message
+        textSize = 13f
+        gravity = Gravity.CENTER
+        setTextColor(onSurfaceVariant(context))
+        setPadding(0, dp(context, 20), 0, dp(context, 20))
+    }
+
+    /** Two-column detail row used by diagnostics and app detail pages. */
+    @JvmStatic
+    fun keyValueRow(context: Context, label: String, value: String): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.TOP
+        setPadding(0, dp(context, 4), 0, dp(context, 4))
+        addView(
+            TextView(context).apply {
+                text = label
+                textSize = 13f
+                setTextColor(onSurfaceVariant(context))
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.38f),
+        )
+        addView(
+            TextView(context).apply {
+                text = value
+                textSize = 13f
+                setTextColor(onSurface(context))
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.62f),
+        )
     }
 
     @JvmStatic
