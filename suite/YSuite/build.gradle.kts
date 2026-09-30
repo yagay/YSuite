@@ -12,6 +12,13 @@ val suiteAbiFilters = providers.gradleProperty("ySuiteAbiFilters")
     ?.filter(String::isNotEmpty)
     ?.takeIf(List<String>::isNotEmpty)
     ?: listOf("arm64-v8a")
+val generatedFeatureModules = rootProject.file("config/generated/feature-modules.tsv")
+    .readLines()
+    .asSequence()
+    .map(String::trim)
+    .filter { it.isNotEmpty() && !it.startsWith("#") }
+    .map { line -> line.substringBefore('\t') }
+    .toList()
 
 android {
     namespace = "com.yagay.YSuite"
@@ -77,15 +84,7 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(project(":ui"))
-    implementation(project(":ydiag-feature"))
-    implementation(project(":ynotify-feature"))
-    implementation(project(":ypower-feature"))
-    implementation(project(":yminiguard-feature"))
-    implementation(project(":yentrycleaner-feature"))
-    implementation(project(":ynfc-feature"))
-    implementation(project(":ytask-feature"))
-    implementation(project(":yparam-feature"))
-    implementation(project(":yfloat-feature"))
+    generatedFeatureModules.forEach { module -> implementation(project(module)) }
     compileOnly("io.github.libxposed:api:102.0.0")
 
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
