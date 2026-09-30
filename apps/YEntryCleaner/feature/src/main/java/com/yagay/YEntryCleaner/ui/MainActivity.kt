@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.data.readBackupText
 import com.yagay.yui.YComposeActivity
+import com.yagay.yui.YFeatureCustomScaffold
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -127,7 +128,7 @@ class MainActivity : YComposeActivity() {
             uri?.let(vm::inspectFile)
         }
 
-        Scaffold(
+        YFeatureCustomScaffold(
             topBar = {
                 MainToolbar(
                     state.query,
