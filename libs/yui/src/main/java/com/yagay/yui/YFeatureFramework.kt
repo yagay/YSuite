@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -144,6 +145,27 @@ fun YFeatureList(
 }
 
 @Composable
+fun YFeatureSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
 fun YFeatureCard(
     title: String,
     modifier: Modifier = Modifier,
@@ -181,6 +203,44 @@ fun YFeatureCard(
             trailing()
         }
         content()
+    }
+}
+
+@Composable
+fun YFeatureEmpty(
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    YCard(modifier = modifier.fillMaxWidth()) {
+        YEmptyState(message)
+    }
+}
+
+@Composable
+fun YFeatureStat(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    tone: YStatusTone = YStatusTone.Neutral,
+) {
+    val valueColor = when (tone) {
+        YStatusTone.Neutral -> MaterialTheme.colorScheme.onSurface
+        YStatusTone.Good -> MaterialTheme.colorScheme.primary
+        YStatusTone.Warning -> MaterialTheme.colorScheme.tertiary
+        YStatusTone.Error -> MaterialTheme.colorScheme.error
+    }
+    YCard(modifier = modifier) {
+        Text(
+            value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = valueColor,
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
