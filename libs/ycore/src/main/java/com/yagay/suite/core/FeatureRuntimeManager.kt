@@ -7,7 +7,9 @@ import com.yagay.suite.api.ManagedFeatureRuntime
  * Owns feature runtime lifecycle in the combined process.
  *
  * Legacy runtimes remain compatible: their existing static get(Context) initializer is invoked on
- * enable. Migrated runtimes additionally receive attach/enable/disable/destroy callbacks.
+ * enable. Migrated runtimes additionally receive attach/enable/disable/destroy callbacks. Legacy
+ * runtimes are still deterministically gated at host boundaries by FeatureStateStore,
+ * SuiteXposedServiceBroker and SuiteRootGateway.
  */
 object FeatureRuntimeManager {
     private data class RuntimeRecord(
@@ -44,7 +46,7 @@ object FeatureRuntimeManager {
             SuiteLog.i(
                 app,
                 feature.id,
-                "legacy runtime enabled through compatibility adapter; migrate to ManagedFeatureRuntime for deterministic disable",
+                "legacy runtime enabled through host compatibility gate; migrate to ManagedFeatureRuntime only when feature-local cleanup is needed",
             )
         }
 
@@ -63,7 +65,7 @@ object FeatureRuntimeManager {
             SuiteLog.i(
                 app,
                 feature.id,
-                "legacy runtime has no disable callback; persisted feature state is disabled and runtime will stop after migration/process restart",
+                "legacy runtime disabled at host boundaries; LSPosed callbacks and unified Root access are gated immediately",
             )
         }
         if (record != null) record.enabled = false

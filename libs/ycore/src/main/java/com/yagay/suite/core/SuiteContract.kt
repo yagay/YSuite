@@ -12,12 +12,15 @@ package com.yagay.suite.core
  */
 object SuiteContract {
     /** Bump when the shared host contract changes in a behaviorally meaningful way. */
-    const val REVISION = 1
+    const val REVISION = 2
 
     /** All unified diagnostics exported by YSuite live under Download/YSuite/. */
     const val LOG_EXPORT_SUBDIR = "YSuite"
 
     const val FEATURE_STATE_PREFS = "ysuite_features"
+    const val FEATURE_STATE_REMOTE_GROUP = "ysuite_feature_state"
+    const val FEATURE_STATE_KEY_PREFIX = "enabled."
+    const val FEATURE_STATE_REVISION_KEY = "revision"
     const val CRASH_CONTEXT_PREFS = "ysuite_crash_context"
     const val ACTIVE_FEATURE_KEY = "active_feature"
 

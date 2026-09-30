@@ -20,6 +20,9 @@ jobs:
       - name: Verify feature catalog
         run: python3 tools/verify_feature_catalog.py
 
+      - name: Verify unified feature state gating
+        run: python3 tools/verify_feature_state_gating.py
+
       - name: Verify YSuite host ownership
         run: python3 tools/verify_host_ownership.py
 

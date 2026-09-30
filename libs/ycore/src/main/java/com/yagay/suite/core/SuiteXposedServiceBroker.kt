@@ -15,6 +15,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     private val listeners = CopyOnWriteArraySet<XposedServiceHelper.OnServiceListener>()
     private val pluginListeners = ConcurrentHashMap<String, XposedServiceHelper.OnServiceListener>()
+    private val disabledPlugins = ConcurrentHashMap.newKeySet<String>()
 
     @Volatile
     private var currentService: XposedService? = null
@@ -34,13 +35,51 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     /** YSuite registers exactly one framework service listener, before plugin initialization. */
     @Synchronized
     fun takeOwnership(context: Context) {
-        appContext = context.applicationContext
+        val app = context.applicationContext
+        appContext = app
+        refreshLocalFeatureGates(app)
         XposedServiceHelper.registerListener(this)
         SuiteLog.i(
-            context,
+            app,
             SuiteContract.HOST_MODULE_ID,
-            "sole LSPosed service broker active; pluginListeners=${pluginListeners.size}",
+            "sole LSPosed service broker active; pluginListeners=${pluginListeners.size}; disabled=${disabledPlugins.size}",
         )
+    }
+
+    /**
+     * Applies one authoritative feature switch to the app-side listener gate and the LSPosed remote
+     * preference mirror consumed inside target processes.
+     */
+    @JvmStatic
+    fun setPluginEnabled(pluginId: String, enabled: Boolean): Boolean {
+        val id = pluginId.trim().substringBefore('/')
+        if (id.isEmpty()) return false
+
+        if (enabled) disabledPlugins.remove(id) else disabledPlugins.add(id)
+
+        val service = currentService
+        val listener = pluginListeners[id]
+        if (service != null && listener != null) {
+            if (enabled) {
+                runCatching { listener.onServiceBind(service) }
+                    .onFailure { failure -> logFailure("enable-replay", listener, failure) }
+            } else {
+                // Give legacy runtimes the normal disconnect signal so cached service/remote-pref
+                // references are cleared without requiring every feature to implement a new API.
+                runCatching { listener.onServiceDied(service) }
+                    .onFailure { failure -> logFailure("disable", listener, failure) }
+            }
+        }
+
+        val mirrored = service?.let { writeRemoteFeatureState(it, id, enabled) } ?: false
+        appContext?.let {
+            SuiteLog.i(
+                it,
+                id,
+                "feature gate changed; enabled=$enabled remoteMirrored=$mirrored",
+            )
+        }
+        return mirrored
     }
 
     /** Host-owned dynamic scope request used by embedded plugins. */
@@ -155,6 +194,8 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
             appendLine("connected=${service != null}")
             appendLine("listenerCount=${listeners.size}")
             appendLine("pluginListenerCount=${pluginListeners.size}")
+            appendLine("disabledPluginCount=${disabledPlugins.size}")
+            disabledPlugins.sorted().forEach { appendLine("disabledPlugin=$it") }
             pluginListeners.keys.sorted().forEach { appendLine("pluginListener=$it") }
             if (service == null) {
                 appendLine("status=LSPosed service not connected")
@@ -185,7 +226,9 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     override fun onServiceBind(service: XposedService) {
         if (currentService === service) return
         currentService = service
-        listeners.forEach { listener ->
+        syncAllFeatureStates(service)
+        pluginListeners.forEach { (pluginId, listener) ->
+            if (pluginId in disabledPlugins) return@forEach
             runCatching { listener.onServiceBind(service) }
                 .onFailure { failure -> logFailure("bind", listener, failure) }
         }
@@ -194,6 +237,7 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     override fun onServiceDied(service: XposedService) {
         if (currentService !== service) return
         currentService = null
+        // Even disabled runtimes may still cache the old service from a previous enabled period.
         listeners.forEach { listener ->
             runCatching { listener.onServiceDied(service) }
                 .onFailure { failure -> logFailure("died", listener, failure) }
@@ -202,19 +246,82 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
 
     private fun attach(pluginId: String, listener: XposedServiceHelper.OnServiceListener) {
         if (listener === this) return
-        val key = pluginId.ifBlank { listener.javaClass.name }
+        val key = pluginId.ifBlank { listener.javaClass.name }.substringBefore('/')
         val previous = pluginListeners.putIfAbsent(key, listener)
         if (previous != null && previous !== listener) {
             listeners.remove(previous)
             pluginListeners[key] = listener
         }
         if (!listeners.add(listener) && previous === listener) return
-        currentService?.let { service ->
-            runCatching { listener.onServiceBind(service) }
-                .onFailure { failure -> logFailure("replay", listener, failure) }
+        if (key !in disabledPlugins) {
+            currentService?.let { service ->
+                runCatching { listener.onServiceBind(service) }
+                    .onFailure { failure -> logFailure("replay", listener, failure) }
+            }
         }
         appContext?.let {
-            SuiteLog.i(it, key, "LSPosed listener attached to YSuite broker")
+            SuiteLog.i(
+                it,
+                key,
+                "LSPosed listener attached to YSuite broker; enabled=${key !in disabledPlugins}",
+            )
+        }
+    }
+
+    private fun refreshLocalFeatureGates(context: Context) {
+        val store = FeatureStateStore(context)
+        FeatureRegistry.included().forEach { feature ->
+            if (store.isEnabled(feature)) disabledPlugins.remove(feature.id)
+            else disabledPlugins.add(feature.id)
+        }
+    }
+
+    private fun syncAllFeatureStates(service: XposedService): Boolean {
+        val context = appContext ?: return false
+        refreshLocalFeatureGates(context)
+        return runCatching {
+            if ((service.frameworkProperties and XposedService.PROP_CAP_REMOTE) == 0L) return false
+            val remote = service.getRemotePreferences(SuiteContract.FEATURE_STATE_REMOTE_GROUP)
+            val editor = remote.edit()
+            val store = FeatureStateStore(context)
+            FeatureRegistry.included().forEach { feature ->
+                editor.putBoolean(
+                    SuiteContract.FEATURE_STATE_KEY_PREFIX + feature.id,
+                    store.isEnabled(feature),
+                )
+            }
+            editor.putLong(SuiteContract.FEATURE_STATE_REVISION_KEY, System.currentTimeMillis())
+            val committed = editor.commit()
+            SuiteLog.i(
+                context,
+                SuiteContract.HOST_MODULE_ID,
+                "feature gates synced to LSPosed remote preferences; committed=$committed",
+            )
+            committed
+        }.getOrElse { error ->
+            SuiteLog.e(
+                context,
+                SuiteContract.HOST_MODULE_ID,
+                "feature gate remote sync failed",
+                error,
+            )
+            false
+        }
+    }
+
+    private fun writeRemoteFeatureState(service: XposedService, featureId: String, enabled: Boolean): Boolean {
+        return runCatching {
+            if ((service.frameworkProperties and XposedService.PROP_CAP_REMOTE) == 0L) return false
+            service.getRemotePreferences(SuiteContract.FEATURE_STATE_REMOTE_GROUP)
+                .edit()
+                .putBoolean(SuiteContract.FEATURE_STATE_KEY_PREFIX + featureId, enabled)
+                .putLong(SuiteContract.FEATURE_STATE_REVISION_KEY, System.currentTimeMillis())
+                .commit()
+        }.getOrElse { error ->
+            appContext?.let {
+                SuiteLog.e(it, featureId, "feature gate remote mirror failed", error)
+            }
+            false
         }
     }
 

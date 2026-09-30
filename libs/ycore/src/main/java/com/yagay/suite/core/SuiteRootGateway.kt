@@ -4,6 +4,7 @@ import android.content.Context
 import com.topjohnwu.superuser.Shell
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
@@ -17,6 +18,8 @@ import java.util.concurrent.atomic.AtomicReference
  * root implementation, but code running through the combined host should call this gateway.
  */
 object SuiteRootGateway {
+    private val streamingProcesses = ConcurrentHashMap<String, MutableSet<Process>>()
+
     data class Result(
         val code: Int,
         val stdout: String,
@@ -45,11 +48,6 @@ object SuiteRootGateway {
         val success: Boolean get() = !timedOut && errorMessage == null && code == 0
     }
 
-    /**
-     * Reflection-friendly entry used by independently buildable feature modules when embedded in
-     * YSuite. Absence of this class means the feature is running standalone and may use its own
-     * shell implementation.
-     */
     @JvmStatic
     fun executeFromPlugin(
         pluginId: String,
@@ -67,10 +65,6 @@ object SuiteRootGateway {
         return execute(context, pluginId, operation, command, timeoutSeconds)
     }
 
-    /**
-     * Reflection-friendly bounded binary command entry. This is used for screenshots/dumps where
-     * stdout must remain bytes instead of being converted through line-oriented libsu output.
-     */
     @JvmStatic
     fun executeBinaryFromPlugin(
         pluginId: String,
@@ -99,9 +93,8 @@ object SuiteRootGateway {
     }
 
     /**
-     * Reflection-friendly streaming entry for long-lived collectors. The Process itself is created
-     * by YSuite; the plugin only consumes its streams/lifecycle. In standalone builds this class is
-     * absent and the feature may create its own local root process.
+     * Reflection-friendly streaming entry for long-lived collectors. YSuite registers every stream
+     * under its feature id so disabling that feature can terminate already-running root collectors.
      */
     @JvmStatic
     fun startFromPlugin(
@@ -111,6 +104,7 @@ object SuiteRootGateway {
     ): Process {
         val context = RootManager.contextOrNull()
             ?: throw IllegalStateException("YSuite root host is not initialized")
+        checkFeatureEnabled(context, pluginId)
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "stream" }
         SuiteLog.i(
@@ -118,9 +112,36 @@ object SuiteRootGateway {
             SuiteContract.HOST_MODULE_ID,
             "root stream begin; plugin=$safePlugin operation=$safeOperation",
         )
-        return ProcessBuilder("su", "-c", command)
+        val process = ProcessBuilder("su", "-c", command)
             .redirectErrorStream(true)
             .start()
+        registerStreamingProcess(context, pluginId, safeOperation, process)
+        return process
+    }
+
+    /** Terminates all long-lived root streams that belong to one feature. */
+    @JvmStatic
+    fun stopPluginProcesses(pluginId: String): Int {
+        val featureId = normalizedFeatureId(pluginId) ?: return 0
+        val processes = streamingProcesses.remove(featureId)?.toList().orEmpty()
+        processes.forEach { process ->
+            runCatching {
+                if (process.isAlive) {
+                    process.destroy()
+                    if (process.isAlive) process.destroyForcibly()
+                }
+            }
+        }
+        RootManager.contextOrNull()?.let { context ->
+            if (processes.isNotEmpty()) {
+                SuiteLog.i(
+                    context,
+                    SuiteContract.HOST_MODULE_ID,
+                    "root streams stopped; feature=$featureId count=${processes.size}",
+                )
+            }
+        }
+        return processes.size
     }
 
     @JvmStatic
@@ -132,6 +153,21 @@ object SuiteRootGateway {
         timeoutSeconds: Long = 15L,
     ): Result {
         val app = context.applicationContext
+        val disabled = disabledFeatureError(app, pluginId)
+        if (disabled != null) {
+            SuiteLog.i(
+                app,
+                SuiteContract.HOST_MODULE_ID,
+                "root blocked; plugin=${pluginId.ifBlank { "unknown" }} reason=${disabled.message}",
+            )
+            return Result(
+                code = Shell.Result.JOB_NOT_EXECUTED,
+                stdout = "",
+                stderr = disabled.message.orEmpty(),
+                error = disabled,
+            )
+        }
+
         RootManager.initialize(app)
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "command" }
@@ -190,6 +226,21 @@ object SuiteRootGateway {
         mergeError: Boolean,
     ): BinaryResult {
         val app = context.applicationContext
+        val disabled = disabledFeatureError(app, pluginId)
+        if (disabled != null) {
+            SuiteLog.i(
+                app,
+                SuiteContract.HOST_MODULE_ID,
+                "root binary blocked; plugin=${pluginId.ifBlank { "unknown" }} reason=${disabled.message}",
+            )
+            return BinaryResult(
+                code = Shell.Result.JOB_NOT_EXECUTED,
+                stdout = ByteArray(0),
+                stderr = disabled.message.orEmpty(),
+                errorMessage = disabled.message,
+            )
+        }
+
         RootManager.initialize(app)
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "binary" }
@@ -295,6 +346,51 @@ object SuiteRootGateway {
             "root binary end; plugin=$safePlugin operation=$safeOperation result=$detail",
         )
         return result
+    }
+
+    private fun registerStreamingProcess(
+        context: Context,
+        pluginId: String,
+        operation: String,
+        process: Process,
+    ) {
+        val featureId = normalizedFeatureId(pluginId) ?: return
+        val processes = streamingProcesses.computeIfAbsent(featureId) {
+            ConcurrentHashMap.newKeySet<Process>()
+        }
+        processes.add(process)
+        Thread({
+            runCatching { process.waitFor() }
+            processes.remove(process)
+            if (processes.isEmpty()) streamingProcesses.remove(featureId, processes)
+            SuiteLog.i(
+                context,
+                SuiteContract.HOST_MODULE_ID,
+                "root stream end; feature=$featureId operation=$operation",
+            )
+        }, "YSuite-root-watch-$featureId").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun checkFeatureEnabled(context: Context, pluginId: String) {
+        disabledFeatureError(context.applicationContext, pluginId)?.let { throw it }
+    }
+
+    private fun normalizedFeatureId(pluginId: String): String? {
+        val featureId = pluginId.trim().substringBefore('/')
+        if (featureId.isEmpty() || featureId == SuiteContract.HOST_MODULE_ID || featureId == SuiteContract.CRASH_MODULE_ID) {
+            return null
+        }
+        return featureId
+    }
+
+    private fun disabledFeatureError(context: Context, pluginId: String): SecurityException? {
+        val featureId = normalizedFeatureId(pluginId) ?: return null
+        val feature = FeatureRegistry.all.firstOrNull { it.id == featureId } ?: return null
+        return if (FeatureStateStore(context).isEnabled(feature)) null
+        else SecurityException("YSuite feature is disabled: $featureId")
     }
 
     private fun readerThread(
