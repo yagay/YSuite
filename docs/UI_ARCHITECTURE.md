@@ -38,8 +38,11 @@ Java/Kotlin View Activities use `YViewLayout`:
 
 - `install()` / `screen()` for vertically scrolling screens;
 - `installFixed()` / `fixedScreen()` when a RecyclerView or another child owns scrolling;
+- `sectionHeader()` for normal page sections;
 - `card()`;
 - `statusLine()` / `setStatus()`;
+- `emptyState()` for inline empty results;
+- `keyValueRow()` for detail/diagnostic metadata;
 - `switchRow()`;
 - `searchField()`;
 - `primaryButton()` / `secondaryButton()`;
@@ -70,13 +73,26 @@ Screen
       Status / Setting / Navigation / Action
 ```
 
-The hierarchy now applies to both entry shells and high-traffic content areas. YNFC status/card/log sections, YTaskManager process/resource/network sections, and YDiag monitor/history/configuration sections use the same YUI vocabulary while retaining their feature-specific behavior.
+The hierarchy applies to both entry shells and high-traffic content areas. YNFC status/card/log sections, YTaskManager process/resource/network sections, and YDiag monitor/history/configuration sections use the same YUI vocabulary while retaining their feature-specific behavior.
+
+## Secondary and detail screens
+
+The same contract continues after the feature home page. Secondary screens should not fall back to feature-local spacing/palette/button conventions just because they are detail or settings pages.
+
+Current migrated examples include:
+
+- YParam app parameter detail: `YViewLayout.install`, shared status card, section headers and action buttons;
+- YPower app enhancement detail and recommended apps: shared status/section/card/empty/action components;
+- YNotify per-app history and event detail: shared YUI dimensions, button styles and text appearances;
+- YEntryCleaner Scope details: shared Compose section/card/status/empty components while retaining the full-screen dialog navigation and bottom actions.
+
+Complex interaction surfaces such as YEntryCleaner priority drag/reorder, component lock/swipe rows and bulk-selection behavior remain feature-owned. Their surrounding section/status layout should migrate incrementally rather than rewriting those interactions for visual uniformity.
 
 ## Specialized surfaces
 
 A feature may keep purpose-built rendering where a generic card would reduce usability. Examples include diagnostic log consoles, charts, overlays and drawing/selection surfaces. Their surrounding page structure, spacing, actions and normal status presentation should still use YUI.
 
-YNFC intentionally keeps its log console high-contrast palette; normal NFC cards and status colors are YUI-owned.
+YNFC intentionally keeps its log console high-contrast palette; normal NFC cards and status colors are YUI-owned. YPower runtime diagnostic output may also retain selectable/highlighted report text while its surrounding controls migrate to YUI.
 
 ## Migration policy
 
@@ -84,4 +100,4 @@ Migrate incrementally. A UI refactor should preserve business behavior and only 
 
 A screen may keep a specialized console, overlay, drawing surface, stateful search toolbar or other product-specific interaction. The surrounding normal page shell should still use YUI where possible.
 
-`tools/verify_ui_framework.py` protects migrated entry/content screens from reintroducing local palettes and verifies that Compose, View and XML YUI surfaces remain available.
+`tools/verify_ui_framework.py` protects migrated entry/content/detail screens from reintroducing local palettes and verifies that Compose, View and XML YUI surfaces remain available.
