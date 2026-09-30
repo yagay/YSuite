@@ -90,7 +90,11 @@ def main() -> None:
         r'new\s+PluginSpec\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)',
         xposed,
     )
-    if host_hooks != catalog_hooks:
+    if len(host_hooks) != len(set(host_hooks)):
+        fail(f"SuiteXposedModule contains duplicate PluginSpec entries: {host_hooks}")
+    if len(catalog_hooks) != len(set(catalog_hooks)):
+        fail(f"catalog contains duplicate hook entries: {catalog_hooks}")
+    if set(host_hooks) != set(catalog_hooks):
         fail(
             "SuiteXposedModule PLUGINS differs from catalog:\n"
             f"  host={host_hooks}\n  catalog={catalog_hooks}"
