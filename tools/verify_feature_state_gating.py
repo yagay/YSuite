@@ -24,6 +24,13 @@ def require(path: str, *needles: str) -> str:
     return text
 
 
+def require_order(text: str, path: str, before: str, after: str) -> None:
+    left = text.find(before)
+    right = text.find(after)
+    if left < 0 or right < 0 or left >= right:
+        fail(f"{path} must order {before!r} before {after!r}")
+
+
 def main() -> None:
     contract = require(
         "libs/ycore/src/main/java/com/yagay/suite/core/SuiteContract.kt",
@@ -34,11 +41,33 @@ def main() -> None:
     if not revision or int(revision.group(1)) < 2:
         fail("SuiteContract revision must be >= 2 for remote feature-state gating")
 
-    require(
-        "libs/ycore/src/main/java/com/yagay/suite/core/FeatureManager.kt",
-        "SuiteXposedServiceBroker.setPluginEnabled(feature.id, enabled)",
+    manager_path = "libs/ycore/src/main/java/com/yagay/suite/core/FeatureManager.kt"
+    manager = require(
+        manager_path,
+        "SuiteXposedServiceBroker.setPluginEnabled(feature.id, true)",
+        "SuiteXposedServiceBroker.setPluginEnabled(feature.id, false)",
         "SuiteRootGateway.stopPluginProcesses(feature.id)",
         "FeatureRuntimeManager.enable(appContext, feature)",
+        "FeatureRuntimeManager.disable(appContext, feature)",
+    )
+    # Enable: runtime must be ready before the broker replays an existing LSPosed connection.
+    require_order(
+        manager,
+        manager_path,
+        "FeatureRuntimeManager.enable(appContext, feature)",
+        "SuiteXposedServiceBroker.setPluginEnabled(feature.id, true)",
+    )
+    # Disable: cut off framework callbacks/root work before feature-specific cleanup runs.
+    require_order(
+        manager,
+        manager_path,
+        "SuiteXposedServiceBroker.setPluginEnabled(feature.id, false)",
+        "FeatureRuntimeManager.disable(appContext, feature)",
+    )
+    require_order(
+        manager,
+        manager_path,
+        "SuiteRootGateway.stopPluginProcesses(feature.id)",
         "FeatureRuntimeManager.disable(appContext, feature)",
     )
 
@@ -65,7 +94,7 @@ def main() -> None:
         "streamingProcesses",
     )
 
-    print("feature-state-gating: OK runtime + LSPosed + Hook + Root are controlled by one feature switch")
+    print("feature-state-gating: OK ordered runtime + LSPosed + Hook + Root gates share one feature switch")
 
 
 if __name__ == "__main__":
