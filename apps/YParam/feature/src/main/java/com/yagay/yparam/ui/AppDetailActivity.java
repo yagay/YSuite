@@ -16,7 +16,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,6 +26,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.yagay.yparam.YParamApp;
 import com.yagay.yparam.data.AppConfig;
 import com.yagay.yparam.data.ConfigRepository;
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewScreen;
+import com.yagay.yui.YViewStatusTone;
 
 import org.json.JSONObject;
 
@@ -67,36 +69,29 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         fields.clear();
         choiceSpinners.clear();
         choicePresets.clear();
-        ScrollView scroll = new ScrollView(this);
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int p = dp(14);
-        root.setPadding(p, p, p, dp(40));
-        scroll.addView(root);
-        setContentView(scroll);
 
         PackageManager pm = getPackageManager();
         String name = packageName;
         try { name = String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0))); } catch (Throwable ignored) {}
         setTitle(name);
 
-        TextView header = text(name, 24, true);
-        root.addView(header);
-        root.addView(text(packageName, 13, false));
-        summary = text("", 13, false);
-        scopeState = text("", 13, false);
-        root.addView(summary);
-        root.addView(scopeState);
+        YViewScreen screen = YViewLayout.install(this, name, packageName);
+        root = screen.getContent();
+
+        LinearLayout statusCard = YViewLayout.card(root, "配置状态", "未设置的字段始终返回真实系统/应用默认值");
+        summary = YViewLayout.statusLine(this, "");
+        scopeState = YViewLayout.statusLine(this, "");
+        statusCard.addView(summary);
+        statusCard.addView(scopeState);
         refreshStatus();
 
-        LinearLayout actions = horizontal();
-        Button scope = button("加入 LSPosed 作用域");
+        LinearLayout actions = YViewLayout.actionRow(root);
+        Button scope = YViewLayout.secondaryButton(this, "加入 LSPosed 作用域");
         scope.setOnClickListener(v -> requestScope());
-        Button save = button("保存");
+        Button save = YViewLayout.primaryButton(this, "保存");
         save.setOnClickListener(v -> save());
-        actions.addView(scope, weight());
-        actions.addView(save, weight());
-        root.addView(actions);
+        YViewLayout.addAction(actions, scope);
+        YViewLayout.addAction(actions, save);
 
         section("快速模板");
         LinearLayout presets = horizontal();
@@ -159,9 +154,10 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
                 "输入自定义毫秒数", new String[]{"1000","3000","5000","10000","30000","60000"});
 
         section("应用原始信息 / 诊断");
-        root.addView(text(buildRawInfo(), 13, false));
+        LinearLayout rawInfo = YViewLayout.card(root, "真实信息快照", "用于对比覆盖前后的环境参数");
+        rawInfo.addView(text(buildRawInfo(), 13, false));
 
-        Button reset = button("恢复这个应用全部默认");
+        Button reset = YViewLayout.secondaryButton(this, "恢复这个应用全部默认");
         reset.setOnClickListener(v -> new AlertDialog.Builder(this)
                 .setTitle("恢复全部默认？")
                 .setMessage("将删除 YParam 对此应用的全部覆盖。应用之后直接读取真实系统/自身默认值。")
@@ -349,8 +345,15 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     }
 
     private void refreshStatus() {
-        if (summary != null) summary.setText("YParam 覆盖项：" + config.overrideCount() + " · 未设置的字段全部返回真实值");
-        if (scopeState != null) scopeState.setText("LSPosed：" + (YParamApp.getService() == null ? "未连接" : (ConfigRepository.isInScope(packageName) ? "已在作用域" : "未在作用域")));
+        if (summary != null) {
+            YViewLayout.setStatus(summary, "YParam 覆盖项：" + config.overrideCount(), config.overrideCount() > 0 ? YViewStatusTone.Good : YViewStatusTone.Neutral);
+        }
+        if (scopeState != null) {
+            boolean connected = YParamApp.getService() != null;
+            boolean inScope = connected && ConfigRepository.isInScope(packageName);
+            String state = !connected ? "LSPosed：未连接" : inScope ? "LSPosed：已在作用域" : "LSPosed：未在作用域";
+            YViewLayout.setStatus(scopeState, state, inScope ? YViewStatusTone.Good : connected ? YViewStatusTone.Warning : YViewStatusTone.Error);
+        }
     }
 
     private void saveBaselineIfNeeded() {
@@ -414,9 +417,9 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     private static int boolIndex(Boolean b) { return b == null ? 0 : b ? 1 : 2; }
     private static int locationIndex(String s) { return "fixed".equals(s) ? 1 : "random".equals(s) ? 2 : 0; }
 
-    private void section(String s) { TextView v = text(s, 19, true); v.setPadding(0, dp(18), 0, dp(4)); root.addView(v); }
+    private void section(String s) { YViewLayout.sectionHeader(root, s); }
     private TextView text(String s, int sp, boolean bold) { TextView v = new TextView(this); v.setText(s); v.setTextSize(sp); if (bold) v.setTypeface(v.getTypeface(), android.graphics.Typeface.BOLD); return v; }
-    private Button button(String s) { Button b = new Button(this); b.setText(s); return b; }
+    private Button button(String s) { return YViewLayout.secondaryButton(this, s); }
     private LinearLayout horizontal() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.HORIZONTAL); l.setGravity(Gravity.CENTER_VERTICAL); return l; }
     private LinearLayout.LayoutParams weight() { return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); }
     private int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
