@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,6 +17,9 @@ import com.yagay.ypower.model.AppProfile;
 import com.yagay.ypower.model.RecommendedAppPreset;
 import com.yagay.ypower.root.EnhancementEngine;
 import com.yagay.ypower.xposed.XposedBridgeManager;
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewScreen;
+import com.yagay.yui.YViewStatusTone;
 
 public class AppDetailActivity extends AppCompatActivity {
     private String packageName;
@@ -33,16 +35,20 @@ public class AppDetailActivity extends AppCompatActivity {
     }
 
     private void buildUi() {
-        ScrollView scroll = new ScrollView(this);
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(16), dp(16), dp(24));
-        scroll.addView(root);
+        YViewScreen screen = YViewLayout.install(this, "应用增强", packageName);
+        LinearLayout root = screen.getContent();
 
-        TextView title = new TextView(this);
-        title.setText(packageName);
-        title.setTextSize(22);
-        root.addView(title);
+        LinearLayout stateCard = YViewLayout.card(root, "当前状态", "增强开关、Root 规则和 LSPosed Scope 统一从这里管理");
+        stateCard.addView(YViewLayout.statusLine(
+                this,
+                profile.enabled ? "YPower 增强已启用" : "YPower 增强未启用",
+                profile.enabled ? YViewStatusTone.Good : YViewStatusTone.Neutral
+        ));
+        stateCard.addView(YViewLayout.statusLine(
+                this,
+                XposedBridgeManager.isReady() ? "LSPosed Service 已连接" : "LSPosed Service 未连接",
+                XposedBridgeManager.isReady() ? YViewStatusTone.Good : YViewStatusTone.Warning
+        ));
 
         CheckBox enabled = addCheck(root, "启用 YPower 增强", profile.enabled);
         enabled.setOnCheckedChangeListener((v, checked) -> {
@@ -52,17 +58,19 @@ public class AppDetailActivity extends AppCompatActivity {
 
         RecommendedAppPreset recommendedPreset = RecommendedAppRegistry.find(packageName);
         if (recommendedPreset != null) {
-            root.addView(section("推荐配置"));
-
-            TextView recommendedInfo = new TextView(this);
-            recommendedInfo.setText("推荐原因：" + recommendedPreset.reason
-                    + "\n推荐 Hook：" + recommendedPreset.hookSummary()
-                    + "\n应用后会同时请求加入 LSPosed Scope。");
-            recommendedInfo.setPadding(0, dp(4), 0, dp(8));
-            root.addView(recommendedInfo);
-
-            Button applyRecommended = new Button(this);
-            applyRecommended.setText("应用推荐配置并同步 LSPosed");
+            YViewLayout.sectionHeader(root, "推荐配置", "根据已知兼容需求生成，可随时在下方手动调整。");
+            LinearLayout recommended = YViewLayout.card(
+                    root,
+                    recommendedPreset.displayName,
+                    "推荐 Hook：" + recommendedPreset.hookSummary()
+            );
+            recommended.addView(YViewLayout.detailBlock(this, "推荐原因", recommendedPreset.reason));
+            recommended.addView(YViewLayout.statusLine(
+                    this,
+                    XposedBridgeManager.isReady() ? "应用后会同步请求 LSPosed Scope" : "LSPosed 未连接；配置先保存，连接后再同步",
+                    XposedBridgeManager.isReady() ? YViewStatusTone.Good : YViewStatusTone.Warning
+            ));
+            Button applyRecommended = YViewLayout.primaryButton(this, "应用推荐配置并同步 LSPosed");
             applyRecommended.setOnClickListener(v -> {
                 profile = ProfileStore.get(this).applyRecommendedPreset(recommendedPreset);
                 EnhancementEngine.applyAsync(this, profile, result -> runOnUiThread(() -> {
@@ -75,21 +83,21 @@ public class AppDetailActivity extends AppCompatActivity {
                     recreate();
                 }));
             });
-            root.addView(applyRecommended);
+            recommended.addView(applyRecommended);
         }
 
-        root.addView(section("无需目标 App Hook"));
+        YViewLayout.sectionHeader(root, "无需目标 App Hook", "由 Root/系统侧完成，不依赖目标进程内 Hook。");
         CheckBox doze = addCheck(root, "Doze 白名单", profile.dozeWhitelist);
         CheckBox bg = addCheck(root, "后台 AppOps 放宽", profile.backgroundOps);
         CheckBox standby = addCheck(root, "App Standby Active", profile.standbyActive);
         CheckBox data = addCheck(root, "后台数据白名单", profile.backgroundData);
         CheckBox grant = addCheck(root, "自动授予可正常 grant 的危险权限", profile.autoGrantDangerous);
 
-        root.addView(section("目标进程兼容层（需要 LSPosed）"));
+        YViewLayout.sectionHeader(root, "目标进程兼容层", "需要 LSPosed；用于兼容特定应用环境检查。");
         CheckBox system = addCheck(root, "模拟 System App 身份", profile.simulateSystemApp);
         CheckBox perm = addCheck(root, "模拟权限状态（默认位置权限；不等于真正 privileged 权限）", profile.simulatePermissions);
 
-        root.addView(section("目标进程诊断追踪（需要 LSPosed）"));
+        YViewLayout.sectionHeader(root, "目标进程诊断追踪", "默认只观察并记录，不修改原始检测结果。");
         CheckBox packageScan = addCheck(root, "包扫描追踪（Magisk / KernelSU / LSPosed / Frida 等）", profile.tracePackageScan);
         CheckBox files = addCheck(root, "文件与 /proc 访问追踪", profile.traceFiles);
         CheckBox commands = addCheck(root, "命令执行与主动退出追踪", profile.traceCommands);
@@ -106,13 +114,15 @@ public class AppDetailActivity extends AppCompatActivity {
                 profile.traceSyscalls);
         CheckBox stacks = addCheck(root, "记录短调用栈", profile.traceStacks);
 
-        TextView note = new TextView(this);
-        note.setText("诊断追踪默认只记录敏感调用并继续执行原逻辑，不修改检测结果。修改这些 Hook 开关后，需要重新启动目标 App 才会重新安装对应 Hook。");
-        note.setPadding(0, dp(8), 0, dp(12));
+        TextView note = YViewLayout.statusLine(
+                this,
+                "修改 Hook 开关后需要重新启动目标 App，新的 Hook 组合才会重新安装。",
+                YViewStatusTone.Warning
+        );
         root.addView(note);
 
-        Button apply = new Button(this);
-        apply.setText("保存并应用增强");
+        LinearLayout actions = YViewLayout.actionRow(root);
+        Button apply = YViewLayout.primaryButton(this, "保存并应用增强");
         apply.setOnClickListener(v -> {
             profile.enabled = enabled.isChecked();
             profile.dozeWhitelist = doze.isChecked();
@@ -139,17 +149,14 @@ public class AppDetailActivity extends AppCompatActivity {
             EnhancementEngine.applyAsync(this, profile, result -> runOnUiThread(() ->
                     Toast.makeText(this, result.summary(), Toast.LENGTH_LONG).show()));
         });
-        root.addView(apply);
-
-        Button diagnose = new Button(this);
-        diagnose.setText("打开诊断中心");
+        Button diagnose = YViewLayout.secondaryButton(this, "打开诊断中心");
         diagnose.setOnClickListener(v -> {
             Intent i = new Intent(this, DiagnosticActivity.class);
             i.putExtra("package", packageName);
             startActivity(i);
         });
-        root.addView(diagnose);
-        setContentView(scroll);
+        YViewLayout.addAction(actions, apply);
+        YViewLayout.addAction(actions, diagnose);
     }
 
     private void save() {
@@ -164,14 +171,6 @@ public class AppDetailActivity extends AppCompatActivity {
         box.setPadding(0, dp(6), 0, dp(6));
         root.addView(box);
         return box;
-    }
-
-    private TextView section(String text) {
-        TextView v = new TextView(this);
-        v.setText(text);
-        v.setTextSize(18);
-        v.setPadding(0, dp(18), 0, dp(4));
-        return v;
     }
 
     private int dp(int value) {
