@@ -1,0 +1,11 @@
+# Generated from config/features.toml by tools/generate_feature_catalog.py.
+# gradle_module<TAB>project_dir
+:yentrycleaner-feature	apps/YEntryCleaner/feature
+:ydiag-feature	apps/YDiag/feature
+:ynotify-feature	apps/YNotify/feature
+:ypower-feature	apps/YPower/feature
+:yminiguard-feature	apps/YMiniGuard/feature
+:ynfc-feature	apps/YNFC/feature
+:ytask-feature	apps/YTaskManager/feature
+:yparam-feature	apps/YParam/feature
+:yfloat-feature	apps/YFloat/feature
