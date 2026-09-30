@@ -4,27 +4,19 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yagay.YEntryCleaner.BuildConfig
 import com.yagay.YEntryCleaner.R
+import com.yagay.YEntryCleaner.domain.AppTypeFilter
 import com.yagay.YEntryCleaner.domain.DisplayMode
 import com.yagay.YEntryCleaner.domain.IntentKind
-import com.yagay.YEntryCleaner.domain.AppTypeFilter
 import com.yagay.YEntryCleaner.domain.OpenPreset
-import com.yagay.YEntryCleaner.domain.matchesOpenPreset
 import com.yagay.YEntryCleaner.domain.matchesBrowserHost
+import com.yagay.YEntryCleaner.domain.matchesOpenPreset
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFeatureEmpty
 import com.yagay.yui.YStatusRow
@@ -38,6 +30,7 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
     var showCustomTypes by rememberSaveable { mutableStateOf(false) }
     var showBrowserHosts by rememberSaveable { mutableStateOf(false) }
     var appTypeFilter by rememberSaveable { mutableStateOf(AppTypeFilter.ALL) }
+
     editingTitle?.let { item ->
         ComponentTitleDialog(
             item,
@@ -76,7 +69,6 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
 
     val typedOpenPreset = openPreset.takeIf { state.filter == IntentKind.OPEN }
     val deepLinkHost = browserHost.takeIf { state.filter == IntentKind.DEEP_LINK }
-
     val typedSelected = typedOpenPreset?.let { state.openTypes.selectedRules(it) }.orEmpty()
     val explicitTypedSelected = typedOpenPreset?.let { state.openTypesExplicit.selectedRules(it) }.orEmpty()
     val explicitDeepLinkSelected = deepLinkHost?.let { state.browserLinks.selectedRules(it) }.orEmpty()
@@ -101,7 +93,9 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
     }
     val baseShownGroups = when {
         typedOpenPreset != null -> groupCandidates(
-            state.candidates.filter { it.matchesOpenPreset(typedOpenPreset, state.openTypesExplicit.customDefinitions) },
+            state.candidates.filter {
+                it.matchesOpenPreset(typedOpenPreset, state.openTypesExplicit.customDefinitions)
+            },
             typedSelected,
             IntentKind.OPEN,
             state.query,
@@ -213,9 +207,10 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
         }
         item(key = "list-summary") {
             SummaryRow(state, shownGroups.size, openPreset, browserHost)
-            if (openPreset == null && state.uiFilter != UiFilter.SHOW_SELECTED && state.candidates.any {
-                    it.rule in state.selected && (it.unavailable || it.restricted)
-                }) {
+            if (openPreset == null &&
+                state.uiFilter != UiFilter.SHOW_SELECTED &&
+                state.candidates.any { it.rule in state.selected && (it.unavailable || it.restricted) }
+            ) {
                 TextButton(
                     onClick = {
                         vm.setFilter(null)
@@ -236,53 +231,63 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
                     group,
                     activeSelected,
                     expanded,
-                    if (deepLinkScoped) vm.bulkLockState(
-                        lockScope,
-                        group.packageName,
-                        lockRulesByPackage[group.packageName].orEmpty().map { it.id }
-                    ) else vm.ruleBulkLockState(
-                        state.filter,
-                        openPreset,
-                        group.packageName,
-                        lockRulesByPackage[group.packageName].orEmpty()
-                    ),
+                    if (deepLinkScoped) {
+                        vm.bulkLockState(
+                            lockScope,
+                            group.packageName,
+                            lockRulesByPackage[group.packageName].orEmpty().map { it.id }
+                        )
+                    } else {
+                        vm.ruleBulkLockState(
+                            state.filter,
+                            openPreset,
+                            group.packageName,
+                            lockRulesByPackage[group.packageName].orEmpty()
+                        )
+                    },
                     { vm.toggleExpandedApp(key) },
                     { selected ->
                         when {
-                            typedOpenPreset != null ->
-                                vm.setOpenTypeGroupSelected(typedOpenPreset, group, selected)
-                            deepLinkHost != null ->
-                                vm.setBrowserHostGroupSelected(deepLinkHost, group, selected)
+                            typedOpenPreset != null -> vm.setOpenTypeGroupSelected(typedOpenPreset, group, selected)
+                            deepLinkHost != null -> vm.setBrowserHostGroupSelected(deepLinkHost, group, selected)
                             else -> vm.setGroupSelected(group, selected)
                         }
                     },
                     {
-                        if (deepLinkScoped) vm.setBulkAppLocked(
-                            lockScope,
-                            group.packageName,
-                            lockRulesByPackage[group.packageName].orEmpty().map { it.id },
-                            true
-                        ) else vm.setRuleAppLocked(
-                            state.filter,
-                            openPreset,
-                            group.packageName,
-                            lockRulesByPackage[group.packageName].orEmpty(),
-                            true
-                        )
+                        if (deepLinkScoped) {
+                            vm.setBulkAppLocked(
+                                lockScope,
+                                group.packageName,
+                                lockRulesByPackage[group.packageName].orEmpty().map { it.id },
+                                true
+                            )
+                        } else {
+                            vm.setRuleAppLocked(
+                                state.filter,
+                                openPreset,
+                                group.packageName,
+                                lockRulesByPackage[group.packageName].orEmpty(),
+                                true
+                            )
+                        }
                     },
                     {
-                        if (deepLinkScoped) vm.setBulkAppLocked(
-                            lockScope,
-                            group.packageName,
-                            lockRulesByPackage[group.packageName].orEmpty().map { it.id },
-                            false
-                        ) else vm.setRuleAppLocked(
-                            state.filter,
-                            openPreset,
-                            group.packageName,
-                            lockRulesByPackage[group.packageName].orEmpty(),
-                            false
-                        )
+                        if (deepLinkScoped) {
+                            vm.setBulkAppLocked(
+                                lockScope,
+                                group.packageName,
+                                lockRulesByPackage[group.packageName].orEmpty().map { it.id },
+                                false
+                            )
+                        } else {
+                            vm.setRuleAppLocked(
+                                state.filter,
+                                openPreset,
+                                group.packageName,
+                                lockRulesByPackage[group.packageName].orEmpty(),
+                                false
+                            )
+                        }
                     }
                 )
             }
@@ -312,16 +317,19 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
                         component.rule in activeSelected,
                         state.priorities.titles[component.rule.id],
                         selectionNote = sourceNote,
-                        locked = if (deepLinkScoped) vm.isBulkProtected(
-                            lockScope, component.rule.packageName, component.rule.id
-                        ) else vm.isRuleBulkProtected(state.filter, openPreset, component.rule),
+                        locked = if (deepLinkScoped) {
+                            vm.isBulkProtected(lockScope, component.rule.packageName, component.rule.id)
+                        } else {
+                            vm.isRuleBulkProtected(state.filter, openPreset, component.rule)
+                        },
                         lockToggleEnabled = if (deepLinkScoped) {
                             !vm.isBulkAppLocked(lockScope, component.rule.packageName)
-                        } else !vm.isRuleAppLockedForRule(state.filter, openPreset, component.rule),
+                        } else {
+                            !vm.isRuleAppLockedForRule(state.filter, openPreset, component.rule)
+                        },
                         onToggle = {
                             when {
-                                typedOpenPreset != null ->
-                                    vm.toggleOpenType(typedOpenPreset, component.rule)
+                                typedOpenPreset != null -> vm.toggleOpenType(typedOpenPreset, component.rule)
                                 deepLinkHost != null -> vm.toggleBrowserHost(deepLinkHost, component.rule)
                                 else -> vm.toggle(component.rule)
                             }
@@ -369,11 +377,17 @@ private fun SummaryRow(
             DisplayMode.SHOW_ALL -> R.string.rules_mode_show_all
         }
     )
-    val usageText = if (presetTitle == null) stringResource(R.string.rules_usage_help)
-    else stringResource(R.string.rules_typed_help, presetTitle)
+    val usageText = if (presetTitle == null) {
+        stringResource(R.string.rules_usage_help)
+    } else {
+        stringResource(R.string.rules_typed_help, presetTitle)
+    }
     YFeatureCard(
-        title = if (presetTitle == null) stringResource(R.string.app_list_count, groupCount)
-        else stringResource(R.string.app_list_count_type, groupCount, presetTitle),
+        title = if (presetTitle == null) {
+            stringResource(R.string.app_list_count, groupCount)
+        } else {
+            stringResource(R.string.app_list_count_type, groupCount, presetTitle)
+        },
         subtitle = stringResource(R.string.rules_page_intro),
         detail = usageText,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -385,7 +399,9 @@ private fun SummaryRow(
         if (state.displayMode == DisplayMode.SHOW_ALL) {
             YStatusRow(
                 label = stringResource(R.string.rules_summary_status),
-                value = stringResource(if (state.runtime.ready) R.string.rules_pause_confirmed else R.string.rules_pause_pending),
+                value = stringResource(
+                    if (state.runtime.ready) R.string.rules_pause_confirmed else R.string.rules_pause_pending
+                ),
                 tone = if (state.runtime.ready) YStatusTone.Good else YStatusTone.Warning
             )
         } else if (state.displayMode == DisplayMode.SHOW_SELECTED) {
@@ -407,164 +423,4 @@ private fun SummaryRow(
 @Composable
 fun PriorityTab(state: MainState, vm: MainViewModel) {
     PriorityDialogContent(state, vm)
-}
-
-@Composable
-fun DashboardTabContent(
-    state: MainState,
-    vm: MainViewModel,
-    onRestore: () -> Unit,
-    onExport: () -> Unit,
-    collectingDiagnostics: Boolean,
-    onCollectDiagnostics: () -> Unit,
-    onInspectFile: () -> Unit
-) {
-    val fileCheckStatus by vm.fileCheckStatus.collectAsState()
-    val checkingFile by vm.checkingFile.collectAsState()
-    var menu by remember { mutableStateOf(false) }
-    var showScopeDetails by remember { mutableStateOf(false) }
-    var showAppScopePicker by remember { mutableStateOf(false) }
-    if (showScopeDetails) ScopeDialog(state.module, vm::requestScope, vm::refreshModuleStatus) { showScopeDetails = false }
-    if (showAppScopePicker) {
-        AppScopePickerDialog(
-            selected = state.hiddenFromApps,
-            onSelectedChange = vm::setHiddenFromApps
-        ) { showAppScopePicker = false }
-    }
-
-    Column(
-        Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        RuntimePanel(state, vm)
-
-        Text(stringResource(R.string.dashboard_global_mode), style = MaterialTheme.typography.titleMedium)
-        Card(Modifier.fillMaxWidth()) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(state.displayMode.titleRes()), fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.dashboard_global_mode_help), style = MaterialTheme.typography.bodySmall)
-                }
-                Box {
-                    TextButton(onClick = { menu = true }) {
-                        Text(stringResource(R.string.dashboard_switch))
-                        Icon(Icons.Rounded.ExpandMore, null, Modifier.size(18.dp))
-                    }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DisplayMode.entries.forEach { mode ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(mode.titleRes())) },
-                                leadingIcon = { if (mode == state.displayMode) Icon(Icons.Rounded.Check, null) },
-                                onClick = { menu = false; vm.setDisplayMode(mode) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Text(stringResource(R.string.dashboard_sync_status), style = MaterialTheme.typography.titleMedium)
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Text(state.syncStatus, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.dashboard_sync_help), style = MaterialTheme.typography.bodySmall)
-            }
-        }
-
-        Text(stringResource(R.string.dashboard_runtime_hits), style = MaterialTheme.typography.titleMedium)
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    stringResource(if (state.runtime.ready) R.string.dashboard_ack_confirmed else R.string.dashboard_ack_missing),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(stringResource(R.string.dashboard_query_hits, state.runtime.queryHits), style = MaterialTheme.typography.bodySmall)
-                Text(stringResource(R.string.dashboard_visibility_hits, state.runtime.visibilityHits), style = MaterialTheme.typography.bodySmall)
-                Text(stringResource(R.string.dashboard_ordering_hits, state.runtime.orderingHits), style = MaterialTheme.typography.bodySmall)
-                Text(
-                    stringResource(R.string.dashboard_hits_help),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                OutlinedButton(onClick = vm::refreshModuleStatus, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.dashboard_refresh_runtime))
-                }
-            }
-        }
-
-        Text(stringResource(R.string.dashboard_data_backup), style = MaterialTheme.typography.titleMedium)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onRestore, modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.dashboard_restore_json))
-            }
-            OutlinedButton(onClick = onExport, modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.dashboard_export_json))
-            }
-        }
-
-        Text(stringResource(R.string.dashboard_module_status), style = MaterialTheme.typography.titleMedium)
-        ModuleStatusRow(state) { showScopeDetails = true; vm.refreshModuleStatus() }
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.dashboard_app_visibility), fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.dashboard_app_visibility_help), style = MaterialTheme.typography.bodySmall)
-                Button(onClick = { showAppScopePicker = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.dashboard_manage_app_visibility, state.hiddenFromApps.size))
-                }
-                Text(
-                    stringResource(R.string.dashboard_app_visibility_warning),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Text(stringResource(R.string.dashboard_diagnostics), style = MaterialTheme.typography.titleMedium)
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                Text(stringResource(R.string.dashboard_scan_disclaimer), style = MaterialTheme.typography.labelSmall)
-                OutlinedButton(
-                    onClick = onInspectFile,
-                    enabled = !checkingFile,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(if (checkingFile) R.string.dashboard_inspecting_file else R.string.dashboard_inspect_file))
-                }
-                fileCheckStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.diagnostic_mode), Modifier.weight(1f))
-                    Switch(state.diagnosticMode, vm::setDiagnosticMode)
-                }
-                Text(
-                    stringResource(R.string.diagnostic_mode_help),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (state.diagnosticMode) {
-                    Text(stringResource(R.string.diagnostic_enabled_help), style = MaterialTheme.typography.bodySmall)
-                }
-                Button(
-                    onClick = onCollectDiagnostics,
-                    enabled = !collectingDiagnostics,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (collectingDiagnostics) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(stringResource(if (collectingDiagnostics) R.string.dashboard_collecting else R.string.dashboard_export_diagnostics))
-                }
-                Text(stringResource(R.string.diagnostic_export_help), style = MaterialTheme.typography.labelSmall)
-            }
-        }
-
-        Spacer(Modifier.height(32.dp))
-        Text(
-            stringResource(R.string.app_version_format, stringResource(R.string.app_name), BuildConfig.VERSION_NAME),
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
