@@ -49,10 +49,10 @@ data class FeatureSpec(
 
     fun createIntent(context: Context): Intent = Intent(context, Class.forName(entryActivityClassName))
 
-    /** Compatibility entry: all host-side runtime activation now passes through one lifecycle owner. */
+    /** All host-side runtime activation passes through the shared lifecycle owner. */
     fun initialize(context: Context): Any? = FeatureRuntimeManager.enable(context, this).getOrThrow()
 
-    /** Raw legacy factory used only by [FeatureRuntimeManager]. */
+    /** Reflective runtime factory used only by [FeatureRuntimeManager]. */
     internal fun instantiateRuntime(context: Context): Any? {
         val className = runtimeInitializerClassName ?: return null
         val runtimeClass = Class.forName(className)

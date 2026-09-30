@@ -70,7 +70,7 @@ project_dir = "apps/YMiniGuard/feature"
 entry_activity = "com.yagay.YMiniGuard.MainActivity"
 runtime = "com.yagay.YMiniGuard.GuardRuntime"
 capabilities = ["ROOT", "LSPOSED", "NOTIFICATIONS"]
-lifecycle = "legacy"
+lifecycle = "managed"
 hooks = [{ id = "yminiguard/main", class = "com.yagay.YMiniGuard.GuardModule" }]
 
 [[feature]]
@@ -94,7 +94,7 @@ project_dir = "apps/YTaskManager/feature"
 entry_activity = "com.yagay.YTaskManager.MainActivity"
 runtime = "com.yagay.YTaskManager.YTaskManagerSuiteRuntime"
 capabilities = ["ROOT", "LSPOSED"]
-lifecycle = "legacy"
+lifecycle = "managed"
 hooks = [{ id = "ytaskmanager/main", class = "com.yagay.YTaskManager.xposed.TaskManagerModule" }]
 
 [[feature]]
@@ -118,7 +118,7 @@ project_dir = "apps/YFloat/feature"
 entry_activity = "com.yagay.YFloat.MainActivity"
 runtime = "com.yagay.YFloat.YFloatSuiteRuntime"
 capabilities = ["ROOT", "LSPOSED", "ACCESSIBILITY", "OVERLAY", "NOTIFICATIONS"]
-lifecycle = "legacy"
+lifecycle = "managed"
 boot_receiver = "com.yagay.YFloat.FloatServiceBootReceiver"
 ipc_receivers = [
   "com.yagay.YFloat.GoogleCtsBridgeReceiver",

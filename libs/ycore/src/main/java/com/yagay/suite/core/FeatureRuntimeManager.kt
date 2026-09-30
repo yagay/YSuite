@@ -4,19 +4,17 @@ import android.content.Context
 import com.yagay.suite.api.ManagedFeatureRuntime
 
 /**
- * Owns feature runtime lifecycle in the combined process.
+ * Owns the lifecycle of every feature runtime in the combined process.
  *
- * Legacy runtimes remain compatible: their existing static get(Context) initializer is invoked on
- * enable. Migrated runtimes additionally receive attach/enable/disable/destroy callbacks. Legacy
- * runtimes are still deterministically gated at host boundaries by FeatureStateStore,
- * SuiteXposedServiceBroker and SuiteRootGateway.
+ * YSuite no longer supports a legacy runtime path: every configured runtime must implement
+ * [ManagedFeatureRuntime]. This keeps enable/disable semantics deterministic across Runtime,
+ * LSPosed callbacks, Hook gating and Root ownership.
  */
 object FeatureRuntimeManager {
     private data class RuntimeRecord(
-        var runtime: Any? = null,
+        var runtime: ManagedFeatureRuntime? = null,
         var attached: Boolean = false,
         var enabled: Boolean = false,
-        var managed: Boolean = false,
     )
 
     private val records = linkedMapOf<String, RuntimeRecord>()
@@ -26,28 +24,22 @@ object FeatureRuntimeManager {
         val app = context.applicationContext
         val record = records.getOrPut(feature.id) { RuntimeRecord() }
 
-        if (record.enabled && record.runtime != null) return@runCatching record.runtime
+        if (record.enabled) return@runCatching record.runtime
 
-        val runtime = when {
-            record.runtime is ManagedFeatureRuntime -> record.runtime
-            feature.runtimeInitializerClassName == null -> null
-            else -> feature.instantiateRuntime(app)
+        val runtime = record.runtime ?: feature.runtimeInitializerClassName?.let {
+            val created = feature.instantiateRuntime(app)
+            require(created is ManagedFeatureRuntime) {
+                "${feature.id} runtime must implement ManagedFeatureRuntime: ${feature.runtimeInitializerClassName}"
+            }
+            created.also { record.runtime = it }
         }
-        record.runtime = runtime
-        record.managed = runtime is ManagedFeatureRuntime
 
-        if (runtime is ManagedFeatureRuntime) {
+        if (runtime != null) {
             if (!record.attached) {
                 runtime.attach(SuiteFeatureHost(app, feature))
                 record.attached = true
             }
             runtime.enable()
-        } else if (feature.runtimeInitializerClassName != null) {
-            SuiteLog.i(
-                app,
-                feature.id,
-                "legacy runtime enabled through host compatibility gate; migrate to ManagedFeatureRuntime only when feature-local cleanup is needed",
-            )
         }
 
         record.enabled = true
@@ -56,33 +48,23 @@ object FeatureRuntimeManager {
 
     @Synchronized
     fun disable(context: Context, feature: FeatureSpec): Result<Unit> = runCatching {
-        val app = context.applicationContext
         val record = records[feature.id]
-        val runtime = record?.runtime
-        if (runtime is ManagedFeatureRuntime && record.enabled) {
-            runtime.disable()
-        } else if (record?.enabled == true && runtime != null) {
-            SuiteLog.i(
-                app,
-                feature.id,
-                "legacy runtime disabled at host boundaries; LSPosed callbacks and unified Root access are gated immediately",
-            )
+        if (record?.enabled == true) {
+            record.runtime?.disable()
+            record.enabled = false
         }
-        if (record != null) record.enabled = false
     }
 
     @Synchronized
     fun destroyAll(context: Context) {
         val app = context.applicationContext
         records.forEach { (featureId, record) ->
-            val runtime = record.runtime
-            if (runtime is ManagedFeatureRuntime) {
-                runCatching {
-                    if (record.enabled) runtime.disable()
-                    runtime.destroy()
-                }.onFailure {
-                    SuiteLog.e(app, featureId, "managed runtime destroy failed", it)
-                }
+            val runtime = record.runtime ?: return@forEach
+            runCatching {
+                if (record.enabled) runtime.disable()
+                runtime.destroy()
+            }.onFailure {
+                SuiteLog.e(app, featureId, "managed runtime destroy failed", it)
             }
         }
         records.clear()
@@ -92,5 +74,5 @@ object FeatureRuntimeManager {
     fun isRuntimeEnabled(featureId: String): Boolean = records[featureId]?.enabled == true
 
     @Synchronized
-    fun isManaged(featureId: String): Boolean = records[featureId]?.managed == true
+    fun isManaged(featureId: String): Boolean = records[featureId]?.runtime != null
 }

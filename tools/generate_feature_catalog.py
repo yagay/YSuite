@@ -66,9 +66,9 @@ def load_features() -> list[dict]:
             fail(f"duplicate project_dir: {project_dir}")
         project_dirs.add(project_dir)
 
-        lifecycle = item.get("lifecycle", "legacy")
-        if lifecycle not in {"legacy", "managed"}:
-            fail(f"{feature_id}: lifecycle must be legacy or managed")
+        lifecycle = item.get("lifecycle", "managed")
+        if lifecycle != "managed":
+            fail(f"{feature_id}: legacy lifecycle is no longer supported; use lifecycle = 'managed'")
 
         capabilities = set(item.get("capabilities") or [])
         unknown = capabilities - ALLOWED_CAPABILITIES
@@ -99,7 +99,6 @@ def render_feature_catalog(features: list[dict]) -> str:
     ]
     for item in features:
         caps = item.get("capabilities") or []
-        hooks = item.get("hooks") or []
         cap_expr = "emptySet()" if not caps else "setOf(" + ", ".join(
             f"SuiteCapability.{cap}" for cap in caps
         ) + ")"
@@ -122,7 +121,7 @@ def render_feature_catalog(features: list[dict]) -> str:
             f"            bootReceiverClassName = {q(boot) if boot else 'null'},",
             f"            ipcReceiverClassNames = {ipc_expr},",
             f"            requiresRoot = {'true' if 'ROOT' in caps else 'false'},",
-            f"            requiresHook = {'true' if hooks else 'false'},",
+            f"            requiresHook = {'true' if item.get('hooks') else 'false'},",
             f"            defaultEnabled = {'true' if item.get('default_enabled', True) else 'false'},",
             "        ),",
         ])

@@ -63,10 +63,7 @@ data class HostProcessReloadResult(
     val detail: String,
 )
 
-/**
- * Optional managed runtime contract. Existing feature runtimes remain supported through the
- * compatibility adapter; new or migrated features should implement this interface.
- */
+/** Required lifecycle contract for every YSuite feature runtime. */
 interface ManagedFeatureRuntime {
     fun attach(host: FeatureHost) {}
     fun enable() {}

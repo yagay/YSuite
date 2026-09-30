@@ -3,9 +3,13 @@ package com.yagay.YFloat;
 import android.app.Application;
 import android.content.Context;
 
+import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.ManagedFeatureRuntime;
+
 /** One app-side initializer shared by standalone YFloat and YSuite. */
-public final class YFloatSuiteRuntime {
+public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
     private static final String SUITE_PACKAGE = "com.yagay.YSuite";
+    private static final YFloatSuiteRuntime INSTANCE = new YFloatSuiteRuntime();
     private static boolean initialized;
     private static YFloatApp callbacks;
     private static Context appContext;
@@ -15,13 +19,20 @@ public final class YFloatSuiteRuntime {
                 if (app != null) HookReloadManager.autoReloadChangedTargets(app, snapshot);
             };
 
+    private volatile FeatureHost host;
+    private volatile boolean enabled = true;
+
     private YFloatSuiteRuntime() { }
 
     public static synchronized Object get(Context context) {
-        if (initialized) return LsposedStatusManager.hostListener();
+        if (!initialized) initializeOnce(context);
+        return INSTANCE;
+    }
+
+    private static void initializeOnce(Context context) {
         Context app = context == null ? null : context.getApplicationContext();
         if (app == null) app = context;
-        if (app == null) return null;
+        if (app == null) return;
         appContext = app;
 
         try { SettingsMigrator.run(app); }
@@ -34,6 +45,14 @@ public final class YFloatSuiteRuntime {
         // processes start sending YFloat events. Standalone builds simply skip this extra listener.
         YFloatHostIdentity.initialize(app);
         LsposedStatusManager.initialize(app);
+        registerHotReloadListenerIfStandalone();
+        registerActivityCallbacks();
+        initialized = true;
+    }
+
+    private static void registerHotReloadListenerIfStandalone() {
+        Context app = appContext;
+        if (app == null) return;
         // Standalone YFloat still owns its own target-process hot reload. Embedded YFloat is a pure
         // plugin: YSuite detects stale module generations after package replacement and performs the
         // process reload centrally through SuiteProcessManager.
@@ -42,12 +61,49 @@ public final class YFloatSuiteRuntime {
         } else {
             DiagnosticLog.i(app, "HOOK_RELOAD", "YSuite host owns automatic Hook target reload");
         }
+    }
 
-        if (app instanceof Application) {
-            callbacks = app instanceof YFloatApp ? (YFloatApp) app : new YFloatApp();
-            ((Application) app).registerActivityLifecycleCallbacks(callbacks);
+    private static void registerActivityCallbacks() {
+        Context app = appContext;
+        if (!(app instanceof Application) || callbacks != null) return;
+        callbacks = app instanceof YFloatApp ? (YFloatApp) app : new YFloatApp();
+        ((Application) app).registerActivityLifecycleCallbacks(callbacks);
+    }
+
+    @Override
+    public void attach(FeatureHost host) {
+        this.host = host;
+    }
+
+    @Override
+    public synchronized void enable() {
+        enabled = true;
+        registerActivityCallbacks();
+        registerHotReloadListenerIfStandalone();
+        Context app = appContext;
+        if (app != null) DiagnosticLog.i(app, "RUNTIME", "managed runtime enabled");
+    }
+
+    @Override
+    public synchronized void disable() {
+        if (!enabled) return;
+        enabled = false;
+        LsposedStatusManager.removeListener(HOOK_LISTENER);
+        LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
+        LsposedStatusManager.disarmSecureCaptureAsync();
+        FloatActionMenu.dismiss();
+
+        Context app = appContext;
+        if (app instanceof Application && callbacks != null) {
+            ((Application) app).unregisterActivityLifecycleCallbacks(callbacks);
         }
-        initialized = true;
-        return LsposedStatusManager.hostListener();
+        callbacks = null;
+        if (app != null) DiagnosticLog.i(app, "RUNTIME", "managed runtime disabled; UI callbacks and transient Hook leases released");
+    }
+
+    @Override
+    public synchronized void destroy() {
+        disable();
+        host = null;
     }
 }
