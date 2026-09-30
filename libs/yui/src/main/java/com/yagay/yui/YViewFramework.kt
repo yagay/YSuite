@@ -11,6 +11,7 @@ import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SwitchCompat
 
 /** Java-friendly View counterpart to the Compose YFeature* framework. */
@@ -30,7 +31,6 @@ object YViewLayout {
     private const val SCREEN_H = 16
     private const val SCREEN_V = 12
     private const val SECTION_GAP = 12
-    private const val CARD_PADDING = 16
     private const val CONTROL_GAP = 8
 
     @JvmStatic
@@ -185,6 +185,16 @@ object YViewLayout {
     }
 
     @JvmStatic
+    fun searchField(context: Context, hint: String): AppCompatEditText = AppCompatEditText(context).apply {
+        this.hint = hint
+        isSingleLine = true
+        minHeight = dp(context, 48)
+        setPadding(dp(context, 12), 0, dp(context, 12), 0)
+        setTextColor(onSurface(context))
+        setHintTextColor(onSurfaceVariant(context))
+    }
+
+    @JvmStatic
     fun primaryButton(context: Context, text: String): Button = Button(context).apply {
         this.text = text
         YView.stylePrimaryButton(this)
@@ -256,10 +266,10 @@ object YViewLayout {
     }
 
     @JvmStatic
-    fun dividerSpace(parent: LinearLayout, dp: Int = CONTROL_GAP) {
+    fun dividerSpace(parent: LinearLayout, spaceDp: Int = CONTROL_GAP) {
         parent.addView(
             View(parent.context),
-            LinearLayout.LayoutParams(1, YView.dp(parent.context, dp)),
+            LinearLayout.LayoutParams(1, YView.dp(parent.context, spaceDp)),
         )
     }
 
