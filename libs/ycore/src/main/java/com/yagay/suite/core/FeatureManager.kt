@@ -185,13 +185,35 @@ class FeatureStateStore(context: Context) {
         Context.MODE_PRIVATE,
     )
 
-    fun isEnabled(feature: FeatureSpec): Boolean = prefs.getBoolean("enabled.${feature.id}", feature.defaultEnabled)
+    fun isEnabled(feature: FeatureSpec): Boolean =
+        prefs.getBoolean(SuiteContract.FEATURE_STATE_KEY_PREFIX + feature.id, feature.defaultEnabled)
 
+    /**
+     * The persisted switch is the authoritative feature state for the combined host.
+     *
+     * One write fans out to the app runtime boundary and the LSPosed remote-preference mirror. The
+     * mirror can be temporarily unavailable while LSPosed is disconnected; the broker performs a
+     * full resync on the next service bind, so local state is never lost.
+     */
     fun setEnabled(feature: FeatureSpec, enabled: Boolean) {
-        prefs.edit().putBoolean("enabled.${feature.id}", enabled).apply()
-        if (!enabled) {
+        prefs.edit()
+            .putBoolean(SuiteContract.FEATURE_STATE_KEY_PREFIX + feature.id, enabled)
+            .apply()
+
+        SuiteXposedServiceBroker.setPluginEnabled(feature.id, enabled)
+
+        val lifecycle = if (enabled) {
+            FeatureRuntimeManager.enable(appContext, feature).map { Unit }
+        } else {
             FeatureRuntimeManager.disable(appContext, feature)
-                .onFailure { SuiteLog.e(appContext, feature.id, "host disable failed", it) }
+        }
+        lifecycle.onFailure {
+            SuiteLog.e(
+                appContext,
+                feature.id,
+                if (enabled) "host enable failed" else "host disable failed",
+                it,
+            )
         }
     }
 }
