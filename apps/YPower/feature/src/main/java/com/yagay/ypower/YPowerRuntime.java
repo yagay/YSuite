@@ -4,6 +4,8 @@ import android.content.Context;
 import android.util.Log;
 
 import com.topjohnwu.superuser.Shell;
+import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.ManagedFeatureRuntime;
 import com.yagay.ypower.data.ProfileStore;
 import com.yagay.ypower.xposed.XposedBridgeManager;
 
@@ -13,11 +15,13 @@ import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
 
 /** Host-neutral runtime shared by standalone YPower and YSuite. */
-public final class YPowerRuntime implements XposedServiceHelper.OnServiceListener {
+public final class YPowerRuntime implements XposedServiceHelper.OnServiceListener, ManagedFeatureRuntime {
     private static final String YSUITE_PACKAGE = "com.yagay.YSuite";
     private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
     private static volatile YPowerRuntime instance;
     private final Context context;
+    private volatile boolean enabled = true;
+    private volatile FeatureHost host;
 
     private YPowerRuntime(Context context) {
         this.context = context.getApplicationContext();
@@ -83,7 +87,32 @@ public final class YPowerRuntime implements XposedServiceHelper.OnServiceListene
     }
 
     @Override
+    public void attach(FeatureHost host) {
+        this.host = host;
+    }
+
+    @Override
+    public void enable() {
+        enabled = true;
+        Log.i("YPower", "managed runtime enabled");
+    }
+
+    @Override
+    public void disable() {
+        enabled = false;
+        XposedBridgeManager.setService(null);
+        Log.i("YPower", "managed runtime disabled; LSPosed service released");
+    }
+
+    @Override
+    public void destroy() {
+        disable();
+        host = null;
+    }
+
+    @Override
     public void onServiceBind(XposedService service) {
+        if (!enabled) return;
         XposedBridgeManager.setService(service);
         ProfileStore.get(context).syncAllToRemote();
         for (String pkg : ProfileStore.get(context).getEnabledPackages()) {
