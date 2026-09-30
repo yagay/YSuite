@@ -1,62 +1,68 @@
 # YSuite
 
-YSuite is the unified host for my Android/LSPosed projects.
+YSuite is the monorepo for the Android/LSPosed projects that share the YSuite host, UI and runtime infrastructure.
 
-Each feature remains in its own repository and exposes a reusable `feature` module. The same business source is therefore built both by the standalone APK and by YSuite; YSuite does not copy app source trees or maintain long-lived adapter mirrors.
+## Repository layout
 
-Shared UI is also single-source. `YSuite/ui` is the only YUI implementation. YSuite uses it as the local `:ui` project, while standalone projects resolve the same module directly from `YSuite/main` with Gradle `sourceControl`. There is no separate JitPack/AAR release path to keep in sync.
+```text
+YSuite/
+├── apps/
+│   ├── YDiag/
+│   ├── YNotify/
+│   ├── YPower/
+│   ├── YMiniGuard/
+│   ├── YEntryCleaner/
+│   ├── YNFC/
+│   ├── YTaskManager/
+│   ├── YParam/
+│   └── YFloat/
+├── libs/
+│   ├── ycore/
+│   └── yui/
+├── suite/
+│   └── YSuite/
+├── docs/
+├── tools/
+└── .github/workflows/
+```
 
-## Source-of-truth requirements
+## Architecture
 
-Future refactors must check these files before changing shared or feature behavior:
+Each project under `apps/` keeps its standalone `app/` shell and reusable `feature/` module. The unified YSuite APK consumes those same feature modules directly, so feature code is not copied into the host.
 
-- `docs/PRODUCT_REQUIREMENTS.md` — non-negotiable YSuite product/maintenance rules
-- `docs/MODULE_REQUIREMENTS.md` — preserved behavior for each included project
-- `docs/ARCHITECTURE.md` — simple unified architecture and migration rules
+`libs/yui` is the shared UI implementation. `libs/ycore` owns host-level contracts and shared runtime infrastructure. Code moves into `libs/` only when multiple projects genuinely share it; app-specific behavior stays inside its app folder.
 
-Compiling successfully is not enough if a change violates those requirements.
+The unified APK host is `suite/YSuite` with application id `com.yagay.YSuite`. YSuite remains the physical owner for shared system-facing capabilities such as the combined Xposed entry and host-level services.
 
-## Included features
+## Included projects
 
-- YEntryCleaner
-- YNotify
 - YDiag
+- YNotify
 - YPower
 - YMiniGuard
+- YEntryCleaner
 - YNFC
 - YTaskManager
 - YParam
 - YFloat
 
-## Structure
+## Build
 
-- `ui/` — shared YUI design system, Activity/window shell, Compose theme/components, common UI dependency versions
-- `suite/` — unified APK host (`com.yagay.YSuite`), launcher UI and unified diagnostics/permission entry
-- `core/` — small shared host layer for feature registry, host switches, Root status, host logging, crash attribution and stable contracts
-- `features/` — feature repositories as Git submodules
+Build the unified compact ARM64 APK from the repository root:
 
-Integrated projects use the same pattern wherever practical:
-
-```text
-project/
-├── app/      standalone APK shell
-└── feature/  reusable business/UI/runtime module
+```bash
+gradle :suite:assembleCompact
 ```
 
-YFloat additionally keeps `ppocr-sdk/` as its own reusable module.
+The resulting APK is under `suite/YSuite/build/outputs/apk/compact/`.
 
-Standalone projects reference YUI with Gradle source dependency:
+The original standalone repositories remain intact as migration safety copies. New shared development uses this monorepo as the source of truth.
 
-```kotlin
-sourceControl {
-    gitRepository(uri("https://github.com/yagay/YSuite.git")) {
-        producesModule("com.github.yagay.YSuite:ui")
-    }
-}
-```
+## Project rules
 
-and depend on `com.github.yagay.YSuite:ui` using the `main` branch. A source-dependency checkout has no recursive feature submodules, so YSuite automatically configures only `:ui`; a normal YSuite checkout with all submodules configures the complete host.
+Before changing shared or integrated behavior, check:
 
-YSuite host switches control whether a feature entry/runtime is active inside YSuite. LSPosed Hook activation and target scope remain explicit so the host does not introduce hidden cross-process behavior.
-
-Unified diagnostic exports are written to `Download/YSuite/`, with full-suite and per-module diagnostic ZIP export.
+- `docs/PRODUCT_REQUIREMENTS.md`
+- `docs/MODULE_REQUIREMENTS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/MONOREPO_MIGRATION.md`

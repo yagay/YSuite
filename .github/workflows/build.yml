@@ -14,10 +14,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
-      - name: Checkout source and features
+      - name: Checkout monorepo
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Verify YSuite host ownership
         run: python3 tools/verify_host_ownership.py
@@ -43,31 +41,29 @@ jobs:
           log-accepted-android-sdk-licenses: false
 
       - name: Install Android SDK
+        shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           sdkmanager "cmdline-tools;23.0"
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/23.0/bin/sdkmanager"
           "$SDKMANAGER" --channel=3 "platforms;android-37.0" "build-tools;36.0.0" "platform-tools"
           test -s "${ANDROID_HOME}/platforms/android-37.0/android.jar"
           test -x "${ANDROID_HOME}/build-tools/36.0.0/aapt2"
 
-      - name: Verify lightweight YUI source build
-        run: |
-          rm -rf /tmp/ysuite-yui-source
-          git clone --no-recurse-submodules "file://${GITHUB_WORKSPACE}" /tmp/ysuite-yui-source
-          test ! -d /tmp/ysuite-yui-source/features/YDiag/feature
-          gradle --no-daemon --stacktrace -p /tmp/ysuite-yui-source :ui:assembleDebug
+      - name: Verify shared YUI build
+        run: gradle --no-daemon --stacktrace :ui:assembleDebug
 
       - name: Build compact YSuite APK
         run: gradle --no-daemon --stacktrace :suite:assembleCompact
 
       - name: Verify single YSuite Xposed entry
+        shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import zipfile
 
-          apks = list(Path("suite/build/outputs/apk/compact").glob("*.apk"))
+          apks = list(Path("suite/YSuite/build/outputs/apk/compact").glob("*.apk"))
           if len(apks) != 1:
               raise SystemExit(f"Expected exactly one compact APK, found: {apks}")
 
@@ -88,13 +84,14 @@ jobs:
           PY
 
       - name: Verify unified special services
+        shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
 
           android = "{http://schemas.android.com/apk/res/android}"
-          candidates = list(Path("suite/build/intermediates").rglob("AndroidManifest.xml"))
+          candidates = list(Path("suite/YSuite/build/intermediates").rglob("AndroidManifest.xml"))
           manifest = None
           for path in candidates:
               try:
@@ -152,14 +149,15 @@ jobs:
           print("Notification listener:", listeners)
           PY
 
-      - name: Report compact APK size
+      - name: Report compact APK size and ABI
+        shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           from collections import defaultdict
           import zipfile
 
-          apks = list(Path("suite/build/outputs/apk/compact").glob("*.apk"))
+          apks = list(Path("suite/YSuite/build/outputs/apk/compact").glob("*.apk"))
           if len(apks) != 1:
               raise SystemExit(f"Expected exactly one compact APK, found: {apks}")
 
@@ -192,10 +190,11 @@ jobs:
           PY
 
       - name: Prepare fixed APK name
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          APK="$(find suite/build/outputs/apk/compact -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          APK="$(find suite/YSuite/build/outputs/apk/compact -maxdepth 1 -type f -name '*.apk' | head -n 1)"
           test -n "$APK"
           cp "$APK" artifacts/YSuite-compact-arm64-v8a.apk
 

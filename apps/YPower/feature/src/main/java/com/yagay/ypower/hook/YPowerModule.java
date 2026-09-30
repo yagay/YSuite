@@ -1,0 +1,1947 @@
+package com.yagay.ypower.hook;
+
+import android.Manifest;
+import android.app.Application;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Debug;
+import android.util.Log;
+
+import com.yagay.ypower.hook.provider.CommandTraceHookProvider;
+import com.yagay.ypower.hook.provider.DebuggerTraceHookProvider;
+import com.yagay.ypower.hook.provider.ExceptionTraceHookProvider;
+import com.yagay.ypower.hook.provider.FileTraceHookProvider;
+import com.yagay.ypower.hook.provider.HookProvider;
+import com.yagay.ypower.hook.provider.IdentityHookProvider;
+import com.yagay.ypower.hook.provider.PackageScanHookProvider;
+import com.yagay.ypower.hook.provider.PermissionHookProvider;
+import com.yagay.ypower.hook.provider.PropertyTraceHookProvider;
+import com.yagay.ypower.hook.provider.SecurityApiTraceHookProvider;
+import com.yagay.ypower.diag.DetectionRuleCatalog;
+import com.yagay.ypower.model.AppProfile;
+import com.yagay.ypower.model.DetectionHitState;
+
+import org.json.JSONArray;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.RandomAccessFile;
+import java.lang.reflect.Constructor;
+import java.security.KeyStore;
+import java.security.MessageDigest;
+import java.util.zip.ZipFile;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+import io.github.libxposed.api.XposedModule;
+import io.github.libxposed.api.XposedModuleInterface;
+
+public final class YPowerModule extends XposedModule {
+    private static final String TAG = "YPowerTrace";
+    private static final String GROUP = "ypower";
+
+    private String activePackageName = "";
+    private ClassLoader targetClassLoader;
+    private final Set<String> dynamicallyHookedSecurityClasses = new HashSet<>();
+
+    private static final List<HookProvider> PROVIDERS = List.of(
+            new IdentityHookProvider(),
+            new PermissionHookProvider(),
+            new PackageScanHookProvider(),
+            new FileTraceHookProvider(),
+            new CommandTraceHookProvider(),
+            new PropertyTraceHookProvider(),
+            new DebuggerTraceHookProvider(),
+            new ExceptionTraceHookProvider(),
+            new SecurityApiTraceHookProvider()
+    );
+
+    @Override
+    public void onPackageLoaded(XposedModuleInterface.PackageLoadedParam param) {
+        if (!param.isFirstPackage()) return;
+
+        String pkg = param.getPackageName();
+        if (pkg == null || pkg.equals("com.yagay.ypower")) return;
+
+        AppProfile profile = loadProfile(pkg);
+        if (!profile.enabled) return;
+
+        activePackageName = pkg;
+        try {
+            targetClassLoader = param.getDefaultClassLoader();
+        } catch (Throwable ignored) {
+            targetClassLoader = null;
+        }
+        traceMeta(profile, "module", "enabled package=" + pkg, "module");
+
+        for (HookProvider provider : PROVIDERS) {
+            if (!provider.isEnabled(profile)) continue;
+            try {
+                provider.install(this, pkg, profile);
+                traceMeta(profile, "provider", "installed=" + provider.id(), "module");
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "provider " + provider.id() + " failed: " + t);
+                Log.w(TAG, "provider " + provider.id() + " failed", t);
+            }
+        }
+
+        if (profile.traceNative) {
+            installLinkerTraceHooks(profile);
+            boolean enabled = NativeTraceBridge.enable(pkg, profile.diagnosticSessionId);
+            traceMeta(
+                    profile,
+                    "provider",
+                    "native-bytehook=" + (enabled ? "enabled" : "unavailable"),
+                    "NativeTraceBridge"
+            );
+        }
+    }
+
+    private AppProfile loadProfile(String packageName) {
+        try {
+            SharedPreferences prefs = getRemotePreferences(GROUP);
+            String enabledRaw = prefs.getString("enabledPackages", "[]");
+            boolean enabled = false;
+
+            JSONArray arr = new JSONArray(enabledRaw == null ? "[]" : enabledRaw);
+            for (int i = 0; i < arr.length(); i++) {
+                if (packageName.equals(arr.optString(i))) {
+                    enabled = true;
+                    break;
+                }
+            }
+
+            AppProfile p = AppProfile.fromJson(
+                    prefs.getString("profile:" + packageName, null),
+                    packageName
+            );
+            p.enabled = enabled && p.enabled;
+            return p;
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "loadProfile failed: " + t);
+            return new AppProfile(packageName);
+        }
+    }
+
+    public void installIdentityHooks(String packageName) {
+        try {
+            Method isSystem = ApplicationInfo.class.getDeclaredMethod("isSystemApp");
+            hook(isSystem).intercept(chain -> {
+                ApplicationInfo info = (ApplicationInfo) chain.getThisObject();
+                if (info != null && packageName.equals(info.packageName)) return true;
+                return chain.proceed();
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "isSystemApp hook failed: " + t);
+        }
+
+        try {
+            Method isUpdated = ApplicationInfo.class.getDeclaredMethod("isUpdatedSystemApp");
+            hook(isUpdated).intercept(chain -> {
+                ApplicationInfo info = (ApplicationInfo) chain.getThisObject();
+                if (info != null && packageName.equals(info.packageName)) return true;
+                return chain.proceed();
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "isUpdatedSystemApp hook failed: " + t);
+        }
+
+        try {
+            Class<?> apm = Class.forName("android.app.ApplicationPackageManager");
+            for (Method method : apm.getDeclaredMethods()) {
+                if (!"getApplicationInfo".equals(method.getName())) continue;
+
+                hook(method).intercept(chain -> {
+                    Object result = chain.proceed();
+                    if (result instanceof ApplicationInfo) {
+                        ApplicationInfo original = (ApplicationInfo) result;
+                        if (packageName.equals(original.packageName)) {
+                            ApplicationInfo copy = new ApplicationInfo(original);
+                            copy.flags |= ApplicationInfo.FLAG_SYSTEM
+                                    | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP;
+                            return copy;
+                        }
+                    }
+                    return result;
+                });
+            }
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "ApplicationPackageManager identity hook failed: " + t);
+        }
+    }
+
+    public void installPermissionHooks(String packageName, AppProfile profile) {
+        try {
+            Method method = Context.class.getDeclaredMethod("checkSelfPermission", String.class);
+            hook(method).intercept(chain -> {
+                String permission = stringArg(chain.getArg(0));
+                long startNs = System.nanoTime();
+                try {
+                    Object raw = chain.proceed();
+                    int actual = raw instanceof Integer ? (Integer) raw : Integer.MIN_VALUE;
+
+                    if (profile.tracePermissions) {
+                        traceCall(
+                                profile,
+                                "permission",
+                                DetectionRuleIds.PERMISSION_QUERY,
+                                permission,
+                                String.valueOf(actual),
+                                actual != PackageManager.PERMISSION_GRANTED,
+                                "",
+                                "Context.checkSelfPermission",
+                                startNs,
+                                false
+                        );
+                    }
+
+                    if (shouldSimulatePermission(profile, permission)) {
+                        return PackageManager.PERMISSION_GRANTED;
+                    }
+                    return raw;
+                } catch (Throwable t) {
+                    if (profile.tracePermissions) {
+                        traceCall(
+                                profile,
+                                "permission",
+                                DetectionRuleIds.PERMISSION_QUERY,
+                                permission,
+                                "",
+                                false,
+                                throwableText(t),
+                                "Context.checkSelfPermission",
+                                startNs,
+                                false
+                        );
+                    }
+                    throw t;
+                }
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "checkSelfPermission hook failed: " + t);
+        }
+
+        try {
+            Class<?> apm = Class.forName("android.app.ApplicationPackageManager");
+            for (Method method : apm.getDeclaredMethods()) {
+                if (!"checkPermission".equals(method.getName())) continue;
+                if (method.getParameterCount() < 2) continue;
+
+                hook(method).intercept(chain -> {
+                    String permission = stringArg(chain.getArg(0));
+                    String queriedPackage = stringArg(chain.getArg(1));
+                    long startNs = System.nanoTime();
+
+                    try {
+                        Object raw = chain.proceed();
+                        int actual = raw instanceof Integer ? (Integer) raw : Integer.MIN_VALUE;
+
+                        if (profile.tracePermissions && packageName.equals(queriedPackage)) {
+                            traceCall(
+                                    profile,
+                                    "permission",
+                                    DetectionRuleIds.PERMISSION_QUERY,
+                                    permission + " package=" + queriedPackage,
+                                    String.valueOf(actual),
+                                    actual != PackageManager.PERMISSION_GRANTED,
+                                    "",
+                                    "PackageManager.checkPermission",
+                                    startNs,
+                                    false
+                            );
+                        }
+
+                        if (packageName.equals(queriedPackage)
+                                && shouldSimulatePermission(profile, permission)) {
+                            return PackageManager.PERMISSION_GRANTED;
+                        }
+                        return raw;
+                    } catch (Throwable t) {
+                        if (profile.tracePermissions && packageName.equals(queriedPackage)) {
+                            traceCall(
+                                    profile,
+                                    "permission",
+                                    DetectionRuleIds.PERMISSION_QUERY,
+                                    permission + " package=" + queriedPackage,
+                                    "",
+                                    false,
+                                    throwableText(t),
+                                    "PackageManager.checkPermission",
+                                    startNs,
+                                    false
+                            );
+                        }
+                        throw t;
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "PackageManager permission hook failed: " + t);
+        }
+    }
+
+    public void installPackageScanHooks(AppProfile profile) {
+        try {
+            Class<?> apm = Class.forName("android.app.ApplicationPackageManager");
+            for (Method method : apm.getDeclaredMethods()) {
+                String name = method.getName();
+                if (!isPackageScanMethod(name)) continue;
+
+                hook(method).intercept(chain -> {
+                    String input = collectArgs(method, chain);
+                    String specificRule = DetectionRuleIds.forPackage(input);
+                    boolean enumeration = isEnumerationMethod(name);
+
+                    if (!enumeration && DetectionRuleIds.UNKNOWN.equals(specificRule)) {
+                        return chain.proceed();
+                    }
+
+                    long startNs = System.nanoTime();
+                    try {
+                        Object result = chain.proceed();
+
+                        if (enumeration) {
+                            traceCall(
+                                    profile,
+                                    "package",
+                                    DetectionRuleIds.PACKAGE_ENUMERATION,
+                                    name + " " + input,
+                                    summarizeResult(result),
+                                    false,
+                                    "",
+                                    "ApplicationPackageManager." + name,
+                                    startNs,
+                                    false
+                            );
+
+                            for (String foundPackage : sensitivePackages(result)) {
+                                String ruleId = DetectionRuleIds.forPackage(foundPackage);
+                                traceCall(
+                                        profile,
+                                        "package",
+                                        ruleId,
+                                        name + " matched=" + foundPackage,
+                                        foundPackage,
+                                        true,
+                                        "",
+                                        "ApplicationPackageManager." + name,
+                                        startNs,
+                                        false
+                                );
+                            }
+                        } else {
+                            traceCall(
+                                    profile,
+                                    "package",
+                                    specificRule,
+                                    name + " " + input,
+                                    summarizeResult(result),
+                                    result != null,
+                                    "",
+                                    "ApplicationPackageManager." + name,
+                                    startNs,
+                                    false
+                            );
+                        }
+
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "package",
+                                enumeration
+                                        ? DetectionRuleIds.PACKAGE_ENUMERATION
+                                        : specificRule,
+                                name + " " + input,
+                                "",
+                                false,
+                                throwableText(t),
+                                "ApplicationPackageManager." + name,
+                                startNs,
+                                false
+                        );
+                        throw t;
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Package scan hook failed: " + t);
+        }
+    }
+
+    public void installFileTraceHooks(AppProfile profile) {
+        for (String methodName : new String[]{"exists", "canRead", "canExecute", "list", "listFiles"}) {
+            try {
+                Method method = File.class.getDeclaredMethod(methodName);
+                hook(method).intercept(chain -> {
+                    File file = (File) chain.getThisObject();
+                    String path = file == null ? "" : file.getAbsolutePath();
+                    if (!looksSensitivePath(path)) return chain.proceed();
+
+                    String ruleId = DetectionRuleIds.forPath(path);
+                    long startNs = System.nanoTime();
+
+                    try {
+                        Object result = chain.proceed();
+                        boolean matched = resultLooksPositive(result);
+
+                        traceCall(
+                                profile,
+                                "file",
+                                ruleId,
+                                methodName + " " + path,
+                                summarizeResult(result),
+                                matched,
+                                "",
+                                "java.io.File." + methodName,
+                                startNs,
+                                false
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "file",
+                                ruleId,
+                                methodName + " " + path,
+                                "",
+                                false,
+                                throwableText(t),
+                                "java.io.File." + methodName,
+                                startNs,
+                                false
+                        );
+                        throw t;
+                    }
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "File." + methodName + " hook failed: " + t);
+            }
+        }
+
+        hookSensitiveConstructors(profile, FileInputStream.class, "FileInputStream");
+        hookSensitiveConstructors(profile, RandomAccessFile.class, "RandomAccessFile");
+    }
+
+    public void installCommandTraceHooks(AppProfile profile) {
+        try {
+            for (Method method : Runtime.class.getDeclaredMethods()) {
+                if (!"exec".equals(method.getName())) continue;
+
+                hook(method).intercept(chain -> {
+                    String command = method.getParameterCount() == 0
+                            ? ""
+                            : stringify(chain.getArg(0));
+
+                    if (!looksSensitiveCommand(command)) return chain.proceed();
+
+                    String ruleId = DetectionRuleIds.forCommand(command);
+                    long startNs = System.nanoTime();
+
+                    try {
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "exec",
+                                ruleId,
+                                command,
+                                result == null ? "" : result.getClass().getName(),
+                                false,
+                                "",
+                                "Runtime.exec",
+                                startNs,
+                                false
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "exec",
+                                ruleId,
+                                command,
+                                "",
+                                false,
+                                throwableText(t),
+                                "Runtime.exec",
+                                startNs,
+                                false
+                        );
+                        throw t;
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Runtime.exec hooks failed: " + t);
+        }
+
+        try {
+            Method start = ProcessBuilder.class.getDeclaredMethod("start");
+            hook(start).intercept(chain -> {
+                ProcessBuilder builder = (ProcessBuilder) chain.getThisObject();
+                String command = builder == null ? "" : String.join(" ", builder.command());
+                if (!looksSensitiveCommand(command)) return chain.proceed();
+
+                String ruleId = DetectionRuleIds.forCommand(command);
+                long startNs = System.nanoTime();
+
+                try {
+                    Object result = chain.proceed();
+                    traceCall(
+                            profile,
+                            "exec",
+                            ruleId,
+                            command,
+                            result == null ? "" : result.getClass().getName(),
+                            false,
+                            "",
+                            "ProcessBuilder.start",
+                            startNs,
+                            false
+                    );
+                    return result;
+                } catch (Throwable t) {
+                    traceCall(
+                            profile,
+                            "exec",
+                            ruleId,
+                            command,
+                            "",
+                            false,
+                            throwableText(t),
+                            "ProcessBuilder.start",
+                            startNs,
+                            false
+                    );
+                    throw t;
+                }
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "ProcessBuilder.start hook failed: " + t);
+        }
+
+        try {
+            Method exit = System.class.getDeclaredMethod("exit", int.class);
+            hook(exit).intercept(chain -> {
+                long startNs = System.nanoTime();
+                traceCall(
+                        profile,
+                        "exit",
+                        DetectionRuleIds.EXIT_SYSTEM,
+                        "status=" + chain.getArg(0),
+                        "",
+                        true,
+                        "",
+                        "java.lang.System.exit",
+                        startNs,
+                        true
+                );
+                return chain.proceed();
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "System.exit hook failed: " + t);
+        }
+
+        try {
+            Method halt = Runtime.class.getDeclaredMethod("halt", int.class);
+            hook(halt).intercept(chain -> {
+                long startNs = System.nanoTime();
+                traceCall(
+                        profile,
+                        "exit",
+                        DetectionRuleIds.EXIT_HALT,
+                        "status=" + chain.getArg(0),
+                        "",
+                        true,
+                        "",
+                        "java.lang.Runtime.halt",
+                        startNs,
+                        true
+                );
+                return chain.proceed();
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Runtime.halt hook failed: " + t);
+        }
+
+        try {
+            Method kill = android.os.Process.class.getDeclaredMethod("killProcess", int.class);
+            hook(kill).intercept(chain -> {
+                long startNs = System.nanoTime();
+                traceCall(
+                        profile,
+                        "exit",
+                        DetectionRuleIds.EXIT_KILL_PROCESS,
+                        "pid=" + chain.getArg(0),
+                        "",
+                        true,
+                        "",
+                        "android.os.Process.killProcess",
+                        startNs,
+                        true
+                );
+                return chain.proceed();
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Process.killProcess hook failed: " + t);
+        }
+    }
+
+    public void installPropertyTraceHooks(AppProfile profile) {
+        try {
+            for (Method method : System.class.getDeclaredMethods()) {
+                if (!"getProperty".equals(method.getName())) continue;
+                if (method.getParameterCount() < 1) continue;
+
+                hook(method).intercept(chain -> {
+                    String key = stringArg(chain.getArg(0));
+                    if (!looksSensitiveProperty(key)) return chain.proceed();
+
+                    String ruleId = DetectionRuleIds.forProperty(key);
+                    long startNs = System.nanoTime();
+
+                    try {
+                        Object result = chain.proceed();
+                        String resultText = stringify(result);
+
+                        traceCall(
+                                profile,
+                                "property",
+                                ruleId,
+                                key,
+                                resultText,
+                                DetectionRuleIds.propertyValueLooksMatched(ruleId, resultText),
+                                "",
+                                "System.getProperty",
+                                startNs,
+                                false
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "property",
+                                ruleId,
+                                key,
+                                "",
+                                false,
+                                throwableText(t),
+                                "System.getProperty",
+                                startNs,
+                                false
+                        );
+                        throw t;
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "System.getProperty hooks failed: " + t);
+        }
+
+        try {
+            Class<?> properties = Class.forName("android.os.SystemProperties");
+            for (Method method : properties.getDeclaredMethods()) {
+                String name = method.getName();
+                if (!("get".equals(name)
+                        || "getBoolean".equals(name)
+                        || "getInt".equals(name)
+                        || "getLong".equals(name))) {
+                    continue;
+                }
+                if (method.getParameterCount() < 1) continue;
+
+                hook(method).intercept(chain -> {
+                    String key = stringArg(chain.getArg(0));
+                    if (!looksSensitiveProperty(key)) return chain.proceed();
+
+                    String ruleId = DetectionRuleIds.forProperty(key);
+                    long startNs = System.nanoTime();
+
+                    try {
+                        Object result = chain.proceed();
+                        String resultText = stringify(result);
+
+                        traceCall(
+                                profile,
+                                "property",
+                                ruleId,
+                                key,
+                                resultText,
+                                DetectionRuleIds.propertyValueLooksMatched(ruleId, resultText),
+                                "",
+                                "SystemProperties." + name,
+                                startNs,
+                                false
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "property",
+                                ruleId,
+                                key,
+                                "",
+                                false,
+                                throwableText(t),
+                                "SystemProperties." + name,
+                                startNs,
+                                false
+                        );
+                        throw t;
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "SystemProperties hooks failed: " + t);
+        }
+    }
+
+    public void installSecurityApiTraceHooks(AppProfile profile) {
+        installKeyStoreTraceHooks(profile);
+        installPlayIntegrityTraceHooks(profile);
+        installSelfIntegrityTraceHooks(profile);
+    }
+
+    private void installKeyStoreTraceHooks(AppProfile profile) {
+        for (Method method : KeyStore.class.getDeclaredMethods()) {
+            String name = method.getName();
+            if (!("getInstance".equals(name) || "getCertificateChain".equals(name))) continue;
+
+            try {
+                hook(method).intercept(chain -> {
+                    long startNs = System.nanoTime();
+                    String input = collectArgs(method, chain);
+                    String rule = "getCertificateChain".equals(name)
+                            ? DetectionRuleIds.KEY_CERT_CHAIN_QUERY
+                            : DetectionRuleIds.KEYSTORE_INSTANCE_QUERY;
+                    try {
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "attestation",
+                                rule,
+                                "KeyStore." + name + " " + input,
+                                safeSecurityResult(rule, result),
+                                false,
+                                "",
+                                "java.security.KeyStore." + name,
+                                startNs,
+                                true
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "attestation",
+                                rule,
+                                "KeyStore." + name + " " + input,
+                                "",
+                                false,
+                                throwableText(t),
+                                "java.security.KeyStore." + name,
+                                startNs,
+                                true
+                        );
+                        throw t;
+                    }
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "KeyStore." + name + " hook failed: " + t);
+            }
+        }
+
+        Class<?> builder = findTargetClass("android.security.keystore.KeyGenParameterSpec$Builder");
+        if (builder != null) {
+            for (Method method : builder.getDeclaredMethods()) {
+                String name = method.getName();
+                String rule;
+                if ("setAttestationChallenge".equals(name)) {
+                    rule = DetectionRuleIds.KEY_ATTESTATION_CHALLENGE;
+                } else if ("setIsStrongBoxBacked".equals(name)) {
+                    rule = DetectionRuleIds.KEY_STRONGBOX_REQUEST;
+                } else {
+                    continue;
+                }
+
+                try {
+                    hook(method).intercept(chain -> {
+                        long startNs = System.nanoTime();
+                        Object arg = method.getParameterCount() > 0 ? chain.getArg(0) : null;
+                        String input;
+                        if (arg instanceof byte[]) {
+                            input = name + " bytes=" + ((byte[]) arg).length;
+                        } else {
+                            input = name + "=" + stringify(arg);
+                        }
+
+                        try {
+                            Object result = chain.proceed();
+                            traceCall(
+                                    profile,
+                                    "attestation",
+                                    rule,
+                                    input,
+                                    "configured",
+                                    false,
+                                    "",
+                                    "KeyGenParameterSpec.Builder." + name,
+                                    startNs,
+                                    true
+                            );
+                            return result;
+                        } catch (Throwable t) {
+                            traceCall(
+                                    profile,
+                                    "attestation",
+                                    rule,
+                                    input,
+                                    "",
+                                    false,
+                                    throwableText(t),
+                                    "KeyGenParameterSpec.Builder." + name,
+                                    startNs,
+                                    true
+                            );
+                            throw t;
+                        }
+                    });
+                } catch (Throwable t) {
+                    log(Log.WARN, TAG, "KeyGenParameterSpec.Builder." + name + " hook failed: " + t);
+                }
+            }
+        }
+
+        Class<?> keyInfo = findTargetClass("android.security.keystore.KeyInfo");
+        if (keyInfo != null) {
+            for (Method method : keyInfo.getDeclaredMethods()) {
+                String name = method.getName();
+                if (!("getSecurityLevel".equals(name)
+                        || "isInsideSecureHardware".equals(name)
+                        || "getOrigin".equals(name))) {
+                    continue;
+                }
+                try {
+                    hook(method).intercept(chain -> {
+                        long startNs = System.nanoTime();
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "attestation",
+                                DetectionRuleIds.KEY_SECURITY_LEVEL_QUERY,
+                                "KeyInfo." + name,
+                                stringify(result),
+                                false,
+                                "",
+                                "android.security.keystore.KeyInfo." + name,
+                                startNs,
+                                true
+                        );
+                        return result;
+                    });
+                } catch (Throwable t) {
+                    log(Log.WARN, TAG, "KeyInfo." + name + " hook failed: " + t);
+                }
+            }
+        }
+    }
+
+    private void installPlayIntegrityTraceHooks(AppProfile profile) {
+        installIntegrityFactoryHooks(
+                profile,
+                "com.google.android.play.core.integrity.IntegrityManagerFactory",
+                false
+        );
+        installIntegrityFactoryHooks(
+                profile,
+                "com.google.android.play.core.integrity.StandardIntegrityManagerFactory",
+                true
+        );
+
+        installIntegrityClassIfPresent(
+                profile,
+                "com.google.android.play.core.integrity.IntegrityTokenResponse",
+                false
+        );
+        installIntegrityClassIfPresent(
+                profile,
+                "com.google.android.play.core.integrity.StandardIntegrityManager$StandardIntegrityToken",
+                true
+        );
+    }
+
+    private void installIntegrityFactoryHooks(
+            AppProfile profile,
+            String className,
+            boolean standard
+    ) {
+        Class<?> factory = findTargetClass(className);
+        if (factory == null) return;
+
+        for (Method method : factory.getDeclaredMethods()) {
+            if (!("create".equals(method.getName()) || "get".equals(method.getName()))) continue;
+            try {
+                hook(method).intercept(chain -> {
+                    Object result = chain.proceed();
+                    if (result != null) {
+                        installIntegrityObjectHooks(profile, result.getClass(), standard);
+                    }
+                    return result;
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, className + "." + method.getName() + " hook failed: " + t);
+            }
+        }
+    }
+
+    private void installIntegrityClassIfPresent(
+            AppProfile profile,
+            String className,
+            boolean standard
+    ) {
+        Class<?> clazz = findTargetClass(className);
+        if (clazz != null) installIntegrityObjectHooks(profile, clazz, standard);
+    }
+
+    private void installIntegrityObjectHooks(
+            AppProfile profile,
+            Class<?> clazz,
+            boolean standard
+    ) {
+        String className = clazz.getName();
+        synchronized (dynamicallyHookedSecurityClasses) {
+            if (!dynamicallyHookedSecurityClasses.add(className)) return;
+        }
+
+        for (Method method : clazz.getDeclaredMethods()) {
+            String name = method.getName();
+            String rule;
+
+            if ("requestIntegrityToken".equals(name)) {
+                rule = DetectionRuleIds.PLAY_INTEGRITY_REQUEST;
+            } else if ("prepareIntegrityToken".equals(name)) {
+                rule = DetectionRuleIds.PLAY_INTEGRITY_STANDARD_PREPARE;
+            } else if (standard && ("request".equals(name) || "requestIntegrityToken".equals(name))) {
+                rule = DetectionRuleIds.PLAY_INTEGRITY_STANDARD_REQUEST;
+            } else if ("token".equals(name) || "getToken".equals(name)) {
+                rule = DetectionRuleIds.PLAY_INTEGRITY_TOKEN_QUERY;
+            } else {
+                continue;
+            }
+
+            try {
+                hook(method).intercept(chain -> {
+                    long startNs = System.nanoTime();
+                    String input = collectArgs(method, chain);
+                    try {
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "play_integrity",
+                                rule,
+                                className + "." + name + " " + input,
+                                safeSecurityResult(rule, result),
+                                false,
+                                "",
+                                className + "." + name,
+                                startNs,
+                                true
+                        );
+                        if (result != null && !isSimpleValue(result)) {
+                            installIntegrityObjectHooks(profile, result.getClass(), standard);
+                        }
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "play_integrity",
+                                rule,
+                                className + "." + name + " " + input,
+                                "",
+                                false,
+                                throwableText(t),
+                                className + "." + name,
+                                startNs,
+                                true
+                        );
+                        throw t;
+                    }
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, className + "." + name + " hook failed: " + t);
+            }
+        }
+    }
+
+    private void installSelfIntegrityTraceHooks(AppProfile profile) {
+        try {
+            Class<?> apm = Class.forName("android.app.ApplicationPackageManager");
+            for (Method method : apm.getDeclaredMethods()) {
+                if (!"getPackageInfo".equals(method.getName()) || method.getParameterCount() < 1) continue;
+
+                hook(method).intercept(chain -> {
+                    Object pkgArg = chain.getArg(0);
+                    boolean ownPackage = activePackageName.equals(stringify(pkgArg));
+                    boolean signing = method.getParameterCount() > 1
+                            && looksLikeSigningFlags(chain.getArg(1));
+
+                    if (!ownPackage || !signing) return chain.proceed();
+
+                    long startNs = System.nanoTime();
+                    try {
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "self_integrity",
+                                DetectionRuleIds.APP_SIGNATURE_QUERY,
+                                "getPackageInfo self flags=" + stringify(chain.getArg(1)),
+                                summarizeResult(result),
+                                false,
+                                "",
+                                "ApplicationPackageManager.getPackageInfo",
+                                startNs,
+                                true
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "self_integrity",
+                                DetectionRuleIds.APP_SIGNATURE_QUERY,
+                                "getPackageInfo self",
+                                "",
+                                false,
+                                throwableText(t),
+                                "ApplicationPackageManager.getPackageInfo",
+                                startNs,
+                                true
+                        );
+                        throw t;
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "self signing hook failed: " + t);
+        }
+
+        for (Constructor<?> constructor : ZipFile.class.getDeclaredConstructors()) {
+            if (constructor.getParameterCount() < 1) continue;
+            try {
+                hook(constructor).intercept(chain -> {
+                    String path = stringify(chain.getArg(0));
+                    if (!path.endsWith(".apk") && !path.contains("base.apk")) {
+                        return chain.proceed();
+                    }
+
+                    long startNs = System.nanoTime();
+                    try {
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "self_integrity",
+                                DetectionRuleIds.SELF_APK_READ,
+                                path,
+                                "opened",
+                                false,
+                                "",
+                                "java.util.zip.ZipFile",
+                                startNs,
+                                true
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "self_integrity",
+                                DetectionRuleIds.SELF_APK_READ,
+                                path,
+                                "",
+                                false,
+                                throwableText(t),
+                                "java.util.zip.ZipFile",
+                                startNs,
+                                true
+                        );
+                        throw t;
+                    }
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "ZipFile constructor hook failed: " + t);
+            }
+        }
+
+        Class<?> dexFile = findTargetClass("dalvik.system.DexFile");
+        if (dexFile != null) {
+            for (Constructor<?> constructor : dexFile.getDeclaredConstructors()) {
+                if (constructor.getParameterCount() < 1) continue;
+                try {
+                    hook(constructor).intercept(chain -> {
+                        String path = stringify(chain.getArg(0));
+                        if (!path.contains(".dex") && !path.contains("classes")) {
+                            return chain.proceed();
+                        }
+                        long startNs = System.nanoTime();
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "self_integrity",
+                                DetectionRuleIds.SELF_DEX_READ,
+                                path,
+                                "opened",
+                                false,
+                                "",
+                                "dalvik.system.DexFile",
+                                startNs,
+                                true
+                        );
+                        return result;
+                    });
+                } catch (Throwable t) {
+                    log(Log.WARN, TAG, "DexFile constructor hook failed: " + t);
+                }
+            }
+        }
+
+        for (Method method : MessageDigest.class.getDeclaredMethods()) {
+            if (!"digest".equals(method.getName())) continue;
+            try {
+                hook(method).intercept(chain -> {
+                    if (!looksLikeIntegrityCallStack()) return chain.proceed();
+
+                    long startNs = System.nanoTime();
+                    MessageDigest digest = chain.getThisObject() instanceof MessageDigest
+                            ? (MessageDigest) chain.getThisObject()
+                            : null;
+                    int inputLength = 0;
+                    if (method.getParameterCount() > 0 && chain.getArg(0) instanceof byte[]) {
+                        inputLength = ((byte[]) chain.getArg(0)).length;
+                    }
+
+                    Object result = chain.proceed();
+                    traceCall(
+                            profile,
+                            "self_integrity",
+                            DetectionRuleIds.CERTIFICATE_DIGEST_QUERY,
+                            "algorithm=" + (digest == null ? "" : digest.getAlgorithm())
+                                    + " inputBytes=" + inputLength,
+                            result instanceof byte[] ? "digestBytes=" + ((byte[]) result).length : summarizeResult(result),
+                            false,
+                            "",
+                            "java.security.MessageDigest.digest",
+                            startNs,
+                            true
+                    );
+                    return result;
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "MessageDigest.digest hook failed: " + t);
+            }
+        }
+    }
+
+    public void installExceptionTraceHooks(AppProfile profile) {
+        installThreadExceptionHooks(profile);
+        installCoroutineExceptionHooks(profile);
+        installRxJavaExceptionHooks(profile, "io.reactivex.plugins.RxJavaPlugins", false);
+        installRxJavaExceptionHooks(profile, "io.reactivex.rxjava3.plugins.RxJavaPlugins", true);
+    }
+
+    private void installThreadExceptionHooks(AppProfile profile) {
+        try {
+            Method dispatch = Thread.class.getDeclaredMethod(
+                    "dispatchUncaughtException",
+                    Throwable.class
+            );
+            hook(dispatch).intercept(chain -> {
+                Throwable throwable = chain.getArg(0) instanceof Throwable
+                        ? (Throwable) chain.getArg(0)
+                        : null;
+                Thread target = chain.getThisObject() instanceof Thread
+                        ? (Thread) chain.getThisObject()
+                        : Thread.currentThread();
+
+                traceThrowableEvent(
+                        profile,
+                        "java_exception",
+                        DetectionRuleIds.JAVA_UNCAUGHT_EXCEPTION,
+                        throwable,
+                        "Thread.dispatchUncaughtException",
+                        target == null ? "" : target.getName()
+                );
+                return chain.proceed();
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Thread.dispatchUncaughtException hook failed: " + t);
+        }
+
+        try {
+            Method setDefault = Thread.class.getDeclaredMethod(
+                    "setDefaultUncaughtExceptionHandler",
+                    Thread.UncaughtExceptionHandler.class
+            );
+            hook(setDefault).intercept(chain -> {
+                Object handler = chain.getArg(0);
+                traceCall(
+                        profile,
+                        "exception_handler",
+                        DetectionRuleIds.JAVA_DEFAULT_EXCEPTION_HANDLER_SET,
+                        handlerClassName(handler),
+                        "installed",
+                        false,
+                        "",
+                        "Thread.setDefaultUncaughtExceptionHandler",
+                        System.nanoTime(),
+                        true
+                );
+                return chain.proceed();
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Thread.setDefaultUncaughtExceptionHandler hook failed: " + t);
+        }
+
+        try {
+            Method setThread = Thread.class.getDeclaredMethod(
+                    "setUncaughtExceptionHandler",
+                    Thread.UncaughtExceptionHandler.class
+            );
+            hook(setThread).intercept(chain -> {
+                Object handler = chain.getArg(0);
+                Thread target = chain.getThisObject() instanceof Thread
+                        ? (Thread) chain.getThisObject()
+                        : null;
+
+                traceCall(
+                        profile,
+                        "exception_handler",
+                        DetectionRuleIds.JAVA_THREAD_EXCEPTION_HANDLER_SET,
+                        "thread=" + (target == null ? "" : target.getName())
+                                + " handler=" + handlerClassName(handler),
+                        "installed",
+                        false,
+                        "",
+                        "Thread.setUncaughtExceptionHandler",
+                        System.nanoTime(),
+                        true
+                );
+                return chain.proceed();
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Thread.setUncaughtExceptionHandler hook failed: " + t);
+        }
+    }
+
+    private void installCoroutineExceptionHooks(AppProfile profile) {
+        Class<?> clazz = findTargetClass("kotlinx.coroutines.CoroutineExceptionHandlerKt");
+        if (clazz == null) return;
+
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (!"handleCoroutineException".equals(method.getName())) continue;
+            if (method.getParameterCount() < 2) continue;
+
+            try {
+                hook(method).intercept(chain -> {
+                    Throwable throwable = null;
+                    Object context = null;
+
+                    for (int i = 0; i < method.getParameterCount(); i++) {
+                        Object arg = chain.getArg(i);
+                        if (arg instanceof Throwable) throwable = (Throwable) arg;
+                        else if (context == null) context = arg;
+                    }
+
+                    traceThrowableEvent(
+                            profile,
+                            "coroutine_exception",
+                            DetectionRuleIds.COROUTINE_UNHANDLED_EXCEPTION,
+                            throwable,
+                            "CoroutineExceptionHandlerKt.handleCoroutineException",
+                            context == null ? "" : String.valueOf(context)
+                    );
+                    return chain.proceed();
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "CoroutineExceptionHandler hook failed: " + t);
+            }
+        }
+    }
+
+    private void installRxJavaExceptionHooks(
+            AppProfile profile,
+            String className,
+            boolean rxJava3
+    ) {
+        Class<?> clazz = findTargetClass(className);
+        if (clazz == null) return;
+
+        String errorRule = rxJava3
+                ? DetectionRuleIds.RXJAVA3_GLOBAL_ERROR
+                : DetectionRuleIds.RXJAVA2_GLOBAL_ERROR;
+        String handlerRule = rxJava3
+                ? DetectionRuleIds.RXJAVA3_ERROR_HANDLER_SET
+                : DetectionRuleIds.RXJAVA2_ERROR_HANDLER_SET;
+
+        for (Method method : clazz.getDeclaredMethods()) {
+            String name = method.getName();
+
+            if ("onError".equals(name) && method.getParameterCount() == 1) {
+                try {
+                    hook(method).intercept(chain -> {
+                        Object arg = chain.getArg(0);
+                        Throwable throwable = arg instanceof Throwable ? (Throwable) arg : null;
+                        traceThrowableEvent(
+                                profile,
+                                "rxjava_error",
+                                errorRule,
+                                throwable,
+                                className + ".onError",
+                                ""
+                        );
+                        return chain.proceed();
+                    });
+                } catch (Throwable t) {
+                    log(Log.WARN, TAG, className + ".onError hook failed: " + t);
+                }
+            }
+
+            if ("setErrorHandler".equals(name) && method.getParameterCount() == 1) {
+                try {
+                    hook(method).intercept(chain -> {
+                        Object handler = chain.getArg(0);
+                        traceCall(
+                                profile,
+                                "exception_handler",
+                                handlerRule,
+                                handlerClassName(handler),
+                                "installed",
+                                false,
+                                "",
+                                className + ".setErrorHandler",
+                                System.nanoTime(),
+                                true
+                        );
+                        return chain.proceed();
+                    });
+                } catch (Throwable t) {
+                    log(Log.WARN, TAG, className + ".setErrorHandler hook failed: " + t);
+                }
+            }
+        }
+    }
+
+    private Class<?> findTargetClass(String className) {
+        if (targetClassLoader == null) return null;
+        try {
+            return Class.forName(className, false, targetClassLoader);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    public void installLinkerTraceHooks(AppProfile profile) {
+        for (String methodName : new String[]{"load", "loadLibrary"}) {
+            try {
+                Method method = System.class.getDeclaredMethod(methodName, String.class);
+                hook(method).intercept(chain -> {
+                    String target = stringArg(chain.getArg(0));
+                    long startNs = System.nanoTime();
+
+                    try {
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "linker",
+                                DetectionRuleIds.JAVA_LOAD_LIBRARY,
+                                "System." + methodName + " " + target,
+                                "loaded",
+                                false,
+                                "",
+                                "java.lang.System." + methodName,
+                                startNs,
+                                true
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "linker",
+                                DetectionRuleIds.JAVA_LOAD_LIBRARY,
+                                "System." + methodName + " " + target,
+                                "",
+                                false,
+                                throwableText(t),
+                                "java.lang.System." + methodName,
+                                startNs,
+                                true
+                        );
+                        throw t;
+                    }
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "System." + methodName + " hook failed: " + t);
+            }
+        }
+    }
+
+    public void installDebuggerTraceHooks(AppProfile profile) {
+        try {
+            Method isConnected = Debug.class.getDeclaredMethod("isDebuggerConnected");
+            hook(isConnected).intercept(chain -> {
+                long startNs = System.nanoTime();
+                try {
+                    Object result = chain.proceed();
+                    boolean matched = Boolean.TRUE.equals(result);
+                    traceCall(
+                            profile,
+                            "debugger",
+                            DetectionRuleIds.DEBUG_IS_CONNECTED,
+                            "Debug.isDebuggerConnected",
+                            String.valueOf(result),
+                            matched,
+                            "",
+                            "android.os.Debug.isDebuggerConnected",
+                            startNs,
+                            false
+                    );
+                    return result;
+                } catch (Throwable t) {
+                    traceCall(
+                            profile,
+                            "debugger",
+                            DetectionRuleIds.DEBUG_IS_CONNECTED,
+                            "Debug.isDebuggerConnected",
+                            "",
+                            false,
+                            throwableText(t),
+                            "android.os.Debug.isDebuggerConnected",
+                            startNs,
+                            false
+                    );
+                    throw t;
+                }
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Debug.isDebuggerConnected hook failed: " + t);
+        }
+
+        try {
+            Method waiting = Debug.class.getDeclaredMethod("waitingForDebugger");
+            hook(waiting).intercept(chain -> {
+                long startNs = System.nanoTime();
+                try {
+                    Object result = chain.proceed();
+                    boolean matched = Boolean.TRUE.equals(result);
+                    traceCall(
+                            profile,
+                            "debugger",
+                            DetectionRuleIds.DEBUG_WAITING,
+                            "Debug.waitingForDebugger",
+                            String.valueOf(result),
+                            matched,
+                            "",
+                            "android.os.Debug.waitingForDebugger",
+                            startNs,
+                            false
+                    );
+                    return result;
+                } catch (Throwable t) {
+                    traceCall(
+                            profile,
+                            "debugger",
+                            DetectionRuleIds.DEBUG_WAITING,
+                            "Debug.waitingForDebugger",
+                            "",
+                            false,
+                            throwableText(t),
+                            "android.os.Debug.waitingForDebugger",
+                            startNs,
+                            false
+                    );
+                    throw t;
+                }
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Debug.waitingForDebugger hook failed: " + t);
+        }
+    }
+
+    private void hookSensitiveConstructors(AppProfile profile, Class<?> clazz, String source) {
+        for (Constructor<?> constructor : clazz.getDeclaredConstructors()) {
+            if (constructor.getParameterCount() < 1) continue;
+
+            Class<?> first = constructor.getParameterTypes()[0];
+            if (!(first == String.class || first == File.class)) continue;
+
+            try {
+                hook(constructor).intercept(chain -> {
+                    String path = stringify(chain.getArg(0));
+                    if (!looksSensitivePath(path)) return chain.proceed();
+
+                    String ruleId = DetectionRuleIds.forPath(path);
+                    long startNs = System.nanoTime();
+
+                    try {
+                        Object result = chain.proceed();
+                        traceCall(
+                                profile,
+                                "file",
+                                ruleId,
+                                path,
+                                "opened",
+                                true,
+                                "",
+                                source,
+                                startNs,
+                                false
+                        );
+                        return result;
+                    } catch (Throwable t) {
+                        traceCall(
+                                profile,
+                                "file",
+                                ruleId,
+                                path,
+                                "",
+                                false,
+                                throwableText(t),
+                                source,
+                                startNs,
+                                false
+                        );
+                        throw t;
+                    }
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, source + " constructor hook failed: " + t);
+            }
+        }
+    }
+
+    private boolean shouldSimulatePermission(AppProfile profile, String permission) {
+        if (!profile.simulatePermissions || permission == null) return false;
+        if (!profile.simulatedPermissions.isEmpty()) {
+            return profile.simulatedPermissions.contains(permission);
+        }
+        return permission.equals(Manifest.permission.ACCESS_FINE_LOCATION)
+                || permission.equals(Manifest.permission.ACCESS_COARSE_LOCATION)
+                || permission.equals(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+    }
+
+    private static boolean isPackageScanMethod(String name) {
+        return "getPackageInfo".equals(name)
+                || "getApplicationInfo".equals(name)
+                || "getInstalledPackages".equals(name)
+                || "getInstalledApplications".equals(name)
+                || "queryIntentActivities".equals(name)
+                || "getInstallerPackageName".equals(name)
+                || "getInstallSourceInfo".equals(name);
+    }
+
+    private static boolean isEnumerationMethod(String name) {
+        return "getInstalledPackages".equals(name)
+                || "getInstalledApplications".equals(name);
+    }
+
+    private static boolean looksSensitivePackageQuery(String value) {
+        return !DetectionRuleIds.UNKNOWN.equals(DetectionRuleIds.forPackage(value));
+    }
+
+    private static boolean looksSensitivePath(String value) {
+        String s = lower(value);
+        return s.contains("/proc/")
+                || s.contains("/data/adb")
+                || s.contains("magisk")
+                || s.contains("kernelsu")
+                || s.contains("apatch")
+                || s.contains("xposed")
+                || s.contains("lsposed")
+                || s.contains("frida")
+                || s.endsWith("/su")
+                || s.contains("/system/bin/su")
+                || s.contains("/system/xbin/su");
+    }
+
+    private static boolean looksSensitiveCommand(String value) {
+        String s = lower(value);
+        return s.contains("which su")
+                || s.matches(".*(^|\\s|/)su(\\s|$).*")
+                || s.contains("getprop")
+                || s.contains("mount")
+                || s.contains("getenforce")
+                || s.contains("/proc/")
+                || s.contains("magisk")
+                || s.contains("kernelsu")
+                || s.contains("apatch")
+                || s.contains("xposed")
+                || s.contains("lsposed")
+                || s.contains("frida");
+    }
+
+    private static boolean looksSensitiveProperty(String value) {
+        String s = lower(value);
+        return s.startsWith("ro.boot.")
+                || s.equals("ro.debuggable")
+                || s.equals("ro.secure")
+                || s.equals("ro.build.tags")
+                || s.equals("ro.build.type")
+                || s.equals("ro.build.user")
+                || s.startsWith("ro.product.")
+                || s.startsWith("ro.hardware.")
+                || s.contains("magisk")
+                || s.contains("kernelsu")
+                || s.contains("apatch");
+    }
+
+    private static String collectArgs(Method method, Object chain) {
+        StringBuilder args = new StringBuilder();
+        try {
+            Method getArg = chain.getClass().getMethod("getArg", int.class);
+            for (int i = 0; i < method.getParameterCount(); i++) {
+                if (i > 0) args.append(" | ");
+                args.append(stringify(getArg.invoke(chain, i)));
+            }
+        } catch (Throwable ignored) {
+        }
+        return args.toString();
+    }
+
+    private static List<String> sensitivePackages(Object result) {
+        List<String> found = new ArrayList<>();
+        if (!(result instanceof List<?>)) return found;
+
+        for (Object item : (List<?>) result) {
+            String pkg = packageNameOf(item);
+            if (!pkg.isBlank()
+                    && !DetectionRuleIds.UNKNOWN.equals(DetectionRuleIds.forPackage(pkg))
+                    && !found.contains(pkg)) {
+                found.add(pkg);
+            }
+        }
+        return found;
+    }
+
+    private static String packageNameOf(Object item) {
+        if (item instanceof PackageInfo) return ((PackageInfo) item).packageName;
+        if (item instanceof ApplicationInfo) return ((ApplicationInfo) item).packageName;
+        return "";
+    }
+
+    private static boolean resultLooksPositive(Object result) {
+        if (result instanceof Boolean) return (Boolean) result;
+        if (result instanceof Object[]) return ((Object[]) result).length > 0;
+        if (result instanceof List<?>) return !((List<?>) result).isEmpty();
+        return result != null;
+    }
+
+    private static String summarizeResult(Object result) {
+        if (result == null) return "null";
+        if (result instanceof Boolean
+                || result instanceof Number
+                || result instanceof CharSequence) {
+            return String.valueOf(result);
+        }
+        if (result instanceof Object[]) {
+            return "array(length=" + ((Object[]) result).length + ")";
+        }
+        if (result instanceof List<?>) {
+            return "list(size=" + ((List<?>) result).size() + ")";
+        }
+        if (result instanceof PackageInfo) {
+            return "PackageInfo(" + ((PackageInfo) result).packageName + ")";
+        }
+        if (result instanceof ApplicationInfo) {
+            return "ApplicationInfo(" + ((ApplicationInfo) result).packageName + ")";
+        }
+        return result.getClass().getName();
+    }
+
+    private static String stringArg(Object value) {
+        return value instanceof String ? (String) value : "";
+    }
+
+    private static String stringify(Object value) {
+        if (value == null) return "";
+        if (value instanceof String[]) return String.join(" ", (String[]) value);
+        if (value instanceof File) return ((File) value).getAbsolutePath();
+        return String.valueOf(value);
+    }
+
+    private static String throwableText(Throwable t) {
+        if (t == null) return "";
+        String msg = t.getMessage();
+        return t.getClass().getName() + (msg == null ? "" : ": " + msg);
+    }
+
+    private static String lower(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean looksLikeSigningFlags(Object flags) {
+        if (flags == null) return false;
+        if (flags instanceof Integer) {
+            int value = (Integer) flags;
+            return (value & PackageManager.GET_SIGNATURES) != 0
+                    || (value & PackageManager.GET_SIGNING_CERTIFICATES) != 0;
+        }
+        if (flags instanceof Long) {
+            long value = (Long) flags;
+            return (value & PackageManager.GET_SIGNATURES) != 0
+                    || (value & PackageManager.GET_SIGNING_CERTIFICATES) != 0;
+        }
+        String text = String.valueOf(flags).toLowerCase(Locale.ROOT);
+        return text.contains("sign") || text.contains("134217728") || text.contains("64");
+    }
+
+    private static boolean looksLikeIntegrityCallStack() {
+        for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
+            String text = (frame.getClassName() + "." + frame.getMethodName())
+                    .toLowerCase(Locale.ROOT);
+            if (text.contains("signature")
+                    || text.contains("signing")
+                    || text.contains("integrity")
+                    || text.contains("attest")
+                    || text.contains("certificate")
+                    || text.contains("tamper")
+                    || text.contains("verify")
+                    || text.contains("apk")
+                    || text.contains("dex")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String safeSecurityResult(String ruleId, Object result) {
+        if (result == null) return "null";
+        if (DetectionRuleIds.PLAY_INTEGRITY_TOKEN_QUERY.equals(ruleId)) {
+            String token = String.valueOf(result);
+            return "tokenPresent=" + !token.isBlank() + " length=" + token.length();
+        }
+        if (result instanceof java.security.cert.Certificate[]) {
+            return "certificateChainLength="
+                    + ((java.security.cert.Certificate[]) result).length;
+        }
+        if (result instanceof byte[]) {
+            return "bytes=" + ((byte[]) result).length;
+        }
+        return summarizeResult(result);
+    }
+
+    private static boolean isSimpleValue(Object value) {
+        return value instanceof CharSequence
+                || value instanceof Number
+                || value instanceof Boolean
+                || value instanceof byte[];
+    }
+
+    private void traceThrowableEvent(
+            AppProfile profile,
+            String type,
+            String ruleId,
+            Throwable throwable,
+            String source,
+            String context
+    ) {
+        long ts = System.currentTimeMillis();
+        int pid = android.os.Process.myPid();
+        int tid = android.os.Process.myTid();
+        Thread thread = Thread.currentThread();
+
+        String processName;
+        try {
+            processName = Application.getProcessName();
+        } catch (Throwable ignored) {
+            processName = "";
+        }
+
+        String sessionId = profile == null || profile.diagnosticSessionId == null
+                ? ""
+                : profile.diagnosticSessionId;
+
+        String throwableId = throwable == null
+                ? ""
+                : Integer.toHexString(System.identityHashCode(throwable));
+        String exceptionClass = throwable == null ? "" : throwable.getClass().getName();
+        String exceptionMessage = throwable == null || throwable.getMessage() == null
+                ? ""
+                : throwable.getMessage();
+        String cause = throwable == null || throwable.getCause() == null
+                ? ""
+                : throwableText(throwable.getCause());
+        int suppressedCount = throwable == null ? 0 : throwable.getSuppressed().length;
+        String stack = throwableStack(throwable, 40);
+
+        DetectionHitState hitState = DetectionRuleCatalog.evaluate(
+                ruleId,
+                true,
+                throwableId,
+                throwableText(throwable)
+        );
+
+        String input = exceptionClass
+                + (exceptionMessage.isBlank() ? "" : ": " + exceptionMessage)
+                + (context == null || context.isBlank() ? "" : " | context=" + context);
+
+        String json = "{\"ts\":" + ts
+                + ",\"package\":\"" + escapeJson(activePackageName) + "\""
+                + ",\"sessionId\":\"" + escapeJson(sessionId) + "\""
+                + ",\"type\":\"" + escapeJson(type) + "\""
+                + ",\"ruleId\":\"" + escapeJson(ruleId) + "\""
+                + ",\"input\":\"" + escapeJson(input) + "\""
+                + ",\"value\":\"" + escapeJson(input) + "\""
+                + ",\"result\":\"" + escapeJson(throwableId) + "\""
+                + ",\"matched\":true"
+                + ",\"hitState\":\"" + hitState.name() + "\""
+                + ",\"exception\":\"" + escapeJson(throwableText(throwable)) + "\""
+                + ",\"exceptionClass\":\"" + escapeJson(exceptionClass) + "\""
+                + ",\"exceptionMessage\":\"" + escapeJson(exceptionMessage) + "\""
+                + ",\"throwableId\":\"" + escapeJson(throwableId) + "\""
+                + ",\"cause\":\"" + escapeJson(cause) + "\""
+                + ",\"suppressedCount\":" + suppressedCount
+                + ",\"source\":\"" + escapeJson(source) + "\""
+                + ",\"pid\":" + pid
+                + ",\"tid\":" + tid
+                + ",\"thread\":\"" + escapeJson(thread.getName()) + "\""
+                + ",\"process\":\"" + escapeJson(processName) + "\""
+                + ",\"durationNs\":0"
+                + ",\"stack\":\"" + escapeJson(stack) + "\"}";
+
+        log(Log.INFO, TAG, json);
+        Log.i(TAG, json);
+    }
+
+    private static String throwableStack(Throwable throwable, int maxFrames) {
+        if (throwable == null) return "";
+
+        StringBuilder out = new StringBuilder();
+        StackTraceElement[] frames = throwable.getStackTrace();
+        int count = Math.min(frames.length, maxFrames);
+
+        for (int i = 0; i < count; i++) {
+            if (i > 0) out.append(" <- ");
+            StackTraceElement frame = frames[i];
+            out.append(frame.getClassName())
+                    .append('.')
+                    .append(frame.getMethodName())
+                    .append(':')
+                    .append(frame.getLineNumber());
+        }
+        return out.toString();
+    }
+
+    private static String handlerClassName(Object handler) {
+        return handler == null ? "null" : handler.getClass().getName();
+    }
+
+    private void traceMeta(AppProfile profile, String type, String value, String source) {
+        traceCall(
+                profile,
+                type,
+                DetectionRuleIds.UNKNOWN,
+                value,
+                "",
+                false,
+                "",
+                source,
+                System.nanoTime(),
+                false
+        );
+    }
+
+    private void traceCall(
+            AppProfile profile,
+            String type,
+            String ruleId,
+            String input,
+            String result,
+            boolean matched,
+            String exception,
+            String source,
+            long startNs,
+            boolean forceStack
+    ) {
+        long ts = System.currentTimeMillis();
+        long durationNs = Math.max(0L, System.nanoTime() - startNs);
+        String stack = forceStack
+                ? captureStack(32)
+                : (profile != null && profile.traceStacks ? captureStack(12) : "");
+
+        int pid = android.os.Process.myPid();
+        int tid = android.os.Process.myTid();
+        Thread thread = Thread.currentThread();
+
+        String processName;
+        try {
+            processName = Application.getProcessName();
+        } catch (Throwable ignored) {
+            processName = "";
+        }
+
+        String sessionId = profile == null || profile.diagnosticSessionId == null
+                ? ""
+                : profile.diagnosticSessionId;
+
+        DetectionHitState hitState = DetectionRuleCatalog.evaluate(
+                ruleId,
+                matched,
+                result,
+                exception
+        );
+
+        String json = "{\"ts\":" + ts
+                + ",\"package\":\"" + escapeJson(activePackageName) + "\""
+                + ",\"sessionId\":\"" + escapeJson(sessionId) + "\""
+                + ",\"type\":\"" + escapeJson(type) + "\""
+                + ",\"ruleId\":\"" + escapeJson(ruleId) + "\""
+                + ",\"input\":\"" + escapeJson(input) + "\""
+                + ",\"value\":\"" + escapeJson(input) + "\""
+                + ",\"result\":\"" + escapeJson(result) + "\""
+                + ",\"matched\":" + matched
+                + ",\"hitState\":\"" + hitState.name() + "\""
+                + ",\"exception\":\"" + escapeJson(exception) + "\""
+                + ",\"source\":\"" + escapeJson(source) + "\""
+                + ",\"pid\":" + pid
+                + ",\"tid\":" + tid
+                + ",\"thread\":\"" + escapeJson(thread.getName()) + "\""
+                + ",\"process\":\"" + escapeJson(processName) + "\""
+                + ",\"durationNs\":" + durationNs
+                + ",\"stack\":\"" + escapeJson(stack) + "\"}";
+
+        log(Log.INFO, TAG, json);
+        Log.i(TAG, json);
+    }
+
+    private static String captureStack(int maxFrames) {
+        StringBuilder out = new StringBuilder();
+        int added = 0;
+        for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
+            String cls = frame.getClassName();
+            if (cls.startsWith("java.lang.Thread")
+                    || cls.startsWith("com.yagay.ypower")) {
+                continue;
+            }
+
+            if (added++ > 0) out.append(" <- ");
+            out.append(frame.getClassName())
+                    .append('.')
+                    .append(frame.getMethodName())
+                    .append(':')
+                    .append(frame.getLineNumber());
+
+            if (added >= maxFrames) break;
+        }
+        return out.toString();
+    }
+
+    private static String escapeJson(String value) {
+        if (value == null) return "";
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+    }
+}

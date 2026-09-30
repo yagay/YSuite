@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:name="com.yagay.yparam.YParamApp"
+        android:allowBackup="true"
+        android:description="@string/module_description"
+        android:icon="@drawable/ic_yparam"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_yparam"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.YParam">
+        <activity
+            android:name="com.yagay.yparam.ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

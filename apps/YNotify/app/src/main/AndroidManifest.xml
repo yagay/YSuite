@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:name="com.yagay.YNotify.YNotifyApp"
+        android:allowBackup="false"
+        android:icon="@drawable/ic_ynotify"
+        android:label="YNotify"
+        android:description="@string/xposed_description"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.YNotify">
+        <activity
+            android:name="com.yagay.YNotify.ui.MainActivity"
+            android:exported="true"
+            tools:replace="android:exported">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

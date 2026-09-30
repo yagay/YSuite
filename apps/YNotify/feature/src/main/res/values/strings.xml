@@ -1,0 +1,3 @@
+<resources>
+    <string name="ynotify_accessibility_desc">记录 Toast、Dialog、Snackbar、PopupWindow 等短暂界面提示。不会主动操作界面。</string>
+</resources>

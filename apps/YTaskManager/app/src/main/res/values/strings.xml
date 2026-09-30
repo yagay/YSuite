@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">YTaskManager</string>
+    <string name="app_description">YTaskManager is a Root task manager with a libxposed API 102 system enhancement layer.</string>
+</resources>

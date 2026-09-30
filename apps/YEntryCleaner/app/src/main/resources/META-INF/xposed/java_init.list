@@ -1,0 +1,3 @@
+com.yagay.YEntryCleaner.xposed.YEntryCleanerModule
+com.yagay.YEntryCleaner.xposed.ComponentStateGuardModule
+com.yagay.YEntryCleaner.xposed.ComponentDiscoveryFilterModule
