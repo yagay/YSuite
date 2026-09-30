@@ -12,9 +12,9 @@ import com.yagay.suite.core.SuiteLog
  * The only exported broadcast IPC receiver owned by the combined YSuite host.
  *
  * Hook/plugin code may target this component explicitly. Exact action ownership comes from
- * config/features.toml, so an incoming event reaches only its declared logical receiver instead of
- * being fanned out across every enabled feature. Plugin-level authentication (for example YNotify
- * HMAC/nonces and YFloat session tokens) remains authoritative inside that receiver.
+ * config/features.toml and is compiled into a constant-time lookup, so an incoming event reaches
+ * only its declared logical receiver. Plugin-level authentication remains authoritative inside the
+ * feature receiver.
  */
 class SuiteBridgeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
@@ -26,11 +26,7 @@ class SuiteBridgeReceiver : BroadcastReceiver() {
             return
         }
 
-        val route = FeatureRegistry.included()
-            .asSequence()
-            .mapNotNull { feature -> feature.ipcRoutes[action]?.let { feature to it } }
-            .firstOrNull()
-
+        val route = FeatureRegistry.resolveIpcRoute(action)
         if (route == null) {
             SuiteLog.i(
                 app,
