@@ -7,24 +7,35 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Common screen-level ownership markers. A normal screen should delegate its shell, layout,
-# search/status/settings vocabulary, or XML styling to YUI rather than maintaining another design system.
+# Common screen-level ownership markers. Embedded screen composables may inherit the Activity scaffold,
+# so consuming the shared card/section vocabulary is sufficient ownership for those files.
 SOURCE_MARKERS = (
     "YComposeActivity",
     "YFeatureScaffold(",
     "YFeatureCustomScaffold(",
+    "YFeatureCard(",
+    "YFeatureList(",
+    "YFeatureSectionHeader(",
+    "YSearchField(",
     "YViewLayout.install(",
     "YViewLayout.installFixed(",
     "YViewLayout.card(",
 )
 XML_MARKERS = ("Widget.YUI.", "TextAppearance.YUI.", "@dimen/yui_")
 
-# These are interaction surfaces rather than ordinary app screens. Keep this list small and documented.
-# If a new normal screen appears, it must use YUI instead of being added here.
+# Interaction hosts whose window geometry/color/lifetime is itself part of the feature. These are not
+# normal settings/detail screens and intentionally opt out of the shared page shell.
 SPECIALIZED_EXCEPTIONS: dict[str, str] = {
-    # YFloat owns an OCR/capture overlay surface; its visual geometry is the product interaction itself.
-    "apps/YFloat/feature/src/main/java/com/yagay/YFloat/overlay/SelectionOverlayService.java": "selection/capture overlay, not a settings screen",
+    "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ResultActivity.java":
+        "transparent DialogFragment result host; result geometry is owned by the overlay interaction",
+    "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SecureCaptureProbeActivity.java":
+        "FLAG_SECURE probe intentionally renders a fixed marker color for screenshot verification",
+    "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ShadeDismissActivity.java":
+        "empty translucent 300 ms compatibility Activity used only to dismiss the notification shade",
 }
+
+YFLOAT_APP_UI = ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppUi.java"
+YFLOAT_TOKENS = ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/UiTokens.java"
 
 ACTIVITY_RE = re.compile(r"\bclass\s+\w*Activity\b|\bextends\s+(?:AppCompatActivity|ComponentActivity|Activity)\b")
 BINDING_RE = re.compile(r"\b([A-Z][A-Za-z0-9]+Binding)\b")
@@ -43,6 +54,14 @@ def xml_has_yui(text: str) -> bool:
     return any(marker in text for marker in XML_MARKERS)
 
 
+def yfloat_adapter_is_yui_backed() -> bool:
+    if not YFLOAT_APP_UI.is_file() or not YFLOAT_TOKENS.is_file():
+        return False
+    app_ui = YFLOAT_APP_UI.read_text(encoding="utf-8", errors="replace")
+    tokens = YFLOAT_TOKENS.read_text(encoding="utf-8", errors="replace")
+    return "UiTokens." in app_ui and "com.yagay.yui.YView" in tokens and "YView.color(" in tokens
+
+
 def binding_to_layout(binding: str) -> str | None:
     if not binding.endswith("Binding"):
         return None
@@ -54,7 +73,6 @@ def binding_to_layout(binding: str) -> str | None:
 
 
 def related_layouts(source: Path, text: str) -> list[Path]:
-    feature_root = None
     parts = source.parts
     try:
         idx = parts.index("src")
@@ -64,11 +82,11 @@ def related_layouts(source: Path, text: str) -> list[Path]:
     layout_dir = feature_root / "src/main/res/layout"
     candidates: set[Path] = set()
     for name in SET_CONTENT_RE.findall(text):
-        candidates.add(ROOT / layout_dir / f"{name}.xml")
+        candidates.add(layout_dir / f"{name}.xml")
     for binding in BINDING_RE.findall(text):
         name = binding_to_layout(binding)
         if name:
-            candidates.add(ROOT / layout_dir / name)
+            candidates.add(layout_dir / name)
     return [path for path in sorted(candidates) if path.is_file()]
 
 
@@ -84,7 +102,9 @@ def main() -> None:
     screens = 0
     yui_owned = 0
     xml_owned = 0
+    adapter_owned = 0
     exceptions = 0
+    yfloat_adapter_ready = yfloat_adapter_is_yui_backed()
 
     source_roots = [ROOT / "apps", ROOT / "suite"]
     for source_root in source_roots:
@@ -93,7 +113,8 @@ def main() -> None:
         for path in sorted(source_root.rglob("*")):
             if path.suffix not in {".kt", ".java"} or not path.is_file():
                 continue
-            if "/build/" in path.as_posix() or "/test/" in path.as_posix() or "/androidTest/" in path.as_posix():
+            posix = path.as_posix()
+            if "/build/" in posix or "/test/" in posix or "/androidTest/" in posix:
                 continue
             text = path.read_text(encoding="utf-8", errors="replace")
             if not is_screen_source(path, text):
@@ -106,6 +127,9 @@ def main() -> None:
             if source_has_yui(text):
                 yui_owned += 1
                 continue
+            if key.startswith("apps/YFloat/") and "AppUi." in text and yfloat_adapter_ready:
+                adapter_owned += 1
+                continue
             layouts = related_layouts(path, text)
             if layouts and all(xml_has_yui(layout.read_text(encoding="utf-8", errors="replace")) for layout in layouts):
                 xml_owned += 1
@@ -115,7 +139,6 @@ def main() -> None:
                 details = " related=" + ",".join(rel(p) for p in layouts)
             failures.append(f"{key}{details}")
 
-    # XML activity layouts are screen-level resources even if their Activity is thin or generated elsewhere.
     xml_screens = 0
     for path in sorted((ROOT / "apps").glob("*/feature/src/main/res/layout/activity_*.xml")):
         xml_screens += 1
@@ -123,10 +146,12 @@ def main() -> None:
         if not xml_has_yui(text):
             failures.append(f"{rel(path)} [activity XML has no shared YUI style/dimension]")
 
-    # Keep the exception list honest: stale exception paths are failures too.
     for key, reason in SPECIALIZED_EXCEPTIONS.items():
         if not (ROOT / key).is_file():
             failures.append(f"stale specialized exception: {key} ({reason})")
+
+    if not yfloat_adapter_ready:
+        failures.append("YFloat AppUi compatibility layer is not backed by shared YView theme tokens")
 
     if failures:
         print("ui-screen-ownership: ERROR unowned normal screens:", file=sys.stderr)
@@ -139,8 +164,8 @@ def main() -> None:
         raise SystemExit(1)
 
     print(
-        f"ui-screen-ownership: OK screens={screens} source_yui={yui_owned} xml_yui={xml_owned} "
-        f"specialized={exceptions} activity_xml={xml_screens}"
+        f"ui-screen-ownership: OK screens={screens} source_yui={yui_owned} adapter_yui={adapter_owned} "
+        f"xml_yui={xml_owned} specialized={exceptions} activity_xml={xml_screens}"
     )
 
 
