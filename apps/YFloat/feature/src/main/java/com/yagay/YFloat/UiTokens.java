@@ -56,7 +56,7 @@ final class UiTokens {
                 dark(c) ? 0xFF3A2A13 : 0xFFFFF1DF);
     }
     static int accent(Context c) {
-        return YView.color(c, com.google.android.material.R.attr.colorPrimary,
+        return YView.color(c, android.R.attr.colorAccent,
                 dark(c) ? 0xFF9CC2FF : 0xFF285FBE);
     }
     static int ripple(Context c) {
