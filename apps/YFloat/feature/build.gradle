@@ -36,13 +36,15 @@ def systemServerHookFiles = new ArrayList<File>(hookCommonFiles)
 systemServerHookFiles.add(file('src/main/java/com/yagay/YFloat/hook/SecureScreenshotHook.java'))
 def ppocrProjectPath = providers.gradleProperty('yfloatPpocrProjectPath').getOrElse(':ppocr-sdk')
 def runtimeVersionCode = providers.gradleProperty('ySuiteHostVersionCode').getOrElse('191')
+def sharedSuiteBranch = providers.gradleProperty('ySuiteSharedBranch').getOrElse('main')
+def sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 
 android {
     namespace 'com.yagay.YFloat'
-    compileSdk 37
+    compileSdk libs.versions.compileSdk.get().toInteger()
 
     defaultConfig {
-        minSdk 31
+        minSdk libs.versions.minSdk.get().toInteger()
         buildConfigField 'int', 'VERSION_CODE', runtimeVersionCode
         buildConfigField 'String', 'VERSION_NAME', '"3.1.39"'
         buildConfigField 'String', 'GOOGLE_HOOK_FINGERPRINT', '"' + yFloatHashFiles(googleHookFiles) + '"'
@@ -53,24 +55,24 @@ android {
 
     buildFeatures { buildConfig true }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility sharedJavaVersion
+        targetCompatibility sharedJavaVersion
     }
 }
 
 dependencies {
     implementation('com.github.yagay.YSuite:api') {
-        version { branch = 'main' }
+        version { branch = sharedSuiteBranch }
     }
     implementation('com.github.yagay.YSuite:ui') {
-        version { branch = 'main' }
+        version { branch = sharedSuiteBranch }
     }
-    compileOnly 'io.github.libxposed:api:102.0.0'
-    implementation 'io.github.libxposed:service:102.0.0'
-    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:6.1'
-    implementation 'com.google.mlkit:text-recognition:16.0.1'
-    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
+    implementation(libs.hiddenapibypass)
+    implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkit.text.recognition.chinese)
     implementation project(ppocrProjectPath)
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
-    testImplementation 'junit:junit:4.13.2'
+    implementation(libs.kotlinx.coroutines.android)
+    testImplementation(libs.junit)
 }

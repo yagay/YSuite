@@ -1,0 +1,136 @@
+name: Build affected standalone apps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
+      selected: ${{ steps.plan.outputs.selected }}
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify mirrored version catalogs
+        run: python3 tools/sync_version_catalog.py --check
+
+      - name: Plan affected standalone apps
+        id: plan
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" || -z "${BASE_SHA:-}" || "${BASE_SHA}" =~ ^0+$ ]]; then
+            python3 tools/plan_standalone_ci.py --all >> "$GITHUB_OUTPUT"
+          else
+            python3 tools/plan_standalone_ci.py --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+
+      - name: Read shared build versions
+        id: versions
+        run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.versions.outputs.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ steps.versions.outputs.gradle }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "cmdline-tools;23.0"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/23.0/bin/sdkmanager"
+          "$SDKMANAGER" --channel=3 \
+            "platforms;android-${{ steps.versions.outputs.android_platform }}" \
+            "build-tools;${{ steps.versions.outputs.build_tools }}" \
+            "platform-tools"
+
+      - name: Build ${{ matrix.app }} debug ARM64
+        shell: bash
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          SHARED_BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          gradle -p "apps/${APP}" --no-daemon --stacktrace \
+            -PciArm64Only=true \
+            -PySuiteSharedBranch="${SHARED_BRANCH}" \
+            :app:assembleDebug
+
+      - name: Verify ABI and prepare fixed APK name
+        shell: bash
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import shutil
+          import zipfile
+          from pathlib import Path
+
+          app = os.environ["APP"]
+          output = Path("apps") / app / "app" / "build" / "outputs" / "apk" / "debug"
+          apks = [p for p in output.glob("*.apk") if "androidTest" not in p.name]
+          if len(apks) != 1:
+              raise SystemExit(f"{app}: expected one debug APK, found {apks}")
+          apk = apks[0]
+          abis = set()
+          with zipfile.ZipFile(apk) as zf:
+              for name in zf.namelist():
+                  if name.startswith("lib/") and name.count("/") >= 2:
+                      abis.add(name.split("/")[1])
+          if abis and abis != {"arm64-v8a"}:
+              raise SystemExit(f"{app}: debug APK must be ARM64-only; found {sorted(abis)}")
+          target_dir = Path("artifacts")
+          target_dir.mkdir(exist_ok=True)
+          target = target_dir / f"{app}-debug-arm64-v8a.apk"
+          shutil.copy2(apk, target)
+          print(f"{app}: {apk} -> {target}; ABIs={sorted(abis) if abis else ['no-native-libs']}")
+          PY
+
+      - name: Upload ${{ matrix.app }} debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-debug-arm64-v8a
+          path: artifacts/${{ matrix.app }}-debug-arm64-v8a.apk
+          if-no-files-found: error
+          retention-days: 14

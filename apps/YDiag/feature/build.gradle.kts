@@ -4,20 +4,25 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
+val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
+
 android {
     namespace = "com.yagay.ydiag"
     compileSdk {
-        version = release(37) { minorApiLevel = 0 }
+        version = release(libs.versions.compileSdk.get().toInt()) {
+            minorApiLevel = libs.versions.compileSdkMinor.get().toInt()
+        }
     }
 
     defaultConfig {
-        minSdk = 31
+        minSdk = libs.versions.minSdk.get().toInt()
     }
 
     buildFeatures { compose = true; buildConfig = true }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = sharedJavaVersion
+        targetCompatibility = sharedJavaVersion
     }
 
     buildTypes {
@@ -30,15 +35,15 @@ android {
 
 dependencies {
     implementation("com.github.yagay.YSuite:api") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
     implementation("com.github.yagay.YSuite:ui") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
-    compileOnly("io.github.libxposed:api:102.0.0")
-    implementation("io.github.libxposed:service:102.0.0")
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 
-    implementation("androidx.documentfile:documentfile:1.0.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    implementation(libs.androidx.documentfile)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
 }

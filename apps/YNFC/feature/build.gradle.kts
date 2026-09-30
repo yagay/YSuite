@@ -8,13 +8,15 @@ val configAuthority = providers.gradleProperty("ynfcConfigAuthority").orNull
 val standaloneVersionCode = 57
 val runtimeVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
     .orNull?.toIntOrNull() ?: standaloneVersionCode
+val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
+val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 
 android {
     namespace = "com.yagay.YNFC"
-    compileSdk = 37
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        minSdk = 31
+        minSdk = libs.versions.minSdk.get().toInt()
         buildConfigField("int", "VERSION_CODE", runtimeVersionCode.toString())
         buildConfigField("String", "VERSION_NAME", "\"1.0.56\"")
         buildConfigField("int", "HOOK_BUILD", "40")
@@ -24,8 +26,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = sharedJavaVersion
+        targetCompatibility = sharedJavaVersion
     }
 
     buildFeatures {
@@ -40,13 +42,13 @@ android {
 
 dependencies {
     implementation("com.github.yagay.YSuite:api") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
     implementation("com.github.yagay.YSuite:ui") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
-    implementation("com.google.code.gson:gson:2.11.0")
-    compileOnly("io.github.libxposed:api:102.0.0")
-    testImplementation("junit:junit:4.13.2")
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.gson)
+    compileOnly(libs.libxposed.api)
+    testImplementation(libs.junit)
 }
