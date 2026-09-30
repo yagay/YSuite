@@ -49,8 +49,11 @@ data class FeatureSpec(
 
     fun createIntent(context: Context): Intent = Intent(context, Class.forName(entryActivityClassName))
 
-    /** Returns the feature runtime so YSuite can attach shared process-level services to it. */
-    fun initialize(context: Context): Any? {
+    /** Compatibility entry: all host-side runtime activation now passes through one lifecycle owner. */
+    fun initialize(context: Context): Any? = FeatureRuntimeManager.enable(context, this).getOrThrow()
+
+    /** Raw legacy factory used only by [FeatureRuntimeManager]. */
+    internal fun instantiateRuntime(context: Context): Any? {
         val className = runtimeInitializerClassName ?: return null
         val runtimeClass = Class.forName(className)
         return runtimeClass.getMethod("get", Context::class.java).invoke(null, context.applicationContext)
@@ -176,7 +179,8 @@ object FeatureRegistry {
 }
 
 class FeatureStateStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences(
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences(
         SuiteContract.FEATURE_STATE_PREFS,
         Context.MODE_PRIVATE,
     )
@@ -185,5 +189,9 @@ class FeatureStateStore(context: Context) {
 
     fun setEnabled(feature: FeatureSpec, enabled: Boolean) {
         prefs.edit().putBoolean("enabled.${feature.id}", enabled).apply()
+        if (!enabled) {
+            FeatureRuntimeManager.disable(appContext, feature)
+                .onFailure { SuiteLog.e(appContext, feature.id, "host disable failed", it) }
+        }
     }
 }
