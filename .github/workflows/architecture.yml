@@ -23,6 +23,16 @@ jobs:
       - name: Verify mirrored version catalogs are current
         run: python3 tools/sync_version_catalog.py --check
 
+      - name: Smoke test feature scaffold
+        run: >-
+          python3 tools/new_feature.py
+          --id yscaffoldtest
+          --name YScaffoldTest
+          --package com.yagay.yscaffoldtest
+          --description "CI scaffold smoke test"
+          --capabilities ROOT,LSPOSED
+          --dry-run
+
       - name: Verify feature catalog architecture
         run: python3 tools/verify_feature_catalog.py
 
