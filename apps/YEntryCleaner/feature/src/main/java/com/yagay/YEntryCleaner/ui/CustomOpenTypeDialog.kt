@@ -9,12 +9,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.CustomOpenDefinition
 import com.yagay.YEntryCleaner.domain.OpenPreset
 import com.yagay.YEntryCleaner.domain.OpenTypeConfig
+import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YStatusRow
+import com.yagay.yui.YStatusTone
 
 @StringRes
 private fun customOpenErrorRes(code: String?): Int = when (code) {
@@ -48,52 +50,51 @@ internal fun CustomOpenTypeDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.custom_open_title)) },
         text = {
-            Column(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     stringResource(R.string.custom_open_help),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(8.dp))
-                LazyColumn(Modifier.heightIn(max = 420.dp)) {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     items(OpenPreset.CUSTOM_SLOTS, key = { it.name }) { slot ->
                         val definition = config.customDefinitions[slot]
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    definition?.title ?: stringResource(slot.titleRes()),
-                                    fontWeight = if (definition != null) FontWeight.Medium else FontWeight.Normal
-                                )
-                            },
-                            supportingContent = {
-                                Text(
-                                    if (definition == null) {
-                                        stringResource(R.string.custom_open_not_configured)
-                                    } else {
-                                        buildString {
-                                            if (definition.mimeTypes.isNotEmpty()) {
-                                                append(stringResource(R.string.custom_open_mime_summary, definition.mimeTypes.joinToString()))
-                                            }
-                                            if (definition.mimeTypes.isNotEmpty() && definition.extensions.isNotEmpty()) append(" · ")
-                                            if (definition.extensions.isNotEmpty()) {
-                                                append(
-                                                    stringResource(
-                                                        R.string.custom_open_extension_summary,
-                                                        definition.extensions.joinToString { ".$it" }
-                                                    )
-                                                )
-                                            }
-                                        }
-                                    }
-                                )
-                            },
-                            trailingContent = {
+                        val summary = if (definition == null) {
+                            stringResource(R.string.custom_open_not_configured)
+                        } else {
+                            buildString {
+                                if (definition.mimeTypes.isNotEmpty()) {
+                                    append(stringResource(R.string.custom_open_mime_summary, definition.mimeTypes.joinToString()))
+                                }
+                                if (definition.mimeTypes.isNotEmpty() && definition.extensions.isNotEmpty()) append(" · ")
+                                if (definition.extensions.isNotEmpty()) {
+                                    append(
+                                        stringResource(
+                                            R.string.custom_open_extension_summary,
+                                            definition.extensions.joinToString { ".$it" }
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        YFeatureCard(
+                            title = definition?.title ?: stringResource(slot.titleRes()),
+                            subtitle = summary,
+                            trailing = {
                                 TextButton(onClick = { editing = slot }) {
                                     Text(stringResource(if (definition == null) R.string.common_add else R.string.common_edit))
                                 }
                             }
-                        )
-                        HorizontalDivider()
+                        ) {
+                            YStatusRow(
+                                label = stringResource(R.string.open_type_filter),
+                                value = stringResource(if (definition == null) R.string.custom_open_not_configured else R.string.common_enable),
+                                tone = if (definition == null) YStatusTone.Neutral else YStatusTone.Good
+                            )
+                        }
                     }
                 }
             }
@@ -131,7 +132,10 @@ private fun CustomOpenTypeEditor(
             )
         },
         text = {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            YFeatureCard(
+                title = initial?.title ?: presetTitle,
+                subtitle = stringResource(R.string.custom_open_help)
+            ) {
                 OutlinedTextField(
                     title,
                     { title = it; errorRes = null },
@@ -154,7 +158,11 @@ private fun CustomOpenTypeEditor(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp)
                 )
                 errorRes?.let {
-                    Text(stringResource(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    YStatusRow(
+                        label = stringResource(R.string.rules_summary_status),
+                        value = stringResource(it),
+                        tone = YStatusTone.Error
+                    )
                 }
             }
         },
