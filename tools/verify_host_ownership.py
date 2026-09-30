@@ -35,9 +35,6 @@ def main() -> int:
     if 'resources.merges += "META-INF/xposed/*"' in gradle:
         fail("dependency Xposed metadata must never be merged into the host")
 
-    # LSPosed reports loaded module generations by versionCode. If the root property silently
-    # overrides the app fallback with an older number, stale target processes become impossible to
-    # distinguish from current ones and post-install hot reload cannot work reliably.
     properties = (ROOT / "gradle.properties").read_text(encoding="utf-8")
     property_match = re.search(r"^ySuiteHostVersionCode=(\d+)\s*$", properties, re.MULTILINE)
     fallback_match = re.search(r"orNull\?\.toIntOrNull\(\)\s*\?:\s*(\d+)", gradle)
@@ -65,8 +62,6 @@ def main() -> int:
         if component not in manifest:
             fail(f"shared host component missing: {component}")
 
-    # Standalone components may remain in feature manifests for independent APK builds, but the
-    # combined host manifest must explicitly remove them and expose only YSuite-owned components.
     forbidden_plugin_components = (
         "com.yagay.YFloat.LensAccessibilityService",
         "com.yagay.YNotify.collector.UiAccessibilityService",
@@ -90,8 +85,6 @@ def main() -> int:
         if 'tools:node="remove"' not in window:
             fail(f"standalone component is not removed in YSuite: {component}")
 
-    # The old integration model let plugins seize process-global state, then made the host reclaim
-    # it. Sole-host architecture forbids that pattern in both cold-start and hot-enable paths.
     for source_path in (
         ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/YSuiteApp.kt",
         ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt",
@@ -106,8 +99,6 @@ def main() -> int:
             if call in text:
                 fail(f"legacy reclaim/capture path remains in {source_path.name}: {call}")
 
-    # Package replacement hot reload is a host capability. Embedded features must never be the
-    # physical owner of process restart/reload policy.
     reload_coordinator = ROOT / "libs/ycore/src/main/java/com/yagay/suite/core/SuiteHookReloadCoordinator.kt"
     boot_receiver = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/system/SuiteBootReceiver.kt"
     if not reload_coordinator.is_file():
@@ -122,14 +113,13 @@ def main() -> int:
         if "!SUITE_PACKAGE.equals(app.getPackageName())" not in yfloat_text:
             fail("embedded YFloat must not own automatic target-process reload in YSuite mode")
 
-    # YSuite owns the visual shell too. Plugins may supply their page content, but ordinary host
-    # pages must use the shared YUI scaffold/layout primitives and normal feature themes are aliased
-    # to Theme.YSuite in the combined APK.
-    ui_framework = ROOT / "libs/yui/src/main/java/com/yagay/yui/YPluginFramework.kt"
+    # Normal host pages use the canonical YFeature* design-system surface. Older YPlugin* APIs may
+    # remain for source compatibility in feature code, but should no longer be required by the host.
+    ui_framework = ROOT / "libs/yui/src/main/java/com/yagay/yui/YFeatureFramework.kt"
     host_ui = (ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt").read_text(encoding="utf-8")
     if not ui_framework.is_file():
-        fail("shared YUI plugin framework is missing")
-    for primitive in ("YPluginScaffold", "YPluginList", "YPluginHeader", "YActionRow"):
+        fail("shared YUI feature framework is missing")
+    for primitive in ("YFeatureScaffold", "YFeatureList", "YFeatureCard", "YActionRow"):
         if primitive not in host_ui:
             fail(f"YSuite host UI must use shared YUI primitive: {primitive}")
 
@@ -152,7 +142,7 @@ def main() -> int:
     print("[host-ownership] sole Accessibility/Notification/Boot/IPC/Provider ownership: OK")
     print("[host-ownership] host-owned package-replaced Hook hot reload: OK")
     print("[host-ownership] legacy reclaim/capture paths absent: OK")
-    print("[host-ownership] shared YUI shell/theme ownership: OK")
+    print("[host-ownership] shared YFeature UI shell/theme ownership: OK")
     return 0
 
 
