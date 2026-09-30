@@ -17,10 +17,13 @@ Normal Compose Activities use `YComposeActivity` and the `YFeature*` surface:
 - `YFeatureScaffold` for the normal shared top bar;
 - `YFeatureCustomScaffold` when the top bar carries real interaction state such as an expanded search field;
 - `YFeatureList`;
-- `YFeatureCard`;
-- `YStatusRow` / `YStatusPill`;
+- `YFeatureSectionHeader` for consistent section hierarchy;
+- `YFeatureCard` for normal information/settings groups;
+- `YFeatureEmpty` for inline empty results;
+- `YFeatureStat` for compact counters/summary metrics;
+- `YStatusRow` / `YStatusPill` for status and metric presentation;
 - `YSettingSwitch`;
-- `YSearchField`;
+- `YSearchField`, including optional leading/trailing actions;
 - `YNavigationRow`;
 - `YPrimaryButton` / `YSecondaryButton`;
 - `YPageState` for Ready / Loading / Empty / Error.
@@ -67,7 +70,13 @@ Screen
       Status / Setting / Navigation / Action
 ```
 
-This keeps spacing and information hierarchy predictable while allowing each feature to keep the UI technology that is safest for its existing code.
+The hierarchy now applies to both entry shells and high-traffic content areas. YNFC status/card/log sections, YTaskManager process/resource/network sections, and YDiag monitor/history/configuration sections use the same YUI vocabulary while retaining their feature-specific behavior.
+
+## Specialized surfaces
+
+A feature may keep purpose-built rendering where a generic card would reduce usability. Examples include diagnostic log consoles, charts, overlays and drawing/selection surfaces. Their surrounding page structure, spacing, actions and normal status presentation should still use YUI.
+
+YNFC intentionally keeps its log console high-contrast palette; normal NFC cards and status colors are YUI-owned.
 
 ## Migration policy
 
@@ -75,4 +84,4 @@ Migrate incrementally. A UI refactor should preserve business behavior and only 
 
 A screen may keep a specialized console, overlay, drawing surface, stateful search toolbar or other product-specific interaction. The surrounding normal page shell should still use YUI where possible.
 
-`tools/verify_ui_framework.py` protects migrated entry screens from reintroducing local palettes and verifies that Compose, View and XML YUI surfaces remain available.
+`tools/verify_ui_framework.py` protects migrated entry/content screens from reintroducing local palettes and verifies that Compose, View and XML YUI surfaces remain available.

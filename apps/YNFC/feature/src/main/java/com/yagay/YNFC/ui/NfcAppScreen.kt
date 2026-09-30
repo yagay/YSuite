@@ -1,23 +1,49 @@
 package com.yagay.YNFC.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yagay.YNFC.*
-import com.yagay.yui.YScaffold
+import com.yagay.YNFC.AppLogger
+import com.yagay.YNFC.BuildConfig
+import com.yagay.YNFC.CardModel
+import com.yagay.YNFC.DiagnosticsCollector
+import com.yagay.YNFC.LogSource
+import com.yagay.YNFC.RuntimeStatus
+import com.yagay.YNFC.RuntimeStatusViewModel
+import com.yagay.YNFC.RuntimeText
+import com.yagay.yui.YActionRow
+import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YFeatureList
+import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YFeatureSectionHeader
+import com.yagay.yui.YPrimaryButton
+import com.yagay.yui.YSecondaryButton
 
 /** Stateless Activity boundary for the complete NFC screen; operation state stays screen-local. */
 @Composable
@@ -37,7 +63,7 @@ fun NfcAppScreen(
     onSimulate: (CardModel, (String) -> Unit) -> Unit,
     onStopSimulation: ((String) -> Unit) -> Unit,
     onDeleteCard: (CardModel, Boolean) -> Unit,
-    onExportLogs: (() -> Unit) -> Unit
+    onExportLogs: (() -> Unit) -> Unit,
 ) {
     val runtimeViewModel: RuntimeStatusViewModel = viewModel()
     val status by runtimeViewModel.status.collectAsState()
@@ -67,11 +93,11 @@ fun NfcAppScreen(
         }
     }
 
-    YScaffold(title = "YNFC ${BuildConfig.VERSION_NAME}") { padding ->
-        LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 12.dp)
-        ) {
+    YFeatureScaffold(
+        title = "YNFC ${BuildConfig.VERSION_NAME}",
+        subtitle = "NFC 门禁卡与 HCE 状态",
+    ) { padding ->
+        YFeatureList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
             item {
                 ReadCardPanel(
@@ -81,24 +107,18 @@ fun NfcAppScreen(
                     onStartRead,
                     onStopRead,
                     onSaveCard,
-                    onClearScanned
+                    onClearScanned,
                 )
             }
             item {
-                Text(
-                    "已保存卡片 (${cards.size})",
-                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    fontWeight = FontWeight.Bold
+                YFeatureSectionHeader(
+                    title = "已保存卡片 (${cards.size})",
+                    subtitle = "点击卡片可查看 UID / SAK / ATQA，并启动或停止模拟。",
                 )
             }
             if (cards.isEmpty()) {
                 item {
-                    Text(
-                        "暂无保存卡片。进入读卡模式后贴卡，确认信息无误再保存。",
-                        Modifier.padding(12.dp),
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
+                    YFeatureEmpty("暂无保存卡片。进入读卡模式后贴卡，确认信息无误再保存。")
                 }
             } else {
                 items(cards, key = { it.uid }) { card ->
@@ -121,91 +141,84 @@ fun NfcAppScreen(
                         onDelete = {
                             onDeleteCard(card, active)
                             if (expandedUid?.equals(card.uid, true) == true) expandedUid = null
-                        }
+                        },
                     )
                 }
             }
             item {
-                Card(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("日志显示", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text(
-                                if (logsEnabled) "已开启 · 正在抓取日志" else "已关闭 · 不抓取日志，减少性能影响",
-                                fontSize = 11.sp,
-                                color = Color.Gray
-                            )
-                        }
+                YFeatureCard(
+                    title = "日志显示",
+                    subtitle = if (logsEnabled) "已开启 · 正在抓取日志" else "已关闭 · 不抓取日志，减少性能影响",
+                    trailing = {
                         Switch(
                             checked = logsEnabled,
                             onCheckedChange = { enabled ->
                                 logsEnabled = enabled
                                 onLoggingChanged(enabled)
                                 if (!enabled) logLines.clear()
-                            }
+                            },
                         )
-                    }
-                }
+                    },
+                )
             }
             if (logsEnabled) {
                 item {
-                    Spacer(Modifier.height(6.dp))
-                    ScrollableTabRow(selectedTabIndex = selectedSource.ordinal, edgePadding = 4.dp) {
-                        LogSource.entries.forEach { source ->
-                            Tab(
-                                selected = selectedSource == source,
-                                onClick = { selectedSource = source },
-                                text = { Text(source.label, fontSize = 11.sp) }
-                            )
-                        }
-                    }
-                }
-                item {
-                    Box(
-                        Modifier.fillMaxWidth().height(340.dp).padding(6.dp)
-                            .background(Color(0xFF050505), RoundedCornerShape(4.dp)).padding(6.dp)
+                    YFeatureCard(
+                        title = "诊断日志",
+                        subtitle = "日志区域保留高对比度控制台配色，页面结构仍由 YUI 管理。",
                     ) {
-                        LazyColumn(state = logListState, modifier = Modifier.fillMaxSize()) {
-                            items(logLines.size) { index ->
-                                val line = logLines[index]
-                                Text(
-                                    line,
-                                    color = logLineColor(line),
-                                    fontSize = 9.sp,
-                                    lineHeight = 11.sp,
-                                    fontFamily = FontFamily.Monospace
+                        ScrollableTabRow(selectedTabIndex = selectedSource.ordinal, edgePadding = 4.dp) {
+                            LogSource.entries.forEach { source ->
+                                Tab(
+                                    selected = selectedSource == source,
+                                    onClick = { selectedSource = source },
+                                    text = { Text(source.label, fontSize = 11.sp) },
                                 )
                             }
                         }
-                        LaunchedEffect(selectedSource, logLines.size) {
-                            if (logLines.isNotEmpty()) {
-                                logListState.scrollToItem((logLines.size - 1).coerceAtLeast(0))
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(340.dp)
+                                .background(Color(0xFF050505), RoundedCornerShape(4.dp))
+                                .padding(6.dp),
+                        ) {
+                            LazyColumn(state = logListState, modifier = Modifier.fillMaxSize()) {
+                                items(logLines.size) { index ->
+                                    val line = logLines[index]
+                                    Text(
+                                        line,
+                                        color = logLineColor(line),
+                                        fontSize = 9.sp,
+                                        lineHeight = 11.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                    )
+                                }
+                            }
+                            LaunchedEffect(selectedSource, logLines.size) {
+                                if (logLines.isNotEmpty()) {
+                                    logListState.scrollToItem((logLines.size - 1).coerceAtLeast(0))
+                                }
                             }
                         }
-                    }
-                }
-                item {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                if (!diagnosticRunning) {
-                                    diagnosticRunning = true
-                                    onExportLogs { diagnosticRunning = false }
-                                }
-                            },
-                            enabled = !diagnosticRunning,
-                            modifier = Modifier.weight(1f)
-                        ) { Text(if (diagnosticRunning) "保存中" else "导出日志") }
-                        OutlinedButton(
-                            onClick = { AppLogger.clear(); logLines.clear() },
-                            modifier = Modifier.weight(1f)
-                        ) { Text("清空日志") }
+                        YActionRow {
+                            YPrimaryButton(
+                                text = if (diagnosticRunning) "保存中" else "导出日志",
+                                onClick = {
+                                    if (!diagnosticRunning) {
+                                        diagnosticRunning = true
+                                        onExportLogs { diagnosticRunning = false }
+                                    }
+                                },
+                                enabled = !diagnosticRunning,
+                                modifier = Modifier.weight(1f),
+                            )
+                            YSecondaryButton(
+                                text = "清空日志",
+                                onClick = { AppLogger.clear(); logLines.clear() },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
             }

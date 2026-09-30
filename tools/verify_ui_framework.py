@@ -16,6 +16,10 @@ YMINIGUARD = ROOT / "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/
 YNOTIFY_XML = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_main.xml"
 YENTRY = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainActivity.kt"
 YPARAM = ROOT / "apps/YParam/feature/src/main/java/com/yagay/yparam/ui/MainActivity.java"
+YNFC_SCREEN = ROOT / "apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt"
+YNFC_COMPONENTS = ROOT / "apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcComponents.kt"
+YTASK = ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt"
+YDIAG = ROOT / "apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity.kt"
 
 
 def fail(message: str) -> None:
@@ -50,11 +54,18 @@ def main() -> None:
     ynotify = text(YNOTIFY_XML)
     yentry = text(YENTRY)
     yparam = text(YPARAM)
+    ynfc_screen = text(YNFC_SCREEN)
+    ynfc_components = text(YNFC_COMPONENTS)
+    ytask = text(YTASK)
+    ydiag = text(YDIAG)
 
     for marker in (
         "fun YFeatureScaffold(",
         "fun YFeatureCustomScaffold(",
+        "fun YFeatureSectionHeader(",
         "fun YFeatureCard(",
+        "fun YFeatureEmpty(",
+        "fun YFeatureStat(",
         "fun YStatusRow(",
         "fun YSettingSwitch(",
         "fun YSearchField(",
@@ -93,6 +104,25 @@ def main() -> None:
     require(yparam, "YViewLayout.switchRow(", "YParam main screen")
     require(yparam, "YViewLayout.setStatus(", "YParam main screen")
 
+    require(ynfc_screen, "YFeatureScaffold(", "YNFC main screen")
+    require(ynfc_screen, "YFeatureList(", "YNFC main screen")
+    require(ynfc_screen, "YFeatureEmpty(", "YNFC main screen")
+    require(ynfc_components, "YFeatureCard(", "YNFC content components")
+    require(ynfc_components, "YStatusRow(", "YNFC content components")
+
+    require(ytask, "YFeatureScaffold(", "YTaskManager main screen")
+    require(ytask, "YSearchField(", "YTaskManager filter section")
+    require(ytask, "YStatusPill(", "YTaskManager status section")
+    require(ytask, "YFeatureEmpty(", "YTaskManager empty states")
+    require(ytask, "YStatusRow(", "YTaskManager resource metrics")
+
+    require(ydiag, "YComposeActivity", "YDiag activity")
+    require(ydiag, "YFeatureScaffold(", "YDiag main screen")
+    require(ydiag, "YFeatureSectionHeader(", "YDiag sections")
+    require(ydiag, "YFeatureStat(", "YDiag monitor stats")
+    require(ydiag, "YFeatureEmpty(", "YDiag empty states")
+    require(ydiag, "YSearchField(", "YDiag app picker")
+
     if "Widget.YUI." not in ynotify or "TextAppearance.YUI." not in ynotify:
         fail("YNotify XML main layout must consume shared Widget.YUI and TextAppearance.YUI styles")
     if "@dimen/yui_" not in ynotify:
@@ -101,10 +131,15 @@ def main() -> None:
     reject_hardcoded_normal_screen_colors(ypower, "YPower MainActivity")
     reject_hardcoded_normal_screen_colors(yminiguard, "YMiniGuard MainActivity")
     reject_hardcoded_normal_screen_colors(yparam, "YParam MainActivity")
+    reject_hardcoded_normal_screen_colors(ynfc_components, "YNFC normal content components")
+    reject_hardcoded_normal_screen_colors(ytask, "YTaskManager main screen")
+    reject_hardcoded_normal_screen_colors(ydiag, "YDiag main screen")
 
+    # YNFC's log console intentionally keeps a diagnostic high-contrast palette; normal cards and
+    # status colors live in NfcComponents and are protected above.
     print(
         "ui-framework: OK compose=YFeature* view=YViewLayout xml=Widget.YUI "
-        "migrated=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam"
+        "migrated=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag"
     )
 
 

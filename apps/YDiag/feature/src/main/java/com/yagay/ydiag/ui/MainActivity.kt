@@ -4,11 +4,8 @@ import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,17 +21,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -64,18 +56,26 @@ import com.yagay.ydiag.model.LoadLevel
 import com.yagay.ydiag.model.Recommendation
 import com.yagay.ydiag.model.Severity
 import com.yagay.ydiag.service.MonitorState
-import com.yagay.yui.YScaffold
-import com.yagay.yui.YTheme
-import com.yagay.yui.YView
+import com.yagay.yui.YActionRow
+import com.yagay.yui.YComposeActivity
+import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YFeatureSectionHeader
+import com.yagay.yui.YFeatureStat
+import com.yagay.yui.YPrimaryButton
+import com.yagay.yui.YSearchField
+import com.yagay.yui.YSecondaryButton
+import com.yagay.yui.YStatusPill
+import com.yagay.yui.YStatusTone
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        YView.applyComposeWindow(this)
-        setContent { YTheme { YDiagRoot() } }
+class MainActivity : YComposeActivity() {
+    @Composable
+    override fun YContent() {
+        YDiagRoot()
     }
 }
 
@@ -106,7 +106,7 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(
                 vm.getApplication<Application>(),
-                Manifest.permission.POST_NOTIFICATIONS
+                Manifest.permission.POST_NOTIFICATIONS,
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -119,12 +119,20 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
         vm.clearExportMessage()
     }
 
-    YScaffold(
+    YFeatureScaffold(
         title = "YDiag",
         subtitle = "应用故障诊断",
         actions = {
-            StatusPill("Root", monitor.rootAvailable)
-            StatusPill("LSPosed", module.connected)
+            YStatusPill(
+                "Root",
+                if (monitor.rootAvailable) "可用" else "不可用",
+                if (monitor.rootAvailable) YStatusTone.Good else YStatusTone.Error,
+            )
+            YStatusPill(
+                "LSPosed",
+                if (module.connected) "已连接" else "未连接",
+                if (module.connected) YStatusTone.Good else YStatusTone.Warning,
+            )
         },
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
@@ -193,14 +201,6 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
 }
 
 @Composable
-private fun StatusPill(label: String, ok: Boolean) {
-    AssistChip(
-        onClick = { },
-        label = { Text("$label ${if (ok) "●" else "○"}") },
-    )
-}
-
-@Composable
 private fun MonitorScreen(
     monitor: MonitorState,
     module: ModuleState,
@@ -217,113 +217,89 @@ private fun MonitorScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                if (monitor.running) "● 正在诊断" else "○ 未开始",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                if (selected.isEmpty()) "选择应用后立即开始采集" else
-                                    "${selected.size} 个应用 · ${monitor.processCount} 个关联进程",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        Button(onClick = onSelectApps) { Text("选择应用") }
-                    }
-
-                    if (selected.isNotEmpty()) {
-                        selected.take(5).forEach { pkg ->
-                            Text(
-                                "• ${appLabels[pkg] ?: pkg}  ·  $pkg",
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        if (selected.size > 5) Text("还有 ${selected.size - 5} 个…")
-
-                        val loaded = selected.count { it in module.loadedPackages }
+            YFeatureCard(
+                title = if (monitor.running) "正在诊断" else "未开始",
+                subtitle = if (selected.isEmpty()) "选择应用后立即开始采集" else
+                    "${selected.size} 个应用 · ${monitor.processCount} 个关联进程",
+                trailing = {
+                    YPrimaryButton("选择应用", onSelectApps)
+                },
+            ) {
+                if (selected.isNotEmpty()) {
+                    selected.take(5).forEach { pkg ->
                         Text(
-                            "深度 Hook：$loaded/${selected.size} · system " +
-                                when {
-                                    module.systemLoaded -> "已加载"
-                                    module.systemScoped -> "已授权，等待下次系统启动"
-                                    else -> "未授权"
-                                },
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                        Text(
-                            module.message,
+                            "• ${appLabels[pkg] ?: pkg}  ·  $pkg",
                             style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    if (selected.size > 5) Text("还有 ${selected.size - 5} 个…")
+
+                    val loaded = selected.count { it in module.loadedPackages }
+                    Text(
+                        "深度 Hook：$loaded/${selected.size} · system " +
+                            when {
+                                module.systemLoaded -> "已加载"
+                                module.systemScoped -> "已授权，等待下次系统启动"
+                                else -> "未授权"
+                            },
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Text(
+                        module.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
 
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatCard("异常", monitor.errorCount.toString(), Modifier.weight(1f))
-                StatCard("警告", monitor.warningCount.toString(), Modifier.weight(1f))
-                StatCard("事件", monitor.eventCount.toString(), Modifier.weight(1f))
+                YFeatureStat("异常", monitor.errorCount.toString(), Modifier.weight(1f), YStatusTone.Error)
+                YFeatureStat("警告", monitor.warningCount.toString(), Modifier.weight(1f), YStatusTone.Warning)
+                YFeatureStat("事件", monitor.eventCount.toString(), Modifier.weight(1f))
             }
         }
 
         if (monitor.running) {
             item {
-                Button(
+                YPrimaryButton(
+                    text = "问题发生了",
                     onClick = onMark,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                ) {
-                    Text("问题发生了", fontWeight = FontWeight.Bold)
-                }
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
 
         item {
-            Text("发现的问题", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            YFeatureSectionHeader(
+                title = "发现的问题",
+                subtitle = "只显示高价值异常，完整证据仍保留在诊断包中。",
+            )
         }
 
         if (monitor.recentIssues.isEmpty()) {
             item {
-                Text(
-                    if (monitor.running) "暂未发现明确异常。YDiag 会继续保留完整证据。" else "开始监控后，这里只显示高价值异常。",
-                    style = MaterialTheme.typography.bodyMedium,
+                YFeatureEmpty(
+                    if (monitor.running) "暂未发现明确异常。YDiag 会继续保留完整证据。"
+                    else "开始监控后，这里只显示高价值异常。",
                 )
             }
         } else {
             items(monitor.recentIssues.take(12), key = { it.id }) { issue ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(
-                            "${severityGlyph(issue.severity)} ${issue.title}",
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            "${issue.category} · ${formatTime(issue.timestamp)}",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                        if (issue.detail.isNotBlank()) {
-                            Text(
-                                issue.detail,
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
+                YFeatureCard(
+                    title = "${severityGlyph(issue.severity)} ${issue.title}",
+                    subtitle = "${issue.category} · ${formatTime(issue.timestamp)}",
+                    detail = issue.detail.takeIf { it.isNotBlank() },
+                )
             }
         }
 
         item {
-            Text("关键时间线", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            YFeatureSectionHeader("关键时间线")
         }
         items(monitor.recentEvents.take(18), key = { it.id }) { event ->
             Row(
@@ -334,31 +310,18 @@ private fun MonitorScreen(
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(event.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        "${event.source} · ${event.category}",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
+                    Text("${event.source} · ${event.category}", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
 
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onExport, modifier = Modifier.weight(1f)) { Text("导出完整日志") }
+            YActionRow {
+                YSecondaryButton("导出完整日志", onExport, Modifier.weight(1f))
                 if (monitor.running) {
-                    OutlinedButton(onClick = onStop, modifier = Modifier.weight(1f)) { Text("停止") }
+                    YSecondaryButton("停止", onStop, Modifier.weight(1f))
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
-    Card(modifier) {
-        Column(Modifier.padding(14.dp)) {
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(title, style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -371,34 +334,23 @@ private fun HistoryScreen(history: List<HistoryItem>, onExport: (HistoryItem) ->
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Text("历史会话", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("界面保持简洁；导出时生成完整诊断包。", style = MaterialTheme.typography.bodyMedium)
+            YFeatureSectionHeader(
+                title = "历史会话",
+                subtitle = "界面保持简洁；导出时生成完整诊断包。",
+            )
         }
         if (history.isEmpty()) {
-            item { Text("暂无诊断记录") }
+            item { YFeatureEmpty("暂无诊断记录") }
         }
         items(history, key = { it.meta.id }) { item ->
-            Card(Modifier.fillMaxWidth()) {
-                Row(
-                    Modifier.fillMaxWidth().padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            item.meta.targetPackages.joinToString().ifBlank { "未知目标" },
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(formatDate(item.meta.startedAt), style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "${item.meta.enabledOptions.size} 项诊断 · ${item.meta.problemMarks.size} 个问题标记",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
+            YFeatureCard(
+                title = item.meta.targetPackages.joinToString().ifBlank { "未知目标" },
+                subtitle = formatDate(item.meta.startedAt),
+                detail = "${item.meta.enabledOptions.size} 项诊断 · ${item.meta.problemMarks.size} 个问题标记",
+                trailing = {
                     TextButton(onClick = { onExport(item) }) { Text("导出") }
-                }
-            }
+                },
+            )
         }
     }
 }
@@ -416,8 +368,10 @@ private fun DiagnosticConfigScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Text("诊断配置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("推荐项默认低负载；深度项目只建议复现问题时开启。")
+            YFeatureSectionHeader(
+                title = "诊断配置",
+                subtitle = "推荐项默认低负载；深度项目只建议复现问题时开启。",
+            )
         }
         item {
             Row(
@@ -443,40 +397,23 @@ private fun DiagnosticConfigScreen(
             val options = DiagnosticCatalog.options.filter { it.category == category }
             if (options.isNotEmpty()) {
                 item {
-                    Text(
+                    YFeatureSectionHeader(
                         categoryTitle(category),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
                 items(options, key = { it.id }) { option ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(option.title, fontWeight = FontWeight.SemiBold)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        recommendationText(option.recommendation),
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
-                                }
-                                Text(option.description, style = MaterialTheme.typography.bodySmall)
-                                Text(
-                                    "负载：${loadText(option.load)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            }
+                    YFeatureCard(
+                        title = option.title,
+                        subtitle = "${recommendationText(option.recommendation)} · 负载：${loadText(option.load)}",
+                        detail = option.description,
+                        trailing = {
                             Switch(
                                 checked = option.id in enabled,
                                 onCheckedChange = { onToggle(option.id) },
                             )
-                        }
-                    }
+                        },
+                    )
                 }
             }
         }
@@ -501,97 +438,92 @@ private fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text("Hook 生效方式", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                "默认只常驻 system；选择目标 App 后动态申请 Scope。SystemUI、Phone、WebView Provider 不默认加入。",
-                style = MaterialTheme.typography.bodySmall,
+            YFeatureSectionHeader(
+                title = "Hook 生效方式",
+                subtitle = "默认只常驻 system；选择目标 App 后动态申请 Scope。SystemUI、Phone、WebView Provider 不默认加入。",
             )
         }
         item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp)) {
-                    ActivationModeRow(
-                        selected = activationMode == Preferences.ACTIVATION_AUTO,
-                        title = "自动重新加载目标 App  ★ 推荐",
-                        detail = "Scope 首次授权后自动重启并重新打开普通 App；不重启手机。",
-                        onClick = { onActivationMode(Preferences.ACTIVATION_AUTO) },
+            YFeatureCard(title = "激活策略") {
+                ActivationModeRow(
+                    selected = activationMode == Preferences.ACTIVATION_AUTO,
+                    title = "自动重新加载目标 App  ★ 推荐",
+                    detail = "Scope 首次授权后自动重启并重新打开普通 App；不重启手机。",
+                    onClick = { onActivationMode(Preferences.ACTIVATION_AUTO) },
+                )
+                ActivationModeRow(
+                    selected = activationMode == Preferences.ACTIVATION_MANUAL,
+                    title = "提示后手动重新打开",
+                    detail = "自动申请 Scope，但不主动结束目标 App 进程。",
+                    onClick = { onActivationMode(Preferences.ACTIVATION_MANUAL) },
+                )
+                ActivationModeRow(
+                    selected = activationMode == Preferences.ACTIVATION_ROOT_ONLY,
+                    title = "只使用 Root 日志",
+                    detail = "不为目标 App 新增 Scope；已加载的 Hook 仍可继续工作。",
+                    onClick = { onActivationMode(Preferences.ACTIVATION_ROOT_ONLY) },
+                )
+            }
+        }
+        item { YFeatureSectionHeader("导出位置") }
+        item {
+            YFeatureCard(title = "诊断包目录") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = exportMode == "download",
+                        onClick = { onExportMode("download") },
                     )
-                    ActivationModeRow(
-                        selected = activationMode == Preferences.ACTIVATION_MANUAL,
-                        title = "提示后手动重新打开",
-                        detail = "自动申请 Scope，但不主动结束目标 App 进程。",
-                        onClick = { onActivationMode(Preferences.ACTIVATION_MANUAL) },
+                    Column {
+                        Text("Download/YDiag  ★ 推荐")
+                        Text("一键导出，不需要每次选择目录", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = exportMode == "custom",
+                        onClick = { onExportMode("custom") },
                     )
-                    ActivationModeRow(
-                        selected = activationMode == Preferences.ACTIVATION_ROOT_ONLY,
-                        title = "只使用 Root 日志",
-                        detail = "不为目标 App 新增 Scope；已加载的 Hook 仍可继续工作。",
-                        onClick = { onActivationMode(Preferences.ACTIVATION_ROOT_ONLY) },
-                    )
+                    Column(Modifier.weight(1f)) {
+                        Text("自定义目录")
+                        Text(
+                            customTree ?: "尚未选择目录",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    TextButton(onClick = onChooseTree) { Text("选择") }
                 }
             }
         }
         item {
-            Text("导出位置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        }
-        item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = exportMode == "download",
-                            onClick = { onExportMode("download") },
-                        )
-                        Column {
-                            Text("Download/YDiag  ★ 推荐")
-                            Text("一键导出，不需要每次选择目录", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = exportMode == "custom",
-                            onClick = { onExportMode("custom") },
-                        )
-                        Column(Modifier.weight(1f)) {
-                            Text("自定义目录")
-                            Text(
-                                customTree ?: "尚未选择目录",
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        TextButton(onClick = onChooseTree) { Text("选择") }
-                    }
+            YFeatureCard(
+                title = "单个日志分片上限",
+                subtitle = "超过上限会自动创建新的 logcat 分片，导出 ZIP 时全部保留。",
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    YSecondaryButton(
+                        "−",
+                        {
+                            localLimit = (localLimit - 32).coerceAtLeast(32)
+                            onMaxSessionMb(localLimit)
+                        },
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text("${localLimit} MB", modifier = Modifier.width(90.dp))
+                    YSecondaryButton(
+                        "+",
+                        {
+                            localLimit = (localLimit + 32).coerceAtMost(1024)
+                            onMaxSessionMb(localLimit)
+                        },
+                    )
                 }
             }
-        }
-        item {
-            Text("单个日志分片上限", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
-                    onClick = {
-                        localLimit = (localLimit - 32).coerceAtLeast(32)
-                        onMaxSessionMb(localLimit)
-                    }
-                ) { Text("−") }
-                Spacer(Modifier.width(12.dp))
-                Text("${localLimit} MB", modifier = Modifier.width(90.dp))
-                OutlinedButton(
-                    onClick = {
-                        localLimit = (localLimit + 32).coerceAtMost(1024)
-                        onMaxSessionMb(localLimit)
-                    }
-                ) { Text("+") }
-            }
-            Text(
-                "超过上限会自动创建新的 logcat 分片，导出 ZIP 时全部保留。",
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
         item {
             HorizontalDivider()
-            Text("隐私说明", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            YFeatureSectionHeader("隐私说明")
             Text(
                 "YDiag 只在本机采集与导出。完整日志可能包含应用路径、URL、系统状态等敏感信息，分享诊断包前请确认接收方。",
                 style = MaterialTheme.typography.bodyMedium,
@@ -656,12 +588,10 @@ private fun AppPickerDialog(
         },
         text = {
             Column {
-                OutlinedTextField(
+                YSearchField(
                     value = search,
                     onValueChange = onSearch,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("搜索应用或包名") },
+                    hint = "搜索应用或包名",
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(
@@ -679,33 +609,37 @@ private fun AppPickerDialog(
                                         AppFilter.USER -> "用户"
                                         AppFilter.SYSTEM -> "系统"
                                         AppFilter.MONITORED -> "已监控"
-                                    }
+                                    },
                                 )
                             },
                         )
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                LazyColumn(Modifier.height(480.dp)) {
-                    items(visible, key = { it.packageName }) { app ->
-                        Row(
-                            Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(
-                                checked = app.packageName in selected,
-                                onCheckedChange = { onToggle(app.packageName) },
-                            )
-                            Column(Modifier.weight(1f)) {
-                                Text(app.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(
-                                    app.packageName,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                if (visible.isEmpty()) {
+                    YFeatureEmpty("没有符合当前筛选条件的应用")
+                } else {
+                    LazyColumn(Modifier.height(480.dp)) {
+                        items(visible, key = { it.packageName }) { app ->
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(
+                                    checked = app.packageName in selected,
+                                    onCheckedChange = { onToggle(app.packageName) },
                                 )
+                                Column(Modifier.weight(1f)) {
+                                    Text(app.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(
+                                        app.packageName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                if (app.system) Text("系统", style = MaterialTheme.typography.labelSmall)
                             }
-                            if (app.system) Text("系统", style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
