@@ -25,9 +25,11 @@ YDIAG = ROOT / "apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity
 YPARAM_DETAIL = ROOT / "apps/YParam/feature/src/main/java/com/yagay/yparam/ui/AppDetailActivity.java"
 YPOWER_DETAIL = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/AppDetailActivity.java"
 YPOWER_RECOMMENDED = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/RecommendedAppsActivity.java"
+YPOWER_DIAG = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/DiagnosticActivity.java"
 YNOTIFY_HISTORY = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_app_history.xml"
 YNOTIFY_DETAIL = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_event_detail.xml"
 YENTRY_SCOPE = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/ScopeScreen.kt"
+YENTRY_ROOT = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt"
 
 
 def fail(message: str) -> None:
@@ -69,9 +71,11 @@ def main() -> None:
     yparam_detail = text(YPARAM_DETAIL)
     ypower_detail = text(YPOWER_DETAIL)
     ypower_recommended = text(YPOWER_RECOMMENDED)
+    ypower_diag = text(YPOWER_DIAG)
     ynotify_history = text(YNOTIFY_HISTORY)
     ynotify_detail = text(YNOTIFY_DETAIL)
     yentry_scope = text(YENTRY_SCOPE)
+    yentry_root = text(YENTRY_ROOT)
 
     for marker in (
         "fun YFeatureScaffold(",
@@ -150,12 +154,17 @@ def main() -> None:
         (yparam_detail, "YParam AppDetail"),
         (ypower_detail, "YPower AppDetail"),
         (ypower_recommended, "YPower RecommendedApps"),
+        (ypower_diag, "YPower Diagnostic"),
     ):
         require(source, "YViewLayout.", label)
     require(yparam_detail, "YViewLayout.sectionHeader(", "YParam AppDetail")
     require(yparam_detail, "YViewLayout.setStatus(", "YParam AppDetail")
     require(ypower_detail, "YViewLayout.sectionHeader(", "YPower AppDetail")
     require(ypower_recommended, "YViewLayout.emptyState(", "YPower RecommendedApps")
+    require(ypower_diag, "YViewLayout.install(", "YPower Diagnostic")
+    require(ypower_diag, "YViewLayout.card(", "YPower Diagnostic")
+    require(ypower_diag, "YViewLayout.actionRow(", "YPower Diagnostic")
+    require(ypower_diag, "YViewLayout.setStatus(", "YPower Diagnostic")
 
     for source, label in (
         (ynotify_history, "YNotify AppHistory XML"),
@@ -172,6 +181,10 @@ def main() -> None:
     require(yentry_scope, "YFeatureCard(", "YEntryCleaner scope screen")
     require(yentry_scope, "YStatusRow(", "YEntryCleaner scope screen")
     require(yentry_scope, "YFeatureEmpty(", "YEntryCleaner scope screen")
+    require(yentry_root, "YFeatureSectionHeader(", "YEntryCleaner component screen")
+    require(yentry_root, "YFeatureCard(", "YEntryCleaner component screen")
+    require(yentry_root, "YStatusRow(", "YEntryCleaner component screen")
+    require(yentry_root, "YFeatureEmpty(", "YEntryCleaner component screen")
 
     reject_hardcoded_normal_screen_colors(ypower, "YPower MainActivity")
     reject_hardcoded_normal_screen_colors(yminiguard, "YMiniGuard MainActivity")
@@ -183,13 +196,13 @@ def main() -> None:
     reject_hardcoded_normal_screen_colors(ypower_detail, "YPower AppDetail")
     reject_hardcoded_normal_screen_colors(ypower_recommended, "YPower RecommendedApps")
 
-    # YNFC's log console intentionally keeps a diagnostic high-contrast palette; normal cards and
-    # status colors live in NfcComponents and are protected above.
+    # Specialized diagnostic text highlighting in YPower Diagnostic and YNFC's log console may
+    # keep semantic high-contrast colors. Normal cards/status/chrome remain YUI-owned.
     print(
         "ui-framework: OK compose=YFeature* view=YViewLayout xml=Widget.YUI "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
-        "secondary=YParam.AppDetail,YPower.AppDetail,YPower.RecommendedApps,YNotify.AppHistory,"
-        "YNotify.EventDetail,YEntryCleaner.Scope"
+        "secondary=YParam.AppDetail,YPower.AppDetail,YPower.RecommendedApps,YPower.Diagnostic,"
+        "YNotify.AppHistory,YNotify.EventDetail,YEntryCleaner.Scope,YEntryCleaner.Components"
     )
 
 
