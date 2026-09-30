@@ -23,12 +23,29 @@ class YTaskManagerRuntime private constructor(context: Context) : XposedServiceH
     @Volatile
     private var currentService: XposedService? = null
 
+    @Volatile
+    private var enabled: Boolean = true
+
     init {
         if (!attachToSuiteBroker()) {
             XposedServiceHelper.registerListener(this)
             AppLogger.i("Standalone LSPosed runtime listener registered for ${appContext.packageName}")
         } else {
             AppLogger.i("LSPosed runtime attached to YSuite broker")
+        }
+    }
+
+    internal fun setManagedEnabled(value: Boolean) {
+        enabled = value
+        if (!value) {
+            currentService = null
+            mutableFramework.value = FrameworkState(
+                detected = false,
+                detail = "YTaskManager feature disabled"
+            )
+            AppLogger.i("Managed runtime disabled; LSPosed service released")
+        } else {
+            AppLogger.i("Managed runtime enabled; waiting for LSPosed replay")
         }
     }
 
@@ -58,6 +75,7 @@ class YTaskManagerRuntime private constructor(context: Context) : XposedServiceH
     }
 
     override fun onServiceBind(service: XposedService) {
+        if (!enabled) return
         currentService = service
         val api = runCatching { service.apiVersion }.getOrDefault(0)
         val name = runCatching { service.frameworkName }.getOrDefault("LSPosed")
