@@ -26,6 +26,9 @@ import com.yagay.ypower.diag.RuntimeDiagnosticSession;
 import com.yagay.ypower.model.DiagnosticLevel;
 import com.yagay.ypower.model.DiagnosticReport;
 import com.yagay.ypower.xposed.XposedBridgeManager;
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewScreen;
+import com.yagay.yui.YViewStatusTone;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -74,20 +77,31 @@ public class DiagnosticActivity extends AppCompatActivity {
     }
 
     private void buildUi() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(16), dp(16), dp(16));
+        YViewScreen screen = YViewLayout.install(
+                this,
+                "运行时诊断",
+                packageName
+        );
+        LinearLayout root = screen.getContent();
 
-        TextView title = new TextView(this);
-        title.setText("运行时诊断 · " + packageName);
-        title.setTextSize(21);
-        root.addView(title);
+        LinearLayout intro = YViewLayout.card(
+                root,
+                "本次运行证据",
+                "只显示目标 App 在本次运行中实际触发过的检测、退出、崩溃或 ANR；未发生的项目不会伪装成“通过”。"
+        );
+        intro.addView(YViewLayout.statusLine(
+                this,
+                XposedBridgeManager.isReady()
+                        ? "LSPosed Service 已连接"
+                        : "LSPosed Service 未连接，Java 运行时检测可能不完整",
+                XposedBridgeManager.isReady() ? YViewStatusTone.Good : YViewStatusTone.Warning
+        ));
 
-        TextView hint = new TextView(this);
-        hint.setText("这里只显示目标 App 在本次运行中实际触发过的检测、退出、崩溃或 ANR。"
-                + "\n没有发生的项目不会显示为“通过/未通过”。");
-        hint.setPadding(0, dp(6), 0, dp(10));
-        root.addView(hint);
+        LinearLayout control = YViewLayout.card(
+                root,
+                "诊断会话",
+                "选择采集级别后开始会话，启动目标 App 复现问题，再回到这里结束并分析。"
+        );
 
         levelSpinner = new Spinner(this);
         levelSpinner.setAdapter(new ArrayAdapter<>(
@@ -96,62 +110,51 @@ public class DiagnosticActivity extends AppCompatActivity {
                 new String[]{"快速", "标准", "深度"}
         ));
         levelSpinner.setSelection(1);
-        root.addView(levelSpinner);
+        control.addView(YViewLayout.detailBlock(this, "采集级别", "快速 / 标准 / 深度"));
+        control.addView(levelSpinner);
 
-        sessionStatus = new TextView(this);
-        sessionStatus.setPadding(0, dp(8), 0, dp(8));
-        root.addView(sessionStatus);
+        sessionStatus = YViewLayout.statusLine(this, "");
+        control.addView(sessionStatus);
 
-        LinearLayout row1 = new LinearLayout(this);
-
-        Button start = new Button(this);
-        start.setText("开始诊断");
+        LinearLayout row1 = YViewLayout.actionRow(control);
+        Button start = YViewLayout.primaryButton(this, "开始诊断");
         start.setOnClickListener(v -> startSession());
-        row1.addView(start, new LinearLayout.LayoutParams(0, -2, 1));
-
-        Button launch = new Button(this);
-        launch.setText("启动目标 App");
+        Button launch = YViewLayout.secondaryButton(this, "启动目标 App");
         launch.setOnClickListener(v -> launchTarget());
-        row1.addView(launch, new LinearLayout.LayoutParams(0, -2, 1));
-
-        Button finish = new Button(this);
-        finish.setText("结束并分析");
+        Button finish = YViewLayout.secondaryButton(this, "结束并分析");
         finish.setOnClickListener(v -> finishAndAnalyze());
-        row1.addView(finish, new LinearLayout.LayoutParams(0, -2, 1));
+        YViewLayout.addAction(row1, start);
+        YViewLayout.addAction(row1, launch);
+        YViewLayout.addAction(row1, finish);
 
-        root.addView(row1);
-
+        LinearLayout result = YViewLayout.card(
+                root,
+                "诊断结果",
+                "可在简要、详细、归因说明和原始事件之间切换；只有实际命中的检测会突出显示。"
+        );
         viewSpinner = new Spinner(this);
         viewSpinner.setAdapter(new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_dropdown_item,
                 new String[]{"简要", "详细", "归因说明", "原始"}
         ));
-        root.addView(viewSpinner);
+        result.addView(viewSpinner);
 
-        LinearLayout row2 = new LinearLayout(this);
-
-        Button show = new Button(this);
-        show.setText("切换结果");
+        LinearLayout row2 = YViewLayout.actionRow(result);
+        Button show = YViewLayout.secondaryButton(this, "切换结果");
         show.setOnClickListener(v -> render());
-        row2.addView(show, new LinearLayout.LayoutParams(0, -2, 1));
-
-        Button export = new Button(this);
-        export.setText("导出 JSON");
+        Button export = YViewLayout.secondaryButton(this, "导出 JSON");
         export.setOnClickListener(v -> exportReport());
-        row2.addView(export, new LinearLayout.LayoutParams(0, -2, 1));
-
-        root.addView(row2);
+        YViewLayout.addAction(row2, show);
+        YViewLayout.addAction(row2, export);
 
         ScrollView scroll = new ScrollView(this);
         output = new TextView(this);
         output.setTextIsSelectable(true);
         output.setText("使用方法：\n1. 开始诊断\n2. 启动并正常使用目标 App\n3. 返回 YPower\n4. 结束并分析");
-        output.setPadding(0, dp(12), 0, dp(24));
+        output.setPadding(0, dp(8), 0, dp(12));
         scroll.addView(output);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-
-        setContentView(root);
+        result.addView(scroll, new LinearLayout.LayoutParams(-1, dp(420)));
     }
 
     private void startSession() {
@@ -247,7 +250,6 @@ public class DiagnosticActivity extends AppCompatActivity {
         SpannableStringBuilder styled = new SpannableStringBuilder(text);
 
         if (mode == 0) {
-            // 简要：整条检测项目变红。
             Pattern linePattern = Pattern.compile("(?m)^• .*?检测状态=([^\\s\\n]+).*$");
             Matcher matcher = linePattern.matcher(text);
             while (matcher.find()) {
@@ -258,7 +260,6 @@ public class DiagnosticActivity extends AppCompatActivity {
         }
 
         if (mode == 1) {
-            // 详细：从该 finding 的标题一直到这一块结束全部变红。
             Pattern statePattern = Pattern.compile("应用检测状态：([^\\s\\n]+)");
             Matcher matcher = statePattern.matcher(text);
             while (matcher.find()) {
@@ -276,7 +277,6 @@ public class DiagnosticActivity extends AppCompatActivity {
         }
 
         if (mode == 2) {
-            // 归因说明：整条归因说明块变红。
             Pattern statePattern = Pattern.compile("应用检测状态：([^\\s\\n]+)");
             Matcher matcher = statePattern.matcher(text);
             while (matcher.find()) {
@@ -293,7 +293,6 @@ public class DiagnosticActivity extends AppCompatActivity {
             return styled;
         }
 
-        // 原始：整条事件日志标红；NOT_HIT/false 保持原色。
         Pattern rawPattern = Pattern.compile("(?m)^.*?hitState=([^\\s]+).*$");
         Matcher rawMatcher = rawPattern.matcher(text);
         while (rawMatcher.find()) {
@@ -360,12 +359,13 @@ public class DiagnosticActivity extends AppCompatActivity {
         RuntimeDiagnosticSession.SessionState state =
                 RuntimeDiagnosticSession.state(this, packageName);
         if (state.active && state.startMs > 0) {
-            sessionStatus.setText("状态：诊断中  ·  "
-                    + state.level
-                    + "  ·  开始 "
-                    + formatTime(state.startMs));
+            YViewLayout.setStatus(
+                    sessionStatus,
+                    "诊断中 · " + state.level + " · 开始 " + formatTime(state.startMs),
+                    YViewStatusTone.Good
+            );
         } else {
-            sessionStatus.setText("状态：未开始");
+            YViewLayout.setStatus(sessionStatus, "未开始", YViewStatusTone.Neutral);
         }
     }
 
