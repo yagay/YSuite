@@ -9,7 +9,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,24 +27,17 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,6 +65,15 @@ import com.yagay.YTaskManager.model.ProcessEntry
 import com.yagay.YTaskManager.model.ProcessKind
 import com.yagay.YTaskManager.model.ProcessSort
 import com.yagay.YTaskManager.model.TaskManagerUiState
+import com.yagay.yui.YDimens
+import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YSearchField
+import com.yagay.yui.YSettingSwitch
+import com.yagay.yui.YStatusPill
+import com.yagay.yui.YStatusRow
+import com.yagay.yui.YStatusTone
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
@@ -80,7 +81,6 @@ import kotlin.math.max
 
 enum class HomePage { PROCESSES, RESOURCES, NETWORK }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskManagerApp(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsState()
@@ -97,31 +97,20 @@ fun TaskManagerApp(viewModel: MainViewModel) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("YTaskManager")
-                        Text(
-                            when (page) {
-                                HomePage.PROCESSES -> "${state.processCount} processes • ${state.threadCount} threads"
-                                HomePage.RESOURCES -> "CPU • RAM • GPU"
-                                HomePage.NETWORK -> "Per-app realtime download / upload"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                    }
-                    IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                },
-            )
+    YFeatureScaffold(
+        title = "YTaskManager",
+        subtitle = when (page) {
+            HomePage.PROCESSES -> "${state.processCount} processes • ${state.threadCount} threads"
+            HomePage.RESOURCES -> "CPU • RAM • GPU"
+            HomePage.NETWORK -> "Per-app realtime download / upload"
+        },
+        actions = {
+            IconButton(onClick = viewModel::refresh) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+            }
+            IconButton(onClick = { showSettings = true }) {
+                Icon(Icons.Default.Settings, contentDescription = "Settings")
+            }
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -205,7 +194,7 @@ private fun PageSelector(page: HomePage, onPage: (HomePage) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         HomePage.entries.forEach { item ->
@@ -218,7 +207,7 @@ private fun PageSelector(page: HomePage, onPage: (HomePage) -> Unit) {
                             HomePage.PROCESSES -> "Processes"
                             HomePage.RESOURCES -> "Resources"
                             HomePage.NETWORK -> "Network"
-                        }
+                        },
                     )
                 },
             )
@@ -257,11 +246,19 @@ private fun StatusSection(state: TaskManagerUiState) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
     ) {
-        AssistChip(onClick = {}, label = { Text(if (state.root.granted) "Root: OK" else "Root: unavailable") })
-        AssistChip(onClick = {}, label = { Text(if (state.framework.detected) "LSPosed: detected" else "LSPosed: not detected") })
+        YStatusPill(
+            label = "Root",
+            value = if (state.root.granted) "OK" else "Unavailable",
+            tone = if (state.root.granted) YStatusTone.Good else YStatusTone.Error,
+        )
+        YStatusPill(
+            label = "LSPosed",
+            value = if (state.framework.detected) "Detected" else "Not detected",
+            tone = if (state.framework.detected) YStatusTone.Good else YStatusTone.Warning,
+        )
     }
 }
 
@@ -274,23 +271,24 @@ private fun FilterSection(
     onSystem: (Boolean) -> Unit,
     onLinux: (Boolean) -> Unit,
 ) {
-    Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-        OutlinedTextField(
+    YFeatureCard(
+        title = "Process filter",
+        subtitle = "Search, process type and sort order",
+        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
+    ) {
+        YSearchField(
             value = state.query,
             onValueChange = onQuery,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            hint = "Process, app, package, PID, UID",
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = {
-                if (state.query.isNotEmpty()) {
+            trailingIcon = if (state.query.isNotEmpty()) {
+                {
                     IconButton(onClick = { onQuery("") }) {
                         Icon(Icons.Default.Close, contentDescription = "Clear")
                     }
                 }
-            },
-            placeholder = { Text("Process, app, package, PID, UID") },
+            } else null,
         )
-        Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             FilterChip(selected = state.showUserApps, onClick = { onUser(!state.showUserApps) }, label = { Text("User") })
             FilterChip(selected = state.showSystemApps, onClick = { onSystem(!state.showSystemApps) }, label = { Text("System") })
@@ -351,6 +349,14 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
             .toList()
     }
 
+    if (filtered.isEmpty()) {
+        YFeatureEmpty(
+            message = "No processes match the current filter.",
+            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
+        )
+        return
+    }
+
     LazyColumn(Modifier.fillMaxSize()) {
         items(filtered, key = { it.pid }) { process ->
             ProcessRow(process, onClick)
@@ -366,7 +372,7 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = { onClick(process) })
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(process.icon)
@@ -410,7 +416,7 @@ private fun ResourcePage(state: TaskManagerUiState) {
     val g = state.gpu
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
     ) {
         item {
             SectionCard("CPU") {
@@ -476,22 +482,17 @@ private fun ResourcePage(state: TaskManagerUiState) {
 private fun NetworkPage(state: TaskManagerUiState) {
     val network = state.network
     Column(Modifier.fillMaxSize()) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-        ) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Realtime app speed", style = MaterialTheme.typography.titleMedium)
-                Text("↓ = current download speed   ↑ = current upload speed", style = MaterialTheme.typography.bodySmall)
-                Text("Backend: ${network.backend}", style = MaterialTheme.typography.bodySmall)
-                Text("Sampling interval: about 1 second; values use the actual elapsed sample time.", style = MaterialTheme.typography.bodySmall)
-            }
-        }
+        YFeatureCard(
+            title = "Realtime app speed",
+            subtitle = "↓ current download · ↑ current upload",
+            detail = "Backend: ${network.backend} · sampling about once per second",
+            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
+        )
         if (network.entries.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No active app traffic yet")
-            }
+            YFeatureEmpty(
+                "No active app traffic yet",
+                Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
+            )
         } else {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(network.entries, key = { it.uid }) { entry ->
@@ -508,7 +509,7 @@ private fun NetworkRow(entry: NetworkEntry) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(entry.icon)
@@ -537,30 +538,17 @@ private fun NetworkRow(entry: NetworkEntry) {
 }
 
 @Composable
-private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            content = content,
-        )
-    }
+private fun SectionCard(title: String, content: @Composable () -> Unit) {
+    YFeatureCard(
+        title = title,
+        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
+        content = content,
+    )
 }
 
 @Composable
 private fun MetricLine(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodySmall)
-        Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-    }
+    YStatusRow(label = label, value = value)
 }
 
 @Composable
@@ -758,14 +746,7 @@ private fun SettingsDialog(
 
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
+    YSettingSwitch(title = label, checked = checked, onCheckedChange = onCheckedChange)
 }
 
 private fun sortLabel(sort: ProcessSort): String = when (sort) {
