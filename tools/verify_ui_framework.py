@@ -30,6 +30,9 @@ YNOTIFY_HISTORY = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_app_
 YNOTIFY_DETAIL = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_event_detail.xml"
 YENTRY_SCOPE = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/ScopeScreen.kt"
 YENTRY_ROOT = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt"
+YENTRY_TABS = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainTabs.kt"
+YENTRY_PRIORITY = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/PriorityDialog.kt"
+YENTRY_ROWS = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppListRows.kt"
 
 
 def fail(message: str) -> None:
@@ -76,6 +79,9 @@ def main() -> None:
     ynotify_detail = text(YNOTIFY_DETAIL)
     yentry_scope = text(YENTRY_SCOPE)
     yentry_root = text(YENTRY_ROOT)
+    yentry_tabs = text(YENTRY_TABS)
+    yentry_priority = text(YENTRY_PRIORITY)
+    yentry_rows = text(YENTRY_ROWS)
 
     for marker in (
         "fun YFeatureScaffold(",
@@ -186,6 +192,24 @@ def main() -> None:
     require(yentry_root, "YStatusRow(", "YEntryCleaner component screen")
     require(yentry_root, "YFeatureEmpty(", "YEntryCleaner component screen")
 
+    # Rules/Priority keep their specialized interaction surfaces, but normal summary/status/empty
+    # presentation must stay on YUI. The interaction markers below intentionally protect drag,
+    # lock swipe, category filtering and search from being lost during visual refactors.
+    for source, label in (
+        (yentry_tabs, "YEntryCleaner RulesTab"),
+        (yentry_priority, "YEntryCleaner PriorityDialog"),
+    ):
+        require(source, "YFeatureCard(", label)
+        require(source, "YStatusRow(", label)
+        require(source, "YFeatureEmpty(", label)
+    require(yentry_tabs, "AppRow(", "YEntryCleaner RulesTab app rows")
+    require(yentry_tabs, "ListControls(", "YEntryCleaner RulesTab filters")
+    require(yentry_rows, "bulkLockSwipe", "YEntryCleaner RulesTab lock interaction")
+    require(yentry_priority, "detectDragGesturesAfterLongPress", "YEntryCleaner Priority drag ordering")
+    require(yentry_priority, "bulkLockSwipe", "YEntryCleaner Priority lock interaction")
+    require(yentry_priority, "ListControls(", "YEntryCleaner Priority filters")
+    require(yentry_priority, "movePriority(kind, packageName", "YEntryCleaner Priority move buttons")
+
     reject_hardcoded_normal_screen_colors(ypower, "YPower MainActivity")
     reject_hardcoded_normal_screen_colors(yminiguard, "YMiniGuard MainActivity")
     reject_hardcoded_normal_screen_colors(yparam, "YParam MainActivity")
@@ -202,7 +226,8 @@ def main() -> None:
         "ui-framework: OK compose=YFeature* view=YViewLayout xml=Widget.YUI "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
         "secondary=YParam.AppDetail,YPower.AppDetail,YPower.RecommendedApps,YPower.Diagnostic,"
-        "YNotify.AppHistory,YNotify.EventDetail,YEntryCleaner.Scope,YEntryCleaner.Components"
+        "YNotify.AppHistory,YNotify.EventDetail,YEntryCleaner.Scope,YEntryCleaner.Components,"
+        "YEntryCleaner.Rules,YEntryCleaner.Priority"
     )
 
 

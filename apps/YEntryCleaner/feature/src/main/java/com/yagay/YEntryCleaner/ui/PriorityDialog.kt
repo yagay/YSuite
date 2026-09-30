@@ -44,6 +44,10 @@ import com.yagay.YEntryCleaner.domain.matchesOpenPreset
 import com.yagay.YEntryCleaner.domain.matchesBrowserHost
 import com.yagay.YEntryCleaner.domain.priorityAppGroups
 import com.yagay.YEntryCleaner.domain.priorityCandidates
+import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YStatusRow
+import com.yagay.yui.YStatusTone
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -287,109 +291,104 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                 }
             }
             item(key = "summary") {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    val presetTitle = when {
-                        typedOpenPreset != null -> state.openTypes.localizedTitle(typedOpenPreset)
-                        deepLinkHost != null -> deepLinkHost
-                        else -> null
-                    }
-                    Text(
-                        if (presetTitle == null) stringResource(R.string.app_list_count, groups.size)
-                        else stringResource(R.string.app_list_count_type, groups.size, presetTitle),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                    Text(
-                        stringResource(R.string.priority_intro),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        stringResource(R.string.priority_drag_help),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (typedOpenPreset != null) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                when {
-                                    inheritsOpenPriority -> stringResource(R.string.priority_source_inherited)
-                                    hasExplicitOpenPriority -> stringResource(R.string.priority_source_dedicated, presetTitle.orEmpty())
-                                    else -> stringResource(R.string.priority_source_none)
-                                },
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (inheritsOpenPriority) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (hasExplicitOpenPriority) {
-                                TextButton(onClick = { vm.resetOpenTypePriority(typedOpenPreset) }) {
-                                    Text(stringResource(R.string.priority_restore_inheritance))
+                val presetTitle = when {
+                    typedOpenPreset != null -> state.openTypes.localizedTitle(typedOpenPreset)
+                    deepLinkHost != null -> deepLinkHost
+                    else -> null
+                }
+                val sourceText = when {
+                    typedOpenPreset != null && inheritsOpenPriority -> stringResource(R.string.priority_source_inherited)
+                    typedOpenPreset != null && hasExplicitOpenPriority -> stringResource(R.string.priority_source_dedicated, presetTitle.orEmpty())
+                    typedOpenPreset != null -> stringResource(R.string.priority_source_none)
+                    deepLinkHost != null && inheritsDeepLinkPriority -> stringResource(R.string.priority_browser_source_inherited)
+                    deepLinkHost != null && hasExplicitDeepLinkPriority -> stringResource(R.string.priority_source_dedicated, deepLinkHost)
+                    deepLinkHost != null -> stringResource(R.string.priority_source_none)
+                    rankedRaw.isEmpty() -> stringResource(R.string.priority_source_none)
+                    else -> stringResource(R.string.priority_source_current_category)
+                }
+                val sourceHelp = when {
+                    typedOpenPreset != null -> stringResource(R.string.priority_inheritance_help)
+                    deepLinkHost != null -> stringResource(R.string.priority_browser_inheritance_help)
+                    else -> stringResource(R.string.priority_general_help)
+                }
+                val compatibility = when {
+                    !state.runtime.ready -> state.runtime.message
+                    kind == IntentKind.PROCESS_TEXT -> stringResource(R.string.priority_process_text_note)
+                    !state.module.connected -> stringResource(R.string.priority_compat_disconnected)
+                    state.module.detection.hosts.isEmpty() -> stringResource(R.string.priority_compat_unknown_host)
+                    state.module.detection.hosts.any {
+                        it.packageName != "system" &&
+                            !it.className.startsWith("com.android.internal.app.") &&
+                            !it.className.startsWith("com.android.intentresolver.")
+                    } -> stringResource(R.string.priority_compat_vendor_path)
+                    else -> stringResource(R.string.priority_compat_aosp)
+                }
+                val compatibilityTone = when {
+                    !state.runtime.ready -> YStatusTone.Warning
+                    kind == IntentKind.PROCESS_TEXT -> YStatusTone.Neutral
+                    !state.module.connected -> YStatusTone.Warning
+                    state.module.detection.hosts.isEmpty() -> YStatusTone.Warning
+                    state.module.detection.hosts.any {
+                        it.packageName != "system" &&
+                            !it.className.startsWith("com.android.internal.app.") &&
+                            !it.className.startsWith("com.android.intentresolver.")
+                    } -> YStatusTone.Warning
+                    else -> YStatusTone.Good
+                }
+                val hasReset = typedOpenPreset != null && hasExplicitOpenPriority || deepLinkHost != null && hasExplicitDeepLinkPriority
+                YFeatureCard(
+                    title = if (presetTitle == null) stringResource(R.string.app_list_count, groups.size)
+                    else stringResource(R.string.app_list_count_type, groups.size, presetTitle),
+                    subtitle = stringResource(R.string.priority_intro),
+                    detail = stringResource(R.string.priority_drag_help),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    trailing = {
+                        if (hasReset) {
+                            TextButton(
+                                onClick = {
+                                    when {
+                                        typedOpenPreset != null -> vm.resetOpenTypePriority(typedOpenPreset)
+                                        deepLinkHost != null -> vm.resetBrowserHostPriority(deepLinkHost)
+                                    }
                                 }
-                            }
+                            ) { Text(stringResource(R.string.priority_restore_inheritance)) }
                         }
-                        Text(
-                            stringResource(R.string.priority_inheritance_help),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else if (deepLinkHost != null) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                when {
-                                    inheritsDeepLinkPriority -> stringResource(R.string.priority_browser_source_inherited)
-                                    hasExplicitDeepLinkPriority -> stringResource(R.string.priority_source_dedicated, deepLinkHost)
-                                    else -> stringResource(R.string.priority_source_none)
-                                },
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (inheritsDeepLinkPriority) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (hasExplicitDeepLinkPriority) {
-                                TextButton(onClick = { vm.resetBrowserHostPriority(deepLinkHost) }) {
-                                    Text(stringResource(R.string.priority_restore_inheritance))
-                                }
-                            }
-                        }
-                        Text(
-                            stringResource(R.string.priority_browser_inheritance_help),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Text(
-                            stringResource(R.string.priority_general_help),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
-                    val compatibility = when {
-                        !state.module.connected -> stringResource(R.string.priority_compat_disconnected)
-                        state.module.detection.hosts.isEmpty() -> stringResource(R.string.priority_compat_unknown_host)
-                        state.module.detection.hosts.any {
-                            it.packageName != "system" &&
-                                !it.className.startsWith("com.android.internal.app.") &&
-                                !it.className.startsWith("com.android.intentresolver.")
-                        } -> stringResource(R.string.priority_compat_vendor_path)
-                        else -> stringResource(R.string.priority_compat_aosp)
-                    }
-                    Text(
-                        if (!state.runtime.ready) state.runtime.message
-                        else if (kind == IntentKind.PROCESS_TEXT) stringResource(R.string.priority_process_text_note)
-                        else compatibility,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                ) {
+                    YStatusRow(
+                        label = stringResource(R.string.priority_summary_source),
+                        value = sourceText,
+                        tone = if (inheritsOpenPriority || inheritsDeepLinkPriority) YStatusTone.Good else YStatusTone.Neutral
+                    )
+                    YStatusRow(
+                        label = stringResource(R.string.priority_summary_scope),
+                        value = sourceHelp
+                    )
+                    YStatusRow(
+                        label = stringResource(R.string.priority_summary_compatibility),
+                        value = compatibility,
+                        tone = compatibilityTone
                     )
                     if (hiddenSavedCount > 0) {
-                        Text(stringResource(R.string.priority_hidden_saved, hiddenSavedCount), style = MaterialTheme.typography.bodySmall)
+                        YStatusRow(
+                            label = stringResource(R.string.priority_summary_saved),
+                            value = stringResource(R.string.priority_hidden_saved, hiddenSavedCount),
+                            tone = YStatusTone.Warning
+                        )
                     }
                     if (rankedRaw.size >= 200) {
-                        Text(
-                            stringResource(R.string.priority_limit_reached),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                        YStatusRow(
+                            label = stringResource(R.string.priority_summary_limit),
+                            value = stringResource(R.string.priority_limit_reached),
+                            tone = YStatusTone.Error
                         )
                     }
                     if (state.error != null) {
-                        Text(stringResource(R.string.rules_refresh_incomplete), color = MaterialTheme.colorScheme.error)
+                        YStatusRow(
+                            label = stringResource(R.string.priority_summary_status),
+                            value = stringResource(R.string.rules_refresh_incomplete),
+                            tone = YStatusTone.Error
+                        )
                     }
                 }
             }
@@ -529,19 +528,18 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
 
             if (!state.loading && groups.isEmpty()) {
                 item(key = "empty") {
-                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            stringResource(
-                                when {
-                                    state.query.isNotBlank() -> R.string.priority_empty_search
-                                    viewFilter == UiFilter.SHOW_SELECTED -> R.string.priority_empty_selected
-                                    viewFilter == UiFilter.HIDE_SELECTED -> R.string.priority_empty_unselected
-                                    viewFilter == UiFilter.LOCKED -> R.string.no_matching_components
-                                    else -> R.string.priority_empty_category
-                                }
-                            )
-                        )
-                    }
+                    YFeatureEmpty(
+                        message = stringResource(
+                            when {
+                                state.query.isNotBlank() -> R.string.priority_empty_search
+                                viewFilter == UiFilter.SHOW_SELECTED -> R.string.priority_empty_selected
+                                viewFilter == UiFilter.HIDE_SELECTED -> R.string.priority_empty_unselected
+                                viewFilter == UiFilter.LOCKED -> R.string.no_matching_components
+                                else -> R.string.priority_empty_category
+                            }
+                        ),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
                 }
             }
         }
