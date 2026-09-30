@@ -15,6 +15,7 @@ android {
 }
 
 dependencies {
+    api(project(":api"))
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("com.github.topjohnwu.libsu:core:6.0.0")
     // SuiteXposedServiceBroker exposes XposedServiceHelper.OnServiceListener in its public type,
