@@ -187,15 +187,22 @@ jobs:
           for abi, size in sorted(by_abi.items()):
               print(f"  {abi}: {size / (1024 * 1024):.2f} MiB")
 
-          # Guard against silently regressing toward the old ~364 MiB universal debug APK.
           if size_mb > 170:
               raise SystemExit(f"Compact APK exceeded 170 MiB size budget: {size_mb:.2f} MiB")
           PY
 
+      - name: Prepare fixed APK name
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          APK="$(find suite/build/outputs/apk/compact -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$APK"
+          cp "$APK" artifacts/YSuite-compact-arm64-v8a.apk
+
       - name: Upload compact YSuite APK
         uses: actions/upload-artifact@v4
         with:
-          name: YSuite-compact-${{ github.run_number }}
-          path: suite/build/outputs/apk/compact/*.apk
+          name: YSuite-compact-arm64-v8a
+          path: artifacts/YSuite-compact-arm64-v8a.apk
           if-no-files-found: error
           retention-days: 14
