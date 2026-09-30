@@ -1,0 +1,199 @@
+name: Clean YSuite monorepo
+
+on:
+  push:
+    branches: [monorepo-migration]
+    paths:
+      - '.github/workflows/monorepo-clean.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  clean:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: monorepo-migration
+          fetch-depth: 0
+
+      - name: Finalize monorepo source paths
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('tools/verify_host_ownership.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace('ROOT / "suite/', 'ROOT / "suite/YSuite/')
+          text = text.replace('ROOT / "core/', 'ROOT / "libs/ycore/')
+          text = text.replace('ROOT / "ui/', 'ROOT / "libs/yui/')
+          text = text.replace('ROOT / "features/YFloat/', 'ROOT / "apps/YFloat/')
+          text = text.replace('suite/build.gradle.kts', 'suite/YSuite/build.gradle.kts')
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('tools/scan_feature_integration.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace('features = root / "features"', 'features = root / "apps"')
+          text = text.replace('no feature submodules found', 'no app feature modules found')
+          text = text.replace('after submodules are checked out', 'after the monorepo is checked out')
+          p.write_text(text, encoding='utf-8')
+          PY
+
+          cat > README.md <<'EOF'
+          # YSuite
+
+          YSuite is the monorepo for the Android/LSPosed projects that share the YSuite host, UI and runtime infrastructure.
+
+          ## Repository layout
+
+          ```text
+          YSuite/
+          ├── apps/
+          │   ├── YDiag/
+          │   ├── YNotify/
+          │   ├── YPower/
+          │   ├── YMiniGuard/
+          │   ├── YEntryCleaner/
+          │   ├── YNFC/
+          │   ├── YTaskManager/
+          │   ├── YParam/
+          │   └── YFloat/
+          ├── libs/
+          │   ├── ycore/
+          │   └── yui/
+          ├── suite/
+          │   └── YSuite/
+          ├── docs/
+          ├── tools/
+          └── .github/workflows/
+          ```
+
+          ## Architecture
+
+          Each project under `apps/` keeps its standalone `app/` shell and reusable `feature/` module. The unified YSuite APK consumes those same feature modules directly, so feature code is not copied into the host.
+
+          `libs/yui` is the shared UI implementation. `libs/ycore` owns host-level contracts and shared runtime infrastructure. Code moves into `libs/` only when multiple projects genuinely share it; app-specific behavior stays inside its app folder.
+
+          The unified APK host is `suite/YSuite` with application id `com.yagay.YSuite`. YSuite remains the physical owner for shared system-facing capabilities such as the combined Xposed entry and host-level services.
+
+          ## Included projects
+
+          - YDiag
+          - YNotify
+          - YPower
+          - YMiniGuard
+          - YEntryCleaner
+          - YNFC
+          - YTaskManager
+          - YParam
+          - YFloat
+
+          ## Build
+
+          Build the unified compact ARM64 APK from the repository root:
+
+          ```bash
+          gradle :suite:assembleCompact
+          ```
+
+          The resulting APK is under `suite/YSuite/build/outputs/apk/compact/`.
+
+          The original standalone repositories remain intact as migration safety copies. New shared development uses this monorepo as the source of truth.
+
+          ## Project rules
+
+          Before changing shared or integrated behavior, check:
+
+          - `docs/PRODUCT_REQUIREMENTS.md`
+          - `docs/MODULE_REQUIREMENTS.md`
+          - `docs/ARCHITECTURE.md`
+          - `docs/MONOREPO_MIGRATION.md`
+          EOF
+
+          cat > .gitignore <<'EOF'
+          .gradle/
+          **/build/
+          **/.cxx/
+          **/.externalNativeBuild/
+          local.properties
+          .DS_Store
+          *.iml
+          EOF
+
+          # Imported standalone repositories contained some generated build outputs.
+          # Remove them from the monorepo; all are reproducible by Gradle.
+          find apps libs suite -type d \( -name build -o -name .cxx -o -name .externalNativeBuild \) -prune -exec rm -rf {} +
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.4.1'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "cmdline-tools;23.0"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/23.0/bin/sdkmanager"
+          "$SDKMANAGER" --channel=3 "platforms;android-37.0" "build-tools;36.0.0" "platform-tools"
+
+      - name: Validate final source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/verify_host_ownership.py
+          python3 tools/scan_feature_integration.py --root . --fail-on-high-risk
+          gradle --no-daemon --stacktrace :suite:assembleCompact
+
+      - name: Remove generated outputs after validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          find apps libs suite -type d \( -name build -o -name .cxx -o -name .externalNativeBuild \) -prune -exec rm -rf {} +
+          test ! -e .gitmodules
+          test -d apps/YDiag/feature
+          test -d apps/YNotify/feature
+          test -d apps/YPower/feature
+          test -d apps/YMiniGuard/feature
+          test -d apps/YEntryCleaner/feature
+          test -d apps/YNFC/feature
+          test -d apps/YTaskManager/feature
+          test -d apps/YParam/feature
+          test -d apps/YFloat/feature
+          test -d libs/ycore
+          test -d libs/yui
+          test -d suite/YSuite
+
+      - name: Commit cleaned monorepo source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- README.md .gitignore tools apps libs suite
+          if git diff --cached --quiet; then
+            echo "No source cleanup changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(monorepo): finalize source layout"
+          git push origin HEAD:monorepo-migration
