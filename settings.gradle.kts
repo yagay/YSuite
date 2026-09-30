@@ -29,32 +29,20 @@ project(":core").projectDir = file("libs/ycore")
 include(":suite")
 project(":suite").projectDir = file("suite/YSuite")
 
-include(":ydiag-feature")
-project(":ydiag-feature").projectDir = file("apps/YDiag/feature")
-
-include(":ynotify-feature")
-project(":ynotify-feature").projectDir = file("apps/YNotify/feature")
-
-include(":ypower-feature")
-project(":ypower-feature").projectDir = file("apps/YPower/feature")
-
-include(":yminiguard-feature")
-project(":yminiguard-feature").projectDir = file("apps/YMiniGuard/feature")
-
-include(":yentrycleaner-feature")
-project(":yentrycleaner-feature").projectDir = file("apps/YEntryCleaner/feature")
-
-include(":ynfc-feature")
-project(":ynfc-feature").projectDir = file("apps/YNFC/feature")
-
-include(":ytask-feature")
-project(":ytask-feature").projectDir = file("apps/YTaskManager/feature")
-
-include(":yparam-feature")
-project(":yparam-feature").projectDir = file("apps/YParam/feature")
-
-include(":yfloat-feature")
-project(":yfloat-feature").projectDir = file("apps/YFloat/feature")
+// Feature modules are generated from config/features.toml. Do not duplicate the feature list here.
+val generatedFeatureModules = file("config/generated/feature-modules.tsv")
+generatedFeatureModules.readLines()
+    .asSequence()
+    .map(String::trim)
+    .filter { it.isNotEmpty() && !it.startsWith("#") }
+    .forEach { line ->
+        val parts = line.split('\t', limit = 2)
+        require(parts.size == 2) { "Invalid generated feature module row: $line" }
+        val module = parts[0]
+        val projectDir = parts[1]
+        include(module)
+        project(module).projectDir = file(projectDir)
+    }
 
 include(":yfloat-ppocr-sdk")
 project(":yfloat-ppocr-sdk").projectDir = file("apps/YFloat/ppocr-sdk")

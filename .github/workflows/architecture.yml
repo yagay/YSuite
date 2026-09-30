@@ -17,7 +17,10 @@ jobs:
       - name: Checkout monorepo
         uses: actions/checkout@v4
 
-      - name: Verify feature catalog
+      - name: Verify generated feature catalog is current
+        run: python3 tools/generate_feature_catalog.py --check
+
+      - name: Verify feature catalog architecture
         run: python3 tools/verify_feature_catalog.py
 
       - name: Verify unified feature state gating

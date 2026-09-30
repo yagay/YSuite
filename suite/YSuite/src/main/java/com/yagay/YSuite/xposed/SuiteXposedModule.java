@@ -21,23 +21,6 @@ import io.github.libxposed.api.XposedModule;
 public final class SuiteXposedModule extends XposedModule {
     private static final String TAG = "YSuite.Xposed";
 
-    private static final PluginSpec[] PLUGINS = {
-            new PluginSpec("ydiag/main", "com.yagay.ydiag.xposed.YDiagModule"),
-            new PluginSpec("ynotify/main", "com.yagay.YNotify.xposed.YNotifyModule"),
-            new PluginSpec("ypower/main", "com.yagay.ypower.hook.YPowerModule"),
-            new PluginSpec("ypower/security", "com.yagay.ypower.hook.SupplementalSecurityModule"),
-            new PluginSpec("ypower/observation", "com.yagay.ypower.hook.DeepObservationModule"),
-            new PluginSpec("yminiguard/main", "com.yagay.YMiniGuard.GuardModule"),
-            new PluginSpec("yentrycleaner/main", "com.yagay.YEntryCleaner.xposed.YEntryCleanerModule"),
-            new PluginSpec("yentrycleaner/state", "com.yagay.YEntryCleaner.xposed.ComponentStateGuardModule"),
-            new PluginSpec("yentrycleaner/discovery", "com.yagay.YEntryCleaner.xposed.ComponentDiscoveryFilterModule"),
-            new PluginSpec("yentrycleaner/probe", "com.yagay.YEntryCleaner.xposed.SuiteRuntimeProbeBridgeModule"),
-            new PluginSpec("ynfc/main", "com.yagay.YNFC.xposed.NfcInjectionModule"),
-            new PluginSpec("ytaskmanager/main", "com.yagay.YTaskManager.xposed.TaskManagerModule"),
-            new PluginSpec("yparam/main", "com.yagay.yparam.hook.YParamModule"),
-            new PluginSpec("yfloat/main", "com.yagay.YFloat.hook.YFloatModule"),
-    };
-
     private final List<PluginRuntime> runtimes = new ArrayList<>();
     private SuiteHookRegistry hookRegistry;
     private boolean initialized;
@@ -48,8 +31,8 @@ public final class SuiteXposedModule extends XposedModule {
         initialized = true;
         hookRegistry = new SuiteHookRegistry(this);
 
-        for (PluginSpec spec : PLUGINS) {
-            loadPlugin(spec, param);
+        for (GeneratedXposedPlugins.Entry generated : GeneratedXposedPlugins.ENTRIES) {
+            loadPlugin(new PluginSpec(generated.id(), generated.entryClassName()), param);
         }
 
         log(
