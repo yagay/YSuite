@@ -35,8 +35,8 @@ def q(value: str) -> str:
 
 def load_features() -> list[dict]:
     data = tomllib.loads(CATALOG.read_text(encoding="utf-8"))
-    if data.get("schema") != 2:
-        fail("config/features.toml must use schema = 2")
+    if data.get("schema") != 3:
+        fail("config/features.toml must use schema = 3")
     features = data.get("feature") or []
     if not features:
         fail("catalog has no [[feature]] entries")
@@ -45,6 +45,7 @@ def load_features() -> list[dict]:
     modules: set[str] = set()
     project_dirs: set[str] = set()
     hook_ids: set[str] = set()
+    ipc_actions: dict[str, str] = {}
     for item in features:
         for key in ("id", "name", "description", "gradle_module", "project_dir", "entry_activity"):
             if not str(item.get(key, "")).strip():
@@ -75,6 +76,18 @@ def load_features() -> list[dict]:
         if unknown:
             fail(f"{feature_id}: unknown capabilities: {sorted(unknown)}")
 
+        if "ipc_receivers" in item:
+            fail(f"{feature_id}: ipc_receivers is obsolete; declare exact ipc_routes instead")
+        for route in item.get("ipc_routes") or []:
+            action = str(route.get("action", "")).strip()
+            receiver = str(route.get("receiver", "")).strip()
+            if not action or not receiver:
+                fail(f"{feature_id}: every ipc route requires action and receiver")
+            previous = ipc_actions.get(action)
+            if previous is not None:
+                fail(f"duplicate IPC action owner: {action} ({previous}, {feature_id})")
+            ipc_actions[action] = feature_id
+
         for hook in item.get("hooks") or []:
             hook_id = str(hook.get("id", ""))
             hook_class = str(hook.get("class", ""))
@@ -102,8 +115,10 @@ def render_feature_catalog(features: list[dict]) -> str:
         cap_expr = "emptySet()" if not caps else "setOf(" + ", ".join(
             f"SuiteCapability.{cap}" for cap in caps
         ) + ")"
-        ipc = item.get("ipc_receivers") or []
-        ipc_expr = "emptySet()" if not ipc else "setOf(" + ", ".join(q(value) for value in ipc) + ")"
+        routes = item.get("ipc_routes") or []
+        route_expr = "emptyMap()" if not routes else "mapOf(" + ", ".join(
+            f"{q(route['action'])} to {q(route['receiver'])}" for route in routes
+        ) + ")"
         runtime = item.get("runtime")
         accessibility = item.get("accessibility_bridge")
         notification = item.get("notification_listener_bridge")
@@ -119,7 +134,7 @@ def render_feature_catalog(features: list[dict]) -> str:
             f"            accessibilityBridgeClassName = {q(accessibility) if accessibility else 'null'},",
             f"            notificationListenerBridgeClassName = {q(notification) if notification else 'null'},",
             f"            bootReceiverClassName = {q(boot) if boot else 'null'},",
-            f"            ipcReceiverClassNames = {ipc_expr},",
+            f"            ipcRoutes = {route_expr},",
             f"            requiresRoot = {'true' if 'ROOT' in caps else 'false'},",
             f"            requiresHook = {'true' if item.get('hooks') else 'false'},",
             f"            defaultEnabled = {'true' if item.get('default_enabled', True) else 'false'},",
