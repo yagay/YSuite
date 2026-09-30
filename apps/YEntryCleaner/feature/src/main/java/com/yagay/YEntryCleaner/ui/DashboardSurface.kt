@@ -1,5 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,8 +21,6 @@ import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusRow
 import com.yagay.yui.YStatusTone
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 /**
  * Unified dashboard surface for YEntryCleaner.
@@ -144,7 +143,7 @@ internal fun UnifiedDashboardTabContent(
             }
         }
 
-        ModuleStatusRow(state) {
+        DashboardModuleStatusCard(state) {
             showScopeDetails = true
             vm.refreshModuleStatus()
         }
@@ -219,6 +218,41 @@ internal fun UnifiedDashboardTabContent(
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 16.dp),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun DashboardModuleStatusCard(state: MainState, onClick: () -> Unit) {
+    val status = state.module
+    val titleRes = when {
+        !status.connected -> R.string.module_lsposed_disconnected
+        status.outdated -> R.string.module_old_running
+        status.error != null || (status.scopeKnown && status.missingScope.isNotEmpty()) -> R.string.module_needs_attention
+        status.resolverLoaded -> R.string.module_loaded
+        else -> R.string.module_lsposed_connected
+    }
+    val tone = when {
+        !status.connected -> YStatusTone.Error
+        status.outdated -> YStatusTone.Error
+        status.error != null || (status.scopeKnown && status.missingScope.isNotEmpty()) -> YStatusTone.Warning
+        state.runtime.ready -> YStatusTone.Good
+        else -> YStatusTone.Warning
+    }
+    YFeatureCard(
+        title = stringResource(R.string.dashboard_module_status),
+        subtitle = stringResource(titleRes),
+        detail = state.syncStatus,
+        modifier = Modifier.clickable(onClick = onClick),
+        trailing = {
+            Icon(Icons.Rounded.ExpandMore, contentDescription = stringResource(R.string.module_view_status))
+        }
+    ) {
+        YStatusRow(
+            label = stringResource(R.string.dashboard_module_status),
+            value = if (state.runtime.ready) stringResource(R.string.module_system_confirmed)
+            else stringResource(R.string.module_check_status),
+            tone = tone
         )
     }
 }
