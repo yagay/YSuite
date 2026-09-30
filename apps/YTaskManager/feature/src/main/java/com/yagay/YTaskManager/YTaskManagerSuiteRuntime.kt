@@ -1,16 +1,38 @@
 package com.yagay.YTaskManager
 
 import android.content.Context
+import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.ManagedFeatureRuntime
 
-/** Thin runtime entry used by YSuite while keeping standalone behavior identical. */
-object YTaskManagerSuiteRuntime {
+/** Managed runtime adapter shared by YSuite while preserving standalone behavior. */
+object YTaskManagerSuiteRuntime : ManagedFeatureRuntime {
+    @Volatile private var delegate: YTaskManagerRuntime? = null
+    @Volatile private var host: FeatureHost? = null
+
     @JvmStatic
     fun get(context: Context): Any {
         val appContext = context.applicationContext
         AppLogger.attach(appContext)
+        delegate = YTaskManagerRuntime.get(appContext)
         AppLogger.i("YSuite runtime attached")
-        // Return the real libxposed listener so YSuite's shared broker can capture it and
-        // immediately reclaim process-wide listener ownership.
-        return YTaskManagerRuntime.get(appContext)
+        return this
+    }
+
+    override fun attach(host: FeatureHost) {
+        this.host = host
+    }
+
+    override fun enable() {
+        delegate?.setManagedEnabled(true)
+    }
+
+    override fun disable() {
+        delegate?.setManagedEnabled(false)
+    }
+
+    override fun destroy() {
+        disable()
+        delegate = null
+        host = null
     }
 }
