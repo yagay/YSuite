@@ -1,0 +1,109 @@
+schema = 1
+
+[[feature]]
+id = "yentrycleaner"
+name = "YEntryCleaner"
+gradle_module = ":yentrycleaner-feature"
+project_dir = "apps/YEntryCleaner/feature"
+entry_activity = "com.yagay.YEntryCleaner.ui.MainActivity"
+runtime = "com.yagay.YEntryCleaner.YEntryCleanerRuntime"
+capabilities = ["ROOT", "LSPOSED"]
+lifecycle = "legacy"
+hooks = [
+  { id = "yentrycleaner/main", class = "com.yagay.YEntryCleaner.xposed.YEntryCleanerModule" },
+  { id = "yentrycleaner/state", class = "com.yagay.YEntryCleaner.xposed.ComponentStateGuardModule" },
+  { id = "yentrycleaner/discovery", class = "com.yagay.YEntryCleaner.xposed.ComponentDiscoveryFilterModule" },
+  { id = "yentrycleaner/probe", class = "com.yagay.YEntryCleaner.xposed.SuiteRuntimeProbeBridgeModule" },
+]
+
+[[feature]]
+id = "ydiag"
+name = "YDiag"
+gradle_module = ":ydiag-feature"
+project_dir = "apps/YDiag/feature"
+entry_activity = "com.yagay.ydiag.ui.MainActivity"
+runtime = "com.yagay.ydiag.YDiagRuntime"
+capabilities = ["ROOT", "LSPOSED"]
+lifecycle = "legacy"
+hooks = [{ id = "ydiag/main", class = "com.yagay.ydiag.xposed.YDiagModule" }]
+
+[[feature]]
+id = "ynotify"
+name = "YNotify"
+gradle_module = ":ynotify-feature"
+project_dir = "apps/YNotify/feature"
+entry_activity = "com.yagay.YNotify.ui.MainActivity"
+runtime = "com.yagay.YNotify.YNotifyRuntime"
+capabilities = ["LSPOSED", "ACCESSIBILITY", "NOTIFICATION_LISTENER"]
+lifecycle = "legacy"
+hooks = [{ id = "ynotify/main", class = "com.yagay.YNotify.xposed.YNotifyModule" }]
+
+[[feature]]
+id = "ypower"
+name = "YPower"
+gradle_module = ":ypower-feature"
+project_dir = "apps/YPower/feature"
+entry_activity = "com.yagay.ypower.ui.MainActivity"
+runtime = "com.yagay.ypower.YPowerRuntime"
+capabilities = ["ROOT", "LSPOSED"]
+lifecycle = "legacy"
+hooks = [
+  { id = "ypower/main", class = "com.yagay.ypower.hook.YPowerModule" },
+  { id = "ypower/security", class = "com.yagay.ypower.hook.SupplementalSecurityModule" },
+  { id = "ypower/observation", class = "com.yagay.ypower.hook.DeepObservationModule" },
+]
+
+[[feature]]
+id = "yminiguard"
+name = "YMiniGuard"
+gradle_module = ":yminiguard-feature"
+project_dir = "apps/YMiniGuard/feature"
+entry_activity = "com.yagay.YMiniGuard.MainActivity"
+runtime = "com.yagay.YMiniGuard.GuardRuntime"
+capabilities = ["ROOT", "LSPOSED", "NOTIFICATIONS"]
+lifecycle = "legacy"
+hooks = [{ id = "yminiguard/main", class = "com.yagay.YMiniGuard.GuardModule" }]
+
+[[feature]]
+id = "ynfc"
+name = "YNFC"
+gradle_module = ":ynfc-feature"
+project_dir = "apps/YNFC/feature"
+entry_activity = "com.yagay.YNFC.MainActivity"
+runtime = "com.yagay.YNFC.YNFCSuiteRuntime"
+capabilities = ["ROOT", "LSPOSED"]
+lifecycle = "legacy"
+hooks = [{ id = "ynfc/main", class = "com.yagay.YNFC.xposed.NfcInjectionModule" }]
+
+[[feature]]
+id = "ytaskmanager"
+name = "YTaskManager"
+gradle_module = ":ytask-feature"
+project_dir = "apps/YTaskManager/feature"
+entry_activity = "com.yagay.YTaskManager.MainActivity"
+runtime = "com.yagay.YTaskManager.YTaskManagerSuiteRuntime"
+capabilities = ["ROOT", "LSPOSED"]
+lifecycle = "legacy"
+hooks = [{ id = "ytaskmanager/main", class = "com.yagay.YTaskManager.xposed.TaskManagerModule" }]
+
+[[feature]]
+id = "yparam"
+name = "YParam"
+gradle_module = ":yparam-feature"
+project_dir = "apps/YParam/feature"
+entry_activity = "com.yagay.yparam.ui.MainActivity"
+runtime = "com.yagay.yparam.YParamSuiteRuntime"
+capabilities = ["LSPOSED"]
+lifecycle = "legacy"
+hooks = [{ id = "yparam/main", class = "com.yagay.yparam.hook.YParamModule" }]
+
+[[feature]]
+id = "yfloat"
+name = "YFloat"
+gradle_module = ":yfloat-feature"
+project_dir = "apps/YFloat/feature"
+entry_activity = "com.yagay.YFloat.MainActivity"
+runtime = "com.yagay.YFloat.YFloatSuiteRuntime"
+capabilities = ["ROOT", "LSPOSED", "ACCESSIBILITY", "OVERLAY", "NOTIFICATIONS"]
+lifecycle = "legacy"
+hooks = [{ id = "yfloat/main", class = "com.yagay.YFloat.hook.YFloatModule" }]
