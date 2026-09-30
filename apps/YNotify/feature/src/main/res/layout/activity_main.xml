@@ -10,22 +10,25 @@
 
     <LinearLayout
         android:id="@+id/capture_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="horizontal" android:paddingHorizontal="12dp" android:paddingVertical="6dp">
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/yui_screen_horizontal"
+        android:paddingVertical="@dimen/yui_control_gap">
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_notification_access" style="@style/Widget.Material3.Button.TonalButton"
+            android:id="@+id/btn_notification_access" style="@style/Widget.YUI.Button.Tonal"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:text="通知权限" android:textSize="12sp" />
-        <Space android:layout_width="8dp" android:layout_height="1dp" />
+        <Space android:layout_width="@dimen/yui_control_gap" android:layout_height="1dp" />
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_accessibility" style="@style/Widget.Material3.Button.TonalButton"
+            android:id="@+id/btn_accessibility" style="@style/Widget.YUI.Button.Tonal"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:text="界面提示" android:textSize="12sp" />
     </LinearLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/search_box" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp" android:hint="搜索应用、标题、内容或包名"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+        android:layout_marginHorizontal="@dimen/yui_screen_horizontal"
+        android:hint="搜索应用、标题、内容或包名"
+        style="@style/Widget.YUI.TextInput">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/search_edit" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:singleLine="true" />
@@ -36,8 +39,9 @@
         android:scrollbars="none">
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/chip_group" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:paddingHorizontal="12dp" android:paddingVertical="6dp" app:singleSelection="true"
-            app:selectionRequired="true">
+            android:paddingHorizontal="@dimen/yui_screen_horizontal"
+            android:paddingVertical="@dimen/yui_control_gap"
+            app:singleSelection="true" app:selectionRequired="true">
             <com.google.android.material.chip.Chip android:id="@+id/chip_all" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="全部" android:checked="true" />
             <com.google.android.material.chip.Chip android:id="@+id/chip_notification" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="通知栏" />
             <com.google.android.material.chip.Chip android:id="@+id/chip_heads_up" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="横幅" />
@@ -52,44 +56,49 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list" android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1" android:clipToPadding="false" android:paddingBottom="12dp" />
+        android:layout_weight="1" android:clipToPadding="false"
+        android:paddingBottom="@dimen/yui_section_gap" />
 
     <ScrollView
         android:id="@+id/settings_panel" android:layout_width="match_parent" android:layout_height="0dp"
         android:layout_weight="1" android:visibility="gone" android:fillViewport="true">
         <LinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:padding="16dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="运行状态" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+            android:orientation="vertical" android:padding="@dimen/yui_card_padding">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="运行状态" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
             <TextView android:id="@+id/runtime_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="6dp" android:textIsSelectable="true" />
+                android:layout_marginTop="6dp" android:textIsSelectable="true"
+                android:textAppearance="@style/TextAppearance.YUI.Body" />
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp"
-                android:text="诊断日志" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                android:text="诊断日志" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
                 android:text="一键收集 YNotify、通知监听、分类数据库、系统 logcat、LSPosed 和 Root/KernelSU/Magisk 相关诊断。Root 可用时会自动收集更完整的系统日志。"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                android:textAppearance="@style/TextAppearance.YUI.Body" />
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_export_diagnostics" style="@style/Widget.Material3.Button.TonalButton"
+                android:id="@+id/btn_export_diagnostics" style="@style/Widget.YUI.Button.Tonal"
                 android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp"
                 android:text="一键导出诊断日志" />
             <TextView android:id="@+id/diagnostics_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" android:text="保存到 Download/YNotify" android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                android:layout_marginTop="4dp" android:text="保存到 Download/YNotify"
+                android:textAppearance="@style/TextAppearance.YUI.Caption" />
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp"
-                android:text="历史重新分类" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                android:text="历史重新分类" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
                 android:text="重新扫描旧记录，修复误判 Toast/横幅、重复下载进度和持续通知。高置信度记录自动合并，手动分类不会被覆盖。"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                android:textAppearance="@style/TextAppearance.YUI.Body" />
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_history_repair" style="@style/Widget.Material3.Button.TonalButton"
+                android:id="@+id/btn_history_repair" style="@style/Widget.YUI.Button.Tonal"
                 android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp"
                 android:text="重新分类并修复历史" />
             <TextView android:id="@+id/repair_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" android:text="尚未手动扫描" android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                android:layout_marginTop="4dp" android:text="尚未手动扫描"
+                android:textAppearance="@style/TextAppearance.YUI.Caption" />
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp"
-                android:text="历史保留时间" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                android:text="历史保留时间" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
             <RadioGroup android:id="@+id/retention_group" android:layout_width="match_parent" android:layout_height="wrap_content">
                 <RadioButton android:id="@+id/retention_7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="7 天" />
                 <RadioButton android:id="@+id/retention_30" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="30 天" />
@@ -97,12 +106,12 @@
                 <RadioButton android:id="@+id/retention_forever" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="永久" />
             </RadioGroup>
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_clear_all" style="@style/Widget.Material3.Button.OutlinedButton"
+                android:id="@+id/btn_clear_all" style="@style/Widget.YUI.Button.Outlined"
                 android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp"
                 android:text="清空全部历史" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp"
                 android:text="推荐 LSPosed 作用域：系统界面（SystemUI）+ Android 系统（android）。NotificationListener 负责标准通知，SystemUI 记录实际横幅/气泡/全屏展示，android 负责补充系统 Toast。只有需要记录某个 App 自己的 Dialog、PopupWindow、Snackbar 时，才需要额外勾选该 App。"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                android:textAppearance="@style/TextAppearance.YUI.Body" />
         </LinearLayout>
     </ScrollView>
 

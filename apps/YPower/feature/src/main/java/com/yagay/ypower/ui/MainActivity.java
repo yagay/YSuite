@@ -7,18 +7,21 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatEditText;
 
 import com.yagay.ypower.data.ProfileStore;
 import com.yagay.ypower.data.RecommendedAppRegistry;
 import com.yagay.ypower.root.RootShell;
 import com.yagay.ypower.xposed.XposedBridgeManager;
+import com.yagay.yui.YView;
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewScreen;
+import com.yagay.yui.YViewStatusTone;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,7 +30,7 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     private LinearLayout list;
-    private EditText search;
+    private AppCompatEditText search;
     private TextView status;
     private final List<ApplicationInfo> apps = new ArrayList<>();
 
@@ -46,53 +49,53 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void buildUi() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(16), dp(16), dp(16));
+        YViewScreen screen = YViewLayout.install(
+                this,
+                "YPower",
+                "应用增强 · 运行时参数、检测与诊断");
+        LinearLayout root = screen.getContent();
 
-        TextView title = new TextView(this);
-        title.setText("应用增强 · YPower");
-        title.setTextSize(24);
-        root.addView(title);
-
-        status = new TextView(this);
-        status.setPadding(0, dp(8), 0, dp(8));
-        root.addView(status);
+        LinearLayout runtimeCard = YViewLayout.card(
+                root,
+                "运行环境",
+                "Root 和 LSPosed 状态由同一套 YSuite 运行时框架管理。");
+        status = YViewLayout.statusLine(this, "正在检测…");
+        runtimeCard.addView(status);
         refreshRuntimeStatus();
 
-        search = new EditText(this);
-        search.setHint("搜索应用或包名");
-        root.addView(search, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout appsCard = YViewLayout.card(
+                root,
+                "应用列表",
+                "已启用应用优先显示；点击应用或设置按钮进入详细配置。");
+        search = YViewLayout.searchField(this, "搜索应用或包名");
+        appsCard.addView(search);
 
-        LinearLayout actions = new LinearLayout(this);
-
-        Button refresh = new Button(this);
-        refresh.setText("搜索 / 刷新");
+        LinearLayout actions = YViewLayout.actionRow(appsCard);
+        Button refresh = YViewLayout.primaryButton(this, "搜索 / 刷新");
         refresh.setOnClickListener(v -> {
             refreshRuntimeStatus();
             loadApps(search.getText().toString());
         });
-        actions.addView(refresh, new LinearLayout.LayoutParams(0, -2, 1));
+        YViewLayout.addAction(actions, refresh);
 
-        Button recommended = new Button(this);
-        recommended.setText("推荐应用");
+        Button recommended = YViewLayout.secondaryButton(this, "推荐应用");
         recommended.setOnClickListener(v -> startActivity(new Intent(this, RecommendedAppsActivity.class)));
-        actions.addView(recommended, new LinearLayout.LayoutParams(0, -2, 1));
+        YViewLayout.addAction(actions, recommended);
 
-        root.addView(actions);
-
-        ScrollView scroll = new ScrollView(this);
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(list);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-        setContentView(root);
+        appsCard.addView(list, new LinearLayout.LayoutParams(-1, -2));
     }
 
     private void refreshRuntimeStatus() {
         if (status == null) return;
-        status.setText("Root: " + (RootShell.isRootAvailable() ? "已连接" : "未授权")
-                + "    LSPosed Service: " + (XposedBridgeManager.isReady() ? "已连接" : "未连接"));
+        boolean root = RootShell.isRootAvailable();
+        boolean xposed = XposedBridgeManager.isReady();
+        YViewLayout.setStatus(
+                status,
+                "Root：" + (root ? "已连接" : "未授权")
+                        + "    LSPosed：" + (xposed ? "已连接" : "未连接"),
+                root && xposed ? YViewStatusTone.Good : YViewStatusTone.Warning);
     }
 
     @SuppressWarnings("deprecation")
@@ -118,7 +121,11 @@ public class MainActivity extends AppCompatActivity {
         list.removeAllViews();
         for (ApplicationInfo app : apps) {
             String label = String.valueOf(pm.getApplicationLabel(app));
-            if (!q.isEmpty() && !label.toLowerCase(Locale.ROOT).contains(q) && !app.packageName.toLowerCase(Locale.ROOT).contains(q)) continue;
+            if (!q.isEmpty()
+                    && !label.toLowerCase(Locale.ROOT).contains(q)
+                    && !app.packageName.toLowerCase(Locale.ROOT).contains(q)) {
+                continue;
+            }
             addRow(label, app.packageName);
         }
     }
@@ -127,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(5), 0, dp(5));
+        row.setPadding(0, YView.dp(this, 5), 0, YView.dp(this, 5));
 
         CheckBox enabled = new CheckBox(this);
         enabled.setChecked(ProfileStore.get(this).getProfile(packageName).enabled);
@@ -141,12 +148,12 @@ public class MainActivity extends AppCompatActivity {
         boolean recommended = RecommendedAppRegistry.find(packageName) != null;
         text.setText((recommended ? "★ " : "") + label + "\n" + packageName
                 + (recommended ? "\n推荐配置可用" : ""));
-        text.setTextSize(16);
+        YView.styleBody(text);
+        text.setTextSize(15f);
         text.setOnClickListener(v -> openDetails(packageName));
         row.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
 
-        Button detail = new Button(this);
-        detail.setText("设置");
+        Button detail = YViewLayout.secondaryButton(this, "设置");
         detail.setOnClickListener(v -> openDetails(packageName));
         row.addView(detail);
         list.addView(row);
@@ -157,6 +164,4 @@ public class MainActivity extends AppCompatActivity {
         i.putExtra("package", packageName);
         startActivity(i);
     }
-
-    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 }

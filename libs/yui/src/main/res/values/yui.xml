@@ -29,5 +29,22 @@
 
     <style name="Widget.YUI.Button" parent="Widget.Material3.Button">
         <item name="android:minHeight">@dimen/yui_button_height</item>
+        <item name="android:textAllCaps">false</item>
     </style>
+
+    <style name="Widget.YUI.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
+        <item name="android:minHeight">@dimen/yui_button_height</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.YUI.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">@dimen/yui_button_height</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.YUI.TextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox" />
+
+    <style name="TextAppearance.YUI.SectionTitle" parent="TextAppearance.Material3.TitleMedium" />
+    <style name="TextAppearance.YUI.Body" parent="TextAppearance.Material3.BodyMedium" />
+    <style name="TextAppearance.YUI.Caption" parent="TextAppearance.Material3.BodySmall" />
 </resources>

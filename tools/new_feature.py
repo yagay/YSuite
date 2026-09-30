@@ -114,9 +114,7 @@ if (localSuiteShared) {
 
 
 def app_build_gradle(package_name: str) -> str:
-    return f'''plugins {{
-    id("com.android.application")
-}}
+    return f'''plugins {{ id("com.android.application") }}
 
 val ciArm64Only = providers.gradleProperty("ciArm64Only").orNull == "true"
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
@@ -128,14 +126,12 @@ android {{
             minorApiLevel = libs.versions.compileSdkMinor.get().toInt()
         }}
     }}
-
     defaultConfig {{
         applicationId = "{package_name}"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
-
         if (ciArm64Only) {{
             ndk {{
                 abiFilters.clear()
@@ -143,32 +139,22 @@ android {{
             }}
         }}
     }}
-
     compileOptions {{
         sourceCompatibility = sharedJavaVersion
         targetCompatibility = sharedJavaVersion
     }}
-
     packaging.resources.merges += "META-INF/xposed/*"
-    sourceSets {{
-        getByName("main") {{ resources.srcDirs("src/main/resources") }}
-    }}
-
+    sourceSets {{ getByName("main") {{ resources.srcDirs("src/main/resources") }} }}
     buildTypes {{
         release {{
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }}
     }}
 }}
 
-dependencies {{
-    implementation(project(":feature"))
-}}
+dependencies {{ implementation(project(":feature")) }}
 '''
 
 
@@ -188,15 +174,12 @@ android {{
             minorApiLevel = libs.versions.compileSdkMinor.get().toInt()
         }}
     }}
-
     defaultConfig {{ minSdk = libs.versions.minSdk.get().toInt() }}
     buildFeatures {{ compose = true }}
-
     compileOptions {{
         sourceCompatibility = sharedJavaVersion
         targetCompatibility = sharedJavaVersion
     }}
-
     buildTypes {{
         release {{
             isMinifyEnabled = false
@@ -206,12 +189,8 @@ android {{
 }}
 
 dependencies {{
-    implementation("com.github.yagay.YSuite:api") {{
-        version {{ branch = sharedSuiteBranch.get() }}
-    }}
-    implementation("com.github.yagay.YSuite:ui") {{
-        version {{ branch = sharedSuiteBranch.get() }}
-    }}
+    implementation("com.github.yagay.YSuite:api") {{ version {{ branch = sharedSuiteBranch.get() }} }}
+    implementation("com.github.yagay.YSuite:ui") {{ version {{ branch = sharedSuiteBranch.get() }} }}
 }}
 '''
 
@@ -225,7 +204,7 @@ def app_manifest(package_name: str) -> str:
         android:allowBackup="false"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.YUI">
         <activity
             android:name="{activity}"
             android:exported="true"
@@ -244,9 +223,7 @@ def feature_manifest(package_name: str) -> str:
     return f'''<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
-        <activity
-            android:name="{package_name}.MainActivity"
-            android:exported="false" />
+        <activity android:name="{package_name}.MainActivity" android:exported="false" />
     </application>
 </manifest>
 '''
@@ -255,35 +232,28 @@ def feature_manifest(package_name: str) -> str:
 def main_activity(package_name: str, name: str, description: str) -> str:
     return f'''package {package_name}
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.material3.Text
-import com.yagay.yui.YPluginHeader
-import com.yagay.yui.YPluginList
-import com.yagay.yui.YPluginScaffold
-import com.yagay.yui.YTheme
-import com.yagay.yui.YView
+import androidx.compose.runtime.Composable
+import com.yagay.yui.YComposeActivity
+import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YFeatureList
+import com.yagay.yui.YFeatureScaffold
 
-class MainActivity : ComponentActivity() {{
-    override fun onCreate(savedInstanceState: Bundle?) {{
-        super.onCreate(savedInstanceState)
-        YView.applyComposeWindow(this)
-        setContent {{
-            YTheme {{
-                YPluginScaffold(
-                    title = {q(name)},
-                    subtitle = {q(description)},
-                ) {{ padding ->
-                    YPluginList(padding) {{
-                        item {{
-                            YPluginHeader(
-                                name = {q(name)},
-                                description = {q(description)},
-                                detail = "Feature scaffold ready",
-                            )
-                        }}
-                        item {{ Text("在 feature 模块中继续实现业务功能。") }}
+class MainActivity : YComposeActivity() {{
+    @Composable
+    override fun YContent() {{
+        YFeatureScaffold(
+            title = {q(name)},
+            subtitle = {q(description)},
+        ) {{ padding ->
+            YFeatureList(padding) {{
+                item {{
+                    YFeatureCard(
+                        title = {q(name)},
+                        subtitle = {q(description)},
+                        detail = "Feature scaffold ready",
+                    ) {{
+                        Text("在 feature 模块中继续实现业务功能。")
                     }}
                 }}
             }}
@@ -306,25 +276,13 @@ class {class_name} private constructor(context: Context) : ManagedFeatureRuntime
     private val appContext = context.applicationContext
     @Volatile private var host: FeatureHost? = null
 
-    override fun attach(host: FeatureHost) {{
-        this.host = host
-    }}
-
-    override fun enable() {{
-        host?.log(HostLogLevel.INFO, "{feature_id} runtime enabled")
-    }}
-
-    override fun disable() {{
-        host?.log(HostLogLevel.INFO, "{feature_id} runtime disabled")
-    }}
-
-    override fun destroy() {{
-        host = null
-    }}
+    override fun attach(host: FeatureHost) {{ this.host = host }}
+    override fun enable() {{ host?.log(HostLogLevel.INFO, "{feature_id} runtime enabled") }}
+    override fun disable() {{ host?.log(HostLogLevel.INFO, "{feature_id} runtime disabled") }}
+    override fun destroy() {{ host = null }}
 
     companion object {{
         @Volatile private var instance: {class_name}? = null
-
         @JvmStatic
         fun get(context: Context): {class_name} = instance ?: synchronized(this) {{
             instance ?: {class_name}(context).also {{ instance = it }}
@@ -341,18 +299,12 @@ def write(path: Path, content: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Create a minimal independently buildable YSuite feature scaffold.",
-    )
-    parser.add_argument("--id", required=True, help="lowercase feature id, e.g. ysample")
-    parser.add_argument("--name", required=True, help="app directory/display name, e.g. YSample")
+    parser = argparse.ArgumentParser(description="Create a minimal independently buildable YSuite feature scaffold.")
+    parser.add_argument("--id", required=True)
+    parser.add_argument("--name", required=True)
     parser.add_argument("--package", required=True, dest="package_name")
     parser.add_argument("--description", required=True)
-    parser.add_argument(
-        "--capabilities",
-        default="",
-        help="comma-separated host capabilities, e.g. ROOT,LSPOSED",
-    )
+    parser.add_argument("--capabilities", default="")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -389,18 +341,12 @@ def main() -> None:
         app_root / "app/build.gradle.kts": app_build_gradle(package_name),
         app_root / "app/proguard-rules.pro": "# Standalone app rules.\n",
         app_root / "app/src/main/AndroidManifest.xml": app_manifest(package_name),
-        app_root / "app/src/main/res/values/strings.xml": (
-            f"<resources>\n    <string name=\"app_name\">{name}</string>\n</resources>\n"
-        ),
+        app_root / "app/src/main/res/values/strings.xml": f"<resources>\n    <string name=\"app_name\">{name}</string>\n</resources>\n",
         app_root / "feature/build.gradle.kts": feature_build_gradle(package_name),
         app_root / "feature/consumer-rules.pro": "# Feature consumer rules.\n",
         app_root / "feature/src/main/AndroidManifest.xml": feature_manifest(package_name),
-        app_root / "feature/src/main/java" / source_root / "MainActivity.kt": (
-            main_activity(package_name, name, description)
-        ),
-        app_root / "feature/src/main/java" / source_root / f"{name}SuiteRuntime.kt": (
-            runtime_source(package_name, name, feature_id)
-        ),
+        app_root / "feature/src/main/java" / source_root / "MainActivity.kt": main_activity(package_name, name, description),
+        app_root / "feature/src/main/java" / source_root / f"{name}SuiteRuntime.kt": runtime_source(package_name, name, feature_id),
     }
 
     if args.dry_run:
@@ -418,15 +364,10 @@ def main() -> None:
     CATALOG.write_text(current_catalog + entry.lstrip("\n"), encoding="utf-8")
     print(f"new-feature: updated {CATALOG.relative_to(ROOT)}")
 
-    mirror = app_root / "gradle/libs.versions.toml"
-    write(mirror, VERSION_CATALOG.read_text(encoding="utf-8"))
-
+    write(app_root / "gradle/libs.versions.toml", VERSION_CATALOG.read_text(encoding="utf-8"))
     subprocess.run([sys.executable, str(ROOT / "tools/generate_feature_catalog.py")], check=True)
     subprocess.run([sys.executable, str(ROOT / "tools/sync_version_catalog.py")], check=True)
-    print(
-        "new-feature: scaffold complete. Add business code under feature/, then run "
-        "python3 tools/verify_feature_catalog.py and build the standalone app."
-    )
+    print("new-feature: scaffold complete. Add business code under feature/, verify, then build standalone.")
 
 
 if __name__ == "__main__":

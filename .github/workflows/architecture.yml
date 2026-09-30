@@ -39,6 +39,9 @@ jobs:
       - name: Verify unified feature state gating
         run: python3 tools/verify_feature_state_gating.py
 
+      - name: Verify unified UI framework
+        run: python3 tools/verify_ui_framework.py
+
       - name: Verify YSuite host ownership
         run: python3 tools/verify_host_ownership.py
 
