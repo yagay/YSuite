@@ -1,0 +1,56 @@
+package com.yagay.YNotify.data;
+
+import android.content.Context;
+
+import androidx.room.Database;
+import androidx.room.Room;
+import androidx.room.RoomDatabase;
+
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory;
+
+@Database(
+        entities = {
+                EventRecord.class,
+                EventFts.class,
+                NotificationInstance.class,
+                NotificationRevision.class,
+                CaptureGap.class
+        },
+        version = 5,
+        exportSchema = false
+)
+public abstract class NotifyDatabase extends RoomDatabase {
+    private static volatile NotifyDatabase INSTANCE;
+
+    public abstract EventDao eventDao();
+    public abstract EventFtsDao eventFtsDao();
+    public abstract HistoryDao historyDao();
+
+    public static NotifyDatabase get(Context context) {
+        if (INSTANCE == null) {
+            synchronized (NotifyDatabase.class) {
+                if (INSTANCE == null) {
+                    Context app = context.getApplicationContext();
+                    System.loadLibrary("sqlcipher");
+                    byte[] passphrase = DbKeyManager.getOrCreate(app);
+                    SupportOpenHelperFactory factory = new SupportOpenHelperFactory(passphrase);
+                    INSTANCE = Room.databaseBuilder(app, NotifyDatabase.class, "ynotify.db")
+                            .openHelperFactory(factory)
+                            .addMigrations(
+                                    DatabaseMigrations.MIGRATION_1_2,
+                                    DatabaseMigrations.MIGRATION_2_3,
+                                    DatabaseMigrations.MIGRATION_3_4,
+                                    DatabaseMigrations.MIGRATION_4_5)
+                            .build();
+                    EventStore.io().execute(() -> {
+                        try {
+                            INSTANCE.eventFtsDao().backfillMissing();
+                            INSTANCE.eventFtsDao().prune();
+                        } catch (Throwable ignored) {}
+                    });
+                }
+            }
+        }
+        return INSTANCE;
+    }
+}

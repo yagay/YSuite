@@ -1,0 +1,1300 @@
+-- Merging decision tree log ---
+provider#com.yagay.YSuite.ipc.SuiteGoogleBridgeProvider
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:98:9-102:51
+	android:grantUriPermissions
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:102:13-48
+	android:authorities
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:100:13-64
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:101:13-36
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:99:13-58
+provider#com.yagay.YSuite.ipc.SuiteMiniGuardStatusProvider
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:104:9-109:51
+	android:grantUriPermissions
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:109:13-48
+	android:authorities
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:106:13-65
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:108:13-36
+	android:directBootAware
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:107:13-43
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:105:13-61
+provider#com.yagay.YSuite.ipc.SuiteNfcConfigProvider
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:111:9-115:39
+	android:authorities
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:113:13-63
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:115:13-36
+	android:directBootAware
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:114:13-43
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:112:13-55
+manifest
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:2:1-117:12
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:2:1-117:12
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:2:1-117:12
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:2:1-117:12
+MERGED from [:core] /home/runner/work/YSuite/YSuite/libs/ycore/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
+MERGED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-33:12
+MERGED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-48:12
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-41:12
+MERGED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-26:12
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-94:12
+MERGED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-25:12
+MERGED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-15:12
+MERGED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-18:12
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-136:12
+MERGED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-20:12
+MERGED from [com.google.android.material:material:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/ad80a3972e711b9fe191e029983147ff/transformed/material-1.13.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.appcompat:appcompat-resources:1.7.1] /home/runner/.gradle/caches/9.4.1/transforms/981fe0a0f54901f056dd4fe09d0b2b94/transformed/appcompat-resources-1.7.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.0] /home/runner/.gradle/caches/9.4.1/transforms/703ad5f0bc7ab5c73de738805c7b3c4c/transformed/constraintlayout-2.1.0/AndroidManifest.xml:2:1-11:12
+MERGED from [com.google.mlkit:text-recognition:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/2e582a875137626ebbaf244c5e2da6ac/transformed/text-recognition-16.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.mlkit:text-recognition-chinese:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/d46f56f2a607b3b839508688f2818000/transformed/text-recognition-chinese-16.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition:19.0.1] /home/runner/.gradle/caches/9.4.1/transforms/1d8e99939c561d32fb2392855a4e7e7a/transformed/play-services-mlkit-text-recognition-19.0.1/AndroidManifest.xml:2:1-8:12
+MERGED from [com.google.mlkit:text-recognition-bundled-common:17.0.0] /home/runner/.gradle/caches/9.4.1/transforms/2608b1604569c9ca2bbafeccb2b4ffd6/transformed/text-recognition-bundled-common-17.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition-chinese:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/a8bd88c5f84908978dbafafaac1eee53/transformed/play-services-mlkit-text-recognition-chinese-16.0.1/AndroidManifest.xml:2:1-8:12
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:2:1-18:12
+MERGED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:2:1-18:12
+MERGED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:2:1-26:12
+MERGED from [androidx.appcompat:appcompat:1.7.1] /home/runner/.gradle/caches/9.4.1/transforms/249607eeeec6e7e68f57a5b622d55286/transformed/appcompat-1.7.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.recyclerview:recyclerview:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/f2012b075629a4090a6be0ee8927d914/transformed/recyclerview-1.4.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.viewpager2:viewpager2:1.1.0-beta02] /home/runner/.gradle/caches/9.4.1/transforms/8d22b933621513a89d97db0cd8178957/transformed/viewpager2-1.1.0-beta02/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.mlkit:vision-interfaces:16.3.0] /home/runner/.gradle/caches/9.4.1/transforms/4ad27e850ba25f1ed995ed0da413c3fc/transformed/vision-interfaces-16.3.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/runner/.gradle/caches/9.4.1/transforms/010958da0fe44cdeee552179c78ac687/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:2:1-5:12
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/runner/.gradle/caches/9.4.1/transforms/89cb8227bd8f8041555bae932c19a819/transformed/play-services-basement-18.4.0/AndroidManifest.xml:2:1-9:12
+MERGED from [androidx.fragment:fragment:1.5.4] /home/runner/.gradle/caches/9.4.1/transforms/722c297d7ad77d26032a743e628c616d/transformed/fragment-1.5.4/AndroidManifest.xml:17:1-24:12
+MERGED from [:yfloat-ppocr-sdk] /home/runner/work/YSuite/YSuite/apps/YFloat/ppocr-sdk/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/90b73b43d547919b9222f37b1305caeb/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.graphics:graphics-shapes-android:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/e9af1eef799651f557e3eb1704a449de/transformed/graphics-shapes-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.loader:loader:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/4d0ecd5956837247f775a699f3824072/transformed/loader-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/acb4233fa27dd2cea56012a74cf4630c/transformed/material3/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.animation:animation-core-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/5d7e7dbf194a2924331909991308de1e/transformed/animation-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/f7453289b8cb6963d7019ca30e68dca8/transformed/material-ripple/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/e071251ba60be57ef3f8be273f05ccfa/transformed/animation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/dad7fcbe7874fed684b3a5803d1e0831/transformed/foundation-layout/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/a2076ac0c1f1b452dc54aebd321dab97/transformed/foundation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/3648d1e2e820f753179447c1aead5a32/transformed/ui-unit/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/b33524c63707f6af866fb879c4fe2258/transformed/ui-graphics/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/f9ee4a88942fe1066027be07044abe86/transformed/ui-geometry/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/67ca1037e1e264e574f8e1c4fe371234/transformed/ui-util/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/c4cb39572d5cfd90fc80c793cd8b04e2/transformed/ui-tooling-preview/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-text-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/2014a40a48d2d131d8ac39f105adf94c/transformed/ui-text/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/a9c8e8444c933826cd0f10fbc640b0c7/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/a9b6f645802dafc370d0bd51544536ef/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:2:1-5:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/d5aa5cc7ec9cf3ed6d0869042a77c3a4/transformed/lifecycle-viewmodel/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/3aff0e21ced8923fb4168e0e5d130ee8/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/dec446dd6a95f743b1852cf02c89c5e9/transformed/navigationevent/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/7aa2ff517b6a8d9cbc85782a20a95564/transformed/navigationevent-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/a67d68676a85539b02a6490a1f86e707/transformed/runtime-annotation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/16ebbb84d4c4080682fd9700001b7af1/transformed/runtime-retain/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/e208a6fec3df37e43988b16a610b77b1/transformed/runtime/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/4471cc597dbf8f8549ba6916ce7efd1a/transformed/runtime-saveable/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/37fba6ff7023a73809cc243b121d29e3/transformed/savedstate-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/25135019279ee77ef6942ed6b422668e/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/b62695d8f454739739beb499d65d12b6/transformed/savedstate/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core-ktx:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/65396adffeefc7fd7815ce196c01bc86/transformed/core-ktx-1.18.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /home/runner/.gradle/caches/9.4.1/transforms/102f1d20f19a39d391e6b177c29bed62/transformed/drawerlayout-1.1.1/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/aed94c0e95d88a84b04ccec683e327b9/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.transition:transition:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/1a5fe568b8fd82d3fe725d28ec605193/transformed/transition-1.5.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/559b40bc11ba5cafb87eaec55976117b/transformed/dynamicanimation-1.1.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/3ee130e53d30e2824fd450a57fe00250/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/8979985f696838912bd11f6e885e02e4/transformed/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/72b88666ccc113e90d78559bc1afb78e/transformed/viewpager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/84803fc93859654e5860a60a4da4d7e0/transformed/customview-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.autofill:autofill:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/3db290dfa574014616e1f4c4878c2f07/transformed/autofill-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.window:window-core-android:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/1112cd075f34d609dfb691124a1b4dfc/transformed/window-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/cceb377538dac58047177fc0969d837b/transformed/graphics-path-1.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/4e52a528122fa1b999226d93f587204a/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/fe7bca6dadff2901065f73beee2e31af/transformed/lifecycle-runtime/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/e7d25a16b7658b59f2730d7a95db0bfb/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/d5817095dfb9ce1e8928c94df135f65b/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/5473ca5bb3d582523211b8e3ebaaf1d4/transformed/lifecycle-runtime-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/e74a7deff9480808c8b7c9d2746b941e/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/7a7ad0f47b187e6b3555e093e1520533/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/4a794080a3e5e44367dec4567fbf8e10/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /home/runner/.gradle/caches/9.4.1/transforms/af54f0dc2d5f2d9d56fb3db2ddd08480/transformed/material-icons-extended-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /home/runner/.gradle/caches/9.4.1/transforms/575de05af046c08a8c18ee60db1127bc/transformed/material-icons-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/9260d65334c0f28f0b10ee9f8ee22aa2/transformed/ui/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-ktx:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/aba9f780d686dfefc330aa14a696083f/transformed/activity-ktx-1.13.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/e51d571452217812b0183580b41d0305/transformed/activity-1.13.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.activity:activity-compose:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/c0895f160fdcb372c496046bcfa4cb98/transformed/activity-compose-1.13.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.databinding:viewbinding:9.2.0] /home/runner/.gradle/caches/9.4.1/transforms/671f04dbc81817d27a3377ff6523ae9b/transformed/viewbinding-9.2.0/AndroidManifest.xml:2:1-7:12
+MERGED from [net.zetetic:sqlcipher-android:4.19.0] /home/runner/.gradle/caches/9.4.1/transforms/a6e5e609ea76b04d2db4c92f0c03b6e3/transformed/sqlcipher-android-4.19.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.bytedance:bytehook:1.1.2] /home/runner/.gradle/caches/9.4.1/transforms/71b12d481c0bf65623961ba891352782/transformed/bytehook-1.1.2/AndroidManifest.xml:2:1-7:12
+MERGED from [com.bytedance.android:shadowhook:2.0.1] /home/runner/.gradle/caches/9.4.1/transforms/0ef6900355e618e8879e751e6141b75a/transformed/shadowhook-2.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.core:core-viewtree:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/0ae09d79b5f50134592a5c50bb940fbe/transformed/core-viewtree-1.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /home/runner/.gradle/caches/9.4.1/transforms/04ac9078975b4cb5190f092f3365b498/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.sqlite:sqlite-framework-android:2.7.0] /home/runner/.gradle/caches/9.4.1/transforms/99ba08f23fafd1cdb0ae363989dbf352/transformed/sqlite-framework/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.sqlite:sqlite-android:2.7.0] /home/runner/.gradle/caches/9.4.1/transforms/0473a99e957c6ae5057f8ac113a0550f/transformed/sqlite/AndroidManifest.xml:17:1-22:12
+MERGED from [org.opencv:opencv:4.12.0] /home/runner/.gradle/caches/9.4.1/transforms/1ac2819f26bcc70fd9bab90374b6b30a/transformed/opencv-4.12.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.startup:startup-runtime:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/5b3f5cd58309c7afca6446f747ff560f/transformed/startup-runtime-1.2.0/AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.documentfile:documentfile:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/adb76ba62291661bab4dd33f8cc98d4f/transformed/documentfile-1.0.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/dfacbcaa3c6ec8b22fbb4191bbe0ca64/transformed/cursoradapter-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cardview:cardview:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/e36d68be48c48386a595205d38aa9ef7/transformed/cardview-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/runner/.gradle/caches/9.4.1/transforms/552ade6f9db56d2e2deb755d58f16159/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:15:1-38:12
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:15:1-41:12
+MERGED from [com.google.android.datatransport:transport-api:2.2.1] /home/runner/.gradle/caches/9.4.1/transforms/ba65aa7787dd696b9720eeb8adf794c0/transformed/transport-api-2.2.1/AndroidManifest.xml:15:1-22:12
+MERGED from [com.google.firebase:firebase-components:16.1.0] /home/runner/.gradle/caches/9.4.1/transforms/6761701392eae00080a70b47e75b4ef0/transformed/firebase-components-16.1.0/AndroidManifest.xml:15:1-23:12
+MERGED from [com.google.firebase:firebase-encoders-json:17.1.0] /home/runner/.gradle/caches/9.4.1/transforms/b865b91eaa7afbd69e3ebeee0db81182/transformed/firebase-encoders-json-17.1.0/AndroidManifest.xml:15:1-23:12
+MERGED from [androidx.tracing:tracing:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/174dbad627301fcdde640f7fc30a54f8/transformed/tracing-1.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/faf08b08158afcd1943589b58b5435ed/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/runner/.gradle/caches/9.4.1/transforms/2cd93d4a750d60202b98132a9bf29811/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.exifinterface:exifinterface:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/fb33e7e7d444505faca71e411df67214/transformed/exifinterface-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:2:1-16:12
+MERGED from [com.github.topjohnwu.libsu:service:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/7c3bef54a2a3676a2c8332498c6a8754/transformed/service-6.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.github.topjohnwu.libsu:core:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/4e9a85115acbc66be07867c31fa3581d/transformed/core-6.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.github.topjohnwu.libsu:nio:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/3dff9fdd565871e08260b3e2594951da/transformed/nio-6.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [org.lsposed.hiddenapibypass:hiddenapibypass:6.1] /home/runner/.gradle/caches/9.4.1/transforms/ae0d9311cd8738c98c8afdb5893efbff/transformed/hiddenapibypass-6.1/AndroidManifest.xml:2:1-7:12
+MERGED from [io.github.libxposed:interface:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/e85b644723ff252155c7fcae30be8d97/transformed/interface-102.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.microsoft.onnxruntime:onnxruntime-android:1.24.3] /home/runner/.gradle/caches/9.4.1/transforms/a812caf3a245eb691da2db71b611fb0b/transformed/onnxruntime-android-1.24.3/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.odml:image:1.0.0-beta1] /home/runner/.gradle/caches/9.4.1/transforms/7ce4cd2f45e7a9724b3da596c2c526a2/transformed/image-1.0.0-beta1/AndroidManifest.xml:2:1-9:12
+	package
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+	xmlns:tools
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:3:5-51
+	android:versionCode
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:5:5-81
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:5-81
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:5-81
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-81
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-81
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:5-81
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:5-81
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:5:22-78
+application
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:7:5-116:19
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:7:5-116:19
+MERGED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:5-31:19
+MERGED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:5-31:19
+MERGED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-46:19
+MERGED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-46:19
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:5-39:19
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:5-39:19
+MERGED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-24:19
+MERGED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-24:19
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:65:5-92:19
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:65:5-92:19
+MERGED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:5-23:19
+MERGED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:5-23:19
+MERGED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-13:19
+MERGED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-13:19
+MERGED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-16:19
+MERGED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-16:19
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:41:5-134:19
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:41:5-134:19
+MERGED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-18:19
+MERGED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-18:19
+MERGED from [com.google.android.material:material:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/ad80a3972e711b9fe191e029983147ff/transformed/material-1.13.0/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.material:material:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/ad80a3972e711b9fe191e029983147ff/transformed/material-1.13.0/AndroidManifest.xml:22:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.0] /home/runner/.gradle/caches/9.4.1/transforms/703ad5f0bc7ab5c73de738805c7b3c4c/transformed/constraintlayout-2.1.0/AndroidManifest.xml:9:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.0] /home/runner/.gradle/caches/9.4.1/transforms/703ad5f0bc7ab5c73de738805c7b3c4c/transformed/constraintlayout-2.1.0/AndroidManifest.xml:9:5-20
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:8:5-16:19
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:8:5-16:19
+MERGED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:8:5-16:19
+MERGED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:8:5-16:19
+MERGED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:8:5-24:19
+MERGED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:8:5-24:19
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:4:5-6:19
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:4:5-6:19
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/runner/.gradle/caches/9.4.1/transforms/010958da0fe44cdeee552179c78ac687/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/runner/.gradle/caches/9.4.1/transforms/010958da0fe44cdeee552179c78ac687/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/runner/.gradle/caches/9.4.1/transforms/89cb8227bd8f8041555bae932c19a819/transformed/play-services-basement-18.4.0/AndroidManifest.xml:5:5-7:19
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/runner/.gradle/caches/9.4.1/transforms/89cb8227bd8f8041555bae932c19a819/transformed/play-services-basement-18.4.0/AndroidManifest.xml:5:5-7:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
+MERGED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
+MERGED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.startup:startup-runtime:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/5b3f5cd58309c7afca6446f747ff560f/transformed/startup-runtime-1.2.0/AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.startup:startup-runtime:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/5b3f5cd58309c7afca6446f747ff560f/transformed/startup-runtime-1.2.0/AndroidManifest.xml:23:5-29:19
+MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:28:5-36:19
+MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:28:5-36:19
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:25:5-39:19
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:25:5-39:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/runner/.gradle/caches/9.4.1/transforms/2cd93d4a750d60202b98132a9bf29811/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/runner/.gradle/caches/9.4.1/transforms/2cd93d4a750d60202b98132a9bf29811/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:8:5-14:19
+MERGED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:8:5-14:19
+MERGED from [com.google.android.odml:image:1.0.0-beta1] /home/runner/.gradle/caches/9.4.1/transforms/7ce4cd2f45e7a9724b3da596c2c526a2/transformed/image-1.0.0-beta1/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.odml:image:1.0.0-beta1] /home/runner/.gradle/caches/9.4.1/transforms/7ce4cd2f45e7a9724b3da596c2c526a2/transformed/image-1.0.0-beta1/AndroidManifest.xml:7:5-20
+	android:extractNativeLibs
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:11:9-35
+	android:label
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:10:9-31
+	android:allowBackup
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:9:9-36
+	android:theme
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:12:9-44
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:8:9-34
+activity#com.yagay.YSuite.MainActivity
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:14:9-21:20
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:16:13-36
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:15:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:17:13-20:29
+action#android.intent.action.MAIN
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:18:17-69
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:18:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:19:17-77
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:19:27-74
+service#com.yagay.YFloat.LensAccessibilityService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:25:9-27:35
+REJECTED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:121:9-133:19
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:27:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:26:13-69
+service#com.yagay.YNotify.collector.UiAccessibilityService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:28:9-30:35
+REJECTED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:29:9-41:19
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:30:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:29:13-78
+service#com.yagay.YNotify.collector.NotificationCaptureService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:31:9-33:35
+REJECTED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:20:9-28:19
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:33:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:32:13-82
+service#com.yagay.ypower.root.YPowerRootService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:34:9-36:35
+REJECTED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:36:9-38:40
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:36:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:35:13-67
+receiver#com.yagay.ypower.root.BootReceiver
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:37:9-39:35
+REJECTED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:28:9-34:20
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:39:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:38:13-62
+receiver#com.yagay.YFloat.FloatServiceBootReceiver
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:40:9-42:35
+REJECTED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:112:9-119:20
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:42:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:41:13-69
+receiver#com.yagay.YNotify.collector.XposedEventReceiver
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:43:9-45:35
+REJECTED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:43:9-45:39
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:45:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:44:13-75
+receiver#com.yagay.YFloat.GoogleCtsBridgeReceiver
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:46:9-48:35
+REJECTED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:106:9-108:39
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:48:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:47:13-68
+receiver#com.yagay.YFloat.GoogleCtsTraceReceiver
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:49:9-51:35
+REJECTED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:109:9-111:39
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:51:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:50:13-67
+provider#com.yagay.YFloat.GoogleCtsBridgeProvider
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:52:9-54:35
+REJECTED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:100:9-104:51
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:54:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:53:13-68
+provider#com.yagay.YMiniGuard.EngineStatusProvider
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:55:9-57:35
+REJECTED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:9-15:51
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:57:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:56:13-69
+provider#com.yagay.YNFC.ConfigProvider
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:58:9-60:35
+REJECTED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:18:9-22:39
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:60:13-32
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:59:13-57
+service#com.yagay.YSuite.accessibility.SuiteAccessibilityService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:62:9-73:19
+	android:label
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:64:13-70
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:66:13-36
+	android:permission
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:65:13-79
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:63:13-68
+intent-filter#action:name:android.accessibilityservice.AccessibilityService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:67:13-69:29
+action#android.accessibilityservice.AccessibilityService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:68:17-92
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:68:25-89
+meta-data#android.accessibilityservice
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:70:13-72:78
+	android:resource
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:72:17-75
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:71:17-60
+service#com.yagay.YSuite.notification.SuiteNotificationListenerService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:75:9-83:19
+	android:label
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:77:13-70
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:79:13-36
+	android:permission
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:78:13-87
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:76:13-74
+intent-filter#action:name:android.service.notification.NotificationListenerService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:80:13-82:29
+action#android.service.notification.NotificationListenerService
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:81:17-99
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:81:25-96
+receiver#com.yagay.YSuite.system.SuiteBootReceiver
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:85:9-92:20
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:87:13-37
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:86:13-53
+intent-filter#action:name:android.intent.action.BOOT_COMPLETED+action:name:android.intent.action.MY_PACKAGE_REPLACED
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:88:13-91:29
+action#android.intent.action.BOOT_COMPLETED
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:89:17-79
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:89:25-76
+action#android.intent.action.MY_PACKAGE_REPLACED
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:90:17-84
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:90:25-81
+receiver#com.yagay.YSuite.ipc.SuiteBridgeReceiver
+ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:94:9-96:39
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:96:13-36
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml:95:13-52
+uses-sdk
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+MERGED from [:core] /home/runner/work/YSuite/YSuite/libs/ycore/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:core] /home/runner/work/YSuite/YSuite/libs/ycore/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-44
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-44
+MERGED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-44
+MERGED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-44
+MERGED from [com.google.android.material:material:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/ad80a3972e711b9fe191e029983147ff/transformed/material-1.13.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.material:material:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/ad80a3972e711b9fe191e029983147ff/transformed/material-1.13.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.7.1] /home/runner/.gradle/caches/9.4.1/transforms/981fe0a0f54901f056dd4fe09d0b2b94/transformed/appcompat-resources-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.7.1] /home/runner/.gradle/caches/9.4.1/transforms/981fe0a0f54901f056dd4fe09d0b2b94/transformed/appcompat-resources-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.0] /home/runner/.gradle/caches/9.4.1/transforms/703ad5f0bc7ab5c73de738805c7b3c4c/transformed/constraintlayout-2.1.0/AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.0] /home/runner/.gradle/caches/9.4.1/transforms/703ad5f0bc7ab5c73de738805c7b3c4c/transformed/constraintlayout-2.1.0/AndroidManifest.xml:5:5-7:41
+MERGED from [com.google.mlkit:text-recognition:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/2e582a875137626ebbaf244c5e2da6ac/transformed/text-recognition-16.0.1/AndroidManifest.xml:5:5-44
+MERGED from [com.google.mlkit:text-recognition:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/2e582a875137626ebbaf244c5e2da6ac/transformed/text-recognition-16.0.1/AndroidManifest.xml:5:5-44
+MERGED from [com.google.mlkit:text-recognition-chinese:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/d46f56f2a607b3b839508688f2818000/transformed/text-recognition-chinese-16.0.1/AndroidManifest.xml:5:5-44
+MERGED from [com.google.mlkit:text-recognition-chinese:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/d46f56f2a607b3b839508688f2818000/transformed/text-recognition-chinese-16.0.1/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition:19.0.1] /home/runner/.gradle/caches/9.4.1/transforms/1d8e99939c561d32fb2392855a4e7e7a/transformed/play-services-mlkit-text-recognition-19.0.1/AndroidManifest.xml:6:5-44
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition:19.0.1] /home/runner/.gradle/caches/9.4.1/transforms/1d8e99939c561d32fb2392855a4e7e7a/transformed/play-services-mlkit-text-recognition-19.0.1/AndroidManifest.xml:6:5-44
+MERGED from [com.google.mlkit:text-recognition-bundled-common:17.0.0] /home/runner/.gradle/caches/9.4.1/transforms/2608b1604569c9ca2bbafeccb2b4ffd6/transformed/text-recognition-bundled-common-17.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.mlkit:text-recognition-bundled-common:17.0.0] /home/runner/.gradle/caches/9.4.1/transforms/2608b1604569c9ca2bbafeccb2b4ffd6/transformed/text-recognition-bundled-common-17.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition-chinese:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/a8bd88c5f84908978dbafafaac1eee53/transformed/play-services-mlkit-text-recognition-chinese-16.0.1/AndroidManifest.xml:6:5-44
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition-chinese:16.0.1] /home/runner/.gradle/caches/9.4.1/transforms/a8bd88c5f84908978dbafafaac1eee53/transformed/play-services-mlkit-text-recognition-chinese-16.0.1/AndroidManifest.xml:6:5-44
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:6:5-44
+MERGED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:6:5-44
+MERGED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:6:5-44
+MERGED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:6:5-44
+MERGED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:6:5-44
+MERGED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:6:5-44
+MERGED from [androidx.appcompat:appcompat:1.7.1] /home/runner/.gradle/caches/9.4.1/transforms/249607eeeec6e7e68f57a5b622d55286/transformed/appcompat-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat:1.7.1] /home/runner/.gradle/caches/9.4.1/transforms/249607eeeec6e7e68f57a5b622d55286/transformed/appcompat-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/f2012b075629a4090a6be0ee8927d914/transformed/recyclerview-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/f2012b075629a4090a6be0ee8927d914/transformed/recyclerview-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.viewpager2:viewpager2:1.1.0-beta02] /home/runner/.gradle/caches/9.4.1/transforms/8d22b933621513a89d97db0cd8178957/transformed/viewpager2-1.1.0-beta02/AndroidManifest.xml:5:5-44
+MERGED from [androidx.viewpager2:viewpager2:1.1.0-beta02] /home/runner/.gradle/caches/9.4.1/transforms/8d22b933621513a89d97db0cd8178957/transformed/viewpager2-1.1.0-beta02/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.mlkit:vision-interfaces:16.3.0] /home/runner/.gradle/caches/9.4.1/transforms/4ad27e850ba25f1ed995ed0da413c3fc/transformed/vision-interfaces-16.3.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.mlkit:vision-interfaces:16.3.0] /home/runner/.gradle/caches/9.4.1/transforms/4ad27e850ba25f1ed995ed0da413c3fc/transformed/vision-interfaces-16.3.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/runner/.gradle/caches/9.4.1/transforms/010958da0fe44cdeee552179c78ac687/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /home/runner/.gradle/caches/9.4.1/transforms/010958da0fe44cdeee552179c78ac687/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/runner/.gradle/caches/9.4.1/transforms/89cb8227bd8f8041555bae932c19a819/transformed/play-services-basement-18.4.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-basement:18.4.0] /home/runner/.gradle/caches/9.4.1/transforms/89cb8227bd8f8041555bae932c19a819/transformed/play-services-basement-18.4.0/AndroidManifest.xml:3:5-44
+MERGED from [androidx.fragment:fragment:1.5.4] /home/runner/.gradle/caches/9.4.1/transforms/722c297d7ad77d26032a743e628c616d/transformed/fragment-1.5.4/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.5.4] /home/runner/.gradle/caches/9.4.1/transforms/722c297d7ad77d26032a743e628c616d/transformed/fragment-1.5.4/AndroidManifest.xml:20:5-22:41
+MERGED from [:yfloat-ppocr-sdk] /home/runner/work/YSuite/YSuite/apps/YFloat/ppocr-sdk/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:yfloat-ppocr-sdk] /home/runner/work/YSuite/YSuite/apps/YFloat/ppocr-sdk/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/90b73b43d547919b9222f37b1305caeb/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/90b73b43d547919b9222f37b1305caeb/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.graphics:graphics-shapes-android:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/e9af1eef799651f557e3eb1704a449de/transformed/graphics-shapes-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.graphics:graphics-shapes-android:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/e9af1eef799651f557e3eb1704a449de/transformed/graphics-shapes-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.loader:loader:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/4d0ecd5956837247f775a699f3824072/transformed/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/4d0ecd5956837247f775a699f3824072/transformed/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/acb4233fa27dd2cea56012a74cf4630c/transformed/material3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/acb4233fa27dd2cea56012a74cf4630c/transformed/material3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/5d7e7dbf194a2924331909991308de1e/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/5d7e7dbf194a2924331909991308de1e/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/f7453289b8cb6963d7019ca30e68dca8/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/f7453289b8cb6963d7019ca30e68dca8/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/e071251ba60be57ef3f8be273f05ccfa/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/e071251ba60be57ef3f8be273f05ccfa/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/dad7fcbe7874fed684b3a5803d1e0831/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/dad7fcbe7874fed684b3a5803d1e0831/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/a2076ac0c1f1b452dc54aebd321dab97/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/a2076ac0c1f1b452dc54aebd321dab97/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/3648d1e2e820f753179447c1aead5a32/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/3648d1e2e820f753179447c1aead5a32/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/b33524c63707f6af866fb879c4fe2258/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/b33524c63707f6af866fb879c4fe2258/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/f9ee4a88942fe1066027be07044abe86/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/f9ee4a88942fe1066027be07044abe86/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/67ca1037e1e264e574f8e1c4fe371234/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/67ca1037e1e264e574f8e1c4fe371234/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/c4cb39572d5cfd90fc80c793cd8b04e2/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/c4cb39572d5cfd90fc80c793cd8b04e2/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/2014a40a48d2d131d8ac39f105adf94c/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/2014a40a48d2d131d8ac39f105adf94c/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/a9c8e8444c933826cd0f10fbc640b0c7/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/a9c8e8444c933826cd0f10fbc640b0c7/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/a9b6f645802dafc370d0bd51544536ef/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/a9b6f645802dafc370d0bd51544536ef/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/d5aa5cc7ec9cf3ed6d0869042a77c3a4/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/d5aa5cc7ec9cf3ed6d0869042a77c3a4/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/3aff0e21ced8923fb4168e0e5d130ee8/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/3aff0e21ced8923fb4168e0e5d130ee8/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/dec446dd6a95f743b1852cf02c89c5e9/transformed/navigationevent/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/dec446dd6a95f743b1852cf02c89c5e9/transformed/navigationevent/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/7aa2ff517b6a8d9cbc85782a20a95564/transformed/navigationevent-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/7aa2ff517b6a8d9cbc85782a20a95564/transformed/navigationevent-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/a67d68676a85539b02a6490a1f86e707/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/a67d68676a85539b02a6490a1f86e707/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/16ebbb84d4c4080682fd9700001b7af1/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/16ebbb84d4c4080682fd9700001b7af1/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/e208a6fec3df37e43988b16a610b77b1/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/e208a6fec3df37e43988b16a610b77b1/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/4471cc597dbf8f8549ba6916ce7efd1a/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/4471cc597dbf8f8549ba6916ce7efd1a/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/37fba6ff7023a73809cc243b121d29e3/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/37fba6ff7023a73809cc243b121d29e3/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/25135019279ee77ef6942ed6b422668e/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/25135019279ee77ef6942ed6b422668e/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/b62695d8f454739739beb499d65d12b6/transformed/savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/b62695d8f454739739beb499d65d12b6/transformed/savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core-ktx:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/65396adffeefc7fd7815ce196c01bc86/transformed/core-ktx-1.18.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/65396adffeefc7fd7815ce196c01bc86/transformed/core-ktx-1.18.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /home/runner/.gradle/caches/9.4.1/transforms/102f1d20f19a39d391e6b177c29bed62/transformed/drawerlayout-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /home/runner/.gradle/caches/9.4.1/transforms/102f1d20f19a39d391e6b177c29bed62/transformed/drawerlayout-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/aed94c0e95d88a84b04ccec683e327b9/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/aed94c0e95d88a84b04ccec683e327b9/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/1a5fe568b8fd82d3fe725d28ec605193/transformed/transition-1.5.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.transition:transition:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/1a5fe568b8fd82d3fe725d28ec605193/transformed/transition-1.5.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/559b40bc11ba5cafb87eaec55976117b/transformed/dynamicanimation-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/559b40bc11ba5cafb87eaec55976117b/transformed/dynamicanimation-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/3ee130e53d30e2824fd450a57fe00250/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/3ee130e53d30e2824fd450a57fe00250/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/8979985f696838912bd11f6e885e02e4/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/8979985f696838912bd11f6e885e02e4/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/72b88666ccc113e90d78559bc1afb78e/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/72b88666ccc113e90d78559bc1afb78e/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/84803fc93859654e5860a60a4da4d7e0/transformed/customview-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.1.0] /home/runner/.gradle/caches/9.4.1/transforms/84803fc93859654e5860a60a4da4d7e0/transformed/customview-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/3db290dfa574014616e1f4c4878c2f07/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/3db290dfa574014616e1f4c4878c2f07/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.window:window-core-android:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/1112cd075f34d609dfb691124a1b4dfc/transformed/window-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window-core-android:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/1112cd075f34d609dfb691124a1b4dfc/transformed/window-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/cceb377538dac58047177fc0969d837b/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/cceb377538dac58047177fc0969d837b/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/4e52a528122fa1b999226d93f587204a/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/4e52a528122fa1b999226d93f587204a/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/fe7bca6dadff2901065f73beee2e31af/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/fe7bca6dadff2901065f73beee2e31af/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/e7d25a16b7658b59f2730d7a95db0bfb/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/e7d25a16b7658b59f2730d7a95db0bfb/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/d5817095dfb9ce1e8928c94df135f65b/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/d5817095dfb9ce1e8928c94df135f65b/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/5473ca5bb3d582523211b8e3ebaaf1d4/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/5473ca5bb3d582523211b8e3ebaaf1d4/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/e74a7deff9480808c8b7c9d2746b941e/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/e74a7deff9480808c8b7c9d2746b941e/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/7a7ad0f47b187e6b3555e093e1520533/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/7a7ad0f47b187e6b3555e093e1520533/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/4a794080a3e5e44367dec4567fbf8e10/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/4a794080a3e5e44367dec4567fbf8e10/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /home/runner/.gradle/caches/9.4.1/transforms/af54f0dc2d5f2d9d56fb3db2ddd08480/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /home/runner/.gradle/caches/9.4.1/transforms/af54f0dc2d5f2d9d56fb3db2ddd08480/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /home/runner/.gradle/caches/9.4.1/transforms/575de05af046c08a8c18ee60db1127bc/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /home/runner/.gradle/caches/9.4.1/transforms/575de05af046c08a8c18ee60db1127bc/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/9260d65334c0f28f0b10ee9f8ee22aa2/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.12.0] /home/runner/.gradle/caches/9.4.1/transforms/9260d65334c0f28f0b10ee9f8ee22aa2/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/aba9f780d686dfefc330aa14a696083f/transformed/activity-ktx-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/aba9f780d686dfefc330aa14a696083f/transformed/activity-ktx-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/e51d571452217812b0183580b41d0305/transformed/activity-1.13.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/e51d571452217812b0183580b41d0305/transformed/activity-1.13.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-compose:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/c0895f160fdcb372c496046bcfa4cb98/transformed/activity-compose-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.13.0] /home/runner/.gradle/caches/9.4.1/transforms/c0895f160fdcb372c496046bcfa4cb98/transformed/activity-compose-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:21:5-44
+MERGED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:21:5-44
+MERGED from [androidx.databinding:viewbinding:9.2.0] /home/runner/.gradle/caches/9.4.1/transforms/671f04dbc81817d27a3377ff6523ae9b/transformed/viewbinding-9.2.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.databinding:viewbinding:9.2.0] /home/runner/.gradle/caches/9.4.1/transforms/671f04dbc81817d27a3377ff6523ae9b/transformed/viewbinding-9.2.0/AndroidManifest.xml:5:5-44
+MERGED from [net.zetetic:sqlcipher-android:4.19.0] /home/runner/.gradle/caches/9.4.1/transforms/a6e5e609ea76b04d2db4c92f0c03b6e3/transformed/sqlcipher-android-4.19.0/AndroidManifest.xml:5:5-44
+MERGED from [net.zetetic:sqlcipher-android:4.19.0] /home/runner/.gradle/caches/9.4.1/transforms/a6e5e609ea76b04d2db4c92f0c03b6e3/transformed/sqlcipher-android-4.19.0/AndroidManifest.xml:5:5-44
+MERGED from [com.bytedance:bytehook:1.1.2] /home/runner/.gradle/caches/9.4.1/transforms/71b12d481c0bf65623961ba891352782/transformed/bytehook-1.1.2/AndroidManifest.xml:5:5-44
+MERGED from [com.bytedance:bytehook:1.1.2] /home/runner/.gradle/caches/9.4.1/transforms/71b12d481c0bf65623961ba891352782/transformed/bytehook-1.1.2/AndroidManifest.xml:5:5-44
+MERGED from [com.bytedance.android:shadowhook:2.0.1] /home/runner/.gradle/caches/9.4.1/transforms/0ef6900355e618e8879e751e6141b75a/transformed/shadowhook-2.0.1/AndroidManifest.xml:5:5-44
+MERGED from [com.bytedance.android:shadowhook:2.0.1] /home/runner/.gradle/caches/9.4.1/transforms/0ef6900355e618e8879e751e6141b75a/transformed/shadowhook-2.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-viewtree:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/0ae09d79b5f50134592a5c50bb940fbe/transformed/core-viewtree-1.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-viewtree:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/0ae09d79b5f50134592a5c50bb940fbe/transformed/core-viewtree-1.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /home/runner/.gradle/caches/9.4.1/transforms/04ac9078975b4cb5190f092f3365b498/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /home/runner/.gradle/caches/9.4.1/transforms/04ac9078975b4cb5190f092f3365b498/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.sqlite:sqlite-framework-android:2.7.0] /home/runner/.gradle/caches/9.4.1/transforms/99ba08f23fafd1cdb0ae363989dbf352/transformed/sqlite-framework/AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite-framework-android:2.7.0] /home/runner/.gradle/caches/9.4.1/transforms/99ba08f23fafd1cdb0ae363989dbf352/transformed/sqlite-framework/AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite-android:2.7.0] /home/runner/.gradle/caches/9.4.1/transforms/0473a99e957c6ae5057f8ac113a0550f/transformed/sqlite/AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite-android:2.7.0] /home/runner/.gradle/caches/9.4.1/transforms/0473a99e957c6ae5057f8ac113a0550f/transformed/sqlite/AndroidManifest.xml:20:5-44
+MERGED from [org.opencv:opencv:4.12.0] /home/runner/.gradle/caches/9.4.1/transforms/1ac2819f26bcc70fd9bab90374b6b30a/transformed/opencv-4.12.0/AndroidManifest.xml:5:5-44
+MERGED from [org.opencv:opencv:4.12.0] /home/runner/.gradle/caches/9.4.1/transforms/1ac2819f26bcc70fd9bab90374b6b30a/transformed/opencv-4.12.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/5b3f5cd58309c7afca6446f747ff560f/transformed/startup-runtime-1.2.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/5b3f5cd58309c7afca6446f747ff560f/transformed/startup-runtime-1.2.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/adb76ba62291661bab4dd33f8cc98d4f/transformed/documentfile-1.0.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.1] /home/runner/.gradle/caches/9.4.1/transforms/adb76ba62291661bab4dd33f8cc98d4f/transformed/documentfile-1.0.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/dfacbcaa3c6ec8b22fbb4191bbe0ca64/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/dfacbcaa3c6ec8b22fbb4191bbe0ca64/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/e36d68be48c48386a595205d38aa9ef7/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/e36d68be48c48386a595205d38aa9ef7/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/runner/.gradle/caches/9.4.1/transforms/552ade6f9db56d2e2deb755d58f16159/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/runner/.gradle/caches/9.4.1/transforms/552ade6f9db56d2e2deb755d58f16159/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:19:5-21:41
+MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:19:5-21:41
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-api:2.2.1] /home/runner/.gradle/caches/9.4.1/transforms/ba65aa7787dd696b9720eeb8adf794c0/transformed/transport-api-2.2.1/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-api:2.2.1] /home/runner/.gradle/caches/9.4.1/transforms/ba65aa7787dd696b9720eeb8adf794c0/transformed/transport-api-2.2.1/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.firebase:firebase-components:16.1.0] /home/runner/.gradle/caches/9.4.1/transforms/6761701392eae00080a70b47e75b4ef0/transformed/firebase-components-16.1.0/AndroidManifest.xml:19:5-21:41
+MERGED from [com.google.firebase:firebase-components:16.1.0] /home/runner/.gradle/caches/9.4.1/transforms/6761701392eae00080a70b47e75b4ef0/transformed/firebase-components-16.1.0/AndroidManifest.xml:19:5-21:41
+MERGED from [com.google.firebase:firebase-encoders-json:17.1.0] /home/runner/.gradle/caches/9.4.1/transforms/b865b91eaa7afbd69e3ebeee0db81182/transformed/firebase-encoders-json-17.1.0/AndroidManifest.xml:19:5-21:41
+MERGED from [com.google.firebase:firebase-encoders-json:17.1.0] /home/runner/.gradle/caches/9.4.1/transforms/b865b91eaa7afbd69e3ebeee0db81182/transformed/firebase-encoders-json-17.1.0/AndroidManifest.xml:19:5-21:41
+MERGED from [androidx.tracing:tracing:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/174dbad627301fcdde640f7fc30a54f8/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.tracing:tracing:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/174dbad627301fcdde640f7fc30a54f8/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/faf08b08158afcd1943589b58b5435ed/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/faf08b08158afcd1943589b58b5435ed/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/runner/.gradle/caches/9.4.1/transforms/2cd93d4a750d60202b98132a9bf29811/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/runner/.gradle/caches/9.4.1/transforms/2cd93d4a750d60202b98132a9bf29811/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.exifinterface:exifinterface:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/fb33e7e7d444505faca71e411df67214/transformed/exifinterface-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.exifinterface:exifinterface:1.0.0] /home/runner/.gradle/caches/9.4.1/transforms/fb33e7e7d444505faca71e411df67214/transformed/exifinterface-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:6:5-44
+MERGED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:6:5-44
+MERGED from [com.github.topjohnwu.libsu:service:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/7c3bef54a2a3676a2c8332498c6a8754/transformed/service-6.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.github.topjohnwu.libsu:service:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/7c3bef54a2a3676a2c8332498c6a8754/transformed/service-6.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.github.topjohnwu.libsu:core:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/4e9a85115acbc66be07867c31fa3581d/transformed/core-6.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.github.topjohnwu.libsu:core:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/4e9a85115acbc66be07867c31fa3581d/transformed/core-6.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.github.topjohnwu.libsu:nio:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/3dff9fdd565871e08260b3e2594951da/transformed/nio-6.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.github.topjohnwu.libsu:nio:6.0.0] /home/runner/.gradle/caches/9.4.1/transforms/3dff9fdd565871e08260b3e2594951da/transformed/nio-6.0.0/AndroidManifest.xml:5:5-44
+MERGED from [org.lsposed.hiddenapibypass:hiddenapibypass:6.1] /home/runner/.gradle/caches/9.4.1/transforms/ae0d9311cd8738c98c8afdb5893efbff/transformed/hiddenapibypass-6.1/AndroidManifest.xml:5:5-73
+MERGED from [org.lsposed.hiddenapibypass:hiddenapibypass:6.1] /home/runner/.gradle/caches/9.4.1/transforms/ae0d9311cd8738c98c8afdb5893efbff/transformed/hiddenapibypass-6.1/AndroidManifest.xml:5:5-73
+MERGED from [io.github.libxposed:interface:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/e85b644723ff252155c7fcae30be8d97/transformed/interface-102.0.0/AndroidManifest.xml:5:5-44
+MERGED from [io.github.libxposed:interface:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/e85b644723ff252155c7fcae30be8d97/transformed/interface-102.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.microsoft.onnxruntime:onnxruntime-android:1.24.3] /home/runner/.gradle/caches/9.4.1/transforms/a812caf3a245eb691da2db71b611fb0b/transformed/onnxruntime-android-1.24.3/AndroidManifest.xml:5:5-44
+MERGED from [com.microsoft.onnxruntime:onnxruntime-android:1.24.3] /home/runner/.gradle/caches/9.4.1/transforms/a812caf3a245eb691da2db71b611fb0b/transformed/onnxruntime-android-1.24.3/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.odml:image:1.0.0-beta1] /home/runner/.gradle/caches/9.4.1/transforms/7ce4cd2f45e7a9724b3da596c2c526a2/transformed/image-1.0.0-beta1/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.odml:image:1.0.0-beta1] /home/runner/.gradle/caches/9.4.1/transforms/7ce4cd2f45e7a9724b3da596c2c526a2/transformed/image-1.0.0-beta1/AndroidManifest.xml:5:5-44
+	android:targetSdkVersion
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/runner/work/YSuite/YSuite/suite/YSuite/src/main/AndroidManifest.xml
+uses-permission#android.permission.QUERY_ALL_PACKAGES
+ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-77
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:5-15:53
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:5-15:53
+	tools:ignore
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:9-50
+	android:name
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:22-74
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-77
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:5-77
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:5-77
+	android:name
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-77
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:5-77
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:5-77
+	android:name
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_DATA_SYNC
+ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:5-87
+	android:name
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:22-84
+activity#com.yagay.ydiag.ui.MainActivity
+ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:9-15:40
+	android:exported
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:13-37
+	android:name
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:13-59
+service#com.yagay.ydiag.service.MonitorService
+ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:17:9-20:56
+	android:exported
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:19:13-37
+	android:foregroundServiceType
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:20:13-53
+	android:name
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:18:13-66
+provider#androidx.core.content.FileProvider
+ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:22:9-30:20
+	android:grantUriPermissions
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:26:13-47
+	android:authorities
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:24:13-63
+	android:exported
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:23:13-62
+meta-data#android.support.FILE_PROVIDER_PATHS
+ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:27:13-29:60
+	android:resource
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:29:17-57
+	android:name
+		ADDED from [:ydiag-feature] /home/runner/work/YSuite/YSuite/apps/YDiag/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:28:17-67
+activity#com.yagay.YNotify.ui.EventDetailActivity
+ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:9-12:40
+	android:exported
+		ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:13-37
+	android:name
+		ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-68
+activity#com.yagay.YNotify.ui.AppHistoryActivity
+ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:9-15:40
+	android:exported
+		ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:13-37
+	android:name
+		ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:13-67
+activity#com.yagay.YNotify.ui.MainActivity
+ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:9-18:40
+	android:exported
+		ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:18:13-37
+	android:name
+		ADDED from [:ynotify-feature] /home/runner/work/YSuite/YSuite/apps/YNotify/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:17:13-61
+uses-permission#android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-95
+	android:name
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:22-92
+uses-permission#android.permission.WAKE_LOCK
+ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-68
+	android:name
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:22-65
+uses-permission#android.permission.PACKAGE_USAGE_STATS
+ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:5-78
+	android:name
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:22-75
+activity#com.yagay.ypower.ui.RecommendedAppsActivity
+ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:9-16:40
+	android:exported
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:13-37
+	android:name
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:13-71
+activity#com.yagay.ypower.ui.DiagnosticActivity
+ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:17:9-19:40
+	android:exported
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:19:13-37
+	android:name
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:18:13-66
+activity#com.yagay.ypower.ui.AppDetailActivity
+ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:20:9-22:40
+	android:exported
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:22:13-37
+	android:name
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:21:13-65
+activity#com.yagay.ypower.ui.MainActivity
+ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:23:9-25:40
+	android:exported
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [:ypower-feature] /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:24:13-60
+activity#com.yagay.YMiniGuard.TargetAppsActivity
+ADDED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:17:9-20:55
+	android:exported
+		ADDED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:19:13-37
+	android:theme
+		ADDED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:20:13-52
+	android:name
+		ADDED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:18:13-67
+activity#com.yagay.YMiniGuard.MainActivity
+ADDED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:21:9-23:55
+	android:theme
+		ADDED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:23:13-52
+	android:name
+		ADDED from [:yminiguard-feature] /home/runner/work/YSuite/YSuite/apps/YMiniGuard/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:22:13-61
+queries
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:5-63:15
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:18:5-39:15
+MERGED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:18:5-39:15
+package#com.android.systemui
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:9-56
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:18-53
+intent#action:name:android.service.quicksettings.action.QS_TILE
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:9-15:18
+action#android.service.quicksettings.action.QS_TILE
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:13-83
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:21-80
+intent#action:name:android.intent.action.CHOOSER
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:9-18:18
+action#android.intent.action.CHOOSER
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:17:13-68
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:17:21-65
+package#com.android.intentresolver
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:20:9-62
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:20:18-59
+package#android
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:21:9-43
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:21:18-40
+intent#action:name:android.intent.action.SEND+data:mimeType:*/*
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:23:9-27:18
+action#android.intent.action.SEND
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:24:13-65
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:24:21-62
+data
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:26:13-44
+	android:mimeType
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:26:19-41
+intent#action:name:android.intent.action.SEND_MULTIPLE+data:mimeType:*/*
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:28:9-32:18
+action#android.intent.action.SEND_MULTIPLE
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:29:13-74
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:29:21-71
+intent#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+data:scheme:http
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:33:9-39:18
+action#android.intent.action.VIEW
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:34:13-65
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:34:21-62
+category#android.intent.category.BROWSABLE
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:36:13-74
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:36:23-71
+intent#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+data:scheme:https
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:40:9-46:18
+intent#action:name:android.intent.action.VIEW+data:mimeType:*/*
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:47:9-51:18
+intent#action:name:android.intent.action.PROCESS_TEXT+data:mimeType:text/plain
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:52:9-56:18
+action#android.intent.action.PROCESS_TEXT
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:53:13-73
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:53:21-70
+intent#action:name:android.intent.action.CREATE_SHORTCUT
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:57:9-59:18
+action#android.intent.action.CREATE_SHORTCUT
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:58:13-76
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:58:21-73
+intent#action:name:android.appwidget.action.APPWIDGET_UPDATE
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:60:9-62:18
+action#android.appwidget.action.APPWIDGET_UPDATE
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:61:13-80
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:61:21-77
+receiver#com.yagay.YEntryCleaner.runtime.ComponentReconcileReceiver
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:66:9-82:20
+	android:enabled
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:68:13-35
+	android:exported
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:69:13-37
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:67:13-86
+intent-filter#action:name:android.intent.action.BOOT_COMPLETED+action:name:android.intent.action.MY_PACKAGE_REPLACED+action:name:android.intent.action.USER_UNLOCKED
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:70:13-74:29
+action#android.intent.action.USER_UNLOCKED
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:72:17-78
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:72:25-75
+intent-filter#action:name:android.intent.action.PACKAGE_ADDED+action:name:android.intent.action.PACKAGE_REMOVED+action:name:android.intent.action.PACKAGE_REPLACED+data:scheme:package
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:75:13-81:29
+action#android.intent.action.PACKAGE_ADDED
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:76:17-78
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:76:25-75
+action#android.intent.action.PACKAGE_REPLACED
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:77:17-81
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:77:25-78
+action#android.intent.action.PACKAGE_REMOVED
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:78:17-80
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:78:25-77
+service#com.yagay.YEntryCleaner.runtime.ComponentReconcileJobService
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:84:9-87:72
+	android:exported
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:86:13-37
+	android:permission
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:87:13-69
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:85:13-88
+activity#com.yagay.YEntryCleaner.ui.MainActivity
+ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:89:9-91:58
+	android:theme
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:91:13-55
+	android:name
+		ADDED from [:yentrycleaner-feature] /home/runner/work/YSuite/YSuite/apps/YEntryCleaner/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:90:13-67
+uses-permission#android.permission.NFC
+ADDED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-62
+	android:name
+		ADDED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:22-59
+uses-feature#android.hardware.nfc
+ADDED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-11:36
+	android:required
+		ADDED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:9-33
+	android:name
+		ADDED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:9-44
+activity#com.yagay.YNFC.MainActivity
+ADDED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:9-16:49
+	android:theme
+		ADDED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:13-46
+	android:name
+		ADDED from [:ynfc-feature] /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:13-55
+activity#com.yagay.YTaskManager.MainActivity
+ADDED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:9-12:57
+	android:theme
+		ADDED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:13-54
+	android:name
+		ADDED from [:ytask-feature] /home/runner/work/YSuite/YSuite/apps/YTaskManager/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-63
+activity#com.yagay.yparam.ui.AppDetailActivity
+ADDED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:9-12:40
+	android:exported
+		ADDED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:13-37
+	android:name
+		ADDED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-65
+activity#com.yagay.yparam.ui.MainActivity
+ADDED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:9-15:51
+	android:theme
+		ADDED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:13-48
+	android:name
+		ADDED from [:yparam-feature] /home/runner/work/YSuite/YSuite/apps/YParam/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:13-60
+uses-permission#android.permission.INTERNET
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-67
+MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:26:5-67
+MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:26:5-67
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:22-64
+uses-permission#android.permission.SYSTEM_ALERT_WINDOW
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:5-78
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:22-75
+uses-permission#android.permission.FOREGROUND_SERVICE_SPECIAL_USE
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:5-89
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:22-86
+intent#action:name:android.intent.action.SEND+data:mimeType:text/plain
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:24:9-28:18
+intent#action:name:android.intent.action.SEND+data:mimeType:image/*
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:29:9-33:18
+intent#action:name:android.intent.action.VIEW+data:scheme:https
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:34:9-38:18
+provider#com.yagay.YFloat.YFloatSuiteFileProvider
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:42:9-50:20
+	android:grantUriPermissions
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:46:13-47
+	android:authorities
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:44:13-64
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:45:13-37
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:43:13-68
+activity#com.yagay.YFloat.ResultActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:52:9-58:62
+	android:excludeFromRecents
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:54:13-46
+	android:launchMode
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:56:13-43
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:55:13-37
+	android:theme
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:58:13-59
+	android:taskAffinity
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:57:13-36
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:53:13-59
+activity#com.yagay.YFloat.ShadeDismissActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:59:9-65:64
+	android:excludeFromRecents
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:61:13-46
+	android:noHistory
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:63:13-37
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:62:13-37
+	android:theme
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:65:13-61
+	android:taskAffinity
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:64:13-36
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:60:13-65
+activity#com.yagay.YFloat.SecureCaptureProbeActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:66:9-70:39
+	android:excludeFromRecents
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:68:13-46
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:69:13-37
+	android:taskAffinity
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:70:13-36
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:67:13-71
+activity#com.yagay.YFloat.MenuPickerActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:71:9-73:40
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:73:13-37
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:72:13-63
+activity#com.yagay.YFloat.MenuLabelEditorActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:74:9-76:40
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:76:13-37
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:75:13-68
+activity#com.yagay.YFloat.GestureHubActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:77:9-79:40
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:79:13-37
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:78:13-63
+activity#com.yagay.YFloat.DiagnosticsActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:80:9-82:40
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:82:13-37
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:81:13-64
+activity#com.yagay.YFloat.AppearanceSettingsActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:83:9-85:40
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:85:13-37
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:84:13-71
+activity#com.yagay.YFloat.SettingsActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:86:9-88:40
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:88:13-37
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:87:13-61
+activity#com.yagay.YFloat.MainActivity
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:89:9-66
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:89:19-63
+service#com.yagay.YFloat.FloatService
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:91:9-98:19
+	android:exported
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:93:13-37
+	android:foregroundServiceType
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:94:13-55
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:92:13-57
+property#android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE
+ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:95:13-97:86
+	android:value
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:97:17-83
+	android:name
+		ADDED from [:yfloat-feature] /home/runner/work/YSuite/YSuite/apps/YFloat/feature/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:96:17-76
+provider#androidx.startup.InitializationProvider
+ADDED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:9-17:20
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/5b3f5cd58309c7afca6446f747ff560f/transformed/startup-runtime-1.2.0/AndroidManifest.xml:24:9-28:34
+MERGED from [androidx.startup:startup-runtime:1.2.0] /home/runner/.gradle/caches/9.4.1/transforms/5b3f5cd58309c7afca6446f747ff560f/transformed/startup-runtime-1.2.0/AndroidManifest.xml:24:9-28:34
+	tools:node
+		ADDED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:13-31
+	android:authorities
+		ADDED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-68
+	android:exported
+		ADDED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:13-37
+	android:name
+		ADDED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:13-67
+meta-data#com.yagay.yui.YUiInitializer
+ADDED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:13-16:52
+	android:value
+		ADDED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:17-49
+	android:name
+		ADDED from [:ui] /home/runner/work/YSuite/YSuite/libs/yui/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:17-60
+service#com.google.mlkit.common.internal.MlKitComponentDiscoveryService
+ADDED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:9:9-15:19
+MERGED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:9:9-15:19
+MERGED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:9:9-15:19
+MERGED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:15:9-23:19
+MERGED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:15:9-23:19
+	android:exported
+		ADDED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:11:13-37
+	tools:targetApi
+		ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:19:13-32
+	android:directBootAware
+		ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:17:13-43
+	android:name
+		ADDED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:10:13-91
+meta-data#com.google.firebase.components:com.google.mlkit.vision.text.internal.TextRegistrar
+ADDED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:12:13-14:85
+	android:value
+		ADDED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:14:17-82
+	android:name
+		ADDED from [com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /home/runner/.gradle/caches/9.4.1/transforms/2b9dc32696963758bff32216b82bfb53/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:13:17-114
+meta-data#com.google.firebase.components:com.google.mlkit.vision.common.internal.VisionCommonRegistrar
+ADDED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:12:13-14:85
+	android:value
+		ADDED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:14:17-82
+	android:name
+		ADDED from [com.google.mlkit:vision-common:17.3.0] /home/runner/.gradle/caches/9.4.1/transforms/47fbe68ccd29c633deae39f38c4838b0/transformed/vision-common-17.3.0/AndroidManifest.xml:13:17-124
+provider#com.google.mlkit.common.internal.MlKitInitProvider
+ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:9:9-13:38
+	android:authorities
+		ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:11:13-69
+	android:exported
+		ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:12:13-37
+	android:initOrder
+		ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:13:13-35
+	android:name
+		ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:10:13-78
+meta-data#com.google.firebase.components:com.google.mlkit.common.internal.CommonComponentRegistrar
+ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:20:13-22:85
+	android:value
+		ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:22:17-82
+	android:name
+		ADDED from [com.google.mlkit:common:18.11.0] /home/runner/.gradle/caches/9.4.1/transforms/99267295bd32c28422aa30d65fe640b9/transformed/common-18.11.0/AndroidManifest.xml:21:17-120
+activity#com.google.android.gms.common.api.GoogleApiActivity
+ADDED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:9-173
+	android:exported
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:146-170
+	android:theme
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:86-145
+	android:name
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] /home/runner/.gradle/caches/9.4.1/transforms/7e13527a6c0fc47c9a190781983f1d68/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:19-85
+meta-data#com.google.android.gms.version
+ADDED from [com.google.android.gms:play-services-basement:18.4.0] /home/runner/.gradle/caches/9.4.1/transforms/89cb8227bd8f8041555bae932c19a819/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:9-122
+	android:value
+		ADDED from [com.google.android.gms:play-services-basement:18.4.0] /home/runner/.gradle/caches/9.4.1/transforms/89cb8227bd8f8041555bae932c19a819/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:66-119
+	android:name
+		ADDED from [com.google.android.gms:play-services-basement:18.4.0] /home/runner/.gradle/caches/9.4.1/transforms/89cb8227bd8f8041555bae932c19a819/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:20-65
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/e6ccc6dedd24334cbc783c52697e60cc/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /home/runner/.gradle/caches/9.4.1/transforms/cedde9ae4579c7352e0dc756264edb5d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:30:17-78
+uses-library#androidx.window.extensions
+ADDED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
+	android:required
+		ADDED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
+uses-library#androidx.window.sidecar
+ADDED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
+	android:required
+		ADDED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
+	android:name
+		ADDED from [androidx.window:window:1.5.0] /home/runner/.gradle/caches/9.4.1/transforms/6c35a780d260c9b43c74b6890a92a030/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
+permission#com.yagay.YSuite.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
+uses-permission#com.yagay.YSuite.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.18.0] /home/runner/.gradle/caches/9.4.1/transforms/cee8e4c740fe0d935d06c71d79ad9297/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
+service#androidx.room.MultiInstanceInvalidationService
+ADDED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:24:9-28:63
+	android:exported
+		ADDED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:27:13-37
+	tools:ignore
+		ADDED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:28:13-60
+	android:directBootAware
+		ADDED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:26:13-43
+	android:name
+		ADDED from [androidx.room:room-runtime-android:2.7.2] /home/runner/.gradle/caches/9.4.1/transforms/acd2a47eb30e8614642cb56ab4d6afcd/transformed/room-runtime-release/AndroidManifest.xml:25:13-74
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /home/runner/.gradle/caches/9.4.1/transforms/9c9f40279ec96bda8090d36466740e02/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:25:5-79
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:22:5-79
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:22:5-79
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:25:22-76
+service#com.google.android.datatransport.runtime.backends.TransportBackendDiscovery
+ADDED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:29:9-35:19
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:36:9-38:40
+MERGED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:36:9-38:40
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:31:13-37
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:30:13-103
+meta-data#backend:com.google.android.datatransport.cct.CctBackendFactory
+ADDED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:32:13-34:39
+	android:value
+		ADDED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:34:17-36
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:2.3.3] /home/runner/.gradle/caches/9.4.1/transforms/715b15403f82e13d8e139bc567cec324/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:33:17-94
+service#com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService
+ADDED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:26:9-30:19
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:28:13-37
+	android:permission
+		ADDED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:29:13-69
+	android:name
+		ADDED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:27:13-117
+receiver#com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver
+ADDED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:32:9-34:40
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:34:13-37
+	android:name
+		ADDED from [com.google.android.datatransport:transport-runtime:2.2.6] /home/runner/.gradle/caches/9.4.1/transforms/9e4f92162b2a9726d4786e18b04556e7/transformed/transport-runtime-2.2.6/AndroidManifest.xml:33:13-132
+provider#io.github.libxposed.service.XposedProvider
+ADDED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:9:9-13:54
+	android:authorities
+		ADDED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:11:13-65
+	android:exported
+		ADDED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:12:13-36
+	tools:ignore
+		ADDED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:13:13-51
+	android:name
+		ADDED from [io.github.libxposed:service:102.0.0] /home/runner/.gradle/caches/9.4.1/transforms/8584a62a1ca04def3540d899be8612f2/transformed/service-102.0.0/AndroidManifest.xml:10:13-70

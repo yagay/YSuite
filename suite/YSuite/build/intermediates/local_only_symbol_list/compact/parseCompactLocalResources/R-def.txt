@@ -1,0 +1,12 @@
+R_DEF: Internal format may change without notice
+local
+string suite_accessibility_service_desc
+string suite_accessibility_service_label
+string suite_notification_listener_label
+style Theme.YEntryCleaner
+style Theme.YMiniGuard
+style Theme.YNFC
+style Theme.YParam
+style Theme.YSuite
+style Theme.YTaskManager
+xml suite_accessibility_service_config

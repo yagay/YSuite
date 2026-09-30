@@ -1,0 +1,14 @@
+com.yagay.YFloat
+color transparent
+drawable fl_pointer_image
+drawable fl_pointer_screenshot
+drawable fl_pointer_text
+id yfloat_text_selection_controller
+string yfloat_accessibility_desc
+string yfloat_accessibility_service_label
+style Theme_YFloat
+style Theme_YFloat_ResultDialog
+style Theme_YFloat_ResultText
+style Theme_YFloat_ShadeDismiss
+xml yfloat_accessibility_service_config
+xml yfloat_share_paths

@@ -1,0 +1,5 @@
+/usr/local/lib/android/sdk/cmake/3.22.1/bin/ninja \
+  -C \
+  /home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/arm64-v8a \
+  ypower_native_trace \
+  ypower_socket_trace

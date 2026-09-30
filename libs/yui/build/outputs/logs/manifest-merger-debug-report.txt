@@ -1,0 +1,36 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:2:1-15:12
+INJECTED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:2:1-15:12
+	package
+		INJECTED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml
+	xmlns:tools
+		ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:3:5-51
+	xmlns:android
+		ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:2:11-69
+application
+ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:4:5-14:19
+provider#androidx.startup.InitializationProvider
+ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:5:9-13:20
+	tools:node
+		ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:9:13-31
+	android:authorities
+		ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:7:13-68
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:8:13-37
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:6:13-67
+meta-data#com.yagay.yui.YUiInitializer
+ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:10:13-12:52
+	android:value
+		ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:12:17-49
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml:11:17-60
+uses-sdk
+INJECTED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml
+INJECTED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/runner/work/YSuite/YSuite/libs/yui/src/main/AndroidManifest.xml

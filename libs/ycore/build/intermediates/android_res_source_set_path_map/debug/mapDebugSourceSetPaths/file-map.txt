@@ -1,0 +1,9 @@
+com.yagay.suite.core-pngs-0 /home/runner/work/YSuite/YSuite/libs/ycore/build/generated/res/pngs/debug
+com.yagay.suite.core-updated_navigation_xml-1 /home/runner/work/YSuite/YSuite/libs/ycore/build/generated/updated_navigation_xml/debug
+com.yagay.suite.core-mergeDebugResources-2 /home/runner/work/YSuite/YSuite/libs/ycore/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+com.yagay.suite.core-mergeDebugResources-3 /home/runner/work/YSuite/YSuite/libs/ycore/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+com.yagay.suite.core-debug-4 /home/runner/work/YSuite/YSuite/libs/ycore/build/intermediates/merged_res/debug/mergeDebugResources
+com.yagay.suite.core-debug-5 /home/runner/work/YSuite/YSuite/libs/ycore/build/intermediates/packaged_res/debug/packageDebugResources
+com.yagay.suite.core-debug-6 /home/runner/work/YSuite/YSuite/libs/ycore/src/debug/res
+com.yagay.suite.core-main-7 /home/runner/work/YSuite/YSuite/libs/ycore/src/main/res
+gradleHome-0 /home/runner/.gradle

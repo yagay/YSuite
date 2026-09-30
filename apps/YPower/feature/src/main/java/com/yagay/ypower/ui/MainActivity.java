@@ -1,0 +1,162 @@
+package com.yagay.ypower.ui;
+
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.view.Gravity;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.yagay.ypower.data.ProfileStore;
+import com.yagay.ypower.data.RecommendedAppRegistry;
+import com.yagay.ypower.root.RootShell;
+import com.yagay.ypower.xposed.XposedBridgeManager;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+
+public class MainActivity extends AppCompatActivity {
+    private LinearLayout list;
+    private EditText search;
+    private TextView status;
+    private final List<ApplicationInfo> apps = new ArrayList<>();
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        buildUi();
+        loadApps("");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshRuntimeStatus();
+        if (list != null) loadApps(search == null ? "" : search.getText().toString());
+    }
+
+    private void buildUi() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(16), dp(16), dp(16), dp(16));
+
+        TextView title = new TextView(this);
+        title.setText("应用增强 · YPower");
+        title.setTextSize(24);
+        root.addView(title);
+
+        status = new TextView(this);
+        status.setPadding(0, dp(8), 0, dp(8));
+        root.addView(status);
+        refreshRuntimeStatus();
+
+        search = new EditText(this);
+        search.setHint("搜索应用或包名");
+        root.addView(search, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout actions = new LinearLayout(this);
+
+        Button refresh = new Button(this);
+        refresh.setText("搜索 / 刷新");
+        refresh.setOnClickListener(v -> {
+            refreshRuntimeStatus();
+            loadApps(search.getText().toString());
+        });
+        actions.addView(refresh, new LinearLayout.LayoutParams(0, -2, 1));
+
+        Button recommended = new Button(this);
+        recommended.setText("推荐应用");
+        recommended.setOnClickListener(v -> startActivity(new Intent(this, RecommendedAppsActivity.class)));
+        actions.addView(recommended, new LinearLayout.LayoutParams(0, -2, 1));
+
+        root.addView(actions);
+
+        ScrollView scroll = new ScrollView(this);
+        list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(list);
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        setContentView(root);
+    }
+
+    private void refreshRuntimeStatus() {
+        if (status == null) return;
+        status.setText("Root: " + (RootShell.isRootAvailable() ? "已连接" : "未授权")
+                + "    LSPosed Service: " + (XposedBridgeManager.isReady() ? "已连接" : "未连接"));
+    }
+
+    @SuppressWarnings("deprecation")
+    private void loadApps(String query) {
+        PackageManager pm = getPackageManager();
+        if (apps.isEmpty()) {
+            apps.addAll(pm.getInstalledApplications(0));
+            apps.removeIf(a -> getPackageName().equals(a.packageName));
+        }
+
+        ProfileStore store = ProfileStore.get(this);
+        apps.sort(
+                Comparator
+                        .comparing((ApplicationInfo a) -> !store.getProfile(a.packageName).enabled)
+                        .thenComparing(
+                                a -> String.valueOf(pm.getApplicationLabel(a)),
+                                String.CASE_INSENSITIVE_ORDER
+                        )
+                        .thenComparing(a -> a.packageName, String.CASE_INSENSITIVE_ORDER)
+        );
+
+        String q = query == null ? "" : query.toLowerCase(Locale.ROOT).trim();
+        list.removeAllViews();
+        for (ApplicationInfo app : apps) {
+            String label = String.valueOf(pm.getApplicationLabel(app));
+            if (!q.isEmpty() && !label.toLowerCase(Locale.ROOT).contains(q) && !app.packageName.toLowerCase(Locale.ROOT).contains(q)) continue;
+            addRow(label, app.packageName);
+        }
+    }
+
+    private void addRow(String label, String packageName) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(5), 0, dp(5));
+
+        CheckBox enabled = new CheckBox(this);
+        enabled.setChecked(ProfileStore.get(this).getProfile(packageName).enabled);
+        enabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            ProfileStore.get(this).setEnabled(packageName, isChecked);
+            buttonView.post(() -> loadApps(search == null ? "" : search.getText().toString()));
+        });
+        row.addView(enabled);
+
+        TextView text = new TextView(this);
+        boolean recommended = RecommendedAppRegistry.find(packageName) != null;
+        text.setText((recommended ? "★ " : "") + label + "\n" + packageName
+                + (recommended ? "\n推荐配置可用" : ""));
+        text.setTextSize(16);
+        text.setOnClickListener(v -> openDetails(packageName));
+        row.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
+
+        Button detail = new Button(this);
+        detail.setText("设置");
+        detail.setOnClickListener(v -> openDetails(packageName));
+        row.addView(detail);
+        list.addView(row);
+    }
+
+    private void openDetails(String packageName) {
+        Intent i = new Intent(this, AppDetailActivity.class);
+        i.putExtra("package", packageName);
+        startActivity(i);
+    }
+
+    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+}

@@ -1,0 +1,9 @@
+com.yagay.YNFC.ynfc-feature-pngs-0 /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/generated/res/pngs/debug
+com.yagay.YNFC.ynfc-feature-updated_navigation_xml-1 /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/generated/updated_navigation_xml/debug
+com.yagay.YNFC.ynfc-feature-mergeDebugResources-2 /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+com.yagay.YNFC.ynfc-feature-mergeDebugResources-3 /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+com.yagay.YNFC.ynfc-feature-debug-4 /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/merged_res/debug/mergeDebugResources
+com.yagay.YNFC.ynfc-feature-debug-5 /home/runner/work/YSuite/YSuite/apps/YNFC/feature/build/intermediates/packaged_res/debug/packageDebugResources
+com.yagay.YNFC.ynfc-feature-debug-6 /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/debug/res
+com.yagay.YNFC.ynfc-feature-main-7 /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/res
+gradleHome-0 /home/runner/.gradle

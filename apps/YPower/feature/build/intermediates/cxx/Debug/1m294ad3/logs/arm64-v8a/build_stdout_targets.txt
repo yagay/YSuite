@@ -1,0 +1,5 @@
+ninja: Entering directory `/home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/arm64-v8a'
+[1/4] Building CXX object CMakeFiles/ypower_socket_trace.dir/ypower_socket_trace.cpp.o
+[2/4] Linking CXX shared library /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/cxx/Debug/1m294ad3/obj/arm64-v8a/libypower_socket_trace.so
+[3/4] Building CXX object CMakeFiles/ypower_native_trace.dir/ypower_native_trace.cpp.o
+[4/4] Linking CXX shared library /home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/cxx/Debug/1m294ad3/obj/arm64-v8a/libypower_native_trace.so

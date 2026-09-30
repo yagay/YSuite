@@ -1,0 +1,259 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    xmlns:tools="http://schemas.android.com/tools"
+4    package="com.yagay.YFloat" >
+5
+6    <uses-sdk android:minSdkVersion="31" />
+6-->INJECTED
+6-->INJECTED
+7
+8    <uses-permission android:name="android.permission.INTERNET" />
+8-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:3:5-67
+8-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:3:22-64
+9    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+9-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:4:5-78
+9-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:4:22-75
+10    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+10-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:5:5-77
+10-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:5:22-74
+11    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+11-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:6:5-89
+11-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:6:22-86
+12    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+12-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:7:5-77
+12-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:7:22-74
+13    <uses-permission
+13-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:8:5-119
+14        android:name="android.permission.QUERY_ALL_PACKAGES"
+14-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:8:22-74
+15        tools:ignore="QueryAllPackagesPermission" />
+15-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:8:75-116
+16    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+16-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:9:5-81
+16-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:9:22-78
+17
+18    <queries>
+18-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:10:5-15:15
+19        <intent>
+19-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:9-124
+20            <action android:name="android.intent.action.PROCESS_TEXT" />
+20-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:17-77
+20-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:25-74
+21
+22            <data android:mimeType="text/plain" />
+22-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:77-115
+22-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:83-112
+23        </intent>
+24        <intent>
+24-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:12:9-116
+25            <action android:name="android.intent.action.SEND" />
+25-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:12:17-69
+25-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:12:25-66
+26
+27            <data android:mimeType="text/plain" />
+27-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:77-115
+27-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:83-112
+28        </intent>
+29        <intent>
+29-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:13:9-113
+30            <action android:name="android.intent.action.SEND" />
+30-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:12:17-69
+30-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:12:25-66
+31
+32            <data android:mimeType="image/*" />
+32-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:77-115
+32-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:83-112
+33        </intent>
+34        <intent>
+34-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:14:9-109
+35            <action android:name="android.intent.action.VIEW" />
+35-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:14:17-69
+35-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:14:25-66
+36
+37            <data android:scheme="https" />
+37-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:11:77-115
+37-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:14:75-97
+38        </intent>
+39    </queries>
+40
+41    <application>
+41-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:16:5-50:19
+42        <provider
+42-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:17:9-19:20
+43            android:name="com.yagay.YFloat.YFloatSuiteFileProvider"
+43-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:17:19-74
+44            android:authorities="${applicationId}.fileprovider"
+44-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:17:75-126
+45            android:exported="false"
+45-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:17:127-151
+46            android:grantUriPermissions="true" >
+46-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:17:152-186
+47            <meta-data
+47-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:18:13-120
+48                android:name="android.support.FILE_PROVIDER_PATHS"
+48-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:18:24-74
+49                android:resource="@xml/yfloat_share_paths" />
+49-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:18:75-117
+50        </provider>
+51
+52        <activity
+52-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:20:9-229
+53            android:name="com.yagay.YFloat.ResultActivity"
+53-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:20:19-65
+54            android:excludeFromRecents="true"
+54-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:20:138-171
+55            android:exported="false"
+55-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:20:113-137
+56            android:launchMode="singleTop"
+56-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:20:172-202
+57            android:taskAffinity=""
+57-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:20:203-226
+58            android:theme="@style/Theme.YFloat.ResultText" />
+58-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:20:66-112
+59        <activity
+59-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:21:9-231
+60            android:name="com.yagay.YFloat.ShadeDismissActivity"
+60-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:21:19-71
+61            android:excludeFromRecents="true"
+61-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:21:146-179
+62            android:exported="false"
+62-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:21:121-145
+63            android:noHistory="true"
+63-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:21:180-204
+64            android:taskAffinity=""
+64-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:21:205-228
+65            android:theme="@style/Theme.YFloat.ShadeDismiss" />
+65-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:21:72-120
+66        <activity
+66-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:22:9-163
+67            android:name="com.yagay.YFloat.SecureCaptureProbeActivity"
+67-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:22:19-77
+68            android:excludeFromRecents="true"
+68-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:22:103-136
+69            android:exported="false"
+69-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:22:78-102
+70            android:taskAffinity="" />
+70-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:22:137-160
+71        <activity
+71-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:23:9-97
+72            android:name="com.yagay.YFloat.MenuPickerActivity"
+72-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:23:19-69
+73            android:exported="false" />
+73-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:23:70-94
+74        <activity
+74-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:24:9-102
+75            android:name="com.yagay.YFloat.MenuLabelEditorActivity"
+75-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:24:19-74
+76            android:exported="false" />
+76-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:24:75-99
+77        <activity
+77-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:25:9-97
+78            android:name="com.yagay.YFloat.GestureHubActivity"
+78-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:25:19-69
+79            android:exported="false" />
+79-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:25:70-94
+80        <activity
+80-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:26:9-98
+81            android:name="com.yagay.YFloat.DiagnosticsActivity"
+81-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:26:19-70
+82            android:exported="false" />
+82-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:26:71-95
+83        <activity
+83-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:27:9-105
+84            android:name="com.yagay.YFloat.AppearanceSettingsActivity"
+84-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:27:19-77
+85            android:exported="false" />
+85-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:27:78-102
+86        <activity
+86-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:28:9-95
+87            android:name="com.yagay.YFloat.SettingsActivity"
+87-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:28:19-67
+88            android:exported="false" />
+88-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:28:68-92
+89        <activity android:name="com.yagay.YFloat.MainActivity" />
+89-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:29:9-66
+89-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:29:19-63
+90
+91        <service
+91-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:30:9-32:19
+92            android:name="com.yagay.YFloat.FloatService"
+92-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:30:18-62
+93            android:exported="false"
+93-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:30:63-87
+94            android:foregroundServiceType="specialUse" >
+94-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:30:88-130
+95            <property
+95-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:31:13-152
+96                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+96-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:31:23-82
+97                android:value="Persistent user-controlled floating gesture button" />
+97-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:31:83-149
+98        </service>
+99
+100        <provider
+100-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:33:9-189
+101            android:name="com.yagay.YFloat.GoogleCtsBridgeProvider"
+101-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:33:19-74
+102            android:authorities="${applicationId}.googlebridge"
+102-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:33:75-126
+103            android:exported="true"
+103-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:33:127-150
+104            android:grantUriPermissions="false" />
+104-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:33:151-186
+105
+106        <receiver
+106-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:34:9-101
+107            android:name="com.yagay.YFloat.GoogleCtsBridgeReceiver"
+107-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:34:19-74
+108            android:exported="true" />
+108-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:34:75-98
+109        <receiver
+109-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:35:9-100
+110            android:name="com.yagay.YFloat.GoogleCtsTraceReceiver"
+110-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:35:19-73
+111            android:exported="true" />
+111-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:35:74-97
+112        <receiver
+112-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:36:9-41:20
+113            android:name="com.yagay.YFloat.FloatServiceBootReceiver"
+113-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:36:19-75
+114            android:exported="false" >
+114-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:36:76-100
+115            <intent-filter>
+115-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:37:13-40:29
+116                <action android:name="android.intent.action.BOOT_COMPLETED" />
+116-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:38:17-79
+116-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:38:25-76
+117                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+117-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:39:17-84
+117-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:39:25-81
+118            </intent-filter>
+119        </receiver>
+120
+121        <service
+121-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:42:9-49:19
+122            android:name="com.yagay.YFloat.LensAccessibilityService"
+122-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:43:13-69
+123            android:exported="true"
+123-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:46:13-36
+124            android:label="@string/yfloat_accessibility_service_label"
+124-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:44:13-71
+125            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" >
+125-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:45:13-79
+126            <intent-filter>
+126-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:47:13-119
+127                <action android:name="android.accessibilityservice.AccessibilityService" />
+127-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:47:28-103
+127-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:47:36-100
+128            </intent-filter>
+129
+130            <meta-data
+130-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:48:13-130
+131                android:name="android.accessibilityservice"
+131-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:48:24-67
+132                android:resource="@xml/yfloat_accessibility_service_config" />
+132-->/home/runner/work/YSuite/YSuite/apps/YFloat/feature/src/main/AndroidManifest.xml:48:68-127
+133        </service>
+134    </application>
+135
+136</manifest>

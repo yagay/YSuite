@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Starter template for a standard Android locale resource file.
+
+      Usage:
+      1. Create app/src/main/res/values-<language>/.
+      2. Copy the relevant XML files from app/src/main/res/values/.
+      3. Translate only the string values; keep resource names and placeholders unchanged.
+      4. Add the locale tag to res/xml/locales_config.xml.
+
+      The complete source of truth is app/src/main/res/values/.
+      Missing translated keys automatically fall back to those English resources.
+    -->
+
+    <string name="app_name">YEntryCleaner</string>
+    <string name="common_search">TRANSLATE: Search</string>
+    <string name="common_refresh">TRANSLATE: Refresh</string>
+    <string name="common_save">TRANSLATE: Save</string>
+    <string name="common_cancel">TRANSLATE: Cancel</string>
+    <string name="common_delete">TRANSLATE: Delete</string>
+    <string name="common_done">TRANSLATE: Done</string>
+</resources>

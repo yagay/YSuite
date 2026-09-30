@@ -1,0 +1,45 @@
+-- Merging decision tree log ---
+provider#com.yagay.YNFC.ConfigProvider
+INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:9:9-13:39
+	android:authorities
+		INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:11:13-57
+	android:exported
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:13:13-36
+	android:directBootAware
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:12:13-43
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:10:13-57
+manifest
+ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:2:1-15:12
+INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:2:1-15:12
+	package
+		INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.NFC
+ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:3:5-62
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:3:22-59
+uses-feature#android.hardware.nfc
+ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:4:5-82
+	android:required
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:4:55-79
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:4:19-54
+application
+ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:5:5-14:19
+activity#com.yagay.YNFC.MainActivity
+ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:6:9-8:49
+	android:theme
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:8:13-46
+	android:name
+		ADDED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml:7:13-55
+uses-sdk
+INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml
+INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/runner/work/YSuite/YSuite/apps/YNFC/feature/src/main/AndroidManifest.xml

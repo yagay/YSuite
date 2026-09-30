@@ -1,0 +1,12 @@
+com.yagay.yui
+dimen yui_button_height
+dimen yui_card_padding
+dimen yui_card_radius
+dimen yui_control_gap
+dimen yui_screen_horizontal
+dimen yui_screen_vertical
+dimen yui_section_gap
+dimen yui_toolbar_height
+style Theme_YUI
+style Widget_YUI_Button
+style Widget_YUI_Card

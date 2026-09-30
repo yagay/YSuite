@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="suite_accessibility_service_desc">为 YSuite 功能提供统一的窗口识别、手势、截图和界面事件能力，只需授权一次。</string>
+    <string name="suite_accessibility_service_label">YSuite 统一无障碍</string>
+    <string name="suite_notification_listener_label">YSuite 统一通知监听</string>
+    <style name="Theme.YEntryCleaner" parent="Theme.YSuite"/>
+    <style name="Theme.YMiniGuard" parent="Theme.YSuite"/>
+    <style name="Theme.YNFC" parent="Theme.YSuite"/>
+    <style name="Theme.YParam" parent="Theme.YSuite"/>
+    <style name="Theme.YSuite" parent="Theme.YUI">
+        <item name="android:windowBackground">?attr/colorSurface</item>
+        <item name="android:colorBackground">?attr/colorSurface</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
+    <style name="Theme.YTaskManager" parent="Theme.YSuite"/>
+</resources>

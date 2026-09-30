@@ -1,0 +1,72 @@
+[
+{
+  "message": "Start JSON generation. Platform version: 31 min SDK version: armeabi-v7a",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "rebuilding JSON /home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/armeabi-v7a/android_gradle_build.json due to:",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "- no fingerprint file, will remove stale configuration folder",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "/usr/lib/jvm/temurin-17-jdk-amd64/bin/java \\\n  --enable-native-access \\\n  ALL-UNNAMED \\\n  --class-path \\\n  /home/runner/.gradle/caches/modules-2/files-2.1/com.google.prefab/cli/2.1.0/aa32fec809c44fa531f01dcfb739b5b3304d3050/cli-2.1.0-all.jar \\\n  com.google.prefab.cli.AppKt \\\n  --build-system \\\n  cmake \\\n  --platform \\\n  android \\\n  --abi \\\n  armeabi-v7a \\\n  --os-version \\\n  31 \\\n  --stl \\\n  c++_static \\\n  --ndk-version \\\n  27 \\\n  --output \\\n  /tmp/agp-prefab-staging8150360350852380639/staged-cli-output \\\n  /home/runner/.gradle/caches/9.4.1/transforms/71b12d481c0bf65623961ba891352782/transformed/bytehook-1.1.2/prefab \\\n  /home/runner/.gradle/caches/9.4.1/transforms/0ef6900355e618e8879e751e6141b75a/transformed/shadowhook-2.0.1/prefab\n",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "Received process result: 0",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "removing stale contents from \u0027/home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/armeabi-v7a\u0027",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "created folder \u0027/home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/armeabi-v7a\u0027",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "executing cmake /usr/local/lib/android/sdk/cmake/3.22.1/bin/cmake \\\n  -H/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp \\\n  -DCMAKE_SYSTEM_NAME\u003dAndroid \\\n  -DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON \\\n  -DCMAKE_SYSTEM_VERSION\u003d31 \\\n  -DANDROID_PLATFORM\u003dandroid-31 \\\n  -DANDROID_ABI\u003darmeabi-v7a \\\n  -DCMAKE_ANDROID_ARCH_ABI\u003darmeabi-v7a \\\n  -DANDROID_NDK\u003d/usr/local/lib/android/sdk/ndk/27.2.12479018 \\\n  -DCMAKE_ANDROID_NDK\u003d/usr/local/lib/android/sdk/ndk/27.2.12479018 \\\n  -DCMAKE_TOOLCHAIN_FILE\u003d/usr/local/lib/android/sdk/ndk/27.2.12479018/build/cmake/android.toolchain.cmake \\\n  -DCMAKE_MAKE_PROGRAM\u003d/usr/local/lib/android/sdk/cmake/3.22.1/bin/ninja \\\n  -DCMAKE_CXX_FLAGS\u003d-std\u003dc++17 \\\n  -DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003d/home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/cxx/Debug/1m294ad3/obj/armeabi-v7a \\\n  -DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003d/home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/cxx/Debug/1m294ad3/obj/armeabi-v7a \\\n  -DCMAKE_BUILD_TYPE\u003dDebug \\\n  -DCMAKE_FIND_ROOT_PATH\u003d/home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/prefab/armeabi-v7a/prefab \\\n  -B/home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/armeabi-v7a \\\n  -GNinja\n",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "/usr/local/lib/android/sdk/cmake/3.22.1/bin/cmake \\\n  -H/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp \\\n  -DCMAKE_SYSTEM_NAME\u003dAndroid \\\n  -DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON \\\n  -DCMAKE_SYSTEM_VERSION\u003d31 \\\n  -DANDROID_PLATFORM\u003dandroid-31 \\\n  -DANDROID_ABI\u003darmeabi-v7a \\\n  -DCMAKE_ANDROID_ARCH_ABI\u003darmeabi-v7a \\\n  -DANDROID_NDK\u003d/usr/local/lib/android/sdk/ndk/27.2.12479018 \\\n  -DCMAKE_ANDROID_NDK\u003d/usr/local/lib/android/sdk/ndk/27.2.12479018 \\\n  -DCMAKE_TOOLCHAIN_FILE\u003d/usr/local/lib/android/sdk/ndk/27.2.12479018/build/cmake/android.toolchain.cmake \\\n  -DCMAKE_MAKE_PROGRAM\u003d/usr/local/lib/android/sdk/cmake/3.22.1/bin/ninja \\\n  -DCMAKE_CXX_FLAGS\u003d-std\u003dc++17 \\\n  -DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003d/home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/cxx/Debug/1m294ad3/obj/armeabi-v7a \\\n  -DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003d/home/runner/work/YSuite/YSuite/apps/YPower/feature/build/intermediates/cxx/Debug/1m294ad3/obj/armeabi-v7a \\\n  -DCMAKE_BUILD_TYPE\u003dDebug \\\n  -DCMAKE_FIND_ROOT_PATH\u003d/home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/prefab/armeabi-v7a/prefab \\\n  -B/home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/armeabi-v7a \\\n  -GNinja\n",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "Received process result: 0",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "Exiting generation of /home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/armeabi-v7a/compile_commands.json.bin normally",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "done executing cmake",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "hard linked /home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/Debug/1m294ad3/armeabi-v7a/compile_commands.json to /home/runner/work/YSuite/YSuite/apps/YPower/feature/.cxx/tools/debug/armeabi-v7a/compile_commands.json",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+},
+{
+  "message": "JSON generation completed without problems",
+  "file": "/home/runner/work/YSuite/YSuite/apps/YPower/feature/src/main/cpp/CMakeLists.txt",
+  "tag": "debug|armeabi-v7a"
+}
+]
