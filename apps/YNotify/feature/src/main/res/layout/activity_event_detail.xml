@@ -23,7 +23,7 @@
             android:orientation="vertical"
             android:paddingHorizontal="@dimen/yui_screen_horizontal"
             android:paddingTop="@dimen/yui_section_gap"
-            android:paddingBottom="@dimen/yui_screen_bottom">
+            android:paddingBottom="@dimen/yui_section_gap">
 
             <TextView
                 android:id="@+id/app"
