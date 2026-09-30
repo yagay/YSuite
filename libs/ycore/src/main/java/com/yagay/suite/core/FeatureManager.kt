@@ -201,6 +201,7 @@ class FeatureStateStore(context: Context) {
             .apply()
 
         SuiteXposedServiceBroker.setPluginEnabled(feature.id, enabled)
+        if (!enabled) SuiteRootGateway.stopPluginProcesses(feature.id)
 
         val lifecycle = if (enabled) {
             FeatureRuntimeManager.enable(appContext, feature).map { Unit }
