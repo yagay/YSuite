@@ -17,6 +17,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "YSuite"
 
+include(":api")
+project(":api").projectDir = file("libs/yapi")
+
 include(":ui")
 project(":ui").projectDir = file("libs/yui")
 

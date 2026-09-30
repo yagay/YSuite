@@ -1,0 +1,27 @@
+name: Validate YSuite Architecture
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+
+      - name: Verify feature catalog
+        run: python3 tools/verify_feature_catalog.py
+
+      - name: Verify YSuite host ownership
+        run: python3 tools/verify_host_ownership.py
+
+      - name: Scan feature integration hazards
+        run: python3 tools/scan_feature_integration.py --root . --fail-on-high-risk

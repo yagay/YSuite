@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.UserManager
 import android.util.Log
 import com.yagay.suite.core.FeatureRegistry
+import com.yagay.suite.core.FeatureRuntimeManager
 import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.RootManager
 import com.yagay.suite.core.SuiteContract
@@ -68,25 +69,32 @@ class YSuiteApp : Application() {
         )
 
         included.forEach { feature ->
-            val enabled = states.isEnabled(feature)
-            val initializer = feature.runtimeInitializerClassName
-
-            if (!enabled) {
+            if (!states.isEnabled(feature)) {
                 SuiteLog.i(this, feature.id, "host disabled")
                 return@forEach
             }
 
-            if (initializer == null) {
-                SuiteLog.i(this, feature.id, "host enabled; no runtime initializer")
-                return@forEach
-            }
-
-            SuiteLog.i(this, feature.id, "host runtime init requested; class=$initializer")
-            runCatching { feature.initialize(this) }
+            SuiteLog.i(
+                this,
+                feature.id,
+                "host runtime enable requested; class=${feature.runtimeInitializerClassName ?: "none"}",
+            )
+            FeatureRuntimeManager.enable(this, feature)
                 .onSuccess {
-                    SuiteLog.i(this, feature.id, "host runtime initialized; capabilities owned by YSuite")
+                    SuiteLog.i(
+                        this,
+                        feature.id,
+                        "host runtime enabled; managed=${FeatureRuntimeManager.isManaged(feature.id)}; capabilities owned by YSuite",
+                    )
                 }
-                .onFailure { SuiteLog.e(this, feature.id, "host runtime initialization failed; class=$initializer", it) }
+                .onFailure {
+                    SuiteLog.e(
+                        this,
+                        feature.id,
+                        "host runtime enable failed; class=${feature.runtimeInitializerClassName ?: "none"}",
+                        it,
+                    )
+                }
         }
 
         SuiteLog.i(
@@ -95,6 +103,11 @@ class YSuiteApp : Application() {
             "YSuite host initialized; version=$versionName($versionCode); contract=${SuiteContract.REVISION}; " +
                 "features=${included.size}; xposedListeners=${SuiteXposedServiceBroker.listenerCount()}",
         )
+    }
+
+    override fun onTerminate() {
+        FeatureRuntimeManager.destroyAll(this)
+        super.onTerminate()
     }
 
     private fun registerUnlockReceiver() {
