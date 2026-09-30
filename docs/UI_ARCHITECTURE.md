@@ -82,9 +82,9 @@ The same contract continues after the feature home page. Secondary screens shoul
 Current migrated examples include:
 
 - YParam app parameter detail: `YViewLayout.install`, shared status card, section headers and action buttons;
-- YPower app enhancement detail and recommended apps: shared status/section/card/empty/action components;
+- YPower app enhancement detail, recommended apps and runtime diagnostic center: shared screen/card/status/action components while diagnostic result highlighting remains specialized;
 - YNotify per-app history and event detail: shared YUI dimensions, button styles and text appearances;
-- YEntryCleaner Scope details: shared Compose section/card/status/empty components while retaining the full-screen dialog navigation and bottom actions.
+- YEntryCleaner Scope details plus Tiles/Shortcuts/Widgets component management: shared Compose section/card/status/empty components while bulk filters, lock swipes and expandable component rows remain feature-owned.
 
 Complex interaction surfaces such as YEntryCleaner priority drag/reorder, component lock/swipe rows and bulk-selection behavior remain feature-owned. Their surrounding section/status layout should migrate incrementally rather than rewriting those interactions for visual uniformity.
 
@@ -92,7 +92,7 @@ Complex interaction surfaces such as YEntryCleaner priority drag/reorder, compon
 
 A feature may keep purpose-built rendering where a generic card would reduce usability. Examples include diagnostic log consoles, charts, overlays and drawing/selection surfaces. Their surrounding page structure, spacing, actions and normal status presentation should still use YUI.
 
-YNFC intentionally keeps its log console high-contrast palette; normal NFC cards and status colors are YUI-owned. YPower runtime diagnostic output may also retain selectable/highlighted report text while its surrounding controls migrate to YUI.
+YNFC intentionally keeps its log console high-contrast palette; normal NFC cards and status colors are YUI-owned. YPower runtime diagnostic output may retain selectable/highlighted report text while its surrounding controls are YUI-owned.
 
 ## Migration policy
 
