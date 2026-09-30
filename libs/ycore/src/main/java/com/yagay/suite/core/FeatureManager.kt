@@ -39,8 +39,14 @@ data class FeatureSpec(
      * YSuite's one SuiteBootReceiver instantiates it and dispatches supported system events.
      */
     val bootReceiverClassName: String? = null,
-    /** Logical exported IPC receiver handlers. Android registers only SuiteBridgeReceiver. */
-    val ipcReceiverClassNames: Set<String> = emptySet(),
+    /**
+     * Exact exported IPC action -> logical BroadcastReceiver implementation.
+     *
+     * Android registers only SuiteBridgeReceiver in the combined host. The catalog owns this
+     * routing table so an incoming action is dispatched to exactly one feature receiver instead of
+     * being fanned out across every enabled feature.
+     */
+    val ipcRoutes: Map<String, String> = emptyMap(),
     val requiresRoot: Boolean = false,
     val requiresHook: Boolean = false,
     val defaultEnabled: Boolean = true,
