@@ -1,7 +1,0 @@
-com.yagay.ydiag
-drawable ic_stat_ydiag
-string notification_channel
-string notification_text
-string notification_title
-style Theme_YDiag
-xml ydiag_file_paths

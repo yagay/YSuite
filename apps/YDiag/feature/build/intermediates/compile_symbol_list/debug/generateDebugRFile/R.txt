@@ -1,6 +1,0 @@
-int drawable ic_stat_ydiag 0x0
-int string notification_channel 0x0
-int string notification_text 0x0
-int string notification_title 0x0
-int style Theme_YDiag 0x0
-int xml ydiag_file_paths 0x0

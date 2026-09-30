@@ -2,7 +2,7 @@
 """Scan reusable Android feature modules for YSuite integration hazards.
 
 The scanner is intentionally dependency-free so it can run in GitHub Actions immediately
-after submodules are checked out. It reports resource/manifest collisions plus process-global APIs
+after the monorepo is checked out. It reports resource/manifest collisions plus process-global APIs
 that are safe in standalone APKs but must be owned centrally when features share one YSuite process.
 It also reports UI/window code that should normally be owned by the shared YUI module.
 """
@@ -55,7 +55,7 @@ SHARED_UI_PATTERNS = {
 
 
 def module_dirs(root: pathlib.Path) -> list[pathlib.Path]:
-    features = root / "features"
+    features = root / "apps"
     if not features.is_dir():
         return []
     return sorted(p for p in features.iterdir() if p.is_dir() and (p / "feature").is_dir())
@@ -201,7 +201,7 @@ def main() -> int:
     root = pathlib.Path(args.root).resolve()
     modules = module_dirs(root)
     if not modules:
-        print("[integration-scan] no feature submodules found", file=sys.stderr)
+        print("[integration-scan] no app feature modules found", file=sys.stderr)
         return 2
 
     resources_by_key: dict[tuple[str, str], set[str]] = collections.defaultdict(set)

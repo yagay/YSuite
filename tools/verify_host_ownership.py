@@ -17,7 +17,7 @@ def fail(message: str) -> None:
 
 
 def main() -> int:
-    entry_file = ROOT / "suite/src/main/resources/META-INF/xposed/java_init.list"
+    entry_file = ROOT / "suite/YSuite/src/main/resources/META-INF/xposed/java_init.list"
     entries = [
         line.strip()
         for line in entry_file.read_text(encoding="utf-8").splitlines()
@@ -26,12 +26,12 @@ def main() -> int:
     if entries != [EXPECTED_XPOSED_ENTRY]:
         fail(f"YSuite must have exactly one Xposed entry; found {entries!r}")
 
-    host_source = ROOT / "suite/src/main/java/com/yagay/YSuite/xposed/SuiteXposedModule.java"
-    registry_source = ROOT / "suite/src/main/java/com/yagay/YSuite/xposed/SuiteHookRegistry.java"
+    host_source = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/xposed/SuiteXposedModule.java"
+    registry_source = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/xposed/SuiteHookRegistry.java"
     if not host_source.is_file() or not registry_source.is_file():
         fail("single Xposed host or shared hook registry is missing")
 
-    gradle = (ROOT / "suite/build.gradle.kts").read_text(encoding="utf-8")
+    gradle = (ROOT / "suite/YSuite/build.gradle.kts").read_text(encoding="utf-8")
     if 'resources.merges += "META-INF/xposed/*"' in gradle:
         fail("dependency Xposed metadata must never be merged into the host")
 
@@ -42,7 +42,7 @@ def main() -> int:
     property_match = re.search(r"^ySuiteHostVersionCode=(\d+)\s*$", properties, re.MULTILINE)
     fallback_match = re.search(r"orNull\?\.toIntOrNull\(\)\s*\?:\s*(\d+)", gradle)
     if not property_match or not fallback_match:
-        fail("YSuite host versionCode must be declared in gradle.properties and suite/build.gradle.kts")
+        fail("YSuite host versionCode must be declared in gradle.properties and suite/YSuite/build.gradle.kts")
     property_version = int(property_match.group(1))
     fallback_version = int(fallback_match.group(1))
     if property_version != fallback_version:
@@ -51,7 +51,7 @@ def main() -> int:
             f"gradle.properties={property_version} suite fallback={fallback_version}"
         )
 
-    manifest = (ROOT / "suite/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
+    manifest = (ROOT / "suite/YSuite/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
     required_host_components = (
         ".accessibility.SuiteAccessibilityService",
         ".notification.SuiteNotificationListenerService",
@@ -93,8 +93,8 @@ def main() -> int:
     # The old integration model let plugins seize process-global state, then made the host reclaim
     # it. Sole-host architecture forbids that pattern in both cold-start and hot-enable paths.
     for source_path in (
-        ROOT / "suite/src/main/java/com/yagay/YSuite/YSuiteApp.kt",
-        ROOT / "suite/src/main/java/com/yagay/YSuite/MainActivity.kt",
+        ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/YSuiteApp.kt",
+        ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt",
     ):
         text = source_path.read_text(encoding="utf-8")
         forbidden_calls = (
@@ -108,15 +108,15 @@ def main() -> int:
 
     # Package replacement hot reload is a host capability. Embedded features must never be the
     # physical owner of process restart/reload policy.
-    reload_coordinator = ROOT / "core/src/main/java/com/yagay/suite/core/SuiteHookReloadCoordinator.kt"
-    boot_receiver = ROOT / "suite/src/main/java/com/yagay/YSuite/system/SuiteBootReceiver.kt"
+    reload_coordinator = ROOT / "libs/ycore/src/main/java/com/yagay/suite/core/SuiteHookReloadCoordinator.kt"
+    boot_receiver = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/system/SuiteBootReceiver.kt"
     if not reload_coordinator.is_file():
         fail("host-owned Hook reload coordinator is missing")
     boot_text = boot_receiver.read_text(encoding="utf-8")
     if "requestAfterPackageReplaced" not in boot_text or "ACTION_MY_PACKAGE_REPLACED" not in boot_text:
         fail("YSuite package replacement must trigger host-owned selective Hook hot reload")
 
-    yfloat_runtime = ROOT / "features/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatSuiteRuntime.java"
+    yfloat_runtime = ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatSuiteRuntime.java"
     if yfloat_runtime.is_file():
         yfloat_text = yfloat_runtime.read_text(encoding="utf-8")
         if "!SUITE_PACKAGE.equals(app.getPackageName())" not in yfloat_text:
@@ -125,15 +125,15 @@ def main() -> int:
     # YSuite owns the visual shell too. Plugins may supply their page content, but ordinary host
     # pages must use the shared YUI scaffold/layout primitives and normal feature themes are aliased
     # to Theme.YSuite in the combined APK.
-    ui_framework = ROOT / "ui/src/main/java/com/yagay/yui/YPluginFramework.kt"
-    host_ui = (ROOT / "suite/src/main/java/com/yagay/YSuite/MainActivity.kt").read_text(encoding="utf-8")
+    ui_framework = ROOT / "libs/yui/src/main/java/com/yagay/yui/YPluginFramework.kt"
+    host_ui = (ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt").read_text(encoding="utf-8")
     if not ui_framework.is_file():
         fail("shared YUI plugin framework is missing")
     for primitive in ("YPluginScaffold", "YPluginList", "YPluginHeader", "YActionRow"):
         if primitive not in host_ui:
             fail(f"YSuite host UI must use shared YUI primitive: {primitive}")
 
-    theme_overrides = (ROOT / "suite/src/main/res/values/feature_theme_overrides.xml").read_text(
+    theme_overrides = (ROOT / "suite/YSuite/src/main/res/values/feature_theme_overrides.xml").read_text(
         encoding="utf-8"
     )
     for theme in (

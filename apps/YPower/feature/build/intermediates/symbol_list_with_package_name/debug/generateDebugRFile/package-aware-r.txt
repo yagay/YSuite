@@ -1,3 +1,0 @@
-com.yagay.ypower
-drawable ic_ypower
-style Theme_YPower
