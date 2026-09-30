@@ -5,6 +5,9 @@ import android.content.SharedPreferences;
 import android.os.UserManager;
 import android.util.Log;
 
+import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.ManagedFeatureRuntime;
+
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashSet;
@@ -15,7 +18,7 @@ import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
 
 /** Host-neutral runtime shared by standalone YMiniGuard and YSuite. */
-public final class GuardRuntime implements XposedServiceHelper.OnServiceListener {
+public final class GuardRuntime implements XposedServiceHelper.OnServiceListener, ManagedFeatureRuntime {
     private static final String TAG = "YMiniGuard";
     private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
 
@@ -43,6 +46,8 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     private static volatile String frameworkName = "";
 
     private final Context context;
+    private volatile boolean enabled = true;
+    private volatile FeatureHost host;
 
     private GuardRuntime(Context context) {
         Context app = context.getApplicationContext();
@@ -65,6 +70,31 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
             }
             return local;
         }
+    }
+
+    @Override
+    public void attach(FeatureHost host) {
+        this.host = host;
+    }
+
+    @Override
+    public void enable() {
+        enabled = true;
+        Log.i(TAG, "managed runtime enabled");
+    }
+
+    @Override
+    public void disable() {
+        enabled = false;
+        service = null;
+        frameworkName = "";
+        Log.i(TAG, "managed runtime disabled; LSPosed service released");
+    }
+
+    @Override
+    public void destroy() {
+        disable();
+        host = null;
     }
 
     private boolean attachToSuiteBroker() {
@@ -104,6 +134,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
 
     @Override
     public void onServiceBind(XposedService bound) {
+        if (!enabled) return;
         service = bound;
         try {
             frameworkName = bound.getFrameworkName();
@@ -264,7 +295,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     static synchronized boolean syncAll() {
         XposedService current = service;
         GuardRuntime runtime = instance;
-        if (current == null || runtime == null || !isUserUnlocked()) return false;
+        if (current == null || runtime == null || !runtime.enabled || !isUserUnlocked()) return false;
 
         try {
             SharedPreferences.Editor editor = current.getRemotePreferences(ConfigKeys.REMOTE_GROUP).edit();
