@@ -15,12 +15,15 @@ import com.yagay.YEntryCleaner.domain.RuntimeProtocol
 import com.yagay.YEntryCleaner.domain.deriveFullySelectedPackages
 import com.yagay.YEntryCleaner.runtime.ServiceSession
 import com.yagay.YEntryCleaner.runtime.ServiceSessionRegistry
+import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.ManagedFeatureRuntime
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -44,7 +47,11 @@ data class RuntimeStatus(
     val observedAtMillis: Long = System.currentTimeMillis()
 )
 
-class YEntryCleanerRuntime private constructor(context: Context) : ContextWrapper(context.applicationContext), XposedServiceHelper.OnServiceListener {
+class YEntryCleanerRuntime private constructor(context: Context) :
+    ContextWrapper(context.applicationContext),
+    XposedServiceHelper.OnServiceListener,
+    ManagedFeatureRuntime {
+
     lateinit var rules: RuleRepository; private set
     lateinit var catalog: IntentCatalog; private set
 
@@ -58,6 +65,8 @@ class YEntryCleanerRuntime private constructor(context: Context) : ContextWrappe
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncMutex = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
+    @Volatile private var enabled = true
+    @Volatile private var host: FeatureHost? = null
     private var pendingRecovery: ModuleConfig? = null
     private var corruptRecovery = false
     private var acknowledgedSessionGeneration = -1L
@@ -79,6 +88,10 @@ class YEntryCleanerRuntime private constructor(context: Context) : ContextWrappe
         rules = RuleRepository(this)
         catalog = IntentCatalog(this)
         registerServiceListener()
+        startCollectors()
+    }
+
+    private fun startCollectors() {
         applicationScope.launch {
             combine(rules.rules, catalog.candidates) { selected, candidates ->
                 deriveFullySelectedPackages(candidates, selected)
@@ -107,7 +120,38 @@ class YEntryCleanerRuntime private constructor(context: Context) : ContextWrappe
         XposedServiceHelper.registerListener(this)
     }
 
+    override fun attach(host: FeatureHost) {
+        this.host = host
+    }
+
+    override fun enable() {
+        if (enabled) return
+        enabled = true
+        syncStatus.value = getString(R.string.runtime_waiting_connection)
+        runtime.value = RuntimeStatus(message = getString(R.string.runtime_waiting_verify))
+        startCollectors()
+    }
+
+    override fun disable() {
+        if (!enabled) return
+        enabled = false
+        applicationScope.coroutineContext.cancelChildren()
+        currentSession()?.let { sessionRegistry.clear(it.service) }
+        acknowledgedSessionGeneration = -1L
+        acknowledgedRevision = -1L
+        serviceSession.value = null
+        service.value = null
+        runtime.value = RuntimeStatus(message = getString(R.string.runtime_waiting_connection))
+        syncStatus.value = runtime.value.message
+    }
+
+    override fun destroy() {
+        disable()
+        host = null
+    }
+
     override fun onServiceBind(service: XposedService) {
+        if (!enabled) return
         val session = sessionRegistry.bind(service)
         acknowledgedSessionGeneration = -1L
         acknowledgedRevision = -1L
@@ -146,212 +190,215 @@ class YEntryCleanerRuntime private constructor(context: Context) : ContextWrappe
         if (isCurrent(session)) publish(status) else false
 
     /** Serialized bootstrap/sync/probe, also used before every catalog query batch. */
-    suspend fun synchronize(): Boolean = withContext(Dispatchers.IO) {
-        syncMutex.withLock {
-            var attemptSession: ServiceSession? = null
-            try {
-                val session = currentSession() ?: return@withLock publish(
-                    RuntimeStatus(message = getString(R.string.runtime_lsposed_disconnected))
-                )
-                attemptSession = session
-                val bound = session.service
-                val prefs = bound.getRemotePreferences(RuleRepository.REMOTE_PREFS)
-                if (!rules.hasLocalConfiguration()) {
-                    try {
-                        val encoded = prefs.getString(RuleRepository.KEY_CONFIG, null)
-                        require(encoded == null || encoded.length <= RuleRepository.MAX_BACKUP_CHARS) {
-                            getString(R.string.runtime_remote_config_too_large)
-                        }
-                        val remote = if (encoded != null) {
-                            json.decodeFromString(ModuleConfig.serializer(), encoded).validated()
-                        } else if (prefs.contains(RuleRepository.KEY_RULES)) {
-                            ModuleConfig(
-                                prefs.getStringSet(RuleRepository.KEY_RULES, emptySet()).orEmpty()
-                                    .map {
-                                        requireNotNull(com.yagay.YEntryCleaner.domain.ComponentRule.fromId(it)) {
-                                            getString(R.string.runtime_legacy_rules_corrupt)
-                                        }
-                                    }.toSet(),
-                                DisplayMode.fromStored(
-                                    prefs.getString(RuleRepository.KEY_DISPLAY_MODE, null),
-                                    prefs.getBoolean(RuleRepository.KEY_BLACKLIST, true)
-                                ),
-                                json.decodeFromString(
-                                    PriorityConfig.serializer(),
-                                    prefs.getString(RuleRepository.KEY_PRIORITIES, null) ?: "{}"
-                                ),
-                                prefs.getBoolean(RuleRepository.KEY_DIAGNOSTIC, false)
-                            ).validated()
-                        } else null
-                        if (!isCurrent(session)) return@withLock false
-                        if (remote != null) {
-                            corruptRecovery = false
-                            pendingRecovery = remote
+    suspend fun synchronize(): Boolean {
+        if (!enabled) return false
+        return withContext(Dispatchers.IO) {
+            syncMutex.withLock {
+                var attemptSession: ServiceSession? = null
+                try {
+                    val session = currentSession() ?: return@withLock publish(
+                        RuntimeStatus(message = getString(R.string.runtime_lsposed_disconnected))
+                    )
+                    attemptSession = session
+                    val bound = session.service
+                    val prefs = bound.getRemotePreferences(RuleRepository.REMOTE_PREFS)
+                    if (!rules.hasLocalConfiguration()) {
+                        try {
+                            val encoded = prefs.getString(RuleRepository.KEY_CONFIG, null)
+                            require(encoded == null || encoded.length <= RuleRepository.MAX_BACKUP_CHARS) {
+                                getString(R.string.runtime_remote_config_too_large)
+                            }
+                            val remote = if (encoded != null) {
+                                json.decodeFromString(ModuleConfig.serializer(), encoded).validated()
+                            } else if (prefs.contains(RuleRepository.KEY_RULES)) {
+                                ModuleConfig(
+                                    prefs.getStringSet(RuleRepository.KEY_RULES, emptySet()).orEmpty()
+                                        .map {
+                                            requireNotNull(com.yagay.YEntryCleaner.domain.ComponentRule.fromId(it)) {
+                                                getString(R.string.runtime_legacy_rules_corrupt)
+                                            }
+                                        }.toSet(),
+                                    DisplayMode.fromStored(
+                                        prefs.getString(RuleRepository.KEY_DISPLAY_MODE, null),
+                                        prefs.getBoolean(RuleRepository.KEY_BLACKLIST, true)
+                                    ),
+                                    json.decodeFromString(
+                                        PriorityConfig.serializer(),
+                                        prefs.getString(RuleRepository.KEY_PRIORITIES, null) ?: "{}"
+                                    ),
+                                    prefs.getBoolean(RuleRepository.KEY_DIAGNOSTIC, false)
+                                ).validated()
+                            } else null
+                            if (!isCurrent(session)) return@withLock false
+                            if (remote != null) {
+                                corruptRecovery = false
+                                pendingRecovery = remote
+                                return@withLock publishFor(
+                                    session,
+                                    RuntimeStatus(
+                                        needsDecision = true,
+                                        message = getString(R.string.runtime_recovery_available, remote.rules.size)
+                                    )
+                                )
+                            }
+                            rules.markInitialized()
+                        } catch (failure: Exception) {
+                            if (failure is CancellationException) throw failure
+                            Log.e(TAG, "Remote configuration recovery validation failed", failure)
+                            if (!isCurrent(session)) return@withLock false
+                            pendingRecovery = null
+                            corruptRecovery = true
                             return@withLock publishFor(
                                 session,
                                 RuntimeStatus(
                                     needsDecision = true,
-                                    message = getString(R.string.runtime_recovery_available, remote.rules.size)
+                                    recoveryCorrupt = true,
+                                    message = getString(R.string.runtime_recovery_corrupt)
                                 )
                             )
                         }
-                        rules.markInitialized()
-                    } catch (failure: Exception) {
-                        if (failure is CancellationException) throw failure
-                        Log.e(TAG, "Remote configuration recovery validation failed", failure)
-                        if (!isCurrent(session)) return@withLock false
-                        pendingRecovery = null
-                        corruptRecovery = true
+                    }
+                    pendingRecovery = null
+                    corruptRecovery = false
+                    check(bound.apiVersion >= 102) { getString(R.string.runtime_framework_api_required) }
+                    val targets = bound.runningTargets
+                    check(isCurrent(session)) { getString(R.string.runtime_connection_changed) }
+                    val canPauseTargets = rules.displayMode.value == DisplayMode.SHOW_ALL && targets.isNotEmpty() && targets.all {
+                        RuntimeProtocol.supportsSafetyPause(
+                            it.state.name,
+                            it.loadedVersionCode,
+                            BuildConfig.HOOK_COMPAT_VERSION_CODE,
+                            BuildConfig.VERSION_CODE.toLong()
+                        )
+                    }
+                    val incompatible = targets.filter {
+                        !RuntimeProtocol.hookCompatible(
+                            it.state.name,
+                            it.loadedVersionCode,
+                            BuildConfig.HOOK_COMPAT_VERSION_CODE,
+                            BuildConfig.VERSION_CODE.toLong()
+                        )
+                    }
+                    if (incompatible.isNotEmpty()) {
+                        val details = incompatible.joinToString { target ->
+                            "${target.processName} ${target.state.name}/v${target.loadedVersionCode}"
+                        }
+                        val suffix = getString(
+                            if (canPauseTargets) R.string.runtime_incompatible_pause_pending
+                            else R.string.runtime_incompatible_paused
+                        )
                         return@withLock publishFor(
                             session,
                             RuntimeStatus(
-                                needsDecision = true,
-                                recoveryCorrupt = true,
-                                message = getString(R.string.runtime_recovery_corrupt)
+                                message = getString(
+                                    R.string.runtime_incompatible_targets,
+                                    details,
+                                    suffix
+                                )
                             )
                         )
                     }
-                }
-                pendingRecovery = null
-                corruptRecovery = false
-                check(bound.apiVersion >= 102) { getString(R.string.runtime_framework_api_required) }
-                val targets = bound.runningTargets
-                check(isCurrent(session)) { getString(R.string.runtime_connection_changed) }
-                val canPauseTargets = rules.displayMode.value == DisplayMode.SHOW_ALL && targets.isNotEmpty() && targets.all {
-                    RuntimeProtocol.supportsSafetyPause(
-                        it.state.name,
-                        it.loadedVersionCode,
-                        BuildConfig.HOOK_COMPAT_VERSION_CODE,
-                        BuildConfig.VERSION_CODE.toLong()
-                    )
-                }
-                val incompatible = targets.filter {
-                    !RuntimeProtocol.hookCompatible(
-                        it.state.name,
-                        it.loadedVersionCode,
-                        BuildConfig.HOOK_COMPAT_VERSION_CODE,
-                        BuildConfig.VERSION_CODE.toLong()
-                    )
-                }
-                if (incompatible.isNotEmpty()) {
-                    val details = incompatible.joinToString { target ->
-                        "${target.processName} ${target.state.name}/v${target.loadedVersionCode}"
+                    check(targets.any { it.processName == "system" }) {
+                        getString(R.string.runtime_system_target_missing)
                     }
-                    val suffix = getString(
-                        if (canPauseTargets) R.string.runtime_incompatible_pause_pending
-                        else R.string.runtime_incompatible_paused
-                    )
-                    return@withLock publishFor(
-                        session,
-                        RuntimeStatus(
-                            message = getString(
-                                R.string.runtime_incompatible_targets,
-                                details,
-                                suffix
-                            )
-                        )
-                    )
-                }
-                check(targets.any { it.processName == "system" }) {
-                    getString(R.string.runtime_system_target_missing)
-                }
 
-                val revision = rules.revision.value
-                val config = rules.remoteSnapshot().copy(
-                    rootDisabledComponents = PersistentComponentStore(this@YEntryCleanerRuntime).disabledKeys()
-                ).validated()
-                val encoded = json.encodeToString(ModuleConfig.serializer(), config)
-                require(encoded.length <= RuleRepository.MAX_BACKUP_CHARS) {
-                    getString(R.string.runtime_config_transfer_too_large)
-                }
-                val digest = RuntimeProtocol.digest(encoded)
-                if (runtime.value.ready && runtime.value.digest == digest &&
-                    acknowledgedSessionGeneration == session.generation &&
-                    acknowledgedRevision == revision) {
-                    return@withLock true
-                }
-                val canPause = config.mode == DisplayMode.SHOW_ALL && targets.isNotEmpty() && targets.all {
-                    RuntimeProtocol.supportsSafetyPause(
-                        it.state.name,
-                        it.loadedVersionCode,
-                        BuildConfig.HOOK_COMPAT_VERSION_CODE,
-                        BuildConfig.VERSION_CODE.toLong()
-                    )
-                }
-                val remoteEncoded = prefs.getString(RuleRepository.KEY_CONFIG, null)
-                if (remoteEncoded != encoded) {
-                    check(writeRemoteSnapshot(prefs, encoded)) {
-                        getString(
-                            if (canPause) R.string.runtime_pause_write_failed
-                            else R.string.runtime_remote_write_failed
+                    val revision = rules.revision.value
+                    val config = rules.remoteSnapshot().copy(
+                        rootDisabledComponents = PersistentComponentStore(this@YEntryCleanerRuntime).disabledKeys()
+                    ).validated()
+                    val encoded = json.encodeToString(ModuleConfig.serializer(), config)
+                    require(encoded.length <= RuleRepository.MAX_BACKUP_CHARS) {
+                        getString(R.string.runtime_config_transfer_too_large)
+                    }
+                    val digest = RuntimeProtocol.digest(encoded)
+                    if (runtime.value.ready && runtime.value.digest == digest &&
+                        acknowledgedSessionGeneration == session.generation &&
+                        acknowledgedRevision == revision) {
+                        return@withLock true
+                    }
+                    val canPause = config.mode == DisplayMode.SHOW_ALL && targets.isNotEmpty() && targets.all {
+                        RuntimeProtocol.supportsSafetyPause(
+                            it.state.name,
+                            it.loadedVersionCode,
+                            BuildConfig.HOOK_COMPAT_VERSION_CODE,
+                            BuildConfig.VERSION_CODE.toLong()
                         )
                     }
-                    if (canPause) {
+                    val remoteEncoded = prefs.getString(RuleRepository.KEY_CONFIG, null)
+                    if (remoteEncoded != encoded) {
+                        check(writeRemoteSnapshot(prefs, encoded)) {
+                            getString(
+                                if (canPause) R.string.runtime_pause_write_failed
+                                else R.string.runtime_remote_write_failed
+                            )
+                        }
+                        if (canPause) {
+                            publishFor(
+                                session,
+                                RuntimeStatus(message = getString(R.string.runtime_pause_submitted))
+                            )
+                        }
+                    }
+                    if (runtime.value.digest != digest) {
                         publishFor(
                             session,
-                            RuntimeStatus(message = getString(R.string.runtime_pause_submitted))
+                            RuntimeStatus(message = getString(R.string.runtime_waiting_ack))
                         )
                     }
-                }
-                if (runtime.value.digest != digest) {
-                    publishFor(
-                        session,
-                        RuntimeStatus(message = getString(R.string.runtime_waiting_ack))
-                    )
-                }
 
-                // Official LSPosed normally observes the persisted RemotePreferences update
-                // immediately. Probe once first so that path stays cheap. If the running hook
-                // still has a stale snapshot (for example Vector), send the actual config through
-                // the UID-authenticated Runtime Probe v2 transport.
-                var ack = queryRuntimeAck(digest)
-                if (ack == null) {
-                    ack = pushRuntimeConfig(
-                        encoded = encoded,
-                        digest = digest,
-                        revision = revision,
-                    )
-                }
-                repeat(2) {
+                    // Official LSPosed normally observes the persisted RemotePreferences update
+                    // immediately. Probe once first so that path stays cheap. If the running hook
+                    // still has a stale snapshot (for example Vector), send the actual config through
+                    // the UID-authenticated Runtime Probe v2 transport.
+                    var ack = queryRuntimeAck(digest)
                     if (ack == null) {
-                        if (!isCurrent(session)) return@withLock false
-                        delay(150)
-                        ack = queryRuntimeAck(digest)
+                        ack = pushRuntimeConfig(
+                            encoded = encoded,
+                            digest = digest,
+                            revision = revision,
+                        )
                     }
-                }
+                    repeat(2) {
+                        if (ack == null) {
+                            if (!isCurrent(session)) return@withLock false
+                            delay(150)
+                            ack = queryRuntimeAck(digest)
+                        }
+                    }
 
-                check(isCurrent(session)) { getString(R.string.runtime_connection_changed) }
-                val confirmed = ack
-                check(confirmed != null) { getString(R.string.runtime_ack_missing) }
-                check(confirmed.digest == digest) { getString(R.string.runtime_ack_missing) }
-                check(rules.revision.value == revision) { getString(R.string.runtime_config_changed) }
-                val published = publishFor(
-                    session,
-                    RuntimeStatus(
-                        ready = true,
-                        message = getString(R.string.runtime_confirmed_hits),
-                        digest = digest,
-                        queryHits = confirmed.queryHits,
-                        visibilityHits = confirmed.visibilityHits,
-                        orderingHits = confirmed.orderingHits,
-                        componentDiscoveryProtocol = confirmed.componentDiscoveryProtocol
+                    check(isCurrent(session)) { getString(R.string.runtime_connection_changed) }
+                    val confirmed = ack
+                    check(confirmed != null) { getString(R.string.runtime_ack_missing) }
+                    check(confirmed.digest == digest) { getString(R.string.runtime_ack_missing) }
+                    check(rules.revision.value == revision) { getString(R.string.runtime_config_changed) }
+                    val published = publishFor(
+                        session,
+                        RuntimeStatus(
+                            ready = true,
+                            message = getString(R.string.runtime_confirmed_hits),
+                            digest = digest,
+                            queryHits = confirmed.queryHits,
+                            visibilityHits = confirmed.visibilityHits,
+                            orderingHits = confirmed.orderingHits,
+                            componentDiscoveryProtocol = confirmed.componentDiscoveryProtocol
+                        )
                     )
-                )
-                if (published) {
-                    acknowledgedSessionGeneration = session.generation
-                    acknowledgedRevision = revision
-                }
-                published
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (failure: Exception) {
-                Log.e(TAG, "Runtime synchronization failed", failure)
-                if (attemptSession != null && !isCurrent(attemptSession)) {
-                    false
-                } else {
-                    acknowledgedSessionGeneration = -1L
-                    acknowledgedRevision = -1L
-                    publish(RuntimeStatus(message = getString(R.string.runtime_validation_failed)))
+                    if (published) {
+                        acknowledgedSessionGeneration = session.generation
+                        acknowledgedRevision = revision
+                    }
+                    published
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    Log.e(TAG, "Runtime synchronization failed", failure)
+                    if (attemptSession != null && !isCurrent(attemptSession)) {
+                        false
+                    } else {
+                        acknowledgedSessionGeneration = -1L
+                        acknowledgedRevision = -1L
+                        publish(RuntimeStatus(message = getString(R.string.runtime_validation_failed)))
+                    }
                 }
             }
         }
