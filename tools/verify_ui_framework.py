@@ -32,6 +32,7 @@ YENTRY_SCOPE = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntry
 YENTRY_ROOT = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt"
 YENTRY_TABS = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainTabs.kt"
 YENTRY_PRIORITY = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/PriorityDialog.kt"
+YENTRY_ROWS = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppListRows.kt"
 
 
 def fail(message: str) -> None:
@@ -80,6 +81,7 @@ def main() -> None:
     yentry_root = text(YENTRY_ROOT)
     yentry_tabs = text(YENTRY_TABS)
     yentry_priority = text(YENTRY_PRIORITY)
+    yentry_rows = text(YENTRY_ROWS)
 
     for marker in (
         "fun YFeatureScaffold(",
@@ -200,8 +202,9 @@ def main() -> None:
         require(source, "YFeatureCard(", label)
         require(source, "YStatusRow(", label)
         require(source, "YFeatureEmpty(", label)
-    require(yentry_tabs, "bulkLockSwipe", "YEntryCleaner RulesTab lock interaction")
+    require(yentry_tabs, "AppRow(", "YEntryCleaner RulesTab app rows")
     require(yentry_tabs, "ListControls(", "YEntryCleaner RulesTab filters")
+    require(yentry_rows, "bulkLockSwipe", "YEntryCleaner RulesTab lock interaction")
     require(yentry_priority, "detectDragGesturesAfterLongPress", "YEntryCleaner Priority drag ordering")
     require(yentry_priority, "bulkLockSwipe", "YEntryCleaner Priority lock interaction")
     require(yentry_priority, "ListControls(", "YEntryCleaner Priority filters")
