@@ -25,6 +25,10 @@ import com.yagay.YEntryCleaner.domain.AppTypeFilter
 import com.yagay.YEntryCleaner.domain.OpenPreset
 import com.yagay.YEntryCleaner.domain.matchesOpenPreset
 import com.yagay.YEntryCleaner.domain.matchesBrowserHost
+import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YStatusRow
+import com.yagay.yui.YStatusTone
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -337,9 +341,10 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
         }
         if (!state.loading && shownGroups.isEmpty()) {
             item {
-                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.no_matching_components))
-                }
+                YFeatureEmpty(
+                    message = stringResource(R.string.no_matching_components),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
             }
         }
     }
@@ -357,49 +362,44 @@ private fun SummaryRow(
         browserHost != null -> browserHost
         else -> null
     }
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text(
-            if (presetTitle == null) stringResource(R.string.app_list_count, groupCount)
-            else stringResource(R.string.app_list_count_type, groupCount, presetTitle),
-            style = MaterialTheme.typography.labelLarge
-        )
-        Text(
-            stringResource(R.string.rules_page_intro),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            stringResource(
-                when (state.displayMode) {
-                    DisplayMode.HIDE_SELECTED -> R.string.rules_mode_hide_selected
-                    DisplayMode.SHOW_SELECTED -> R.string.rules_mode_show_selected
-                    DisplayMode.SHOW_ALL -> R.string.rules_mode_show_all
-                }
-            ),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            if (presetTitle == null) stringResource(R.string.rules_usage_help)
-            else stringResource(R.string.rules_typed_help, presetTitle),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+    val modeText = stringResource(
+        when (state.displayMode) {
+            DisplayMode.HIDE_SELECTED -> R.string.rules_mode_hide_selected
+            DisplayMode.SHOW_SELECTED -> R.string.rules_mode_show_selected
+            DisplayMode.SHOW_ALL -> R.string.rules_mode_show_all
+        }
+    )
+    val usageText = if (presetTitle == null) stringResource(R.string.rules_usage_help)
+    else stringResource(R.string.rules_typed_help, presetTitle)
+    YFeatureCard(
+        title = if (presetTitle == null) stringResource(R.string.app_list_count, groupCount)
+        else stringResource(R.string.app_list_count_type, groupCount, presetTitle),
+        subtitle = stringResource(R.string.rules_page_intro),
+        detail = usageText,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        YStatusRow(
+            label = stringResource(R.string.rules_summary_mode),
+            value = modeText
         )
         if (state.displayMode == DisplayMode.SHOW_ALL) {
-            Text(
-                stringResource(if (state.runtime.ready) R.string.rules_pause_confirmed else R.string.rules_pause_pending),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary
+            YStatusRow(
+                label = stringResource(R.string.rules_summary_status),
+                value = stringResource(if (state.runtime.ready) R.string.rules_pause_confirmed else R.string.rules_pause_pending),
+                tone = if (state.runtime.ready) YStatusTone.Good else YStatusTone.Warning
             )
         } else if (state.displayMode == DisplayMode.SHOW_SELECTED) {
-            Text(
-                stringResource(R.string.rules_show_selected_empty),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary
+            YStatusRow(
+                label = stringResource(R.string.rules_summary_status),
+                value = stringResource(R.string.rules_show_selected_empty)
             )
         }
-        state.error?.let {
-            Text(stringResource(R.string.rules_refresh_incomplete), color = MaterialTheme.colorScheme.error)
+        if (state.error != null) {
+            YStatusRow(
+                label = stringResource(R.string.rules_summary_status),
+                value = stringResource(R.string.rules_refresh_incomplete),
+                tone = YStatusTone.Error
+            )
         }
     }
 }
