@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.util.DiagLog;
 import com.yagay.YNotify.util.HookAuth;
+import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.ManagedFeatureRuntime;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -14,7 +16,7 @@ import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
 
 /** Host-neutral runtime shared by standalone YNotify and YSuite. */
-public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListener {
+public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListener, ManagedFeatureRuntime {
     public static final String REMOTE_GROUP = "ynotify_runtime";
     public static final String KEY_SECRET = "event_secret";
     public static final String KEY_HOST_PACKAGE = "host_package";
@@ -30,6 +32,8 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
     private static volatile String frameworkStatus = "LSPosed/API 102 服务未连接";
 
     private final Context context;
+    private volatile boolean enabled = true;
+    private volatile FeatureHost host;
 
     private YNotifyRuntime(Context context) {
         this.context = context.getApplicationContext();
@@ -75,7 +79,37 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
     }
 
     @Override
+    public void attach(FeatureHost host) {
+        this.host = host;
+    }
+
+    @Override
+    public void enable() {
+        enabled = true;
+        ListenerStateStore.markProcessStarted(context);
+        HookAuth.ensureLocalSecret(context);
+        if (service == null) frameworkStatus = "LSPosed/API 102 服务未连接";
+        DiagLog.i(context, "YNotifyRuntime", "managed runtime enabled");
+    }
+
+    @Override
+    public void disable() {
+        enabled = false;
+        service = null;
+        remote = null;
+        frameworkStatus = "YNotify 已由 YSuite 停用";
+        DiagLog.i(context, "YNotifyRuntime", "managed runtime disabled; framework references released");
+    }
+
+    @Override
+    public void destroy() {
+        disable();
+        host = null;
+    }
+
+    @Override
     public void onServiceBind(XposedService bound) {
+        if (!enabled) return;
         try {
             if (bound.getApiVersion() < 102) {
                 frameworkStatus = "框架 API " + bound.getApiVersion() + "，需要 API 102";
@@ -119,8 +153,10 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
         if (service == dead) {
             service = null;
             remote = null;
-            frameworkStatus = "LSPosed/API 102 服务已断开";
-            DiagLog.w(context, "LSPosed", "service died/disconnected");
+            if (enabled) {
+                frameworkStatus = "LSPosed/API 102 服务已断开";
+                DiagLog.w(context, "LSPosed", "service died/disconnected");
+            }
         }
     }
 

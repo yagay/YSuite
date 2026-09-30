@@ -3,8 +3,11 @@ package com.yagay.ydiag
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.ManagedFeatureRuntime
 import com.yagay.ydiag.data.Preferences
 import com.yagay.ydiag.root.RootShell
+import com.yagay.ydiag.service.MonitorService
 import io.github.libxposed.service.HookedTarget
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
@@ -21,11 +24,17 @@ import java.util.concurrent.ConcurrentHashMap
  * Host-neutral runtime used by both the standalone APK and YSuite.
  * Keep Android Application subclasses thin so this feature can be embedded safely.
  */
-class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.OnServiceListener {
+class YDiagRuntime private constructor(context: Context) :
+    XposedServiceHelper.OnServiceListener,
+    ManagedFeatureRuntime {
+
     private val appContext = context.applicationContext
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var runtimeJob = SupervisorJob()
+    @Volatile private var appScope = CoroutineScope(runtimeJob + Dispatchers.IO)
     private val preferences by lazy { Preferences(appContext) }
 
+    @Volatile private var enabled = true
+    @Volatile private var host: FeatureHost? = null
     @Volatile private var xposedService: XposedService? = null
     @Volatile private var trackedTargets: Set<String> = emptySet()
 
@@ -38,6 +47,58 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
 
     init {
         registerServiceListener()
+    }
+
+    override fun attach(host: FeatureHost) {
+        this.host = host
+    }
+
+    @Synchronized
+    override fun enable() {
+        if (!runtimeJob.isActive) {
+            runtimeJob = SupervisorJob()
+            appScope = CoroutineScope(runtimeJob + Dispatchers.IO)
+        }
+        enabled = true
+        if (xposedService == null) {
+            _moduleState.value = ModuleState(message = "LSPosed 未连接")
+        }
+        Log.i(TAG, "managed runtime enabled")
+    }
+
+    @Synchronized
+    override fun disable() {
+        if (!enabled && !runtimeJob.isActive) return
+        enabled = false
+
+        val service = xposedService
+        runCatching {
+            service?.getRemotePreferences(PREFS)
+                ?.edit()
+                ?.putStringSet(KEY_TARGETS, emptySet())
+                ?.putStringSet(KEY_OPTIONS, emptySet())
+                ?.putLong(KEY_REVISION, System.currentTimeMillis())
+                ?.commit()
+        }.onFailure { Log.w(TAG, "Unable to clear remote tracking state during disable", it) }
+
+        runtimeJob.cancel()
+        xposedService = null
+        trackedTargets = emptySet()
+        synchronized(requestedScope) { requestedScope.clear() }
+        activationInFlight.clear()
+        lastActivationAttempt.clear()
+
+        runCatching {
+            appContext.stopService(Intent(appContext, MonitorService::class.java))
+        }.onFailure { Log.w(TAG, "Unable to stop MonitorService during disable", it) }
+
+        _moduleState.value = ModuleState(message = "YDiag 已由 YSuite 停用")
+        Log.i(TAG, "managed runtime disabled; jobs and monitor service stopped")
+    }
+
+    override fun destroy() {
+        disable()
+        host = null
     }
 
     private fun registerServiceListener() {
@@ -61,10 +122,12 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
     }
 
     override fun onServiceBind(service: XposedService) {
+        if (!enabled) return
         xposedService = service
         refreshModuleState()
         appScope.launch {
             delay(150)
+            if (!enabled) return@launch
             val granted = runCatching { service.scope.toSet() }.getOrDefault(emptySet())
             val missingDefault = DEFAULT_SCOPE - granted
             if (missingDefault.isNotEmpty()) {
@@ -81,12 +144,16 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
     override fun onServiceDied(service: XposedService) {
         if (xposedService === service) xposedService = null
         activationInFlight.clear()
-        _moduleState.value = ModuleState(message = "LSPosed 连接已断开")
+        if (enabled) {
+            _moduleState.value = ModuleState(message = "LSPosed 连接已断开")
+        }
     }
 
     fun syncDeepTracking(targets: Set<String>, options: Set<String>) {
+        if (!enabled) return
         trackedTargets = targets
         appScope.launch {
+            if (!enabled) return@launch
             val service = xposedService ?: run {
                 _moduleState.value = ModuleState(message = "Root 监控正常；LSPosed 深度追踪未连接")
                 return@launch
@@ -128,7 +195,9 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
     }
 
     fun refreshModuleState() {
+        if (!enabled) return
         appScope.launch {
+            if (!enabled) return@launch
             val service = xposedService
             _moduleState.value = if (service == null) {
                 ModuleState(message = "LSPosed 未连接")
@@ -144,6 +213,7 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
         activationTargets: Set<String>,
         activationMode: String,
     ) {
+        if (!enabled) return
         val request = synchronized(requestedScope) {
             missing.filterNot { it in requestedScope }.also { requestedScope += it }.toSet()
         }
@@ -163,6 +233,7 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
             }
             appScope.launch {
                 delay(500)
+                if (!enabled) return@launch
                 synchronized(requestedScope) { requestedScope.removeAll(request) }
                 refreshModuleState()
                 val granted = runCatching { service.scope.toSet() }.getOrDefault(emptySet())
@@ -175,8 +246,10 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
             service.requestScope(request.toList(), object : XposedService.OnScopeEventListener {
                 override fun onScopeRequestApproved(approved: List<String>) {
                     synchronized(requestedScope) { requestedScope.removeAll(request.toSet()) }
+                    if (!enabled) return
                     appScope.launch {
                         delay(250)
+                        if (!enabled) return@launch
                         refreshModuleState()
                         ensureTargetsLoaded(service, activationTargets, activationMode)
                     }
@@ -184,6 +257,7 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
 
                 override fun onScopeRequestFailed(message: String) {
                     synchronized(requestedScope) { requestedScope.removeAll(request.toSet()) }
+                    if (!enabled) return
                     _moduleState.value = _moduleState.value.copy(
                         pendingScope = request,
                         message = "Root 日志已生效；深度 Scope 未授权：$message",
@@ -192,6 +266,7 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
             })
         }.onFailure {
             synchronized(requestedScope) { requestedScope.removeAll(request.toSet()) }
+            if (!enabled) return@onFailure
             Log.e(TAG, "Scope request failed", it)
             _moduleState.value = _moduleState.value.copy(
                 pendingScope = request,
@@ -216,7 +291,7 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
         targets: Set<String>,
         mode: String,
     ) {
-        if (targets.isEmpty() || mode != Preferences.ACTIVATION_AUTO) return
+        if (!enabled || targets.isEmpty() || mode != Preferences.ACTIVATION_AUTO) return
         if (!RootShell.isAvailable()) {
             _moduleState.value = moduleSnapshot(service).copy(
                 message = "深度 Scope 已授权；Root 不可用，请手动重新打开目标 App",
@@ -237,6 +312,7 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
         }
 
         for (packageName in candidates) {
+            if (!enabled) return
             val launchIntent = appContext.packageManager.getLaunchIntentForPackage(packageName)
             if (launchIntent == null) {
                 Log.i(TAG, "No launch intent for $packageName; manual reopen required")
@@ -260,6 +336,7 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
             }
 
             delay(350)
+            if (!enabled) return
             runCatching {
                 appContext.startActivity(
                     launchIntent.addFlags(
@@ -271,6 +348,7 @@ class YDiagRuntime private constructor(context: Context) : XposedServiceHelper.O
             }
 
             delay(1600)
+            if (!enabled) return
             activationInFlight -= packageName
             _moduleState.value = moduleSnapshot(service)
         }

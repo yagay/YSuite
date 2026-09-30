@@ -21,6 +21,42 @@ def fail(message: str) -> None:
     raise SystemExit(1)
 
 
+def runtime_source(item: dict) -> Path | None:
+    runtime = item.get("runtime")
+    if not runtime:
+        return None
+    stem = ROOT / item["project_dir"] / "src/main/java" / Path(*runtime.split("."))
+    for suffix in (".kt", ".java"):
+        candidate = Path(str(stem) + suffix)
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def verify_managed_runtime(item: dict) -> None:
+    if item.get("lifecycle", "legacy") != "managed":
+        return
+
+    feature_id = item["id"]
+    source = runtime_source(item)
+    if source is None:
+        fail(f"{feature_id}: managed runtime source could not be resolved from {item.get('runtime')}")
+    text = source.read_text(encoding="utf-8")
+    if "ManagedFeatureRuntime" not in text:
+        fail(f"{feature_id}: lifecycle=managed but runtime does not implement ManagedFeatureRuntime")
+
+    project_dir = ROOT / item["project_dir"]
+    build_file = project_dir / "build.gradle.kts"
+    build_text = build_file.read_text(encoding="utf-8") if build_file.is_file() else ""
+    if "com.github.yagay.YSuite:api" not in build_text:
+        fail(f"{feature_id}: managed feature must depend on the shared YSuite api module")
+
+    standalone_settings = project_dir.parent / "settings.gradle.kts"
+    settings_text = standalone_settings.read_text(encoding="utf-8") if standalone_settings.is_file() else ""
+    if 'producesModule("com.github.yagay.YSuite:api")' not in settings_text:
+        fail(f"{feature_id}: standalone settings must expose the shared YSuite api module")
+
+
 def main() -> None:
     features = load_features()
 
@@ -28,6 +64,7 @@ def main() -> None:
         project_dir = ROOT / item["project_dir"]
         if not project_dir.is_dir():
             fail(f"{item['id']}: project_dir does not exist: {item['project_dir']}")
+        verify_managed_runtime(item)
 
     for path in (GENERATED_FEATURES, GENERATED_HOOKS, GENERATED_MODULES):
         if not path.is_file():
@@ -63,9 +100,10 @@ def main() -> None:
                 fail(f"manual Xposed PluginSpec returned to SuiteXposedModule: {hook['id']}")
 
     hook_count = sum(len(item.get("hooks") or []) for item in features)
+    managed_count = sum(item.get("lifecycle", "legacy") == "managed" for item in features)
     print(
         f"feature-catalog: OK authoritative=config/features.toml "
-        f"features={len(features)} hooks={hook_count}"
+        f"features={len(features)} hooks={hook_count} managed={managed_count}"
     )
 
 

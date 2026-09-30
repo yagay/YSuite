@@ -85,23 +85,34 @@ class FeatureStateStore(context: Context) {
     /**
      * The persisted switch is the authoritative feature state for the combined host.
      *
-     * One write fans out to the app runtime boundary and the LSPosed remote-preference mirror. The
-     * mirror can be temporarily unavailable while LSPosed is disconnected; the broker performs a
-     * full resync on the next service bind, so local state is never lost.
+     * Enable ordering matters: the managed runtime is made ready before LSPosed replays an existing
+     * service connection. Disable ordering is the inverse: Hook/service callbacks and Root work are
+     * cut off first, then the feature gets its cleanup callback. This prevents callbacks racing a
+     * stopped runtime while still keeping the persisted switch as the source of truth.
      */
     fun setEnabled(feature: FeatureSpec, enabled: Boolean) {
         prefs.edit()
             .putBoolean(SuiteContract.FEATURE_STATE_KEY_PREFIX + feature.id, enabled)
             .apply()
 
-        SuiteXposedServiceBroker.setPluginEnabled(feature.id, enabled)
-        if (!enabled) SuiteRootGateway.stopPluginProcesses(feature.id)
-
         val lifecycle = if (enabled) {
-            FeatureRuntimeManager.enable(appContext, feature).map { Unit }
+            FeatureRuntimeManager.enable(appContext, feature).map { Unit }.also { result ->
+                if (result.isSuccess) {
+                    SuiteXposedServiceBroker.setPluginEnabled(feature.id, true)
+                } else {
+                    // Do not leave Hook/Root-facing state enabled when runtime activation failed.
+                    prefs.edit()
+                        .putBoolean(SuiteContract.FEATURE_STATE_KEY_PREFIX + feature.id, false)
+                        .apply()
+                    SuiteXposedServiceBroker.setPluginEnabled(feature.id, false)
+                }
+            }
         } else {
+            SuiteXposedServiceBroker.setPluginEnabled(feature.id, false)
+            SuiteRootGateway.stopPluginProcesses(feature.id)
             FeatureRuntimeManager.disable(appContext, feature)
         }
+
         lifecycle.onFailure {
             SuiteLog.e(
                 appContext,

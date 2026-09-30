@@ -14,6 +14,7 @@ dependencyResolutionManagement {
 }
 sourceControl {
     gitRepository(uri("https://github.com/yagay/YSuite.git")) {
+        producesModule("com.github.yagay.YSuite:api")
         producesModule("com.github.yagay.YSuite:ui")
     }
 }
