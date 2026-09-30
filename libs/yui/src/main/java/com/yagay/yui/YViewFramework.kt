@@ -45,6 +45,37 @@ object YViewLayout {
         return screen
     }
 
+    /** Install a non-scrolling root for screens whose RecyclerView/Lazy container owns scrolling. */
+    @JvmStatic
+    @JvmOverloads
+    fun installFixed(
+        activity: Activity,
+        title: String,
+        subtitle: String? = null,
+    ): LinearLayout {
+        val root = fixedScreen(activity, title, subtitle)
+        activity.setContentView(root)
+        return root
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun fixedScreen(
+        context: Context,
+        title: String,
+        subtitle: String? = null,
+    ): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(
+            dp(context, SCREEN_H),
+            dp(context, SCREEN_V),
+            dp(context, SCREEN_H),
+            0,
+        )
+        YView.applyRoot(this)
+        header(this, title, subtitle)
+    }
+
     @JvmStatic
     @JvmOverloads
     fun screen(
