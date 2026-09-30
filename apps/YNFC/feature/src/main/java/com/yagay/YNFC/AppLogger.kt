@@ -14,6 +14,10 @@ object AppLogger {
         appContext = context.applicationContext
     }
 
+    fun detach() {
+        appContext = null
+    }
+
     @Synchronized
     fun i(message: String) {
         val line = "[${format.format(Date())}] APP: $message"
