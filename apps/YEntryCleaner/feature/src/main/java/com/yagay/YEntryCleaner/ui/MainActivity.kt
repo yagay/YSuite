@@ -159,7 +159,7 @@ class MainActivity : YComposeActivity() {
                     Destination.RULES -> RulesTab(state, vm)
                     Destination.PRIORITY -> PriorityTab(state, vm)
                     Destination.TILES -> RootComponentsScreen(state, vm)
-                    Destination.DASHBOARD -> DashboardTabContent(
+                    Destination.DASHBOARD -> UnifiedDashboardTabContent(
                         state,
                         vm,
                         { restore.launch(arrayOf("application/json", "text/plain")) },

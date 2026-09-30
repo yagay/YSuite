@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +23,9 @@ import androidx.compose.ui.window.DialogProperties
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.BrowserLinkConfig
 import com.yagay.YEntryCleaner.domain.normalizeBrowserHost
+import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YSearchField
+import com.yagay.yui.YSettingRow
 
 /** Compact BROWSER-domain selector shown inside the shared top filter row. */
 @Composable
@@ -82,7 +84,7 @@ fun BrowserHostFilterMenu(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(28.dp)
+                    .height(36.dp)
                     .clickable {
                         hostQuery = ""
                         expanded = false
@@ -108,7 +110,7 @@ fun BrowserHostFilterMenu(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(28.dp)
+                    .height(36.dp)
                     .clickable {
                         hostQuery = ""
                         expanded = false
@@ -121,35 +123,23 @@ fun BrowserHostFilterMenu(
                 Text(stringResource(R.string.browser_hosts_manage))
             }
             HorizontalDivider()
-            OutlinedTextField(
+            YSearchField(
                 value = hostQuery,
                 onValueChange = { hostQuery = it },
-                modifier = Modifier
-                    .width(280.dp)
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge,
-                leadingIcon = { Icon(Icons.Rounded.Search, null, Modifier.size(24.dp)) },
-                placeholder = {
-                    Text(
-                        stringResource(R.string.browser_domain_search),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+                hint = stringResource(R.string.browser_domain_search),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
             if (visibleHosts.isEmpty()) {
-                Text(
-                    stringResource(R.string.browser_domain_search_empty),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                YFeatureEmpty(
+                    message = stringResource(R.string.browser_domain_search_empty),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             } else {
                 visibleHosts.forEach { host ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(28.dp)
+                            .height(36.dp)
                             .clickable {
                                 hostQuery = ""
                                 expanded = false
@@ -199,13 +189,12 @@ fun BrowserHostDialog(
         modifier = Modifier.fillMaxWidth().padding(20.dp),
         title = { Text(stringResource(R.string.browser_hosts_title)) },
         text = {
-            Column(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     stringResource(R.string.browser_hosts_help),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = input,
@@ -233,21 +222,12 @@ fun BrowserHostDialog(
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
-                Spacer(Modifier.height(8.dp))
                 if (hosts.isEmpty()) {
-                    Text(
-                        stringResource(R.string.browser_hosts_empty),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    YFeatureEmpty(message = stringResource(R.string.browser_hosts_empty))
                 } else {
                     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
                         items(hosts, key = { it }) { host ->
-                            Row(
-                                Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(host, Modifier.weight(1f))
+                            YSettingRow(title = host) {
                                 IconButton(onClick = { hosts = hosts - host }) {
                                     Icon(Icons.Rounded.Delete, stringResource(R.string.common_delete))
                                 }
