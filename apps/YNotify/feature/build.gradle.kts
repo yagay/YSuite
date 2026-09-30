@@ -2,14 +2,19 @@ plugins {
     id("com.android.library")
 }
 
+val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
+val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
+
 android {
     namespace = "com.yagay.YNotify"
     compileSdk {
-        version = release(37) { minorApiLevel = 0 }
+        version = release(libs.versions.compileSdk.get().toInt()) {
+            minorApiLevel = libs.versions.compileSdkMinor.get().toInt()
+        }
     }
 
     defaultConfig {
-        minSdk = 31
+        minSdk = libs.versions.minSdk.get().toInt()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "VERSION_NAME", "\"1.3.5\"")
         buildConfigField("int", "VERSION_CODE", "9")
@@ -23,27 +28,27 @@ android {
     testOptions { unitTests.isIncludeAndroidResources = true }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = sharedJavaVersion
+        targetCompatibility = sharedJavaVersion
     }
 }
 
 dependencies {
     implementation("com.github.yagay.YSuite:api") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
     implementation("com.github.yagay.YSuite:ui") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
-    implementation("androidx.lifecycle:lifecycle-livedata:2.10.0")
-    implementation("androidx.lifecycle:lifecycle-runtime:2.10.0")
-    implementation("androidx.room:room-runtime:2.7.2")
-    implementation("net.zetetic:sqlcipher-android:4.19.0")
-    implementation("io.github.libxposed:service:102.0.0")
-    annotationProcessor("androidx.room:room-compiler:2.7.2")
-    compileOnly("io.github.libxposed:api:102.0.0")
+    implementation(libs.androidx.lifecycle.livedata)
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.sqlcipher.android)
+    implementation(libs.libxposed.service)
+    annotationProcessor(libs.androidx.room.compiler)
+    compileOnly(libs.libxposed.api)
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.robolectric:robolectric:4.15.1")
-    testImplementation("androidx.test:core:1.7.0")
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

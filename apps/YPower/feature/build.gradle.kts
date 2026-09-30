@@ -2,21 +2,28 @@ plugins {
     id("com.android.library")
 }
 
+val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
+val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
+val ciArm64Only = providers.gradleProperty("ciArm64Only").orNull == "true"
+
 android {
     namespace = "com.yagay.ypower"
-    compileSdk = 37
-    compileSdkMinor = 0
-    ndkVersion = "27.2.12479018"
+    compileSdk = libs.versions.compileSdk.get().toInt()
+    compileSdkMinor = libs.versions.compileSdkMinor.get().toInt()
+    ndkVersion = libs.versions.ndk.get()
 
     defaultConfig {
-        minSdk = 31
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        minSdk = libs.versions.minSdk.get().toInt()
+        ndk {
+            abiFilters.clear()
+            abiFilters += if (ciArm64Only) listOf("arm64-v8a") else listOf("arm64-v8a", "armeabi-v7a")
+        }
         externalNativeBuild { cmake { cppFlags += "-std=c++17" } }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = sharedJavaVersion
+        targetCompatibility = sharedJavaVersion
     }
 
     buildFeatures {
@@ -33,24 +40,24 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+            version = libs.versions.cmake.get()
         }
     }
 }
 
 dependencies {
     implementation("com.github.yagay.YSuite:api") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
     implementation("com.github.yagay.YSuite:ui") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
 
-    implementation("com.github.topjohnwu.libsu:core:6.0.0")
-    implementation("com.github.topjohnwu.libsu:service:6.0.0")
-    implementation("com.github.topjohnwu.libsu:nio:6.0.0")
-    implementation("com.bytedance:bytehook:1.1.2")
+    implementation(libs.libsu.core)
+    implementation(libs.libsu.service)
+    implementation(libs.libsu.nio)
+    implementation(libs.bytehook)
 
-    compileOnly("io.github.libxposed:api:102.0.0")
-    implementation("io.github.libxposed:service:102.0.0")
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 }

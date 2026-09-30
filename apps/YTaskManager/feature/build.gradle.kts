@@ -3,12 +3,15 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
+val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
+
 android {
     namespace = "com.yagay.YTaskManager"
-    compileSdk = 37
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        minSdk = 26
+        minSdk = libs.versions.minSdkLegacy.get().toInt()
     }
 
     buildFeatures {
@@ -17,8 +20,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = sharedJavaVersion
+        targetCompatibility = sharedJavaVersion
     }
 
     packaging {
@@ -33,13 +36,13 @@ android {
 
 dependencies {
     implementation("com.github.yagay.YSuite:api") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
     implementation("com.github.yagay.YSuite:ui") {
-        version { branch = "main" }
+        version { branch = sharedSuiteBranch.get() }
     }
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+    implementation(libs.androidx.lifecycle.runtime.ktx)
 
-    compileOnly("io.github.libxposed:api:102.0.0")
-    implementation("io.github.libxposed:service:102.0.0")
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 }

@@ -20,6 +20,9 @@ jobs:
       - name: Verify generated feature catalog is current
         run: python3 tools/generate_feature_catalog.py --check
 
+      - name: Verify mirrored version catalogs are current
+        run: python3 tools/sync_version_catalog.py --check
+
       - name: Verify feature catalog architecture
         run: python3 tools/verify_feature_catalog.py
 

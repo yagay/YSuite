@@ -20,22 +20,29 @@ jobs:
       - name: Verify generated feature catalog is current
         run: python3 tools/generate_feature_catalog.py --check
 
+      - name: Verify mirrored version catalogs are current
+        run: python3 tools/sync_version_catalog.py --check
+
       - name: Verify YSuite host ownership
         run: python3 tools/verify_host_ownership.py
 
       - name: Scan feature integration hazards
         run: python3 tools/scan_feature_integration.py --root . --fail-on-high-risk
 
-      - name: Set up Java 17
+      - name: Read shared build versions
+        id: versions
+        run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: ${{ steps.versions.outputs.java }}
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '9.4.1'
+          gradle-version: ${{ steps.versions.outputs.gradle }}
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -49,9 +56,12 @@ jobs:
           set -euo pipefail
           sdkmanager "cmdline-tools;23.0"
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/23.0/bin/sdkmanager"
-          "$SDKMANAGER" --channel=3 "platforms;android-37.0" "build-tools;36.0.0" "platform-tools"
-          test -s "${ANDROID_HOME}/platforms/android-37.0/android.jar"
-          test -x "${ANDROID_HOME}/build-tools/36.0.0/aapt2"
+          "$SDKMANAGER" --channel=3 \
+            "platforms;android-${{ steps.versions.outputs.android_platform }}" \
+            "build-tools;${{ steps.versions.outputs.build_tools }}" \
+            "platform-tools"
+          test -s "${ANDROID_HOME}/platforms/android-${{ steps.versions.outputs.android_platform }}/android.jar"
+          test -x "${ANDROID_HOME}/build-tools/${{ steps.versions.outputs.build_tools }}/aapt2"
 
       - name: Verify shared YUI build
         run: gradle --no-daemon --stacktrace :ui:assembleDebug
