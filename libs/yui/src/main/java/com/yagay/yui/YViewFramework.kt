@@ -68,7 +68,7 @@ object YViewLayout {
         }
         scroll.addView(
             root,
-            ScrollView.LayoutParams(
+            ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
@@ -287,7 +287,7 @@ object YViewLayout {
                 YViewStatusTone.Neutral -> onSurfaceVariant(view.context)
                 YViewStatusTone.Good -> YView.color(
                     view.context,
-                    com.google.android.material.R.attr.colorPrimary,
+                    android.R.attr.colorAccent,
                     0xFF16794A.toInt(),
                 )
                 YViewStatusTone.Warning -> YView.color(
@@ -297,7 +297,7 @@ object YViewLayout {
                 )
                 YViewStatusTone.Error -> YView.color(
                     view.context,
-                    com.google.android.material.R.attr.colorError,
+                    android.R.attr.colorError,
                     0xFFB3261E.toInt(),
                 )
             },
