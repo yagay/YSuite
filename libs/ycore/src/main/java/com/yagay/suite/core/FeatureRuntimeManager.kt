@@ -29,7 +29,7 @@ object FeatureRuntimeManager {
         val runtime = when {
             record.runtime is ManagedFeatureRuntime -> record.runtime
             feature.runtimeInitializerClassName == null -> null
-            else -> feature.initialize(app)
+            else -> feature.instantiateRuntime(app)
         }
         record.runtime = runtime
         record.managed = runtime is ManagedFeatureRuntime
