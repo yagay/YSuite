@@ -1,27 +1,139 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
-    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="wrap_content" android:title="事件详情" app:navigationIcon="@drawable/ic_back" />
-    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-            <TextView android:id="@+id/app" android:layout_width="match_parent" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.TitleLarge" />
-            <TextView android:id="@+id/meta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textIsSelectable="true" />
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:title="事件详情"
+        app:navigationIcon="@drawable/ic_back" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/yui_screen_horizontal"
+            android:paddingTop="@dimen/yui_section_gap"
+            android:paddingBottom="@dimen/yui_screen_bottom">
+
+            <TextView
+                android:id="@+id/app"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+
+            <TextView
+                android:id="@+id/meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/yui_control_gap"
+                android:textAppearance="@style/TextAppearance.YUI.Caption"
+                android:textIsSelectable="true" />
+
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_correct_classification" style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
+                android:id="@+id/btn_correct_classification"
+                style="@style/Widget.YUI.Button.Tonal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/yui_section_gap"
                 android:text="修正分类" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="标题" android:textStyle="bold" />
-            <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textIsSelectable="true" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="完整内容" android:textStyle="bold" />
-            <TextView android:id="@+id/full_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:textIsSelectable="true" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="通知更新历史" android:textStyle="bold" />
-            <TextView android:id="@+id/revision_history" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="monospace" android:textSize="12sp" android:textIsSelectable="true" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="消息结构" android:textStyle="bold" />
-            <TextView android:id="@+id/messages" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="monospace" android:textSize="12sp" android:textIsSelectable="true" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="操作按钮" android:textStyle="bold" />
-            <TextView android:id="@+id/actions" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="monospace" android:textSize="12sp" android:textIsSelectable="true" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="原始 Extras" android:textStyle="bold" />
-            <TextView android:id="@+id/raw" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="monospace" android:textSize="12sp" android:textIsSelectable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/yui_section_gap"
+                android:text="标题"
+                android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.YUI.Body"
+                android:textIsSelectable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/yui_section_gap"
+                android:text="完整内容"
+                android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+
+            <TextView
+                android:id="@+id/full_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.YUI.Body"
+                android:textIsSelectable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/yui_section_gap"
+                android:text="通知更新历史"
+                android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+
+            <TextView
+                android:id="@+id/revision_history"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textAppearance="@style/TextAppearance.YUI.Caption"
+                android:textIsSelectable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/yui_section_gap"
+                android:text="消息结构"
+                android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+
+            <TextView
+                android:id="@+id/messages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textAppearance="@style/TextAppearance.YUI.Caption"
+                android:textIsSelectable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/yui_section_gap"
+                android:text="操作按钮"
+                android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+
+            <TextView
+                android:id="@+id/actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textAppearance="@style/TextAppearance.YUI.Caption"
+                android:textIsSelectable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/yui_section_gap"
+                android:text="原始 Extras"
+                android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+
+            <TextView
+                android:id="@+id/raw"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textAppearance="@style/TextAppearance.YUI.Caption"
+                android:textIsSelectable="true" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>
