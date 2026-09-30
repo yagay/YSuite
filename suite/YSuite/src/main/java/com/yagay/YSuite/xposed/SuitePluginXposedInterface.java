@@ -4,6 +4,8 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.os.ParcelFileDescriptor;
 
+import com.yagay.suite.core.SuiteContract;
+
 import java.io.FileNotFoundException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
@@ -24,6 +26,8 @@ final class SuitePluginXposedInterface implements XposedInterface {
     private final XposedModule host;
     private final SuiteHookRegistry hookRegistry;
     private final String pluginId;
+    private final String featureId;
+    private final SharedPreferences featureState;
 
     SuitePluginXposedInterface(
             XposedModule host,
@@ -32,6 +36,9 @@ final class SuitePluginXposedInterface implements XposedInterface {
         this.host = Objects.requireNonNull(host);
         this.hookRegistry = Objects.requireNonNull(hookRegistry);
         this.pluginId = Objects.requireNonNull(pluginId);
+        int slash = pluginId.indexOf('/');
+        this.featureId = slash >= 0 ? pluginId.substring(0, slash) : pluginId;
+        this.featureState = host.getRemotePreferences(SuiteContract.FEATURE_STATE_REMOTE_GROUP);
     }
 
     @Override
@@ -61,12 +68,12 @@ final class SuitePluginXposedInterface implements XposedInterface {
 
     @Override
     public HookBuilder hook(Executable origin) {
-        return hookRegistry.hookBuilder(pluginId, origin);
+        return gated(hookRegistry.hookBuilder(pluginId, origin));
     }
 
     @Override
     public HookBuilder hookClassInitializer(Class<?> origin) {
-        return hookRegistry.classInitializerBuilder(pluginId, origin);
+        return gated(hookRegistry.classInitializerBuilder(pluginId, origin));
     }
 
     @Override
@@ -114,7 +121,62 @@ final class SuitePluginXposedInterface implements XposedInterface {
         return host.openRemoteFile(name);
     }
 
+    private HookBuilder gated(HookBuilder delegate) {
+        return new FeatureGateHookBuilder(delegate);
+    }
+
+    private boolean isFeatureEnabled() {
+        try {
+            return featureState.getBoolean(
+                    SuiteContract.FEATURE_STATE_KEY_PREFIX + featureId,
+                    true);
+        } catch (Throwable ignored) {
+            // Remote preferences may be briefly unavailable during framework reconnect. Preserve the
+            // previous all-enabled behavior instead of breaking target processes.
+            return true;
+        }
+    }
+
     private String prefix(String message) {
         return "[" + pluginId + "] " + message;
+    }
+
+    /**
+     * Keeps the physical/logical hook registration intact while making execution obey the current
+     * YSuite feature switch. Re-enabling therefore does not create a second hook generation.
+     */
+    private final class FeatureGateHookBuilder implements HookBuilder {
+        private final HookBuilder delegate;
+
+        FeatureGateHookBuilder(HookBuilder delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public HookBuilder setPriority(int priority) {
+            delegate.setPriority(priority);
+            return this;
+        }
+
+        @Override
+        public HookBuilder setExceptionMode(ExceptionMode mode) {
+            delegate.setExceptionMode(mode);
+            return this;
+        }
+
+        @Override
+        public HookBuilder setId(String id) {
+            delegate.setId(id);
+            return this;
+        }
+
+        @Override
+        public HookHandle intercept(Hooker hooker) {
+            Objects.requireNonNull(hooker);
+            return delegate.intercept(chain -> {
+                if (!isFeatureEnabled()) return chain.proceed();
+                return hooker.intercept(chain);
+            });
+        }
     }
 }
