@@ -31,6 +31,11 @@ import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.data.CleanupKind
 import com.yagay.YEntryCleaner.data.RootComponent
 import com.yagay.YEntryCleaner.domain.AppTypeFilter
+import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YFeatureSectionHeader
+import com.yagay.yui.YStatusRow
+import com.yagay.yui.YStatusTone
 
 private fun componentAppSelectionRank(items: List<RootComponent>): Int {
     val editable = items.filter { it.blocked == null && it.enabled != null }
@@ -102,9 +107,11 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
         item(key = "title") {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Text(stringResource(R.string.root_screen_title), style = MaterialTheme.typography.titleLarge)
-            }
+            YFeatureSectionHeader(
+                title = stringResource(R.string.root_screen_title),
+                subtitle = stringResource(R.string.root_filter_help),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
         }
         stickyHeader(key = "controls") {
             Surface(tonalElevation = 2.dp) {
@@ -196,21 +203,15 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
             }
         }
         item(key = "summary") {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Text(stringResource(R.string.root_summary, groups.size, visible.size), style = MaterialTheme.typography.labelLarge)
-                Text(
-                    stringResource(R.string.root_filter_help),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(stringResource(R.string.root_selection_semantics), style = MaterialTheme.typography.bodySmall)
-                Text(
-                    stringResource(R.string.root_change_semantics),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    stringResource(
+            YFeatureCard(
+                title = stringResource(R.string.root_summary, groups.size, visible.size),
+                subtitle = stringResource(R.string.root_selection_semantics),
+                detail = stringResource(R.string.root_change_semantics),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                YStatusRow(
+                    label = stringResource(R.string.view_filter),
+                    value = stringResource(
                         when (kind) {
                             null -> R.string.root_kind_all_help
                             CleanupKind.TILE -> R.string.root_kind_tile_help
@@ -218,11 +219,12 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                             CleanupKind.WIDGET -> R.string.root_kind_widget_help
                         }
                     ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    tone = YStatusTone.Neutral,
                 )
-                if (scan.warning.isNotBlank()) Text(scan.warning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                if (scan.warning.isNotBlank()) {
+                    YStatusRow("Warning", scan.warning, YStatusTone.Error)
+                }
+                message?.let { YStatusRow("Status", it, YStatusTone.Neutral) }
             }
         }
 
@@ -378,7 +380,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
             }
         }
         if (visible.isEmpty() && !busy) {
-            item { Text(stringResource(R.string.root_no_components), Modifier.padding(vertical = 16.dp)) }
+            item { YFeatureEmpty(stringResource(R.string.root_no_components)) }
         }
     }
 }
