@@ -17,6 +17,9 @@ jobs:
       - name: Checkout monorepo
         uses: actions/checkout@v4
 
+      - name: Verify generated feature catalog is current
+        run: python3 tools/generate_feature_catalog.py --check
+
       - name: Verify YSuite host ownership
         run: python3 tools/verify_host_ownership.py
 
