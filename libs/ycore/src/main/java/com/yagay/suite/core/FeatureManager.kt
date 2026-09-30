@@ -74,8 +74,19 @@ data class FeatureSpec(
  */
 object FeatureRegistry {
     val all: List<FeatureSpec> = GeneratedFeatureCatalog.all
+    private val byId: Map<String, FeatureSpec> = all.associateBy(FeatureSpec::id)
 
     fun included(): List<FeatureSpec> = all.filter(FeatureSpec::isIncluded)
+
+    fun find(id: String): FeatureSpec? = byId[id]
+
+    /** Constant-time exact IPC routing generated from config/features.toml. */
+    fun resolveIpcRoute(action: String): Pair<FeatureSpec, String>? {
+        val (featureId, receiverClassName) =
+            GeneratedFeatureCatalog.ipcActionOwners[action] ?: return null
+        val feature = byId[featureId]?.takeIf(FeatureSpec::isIncluded) ?: return null
+        return feature to receiverClassName
+    }
 }
 
 class FeatureStateStore(context: Context) {

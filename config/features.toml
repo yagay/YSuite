@@ -44,6 +44,11 @@ notification_listener_bridge = "com.yagay.YNotify.collector.NotificationListener
 ipc_routes = [
   { action = "com.yagay.YNotify.XPOSED_EVENT", receiver = "com.yagay.YNotify.collector.XposedEventReceiver" },
 ]
+replaced_components = [
+  { type = "service", class = "com.yagay.YNotify.collector.NotificationCaptureService" },
+  { type = "service", class = "com.yagay.YNotify.collector.UiAccessibilityService" },
+  { type = "receiver", class = "com.yagay.YNotify.collector.XposedEventReceiver" },
+]
 hooks = [{ id = "ynotify/main", class = "com.yagay.YNotify.xposed.YNotifyModule" }]
 
 [[feature]]
@@ -57,6 +62,10 @@ runtime = "com.yagay.ypower.YPowerRuntime"
 capabilities = ["ROOT", "LSPOSED"]
 lifecycle = "managed"
 boot_receiver = "com.yagay.ypower.root.BootReceiver"
+replaced_components = [
+  { type = "receiver", class = "com.yagay.ypower.root.BootReceiver" },
+  { type = "service", class = "com.yagay.ypower.root.YPowerRootService" },
+]
 hooks = [
   { id = "ypower/main", class = "com.yagay.ypower.hook.YPowerModule" },
   { id = "ypower/security", class = "com.yagay.ypower.hook.SupplementalSecurityModule" },
@@ -73,6 +82,9 @@ entry_activity = "com.yagay.YMiniGuard.MainActivity"
 runtime = "com.yagay.YMiniGuard.GuardRuntime"
 capabilities = ["ROOT", "LSPOSED", "NOTIFICATIONS"]
 lifecycle = "managed"
+replaced_components = [
+  { type = "provider", class = "com.yagay.YMiniGuard.EngineStatusProvider" },
+]
 hooks = [{ id = "yminiguard/main", class = "com.yagay.YMiniGuard.GuardModule" }]
 
 [[feature]]
@@ -85,6 +97,9 @@ entry_activity = "com.yagay.YNFC.MainActivity"
 runtime = "com.yagay.YNFC.YNFCSuiteRuntime"
 capabilities = ["ROOT", "LSPOSED"]
 lifecycle = "managed"
+replaced_components = [
+  { type = "provider", class = "com.yagay.YNFC.ConfigProvider" },
+]
 hooks = [{ id = "ynfc/main", class = "com.yagay.YNFC.xposed.NfcInjectionModule" }]
 
 [[feature]]
@@ -125,5 +140,12 @@ boot_receiver = "com.yagay.YFloat.FloatServiceBootReceiver"
 ipc_routes = [
   { action = "com.yagay.YFloat.action.GOOGLE_CTS_BRIDGE", receiver = "com.yagay.YFloat.GoogleCtsBridgeReceiver" },
   { action = "com.yagay.YFloat.action.GOOGLE_CTS_TRACE", receiver = "com.yagay.YFloat.GoogleCtsTraceReceiver" },
+]
+replaced_components = [
+  { type = "service", class = "com.yagay.YFloat.LensAccessibilityService" },
+  { type = "receiver", class = "com.yagay.YFloat.FloatServiceBootReceiver" },
+  { type = "receiver", class = "com.yagay.YFloat.GoogleCtsBridgeReceiver" },
+  { type = "receiver", class = "com.yagay.YFloat.GoogleCtsTraceReceiver" },
+  { type = "provider", class = "com.yagay.YFloat.GoogleCtsBridgeProvider" },
 ]
 hooks = [{ id = "yfloat/main", class = "com.yagay.YFloat.hook.YFloatModule" }]

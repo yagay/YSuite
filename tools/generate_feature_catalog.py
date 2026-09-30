@@ -13,6 +13,7 @@ CATALOG = ROOT / "config/features.toml"
 GENERATED_FEATURES = ROOT / "libs/ycore/src/main/java/com/yagay/suite/core/GeneratedFeatureCatalog.kt"
 GENERATED_HOOKS = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/xposed/GeneratedXposedPlugins.java"
 GENERATED_MODULES = ROOT / "config/generated/feature-modules.tsv"
+GENERATED_REPLACED_COMPONENTS = ROOT / "config/generated/host-replaced-components.tsv"
 
 ALLOWED_CAPABILITIES = {
     "ROOT",
@@ -22,6 +23,7 @@ ALLOWED_CAPABILITIES = {
     "OVERLAY",
     "NOTIFICATIONS",
 }
+ALLOWED_COMPONENT_TYPES = {"activity", "service", "receiver", "provider"}
 
 
 def fail(message: str) -> None:
@@ -46,6 +48,7 @@ def load_features() -> list[dict]:
     project_dirs: set[str] = set()
     hook_ids: set[str] = set()
     ipc_actions: dict[str, str] = {}
+    replaced_components: dict[tuple[str, str], str] = {}
     for item in features:
         for key in ("id", "name", "description", "gradle_module", "project_dir", "entry_activity"):
             if not str(item.get(key, "")).strip():
@@ -87,6 +90,25 @@ def load_features() -> list[dict]:
             if previous is not None:
                 fail(f"duplicate IPC action owner: {action} ({previous}, {feature_id})")
             ipc_actions[action] = feature_id
+
+        for component in item.get("replaced_components") or []:
+            component_type = str(component.get("type", "")).strip()
+            class_name = str(component.get("class", "")).strip()
+            if component_type not in ALLOWED_COMPONENT_TYPES:
+                fail(
+                    f"{feature_id}: replaced component type must be one of "
+                    f"{sorted(ALLOWED_COMPONENT_TYPES)}: {component_type!r}"
+                )
+            if not class_name:
+                fail(f"{feature_id}: replaced component class is required")
+            key = (component_type, class_name)
+            previous = replaced_components.get(key)
+            if previous is not None:
+                fail(
+                    f"duplicate host-replaced component: {component_type} {class_name} "
+                    f"({previous}, {feature_id})"
+                )
+            replaced_components[key] = feature_id
 
         for hook in item.get("hooks") or []:
             hook_id = str(hook.get("id", ""))
@@ -140,7 +162,23 @@ def render_feature_catalog(features: list[dict]) -> str:
             f"            defaultEnabled = {'true' if item.get('default_enabled', True) else 'false'},",
             "        ),",
         ])
-    lines.extend(["    )", "}", ""])
+    lines.extend(["    )", ""])
+
+    routes = [
+        (item["id"], route["action"], route["receiver"])
+        for item in features
+        for route in item.get("ipc_routes") or []
+    ]
+    if routes:
+        lines.append("    val ipcActionOwners: Map<String, Pair<String, String>> = mapOf(")
+        for feature_id, action, receiver in routes:
+            lines.append(
+                f"        {q(action)} to Pair({q(feature_id)}, {q(receiver)}),"
+            )
+        lines.append("    )")
+    else:
+        lines.append("    val ipcActionOwners: Map<String, Pair<String, String>> = emptyMap()")
+    lines.extend(["}", ""])
     return "\n".join(lines)
 
 
@@ -178,11 +216,26 @@ def render_module_map(features: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def render_replaced_components(features: list[dict]) -> str:
+    lines = [
+        "# Generated from config/features.toml by tools/generate_feature_catalog.py.",
+        "# feature_id<TAB>component_type<TAB>class_name",
+    ]
+    for item in features:
+        for component in item.get("replaced_components") or []:
+            lines.append(
+                f"{item['id']}\t{component['type']}\t{component['class']}"
+            )
+    lines.append("")
+    return "\n".join(lines)
+
+
 def outputs(features: list[dict]) -> dict[Path, str]:
     return {
         GENERATED_FEATURES: render_feature_catalog(features),
         GENERATED_HOOKS: render_xposed_plugins(features),
         GENERATED_MODULES: render_module_map(features),
+        GENERATED_REPLACED_COMPONENTS: render_replaced_components(features),
     }
 
 

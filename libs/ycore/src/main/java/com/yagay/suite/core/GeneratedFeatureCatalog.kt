@@ -140,4 +140,10 @@ internal object GeneratedFeatureCatalog {
             defaultEnabled = true,
         ),
     )
+
+    val ipcActionOwners: Map<String, Pair<String, String>> = mapOf(
+        "com.yagay.YNotify.XPOSED_EVENT" to Pair("ynotify", "com.yagay.YNotify.collector.XposedEventReceiver"),
+        "com.yagay.YFloat.action.GOOGLE_CTS_BRIDGE" to Pair("yfloat", "com.yagay.YFloat.GoogleCtsBridgeReceiver"),
+        "com.yagay.YFloat.action.GOOGLE_CTS_TRACE" to Pair("yfloat", "com.yagay.YFloat.GoogleCtsTraceReceiver"),
+    )
 }
