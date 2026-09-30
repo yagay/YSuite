@@ -19,13 +19,21 @@ def require(source: str, marker: str, label: str) -> None:
         raise SystemExit(1)
 
 
+def reject(source: str, marker: str, label: str) -> None:
+    if marker in source:
+        print(f"yentry-ui: ERROR: {label} must not contain {marker!r}", file=sys.stderr)
+        raise SystemExit(1)
+
+
 def main() -> None:
     activity = read("MainActivity.kt")
     dashboard = read("DashboardSurface.kt")
     runtime = read("RuntimePanel.kt")
     browser = read("BrowserHostFilterRow.kt")
     custom_open = read("CustomOpenTypeDialog.kt")
+    scope_picker = read("AppScopePicker.kt")
     controls = read("MainControls.kt")
+    tabs = read("MainTabs.kt")
 
     require(activity, "UnifiedDashboardTabContent(", "dashboard route")
     for marker in ("YFeatureCard(", "YStatusRow(", "YSettingSwitch(", "YActionRow"):
@@ -43,12 +51,24 @@ def main() -> None:
     for marker in ("YFeatureCard(", "YStatusRow(", "CustomOpenDefinition(", "validated()"):
         require(custom_open, marker, "custom OPEN editor")
 
+    for marker in ("YFeatureCard(", "YSearchField(", "YSettingSwitch(", "YStatusRow(", "YFeatureEmpty("):
+        require(scope_picker, marker, "app scope picker")
+    require(scope_picker, "VisibilityScope.entries", "app scope category controls")
+    require(scope_picker, "onSelectedChange", "app scope package selection")
+
+    # MainActivity has routed to DashboardSurface since the unified dashboard landed. Keeping the
+    # previous dashboard implementation in MainTabs would leave two visual contracts to maintain.
+    reject(tabs, "fun DashboardTabContent(", "legacy dashboard implementation")
+
     # Rules/Priority intentionally keep the compact module indicator because it sits above dense,
     # scrollable lists. The expanded dashboard owns the full card treatment.
     require(controls, "internal fun ModuleStatusRow", "compact list module indicator")
     require(controls, "compact: Boolean", "compact list module indicator")
 
-    print("yentry-ui: OK dashboard/runtime/module-status/filter-dialogs use unified YUI; compact list interactions preserved")
+    print(
+        "yentry-ui: OK dashboard/runtime/scope/filter surfaces use unified YUI; "
+        "legacy dashboard removed and compact list interactions preserved"
+    )
 
 
 if __name__ == "__main__":
