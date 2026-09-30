@@ -34,6 +34,7 @@ object YViewLayout {
     private const val CONTROL_GAP = 8
 
     @JvmStatic
+    @JvmOverloads
     fun install(
         activity: Activity,
         title: String,
@@ -45,6 +46,7 @@ object YViewLayout {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun screen(
         context: Context,
         title: String,
@@ -76,6 +78,7 @@ object YViewLayout {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun header(parent: LinearLayout, title: String, subtitle: String? = null) {
         val heading = TextView(parent.context).apply {
             text = title
@@ -100,6 +103,7 @@ object YViewLayout {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun card(
         parent: LinearLayout,
         title: String,
@@ -141,6 +145,7 @@ object YViewLayout {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun statusLine(
         context: Context,
         text: String,
@@ -153,6 +158,7 @@ object YViewLayout {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun setStatus(
         view: TextView,
         text: CharSequence,
@@ -217,6 +223,7 @@ object YViewLayout {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun addAction(row: LinearLayout, button: View, weight: Float = 1f) {
         val lp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, weight)
         if (row.childCount > 0) lp.marginStart = dp(row.context, CONTROL_GAP)
@@ -266,6 +273,7 @@ object YViewLayout {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun dividerSpace(parent: LinearLayout, spaceDp: Int = CONTROL_GAP) {
         parent.addView(
             View(parent.context),
