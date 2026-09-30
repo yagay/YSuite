@@ -1,4 +1,4 @@
-schema = 2
+schema = 3
 
 [[feature]]
 id = "yentrycleaner"
@@ -41,7 +41,9 @@ capabilities = ["LSPOSED", "ACCESSIBILITY", "NOTIFICATION_LISTENER"]
 lifecycle = "managed"
 accessibility_bridge = "com.yagay.YNotify.collector.UiAccessibilityBridge"
 notification_listener_bridge = "com.yagay.YNotify.collector.NotificationListenerBridge"
-ipc_receivers = ["com.yagay.YNotify.collector.XposedEventReceiver"]
+ipc_routes = [
+  { action = "com.yagay.YNotify.XPOSED_EVENT", receiver = "com.yagay.YNotify.collector.XposedEventReceiver" },
+]
 hooks = [{ id = "ynotify/main", class = "com.yagay.YNotify.xposed.YNotifyModule" }]
 
 [[feature]]
@@ -120,8 +122,8 @@ runtime = "com.yagay.YFloat.YFloatSuiteRuntime"
 capabilities = ["ROOT", "LSPOSED", "ACCESSIBILITY", "OVERLAY", "NOTIFICATIONS"]
 lifecycle = "managed"
 boot_receiver = "com.yagay.YFloat.FloatServiceBootReceiver"
-ipc_receivers = [
-  "com.yagay.YFloat.GoogleCtsBridgeReceiver",
-  "com.yagay.YFloat.GoogleCtsTraceReceiver",
+ipc_routes = [
+  { action = "com.yagay.YFloat.action.GOOGLE_CTS_BRIDGE", receiver = "com.yagay.YFloat.GoogleCtsBridgeReceiver" },
+  { action = "com.yagay.YFloat.action.GOOGLE_CTS_TRACE", receiver = "com.yagay.YFloat.GoogleCtsTraceReceiver" },
 ]
 hooks = [{ id = "yfloat/main", class = "com.yagay.YFloat.hook.YFloatModule" }]
