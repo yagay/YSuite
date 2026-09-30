@@ -9,7 +9,7 @@ project_dir = "apps/YEntryCleaner/feature"
 entry_activity = "com.yagay.YEntryCleaner.ui.MainActivity"
 runtime = "com.yagay.YEntryCleaner.YEntryCleanerRuntime"
 capabilities = ["ROOT", "LSPOSED"]
-lifecycle = "legacy"
+lifecycle = "managed"
 hooks = [
   { id = "yentrycleaner/main", class = "com.yagay.YEntryCleaner.xposed.YEntryCleanerModule" },
   { id = "yentrycleaner/state", class = "com.yagay.YEntryCleaner.xposed.ComponentStateGuardModule" },
@@ -82,7 +82,7 @@ project_dir = "apps/YNFC/feature"
 entry_activity = "com.yagay.YNFC.MainActivity"
 runtime = "com.yagay.YNFC.YNFCSuiteRuntime"
 capabilities = ["ROOT", "LSPOSED"]
-lifecycle = "legacy"
+lifecycle = "managed"
 hooks = [{ id = "ynfc/main", class = "com.yagay.YNFC.xposed.NfcInjectionModule" }]
 
 [[feature]]
@@ -106,7 +106,7 @@ project_dir = "apps/YParam/feature"
 entry_activity = "com.yagay.yparam.ui.MainActivity"
 runtime = "com.yagay.yparam.YParamSuiteRuntime"
 capabilities = ["LSPOSED"]
-lifecycle = "legacy"
+lifecycle = "managed"
 hooks = [{ id = "yparam/main", class = "com.yagay.yparam.hook.YParamModule" }]
 
 [[feature]]

@@ -60,6 +60,11 @@ public final class YParamApp extends Application implements XposedServiceHelper.
         notifyObservers();
     }
 
+    static void onSuiteRuntimeDisabled() {
+        service = null;
+        notifyObservers();
+    }
+
     public static XposedService getService() { return service; }
     public static SharedPreferences remotePrefs() {
         XposedService s = service;

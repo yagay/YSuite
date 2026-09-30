@@ -22,6 +22,9 @@ android {
 }
 
 dependencies {
+    implementation("com.github.yagay.YSuite:api") {
+        version { branch = "main" }
+    }
     implementation("com.github.yagay.YSuite:ui") {
         version { branch = "main" }
     }
