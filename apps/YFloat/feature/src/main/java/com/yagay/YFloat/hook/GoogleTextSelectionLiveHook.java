@@ -1,6 +1,7 @@
 package com.yagay.YFloat.hook;
 
 import android.graphics.Rect;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 
@@ -16,11 +17,25 @@ final class GoogleTextSelectionLiveHook {
     private static final String TEXT_SELECTION_VIEW =
             "com.google.android.libraries.lens.common.text.selection.ui.TextSelectionView";
 
+    /** Collapse duplicate/near-simultaneous internal callbacks before they reach the UI layer. */
+    private static final long LIVE_EMIT_MIN_INTERVAL_MS = 32L;
+    /** A sudden very large expansion must persist before it replaces the visible text shell. */
+    private static final long LARGE_EXPANSION_STABLE_MS = 72L;
+    /** A gap this long means a new drag/session and resets the live filter automatically. */
+    private static final long LIVE_FILTER_RESET_GAP_MS = 1_500L;
+    private static final float LARGE_EXPANSION_AREA_RATIO = 2.6f;
+
     private final XposedModule module;
     private final ClassLoader classLoader;
     private final BooleanSupplier active;
     private final BiConsumer<Rect, String> sink;
     private final Profile profile;
+
+    private Rect lastPublishedBounds;
+    private long lastPublishedAt;
+    private Rect pendingLargeBounds;
+    private long pendingLargeSince;
+    private int pendingLargeHits;
 
     private static final class Profile {
         final String name;
@@ -151,9 +166,89 @@ final class GoogleTextSelectionLiveHook {
     }
 
     private void publish(LiveBounds live) {
-        if (live != null && live.bounds != null && !live.bounds.isEmpty()) {
-            sink.accept(live.bounds, live.detail);
+        if (live == null || live.bounds == null || live.bounds.isEmpty()) return;
+        long now = SystemClock.elapsedRealtime();
+        Rect accepted = filterLiveBounds(live.bounds, now);
+        if (accepted != null) {
+            sink.accept(accepted, live.detail + " liveFilter=accepted");
         }
+    }
+
+    /**
+     * Google emits transient word lists while dragging selection handles. On 17.60 those lists can
+     * briefly expand from a small paragraph to almost the whole screen and collapse again a few
+     * milliseconds later. Keep normal live changes responsive, but require very large expansions
+     * to repeat consistently before they replace the visible YFloat selection shell.
+     */
+    private synchronized Rect filterLiveBounds(Rect candidate, long now) {
+        if (candidate == null || candidate.isEmpty()) return null;
+        Rect next = new Rect(candidate);
+
+        if (lastPublishedAt > 0L && now - lastPublishedAt > LIVE_FILTER_RESET_GAP_MS) {
+            lastPublishedBounds = null;
+            pendingLargeBounds = null;
+            pendingLargeSince = 0L;
+            pendingLargeHits = 0;
+        }
+
+        if (lastPublishedBounds == null || lastPublishedBounds.isEmpty()) {
+            lastPublishedBounds = next;
+            lastPublishedAt = now;
+            clearPendingLarge();
+            return new Rect(next);
+        }
+
+        if (lastPublishedBounds.equals(next)) return null;
+
+        long previousArea = area(lastPublishedBounds);
+        long nextArea = area(next);
+        boolean largeExpansion = previousArea > 0L
+                && nextArea > previousArea * LARGE_EXPANSION_AREA_RATIO;
+
+        if (largeExpansion) {
+            if (pendingLargeBounds != null && similarBounds(pendingLargeBounds, next)) {
+                pendingLargeHits++;
+                if (now - pendingLargeSince < LARGE_EXPANSION_STABLE_MS
+                        && pendingLargeHits < 3) {
+                    return null;
+                }
+                lastPublishedBounds = next;
+                lastPublishedAt = now;
+                clearPendingLarge();
+                return new Rect(next);
+            }
+            pendingLargeBounds = next;
+            pendingLargeSince = now;
+            pendingLargeHits = 1;
+            return null;
+        }
+
+        clearPendingLarge();
+        if (now - lastPublishedAt < LIVE_EMIT_MIN_INTERVAL_MS) return null;
+        lastPublishedBounds = next;
+        lastPublishedAt = now;
+        return new Rect(next);
+    }
+
+    private void clearPendingLarge() {
+        pendingLargeBounds = null;
+        pendingLargeSince = 0L;
+        pendingLargeHits = 0;
+    }
+
+    private static long area(Rect rect) {
+        if (rect == null || rect.isEmpty()) return 0L;
+        return (long) rect.width() * (long) rect.height();
+    }
+
+    private static boolean similarBounds(Rect a, Rect b) {
+        if (a == null || b == null || a.isEmpty() || b.isEmpty()) return false;
+        Rect intersection = new Rect(a);
+        if (!intersection.intersect(b) || intersection.isEmpty()) return false;
+        long intersectionArea = area(intersection);
+        long unionArea = area(a) + area(b) - intersectionArea;
+        if (unionArea <= 0L) return false;
+        return intersectionArea / (double) unionArea >= 0.82d;
     }
 
     private LiveBounds readTaskBounds(Object task) {
