@@ -143,6 +143,11 @@ final class FlOverlayWindowHost {
         if (view == null) return true;
         OverlaySceneManager.unbind(view);
 
+        if ("float_action_menu".equals(tag)) {
+            DiagnosticLog.i(context, "FLOAT_ACTION_MENU",
+                    "remove requested caller=" + removalCaller());
+        }
+
         // A window that cannot be detached must never remain interactive as an orphan.
         try { view.setVisibility(View.INVISIBLE); } catch (Throwable ignored) { }
 
@@ -168,6 +173,29 @@ final class FlOverlayWindowHost {
             }
         }, 160L);
         return false;
+    }
+
+    private String removalCaller() {
+        try {
+            for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
+                if (frame == null) continue;
+                String cls = frame.getClassName();
+                String method = frame.getMethodName();
+                if (Thread.class.getName().equals(cls)
+                        || FlOverlayWindowHost.class.getName().equals(cls)) {
+                    continue;
+                }
+                // FloatActionMenu.dismiss is the generic plumbing. The next frame is the useful
+                // reason: menu rebuild, outside touch, bridge release, action click, etc.
+                if (FloatActionMenu.class.getName().equals(cls) && "dismiss".equals(method)) {
+                    continue;
+                }
+                int dot = cls.lastIndexOf('.');
+                String shortClass = dot >= 0 ? cls.substring(dot + 1) : cls;
+                return shortClass + "." + method + ":" + frame.getLineNumber();
+            }
+        } catch (Throwable ignored) { }
+        return "unknown";
     }
 
     private void forget(View view) {
