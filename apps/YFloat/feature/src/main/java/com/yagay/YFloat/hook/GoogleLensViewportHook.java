@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.RectF;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -21,6 +22,8 @@ import io.github.libxposed.api.XposedModule;
 /** Owns Google Lens frozen-image viewport suppression and transform diagnostics. */
 final class GoogleLensViewportHook {
     private static final String TAG = "YFloat-GoogleCTS";
+    private static final long TEXT_FOCUS_REPORT_MIN_MS = 120L;
+    private static final long TRANSFORM_HEARTBEAT_MS = 1_000L;
 
     private final XposedModule module;
     private final ClassLoader classLoader;
@@ -33,6 +36,13 @@ final class GoogleLensViewportHook {
 
     private View guardedImage;
     private ViewTreeObserver.OnPreDrawListener regionPreDrawGuard;
+    private Runnable focusImmediateTask;
+    private Runnable focus120Task;
+    private Runnable focus300Task;
+    private Runnable viewport120Task;
+    private long lastTextFocusReportAt;
+    private long lastTransformReportAt;
+    private String lastTransformSignature = "";
 
     static final class Binding {
         final Class<?> controller;
@@ -174,14 +184,16 @@ final class GoogleLensViewportHook {
                             return chain.proceed();
                         }
 
-                        reporter.accept("GOOGLE_FROZEN_IMAGE_TEXT_FOCUS_SUPPRESSED_EARLY",
-                                "controller=" + controllerName + ".r source=" + source
-                                        + " selectionSeen=" + selectionSeen.getAsBoolean()
-                                        + " bounds=" + focusBounds
-                                        + " request=" + compact(request, 360));
-                        reportTransform("beforeEarlyTextFocus");
-                        main.postDelayed(() -> reportTransform("after120ms"), 120L);
-                        main.postDelayed(() -> reportTransform("after300ms"), 300L);
+                        long now = SystemClock.elapsedRealtime();
+                        if (now - lastTextFocusReportAt >= TEXT_FOCUS_REPORT_MIN_MS) {
+                            lastTextFocusReportAt = now;
+                            reporter.accept("GOOGLE_FROZEN_IMAGE_TEXT_FOCUS_SUPPRESSED_EARLY",
+                                    "controller=" + controllerName + ".r source=" + source
+                                            + " selectionSeen=" + selectionSeen.getAsBoolean()
+                                            + " bounds=" + focusBounds
+                                            + " request=" + compact(request, 360));
+                        }
+                        scheduleFocusTransformChecks();
                         return null;
                     });
                     count++;
@@ -217,7 +229,7 @@ final class GoogleLensViewportHook {
                         }
 
                         Object result = chain.proceed();
-                        main.postDelayed(() -> reportTransform("afterViewportN120ms"), 120L);
+                        scheduleViewportTransformCheck();
                         return result;
                     });
                     count++;
@@ -236,7 +248,54 @@ final class GoogleLensViewportHook {
     }
 
     void reset() {
+        cancelTransformChecks();
+        lastTextFocusReportAt = 0L;
+        lastTransformReportAt = 0L;
+        lastTransformSignature = "";
         main.post(this::removeRegionTransformGuardOnMain);
+    }
+
+    private void scheduleFocusTransformChecks() {
+        if (focusImmediateTask != null) main.removeCallbacks(focusImmediateTask);
+        if (focus120Task != null) main.removeCallbacks(focus120Task);
+        if (focus300Task != null) main.removeCallbacks(focus300Task);
+
+        focusImmediateTask = () -> {
+            focusImmediateTask = null;
+            reportTransform("focusSettled16ms");
+        };
+        focus120Task = () -> {
+            focus120Task = null;
+            reportTransform("focusSettled120ms");
+        };
+        focus300Task = () -> {
+            focus300Task = null;
+            reportTransform("focusSettled300ms");
+        };
+        // One coalesced set per burst instead of three new tasks for every internal focus callback.
+        main.postDelayed(focusImmediateTask, 16L);
+        main.postDelayed(focus120Task, 120L);
+        main.postDelayed(focus300Task, 300L);
+    }
+
+    private void scheduleViewportTransformCheck() {
+        if (viewport120Task != null) main.removeCallbacks(viewport120Task);
+        viewport120Task = () -> {
+            viewport120Task = null;
+            reportTransform("afterViewportN120ms");
+        };
+        main.postDelayed(viewport120Task, 120L);
+    }
+
+    private void cancelTransformChecks() {
+        if (focusImmediateTask != null) main.removeCallbacks(focusImmediateTask);
+        if (focus120Task != null) main.removeCallbacks(focus120Task);
+        if (focus300Task != null) main.removeCallbacks(focus300Task);
+        if (viewport120Task != null) main.removeCallbacks(viewport120Task);
+        focusImmediateTask = null;
+        focus120Task = null;
+        focus300Task = null;
+        viewport120Task = null;
     }
 
     private void ensureRegionTransformGuard() {
@@ -383,21 +442,35 @@ final class GoogleLensViewportHook {
                 View root = owner.getWindow() == null ? null : owner.getWindow().getDecorView();
                 View image = GoogleLensViewIntrospection.findByClassName(
                         root, GoogleLens1758Profile.FROZEN_IMAGE_VIEW);
+                String signature;
+                String detail;
                 if (image == null) {
-                    reporter.accept("GOOGLE_FROZEN_IMAGE_TRANSFORM",
-                            "phase=" + phase + " view=missing");
+                    signature = "missing";
+                    detail = "phase=" + phase + " view=missing";
+                } else {
+                    int[] loc = new int[2];
+                    try { image.getLocationOnScreen(loc); } catch (Throwable ignored) { }
+                    signature = image.getScaleX() + "," + image.getScaleY()
+                            + "," + image.getTranslationX() + "," + image.getTranslationY()
+                            + "," + loc[0] + "," + loc[1]
+                            + "," + image.getWidth() + "x" + image.getHeight();
+                    detail = "phase=" + phase
+                            + " scaleX=" + image.getScaleX()
+                            + " scaleY=" + image.getScaleY()
+                            + " translationX=" + image.getTranslationX()
+                            + " translationY=" + image.getTranslationY()
+                            + " xy=" + loc[0] + "," + loc[1]
+                            + " wh=" + image.getWidth() + "x" + image.getHeight();
+                }
+
+                long now = SystemClock.elapsedRealtime();
+                if (signature.equals(lastTransformSignature)
+                        && now - lastTransformReportAt < TRANSFORM_HEARTBEAT_MS) {
                     return;
                 }
-                int[] loc = new int[2];
-                try { image.getLocationOnScreen(loc); } catch (Throwable ignored) { }
-                reporter.accept("GOOGLE_FROZEN_IMAGE_TRANSFORM",
-                        "phase=" + phase
-                                + " scaleX=" + image.getScaleX()
-                                + " scaleY=" + image.getScaleY()
-                                + " translationX=" + image.getTranslationX()
-                                + " translationY=" + image.getTranslationY()
-                                + " xy=" + loc[0] + "," + loc[1]
-                                + " wh=" + image.getWidth() + "x" + image.getHeight());
+                lastTransformSignature = signature;
+                lastTransformReportAt = now;
+                reporter.accept("GOOGLE_FROZEN_IMAGE_TRANSFORM", detail);
             } catch (Throwable t) {
                 module.log(Log.WARN, TAG, "Failed to inspect FrozenImage transform", t);
             }
