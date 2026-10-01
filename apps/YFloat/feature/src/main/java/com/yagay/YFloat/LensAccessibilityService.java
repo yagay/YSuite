@@ -10,6 +10,8 @@ import android.graphics.Bitmap;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.hardware.HardwareBuffer;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Display;
 import android.view.View;
@@ -35,10 +37,19 @@ import java.util.function.Consumer;
 public class LensAccessibilityService extends AccessibilityService {
     private static volatile LensAccessibilityService s;
     private static final long ENV_INSPECT_MIN_MS = 180L;
+    /**
+     * Accessibility package transitions are not a reliable task-switch boundary. Some apps briefly
+     * become the reported package while Google's frozen CTS surface is still the active window.
+     * Re-check the active/focused window after this grace period before tearing the session down.
+     */
+    private static final long GOOGLE_EXIT_GRACE_MS = 320L;
 
     private volatile EnvironmentState env = new EnvironmentState("", false, 0, true, false, false);
     private final Set<String> homePackages = new HashSet<>();
+    private final Handler main = new Handler(Looper.getMainLooper());
     private long lastEnvironmentInspectAt;
+    private Runnable pendingGoogleExit;
+    private int googleExitGeneration;
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
@@ -69,6 +80,7 @@ public class LensAccessibilityService extends AccessibilityService {
     }
 
     @Override public boolean onUnbind(Intent intent) {
+        cancelPendingGoogleExit("service_unbind");
         FloatService service = FloatService.get();
         if (service != null) service.onAccessibilityOverlayHostChanged(false);
         OverlayRegistry.onAccessibilityHostChanged(false);
@@ -79,6 +91,7 @@ public class LensAccessibilityService extends AccessibilityService {
     }
 
     @Override public void onDestroy() {
+        cancelPendingGoogleExit("service_destroy");
         FloatService service = FloatService.get();
         if (service != null) service.onAccessibilityOverlayHostChanged(false);
         OverlayRegistry.onAccessibilityHostChanged(false);
@@ -132,23 +145,18 @@ public class LensAccessibilityService extends AccessibilityService {
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         try {
-            if (isSystemNavigationEvent(event)) {
-                String pkg = eventPackage(event);
-                String cls = eventClass(event);
-                if (getPackageName().equals(pkg)) {
-                    DiagnosticLog.i(this, "CIRCLE_SELECT",
-                            "ignore own activity navigation pkg=" + pkg + " cls=" + cls);
-                } else {
-                    DiagnosticLog.i(this, "CIRCLE_SELECT",
-                            "system navigation event pkg=" + pkg + " cls=" + cls);
-                    new FloatSettings(this).clearGoogleCtsSession();
-                    boolean remoteCleared = LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
-                    DiagnosticLog.i(this, "GOOGLE_CTS_NATIVE_RELEASE",
-                            "reason=system_navigation remoteCleared=" + remoteCleared
-                                    + " pkg=" + pkg + " cls=" + cls);
-                    GoogleCtsBridgeController.onNativeRelease(this, "system_navigation");
-                    FLCircleInlineOverlay.dismissActive("system_navigation");
-                }
+            String eventPkg = eventPackage(event);
+            String eventCls = eventClass(event);
+            if (GoogleCtsContract.GOOGLE_PACKAGE.equals(eventPkg)) {
+                cancelPendingGoogleExit("google_window_returned");
+            }
+
+            // Only a live Google CTS workflow needs navigation release handling. Home/launcher
+            // window churn outside a CTS session must not repeatedly clear bridge state or logs.
+            if (WorkflowSessionManager.googleCtsInFlight() && isSystemNavigationEvent(event)) {
+                DiagnosticLog.i(this, "CIRCLE_SELECT",
+                        "navigation candidate pkg=" + eventPkg + " cls=" + eventCls);
+                scheduleGoogleCtsRelease("system_navigation", eventPkg, eventCls);
             }
 
             String oldTop = env.topPackage();
@@ -165,12 +173,7 @@ public class LensAccessibilityService extends AccessibilityService {
                     && !GoogleCtsContract.GOOGLE_PACKAGE.equals(top)
                     && !getPackageName().equals(top)
                     && !"com.android.systemui".equals(top)) {
-                new FloatSettings(this).clearGoogleCtsSession();
-                boolean remoteCleared = LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
-                GoogleCtsBridgeController.onNativeRelease(this, "top_package_changed");
-                DiagnosticLog.i(this, "GOOGLE_CTS_NATIVE_RELEASE",
-                        "reason=top_package_changed remoteCleared=" + remoteCleared
-                                + " from=" + oldTop + " to=" + top);
+                scheduleGoogleCtsRelease("top_package_changed", top, eventCls);
             }
 
             long now = SystemClock.uptimeMillis();
@@ -182,6 +185,83 @@ public class LensAccessibilityService extends AccessibilityService {
             publishEnvironment();
         } catch (Throwable t) {
             DiagnosticLog.i(this, "ACCESSIBILITY", "event failed=" + t);
+        }
+    }
+
+    private void scheduleGoogleCtsRelease(String reason, String observedPkg, String observedCls) {
+        if (!WorkflowSessionManager.googleCtsInFlight()) return;
+        cancelPendingGoogleExit(null);
+        final int generation = ++googleExitGeneration;
+        final Runnable[] holder = new Runnable[1];
+        holder[0] = () -> {
+            if (pendingGoogleExit != holder[0] || generation != googleExitGeneration) return;
+            pendingGoogleExit = null;
+            if (!WorkflowSessionManager.googleCtsInFlight()) return;
+
+            String activePkg = activeWindowPackage();
+            String settledPkg = activePkg == null || activePkg.isBlank()
+                    ? env.topPackage() : activePkg;
+            if (GoogleCtsContract.GOOGLE_PACKAGE.equals(settledPkg)) {
+                DiagnosticLog.i(this, "GOOGLE_CTS_RELEASE_GUARD",
+                        "cancelled reason=" + reason
+                                + " observed=" + observedPkg
+                                + " active=" + settledPkg
+                                + " graceMs=" + GOOGLE_EXIT_GRACE_MS);
+                return;
+            }
+
+            new FloatSettings(this).clearGoogleCtsSession();
+            boolean remoteCleared = LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
+            DiagnosticLog.i(this, "GOOGLE_CTS_NATIVE_RELEASE",
+                    "reason=" + reason + " remoteCleared=" + remoteCleared
+                            + " observed=" + observedPkg + " cls=" + observedCls
+                            + " settled=" + settledPkg
+                            + " graceMs=" + GOOGLE_EXIT_GRACE_MS);
+            GoogleCtsBridgeController.onNativeRelease(this, reason);
+            FLCircleInlineOverlay.dismissActive(reason);
+        };
+        pendingGoogleExit = holder[0];
+        main.postDelayed(holder[0], GOOGLE_EXIT_GRACE_MS);
+    }
+
+    private void cancelPendingGoogleExit(String reason) {
+        Runnable pending = pendingGoogleExit;
+        pendingGoogleExit = null;
+        googleExitGeneration++;
+        if (pending != null) {
+            main.removeCallbacks(pending);
+            if (reason != null && !reason.isBlank()) {
+                DiagnosticLog.i(this, "GOOGLE_CTS_RELEASE_GUARD",
+                        "pending release cancelled reason=" + reason);
+            }
+        }
+    }
+
+    /** Return the package owning the currently active/focused application window, if available. */
+    private String activeWindowPackage() {
+        try {
+            List<AccessibilityWindowInfo> windows = getWindows();
+            if (windows == null) return "";
+            String focusedFallback = "";
+            for (AccessibilityWindowInfo window : windows) {
+                if (window == null || (!window.isActive() && !window.isFocused())) continue;
+                AccessibilityNodeInfo root = null;
+                try {
+                    root = window.getRoot();
+                    if (root == null || root.getPackageName() == null) continue;
+                    String pkg = root.getPackageName().toString();
+                    if (pkg.isBlank() || "com.android.systemui".equals(pkg)
+                            || getPackageName().equals(pkg)) continue;
+                    if (window.isActive()) return pkg;
+                    if (focusedFallback.isBlank()) focusedFallback = pkg;
+                } catch (Throwable ignored) {
+                } finally {
+                    try { if (root != null) root.recycle(); } catch (Throwable ignored) {}
+                }
+            }
+            return focusedFallback;
+        } catch (Throwable ignored) {
+            return "";
         }
     }
 
