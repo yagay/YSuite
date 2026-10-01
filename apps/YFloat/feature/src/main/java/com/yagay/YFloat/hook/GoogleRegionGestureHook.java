@@ -151,11 +151,15 @@ final class GoogleRegionGestureHook {
         }
 
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            // FrozenImageView can emit an initial/redundant CANCEL through a different hooked
+            // method even though no DOWN/MOVE for this YFloat-observed gesture ever occurred.
+            // Do not turn that orphan terminal event into a bridge "gesture end" with revision=-1.
+            if (!gestureActive) {
+                lastHeartbeatElapsed = 0L;
+                return;
+            }
             gestureActive = false;
             lastHeartbeatElapsed = 0L;
-            // Emit the end even if an earlier Google-internal method already altered our state.
-            // Different 17.58 FrozenImageView paths can observe DOWN and terminal events in
-            // different methods; the app-side state machine de-duplicates harmless duplicates.
             stateSink.accept(false, describe(event, methodName, action, "end"));
         }
     }
