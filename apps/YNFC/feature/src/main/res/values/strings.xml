@@ -53,6 +53,16 @@
     <string name="ynfc_stale_disabled">Emulation disabled. Stale RF state from an old NFC process detected.</string>
     <string name="ynfc_sim_disabled">Emulation disabled</string>
 
+    <string name="ynfc_sim_apply_success">Emulation succeeded · UID=%1$s · confirmed in the NFC process</string>
+    <string name="ynfc_sim_hook_not_ready">Emulation request saved, but the Hook is not ready</string>
+    <string name="ynfc_sim_command_superseded">Emulation request was replaced by a newer command</string>
+    <string name="ynfc_sim_apply_failure">Emulation failed · %1$s: %2$s</string>
+    <string name="ynfc_sim_waiting_rf">Emulation request sent · waiting for RF UID confirmation</string>
+    <string name="ynfc_sim_stop_lifecycle_restored">Emulation stopped · stock RF restored by the NFC process</string>
+    <string name="ynfc_sim_stop_superseded">Stop request was replaced by a newer command</string>
+    <string name="ynfc_sim_stop_restored">Emulation stopped · stock RF restored</string>
+    <string name="ynfc_sim_stop_restart_unconfirmed">Emulation stopped · NFC restarted, but state confirmation is incomplete</string>
+
     <string name="ynfc_read_card">Read-card mode</string>
     <string name="ynfc_read_disabled_during_sim">Emulation is active, so read mode remains disabled.</string>
     <string name="ynfc_read_enabled">Read mode is enabled. Hold the access card against the back of the phone.</string>
