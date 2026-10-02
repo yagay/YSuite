@@ -84,19 +84,19 @@ public final class TargetAppsActivity extends Activity {
 
     private void buildUi() {
         String title = MODE_FORCE_SUPPORT.equals(mode)
-                ? "强制允许一加小窗"
+                ? getString(R.string.ymg_target_force_title)
                 : MODE_BACKGROUND_PLAYBACK.equals(mode)
-                ? "后台播放应用"
-                : "始终前台应用";
+                ? getString(R.string.ymg_target_background_title)
+                : getString(R.string.ymg_target_foreground_title);
         String help = MODE_FORCE_SUPPORT.equals(mode)
-                ? "勾选后仅放行该 App 的 OPlus FlexibleWindow 支持/黑名单判断。App 仍由 OxygenOS 自己启动和进入小窗。"
+                ? getString(R.string.ymg_target_force_help)
                 : MODE_BACKGROUND_PLAYBACK.equals(mode)
-                ? "勾选后，该 App 从普通全屏切到桌面/其他 App 或锁屏时进入 BACKGROUND_PROTECTED。同 App 页面跳转、Activity finishing、强制停止和真实关闭不拦截。"
-                : "勾选后，只有当该 App 当前真实处于一加小窗、贴边小窗或锁屏中的一加小窗时，YMiniGuard 才维持前台和后台播放；普通全屏状态完全不干预。";
+                ? getString(R.string.ymg_target_background_help)
+                : getString(R.string.ymg_target_foreground_help);
 
         LinearLayout root = YViewLayout.installFixed(this, title, help);
 
-        search = YViewLayout.searchField(this, "搜索应用名或包名");
+        search = YViewLayout.searchField(this, getString(R.string.ymg_search_apps));
         root.addView(search, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -117,7 +117,7 @@ public final class TargetAppsActivity extends Activity {
         root.addView(list, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        Button close = YViewLayout.secondaryButton(this, "返回");
+        Button close = YViewLayout.secondaryButton(this, getString(R.string.ymg_back));
         close.setOnClickListener(v -> finish());
         root.addView(close);
 
@@ -176,8 +176,9 @@ public final class TargetAppsActivity extends Activity {
                 progress.setVisibility(View.GONE);
                 if (finalFailure != null) {
                     CrashStore.record(this, "TargetAppsActivity.loadApps", finalFailure);
-                    Toast.makeText(this,
-                            "读取应用列表失败：" + finalFailure.getClass().getSimpleName(),
+                    Toast.makeText(
+                            this,
+                            getString(R.string.ymg_load_apps_failed, finalFailure.getClass().getSimpleName()),
                             Toast.LENGTH_LONG).show();
                 }
                 allApps.clear();
@@ -215,17 +216,19 @@ public final class TargetAppsActivity extends Activity {
         if (countView == null) return;
         YViewLayout.setStatus(
                 countView,
-                "已选择 " + selected.size() + " 个 · 当前显示 " + filteredApps.size() + " 个",
+                getString(R.string.ymg_selected_count, selected.size(), filteredApps.size()),
                 YViewStatusTone.Neutral);
     }
 
     private void showFatal(Throwable t) {
         LinearLayout root = YViewLayout.installFixed(
                 this,
-                "应用列表启动失败",
-                t.getClass().getName() + "\n" + String.valueOf(t.getMessage())
-                        + "\n\n错误已写入诊断日志。");
-        Button close = YViewLayout.secondaryButton(this, "返回");
+                getString(R.string.ymg_app_list_failed_title),
+                getString(
+                        R.string.ymg_app_list_failed_detail,
+                        t.getClass().getName(),
+                        String.valueOf(t.getMessage())));
+        Button close = YViewLayout.secondaryButton(this, getString(R.string.ymg_back));
         close.setOnClickListener(v -> finish());
         root.addView(close);
     }
@@ -253,7 +256,8 @@ public final class TargetAppsActivity extends Activity {
 
             AppItem item = filteredApps.get(position);
             holder.title.setText(item.label);
-            holder.subtitle.setText(item.packageName + (item.system ? " · 系统应用" : ""));
+            holder.subtitle.setText(item.packageName
+                    + (item.system ? getString(R.string.ymg_system_app_suffix) : ""));
             holder.check.setOnCheckedChangeListener(null);
             holder.check.setChecked(selected.contains(item.packageName));
             holder.check.setOnCheckedChangeListener((button, checked) -> toggle(item, checked));
