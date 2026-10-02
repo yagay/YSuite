@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yparam_title">YParam</string>
+    <string name="yparam_subtitle">App DPI, language, location, and parameter overrides</string>
+    <string name="yparam_filters_title">Filters and connection status</string>
+    <string name="yparam_filters_desc">LSPosed writes overridden parameters into target app processes.</string>
+    <string name="yparam_service_checking">LSPosed service: checking…</string>
+    <string name="yparam_search_hint">Search app name or package</string>
+    <string name="yparam_system_apps">System apps</string>
+    <string name="yparam_system_apps_desc">Also show preinstalled system apps</string>
+    <string name="yparam_modified_only">Modified only</string>
+    <string name="yparam_modified_only_desc">Only show apps with saved parameter overrides</string>
+    <string name="yparam_service_disconnected">LSPosed service: not connected (configuration cannot be written)</string>
+    <string name="yparam_service_connected">LSPosed service: connected · API %1$d</string>
+    <string name="yparam_modified_suffix">  • modified</string>
+    <string name="yparam_system_suffix">  · system app</string>
+</resources>
