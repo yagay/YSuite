@@ -1,5 +1,6 @@
 package com.yagay.YNFC.xposed;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -32,14 +33,37 @@ final class HookConfigStore {
 
         Context context = NfcHookUtils.currentContext();
         if (context == null) return SimConfig.uninitialized();
+        Uri uri = configUri();
         Map<String, String> values = new HashMap<>();
-        try (Cursor cursor = context.getContentResolver().query(configUri(), null, null, null, null)) {
+        try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
             if (cursor == null) return SimConfig.uninitialized();
             while (cursor.moveToNext()) values.put(cursor.getString(0), cursor.getString(1));
-            return decode(values);
         } catch (Throwable ignored) {
             return SimConfig.uninitialized();
         }
+
+        // Early schema-7 builds could persist rf_controller_epoch while leaving controller_epoch
+        // absent. That makes a native-accepted RF proof look STALE forever and repeatedly schedules
+        // lifecycle recovery. Repair the durable proof domain at the source. If RF proof already
+        // owns an epoch, adopt that exact epoch; otherwise seed a new one once.
+        long controllerEpoch = NfcHookUtils.parseLong(values.get("controller_epoch"), 0L);
+        if (controllerEpoch <= 0L) {
+            long rfEpoch = NfcHookUtils.parseLong(values.get("rf_controller_epoch"), 0L);
+            long seededEpoch = rfEpoch > 0L ? rfEpoch : Math.max(1L, System.currentTimeMillis());
+            try {
+                ContentValues repair = new ContentValues();
+                repair.put("controller_epoch", seededEpoch);
+                String generation = values.get("command_generation");
+                if (generation != null) {
+                    repair.put("state_generation", NfcHookUtils.parseLong(generation, 0L));
+                }
+                context.getContentResolver().insert(uri, repair);
+            } catch (Throwable ignored) {
+                // Fail open for the running NFC process. A later read retries persistence.
+            }
+            values.put("controller_epoch", Long.toString(seededEpoch));
+        }
+        return decode(values);
     }
 
     static SimConfig decode(Map<String, String> values) {
@@ -55,8 +79,10 @@ final class HookConfigStore {
         int commandPid = (int) NfcHookUtils.parseLong(values.get("command_pid"), 0L);
         long controllerEpoch = NfcHookUtils.parseLong(values.get("controller_epoch"), 0L);
         if (action.isEmpty()) action = active ? "APPLY" : "STOP";
-        // A missing epoch is seeded in memory only; verified RF writes still persist the proof.
-        if (controllerEpoch <= 0L) controllerEpoch = 1L;
+        if (controllerEpoch <= 0L) {
+            long rfEpoch = NfcHookUtils.parseLong(values.get("rf_controller_epoch"), 0L);
+            controllerEpoch = rfEpoch > 0L ? rfEpoch : 1L;
+        }
         return new SimConfig(true, active, uid, diagnostics, generation, consumed, handled,
                 action, status, commandPid, controllerEpoch);
     }
