@@ -8,6 +8,7 @@ on:
       - tools/i18n_runtime_refactor.py
       - tools/i18n_dynamic_refactor.py
       - tools/i18n_dynamic_postfix.py
+      - tools/i18n_final_cleanup.py
       - .github/workflows/i18n-refactor.yml
 
 permissions:
@@ -32,6 +33,7 @@ jobs:
           python3 tools/i18n_runtime_refactor.py
           python3 tools/i18n_dynamic_refactor.py
           python3 tools/i18n_dynamic_postfix.py
+          python3 tools/i18n_final_cleanup.py
           python3 tools/generate_feature_catalog.py
           python3 tools/i18n_audit.py || true
 
