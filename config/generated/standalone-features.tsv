@@ -1,0 +1,13 @@
+# Generated from config/features.toml by tools/generate_standalone_catalog.py.
+# feature_id<TAB>name<TAB>gradle_module<TAB>package<TAB>entry_activity<TAB>xposed_hooks
+yentrycleaner	YEntryCleaner	:yentrycleaner-feature	com.yagay.YEntryCleaner	com.yagay.YEntryCleaner.ui.MainActivity	com.yagay.YEntryCleaner.xposed.YEntryCleanerModule;com.yagay.YEntryCleaner.xposed.ComponentStateGuardModule;com.yagay.YEntryCleaner.xposed.ComponentDiscoveryFilterModule;com.yagay.YEntryCleaner.xposed.SuiteRuntimeProbeBridgeModule
+ydiag	YDiag	:ydiag-feature	com.yagay.ydiag	com.yagay.ydiag.ui.MainActivity	com.yagay.ydiag.xposed.YDiagModule
+ynotify	YNotify	:ynotify-feature	com.yagay.YNotify	com.yagay.YNotify.ui.MainActivity	com.yagay.YNotify.xposed.YNotifyModule
+ypower	YPower	:ypower-feature	com.yagay.ypower	com.yagay.ypower.ui.MainActivity	com.yagay.ypower.hook.YPowerModule;com.yagay.ypower.hook.SupplementalSecurityModule;com.yagay.ypower.hook.DeepObservationModule
+yminiguard	YMiniGuard	:yminiguard-feature	com.yagay.YMiniGuard	com.yagay.YMiniGuard.MainActivity	com.yagay.YMiniGuard.GuardModule
+ynfc	YNFC	:ynfc-feature	com.yagay.YNFC	com.yagay.YNFC.MainActivity	com.yagay.YNFC.xposed.NfcInjectionModule
+ytaskmanager	YTaskManager	:ytask-feature	com.yagay.YTaskManager	com.yagay.YTaskManager.MainActivity	com.yagay.YTaskManager.xposed.TaskManagerModule
+yparam	YParam	:yparam-feature	com.yagay.yparam	com.yagay.yparam.ui.MainActivity	com.yagay.yparam.hook.YParamModule
+yfloat	YFloat	:yfloat-feature	com.yagay.YFloat	com.yagay.YFloat.MainActivity	com.yagay.YFloat.hook.YFloatModule
+ydownload	YDownload	:ydownload-feature	com.yagay.ydownload	com.yagay.ydownload.MainActivity	com.yagay.ydownload.xposed.YDownloadModule
+yfiles	YFiles	:yfiles-feature	com.yagay.yfiles	com.yagay.yfiles.MainActivity	com.yagay.yfiles.xposed.YFilesModule
