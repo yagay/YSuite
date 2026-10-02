@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ynotify_unknown_app">未知应用</string>
+    <string name="ynotify_app_icon">应用图标</string>
     <string name="ynotify_last_record">最后记录：%1$s</string>
     <string name="ynotify_body_subtitle">副标题：%1$s</string>
     <string name="ynotify_body_summary">摘要：%1$s</string>
