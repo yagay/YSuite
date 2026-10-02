@@ -9,11 +9,17 @@
         android:theme="@style/Theme.YTaskManager">
         <activity
             android:name="com.yagay.YTaskManager.MainActivity"
-            android:exported="true">
+            android:exported="true" />
+
+        <activity-alias
+            android:name="com.yagay.YTaskManager.LauncherAlias"
+            android:enabled="true"
+            android:exported="true"
+            android:targetActivity="com.yagay.YTaskManager.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
     </application>
 </manifest>

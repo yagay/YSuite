@@ -22,6 +22,11 @@
     <string name="standalone_package">Package: %1$s</string>
     <string name="standalone_installed_version">Installed · %1$s (%2$d)</string>
     <string name="standalone_installed_unknown_version">Installed</string>
+    <string name="launcher_entry">Launcher entry</string>
+    <string name="launcher_alias_update_required">Update standalone APK first</string>
+    <string name="manage_standalone">Managed by YSuite</string>
+    <string name="manage_standalone_summary">Hide the standalone launcher icon while keeping the APK installed and directly openable from YSuite.</string>
+    <string name="manage_standalone_update_summary">This installed build predates LauncherAlias support. Update it before enabling YSuite management.</string>
 
     <string name="status_authorized">Granted</string>
     <string name="status_unavailable_or_unauthorized">Unavailable / not granted</string>
@@ -33,6 +38,8 @@
     <string name="status_unknown">Unknown</string>
     <string name="status_not_available">Not available</string>
     <string name="status_not_installed">Not installed</string>
+    <string name="status_hidden">Hidden</string>
+    <string name="status_visible">Visible</string>
 
     <string name="accessibility_settings">Accessibility settings</string>
     <string name="enable_accessibility">Enable accessibility</string>
@@ -51,12 +58,14 @@
     <string name="warning_legacy_notification_listener">Legacy YNotify notification access was detected. Migrate to the unified YSuite notification listener.</string>
     <string name="warning_other_accessibility_host">Accessibility is also enabled for another standalone build. Keep only the version you currently use.</string>
     <string name="warning_other_notification_host">Notification access is also enabled for another standalone build. Keep only the version you currently use.</string>
+    <string name="warning_standalone_hook_owner">Launcher management does not hot-unhook an already enabled standalone LSPosed module. Keep only one LSPosed owner enabled for this feature and restart affected target processes after changing ownership.</string>
 
     <string name="error_open_accessibility_settings">Unable to open accessibility settings</string>
     <string name="error_open_overlay_settings">Unable to open display-over-other-apps settings</string>
     <string name="error_open_notification_listener_settings">Unable to open notification access settings</string>
     <string name="error_open_standalone">Unable to open standalone %1$s</string>
     <string name="error_open_standalone_settings">Unable to open settings for %1$s</string>
+    <string name="error_manage_standalone">Unable to change YSuite management for %1$s: %2$s</string>
     <string name="diagnostic_collecting">Collecting %1$s diagnostic information…</string>
     <string name="diagnostic_saved">%1$s saved: %2$s</string>
     <string name="diagnostic_save_failed">Failed to save %1$s: %2$s</string>

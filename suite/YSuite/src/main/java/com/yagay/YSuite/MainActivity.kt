@@ -101,11 +101,12 @@ class MainActivity : YComposeActivity() {
 
             val refreshedStandaloneApps = withContext(Dispatchers.IO) {
                 features.associate { feature ->
-                    feature.id to if (feature.standaloneEnabled) {
-                        StandaloneAppManager.snapshot(
-                            this@MainActivity,
-                            feature.standalonePackageName,
-                        )
+                    val packageName = feature.standalonePackageName
+                    feature.id to if (feature.standaloneEnabled && !packageName.isNullOrBlank()) {
+                        if (rootAvailable == true && StandaloneAppManager.isManaged(this@MainActivity, packageName)) {
+                            StandaloneAppManager.reconcileManaged(this@MainActivity, packageName)
+                        }
+                        StandaloneAppManager.snapshot(this@MainActivity, packageName)
                     } else {
                         null
                     }
@@ -135,13 +136,19 @@ class MainActivity : YComposeActivity() {
                         xposedConnected = xposedConnected,
                         permissions = permissions,
                         onAccessibility = {
-                            SuitePermissionState.openAccessibilitySettings(this@MainActivity)
+                            if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
+                                Toast.makeText(this@MainActivity, R.string.error_open_accessibility_settings, Toast.LENGTH_LONG).show()
+                            }
                         },
                         onOverlay = {
-                            SuitePermissionState.openOverlaySettings(this@MainActivity)
+                            if (!SuitePermissionState.openOverlaySettings(this@MainActivity)) {
+                                Toast.makeText(this@MainActivity, R.string.error_open_overlay_settings, Toast.LENGTH_LONG).show()
+                            }
                         },
                         onNotificationListener = {
-                            SuitePermissionState.openNotificationListenerSettings(this@MainActivity)
+                            if (!SuitePermissionState.openNotificationListenerSettings(this@MainActivity)) {
+                                Toast.makeText(this@MainActivity, R.string.error_open_notification_listener_settings, Toast.LENGTH_LONG).show()
+                            }
                         },
                         onExport = { exportDiagnostic(null, fullDiagnosticLabel) },
                     )
@@ -175,11 +182,7 @@ class MainActivity : YComposeActivity() {
                                 SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
                                 Toast.makeText(
                                     this@MainActivity,
-                                    getString(
-                                        R.string.feature_open_failed,
-                                        localizedName,
-                                        it.javaClass.simpleName,
-                                    ),
+                                    getString(R.string.feature_open_failed, localizedName, it.javaClass.simpleName),
                                     Toast.LENGTH_LONG,
                                 ).show()
                             }
@@ -204,9 +207,25 @@ class MainActivity : YComposeActivity() {
                                 ).show()
                             }
                         },
-                        onExportLog = {
-                            exportDiagnostic(setOf(feature.id), localizedName)
+                        onStandaloneManagedChange = { next ->
+                            val packageName = feature.standalonePackageName ?: return@FeatureCard
+                            lifecycleScope.launch {
+                                val result = withContext(Dispatchers.IO) {
+                                    StandaloneAppManager.setManaged(this@MainActivity, packageName, next)
+                                }
+                                standaloneApps[feature.id] = withContext(Dispatchers.IO) {
+                                    StandaloneAppManager.snapshot(this@MainActivity, packageName)
+                                }
+                                if (!result.success) {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        getString(R.string.error_manage_standalone, localizedName, result.message),
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                }
+                            }
                         },
+                        onExportLog = { exportDiagnostic(setOf(feature.id), localizedName) },
                     )
                 }
             }
@@ -249,11 +268,7 @@ private fun RuntimeEnvironmentCard(
         )
         YStatusRow(
             stringResource(R.string.capability_lsposed),
-            if (xposedConnected) {
-                stringResource(R.string.status_connected)
-            } else {
-                stringResource(R.string.status_not_connected)
-            },
+            if (xposedConnected) stringResource(R.string.status_connected) else stringResource(R.string.status_not_connected),
             if (xposedConnected) YStatusTone.Good else YStatusTone.Warning,
         )
         YStatusRow(
@@ -271,20 +286,12 @@ private fun RuntimeEnvironmentCard(
         )
         YStatusRow(
             stringResource(R.string.capability_overlay),
-            if (permissions.overlayGranted) {
-                stringResource(R.string.status_authorized)
-            } else {
-                stringResource(R.string.status_not_authorized)
-            },
+            if (permissions.overlayGranted) stringResource(R.string.status_authorized) else stringResource(R.string.status_not_authorized),
             if (permissions.overlayGranted) YStatusTone.Good else YStatusTone.Warning,
         )
         YStatusRow(
             stringResource(R.string.capability_notifications),
-            if (permissions.notificationsGranted) {
-                stringResource(R.string.status_authorized)
-            } else {
-                stringResource(R.string.status_not_authorized)
-            },
+            if (permissions.notificationsGranted) stringResource(R.string.status_authorized) else stringResource(R.string.status_not_authorized),
             if (permissions.notificationsGranted) YStatusTone.Good else YStatusTone.Warning,
         )
         YStatusRow(
@@ -314,31 +321,17 @@ private fun RuntimeEnvironmentCard(
         }
         YActionRow {
             YSecondaryButton(
-                text = if (permissions.accessibilityEnabled) {
-                    stringResource(R.string.accessibility_settings)
-                } else {
-                    stringResource(R.string.enable_accessibility)
-                },
+                text = if (permissions.accessibilityEnabled) stringResource(R.string.accessibility_settings) else stringResource(R.string.enable_accessibility),
                 onClick = onAccessibility,
             )
-            YSecondaryButton(
-                text = stringResource(R.string.overlay_settings),
-                onClick = onOverlay,
-            )
+            YSecondaryButton(text = stringResource(R.string.overlay_settings), onClick = onOverlay)
         }
         YActionRow {
             YSecondaryButton(
-                text = if (permissions.notificationListenerGranted) {
-                    stringResource(R.string.notification_listener_settings)
-                } else {
-                    stringResource(R.string.enable_notification_listener)
-                },
+                text = if (permissions.notificationListenerGranted) stringResource(R.string.notification_listener_settings) else stringResource(R.string.enable_notification_listener),
                 onClick = onNotificationListener,
             )
-            YSecondaryButton(
-                text = stringResource(R.string.export_full_diagnostic),
-                onClick = onExport,
-            )
+            YSecondaryButton(text = stringResource(R.string.export_full_diagnostic), onClick = onExport)
         }
     }
 }
@@ -365,6 +358,7 @@ private fun FeatureCard(
     onOpen: () -> Unit,
     onOpenStandalone: () -> Unit,
     onStandaloneSettings: () -> Unit,
+    onStandaloneManagedChange: (Boolean) -> Unit,
     onExportLog: () -> Unit,
 ) {
     val capabilities = feature.sharedCapabilities
@@ -381,13 +375,11 @@ private fun FeatureCard(
             val standaloneValue = when {
                 standalone == null -> stringResource(R.string.status_checking)
                 !standalone.installed -> stringResource(R.string.status_not_installed)
-                standalone.versionName != null && standalone.versionCode != null -> {
-                    stringResource(
-                        R.string.standalone_installed_version,
-                        standalone.versionName,
-                        standalone.versionCode,
-                    )
-                }
+                standalone.versionName != null && standalone.versionCode != null -> stringResource(
+                    R.string.standalone_installed_version,
+                    standalone.versionName,
+                    standalone.versionCode,
+                )
                 else -> stringResource(R.string.standalone_installed_unknown_version)
             }
             val standaloneTone = when {
@@ -405,6 +397,36 @@ private fun FeatureCard(
                     text = stringResource(R.string.standalone_package, packageName),
                     style = MaterialTheme.typography.bodySmall,
                 )
+            }
+            if (standalone?.installed == true) {
+                val launcherValue = when {
+                    !standalone.launcherAliasSupported -> stringResource(R.string.launcher_alias_update_required)
+                    standalone.launcherHidden -> stringResource(R.string.status_hidden)
+                    else -> stringResource(R.string.status_visible)
+                }
+                YStatusRow(
+                    label = stringResource(R.string.launcher_entry),
+                    value = launcherValue,
+                    tone = when {
+                        !standalone.launcherAliasSupported -> YStatusTone.Warning
+                        standalone.launcherHidden -> YStatusTone.Good
+                        else -> YStatusTone.Neutral
+                    },
+                )
+                YSettingSwitch(
+                    title = stringResource(R.string.manage_standalone),
+                    subtitle = if (standalone.launcherAliasSupported) {
+                        stringResource(R.string.manage_standalone_summary)
+                    } else {
+                        stringResource(R.string.manage_standalone_update_summary)
+                    },
+                    checked = standalone.managed,
+                    enabled = standalone.launcherAliasSupported && rootAvailable == true,
+                    onCheckedChange = onStandaloneManagedChange,
+                )
+                if (feature.requiresHook && standalone.managed) {
+                    HostWarning(stringResource(R.string.warning_standalone_hook_owner))
+                }
             }
         }
 
@@ -426,11 +448,7 @@ private fun FeatureCard(
         if (feature.requiresHook) {
             YStatusRow(
                 stringResource(R.string.capability_lsposed),
-                if (xposedConnected) {
-                    stringResource(R.string.status_connected)
-                } else {
-                    stringResource(R.string.status_not_connected)
-                },
+                if (xposedConnected) stringResource(R.string.status_connected) else stringResource(R.string.status_not_connected),
                 if (xposedConnected) YStatusTone.Good else YStatusTone.Warning,
             )
         }

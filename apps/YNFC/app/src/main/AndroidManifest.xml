@@ -9,11 +9,17 @@
         android:theme="@style/Theme.YNFC">
         <activity
             android:name="com.yagay.YNFC.MainActivity"
-            android:exported="true">
+            android:exported="true" />
+
+        <activity-alias
+            android:name="com.yagay.YNFC.LauncherAlias"
+            android:enabled="true"
+            android:exported="true"
+            android:targetActivity="com.yagay.YNFC.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
     </application>
 </manifest>

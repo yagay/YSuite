@@ -3,8 +3,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val embeddedInSuite = rootProject.findProject(":suite") != null
 val configAuthority = providers.gradleProperty("ynfcConfigAuthority").orNull
-    ?: "com.yagay.YNFC.config"
+    ?: if (embeddedInSuite) "com.yagay.YSuite.ynfc.config" else "com.yagay.YNFC.config"
 val standaloneVersionCode = 57
 val runtimeVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
     .orNull?.toIntOrNull() ?: standaloneVersionCode

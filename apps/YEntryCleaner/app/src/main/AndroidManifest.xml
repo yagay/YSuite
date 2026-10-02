@@ -49,11 +49,19 @@
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE"/>
 
-        <activity android:name="com.yagay.YEntryCleaner.ui.MainActivity" android:exported="true">
+        <activity
+            android:name="com.yagay.YEntryCleaner.ui.MainActivity"
+            android:exported="true" />
+
+        <activity-alias
+            android:name="com.yagay.YEntryCleaner.LauncherAlias"
+            android:enabled="true"
+            android:exported="true"
+            android:targetActivity="com.yagay.YEntryCleaner.ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-        </activity>
+        </activity-alias>
     </application>
 </manifest>

@@ -22,6 +22,11 @@
     <string name="standalone_package">包名：%1$s</string>
     <string name="standalone_installed_version">已安装 · %1$s (%2$d)</string>
     <string name="standalone_installed_unknown_version">已安装</string>
+    <string name="launcher_entry">桌面入口</string>
+    <string name="launcher_alias_update_required">请先更新独立 APK</string>
+    <string name="manage_standalone">由 YSuite 管理</string>
+    <string name="manage_standalone_summary">隐藏独立版桌面图标，但保留 APK 安装状态，并可继续从 YSuite 直接打开。</string>
+    <string name="manage_standalone_update_summary">当前安装的是旧版 APK，尚未支持 LauncherAlias；更新后才能启用统一管理。</string>
 
     <string name="status_authorized">已授权</string>
     <string name="status_unavailable_or_unauthorized">不可用 / 未授权</string>
@@ -33,6 +38,8 @@
     <string name="status_unknown">未知</string>
     <string name="status_not_available">不可用</string>
     <string name="status_not_installed">未安装</string>
+    <string name="status_hidden">已隐藏</string>
+    <string name="status_visible">可见</string>
 
     <string name="accessibility_settings">无障碍设置</string>
     <string name="enable_accessibility">开启无障碍</string>
@@ -51,12 +58,14 @@
     <string name="warning_legacy_notification_listener">检测到旧版 YNotify 通知监听授权，请迁移到 YSuite 统一通知监听。</string>
     <string name="warning_other_accessibility_host">另一独立版本的无障碍也已开启；建议只保留当前实际使用的版本。</string>
     <string name="warning_other_notification_host">另一独立版本的通知监听也已开启；建议只保留当前实际使用的版本。</string>
+    <string name="warning_standalone_hook_owner">桌面入口管理不会把已经启用的独立 LSPosed Hook 热卸载。这个功能请只保留一个 LSPosed 所有者；切换后需要重启受影响的目标进程。</string>
 
     <string name="error_open_accessibility_settings">无法打开无障碍设置</string>
     <string name="error_open_overlay_settings">无法打开悬浮窗设置</string>
     <string name="error_open_notification_listener_settings">无法打开通知监听设置</string>
     <string name="error_open_standalone">无法打开 %1$s 独立版</string>
     <string name="error_open_standalone_settings">无法打开 %1$s 的应用设置</string>
+    <string name="error_manage_standalone">无法修改 %1$s 的 YSuite 管理状态：%2$s</string>
     <string name="diagnostic_collecting">正在收集%1$s诊断信息…</string>
     <string name="diagnostic_saved">%1$s已保存：%2$s</string>
     <string name="diagnostic_save_failed">%1$s保存失败：%2$s</string>
