@@ -129,9 +129,9 @@ class MainActivity : YComposeActivity() {
                         ) {
                             YActionRow {
                                 if (entry.isDirectory) {
-                                    Button(onClick = { path = entry.path; query = "" }) { Text(stringResource(R.string.open)) }
+                                    Button(onClick = { path = entry.path; query = "" }) { Text(stringResource(R.string.yfiles_open)) }
                                 } else {
-                                    Button(onClick = { openFile(File(entry.path)) }) { Text(stringResource(R.string.open)) }
+                                    Button(onClick = { openFile(File(entry.path)) }) { Text(stringResource(R.string.yfiles_open)) }
                                 }
                                 OutlinedButton(onClick = {
                                     repository.delete(entry).onFailure { error = it.message }
@@ -147,7 +147,7 @@ class MainActivity : YComposeActivity() {
                         title = stringResource(R.string.documentsui_integration),
                         subtitle = stringResource(R.string.documentsui_summary),
                     ) {
-                        YStatusRow(stringResource(R.string.documentsui), stringResource(R.string.preserved), YStatusTone.Good)
+                        YStatusRow(stringResource(R.string.documentsui), stringResource(R.string.yfiles_preserved), YStatusTone.Good)
                         Text(stringResource(R.string.documentsui_note))
                     }
                 }
@@ -174,7 +174,7 @@ class MainActivity : YComposeActivity() {
                     }) { Text(stringResource(R.string.create)) }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { newFolderDialog = false }) { Text(stringResource(R.string.cancel)) }
+                    OutlinedButton(onClick = { newFolderDialog = false }) { Text(stringResource(R.string.yfiles_cancel)) }
                 },
             )
         }
