@@ -19,4 +19,4 @@ if (localApi.isDirectory && localUi.isDirectory) {
     }
 }
 rootProject.name = "YDownload"
-include(":app", ":feature")
+include(":feature")
