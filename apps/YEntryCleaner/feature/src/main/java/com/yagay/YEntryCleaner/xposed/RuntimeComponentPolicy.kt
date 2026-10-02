@@ -1,5 +1,8 @@
 package com.yagay.YEntryCleaner.xposed
 
+import com.yagay.YEntryCleaner.BuildConfig
+import com.yagay.suite.api.RuntimeOwnerGate
+
 /**
  * Process-local authoritative component policy shared by the YEntryCleaner Xposed entries.
  *
@@ -7,6 +10,10 @@ package com.yagay.YEntryCleaner.xposed
  * stale RemotePreferences reads in ComponentStateGuardModule and ComponentDiscoveryFilterModule.
  * Before the manager has pushed a verified runtime config, those modules keep their cold-start
  * RemotePreferences fallback.
+ *
+ * When a separately installed YEntryCleaner is managed by YSuite, expose an authoritative empty
+ * policy immediately. This keeps already-installed standalone hooks in pass-through mode instead
+ * of falling back to stale standalone RemotePreferences.
  */
 internal data class RuntimeComponentPolicySnapshot(
     val authoritative: Boolean = false,
@@ -28,5 +35,14 @@ internal object RuntimeComponentPolicy {
         )
     }
 
-    fun snapshot(): RuntimeComponentPolicySnapshot = value
+    fun snapshot(): RuntimeComponentPolicySnapshot {
+        if (!RuntimeOwnerGate.shouldRun("yentrycleaner", BuildConfig.HOST_PACKAGE)) {
+            return RuntimeComponentPolicySnapshot(
+                authoritative = true,
+                protectedComponents = emptySet(),
+                digest = "ysuite-owner",
+            )
+        }
+        return value
+    }
 }
