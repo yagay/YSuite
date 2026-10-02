@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 import sys
 import xml.etree.ElementTree as ET
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,7 +21,7 @@ UI_PATTERNS = (
     re.compile(r"\bAppUi\.(?:text|caption|section|navRow|pageRoot|primaryButton|secondaryButton|compactButton|switchRow)\s*\("),
     re.compile(r"\.(?:setContentTitle|setContentText|setTicker)\s*\("),
     re.compile(r"(?<![\w.])(?:Text|Button|TextButton|OutlinedButton|AlertDialog)\s*\("),
-    re.compile(r"\b(?:text|title|subtitle|label|message|hint|contentDescription)\s*="),
+    re.compile(r"\b(?:YFeatureCard|YStatusRow|YFeatureEmpty|YPageHeader|ResultUi\.heading)\s*\("),
 )
 
 LOCALE_BRANCH_PATTERNS = (
@@ -43,7 +43,8 @@ TECH_SINGLE = {
 }
 INTERNAL_TEXT_HINTS = (
     "Log.d(", "Log.i(", "Log.w(", "Log.e(", "Log.v(", "Timber.", "System.out.",
-    "zip.addText(", ".writeText(", "ClipData.newPlainText(",
+    "AppLogger.", "DiagnosticLog.", "zip.addText(", ".writeText(", "ClipData.newPlainText(",
+    "@Query(", ".put(", ".putString(", "toString()",
 )
 
 
@@ -155,27 +156,68 @@ def collect_strings(values_dir: Path) -> dict[str, tuple[str, Path]]:
     return out
 
 
+def resource_group(values_dir: Path) -> str:
+    rel = values_dir.relative_to(ROOT).as_posix().split("/")
+    # Standalone app resources and the corresponding feature library are merged into one final
+    # Android resource table. Audit them as one logical app rather than reporting every feature
+    # translation as missing from the thin standalone wrapper.
+    if len(rel) >= 3 and rel[0] == "apps" and rel[2] in {"app", "feature"}:
+        return f"apps/{rel[1]}"
+    if "src" in rel:
+        return "/".join(rel[:rel.index("src")])
+    return "/".join(rel[:-3])
+
+
+def chinese_strings(res_root: Path) -> dict[str, tuple[str, Path]]:
+    # Android falls back from zh-rCN/zh-CN to generic zh. Keep the specific locale authoritative
+    # when both are present, but either one satisfies Chinese translation coverage.
+    merged = collect_strings(res_root / "values-zh")
+    merged.update(collect_strings(res_root / "values-zh-rCN"))
+    return merged
+
+
 def scan_resource_parity() -> list[tuple[str, int, str, str]]:
     findings: list[tuple[str, int, str, str]] = []
+    groups: dict[str, dict[str, dict[str, tuple[str, Path]]]] = defaultdict(
+        lambda: {"default": {}, "zh": {}}
+    )
+
     for values_dir in sorted(ROOT.rglob("src/main/res/values")):
         if any(part in SKIP_DIRS for part in values_dir.relative_to(ROOT).parts):
             continue
         default = collect_strings(values_dir)
         if not default:
             continue
-        zh_dir = values_dir.parent / "values-zh-rCN"
-        zh = collect_strings(zh_dir)
 
+        # A default resource containing Chinese is always a fallback bug regardless of how the
+        # final app merges app/feature resources.
         for name, (value, source) in sorted(default.items()):
-            rel = source.relative_to(ROOT).as_posix()
             if CJK.search(value):
-                findings.append((rel, 0, "DEFAULT_RESOURCE_CJK", f"{name}={value[:180]}"))
-            if name not in zh:
-                findings.append((rel, 0, "MISSING_ZH", name))
+                findings.append((
+                    source.relative_to(ROOT).as_posix(), 0, "DEFAULT_RESOURCE_CJK",
+                    f"{name}={value[:180]}",
+                ))
 
+        group = groups[resource_group(values_dir)]
+        # Library/feature resources are collected first by sorted path; app-level resources may
+        # override a key in the final APK, which is fine for parity because only key presence
+        # matters here.
+        group["default"].update(default)
+        group["zh"].update(chinese_strings(values_dir.parent))
+
+    for group_name, tables in sorted(groups.items()):
+        default = tables["default"]
+        zh = tables["zh"]
+        for name, (_, source) in sorted(default.items()):
+            if name not in zh:
+                findings.append((
+                    source.relative_to(ROOT).as_posix(), 0, "MISSING_ZH", f"{group_name}:{name}"
+                ))
         for name, (_, source) in sorted(zh.items()):
             if name not in default:
-                findings.append((source.relative_to(ROOT).as_posix(), 0, "ORPHAN_ZH", name))
+                findings.append((
+                    source.relative_to(ROOT).as_posix(), 0, "ORPHAN_ZH", f"{group_name}:{name}"
+                ))
     return findings
 
 
