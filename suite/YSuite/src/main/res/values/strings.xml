@@ -19,6 +19,9 @@
     <string name="capability_notification_listener">Notification access</string>
     <string name="shared_capabilities">Shared capabilities: %1$s</string>
     <string name="standalone_app">Standalone APK</string>
+    <string name="standalone_package">Package: %1$s</string>
+    <string name="standalone_installed_version">Installed · %1$s (%2$d)</string>
+    <string name="standalone_installed_unknown_version">Installed</string>
 
     <string name="status_authorized">Granted</string>
     <string name="status_unavailable_or_unauthorized">Unavailable / not granted</string>
@@ -29,6 +32,7 @@
     <string name="status_not_connected">Not connected</string>
     <string name="status_unknown">Unknown</string>
     <string name="status_not_available">Not available</string>
+    <string name="status_not_installed">Not installed</string>
 
     <string name="accessibility_settings">Accessibility settings</string>
     <string name="enable_accessibility">Enable accessibility</string>
@@ -37,7 +41,9 @@
     <string name="enable_notification_listener">Enable notification access</string>
     <string name="export_full_diagnostic">Export full diagnostics</string>
     <string name="diagnostic_package">Diagnostics</string>
-    <string name="open_feature">Open</string>
+    <string name="open_feature">Open built-in</string>
+    <string name="open_standalone">Open standalone</string>
+    <string name="standalone_settings">App settings</string>
     <string name="enable_feature">Enable feature</string>
     <string name="enable_feature_summary">When disabled, its runtime, hooks, root access, and shared-service access are disabled together.</string>
 
@@ -49,6 +55,8 @@
     <string name="error_open_accessibility_settings">Unable to open accessibility settings</string>
     <string name="error_open_overlay_settings">Unable to open display-over-other-apps settings</string>
     <string name="error_open_notification_listener_settings">Unable to open notification access settings</string>
+    <string name="error_open_standalone">Unable to open standalone %1$s</string>
+    <string name="error_open_standalone_settings">Unable to open settings for %1$s</string>
     <string name="diagnostic_collecting">Collecting %1$s diagnostic information…</string>
     <string name="diagnostic_saved">%1$s saved: %2$s</string>
     <string name="diagnostic_save_failed">Failed to save %1$s: %2$s</string>
