@@ -4,12 +4,20 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
+import com.yagay.suite.api.RuntimeOwnerGate;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Reads and decodes the durable command snapshot without owning command execution. */
 final class HookConfigStore {
     SimConfig read() {
+        if (!RuntimeOwnerGate.shouldRun("ynfc", hostPackage())) {
+            // Keep the already-loaded standalone hook in a deterministic initialized-but-inactive
+            // state. This avoids retry loops while YSuite owns NFC behaviour.
+            return decode(Collections.emptyMap());
+        }
         Context context = NfcHookUtils.currentContext();
         if (context == null) return SimConfig.uninitialized();
         Map<String, String> values = new HashMap<>();
@@ -47,5 +55,12 @@ final class HookConfigStore {
 
     private static Uri configUri() {
         return Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
+    }
+
+    private static String hostPackage() {
+        String authority = com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY;
+        return authority != null && authority.startsWith(RuntimeOwnerGate.SUITE_PACKAGE + ".")
+                ? RuntimeOwnerGate.SUITE_PACKAGE
+                : "com.yagay.YNFC";
     }
 }
