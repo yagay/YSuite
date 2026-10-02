@@ -4,6 +4,19 @@
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Android 11+ package visibility for standalone feature APK management. -->
+    <queries>
+        <package android:name="com.yagay.YEntryCleaner" />
+        <package android:name="com.yagay.ydiag" />
+        <package android:name="com.yagay.YNotify" />
+        <package android:name="com.yagay.ypower" />
+        <package android:name="com.yagay.YMiniGuard" />
+        <package android:name="com.yagay.YNFC" />
+        <package android:name="com.yagay.YTaskManager" />
+        <package android:name="com.yagay.yparam" />
+        <package android:name="com.yagay.YFloat" />
+    </queries>
+
     <application
         android:name=".YSuiteApp"
         android:allowBackup="false"
@@ -23,42 +36,18 @@
 
         <!-- Standalone feature APKs keep their own Android special/system components. Inside YSuite
              they are replaced by host components so every platform capability has one owner. -->
-        <service
-            android:name="com.yagay.YFloat.LensAccessibilityService"
-            tools:node="remove" />
-        <service
-            android:name="com.yagay.YNotify.collector.UiAccessibilityService"
-            tools:node="remove" />
-        <service
-            android:name="com.yagay.YNotify.collector.NotificationCaptureService"
-            tools:node="remove" />
-        <service
-            android:name="com.yagay.ypower.root.YPowerRootService"
-            tools:node="remove" />
-        <receiver
-            android:name="com.yagay.ypower.root.BootReceiver"
-            tools:node="remove" />
-        <receiver
-            android:name="com.yagay.YFloat.FloatServiceBootReceiver"
-            tools:node="remove" />
-        <receiver
-            android:name="com.yagay.YNotify.collector.XposedEventReceiver"
-            tools:node="remove" />
-        <receiver
-            android:name="com.yagay.YFloat.GoogleCtsBridgeReceiver"
-            tools:node="remove" />
-        <receiver
-            android:name="com.yagay.YFloat.GoogleCtsTraceReceiver"
-            tools:node="remove" />
-        <provider
-            android:name="com.yagay.YFloat.GoogleCtsBridgeProvider"
-            tools:node="remove" />
-        <provider
-            android:name="com.yagay.YMiniGuard.EngineStatusProvider"
-            tools:node="remove" />
-        <provider
-            android:name="com.yagay.YNFC.ConfigProvider"
-            tools:node="remove" />
+        <service android:name="com.yagay.YFloat.LensAccessibilityService" tools:node="remove" />
+        <service android:name="com.yagay.YNotify.collector.UiAccessibilityService" tools:node="remove" />
+        <service android:name="com.yagay.YNotify.collector.NotificationCaptureService" tools:node="remove" />
+        <service android:name="com.yagay.ypower.root.YPowerRootService" tools:node="remove" />
+        <receiver android:name="com.yagay.ypower.root.BootReceiver" tools:node="remove" />
+        <receiver android:name="com.yagay.YFloat.FloatServiceBootReceiver" tools:node="remove" />
+        <receiver android:name="com.yagay.YNotify.collector.XposedEventReceiver" tools:node="remove" />
+        <receiver android:name="com.yagay.YFloat.GoogleCtsBridgeReceiver" tools:node="remove" />
+        <receiver android:name="com.yagay.YFloat.GoogleCtsTraceReceiver" tools:node="remove" />
+        <provider android:name="com.yagay.YFloat.GoogleCtsBridgeProvider" tools:node="remove" />
+        <provider android:name="com.yagay.YMiniGuard.EngineStatusProvider" tools:node="remove" />
+        <provider android:name="com.yagay.YNFC.ConfigProvider" tools:node="remove" />
 
         <service
             android:name=".accessibility.SuiteAccessibilityService"
