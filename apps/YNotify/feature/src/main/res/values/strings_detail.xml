@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ynotify_pause_app">Pause recording for this app</string>
     <string name="ynotify_redact_app">Record metadata only and do not save message text</string>
-    <string name="ynotify_clear_app_history">Clear this app history</string>
-    <string name="ynotify_event_detail">Event details</string>
-    <string name="ynotify_correct_classification">Correct classification</string>
     <string name="ynotify_title_label">Title</string>
     <string name="ynotify_full_content">Full content</string>
-    <string name="ynotify_revision_history">Notification revision history</string>
-    <string name="ynotify_message_structure">Message structure</string>
-    <string name="ynotify_action_buttons">Action buttons</string>
-    <string name="ynotify_raw_extras">Raw Extras</string>
 </resources>
