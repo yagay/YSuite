@@ -2,6 +2,8 @@ package com.yagay.YFloat.hook;
 
 import android.util.Log;
 
+import com.yagay.suite.api.RuntimeOwnerGate;
+
 import io.github.libxposed.api.XposedModule;
 
 /** libxposed API 102 entry point for YFloat controlled providers. */
@@ -22,6 +24,10 @@ public final class YFloatModule extends XposedModule {
 
     @Override
     public void onSystemServerStarting(SystemServerStartingParam param) {
+        if (!RuntimeOwnerGate.shouldRun("yfloat", getModuleApplicationInfo())) {
+            log(Log.INFO, TAG, "Standalone hooks passive; YSuite owns yfloat runtime");
+            return;
+        }
         LsposedRuntimeProvider provider = runtimeProvider;
         if (provider == null) {
             log(Log.ERROR, TAG, "system_server provider missing; secure screenshot hook not installed");
@@ -48,6 +54,10 @@ public final class YFloatModule extends XposedModule {
     @Override
     public void onPackageReady(PackageReadyParam param) {
         if (googleCtsInspectorInstalled || !GOOGLE_PACKAGE.equals(param.getPackageName())) return;
+        if (!RuntimeOwnerGate.shouldRun("yfloat", getModuleApplicationInfo())) {
+            log(Log.INFO, TAG, "Standalone Google CTS hook passive; YSuite owns yfloat runtime");
+            return;
+        }
         LsposedRuntimeProvider provider = runtimeProvider;
         if (provider == null) return;
         try {
