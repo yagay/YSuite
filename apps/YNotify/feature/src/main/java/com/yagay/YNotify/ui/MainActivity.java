@@ -86,10 +86,10 @@ public class MainActivity extends AppCompatActivity {
         setupHistoryRepair();
         setupDiagnosticsExport();
         b.btnClearAll.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("清空全部历史？")
-                .setMessage("通知版本记录、Toast/弹窗和断连记录也会一起删除。此操作不可撤销。")
-                .setNegativeButton("取消", null)
-                .setPositiveButton("清空", (d, w) -> EventStore.clearAll(this))
+                .setTitle(R.string.ynotify_clear_confirm_title)
+                .setMessage(R.string.ynotify_clear_confirm_message)
+                .setNegativeButton(R.string.ynotify_cancel, null)
+                .setPositiveButton(R.string.ynotify_clear, (d, w) -> EventStore.clearAll(this))
                 .show());
 
         renderMode();
@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
         } catch (Throwable t) {
-            Toast.makeText(this, "无法打开通知监听设置", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.ynotify_cannot_open_notification_settings, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -124,29 +124,31 @@ public class MainActivity extends AppCompatActivity {
         try {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         } catch (Throwable t) {
-            Toast.makeText(this, "无法打开无障碍设置", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.ynotify_cannot_open_accessibility_settings, Toast.LENGTH_LONG).show();
         }
     }
 
     private void setupDiagnosticsExport() {
         b.btnExportDiagnostics.setOnClickListener(v -> {
             b.btnExportDiagnostics.setEnabled(false);
-            b.diagnosticsStatus.setText("正在收集 App、系统、LSPosed 和 Root 日志…");
+            b.diagnosticsStatus.setText(R.string.ynotify_collecting_diagnostics);
             DiagnosticsExporter.export(this, new DiagnosticsExporter.Callback() {
                 @Override
                 public void onSuccess(String fileName, String location, android.net.Uri uri, boolean rootCollected) {
                     if (isFinishing()) return;
                     b.btnExportDiagnostics.setEnabled(true);
-                    b.diagnosticsStatus.setText("已导出：" + location + (rootCollected ? " · Root/LSPosed 已收集" : " · 未获得 Root"));
-                    Toast.makeText(MainActivity.this, "诊断日志已保存到 Download/YNotify", Toast.LENGTH_LONG).show();
+                    b.diagnosticsStatus.setText(rootCollected
+                            ? getString(R.string.ynotify_exported_root, location)
+                            : getString(R.string.ynotify_exported_no_root, location));
+                    Toast.makeText(MainActivity.this, R.string.ynotify_diagnostics_saved, Toast.LENGTH_LONG).show();
                 }
 
                 @Override
                 public void onFailure(String message) {
                     if (isFinishing()) return;
                     b.btnExportDiagnostics.setEnabled(true);
-                    b.diagnosticsStatus.setText("导出失败：" + message);
-                    Toast.makeText(MainActivity.this, "诊断日志导出失败", Toast.LENGTH_LONG).show();
+                    b.diagnosticsStatus.setText(getString(R.string.ynotify_export_failed_detail, message));
+                    Toast.makeText(MainActivity.this, R.string.ynotify_diagnostics_export_failed, Toast.LENGTH_LONG).show();
                 }
             });
         });
@@ -155,11 +157,11 @@ public class MainActivity extends AppCompatActivity {
     private void setupHistoryRepair() {
         b.btnHistoryRepair.setOnClickListener(v -> {
             b.btnHistoryRepair.setEnabled(false);
-            b.repairStatus.setText("正在扫描并修复历史…");
+            b.repairStatus.setText(R.string.ynotify_repair_scanning);
             HistoryRepairEngine.repairAsync(this, report -> {
                 if (isFinishing()) return;
                 b.btnHistoryRepair.setEnabled(true);
-                b.repairStatus.setText(report.summary());
+                b.repairStatus.setText(report.summary(this));
             });
         });
     }
@@ -188,42 +190,54 @@ public class MainActivity extends AppCompatActivity {
         boolean connected = ListenerStateStore.isConnected(this);
         boolean otherNotificationHost = ServiceGrantStatus.otherHostNotificationListenerEnabled(this);
         boolean legacySuiteNotification = ServiceGrantStatus.legacySuiteNotificationListenerEnabled(this);
-        String notificationName = suiteHost ? "YSuite 统一通知监听" : "通知监听";
+        String notificationName = getString(suiteHost
+                ? R.string.ynotify_suite_notification_listener
+                : R.string.ynotify_notification_listener);
         if (!granted) {
             if (legacySuiteNotification) {
-                b.btnNotificationAccess.setText("迁移到 YSuite 统一通知监听");
+                b.btnNotificationAccess.setText(R.string.ynotify_migrate_suite_notification);
             } else if (otherNotificationHost) {
-                b.btnNotificationAccess.setText(suiteHost ? "开启 YSuite 通知监听" : "开启当前版通知权限");
+                b.btnNotificationAccess.setText(suiteHost
+                        ? R.string.ynotify_enable_suite_notification
+                        : R.string.ynotify_enable_current_notification);
             } else {
-                b.btnNotificationAccess.setText(suiteHost ? "开启 YSuite 通知监听" : "开启通知权限");
+                b.btnNotificationAccess.setText(suiteHost
+                        ? R.string.ynotify_enable_suite_notification
+                        : R.string.ynotify_enable_notification);
             }
         } else if (connected) {
             b.btnNotificationAccess.setText(otherNotificationHost
-                    ? notificationName + " ✓ · 另一版也开启"
-                    : notificationName + " ✓");
+                    ? getString(R.string.ynotify_connected_other_enabled, notificationName)
+                    : getString(R.string.ynotify_connected_name, notificationName));
         } else {
-            b.btnNotificationAccess.setText("已授权 · 正在重连");
+            b.btnNotificationAccess.setText(R.string.ynotify_authorized_reconnecting);
         }
 
         boolean a11yGranted = ServiceGrantStatus.accessibilityEnabled(this);
         boolean a11yConnected = UiAccessibilityService.isConnected();
         boolean otherA11yHost = ServiceGrantStatus.otherHostAccessibilityEnabled(this);
         boolean legacySuiteA11y = ServiceGrantStatus.legacySuiteAccessibilityEnabled(this);
-        String a11yName = suiteHost ? "YSuite 统一无障碍" : "界面提示";
+        String a11yName = getString(suiteHost
+                ? R.string.ynotify_suite_accessibility
+                : R.string.ynotify_ui_capture);
         if (!a11yGranted) {
             if (legacySuiteA11y) {
-                b.btnAccessibility.setText("迁移到 YSuite 统一无障碍");
+                b.btnAccessibility.setText(R.string.ynotify_migrate_suite_accessibility);
             } else if (otherA11yHost) {
-                b.btnAccessibility.setText(suiteHost ? "开启 YSuite 无障碍" : "开启当前版界面提示");
+                b.btnAccessibility.setText(suiteHost
+                        ? R.string.ynotify_enable_suite_accessibility
+                        : R.string.ynotify_enable_current_ui_capture);
             } else {
-                b.btnAccessibility.setText(suiteHost ? "开启 YSuite 无障碍" : "开启界面提示");
+                b.btnAccessibility.setText(suiteHost
+                        ? R.string.ynotify_enable_suite_accessibility
+                        : R.string.ynotify_enable_ui_capture);
             }
         } else if (a11yConnected) {
             b.btnAccessibility.setText(otherA11yHost
-                    ? a11yName + " ✓ · 另一版也开启"
-                    : a11yName + " ✓");
+                    ? getString(R.string.ynotify_connected_other_enabled, a11yName)
+                    : getString(R.string.ynotify_connected_name, a11yName));
         } else {
-            b.btnAccessibility.setText("已授权 · 等待连接");
+            b.btnAccessibility.setText(R.string.ynotify_authorized_waiting);
         }
 
         long lastEvent = ListenerStateStore.lastEvent(this);
@@ -235,39 +249,48 @@ public class MainActivity extends AppCompatActivity {
         long lastErrorTime = ListenerStateStore.lastErrorTime(this);
 
         StringBuilder status = new StringBuilder();
-        status.append(notificationName).append("：")
-                .append(granted ? (connected ? "已连接" : "权限已授予，正在请求重连") : "未授权");
+        status.append(notificationName).append(": ")
+                .append(getString(!granted
+                        ? R.string.ynotify_status_not_authorized
+                        : connected
+                        ? R.string.ynotify_status_connected
+                        : R.string.ynotify_status_reconnecting));
         if (legacySuiteNotification && !granted) {
-            status.append("\n旧版 YNotify 通知监听授权仍存在；请改为开启 YSuite 统一通知监听");
+            status.append("\n").append(getString(R.string.ynotify_legacy_notification_warning));
         }
         if (otherNotificationHost) {
-            status.append(granted
-                    ? "\n⚠ 另一版本的通知监听也已开启，建议只保留当前使用的版本"
-                    : "\n另一版本的通知监听已开启；当前版本仍未授权");
+            status.append("\n").append(getString(granted
+                    ? R.string.ynotify_other_notification_warning
+                    : R.string.ynotify_other_notification_not_current));
         }
-        status.append("\n").append(a11yName).append("：")
-                .append(!a11yGranted ? "未授权" : a11yConnected ? "已连接" : "已授权，等待系统连接");
+        status.append("\n").append(a11yName).append(": ")
+                .append(getString(!a11yGranted
+                        ? R.string.ynotify_status_not_authorized
+                        : a11yConnected
+                        ? R.string.ynotify_accessibility_connected
+                        : R.string.ynotify_accessibility_waiting));
         if (legacySuiteA11y && !a11yGranted) {
-            status.append("\n旧版 YFloat/YNotify 无障碍授权仍存在；请改为开启 YSuite 统一无障碍服务");
+            status.append("\n").append(getString(R.string.ynotify_legacy_accessibility_warning));
         }
         if (otherA11yHost) {
-            status.append(a11yGranted
-                    ? "\n⚠ 另一版本的无障碍也已开启，可能造成重复采集，建议只保留当前版本"
-                    : "\n另一版本的无障碍已开启；当前版本仍未授权");
+            status.append("\n").append(getString(a11yGranted
+                    ? R.string.ynotify_other_accessibility_warning
+                    : R.string.ynotify_other_accessibility_not_current));
         }
-        if (lastConnected > 0) status.append("\n最后连接：").append(TimeFormat.full(lastConnected));
-        if (lastEvent > 0) status.append("\n最后回调：").append(TimeFormat.full(lastEvent));
+        if (lastConnected > 0) status.append("\n").append(getString(R.string.ynotify_last_connected, TimeFormat.full(lastConnected)));
+        if (lastEvent > 0) status.append("\n").append(getString(R.string.ynotify_last_callback, TimeFormat.full(lastEvent)));
         if (lastReceived > 0) {
-            status.append("\n最后收到通知：").append(TimeFormat.full(lastReceived));
-            if (lastPkg != null && !lastPkg.isEmpty()) status.append(" · ").append(lastPkg);
+            status.append("\n").append(lastPkg != null && !lastPkg.isEmpty()
+                    ? getString(R.string.ynotify_last_received_package, TimeFormat.full(lastReceived), lastPkg)
+                    : getString(R.string.ynotify_last_received, TimeFormat.full(lastReceived)));
         }
-        if (lastSaved > 0) status.append("\n最后成功保存：").append(TimeFormat.full(lastSaved));
+        if (lastSaved > 0) status.append("\n").append(getString(R.string.ynotify_last_saved, TimeFormat.full(lastSaved)));
         if (lastError != null && !lastError.isEmpty()) {
-            status.append("\n最后错误：");
-            if (lastErrorTime > 0) status.append(TimeFormat.full(lastErrorTime)).append(" · ");
-            status.append(lastError);
+            status.append("\n").append(lastErrorTime > 0
+                    ? getString(R.string.ynotify_last_error_time, TimeFormat.full(lastErrorTime), lastError)
+                    : getString(R.string.ynotify_last_error, lastError));
         }
-        status.append("\n\n").append(YNotifyApp.runtimeStatus());
+        status.append("\n\n").append(YNotifyApp.runtimeStatus(this));
         b.runtimeStatus.setText(status.toString());
 
         if (mode == R.id.nav_settings) b.captureStatus.setVisibility(View.VISIBLE);
@@ -285,17 +308,17 @@ public class MainActivity extends AppCompatActivity {
         b.runtimeStatus.setVisibility(settings ? View.VISIBLE : View.GONE);
         updatePermissionStatus();
         if (apps) {
-            b.toolbar.setTitle("按应用查看");
-            b.searchBox.setHint("搜索应用或包名");
+            b.toolbar.setTitle(R.string.ynotify_apps_title);
+            b.searchBox.setHint(R.string.ynotify_search_apps);
             b.list.setAdapter(appAdapter);
             observeApps();
         } else if (!settings) {
             b.toolbar.setTitle("YNotify");
-            b.searchBox.setHint("搜索应用、标题、内容或包名");
+            b.searchBox.setHint(R.string.ynotify_search_timeline);
             b.list.setAdapter(eventAdapter);
             observeTimeline();
         } else {
-            b.toolbar.setTitle("设置");
+            b.toolbar.setTitle(R.string.ynotify_settings_title);
         }
     }
 
