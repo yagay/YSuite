@@ -10,17 +10,19 @@ public final class GestureHubActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
 
-        LinearLayout root = AppUi.pageRoot(this, "手势与轨迹",
-                "手势参数、轨迹反馈和动作映射集中在这里。" );
+        LinearLayout root = AppUi.pageRoot(this,
+                getString(R.string.yfloat_gesture_hub_title),
+                getString(R.string.yfloat_gesture_hub_desc));
 
-        AppUi.Section gesture = AppUi.section(this, "手势设置", null);
+        AppUi.Section gesture = AppUi.section(this,
+                getString(R.string.yfloat_gesture_section), null);
         AppUi.addRow(gesture.body, AppUi.navRow(this,
-                "手势参数与轨迹",
-                "长按、双击、滑动阈值、震动和轨迹样式",
+                getString(R.string.yfloat_gesture_params),
+                getString(R.string.yfloat_gesture_params_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_GESTURE))));
         AppUi.addRow(gesture.body, AppUi.navRow(this,
-                "手势动作映射",
-                "指定单击、双击、长按和各方向滑动动作",
+                getString(R.string.yfloat_gesture_mapping),
+                getString(R.string.yfloat_gesture_mapping_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_ACTIONS))));
         AppUi.addSection(root, gesture);
 
