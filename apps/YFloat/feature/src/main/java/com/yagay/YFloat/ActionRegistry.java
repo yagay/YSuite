@@ -1,33 +1,42 @@
 package com.yagay.YFloat;
 
+import android.content.Context;
+
+import androidx.annotation.StringRes;
+
 import java.util.LinkedHashMap;
 
-/** Single catalog for configurable action IDs, labels and defaults. */
+/** Single catalog for configurable action IDs, localized labels and defaults. */
 final class ActionRegistry {
-    private static final LinkedHashMap<String, String> LABELS = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, Integer> LABELS = new LinkedHashMap<>();
 
     static {
-        LABELS.put(ActionId.NONE, "无动作");
-        LABELS.put(ActionId.BACK, "返回");
-        LABELS.put(ActionId.HOME, "主页");
-        LABELS.put(ActionId.RECENTS, "最近任务");
-        LABELS.put(ActionId.SCREENSHOT, "截图");
-        LABELS.put(ActionId.REGION_SCREENSHOT, "区域截图");
-        LABELS.put(ActionId.OCR, "OCR/提取文字");
-        LABELS.put(ActionId.AI_SCREEN, "圈画识别");
-        LABELS.put(ActionId.NOTIFICATIONS, "通知栏");
-        LABELS.put(ActionId.CLICK_UNDER, "点击悬浮图标下方屏幕");
-        LABELS.put(ActionId.MOVE_ICON, "移动图标位置");
-        LABELS.put(ActionId.HIDE, "隐藏悬浮图标");
+        LABELS.put(ActionId.NONE, R.string.yfloat_action_none);
+        LABELS.put(ActionId.BACK, R.string.yfloat_action_back);
+        LABELS.put(ActionId.HOME, R.string.yfloat_action_home);
+        LABELS.put(ActionId.RECENTS, R.string.yfloat_action_recents);
+        LABELS.put(ActionId.SCREENSHOT, R.string.yfloat_action_screenshot);
+        LABELS.put(ActionId.REGION_SCREENSHOT, R.string.yfloat_action_region_screenshot);
+        LABELS.put(ActionId.OCR, R.string.yfloat_action_ocr);
+        LABELS.put(ActionId.AI_SCREEN, R.string.yfloat_action_ai_screen);
+        LABELS.put(ActionId.NOTIFICATIONS, R.string.yfloat_action_notifications);
+        LABELS.put(ActionId.CLICK_UNDER, R.string.yfloat_action_click_under);
+        LABELS.put(ActionId.MOVE_ICON, R.string.yfloat_action_move_icon);
+        LABELS.put(ActionId.HIDE, R.string.yfloat_action_hide);
     }
 
     static String[] availableIds() {
         return LABELS.keySet().toArray(new String[0]);
     }
 
-    static String label(String id) {
-        String label = LABELS.get(id);
-        return label == null ? LABELS.get(ActionId.NONE) : label;
+    @StringRes
+    static int labelRes(String id) {
+        Integer label = LABELS.get(id);
+        return label == null ? R.string.yfloat_action_none : label;
+    }
+
+    static String label(Context context, String id) {
+        return context.getString(labelRes(id));
     }
 
     static String defaultForPreference(String key) {
