@@ -103,5 +103,12 @@
             android:authorities="${applicationId}.ynfc.config"
             android:directBootAware="true"
             android:exported="true" />
+
+        <provider
+            android:name=".ipc.SuiteRuntimeHandoffProvider"
+            android:authorities="com.yagay.YSuite.runtime_handoff"
+            android:directBootAware="true"
+            android:exported="true"
+            android:grantUriPermissions="false" />
     </application>
 </manifest>
