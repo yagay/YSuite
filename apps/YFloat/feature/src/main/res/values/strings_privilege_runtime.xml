@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfloat_priv_mode_normal">Standard mode</string>
+    <string name="yfloat_priv_mode_root">Root enhancement</string>
+    <string name="yfloat_priv_mode_lsposed">LSPosed Provider</string>
+    <string name="yfloat_priv_mode_root_lsposed">Root and LSPosed Provider</string>
+    <string name="yfloat_priv_root_check_timeout">Root authorization check timed out.</string>
+    <string name="yfloat_priv_root_stored_not_checked">Not checked</string>
+    <string name="yfloat_priv_root_stored_granted">Authorized</string>
+    <string name="yfloat_priv_root_stored_denied">Not authorized or unavailable</string>
+</resources>
