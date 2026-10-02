@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.yagay.ydiag.R
 import com.yagay.ydiag.YDiagRuntime
 import com.yagay.ydiag.data.AppRepository
 import com.yagay.ydiag.data.Preferences
@@ -153,28 +154,30 @@ class YDiagViewModel(application: Application) : AndroidViewModel(application) {
 
     fun exportLatest() {
         viewModelScope.launch {
-            _exportMessage.value = "正在生成完整诊断包…"
+            _exportMessage.value = context.getString(R.string.ydiag_export_preparing)
             val uri = withContext(Dispatchers.IO) {
                 MonitorService.prepareForExport()
                 val tree = if (prefs.exportMode == "custom") customTree() else null
                 DiagnosticExporter(context).exportLatest(tree)
             }
             _exportMessage.value = if (uri != null) {
-                if (prefs.exportMode == "custom") "已导出到自定义目录" else "已导出到 Download/YDiag"
-            } else "导出失败：没有可用会话或目录不可写"
+                if (prefs.exportMode == "custom") context.getString(R.string.ydiag_exported_custom)
+                else context.getString(R.string.ydiag_exported_download)
+            } else context.getString(R.string.ydiag_export_failed_detail)
             refreshHistory()
         }
     }
 
     fun export(item: HistoryItem) {
         viewModelScope.launch {
-            _exportMessage.value = "正在导出 ${item.meta.id}…"
+            _exportMessage.value = context.getString(R.string.ydiag_exporting_session, item.meta.id)
             val uri = withContext(Dispatchers.IO) {
                 MonitorService.prepareForExport()
                 val tree = if (prefs.exportMode == "custom") customTree() else null
                 DiagnosticExporter(context).export(item.directory, item.meta, tree)
             }
-            _exportMessage.value = if (uri != null) "导出完成" else "导出失败"
+            _exportMessage.value = if (uri != null) context.getString(R.string.ydiag_export_complete)
+            else context.getString(R.string.ydiag_export_failed)
         }
     }
 
