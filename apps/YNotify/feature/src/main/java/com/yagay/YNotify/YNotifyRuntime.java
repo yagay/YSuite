@@ -2,7 +2,6 @@ package com.yagay.YNotify;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Build;
 
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.util.DiagLog;
@@ -12,7 +11,6 @@ import com.yagay.suite.api.ManagedFeatureRuntime;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Locale;
 
 import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
@@ -183,8 +181,8 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
     }
 
     public static String runtimeStatus(Context context) {
-        boolean zh = isChinese(context);
-        StringBuilder out = new StringBuilder(frameworkStatusText(zh));
+        Context app = context.getApplicationContext();
+        StringBuilder out = new StringBuilder(frameworkStatusText(app));
         SharedPreferences prefs = remote;
         if (prefs != null) {
             long heartbeat = prefs.getLong(KEY_HOOK_HEARTBEAT, 0L);
@@ -192,69 +190,32 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
             String pkg = prefs.getString(KEY_HOOK_PACKAGE, "");
             if (heartbeat > 0) {
                 long age = Math.max(0L, System.currentTimeMillis() - heartbeat);
-                out.append('\n')
-                        .append(zh ? "Hook 状态：" : "Hook status: ")
-                        .append(age < 120_000L
-                                ? (zh ? "运行中" : "Running")
-                                : (zh ? "已加载，但心跳较旧" : "Loaded, but the heartbeat is old"));
-                out.append('\n').append(zh ? "Hook 版本：" : "Hook version: ")
-                        .append(version == null || version.isEmpty() ? "?" : version);
+                out.append('\n').append(app.getString(age < 120_000L
+                        ? R.string.ynotify_hook_status_running
+                        : R.string.ynotify_hook_status_stale));
+                out.append('\n').append(app.getString(R.string.ynotify_hook_version,
+                        version == null || version.isEmpty() ? "?" : version));
                 if (pkg != null && !pkg.isEmpty()) {
-                    out.append('\n').append(zh ? "Hook 包名：" : "Hook package: ").append(pkg);
+                    out.append('\n').append(app.getString(R.string.ynotify_hook_package, pkg));
                 }
-                out.append('\n').append(zh ? "最后心跳：" : "Last heartbeat: ")
-                        .append(age / 1000L)
-                        .append(zh ? " 秒前" : " seconds ago");
+                out.append('\n').append(app.getString(R.string.ynotify_last_heartbeat_seconds, age / 1000L));
             } else {
-                out.append('\n').append(zh ? "Hook 状态：尚未收到运行心跳" : "Hook status: no runtime heartbeat received yet");
+                out.append('\n').append(app.getString(R.string.ynotify_hook_no_heartbeat));
             }
         }
         return out.toString();
     }
 
-    private static String frameworkStatusText(boolean zh) {
-        switch (frameworkState) {
-            case DISABLED:
-                return zh ? "YNotify 已由 YSuite 停用" : "YNotify is disabled by YSuite";
-            case API_TOO_OLD:
-                return zh
-                        ? frameworkName + " API " + frameworkApi + "。需要 API 102。"
-                        : frameworkName + " API " + frameworkApi + ". API 102 is required.";
-            case REMOTE_UNSUPPORTED:
-                return zh
-                        ? frameworkName + " 不支持 Remote Preferences。"
-                        : frameworkName + " does not support Remote Preferences.";
-            case CONNECTED:
-                return zh
-                        ? frameworkName + " " + frameworkVersion + " 已连接。API " + frameworkApi
-                            + "。Scope 数量 " + frameworkScopeCount + "。"
-                        : frameworkName + " " + frameworkVersion + " connected. API " + frameworkApi
-                            + ". Scope count " + frameworkScopeCount + ".";
-            case CONNECT_FAILED:
-                return zh
-                        ? "LSPosed 服务连接失败：" + frameworkError
-                        : "LSPosed service connection failed: " + frameworkError;
-            case DIED:
-                return zh ? "LSPosed API 102 服务已断开" : "LSPosed API 102 service disconnected";
-            case DISCONNECTED:
-            default:
-                return zh ? "LSPosed API 102 服务未连接" : "LSPosed API 102 service is not connected";
-        }
-    }
-
-    private static boolean isChinese(Context context) {
-        Locale locale;
-        try {
-            if (context != null && Build.VERSION.SDK_INT >= 24) {
-                locale = context.getResources().getConfiguration().getLocales().get(0);
-            } else if (context != null) {
-                locale = context.getResources().getConfiguration().locale;
-            } else {
-                locale = Locale.getDefault();
-            }
-        } catch (Throwable ignored) {
-            locale = Locale.getDefault();
-        }
-        return locale != null && "zh".equalsIgnoreCase(locale.getLanguage());
+    private static String frameworkStatusText(Context context) {
+        return switch (frameworkState) {
+            case DISABLED -> context.getString(R.string.ynotify_runtime_disabled);
+            case API_TOO_OLD -> context.getString(R.string.ynotify_runtime_api_required, frameworkName, frameworkApi);
+            case REMOTE_UNSUPPORTED -> context.getString(R.string.ynotify_runtime_remote_unsupported, frameworkName);
+            case CONNECTED -> context.getString(R.string.ynotify_runtime_connected,
+                    frameworkName, frameworkVersion, frameworkApi, frameworkScopeCount);
+            case CONNECT_FAILED -> context.getString(R.string.ynotify_runtime_connect_failed, frameworkError);
+            case DIED -> context.getString(R.string.ynotify_runtime_disconnected);
+            case DISCONNECTED -> context.getString(R.string.ynotify_runtime_not_connected);
+        };
     }
 }
