@@ -21,11 +21,26 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
+def feature_gradle(project_dir: Path, feature_id: str) -> str:
+    for name in ("build.gradle.kts", "build.gradle"):
+        path = project_dir / name
+        if path.is_file():
+            return read(path)
+    raise SystemExit(f"[feature-boundary] ERROR: {feature_id}: build.gradle(.kts) is required")
+
+
 def gradle_namespace(gradle: str, feature_id: str) -> str:
-    match = re.search(r'\bnamespace\s*=\s*"([^"]+)"', gradle)
-    if not match:
-        raise SystemExit(f"[feature-boundary] ERROR: {feature_id}: Android namespace is required")
-    return match.group(1)
+    patterns = (
+        r'\bnamespace\s*=\s*"([^"]+)"',
+        r"\bnamespace\s*=\s*'([^']+)'",
+        r'\bnamespace\s+"([^"]+)"',
+        r"\bnamespace\s+'([^']+)'",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, gradle)
+        if match:
+            return match.group(1)
+    raise SystemExit(f"[feature-boundary] ERROR: {feature_id}: Android namespace is required")
 
 
 def resolve_component_name(namespace: str, class_name: str) -> str:
@@ -63,11 +78,17 @@ def main() -> int:
     for item in features:
         feature_id = str(item["id"])
         project_dir = ROOT / str(item["project_dir"])
-        gradle = read(project_dir / "build.gradle.kts")
+        gradle = feature_gradle(project_dir, feature_id)
         manifest = read(project_dir / "src/main/AndroidManifest.xml")
         namespace = gradle_namespace(gradle, feature_id)
 
-        if 'id("com.android.application")' in gradle or "alias(libs.plugins.android.application)" in gradle:
+        application_plugin_markers = (
+            'id("com.android.application")',
+            "id 'com.android.application'",
+            "id('com.android.application')",
+            "alias(libs.plugins.android.application)",
+        )
+        if any(marker in gradle for marker in application_plugin_markers):
             error(f"{feature_id}: Feature module must be an Android library, not an application", errors)
 
         # Features may depend on shared host/api/ui/core libraries, but never directly on another Feature.
@@ -78,6 +99,9 @@ def main() -> int:
                 f'project("{module}")',
                 f"project('{module}')",
                 f'project(path = "{module}")',
+                f"project(path: '{module}')",
+                f'project(path: "{module}")',
+                f"project '{module}'",
             )
             if any(pattern in gradle for pattern in patterns):
                 error(
