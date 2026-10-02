@@ -53,6 +53,16 @@
     <string name="ynfc_stale_disabled">模拟未启用。检测到旧 NFC 进程遗留 RF 状态。</string>
     <string name="ynfc_sim_disabled">未启用模拟</string>
 
+    <string name="ynfc_sim_apply_success">模拟成功 · UID=%1$s · NFC进程内确认</string>
+    <string name="ynfc_sim_hook_not_ready">模拟请求已保存，但 Hook 未就绪</string>
+    <string name="ynfc_sim_command_superseded">模拟请求被更新的命令替代</string>
+    <string name="ynfc_sim_apply_failure">模拟失败 · %1$s：%2$s</string>
+    <string name="ynfc_sim_waiting_rf">模拟请求已发送 · 等待 RF UID 确认</string>
+    <string name="ynfc_sim_stop_lifecycle_restored">模拟已停止 · 原厂 RF 已由 NFC 进程恢复</string>
+    <string name="ynfc_sim_stop_superseded">停止请求已被更新的命令替代</string>
+    <string name="ynfc_sim_stop_restored">模拟已停止 · 已恢复原厂 RF</string>
+    <string name="ynfc_sim_stop_restart_unconfirmed">模拟已停止 · NFC 已重启，但状态确认未完成</string>
+
     <string name="ynfc_read_card">读卡模式</string>
     <string name="ynfc_read_disabled_during_sim">当前正在模拟，读卡保持关闭。</string>
     <string name="ynfc_read_enabled">读卡已开启，请把门禁卡贴到手机背部。</string>
