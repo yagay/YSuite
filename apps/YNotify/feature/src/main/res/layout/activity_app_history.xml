@@ -9,7 +9,8 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:navigationIcon="@drawable/ic_back" />
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationContentDescription="@string/ynotify_back" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -22,13 +23,13 @@
             android:id="@+id/switch_ignore"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="暂停记录此应用" />
+            android:text="@string/ynotify_pause_app" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switch_redact"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="只记录元数据，不保存正文" />
+            android:text="@string/ynotify_metadata_only" />
     </LinearLayout>
 
     <HorizontalScrollView
@@ -49,7 +50,7 @@
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="全部"
+                android:text="@string/ynotify_filter_all"
                 android:checked="true" />
 
             <com.google.android.material.chip.Chip
@@ -57,35 +58,35 @@
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="通知" />
+                android:text="@string/ynotify_filter_notification" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_toast"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Toast" />
+                android:text="@string/ynotify_filter_toast" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_dialog"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="弹窗" />
+                android:text="@string/ynotify_filter_dialog" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_popup"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Popup" />
+                android:text="@string/ynotify_filter_popup" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_snackbar"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Snackbar" />
+                android:text="@string/ynotify_filter_snackbar" />
         </com.google.android.material.chip.ChipGroup>
     </HorizontalScrollView>
 
@@ -104,5 +105,5 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="@dimen/yui_screen_horizontal"
         android:layout_marginBottom="@dimen/yui_section_gap"
-        android:text="清空此应用历史" />
+        android:text="@string/ynotify_clear_app_history" />
 </LinearLayout>
