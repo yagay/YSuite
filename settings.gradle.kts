@@ -29,6 +29,10 @@ project(":core").projectDir = file("libs/ycore")
 include(":suite")
 project(":suite").projectDir = file("suite/YSuite")
 
+// One generic APK shell packages any selected Feature without duplicating app infrastructure.
+include(":standalone")
+project(":standalone").projectDir = file("standalone/host")
+
 // Feature modules are generated from config/features.toml. Do not duplicate the feature list here.
 val generatedFeatureModules = file("config/generated/feature-modules.tsv")
 generatedFeatureModules.readLines()
