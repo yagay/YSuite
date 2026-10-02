@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yparam_title">YParam</string>
+    <string name="yparam_subtitle">应用 DPI、语言、定位与参数覆盖</string>
+    <string name="yparam_filters_title">筛选与连接状态</string>
+    <string name="yparam_filters_desc">LSPosed 负责把修改后的参数写入目标应用进程。</string>
+    <string name="yparam_service_checking">LSPosed 服务：检测中…</string>
+    <string name="yparam_search_hint">搜索应用名称或包名</string>
+    <string name="yparam_system_apps">系统应用</string>
+    <string name="yparam_system_apps_desc">同时显示系统预装应用</string>
+    <string name="yparam_modified_only">只看已修改</string>
+    <string name="yparam_modified_only_desc">只显示已经保存参数覆盖的应用</string>
+    <string name="yparam_service_disconnected">LSPosed 服务：未连接（配置不可写入）</string>
+    <string name="yparam_service_connected">LSPosed 服务：已连接 · API %1$d</string>
+    <string name="yparam_modified_suffix">  • 已修改</string>
+    <string name="yparam_system_suffix">  · 系统应用</string>
+</resources>
