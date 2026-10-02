@@ -53,7 +53,7 @@ final class GoogleCtsTrigger {
                         "google auto success=" + result.success
                                 + " detail=" + result.detail);
                 if (!result.success) {
-                    Toast.makeText(app, result.userMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(app, result.userMessage(app), Toast.LENGTH_LONG).show();
                     return;
                 }
                 new Handler(Looper.getMainLooper()).postDelayed(() -> trigger(app), 280L);
