@@ -21,4 +21,4 @@ if (localApi.isDirectory && localUi.isDirectory) {
 }
 
 rootProject.name = "YDiag"
-include(":app", ":feature")
+include(":feature")
