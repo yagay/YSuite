@@ -5,7 +5,7 @@
 <string name="system_integration">系统集成</string><string name="system_integration_summary">安全模式保留 Android DownloadProvider，由 YDownload 使用自己的下载引擎。</string>
 <string name="download_provider">DownloadProvider</string><string name="preserved">保留兼容</string><string name="engine">下载引擎</string><string name="native_engine">YDownload 原生 HTTP 引擎</string>
 <string name="no_downloads">没有下载任务</string><string name="no_downloads_summary">在上方添加 HTTP 或 HTTPS 链接。</string>
-<string name="status">状态</string><string name="progress">进度</string><string name="queued">等待中</string><string name="running">下载中</string><string name="paused">已暂停</string><string name="completed">已完成</string><string name="failed">失败</string><string name="cancelled">已取消</string>
+<string name="status">状态</string><string name="progress">进度</string><string name="progress_percent">%1$d%%</string><string name="queued">等待中</string><string name="running">下载中</string><string name="paused">已暂停</string><string name="completed">已完成</string><string name="failed">失败</string><string name="cancelled">已取消</string>
 <string name="pause">暂停</string><string name="resume">继续 / 重试</string><string name="cancel">取消</string><string name="open">打开</string><string name="remove">移除</string>
 <string name="download_channel">下载任务</string><string name="download_service">YDownload</string><string name="download_running">正在下载…</string>
 </resources>
