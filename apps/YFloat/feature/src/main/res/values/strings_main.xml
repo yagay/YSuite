@@ -62,4 +62,10 @@
     <string name="yfloat_permission_settings">Settings</string>
     <string name="yfloat_permission_enable_suite">Enable YSuite</string>
     <string name="yfloat_notification_already_authorized">Notification permission is already granted.</string>
+    <string name="yfloat_a11y_authorized_connected">Authorized. Connected.</string>
+    <string name="yfloat_a11y_authorized_waiting">Authorized. Waiting for connection.</string>
+    <string name="yfloat_a11y_legacy_suite_enabled">Legacy YSuite accessibility is still enabled. Migrate to unified accessibility.</string>
+    <string name="yfloat_a11y_standalone_enabled_suite_disabled">Standalone YFloat is enabled. YSuite unified accessibility is disabled.</string>
+    <string name="yfloat_a11y_other_host_enabled">YFloat accessibility is enabled in another host. This version is disabled.</string>
+    <string name="yfloat_a11y_same_host_other_enabled">Another accessibility service in this host is enabled. This service is not authorized.</string>
 </resources>
