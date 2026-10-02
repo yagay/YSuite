@@ -2,6 +2,8 @@ package com.yagay.YMiniGuard;
 
 import android.content.SharedPreferences;
 
+import com.yagay.suite.api.RuntimeOwnerGate;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -82,21 +84,25 @@ final class GuardConfig {
     }
 
     static boolean enabled() {
-        return bool(ConfigKeys.MASTER_ENABLED);
+        return RuntimeOwnerGate.shouldRun("yminiguard", hostPackage())
+                && bool(ConfigKeys.MASTER_ENABLED);
     }
 
     static boolean foregroundPackage(String packageName) {
-        return packageName != null
+        return enabled()
+                && packageName != null
                 && stringSet(ConfigKeys.FOREGROUND_PACKAGES).contains(packageName);
     }
 
     static boolean backgroundPlaybackPackage(String packageName) {
-        return packageName != null
+        return enabled()
+                && packageName != null
                 && stringSet(ConfigKeys.BACKGROUND_PLAYBACK_PACKAGES).contains(packageName);
     }
 
     static boolean forceSupportPackage(String packageName) {
-        return packageName != null
+        return enabled()
+                && packageName != null
                 && stringSet(ConfigKeys.FORCE_SUPPORT_PACKAGES).contains(packageName);
     }
 }
