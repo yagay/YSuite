@@ -17,6 +17,7 @@ import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.yagay.yparam.R;
 import com.yagay.yparam.YParamApp;
 import com.yagay.yparam.data.ConfigRepository;
 import com.yagay.yui.YViewLayout;
@@ -56,18 +57,18 @@ public final class MainActivity extends AppCompatActivity implements YParamApp.S
     private void buildUi() {
         LinearLayout root = YViewLayout.installFixed(
                 this,
-                "YParam",
-                "应用 DPI、语言、定位与参数覆盖");
+                getString(R.string.yparam_title),
+                getString(R.string.yparam_subtitle));
 
         LinearLayout filters = YViewLayout.card(
                 root,
-                "筛选与连接状态",
-                "LSPosed 负责把修改后的参数写入目标应用进程。");
+                getString(R.string.yparam_filters_title),
+                getString(R.string.yparam_filters_desc));
 
-        serviceState = YViewLayout.statusLine(this, "LSPosed 服务：检测中…");
+        serviceState = YViewLayout.statusLine(this, getString(R.string.yparam_service_checking));
         filters.addView(serviceState);
 
-        search = YViewLayout.searchField(this, "搜索应用名称或包名");
+        search = YViewLayout.searchField(this, getString(R.string.yparam_search_hint));
         filters.addView(
                 search,
                 new LinearLayout.LayoutParams(
@@ -76,14 +77,14 @@ public final class MainActivity extends AppCompatActivity implements YParamApp.S
 
         includeSystem = YViewLayout.switchRow(
                 filters,
-                "系统应用",
-                "同时显示系统预装应用",
+                getString(R.string.yparam_system_apps),
+                getString(R.string.yparam_system_apps_desc),
                 false,
                 (button, checked) -> applyFilter());
         configuredOnly = YViewLayout.switchRow(
                 filters,
-                "只看已修改",
-                "只显示已经保存参数覆盖的应用",
+                getString(R.string.yparam_modified_only),
+                getString(R.string.yparam_modified_only_desc),
                 false,
                 (button, checked) -> applyFilter());
 
@@ -171,12 +172,12 @@ public final class MainActivity extends AppCompatActivity implements YParamApp.S
         if (service == null) {
             YViewLayout.setStatus(
                     serviceState,
-                    "LSPosed 服务：未连接（配置不可写入）",
+                    getString(R.string.yparam_service_disconnected),
                     YViewStatusTone.Warning);
         } else {
             YViewLayout.setStatus(
                     serviceState,
-                    "LSPosed 服务：已连接 · API " + service.getApiVersion(),
+                    getString(R.string.yparam_service_connected, service.getApiVersion()),
                     YViewStatusTone.Good);
         }
     }
