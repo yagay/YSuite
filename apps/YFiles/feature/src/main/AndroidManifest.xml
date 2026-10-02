@@ -9,7 +9,7 @@
             </intent-filter>
         </activity>
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.yagay.yfiles.YFilesFileProvider"
             android:authorities="${applicationId}.yfiles.files"
             android:exported="false"
             android:grantUriPermissions="true">
