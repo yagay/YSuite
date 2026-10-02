@@ -8,6 +8,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import com.yagay.suite.api.RuntimeOwnerGate
+import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.SuiteContract
 import com.yagay.suite.core.SuiteRootGateway
 
@@ -17,8 +19,13 @@ object StandaloneAppManager {
     private const val KEY_PREFIX = "managed:"
 
     /**
-     * Components that must surrender ownership while the corresponding feature is managed by the
-     * combined host. Activities stay enabled so YSuite can still open the standalone UI explicitly.
+     * Components that really must surrender Android component ownership while the corresponding
+     * feature is managed by the combined host.
+     *
+     * Keep hook communication/state channels enabled. In particular ConfigProvider,
+     * EngineStatusProvider and the YFloat/YNotify hook bridges are not duplicate Android owners;
+     * disabling them while a previously loaded standalone hook is still retiring breaks its
+     * control/status path. LSPosed ownership is handled separately by RuntimeOwnerGate.
      */
     private val managedRuntimeComponents = mapOf(
         "com.yagay.YEntryCleaner" to listOf(
@@ -31,25 +38,15 @@ object StandaloneAppManager {
         "com.yagay.YNotify" to listOf(
             "com.yagay.YNotify.collector.NotificationCaptureService",
             "com.yagay.YNotify.collector.UiAccessibilityService",
-            "com.yagay.YNotify.collector.XposedEventReceiver",
         ),
         "com.yagay.ypower" to listOf(
             "com.yagay.ypower.root.BootReceiver",
             "com.yagay.ypower.root.YPowerRootService",
         ),
-        "com.yagay.YMiniGuard" to listOf(
-            "com.yagay.YMiniGuard.EngineStatusProvider",
-        ),
-        "com.yagay.YNFC" to listOf(
-            "com.yagay.YNFC.ConfigProvider",
-        ),
         "com.yagay.YFloat" to listOf(
             "com.yagay.YFloat.FloatService",
             "com.yagay.YFloat.LensAccessibilityService",
             "com.yagay.YFloat.FloatServiceBootReceiver",
-            "com.yagay.YFloat.GoogleCtsBridgeProvider",
-            "com.yagay.YFloat.GoogleCtsBridgeReceiver",
-            "com.yagay.YFloat.GoogleCtsTraceReceiver",
         ),
     )
 
@@ -113,9 +110,10 @@ object StandaloneAppManager {
             .getBoolean(KEY_PREFIX + packageName, false)
 
     /**
-     * Managed standalone APKs stay installed and their real activities stay enabled. YSuite hides
-     * the launcher alias and disables only background/system components that would otherwise create
-     * duplicate ownership with the combined host.
+     * Managed standalone APKs stay installed and their real activities/IPC bridges stay enabled.
+     * YSuite owns duplicate services and marks itself as the LSPosed runtime owner before hiding the
+     * standalone launcher. Existing hook callbacks can retire safely while future hook installs see
+     * the owner marker and remain passive.
      */
     fun setManaged(context: Context, packageName: String, managed: Boolean): ManagementResult {
         if (!isSafePackageName(packageName)) return ManagementResult(false, "invalid package")
@@ -125,15 +123,43 @@ object StandaloneAppManager {
         if (!snapshot.launcherAliasSupported) {
             return ManagementResult(false, "standalone APK must be updated before launcher management")
         }
+        val featureId = featureIdForPackage(packageName)
+            ?: return ManagementResult(false, "feature not registered")
 
-        val componentsResult = setRuntimeComponentsEnabled(context, packageName, enabled = !managed)
-        if (!componentsResult.success) return componentsResult
+        if (managed) {
+            val ownerResult = setRuntimeOwner(context, featureId, suiteOwned = true)
+            if (!ownerResult.success) return ownerResult
 
-        val launcherResult = setLauncherHidden(context, packageName, managed)
-        if (!launcherResult.success) {
-            // Best-effort rollback so a failed launcher command never leaves a half-managed APK.
-            setRuntimeComponentsEnabled(context, packageName, enabled = managed)
-            return launcherResult
+            val componentsResult = setRuntimeComponentsEnabled(context, packageName, enabled = false)
+            if (!componentsResult.success) {
+                setRuntimeOwner(context, featureId, suiteOwned = false)
+                return componentsResult
+            }
+
+            val launcherResult = setLauncherHidden(context, packageName, hidden = true)
+            if (!launcherResult.success) {
+                setRuntimeComponentsEnabled(context, packageName, enabled = true)
+                setRuntimeOwner(context, featureId, suiteOwned = false)
+                return launcherResult
+            }
+        } else {
+            // Restore Android owners and launcher before allowing the standalone hook to become
+            // active again. If any restore fails, keep the YSuite owner marker to avoid split-brain.
+            val componentsResult = setRuntimeComponentsEnabled(context, packageName, enabled = true)
+            if (!componentsResult.success) return componentsResult
+
+            val launcherResult = setLauncherHidden(context, packageName, hidden = false)
+            if (!launcherResult.success) {
+                setRuntimeComponentsEnabled(context, packageName, enabled = false)
+                return launcherResult
+            }
+
+            val ownerResult = setRuntimeOwner(context, featureId, suiteOwned = false)
+            if (!ownerResult.success) {
+                setLauncherHidden(context, packageName, hidden = true)
+                setRuntimeComponentsEnabled(context, packageName, enabled = false)
+                return ownerResult
+            }
         }
 
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -151,6 +177,10 @@ object StandaloneAppManager {
         if (!state.launcherAliasSupported) {
             return ManagementResult(false, "standalone APK does not expose LauncherAlias")
         }
+        val featureId = featureIdForPackage(packageName)
+            ?: return ManagementResult(false, "feature not registered")
+        val ownerResult = setRuntimeOwner(context, featureId, suiteOwned = true)
+        if (!ownerResult.success) return ownerResult
         val componentsResult = setRuntimeComponentsEnabled(context, packageName, enabled = false)
         if (!componentsResult.success) return componentsResult
         return if (state.launcherHidden) ManagementResult(true)
@@ -173,6 +203,29 @@ object StandaloneAppManager {
             },
         )
     }
+
+    private fun setRuntimeOwner(
+        context: Context,
+        featureId: String,
+        suiteOwned: Boolean,
+    ): ManagementResult {
+        val key = RuntimeOwnerGate.settingsKey(featureId)
+        if (!key.matches(Regex("[a-z0-9_]+"))) {
+            return ManagementResult(false, "invalid runtime owner key")
+        }
+        return runPackageCommand(
+            context = context,
+            operation = if (suiteOwned) "claim-runtime-owner" else "release-runtime-owner",
+            command = if (suiteOwned) {
+                "settings put global $key ${RuntimeOwnerGate.OWNER_SUITE}"
+            } else {
+                "settings delete global $key"
+            },
+        )
+    }
+
+    private fun featureIdForPackage(packageName: String): String? =
+        FeatureRegistry.all.firstOrNull { it.standalonePackageName == packageName }?.id
 
     private fun setRuntimeComponentsEnabled(
         context: Context,
