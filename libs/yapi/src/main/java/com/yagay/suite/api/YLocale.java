@@ -2,8 +2,6 @@ package com.yagay.suite.api;
 
 import android.content.Context;
 
-import androidx.annotation.StringRes;
-
 /**
  * Small process-local resource resolver for feature code that cannot conveniently carry a Context.
  *
@@ -28,11 +26,11 @@ public final class YLocale {
         return context;
     }
 
-    public static String text(@StringRes int resId) {
+    public static String text(int resId) {
         return context().getString(resId);
     }
 
-    public static String text(@StringRes int resId, Object... formatArgs) {
+    public static String text(int resId, Object... formatArgs) {
         return context().getString(resId, formatArgs);
     }
 }
