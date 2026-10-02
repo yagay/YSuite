@@ -15,11 +15,7 @@ import com.yagay.yui.YViewStatusTone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * OPlus FlexibleWindow control panel.
- *
- * OxygenOS owns all window rendering and YUI owns this app's visual/layout shell.
- */
+/** OPlus FlexibleWindow control panel. */
 public final class MainActivity extends Activity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -33,8 +29,8 @@ public final class MainActivity extends Activity {
 
         YViewScreen screen = YViewLayout.install(
                 this,
-                "小窗守护",
-                "YMiniGuard · OPlus FlexibleWindow · System Scope");
+                getString(R.string.ymg_title),
+                getString(R.string.ymg_subtitle));
         LinearLayout root = screen.getContent();
 
         addEngineCard(root);
@@ -59,35 +55,29 @@ public final class MainActivity extends Activity {
     private void addEngineCard(LinearLayout parent) {
         LinearLayout card = YViewLayout.card(
                 parent,
-                "运行状态",
-                "核心运行在 system_server，目标 App 不需要加入 LSPosed 作用域。");
+                getString(R.string.ymg_runtime_title),
+                getString(R.string.ymg_runtime_desc));
 
-        engineStatus = YViewLayout.statusLine(this, "System Engine：检测中…");
+        engineStatus = YViewLayout.statusLine(this, getString(R.string.ymg_engine_checking));
         card.addView(engineStatus);
-        card.addView(YViewLayout.statusLine(this, "LSPosed 固定作用域：system / system_server"));
+        card.addView(YViewLayout.statusLine(this, getString(R.string.ymg_lsposed_scope)));
 
-        addSwitch(
-                card,
-                "启用小窗守护",
-                "总开关。关闭后不修改一加小窗支持判断，也不应用前台/防清理保护。",
+        addSwitch(card, getString(R.string.ymg_enable), getString(R.string.ymg_enable_desc),
                 ConfigKeys.MASTER_ENABLED);
-        addSwitch(
-                card,
-                "自动热重载",
-                "更新 APK 后自动加载新的 Engine。Bootstrap Hook 结构变化仍需要重启一次。",
+        addSwitch(card, getString(R.string.ymg_hot_reload), getString(R.string.ymg_hot_reload_desc),
                 ConfigKeys.ENGINE_AUTO_RELOAD);
 
-        Button reload = button("立即重新加载 System Engine");
+        Button reload = button(R.string.ymg_reload_now);
         reload.setOnClickListener(v -> {
             if (!GuardApp.isHotReloadAvailable()) {
-                Toast.makeText(this, "当前 Bootstrap 不支持热重载，请重启一次手机。", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.ymg_hot_reload_unavailable, Toast.LENGTH_LONG).show();
                 return;
             }
 
             boolean sent = GuardApp.requestEngineReload();
             Toast.makeText(
                     this,
-                    sent ? "已请求重新加载 OPlus Engine。" : "热重载请求同步失败。",
+                    sent ? R.string.ymg_reload_requested : R.string.ymg_reload_failed,
                     Toast.LENGTH_LONG).show();
             if (engineStatus != null) {
                 engineStatus.postDelayed(this::refreshStatus, 2500L);
@@ -95,7 +85,7 @@ public final class MainActivity extends Activity {
         });
         card.addView(reload);
 
-        Button refresh = button("重新检测");
+        Button refresh = button(R.string.ymg_recheck);
         refresh.setOnClickListener(v -> refreshStatus());
         card.addView(refresh);
     }
@@ -103,10 +93,10 @@ public final class MainActivity extends Activity {
     private void addAppListsCard(LinearLayout parent) {
         LinearLayout card = YViewLayout.card(
                 parent,
-                "应用名单",
-                "App 的启动、进入小窗、恢复和关闭完全使用 OxygenOS 自己的方式。YMiniGuard 只监听一加小窗状态。");
+                getString(R.string.ymg_app_lists_title),
+                getString(R.string.ymg_app_lists_desc));
 
-        Button foreground = button("始终前台应用");
+        Button foreground = button(R.string.ymg_foreground_apps);
         foreground.setOnClickListener(v -> {
             Intent intent = new Intent(this, TargetAppsActivity.class);
             intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_FOREGROUND);
@@ -115,10 +105,10 @@ public final class MainActivity extends Activity {
         card.addView(foreground);
         card.addView(YViewLayout.detailBlock(
                 this,
-                "始终前台",
-                "勾选的 App 只有在真实 OPlus FlexibleWindow、贴边/最小化小窗，或该小窗进入锁屏状态时才保持运行。普通全屏状态不干预。"));
+                getString(R.string.ymg_foreground_title),
+                getString(R.string.ymg_foreground_desc)));
 
-        Button background = button("后台播放应用");
+        Button background = button(R.string.ymg_background_apps);
         background.setOnClickListener(v -> {
             Intent intent = new Intent(this, TargetAppsActivity.class);
             intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_BACKGROUND_PLAYBACK);
@@ -127,10 +117,10 @@ public final class MainActivity extends Activity {
         card.addView(background);
         card.addView(YViewLayout.detailBlock(
                 this,
-                "普通后台播放",
-                "从普通全屏切到桌面/其他 App 或锁屏时进入 BACKGROUND_PROTECTED；返回原 App 自动解除。"));
+                getString(R.string.ymg_background_title),
+                getString(R.string.ymg_background_desc)));
 
-        Button support = button("强制允许一加小窗应用");
+        Button support = button(R.string.ymg_force_support_apps);
         support.setOnClickListener(v -> {
             Intent intent = new Intent(this, TargetAppsActivity.class);
             intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_FORCE_SUPPORT);
@@ -139,69 +129,57 @@ public final class MainActivity extends Activity {
         card.addView(support);
         card.addView(YViewLayout.detailBlock(
                 this,
-                "小窗支持",
-                "只对勾选的 App 放行一加 FlexibleWindow 支持/黑名单检查；不会主动启动或主动切换小窗。"));
+                getString(R.string.ymg_support_title),
+                getString(R.string.ymg_support_desc)));
     }
 
     private void addForegroundCard(LinearLayout parent) {
         LinearLayout card = YViewLayout.card(
                 parent,
-                "运行保护",
-                "小窗继续使用 OPlus 状态驱动；后台播放名单只在离开普通全屏后进入 BACKGROUND_PROTECTED。");
+                getString(R.string.ymg_protection_title),
+                getString(R.string.ymg_protection_desc));
 
-        addSwitch(
-                card,
-                "受保护进程状态保持 TOP",
-                "对真实一加小窗/贴边/锁屏，以及 BACKGROUND_PROTECTED 普通后台进程返回 TOP。",
+        addSwitch(card, getString(R.string.ymg_keep_top), getString(R.string.ymg_keep_top_desc),
                 ConfigKeys.SYSTEM_IMPORTANCE_TOP);
-        addSwitch(
-                card,
-                "受保护任务视为存在 Resumed Activity",
-                "对真实一加小窗和 BACKGROUND_PROTECTED 任务返回 true；普通前台不修改。",
+        addSwitch(card, getString(R.string.ymg_has_resumed), getString(R.string.ymg_has_resumed_desc),
                 ConfigKeys.SYSTEM_HAS_RESUMED);
-        addSwitch(
-                card,
-                "阻止系统清理受保护进程",
-                "保护一加小窗和 BACKGROUND_PROTECTED 进程；强制停止/更新放行，普通后台任务被划掉时仍允许正常关闭。",
+        addSwitch(card, getString(R.string.ymg_block_cleanup), getString(R.string.ymg_block_cleanup_desc),
                 ConfigKeys.SYSTEM_BLOCK_REMOVE_KILL);
     }
 
     private void addDiagnosticsCard(LinearLayout parent) {
         LinearLayout card = YViewLayout.card(
                 parent,
-                "详细诊断",
-                "记录 OPlus FlexibleWindow 回调、支持判断、Task 状态、前台查询和 OEM 清理链路。");
+                getString(R.string.ymg_diag_title),
+                getString(R.string.ymg_diag_desc));
 
-        diagnosticsStatus = YViewLayout.statusLine(this, "详细日志：检测中…");
+        diagnosticsStatus = YViewLayout.statusLine(this, getString(R.string.ymg_diag_checking));
         card.addView(diagnosticsStatus);
 
-        Button start = button("开始详细日志");
+        Button start = button(R.string.ymg_diag_start);
         start.setOnClickListener(v -> {
             DiagnosticsManager.startSession();
             refreshDiagnosticsStatus();
-            Toast.makeText(this, "已开始记录 OPlus 小窗详细日志。", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.ymg_diag_started, Toast.LENGTH_SHORT).show();
         });
         card.addView(start);
 
-        Button stop = button("停止详细日志");
+        Button stop = button(R.string.ymg_diag_stop);
         stop.setOnClickListener(v -> {
             DiagnosticsManager.stopSession();
             refreshDiagnosticsStatus();
-            Toast.makeText(this, "详细日志已停止。", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.ymg_diag_stopped, Toast.LENGTH_SHORT).show();
         });
         card.addView(stop);
 
-        diagnosticsExport = button("导出诊断 ZIP");
+        diagnosticsExport = button(R.string.ymg_diag_export);
         diagnosticsExport.setOnClickListener(v -> exportDiagnostics());
         card.addView(diagnosticsExport);
     }
 
     private void exportDiagnostics() {
         if (diagnosticsExport != null) diagnosticsExport.setEnabled(false);
-        Toast.makeText(
-                this,
-                "正在收集 OPlus FlexibleWindow、system_server 和系统状态…",
-                Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.ymg_diag_collecting, Toast.LENGTH_SHORT).show();
 
         executor.execute(() -> {
             DiagnosticsManager.ExportResult result = DiagnosticsManager.export(this);
@@ -210,20 +188,23 @@ public final class MainActivity extends Activity {
                 refreshDiagnosticsStatus();
 
                 if (!result.ok()) {
-                    Toast.makeText(this, "导出失败：" + result.error, Toast.LENGTH_LONG).show();
+                    Toast.makeText(
+                            this,
+                            getString(R.string.ymg_diag_export_failed, result.error),
+                            Toast.LENGTH_LONG).show();
                     return;
                 }
 
                 Toast.makeText(
                         this,
-                        "已保存到 Download/YMiniGuard/" + result.fileName,
+                        getString(R.string.ymg_diag_saved, result.fileName),
                         Toast.LENGTH_LONG).show();
                 try {
                     Intent share = new Intent(Intent.ACTION_SEND);
                     share.setType("application/zip");
                     share.putExtra(Intent.EXTRA_STREAM, result.uri);
                     share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(Intent.createChooser(share, "分享诊断 ZIP"));
+                    startActivity(Intent.createChooser(share, getString(R.string.ymg_diag_share)));
                 } catch (Throwable ignored) {
                 }
             });
@@ -240,36 +221,32 @@ public final class MainActivity extends Activity {
             boolean current = GuardApp.isSystemEngineCurrent();
 
             if (!connected) {
-                YViewLayout.setStatus(
-                        engineStatus,
-                        "System Engine：LSPosed 服务未连接",
-                        YViewStatusTone.Error);
+                YViewLayout.setStatus(engineStatus,
+                        getString(R.string.ymg_engine_lsposed_disconnected), YViewStatusTone.Error);
             } else if (!hasSystem) {
                 YViewLayout.setStatus(
                         engineStatus,
-                        "System Engine：作用域缺少 system · 实际=" + GuardApp.getFrameworkScope(),
+                        getString(R.string.ymg_engine_scope_missing, GuardApp.getFrameworkScope()),
                         YViewStatusTone.Error);
             } else if (current) {
                 YViewLayout.setStatus(
                         engineStatus,
-                        "System Engine：code " + loaded
-                                + " · Bootstrap " + GuardApp.getBootstrapVersionCode()
-                                + " · gen " + GuardApp.getEngineGeneration()
-                                + " · 跟踪 Task " + GuardApp.getEngineActiveSessions()
-                                + "\n" + GuardApp.getEngineReloadMessage(),
+                        getString(
+                                R.string.ymg_engine_current,
+                                loaded,
+                                GuardApp.getBootstrapVersionCode(),
+                                GuardApp.getEngineGeneration(),
+                                GuardApp.getEngineActiveSessions(),
+                                GuardApp.getEngineReloadMessage()),
                         YViewStatusTone.Good);
             } else if (active) {
                 YViewLayout.setStatus(
                         engineStatus,
-                        "System Engine：旧 Engine " + loaded
-                                + " / 已安装 APK " + expected
-                                + "\n请重新加载 Engine；若 Bootstrap Hook 已改变，需要重启一次。",
+                        getString(R.string.ymg_engine_old, loaded, expected),
                         YViewStatusTone.Warning);
             } else {
-                YViewLayout.setStatus(
-                        engineStatus,
-                        "System Engine：未检测到有效心跳",
-                        YViewStatusTone.Error);
+                YViewLayout.setStatus(engineStatus,
+                        getString(R.string.ymg_engine_no_heartbeat), YViewStatusTone.Error);
             }
         }
         refreshDiagnosticsStatus();
@@ -281,14 +258,15 @@ public final class MainActivity extends Activity {
         boolean active = GuardApp.getBoolean(ConfigKeys.DIAGNOSTICS_ACTIVE);
         String started = GuardApp.getString(ConfigKeys.DIAGNOSTICS_STARTED_AT);
         if (active) {
+            String startedSuffix = started.isEmpty() ? "" : " · start=" + started;
             YViewLayout.setStatus(
                     diagnosticsStatus,
-                    "详细日志：持续开启" + (started.isEmpty() ? "" : " · start=" + started),
+                    getString(R.string.ymg_diag_running, startedSuffix),
                     YViewStatusTone.Warning);
         } else {
             YViewLayout.setStatus(
                     diagnosticsStatus,
-                    "详细日志：关闭",
+                    getString(R.string.ymg_diag_disabled),
                     YViewStatusTone.Good);
         }
     }
@@ -307,7 +285,7 @@ public final class MainActivity extends Activity {
                 (button, checked) -> GuardApp.putBoolean(key, checked));
     }
 
-    private Button button(String text) {
-        return YViewLayout.primaryButton(this, text);
+    private Button button(int textRes) {
+        return YViewLayout.primaryButton(this, getString(textRes));
     }
 }
