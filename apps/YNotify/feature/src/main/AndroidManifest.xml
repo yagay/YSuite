@@ -9,7 +9,7 @@
 
         <service
             android:name=".collector.NotificationCaptureService"
-            android:label="YNotify 通知监听"
+            android:label="@string/ynotify_listener_service_label"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="true">
             <intent-filter>
@@ -19,7 +19,7 @@
 
         <service
             android:name=".collector.UiAccessibilityService"
-            android:label="YNotify 界面提示采集"
+            android:label="@string/ynotify_ui_capture_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
             <intent-filter>
