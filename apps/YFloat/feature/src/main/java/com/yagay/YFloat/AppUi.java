@@ -41,14 +41,14 @@ final class AppUi {
         header.setGravity(Gravity.CENTER_VERTICAL);
 
         if (c instanceof Activity activity && !(activity instanceof MainActivity)) {
-            TextView back = text(c, "‹", 30, false);
+            TextView back = text(c, c.getString(R.string.yfloat_back), 14, true);
             back.setGravity(Gravity.CENTER);
             back.setClickable(true);
             back.setFocusable(true);
             back.setBackground(rowBackground(c));
-            back.setContentDescription("返回");
+            back.setContentDescription(c.getString(R.string.yfloat_back));
             back.setOnClickListener(v -> activity.finish());
-            header.addView(back, new LinearLayout.LayoutParams(dp(c, 42), dp(c, 44)));
+            header.addView(back, new LinearLayout.LayoutParams(dp(c, 64), dp(c, 44)));
         }
 
         TextView titleView = text(c, title, 24, true);
@@ -139,11 +139,6 @@ final class AppUi {
             copy.addView(sub, new LinearLayout.LayoutParams(-1, -2));
         }
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
-
-        TextView arrow = text(c, "›", 24, false);
-        arrow.setTextColor(textSecondary(c));
-        arrow.setGravity(Gravity.CENTER);
-        row.addView(arrow, new LinearLayout.LayoutParams(dp(c, 30), dp(c, compact ? 36 : 44)));
         row.setOnClickListener(v -> { if (action != null) action.run(); });
         return row;
     }
