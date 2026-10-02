@@ -12,37 +12,40 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
-/** Builds the optional Root / LSPosed settings page. */
+/** Builds the optional Root and LSPosed settings page. */
 public final class PrivilegeSettingsPanel {
     private PrivilegeSettingsPanel() {}
 
     public static LinearLayout build(AppCompatActivity activity, FloatSettings fs) {
-        LinearLayout root = AppUi.pageRoot(activity, "高级权限",
-                "Root 与 LSPosed 都是可选增强层；关闭增强模式后普通 Android / 无障碍路径保持可用。" );
+        LinearLayout root = AppUi.pageRoot(activity,
+                activity.getString(R.string.yfloat_priv_title),
+                activity.getString(R.string.yfloat_priv_desc));
 
         TextView modeStatus = AppUi.caption(activity, "", 13);
         TextView rootStatus = AppUi.caption(activity, "", 13);
         TextView googleAppStatus = AppUi.caption(activity, "", 13);
 
-        AppUi.Section master = AppUi.section(activity, "增强模式总开关",
-                "关闭后保留子开关选择，运行时只使用普通 Android / 无障碍实现。" );
+        AppUi.Section master = AppUi.section(activity,
+                activity.getString(R.string.yfloat_priv_master_title),
+                activity.getString(R.string.yfloat_priv_master_desc));
         SwitchMaterial enhanced = preferenceSwitch(activity, fs,
-                "启用增强模式",
-                "开启后才允许已经接入且单独启用的增强 Provider 参与后端选择。",
+                activity.getString(R.string.yfloat_priv_enable_enhanced),
+                activity.getString(R.string.yfloat_priv_enable_enhanced_desc),
                 FloatSettings.K_ENHANCED_MODE, fs.enhancedMode(),
                 () -> {
                     refresh(activity, fs, modeStatus, rootStatus);
                     refreshGoogleApp(activity, fs, googleAppStatus);
                 });
         AppUi.addRow(master.body, AppUi.switchContainer(enhanced));
-        AppUi.addRow(master.body, statusBlock(activity, "当前生效模式", modeStatus));
+        AppUi.addRow(master.body, statusBlock(activity,
+                activity.getString(R.string.yfloat_priv_active_mode), modeStatus));
         AppUi.addSection(root, master);
 
         AppUi.Section rootSection = AppUi.section(activity, "Root",
-                "进入设置页不会自动申请 Root；只有真正执行 Root 功能或主动检测授权时才调用 su。" );
+                activity.getString(R.string.yfloat_priv_root_desc));
         SwitchMaterial rootSwitch = preferenceSwitch(activity, fs,
-                "使用 Root 功能",
-                "允许已接入的 Root 增强功能参与后端选择。",
+                activity.getString(R.string.yfloat_priv_use_root),
+                activity.getString(R.string.yfloat_priv_use_root_desc),
                 FloatSettings.K_ROOT_ENABLED, fs.rootEnabled(),
                 () -> {
                     refresh(activity, fs, modeStatus, rootStatus);
@@ -51,23 +54,27 @@ public final class PrivilegeSettingsPanel {
         AppUi.addRow(rootSection.body, AppUi.switchContainer(rootSwitch));
 
         SwitchMaterial rootScreenshotSwitch = preferenceSwitch(activity, fs,
-                "Root 截图增强",
-                "仅在“增强模式”和“使用 Root 功能”同时开启时生效；关闭后截图继续使用普通后端。",
+                activity.getString(R.string.yfloat_priv_root_screenshot),
+                activity.getString(R.string.yfloat_priv_root_screenshot_desc),
                 FloatSettings.K_ROOT_SCREENSHOT, fs.rootScreenshot(),
                 () -> refresh(activity, fs, modeStatus, rootStatus));
         AppUi.addRow(rootSection.body, AppUi.switchContainer(rootScreenshotSwitch));
-        AppUi.addRow(rootSection.body, statusBlock(activity, "Root 状态", rootStatus));
+        AppUi.addRow(rootSection.body, statusBlock(activity,
+                activity.getString(R.string.yfloat_priv_root_status), rootStatus));
 
         LinearLayout rootButtons = AppUi.buttonRow(activity);
-        MaterialButton checkRoot = AppUi.secondaryButton(activity, "检测 Root 授权");
+        MaterialButton checkRoot = AppUi.secondaryButton(activity,
+                activity.getString(R.string.yfloat_priv_check_root));
         checkRoot.setOnClickListener(v -> {
             checkRoot.setEnabled(false);
-            rootStatus.setText("正在检测…可能会弹出 Root 管理器授权窗口");
+            rootStatus.setText(R.string.yfloat_priv_checking_root);
             PrivilegeManager.checkRootAsync(activity, result -> {
                 checkRoot.setEnabled(true);
                 refresh(activity, fs, modeStatus, rootStatus);
                 Toast.makeText(activity,
-                        result.granted ? "Root 已授权" : "Root 不可用或未授权",
+                        result.granted
+                                ? R.string.yfloat_priv_root_granted
+                                : R.string.yfloat_priv_root_unavailable,
                         Toast.LENGTH_SHORT).show();
             });
         });
@@ -75,66 +82,70 @@ public final class PrivilegeSettingsPanel {
         AppUi.addRow(rootSection.body, rootButtons);
 
         TextView rootNote = AppUi.caption(activity,
-                "Root 截图需要同时开启：增强模式、使用 Root 功能、Root 截图增强。缺少任意一项都不会调用 Root 截图。",
-                12);
+                activity.getString(R.string.yfloat_priv_root_note), 12);
         AppUi.addRow(rootSection.body, simpleBlock(activity, rootNote));
         AppUi.addSection(root, rootSection);
 
-        AppUi.Section googleAppSection = AppUi.section(activity, "Google App 管理",
-                "Root 一键停止 Google App 及其 search / interactor / googleapp 等同包进程。普通停止不会禁用应用；冻结会禁用 Google App，直到手动恢复。");
-
-        AppUi.addRow(googleAppSection.body,
-                statusBlock(activity, "Google App 状态", googleAppStatus));
+        AppUi.Section googleAppSection = AppUi.section(activity,
+                activity.getString(R.string.yfloat_priv_google_title),
+                activity.getString(R.string.yfloat_priv_google_desc));
+        AppUi.addRow(googleAppSection.body, statusBlock(activity,
+                activity.getString(R.string.yfloat_priv_google_status), googleAppStatus));
 
         LinearLayout googleStopRow = AppUi.buttonRow(activity);
-        MaterialButton stopGoogle = AppUi.primaryButton(activity, "停止 Google");
+        MaterialButton stopGoogle = AppUi.primaryButton(activity,
+                activity.getString(R.string.yfloat_priv_google_stop));
         stopGoogle.setOnClickListener(v -> {
             if (!fs.canUseRoot()) {
-                Toast.makeText(activity,
-                        "请先开启“增强模式”和“使用 Root 功能”",
+                Toast.makeText(activity, R.string.yfloat_priv_root_required,
                         Toast.LENGTH_LONG).show();
                 refreshGoogleApp(activity, fs, googleAppStatus);
                 return;
             }
             stopGoogle.setEnabled(false);
-            googleAppStatus.setText("正在 Root 停止 Google App 及其残留进程…");
+            googleAppStatus.setText(R.string.yfloat_priv_google_stopping);
             GoogleAppController.stopAsync(activity, result -> {
                 stopGoogle.setEnabled(true);
                 applyGoogleResult(activity, googleAppStatus, result);
                 Toast.makeText(activity,
-                        result.success ? "Google 已停止" : "停止 Google 失败",
+                        result.success
+                                ? R.string.yfloat_priv_google_stopped
+                                : R.string.yfloat_priv_google_stop_failed,
                         Toast.LENGTH_SHORT).show();
                 LsposedStatusManager.refreshAsync();
             });
         });
         googleStopRow.addView(stopGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton refreshGoogle = AppUi.secondaryButton(activity, "刷新状态");
+        MaterialButton refreshGoogle = AppUi.secondaryButton(activity,
+                activity.getString(R.string.yfloat_priv_refresh_status));
         refreshGoogle.setOnClickListener(v -> refreshGoogleApp(activity, fs, googleAppStatus));
         googleStopRow.addView(refreshGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
         AppUi.addRow(googleAppSection.body, googleStopRow);
 
         LinearLayout googleAdvancedRow = AppUi.buttonRow(activity);
-        MaterialButton freezeGoogle = AppUi.secondaryButton(activity, "冻结 Google");
+        MaterialButton freezeGoogle = AppUi.secondaryButton(activity,
+                activity.getString(R.string.yfloat_priv_google_freeze));
         freezeGoogle.setOnClickListener(v -> {
             if (!fs.canUseRoot()) {
-                Toast.makeText(activity,
-                        "请先开启“增强模式”和“使用 Root 功能”",
+                Toast.makeText(activity, R.string.yfloat_priv_root_required,
                         Toast.LENGTH_LONG).show();
                 return;
             }
             new androidx.appcompat.app.AlertDialog.Builder(activity)
-                    .setTitle("冻结 Google App？")
-                    .setMessage("冻结后 Google 搜索、Assistant 和 Google 圈画都会不可用，直到在这里点击“恢复并启动”。")
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("冻结", (dialog, which) -> {
+                    .setTitle(R.string.yfloat_priv_google_freeze_confirm)
+                    .setMessage(R.string.yfloat_priv_google_freeze_message)
+                    .setNegativeButton(R.string.yfloat_priv_cancel, null)
+                    .setPositiveButton(R.string.yfloat_priv_freeze, (dialog, which) -> {
                         freezeGoogle.setEnabled(false);
-                        googleAppStatus.setText("正在冻结 Google App…");
+                        googleAppStatus.setText(R.string.yfloat_priv_google_freezing);
                         GoogleAppController.freezeAsync(activity, result -> {
                             freezeGoogle.setEnabled(true);
                             applyGoogleResult(activity, googleAppStatus, result);
                             Toast.makeText(activity,
-                                    result.success ? "Google 已冻结" : "冻结 Google 失败",
+                                    result.success
+                                            ? R.string.yfloat_priv_google_frozen
+                                            : R.string.yfloat_priv_google_freeze_failed,
                                     Toast.LENGTH_SHORT).show();
                             LsposedStatusManager.refreshAsync();
                         });
@@ -143,21 +154,23 @@ public final class PrivilegeSettingsPanel {
         });
         googleAdvancedRow.addView(freezeGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton restoreGoogle = AppUi.secondaryButton(activity, "恢复并启动");
+        MaterialButton restoreGoogle = AppUi.secondaryButton(activity,
+                activity.getString(R.string.yfloat_priv_google_restore));
         restoreGoogle.setOnClickListener(v -> {
             if (!fs.canUseRoot()) {
-                Toast.makeText(activity,
-                        "请先开启“增强模式”和“使用 Root 功能”",
+                Toast.makeText(activity, R.string.yfloat_priv_root_required,
                         Toast.LENGTH_LONG).show();
                 return;
             }
             restoreGoogle.setEnabled(false);
-            googleAppStatus.setText("正在恢复并启动 Google App…");
+            googleAppStatus.setText(R.string.yfloat_priv_google_restoring);
             GoogleAppController.restoreAsync(activity, result -> {
                 restoreGoogle.setEnabled(true);
                 applyGoogleResult(activity, googleAppStatus, result);
                 Toast.makeText(activity,
-                        result.success ? "Google 已恢复" : "恢复 Google 失败",
+                        result.success
+                                ? R.string.yfloat_priv_google_restored
+                                : R.string.yfloat_priv_google_restore_failed,
                         Toast.LENGTH_SHORT).show();
                 LsposedStatusManager.refreshAsync();
             });
@@ -166,18 +179,16 @@ public final class PrivilegeSettingsPanel {
         AppUi.addRow(googleAppSection.body, googleAdvancedRow);
 
         TextView googleNote = AppUi.caption(activity,
-                "“停止 Google”会执行 Root force-stop、清理 com.google.android.googlequicksearchbox:* 残留进程，再次 force-stop；不会禁用应用。"
-                        + " 如果需要长期禁止系统重新拉起 Google，请使用“冻结 Google”。恢复按钮会重新启用并显式启动 Google 一次，以清除 force-stop 的 stopped 状态。",
-                12);
+                activity.getString(R.string.yfloat_priv_google_note), 12);
         AppUi.addRow(googleAppSection.body, simpleBlock(activity, googleNote));
         AppUi.addSection(root, googleAppSection);
 
         TextView lsposedStatus = AppUi.caption(activity, "", 13);
         AppUi.Section lsposedSection = AppUi.section(activity, "LSPosed",
-                "API 102 Remote Preferences 把应用开关同步到 system_server / SystemUI。安全窗口截图只在 YFloat 截图的短时 lease 内改变系统捕获行为。" );
+                activity.getString(R.string.yfloat_priv_lsposed_desc));
         SwitchMaterial lsposedSwitch = preferenceSwitch(activity, fs,
-                "启用 LSPosed Provider",
-                "允许已经接入的受控 LSPosed 功能使用跨进程配置；具体功能仍需各自开关。",
+                activity.getString(R.string.yfloat_priv_enable_lsposed),
+                activity.getString(R.string.yfloat_priv_enable_lsposed_desc),
                 FloatSettings.K_LSPOSED_ENABLED, fs.lsposedEnabled(),
                 () -> {
                     LsposedStatusManager.syncRuntimeConfigAsync();
@@ -187,8 +198,8 @@ public final class PrivilegeSettingsPanel {
         AppUi.addRow(lsposedSection.body, AppUi.switchContainer(lsposedSwitch));
 
         SwitchMaterial googleCircleSwitch = AppUi.switchRow(activity,
-                "启用 Google 圈画",
-                "开启后 YFloat 的圈画动作改用 Google Circle to Search；只处理 YFloat 主动发起并带会话标记的 Google 圈画，系统 Home / 小白条原生 Google 圈画不受影响。需要 Google App 已加入 LSPosed 作用域并加载当前模块版本。",
+                activity.getString(R.string.yfloat_priv_google_circle),
+                activity.getString(R.string.yfloat_priv_google_circle_desc),
                 fs.circleEngine() == 1,
                 (button, checked) -> {
                     fs.setInt(FloatSettings.K_CIRCLE_ENGINE, checked ? 1 : 0);
@@ -201,34 +212,36 @@ public final class PrivilegeSettingsPanel {
         AppUi.addRow(lsposedSection.body, AppUi.switchContainer(googleCircleSwitch));
 
         SwitchMaterial secureScreenshotSwitch = preferenceSwitch(activity, fs,
-                "LSPosed 安全窗口截图增强",
-                "仅 YFloat 截图时建立短时授权；需要增强模式、LSPosed Provider 和 system_server 已实际加载模块。不会永久移除 FLAG_SECURE。",
+                activity.getString(R.string.yfloat_priv_secure_screenshot),
+                activity.getString(R.string.yfloat_priv_secure_screenshot_desc),
                 FloatSettings.K_LSPOSED_SECURE_SCREENSHOT, fs.lsposedSecureScreenshot(),
                 () -> {
                     LsposedStatusManager.syncRuntimeConfigAsync();
                     refresh(activity, fs, modeStatus, rootStatus);
                 });
         AppUi.addRow(lsposedSection.body, AppUi.switchContainer(secureScreenshotSwitch));
-        AppUi.addRow(lsposedSection.body, statusBlock(activity, "LSPosed 实际状态", lsposedStatus));
+        AppUi.addRow(lsposedSection.body, statusBlock(activity,
+                activity.getString(R.string.yfloat_priv_lsposed_status), lsposedStatus));
 
         LinearLayout lsposedButtons = AppUi.buttonRow(activity);
-        MaterialButton refreshLsposed = AppUi.secondaryButton(activity, "刷新状态");
+        MaterialButton refreshLsposed = AppUi.secondaryButton(activity,
+                activity.getString(R.string.yfloat_priv_refresh_status));
         refreshLsposed.setOnClickListener(v -> {
-            lsposedStatus.setText("正在读取 LSPosed 框架与 Hook 代际状态…");
+            lsposedStatus.setText(R.string.yfloat_priv_reading_lsposed);
             LsposedStatusManager.syncRuntimeConfigAsync();
         });
         lsposedButtons.addView(refreshLsposed, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton reloadHooks = AppUi.primaryButton(activity, "重载已变化 Hook");
+        MaterialButton reloadHooks = AppUi.primaryButton(activity,
+                activity.getString(R.string.yfloat_priv_reload_hooks));
         reloadHooks.setOnClickListener(v -> {
             if (!fs.canUseRoot()) {
-                Toast.makeText(activity,
-                        "热重载 Google / SystemUI Hook 需要启用增强模式和 Root 功能",
+                Toast.makeText(activity, R.string.yfloat_priv_reload_requires_root,
                         Toast.LENGTH_LONG).show();
                 return;
             }
             reloadHooks.setEnabled(false);
-            lsposedStatus.setText("正在重新加载发生变化的 Google / SystemUI Hook…");
+            lsposedStatus.setText(R.string.yfloat_priv_reloading_hooks);
             boolean started = HookReloadManager.reloadChangedTargetsAsync(activity, result -> {
                 reloadHooks.setEnabled(true);
                 Toast.makeText(activity, result.userMessage(), Toast.LENGTH_LONG).show();
@@ -237,24 +250,23 @@ public final class PrivilegeSettingsPanel {
             });
             if (!started) {
                 reloadHooks.setEnabled(true);
-                Toast.makeText(activity, "Hook 重载任务正在执行", Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, R.string.yfloat_priv_reload_running,
+                        Toast.LENGTH_SHORT).show();
             }
         });
         lsposedButtons.addView(reloadHooks, new LinearLayout.LayoutParams(0, -2, 1f));
         AppUi.addRow(lsposedSection.body, lsposedButtons);
 
         LinearLayout lsposedTools = AppUi.buttonRow(activity);
-        MaterialButton probeSecure = AppUi.secondaryButton(activity, "测试安全截图");
+        MaterialButton probeSecure = AppUi.secondaryButton(activity,
+                activity.getString(R.string.yfloat_priv_test_secure_capture));
         probeSecure.setOnClickListener(v -> activity.startActivity(
                 new Intent(activity, SecureCaptureProbeActivity.class)));
         lsposedTools.addView(probeSecure, new LinearLayout.LayoutParams(0, -2, 1f));
         AppUi.addRow(lsposedSection.body, lsposedTools);
 
         TextView lsposedNote = AppUi.caption(activity,
-                "Hook 与普通 App 代码已分离判断：UI、OCR、弹窗、设置等普通更新不会重启任何目标。"
-                        + " Google Hook 变化只热重启 Google 进程；SystemUI Hook 变化只热重启 SystemUI；"
-                        + " 只有 system_server Hook 变化才需要重启手机。推荐作用域：system + com.android.systemui + com.google.android.googlequicksearchbox。",
-                12);
+                activity.getString(R.string.yfloat_priv_lsposed_note), 12);
         AppUi.addRow(lsposedSection.body, simpleBlock(activity, lsposedNote));
 
         LsposedStatusManager.Listener lsposedListener = snapshot -> {
@@ -274,11 +286,12 @@ public final class PrivilegeSettingsPanel {
         });
         AppUi.addSection(root, lsposedSection);
 
-        AppUi.Section fallback = AppUi.section(activity, "失败回退",
-                "增强后端失败时回到普通方法，避免 Root / Hook 失败影响基础功能。" );
+        AppUi.Section fallback = AppUi.section(activity,
+                activity.getString(R.string.yfloat_priv_fallback_title),
+                activity.getString(R.string.yfloat_priv_fallback_desc));
         SwitchMaterial fallbackSwitch = preferenceSwitch(activity, fs,
-                "增强方法失败时回退普通方法",
-                "例如 Root 截图失败后重新尝试无障碍截图，或 LSPosed lease 建立失败时走普通截图。",
+                activity.getString(R.string.yfloat_priv_fallback_switch),
+                activity.getString(R.string.yfloat_priv_fallback_switch_desc),
                 FloatSettings.K_PRIVILEGE_FALLBACK, fs.privilegeFallback(),
                 () -> refresh(activity, fs, modeStatus, rootStatus));
         AppUi.addRow(fallback.body, AppUi.switchContainer(fallbackSwitch));
@@ -319,11 +332,11 @@ public final class PrivilegeSettingsPanel {
                                          TextView status) {
         if (status == null) return;
         if (!fs.canUseRoot()) {
-            status.setText("Root 管理未启用。请先开启“增强模式”和“使用 Root 功能”。");
+            status.setText(R.string.yfloat_priv_root_management_disabled);
             status.setTextColor(AppUi.textPrimary(activity));
             return;
         }
-        status.setText("正在读取 Google App 状态…");
+        status.setText(R.string.yfloat_priv_google_reading);
         status.setTextColor(AppUi.textPrimary(activity));
         GoogleAppController.queryAsync(activity,
                 result -> applyGoogleResult(activity, status, result));
@@ -332,15 +345,15 @@ public final class PrivilegeSettingsPanel {
     private static void applyGoogleResult(AppCompatActivity activity, TextView status,
                                           GoogleAppController.Result result) {
         if (status == null || result == null) return;
-        String label = GoogleAppController.stateLabel(result.state);
-        String note = switch (result.state) {
-            case RUNNING -> "Google App 及至少一个同包进程正在运行";
-            case STOPPED -> "Google App 已停止 / 当前没有同包进程";
-            case FROZEN -> "Google App 已被 disable-user 冻结";
-            case UNKNOWN -> "无法确定 Google App 状态";
+        int noteRes = switch (result.state) {
+            case RUNNING -> R.string.yfloat_priv_google_running_note;
+            case STOPPED -> R.string.yfloat_priv_google_stopped_note;
+            case FROZEN -> R.string.yfloat_priv_google_frozen_note;
+            case UNKNOWN -> R.string.yfloat_priv_google_unknown_note;
         };
-        status.setText(label + "\n" + note
-                + (result.success ? "" : "\n" + result.detail));
+        String note = activity.getString(noteRes);
+        status.setText(note + (result.success || result.detail == null || result.detail.isBlank()
+                ? "" : "\n" + result.detail));
         boolean positive = result.state == GoogleAppController.State.STOPPED
                 || result.state == GoogleAppController.State.FROZEN;
         status.setTextColor(positive ? AppUi.success(activity)
@@ -350,61 +363,86 @@ public final class PrivilegeSettingsPanel {
 
     private static void refresh(AppCompatActivity activity, FloatSettings fs,
                                 TextView modeStatus, TextView rootStatus) {
-        String providerNote = !PrivilegeManager.lsposedProviderAvailable() && fs.lsposedEnabled()
-                ? " · LSPosed 已选择但 Provider 未就绪" : "";
-        modeStatus.setText(PrivilegeManager.modeLabel(fs)
-                + (fs.enhancedMode() ? " · 增强总开关已开启" : " · 增强总开关已关闭")
-                + providerNote);
-        modeStatus.setTextColor(fs.enhancedMode() ? AppUi.success(activity) : AppUi.textPrimary(activity));
+        StringBuilder mode = new StringBuilder(PrivilegeManager.modeLabel(activity, fs));
+        mode.append("\n").append(activity.getString(fs.enhancedMode()
+                ? R.string.yfloat_priv_enhanced_enabled
+                : R.string.yfloat_priv_enhanced_disabled));
+        if (!PrivilegeManager.lsposedProviderAvailable() && fs.lsposedEnabled()) {
+            mode.append("\n").append(activity.getString(
+                    R.string.yfloat_priv_lsposed_selected_unavailable));
+        }
+        modeStatus.setText(mode.toString());
+        modeStatus.setTextColor(fs.enhancedMode()
+                ? AppUi.success(activity) : AppUi.textPrimary(activity));
 
+        String providerLine = activity.getString(fs.canUseRoot()
+                ? R.string.yfloat_priv_provider_root_allowed
+                : R.string.yfloat_priv_provider_root_disallowed);
         long rootAt = fs.rootLastCheckMs();
         if (rootAt <= 0L) {
-            rootStatus.setText("尚未检测。检测只在点击按钮后执行，不会自动调用 su。\n"
-                    + "当前 Provider：" + (fs.canUseRoot() ? "允许使用 Root" : "不允许使用 Root"));
+            rootStatus.setText(activity.getString(R.string.yfloat_priv_root_not_checked)
+                    + "\n" + providerLine);
         } else {
             String when = DateFormat.format("yyyy-MM-dd HH:mm", rootAt).toString();
-            rootStatus.setText((fs.rootLastGranted() ? "已授权" : "未授权 / 不可用")
-                    + " · 上次检测 " + when
-                    + "\n当前 Provider：" + (fs.canUseRoot() ? "允许使用 Root" : "不允许使用 Root"));
+            rootStatus.setText(activity.getString(fs.rootLastGranted()
+                    ? R.string.yfloat_priv_root_last_granted
+                    : R.string.yfloat_priv_root_last_denied, when)
+                    + "\n" + providerLine);
         }
-        rootStatus.setTextColor(fs.rootLastGranted() ? AppUi.success(activity) : AppUi.textPrimary(activity));
+        rootStatus.setTextColor(fs.rootLastGranted()
+                ? AppUi.success(activity) : AppUi.textPrimary(activity));
     }
 
     private static void refreshLsposed(AppCompatActivity activity, TextView status) {
         LsposedStatusManager.Snapshot s = LsposedStatusManager.snapshot();
         if (!s.serviceConnected) {
-            status.setText("框架服务：未连接\n"
-                    + "配置通道：不可用\n"
-                    + "系统框架：未知 · SystemUI：未知\n"
-                    + (s.detail.isBlank() ? "如果刚启用模块，请重启目标进程或设备后再刷新。" : s.detail));
+            String detail = s.detail.isBlank()
+                    ? activity.getString(R.string.yfloat_priv_restart_hint)
+                    : s.detail;
+            status.setText(activity.getString(R.string.yfloat_priv_framework_disconnected)
+                    + "\n" + activity.getString(R.string.yfloat_priv_config_unavailable)
+                    + "\n" + activity.getString(R.string.yfloat_priv_system_unknown)
+                    + "\n" + detail);
             status.setTextColor(AppUi.textPrimary(activity));
             return;
         }
 
         String framework = s.frameworkName.isBlank() ? "Xposed" : s.frameworkName;
         String version = s.frameworkVersion.isBlank() ? "" : " " + s.frameworkVersion;
-        String scopeLine = "作用域：system " + yesNo(s.systemScopeEnabled)
-                + " · SystemUI " + yesNo(s.systemUiScopeEnabled)
-                + " · Google App " + yesNo(s.googleScopeEnabled());
-        String loadedLine = "实际加载：系统框架 " + loaded(s.systemLoaded)
-                + " · SystemUI " + loaded(s.systemUiLoaded);
-        String remoteLine = "配置通道：" + (s.remoteConfigReady ? "已同步" : "不可用")
-                + " · Provider " + (s.remoteProviderEnabled() ? "已开启" : "已关闭");
-        String secureLine = "安全窗口截图：" + (s.remoteSecureScreenshotEnabled ? "已启用" : "未启用")
-                + " · 短时授权 " + (s.remoteSecureCaptureArmed() ? "进行中" : "空闲");
+        String scopeLine = activity.getString(R.string.yfloat_priv_scope_line,
+                enabled(activity, s.systemScopeEnabled),
+                enabled(activity, s.systemUiScopeEnabled),
+                enabled(activity, s.googleScopeEnabled()));
+        String loadedLine = activity.getString(R.string.yfloat_priv_loaded_line,
+                loaded(activity, s.systemLoaded), loaded(activity, s.systemUiLoaded));
+        String remoteLine = activity.getString(R.string.yfloat_priv_remote_line,
+                s.remoteConfigReady
+                        ? activity.getString(R.string.yfloat_priv_synced)
+                        : activity.getString(R.string.yfloat_priv_unavailable),
+                enabled(activity, s.remoteProviderEnabled()));
+        String secureLine = activity.getString(R.string.yfloat_priv_secure_line,
+                enabled(activity, s.remoteSecureScreenshotEnabled),
+                s.remoteSecureCaptureArmed()
+                        ? activity.getString(R.string.yfloat_priv_active)
+                        : activity.getString(R.string.yfloat_priv_idle));
         boolean googleHookChanged = HookReloadManager.googleNeedsReload(activity, s);
-        String googleLine = "Google 圈画："
-                + (new FloatSettings(activity).circleEngine() == 1 ? "已启用" : "未启用")
-                + " · Hook " + (googleHookChanged ? "代码有变化，需热重载"
-                : (s.googleTargetLoaded() ? "已加载，可继续使用" : "未运行"));
+        String googleHook = googleHookChanged
+                ? activity.getString(R.string.yfloat_priv_google_hook_changed)
+                : s.googleTargetLoaded()
+                ? activity.getString(R.string.yfloat_priv_google_hook_loaded)
+                : activity.getString(R.string.yfloat_priv_google_hook_not_running);
+        String googleLine = activity.getString(R.string.yfloat_priv_google_line,
+                enabled(activity, new FloatSettings(activity).circleEngine() == 1), googleHook);
         String updatedLine = s.remoteUpdatedAt <= 0L ? ""
-                : " · " + DateFormat.format("HH:mm:ss", s.remoteUpdatedAt);
+                : " " + DateFormat.format("HH:mm:ss", s.remoteUpdatedAt);
         String hookGenerationLine = HookReloadManager.statusSummary(activity, s);
         String processLine = s.runningProcesses.isEmpty()
-                ? "已加载进程：无"
-                : "已加载进程：" + String.join(", ", s.runningProcesses);
+                ? activity.getString(R.string.yfloat_priv_process_none)
+                : activity.getString(R.string.yfloat_priv_process_line,
+                        String.join(", ", s.runningProcesses));
         String detailLine = s.detail.isBlank() ? "" : "\n" + s.detail;
-        status.setText("框架服务：已连接 " + framework + version + " · API " + s.apiVersion
+        status.setText(activity.getString(R.string.yfloat_priv_framework_connected,
+                        framework, version, s.apiVersion)
                 + "\n" + remoteLine + updatedLine
                 + "\n" + secureLine
                 + "\n" + googleLine
@@ -417,11 +455,15 @@ public final class PrivilegeSettingsPanel {
                 ? AppUi.success(activity) : AppUi.textPrimary(activity));
     }
 
-    private static String yesNo(boolean value) {
-        return value ? "已启用" : "未启用";
+    private static String enabled(AppCompatActivity activity, boolean value) {
+        return activity.getString(value
+                ? R.string.yfloat_priv_enabled
+                : R.string.yfloat_priv_disabled);
     }
 
-    private static String loaded(boolean value) {
-        return value ? "已加载" : "未加载";
+    private static String loaded(AppCompatActivity activity, boolean value) {
+        return activity.getString(value
+                ? R.string.yfloat_priv_loaded
+                : R.string.yfloat_priv_not_loaded);
     }
 }
