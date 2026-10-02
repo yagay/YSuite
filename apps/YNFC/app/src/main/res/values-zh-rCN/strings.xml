@@ -1,5 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">YNFC</string>
-    <string name="module_description">面向 OxygenOS 16 的高级 NFC 门禁卡模拟器</string>
-</resources>

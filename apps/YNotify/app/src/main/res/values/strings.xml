@@ -1,4 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="xposed_description">Notification, Toast, and UI prompt history center</string>
-</resources>

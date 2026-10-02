@@ -1,5 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">YMiniGuard</string>
-    <string name="app_description">Real floating mini-windows based on system_server and VirtualDisplay, with foreground lifecycle protection and complete diagnostic export.</string>
-</resources>

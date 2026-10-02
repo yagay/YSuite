@@ -1,1 +1,0 @@
-# YFiles standalone rules.

@@ -1,5 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">YParam</string>
-    <string name="module_description">Read, override, and simulate per-app Android runtime parameters including display, language, time zone, windows, and location.</string>
-</resources>
