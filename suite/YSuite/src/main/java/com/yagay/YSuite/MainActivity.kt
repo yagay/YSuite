@@ -49,31 +49,15 @@ class MainActivity : YComposeActivity() {
     }
 
     private fun exportDiagnostic(modules: Set<String>?, label: String) {
-        Toast.makeText(
-            this,
-            getString(R.string.diagnostic_collecting, label),
-            Toast.LENGTH_SHORT,
-        ).show()
+        Toast.makeText(this, getString(R.string.diagnostic_collecting, label), Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching { SuiteLog.export(this@MainActivity, modules) }
             }
             result.onSuccess { path ->
-                Toast.makeText(
-                    this@MainActivity,
-                    getString(R.string.diagnostic_saved, label, path),
-                    Toast.LENGTH_LONG,
-                ).show()
+                Toast.makeText(this@MainActivity, getString(R.string.diagnostic_saved, label, path), Toast.LENGTH_LONG).show()
             }.onFailure {
-                Toast.makeText(
-                    this@MainActivity,
-                    getString(
-                        R.string.diagnostic_save_failed,
-                        label,
-                        it.javaClass.simpleName,
-                    ),
-                    Toast.LENGTH_LONG,
-                ).show()
+                Toast.makeText(this@MainActivity, getString(R.string.diagnostic_save_failed, label, it.javaClass.simpleName), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -99,9 +83,7 @@ class MainActivity : YComposeActivity() {
         }
 
         LaunchedEffect(resumeTick) {
-            rootAvailable = withContext(Dispatchers.IO) {
-                RootManager.isAvailable(this@MainActivity)
-            }
+            rootAvailable = withContext(Dispatchers.IO) { RootManager.isAvailable(this@MainActivity) }
             permissions = SuitePermissionState.snapshot(this@MainActivity)
         }
 
@@ -124,33 +106,9 @@ class MainActivity : YComposeActivity() {
                         rootAvailable = rootAvailable,
                         xposedConnected = xposedConnected,
                         permissions = permissions,
-                        onAccessibility = {
-                            if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    getString(R.string.error_open_accessibility_settings),
-                                    Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                        },
-                        onOverlay = {
-                            if (!SuitePermissionState.openOverlaySettings(this@MainActivity)) {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    getString(R.string.error_open_overlay_settings),
-                                    Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                        },
-                        onNotificationListener = {
-                            if (!SuitePermissionState.openNotificationListenerSettings(this@MainActivity)) {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    getString(R.string.error_open_notification_listener_settings),
-                                    Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                        },
+                        onAccessibility = { SuitePermissionState.openAccessibilitySettings(this@MainActivity) },
+                        onOverlay = { SuitePermissionState.openOverlaySettings(this@MainActivity) },
+                        onNotificationListener = { SuitePermissionState.openNotificationListenerSettings(this@MainActivity) },
                         onExport = { exportDiagnostic(null, fullDiagnosticLabel) },
                     )
                 }
@@ -158,64 +116,27 @@ class MainActivity : YComposeActivity() {
                 items(features.size, key = { features[it].id }) { index ->
                     val feature = features[index]
                     val localizedName = localizedFeatureName(feature)
-                    val localizedDescription = localizedFeatureDescription(feature)
                     FeatureCard(
                         feature = feature,
                         localizedName = localizedName,
-                        localizedDescription = localizedDescription,
+                        localizedDescription = localizedFeatureDescription(feature),
                         isEnabled = enabled[feature.id] == true,
+                        rootAvailable = rootAvailable,
+                        xposedConnected = xposedConnected,
                         onEnabledChange = { next ->
                             store.setEnabled(feature, next)
-                            enabled[feature.id] = next
-                            if (next) {
-                                runCatching { feature.initialize(this@MainActivity) }
-                                    .onSuccess {
-                                        SuiteLog.i(
-                                            this@MainActivity,
-                                            feature.id,
-                                            "host enabled; plugin attached to existing YSuite capabilities",
-                                        )
-                                    }
-                                    .onFailure {
-                                        SuiteLog.e(this@MainActivity, feature.id, "host enable failed", it)
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            getString(
-                                                R.string.feature_enable_failed,
-                                                localizedName,
-                                                it.javaClass.simpleName,
-                                            ),
-                                            Toast.LENGTH_LONG,
-                                        ).show()
-                                    }
-                            } else {
-                                SuiteLog.i(
-                                    this@MainActivity,
-                                    feature.id,
-                                    "host disabled; shared capabilities remain owned by YSuite",
-                                )
+                            enabled[feature.id] = store.isEnabled(feature)
+                            if (next && enabled[feature.id] == true) {
+                                SuiteLog.i(this@MainActivity, feature.id, "host enabled")
                             }
                         },
                         onOpen = {
                             SuiteCrashTracker.markActiveFeature(this@MainActivity, feature.id)
-                            SuiteLog.i(
-                                this@MainActivity,
-                                feature.id,
-                                "open requested; activity=${feature.entryActivityClassName}",
-                            )
                             runCatching { startActivity(feature.createIntent(this@MainActivity)) }
                                 .onFailure {
                                     SuiteLog.e(this@MainActivity, feature.id, "open failed", it)
                                     SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        getString(
-                                            R.string.feature_open_failed,
-                                            localizedName,
-                                            it.javaClass.simpleName,
-                                        ),
-                                        Toast.LENGTH_LONG,
-                                    ).show()
+                                    Toast.makeText(this@MainActivity, getString(R.string.feature_open_failed, localizedName, it.javaClass.simpleName), Toast.LENGTH_LONG).show()
                                 }
                         },
                         onExportLog = { exportDiagnostic(setOf(feature.id), localizedName) },
@@ -240,112 +161,24 @@ private fun RuntimeEnvironmentCard(
     YFeatureCard(
         title = stringResource(R.string.runtime_environment_title),
         subtitle = stringResource(R.string.runtime_environment_subtitle),
-        detail = stringResource(
-            R.string.runtime_environment_detail,
-            featureCount,
-            SuiteXposedServiceBroker.listenerCount(),
-        ),
+        detail = stringResource(R.string.runtime_environment_detail, featureCount, SuiteXposedServiceBroker.listenerCount()),
     ) {
-        YStatusRow(
-            label = stringResource(R.string.capability_root),
-            value = when (rootAvailable) {
-                true -> stringResource(R.string.status_authorized)
-                false -> stringResource(R.string.status_unavailable_or_unauthorized)
-                null -> stringResource(R.string.status_checking)
-            },
-            tone = when (rootAvailable) {
-                true -> YStatusTone.Good
-                false -> YStatusTone.Error
-                null -> YStatusTone.Neutral
-            },
-        )
-        YStatusRow(
-            stringResource(R.string.capability_lsposed),
-            if (xposedConnected) {
-                stringResource(R.string.status_connected)
-            } else {
-                stringResource(R.string.status_not_connected)
-            },
-            if (xposedConnected) YStatusTone.Good else YStatusTone.Warning,
-        )
-        YStatusRow(
-            stringResource(R.string.capability_accessibility),
-            when {
-                permissions.accessibilityConnected -> stringResource(R.string.status_connected)
-                permissions.accessibilityEnabled -> stringResource(R.string.status_authorized_waiting_connection)
-                else -> stringResource(R.string.status_not_authorized)
-            },
-            when {
-                permissions.accessibilityConnected -> YStatusTone.Good
-                permissions.accessibilityEnabled -> YStatusTone.Warning
-                else -> YStatusTone.Error
-            },
-        )
-        YStatusRow(
-            stringResource(R.string.capability_overlay),
-            if (permissions.overlayGranted) {
-                stringResource(R.string.status_authorized)
-            } else {
-                stringResource(R.string.status_not_authorized)
-            },
-            if (permissions.overlayGranted) YStatusTone.Good else YStatusTone.Warning,
-        )
-        YStatusRow(
-            stringResource(R.string.capability_notifications),
-            if (permissions.notificationsGranted) {
-                stringResource(R.string.status_authorized)
-            } else {
-                stringResource(R.string.status_not_authorized)
-            },
-            if (permissions.notificationsGranted) YStatusTone.Good else YStatusTone.Warning,
-        )
-        YStatusRow(
-            stringResource(R.string.capability_notification_listener),
-            when {
-                permissions.notificationListenerConnected -> stringResource(R.string.status_connected)
-                permissions.notificationListenerGranted -> stringResource(R.string.status_authorized_waiting_connection)
-                else -> stringResource(R.string.status_not_authorized)
-            },
-            when {
-                permissions.notificationListenerConnected -> YStatusTone.Good
-                permissions.notificationListenerGranted -> YStatusTone.Warning
-                else -> YStatusTone.Error
-            },
-        )
-
-        if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) {
-            HostWarning(stringResource(R.string.warning_legacy_accessibility))
-        }
-        if (permissions.legacyNotificationListenerEnabled && !permissions.notificationListenerGranted) {
-            HostWarning(stringResource(R.string.warning_legacy_notification_listener))
-        }
-        if (permissions.otherAccessibilityHostEnabled) {
-            HostWarning(stringResource(R.string.warning_other_accessibility_host))
-        }
-        if (permissions.otherNotificationListenerHostEnabled) {
-            HostWarning(stringResource(R.string.warning_other_notification_host))
-        }
-
+        YStatusRow(stringResource(R.string.capability_root), when (rootAvailable) { true -> stringResource(R.string.status_authorized); false -> stringResource(R.string.status_unavailable_or_unauthorized); null -> stringResource(R.string.status_checking) }, when (rootAvailable) { true -> YStatusTone.Good; false -> YStatusTone.Error; null -> YStatusTone.Neutral })
+        YStatusRow(stringResource(R.string.capability_lsposed), if (xposedConnected) stringResource(R.string.status_connected) else stringResource(R.string.status_not_connected), if (xposedConnected) YStatusTone.Good else YStatusTone.Warning)
+        YStatusRow(stringResource(R.string.capability_accessibility), when { permissions.accessibilityConnected -> stringResource(R.string.status_connected); permissions.accessibilityEnabled -> stringResource(R.string.status_authorized_waiting_connection); else -> stringResource(R.string.status_not_authorized) }, when { permissions.accessibilityConnected -> YStatusTone.Good; permissions.accessibilityEnabled -> YStatusTone.Warning; else -> YStatusTone.Error })
+        YStatusRow(stringResource(R.string.capability_overlay), if (permissions.overlayGranted) stringResource(R.string.status_authorized) else stringResource(R.string.status_not_authorized), if (permissions.overlayGranted) YStatusTone.Good else YStatusTone.Warning)
+        YStatusRow(stringResource(R.string.capability_notifications), if (permissions.notificationsGranted) stringResource(R.string.status_authorized) else stringResource(R.string.status_not_authorized), if (permissions.notificationsGranted) YStatusTone.Good else YStatusTone.Warning)
+        YStatusRow(stringResource(R.string.capability_notification_listener), when { permissions.notificationListenerConnected -> stringResource(R.string.status_connected); permissions.notificationListenerGranted -> stringResource(R.string.status_authorized_waiting_connection); else -> stringResource(R.string.status_not_authorized) }, when { permissions.notificationListenerConnected -> YStatusTone.Good; permissions.notificationListenerGranted -> YStatusTone.Warning; else -> YStatusTone.Error })
+        if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) HostWarning(stringResource(R.string.warning_legacy_accessibility))
+        if (permissions.legacyNotificationListenerEnabled && !permissions.notificationListenerGranted) HostWarning(stringResource(R.string.warning_legacy_notification_listener))
+        if (permissions.otherAccessibilityHostEnabled) HostWarning(stringResource(R.string.warning_other_accessibility_host))
+        if (permissions.otherNotificationListenerHostEnabled) HostWarning(stringResource(R.string.warning_other_notification_host))
         YActionRow {
-            YSecondaryButton(
-                text = if (permissions.accessibilityEnabled) {
-                    stringResource(R.string.accessibility_settings)
-                } else {
-                    stringResource(R.string.enable_accessibility)
-                },
-                onClick = onAccessibility,
-            )
+            YSecondaryButton(text = if (permissions.accessibilityEnabled) stringResource(R.string.accessibility_settings) else stringResource(R.string.enable_accessibility), onClick = onAccessibility)
             YSecondaryButton(text = stringResource(R.string.overlay_settings), onClick = onOverlay)
         }
         YActionRow {
-            YSecondaryButton(
-                text = if (permissions.notificationListenerGranted) {
-                    stringResource(R.string.notification_listener_settings)
-                } else {
-                    stringResource(R.string.enable_notification_listener)
-                },
-                onClick = onNotificationListener,
-            )
+            YSecondaryButton(text = if (permissions.notificationListenerGranted) stringResource(R.string.notification_listener_settings) else stringResource(R.string.enable_notification_listener), onClick = onNotificationListener)
             YSecondaryButton(text = stringResource(R.string.export_full_diagnostic), onClick = onExport)
         }
     }
@@ -353,11 +186,7 @@ private fun RuntimeEnvironmentCard(
 
 @Composable
 private fun HostWarning(message: String) {
-    Text(
-        message,
-        color = MaterialTheme.colorScheme.error,
-        style = MaterialTheme.typography.bodySmall,
-    )
+    Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
@@ -366,20 +195,29 @@ private fun FeatureCard(
     localizedName: String,
     localizedDescription: String,
     isEnabled: Boolean,
+    rootAvailable: Boolean?,
+    xposedConnected: Boolean,
     onEnabledChange: (Boolean) -> Unit,
     onOpen: () -> Unit,
     onExportLog: () -> Unit,
 ) {
-    val capabilities = feature.sharedCapabilities
-        .map { localizedCapabilityName(it) }
-        .takeIf { it.isNotEmpty() }
-        ?.joinToString(" + ")
-
+    val capabilities = feature.sharedCapabilities.map { localizedCapabilityName(it) }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
     YFeatureCard(
         title = localizedName,
         subtitle = localizedDescription,
         detail = capabilities?.let { stringResource(R.string.shared_capabilities, it) },
     ) {
+        YStatusRow(
+            label = stringResource(R.string.standalone_app),
+            value = if (feature.standaloneEnabled) feature.standalonePackageName ?: stringResource(R.string.status_unknown) else stringResource(R.string.status_not_available),
+            tone = if (feature.standaloneEnabled && feature.standalonePackageName != null) YStatusTone.Good else YStatusTone.Neutral,
+        )
+        if (feature.requiresRoot) {
+            YStatusRow(stringResource(R.string.capability_root), when (rootAvailable) { true -> stringResource(R.string.status_authorized); false -> stringResource(R.string.status_unavailable_or_unauthorized); null -> stringResource(R.string.status_checking) }, when (rootAvailable) { true -> YStatusTone.Good; false -> YStatusTone.Error; null -> YStatusTone.Neutral })
+        }
+        if (feature.requiresHook) {
+            YStatusRow(stringResource(R.string.capability_lsposed), if (xposedConnected) stringResource(R.string.status_connected) else stringResource(R.string.status_not_connected), if (xposedConnected) YStatusTone.Good else YStatusTone.Warning)
+        }
         YSettingSwitch(
             title = stringResource(R.string.enable_feature),
             subtitle = stringResource(R.string.enable_feature_summary),
@@ -387,15 +225,8 @@ private fun FeatureCard(
             onCheckedChange = onEnabledChange,
         )
         YActionRow {
-            YPrimaryButton(
-                text = stringResource(R.string.open_feature),
-                onClick = onOpen,
-                enabled = isEnabled,
-            )
-            YSecondaryButton(
-                text = stringResource(R.string.diagnostic_package),
-                onClick = onExportLog,
-            )
+            YPrimaryButton(text = stringResource(R.string.open_feature), onClick = onOpen, enabled = isEnabled)
+            YSecondaryButton(text = stringResource(R.string.diagnostic_package), onClick = onExportLog)
         }
     }
 }
