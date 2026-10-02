@@ -4,14 +4,32 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
+import com.yagay.suite.api.RuntimeHandoffGate;
 import com.yagay.suite.api.RuntimeOwnerGate;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Reads and decodes the durable command snapshot without owning command execution. */
 final class HookConfigStore {
+    private static final String FEATURE_ID = "ynfc";
+    private static final String NFC_PROCESS = "com.android.nfc";
+
     SimConfig read() {
+        boolean embeddedSuite = isEmbeddedSuite();
+        if (embeddedSuite) {
+            // Positive acknowledgement is emitted from inside com.android.nfc itself. Standalone
+            // code will only retire after seeing this exact live process acknowledgement.
+            RuntimeHandoffGate.markSuiteActive(FEATURE_ID, NFC_PROCESS);
+        } else if (RuntimeOwnerGate.OWNER_SUITE.equals(RuntimeOwnerGate.readOwner(FEATURE_ID))
+                && RuntimeHandoffGate.isSuiteActiveHere(FEATURE_ID, NFC_PROCESS)) {
+            // Keep the old standalone hook generation initialized but behaviorally passive. Physical
+            // unhooking across module owners is unsafe; returning an inactive snapshot makes all RF
+            // mutation paths pass through while the embedded suite hook owns the same process.
+            return decode(Collections.emptyMap());
+        }
+
         Context context = NfcHookUtils.currentContext();
         if (context == null) return SimConfig.uninitialized();
         Map<String, String> values = new HashMap<>();
@@ -52,20 +70,21 @@ final class HookConfigStore {
     }
 
     /**
-     * Do not disable an already-loaded standalone NFC hook merely because YSuite claimed the
-     * feature. On LSPosed the suite hook may not yet be scoped/reloaded in the NFC process, which
-     * creates a zero-owner window. While YSuite owns the feature, let the compatibility hook read
-     * the suite provider instead; once the suite hook is live both sides consume the same durable
-     * command generation rather than diverging configurations.
+     * Before handoff acknowledgement, an already-loaded standalone hook remains the compatibility
+     * worker and reads YSuite's durable command provider. This guarantees that claiming ownership can
+     * never leave NFC with zero active command engines.
      */
     private static String effectiveAuthority() {
         String configured = com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY;
-        boolean embedded = configured != null
-                && configured.startsWith(RuntimeOwnerGate.SUITE_PACKAGE + ".");
-        if (embedded) return configured;
-        if (RuntimeOwnerGate.OWNER_SUITE.equals(RuntimeOwnerGate.readOwner("ynfc"))) {
+        if (isEmbeddedSuite()) return configured;
+        if (RuntimeOwnerGate.OWNER_SUITE.equals(RuntimeOwnerGate.readOwner(FEATURE_ID))) {
             return RuntimeOwnerGate.SUITE_PACKAGE + ".ynfc.config";
         }
         return configured;
+    }
+
+    private static boolean isEmbeddedSuite() {
+        String configured = com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY;
+        return configured != null && configured.startsWith(RuntimeOwnerGate.SUITE_PACKAGE + ".");
     }
 }
