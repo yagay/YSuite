@@ -1,0 +1,103 @@
+name: Build YSuite Debug
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/debug.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+
+      - name: Verify generated feature catalog is current
+        run: python3 tools/generate_feature_catalog.py --check
+
+      - name: Verify mirrored version catalogs are current
+        run: python3 tools/sync_version_catalog.py --check
+
+      - name: Read shared build versions
+        id: versions
+        run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.versions.outputs.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ steps.versions.outputs.gradle }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "cmdline-tools;23.0"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/23.0/bin/sdkmanager"
+          "$SDKMANAGER" --channel=3 \
+            "platforms;android-${{ steps.versions.outputs.android_platform }}" \
+            "build-tools;${{ steps.versions.outputs.build_tools }}" \
+            "platform-tools"
+          test -s "${ANDROID_HOME}/platforms/android-${{ steps.versions.outputs.android_platform }}/android.jar"
+          test -x "${ANDROID_HOME}/build-tools/${{ steps.versions.outputs.build_tools }}/aapt2"
+
+      - name: Build YSuite debug ARM64
+        run: gradle --no-daemon --stacktrace :suite:assembleDebug
+
+      - name: Verify ABI and prepare fixed APK name
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          import zipfile
+
+          apks = list(Path('suite/YSuite/build/outputs/apk/debug').glob('*.apk'))
+          if len(apks) != 1:
+              raise SystemExit(f'Expected exactly one debug APK, found: {apks}')
+
+          apk = apks[0]
+          abis = set()
+          with zipfile.ZipFile(apk) as zf:
+              for info in zf.infolist():
+                  if info.filename.startswith('lib/') and not info.is_dir():
+                      parts = info.filename.split('/')
+                      if len(parts) >= 3:
+                          abis.add(parts[1])
+
+          if sorted(abis) != ['arm64-v8a']:
+              raise SystemExit(f'Debug APK must be ARM64-only; found ABIs: {sorted(abis)}')
+
+          out = Path('artifacts/YSuite-debug-arm64-v8a.apk')
+          out.parent.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(apk, out)
+          print(f'Debug APK: {apk}')
+          print(f'Fixed artifact: {out}')
+          print(f'APK size: {out.stat().st_size / (1024 * 1024):.2f} MiB')
+          PY
+
+      - name: Upload YSuite debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: YSuite-debug-arm64-v8a
+          path: artifacts/YSuite-debug-arm64-v8a.apk
+          if-no-files-found: error
+          retention-days: 14
