@@ -18,6 +18,7 @@
     <string name="capability_notifications">Notifications</string>
     <string name="capability_notification_listener">Notification access</string>
     <string name="shared_capabilities">Shared capabilities: %1$s</string>
+    <string name="standalone_app">Standalone APK</string>
 
     <string name="status_authorized">Granted</string>
     <string name="status_unavailable_or_unauthorized">Unavailable / not granted</string>
@@ -26,6 +27,8 @@
     <string name="status_connected">Connected</string>
     <string name="status_authorized_waiting_connection">Granted · waiting for connection</string>
     <string name="status_not_connected">Not connected</string>
+    <string name="status_unknown">Unknown</string>
+    <string name="status_not_available">Not available</string>
 
     <string name="accessibility_settings">Accessibility settings</string>
     <string name="enable_accessibility">Enable accessibility</string>
