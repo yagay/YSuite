@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ynotify_accessibility_desc">记录 Toast、Dialog、Snackbar、PopupWindow 等短暂界面提示。不会主动操作界面。</string>
+    <string name="ynotify_accessibility_desc">Records transient UI messages such as Toasts, dialogs, Snackbars, and PopupWindows. It does not interact with the interface.</string>
 </resources>
