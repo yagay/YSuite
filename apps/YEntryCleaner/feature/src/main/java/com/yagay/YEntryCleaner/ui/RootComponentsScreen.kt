@@ -222,9 +222,9 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                     tone = YStatusTone.Neutral,
                 )
                 if (scan.warning.isNotBlank()) {
-                    YStatusRow("Warning", scan.warning, YStatusTone.Error)
+                    YStatusRow(stringResource(R.string.yentry_status_warning), scan.warning, YStatusTone.Error)
                 }
-                message?.let { YStatusRow("Status", it, YStatusTone.Neutral) }
+                message?.let { YStatusRow(stringResource(R.string.yentry_status_status), it, YStatusTone.Neutral) }
             }
         }
 

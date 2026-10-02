@@ -122,7 +122,7 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
     }
 
     YFeatureScaffold(
-        title = "YDiag",
+        title = stringResource(R.string.ydiag_app_name),
         subtitle = stringResource(R.string.ydiag_subtitle),
         actions = {
             YStatusPill(

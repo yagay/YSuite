@@ -13,8 +13,5 @@
     <string name="ynotify_dynamic_dcf191abdabd">- Root 可用时的全缓冲区 logcat、notification/accessibility/package/activity dumpsys、dmesg、ANR 和 tombstone 摘要
 
 </string>
-    <string name="ynotify_repair_ambiguous"> · 无充分证据 %1$d 条</string>
     <string name="ynotify_repair_manual"> · 保留手动分类 %1$d 条</string>
-    <string name="ynotify_repair_rechecked"> · 重新检查旧合并 %1$d 条</string>
-    <string name="ynotify_repair_summary">扫描 %1$d 条 · 类型纠正 %2$d 条 · SystemUI %3$d 条 · 通知子类型纠正 %4$d 条 · 横幅关联 %5$d 条 · 跨应用横幅 %6$d 条 · 重复通知合并 %7$d 条</string>
 </resources>

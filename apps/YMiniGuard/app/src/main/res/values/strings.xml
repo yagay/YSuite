@@ -1,4 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">YMiniGuard</string>
-    <string name="app_description">基于 system_server + VirtualDisplay 的真实悬浮小窗，并提供前台生命周期保护和完整诊断导出。</string>
+    <string name="app_description">Real floating mini-windows based on system_server and VirtualDisplay, with foreground lifecycle protection and complete diagnostic export.</string>
 </resources>

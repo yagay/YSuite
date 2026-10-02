@@ -54,7 +54,7 @@ final class UnifiedResultPanel {
 
         root = ResultUi.box(context);
 
-        title = ResultUi.heading(context, "YFloat");
+        title = ResultUi.heading(context, context.getString(R.string.yfloat_app_name));
         root.addView(title, new LinearLayout.LayoutParams(-1, titleHeight));
 
         imageView = new ImageView(context);

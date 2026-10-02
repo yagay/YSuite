@@ -68,7 +68,7 @@
     <string name="yfloat_generated_770db598e055">Save failed: </string>
     <string name="yfloat_generated_7721bc688162">Search app name, package, or component</string>
     <string name="yfloat_generated_7883801730b9">No matching app or component</string>
-    <string name="yfloat_generated_78c60f51edc7">Targets always come from Android\\\\\\\'s current share targets; YFloat only stores ordering and hide rules.</string>
+    <string name="yfloat_generated_78c60f51edc7">Targets always come from Android\\\\\\\\\\\\\\\'s current share targets; YFloat only stores ordering and hide rules.</string>
     <string name="yfloat_generated_7a674ececf86">Text selected; drag the handles to adjust across lines or paragraphs</string>
     <string name="yfloat_generated_7fe957b4e334">Launch app</string>
     <string name="yfloat_generated_82009ef332cb">Failed to process screenshot result</string>
@@ -96,7 +96,7 @@
     <string name="yfloat_generated_a6e1a6b89308">Auto detect</string>
     <string name="yfloat_generated_a72460296503">Google circle mode requires LSPosed enhancement</string>
     <string name="yfloat_generated_a8ccabc2ef19">No selectable text was recognized at this position</string>
-    <string name="yfloat_generated_a8f164a758a8">Targets always come from Android\\\\\\\'s current handlers; YFloat only stores ordering and hide rules.</string>
+    <string name="yfloat_generated_a8f164a758a8">Targets always come from Android\\\\\\\\\\\\\\\'s current handlers; YFloat only stores ordering and hide rules.</string>
     <string name="yfloat_generated_ab3f92cb0baf">Drag to select a region</string>
     <string name="yfloat_generated_abcc72ed9eea">View screenshot</string>
     <string name="yfloat_generated_ac034f023e0c">Current system list order restored</string>

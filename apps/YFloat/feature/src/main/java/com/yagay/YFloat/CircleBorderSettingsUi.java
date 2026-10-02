@@ -59,7 +59,7 @@ final class CircleBorderSettingsUi {
         top.setGravity(Gravity.CENTER_VERTICAL);
         TextView name = AppUi.text(activity,
                 activity.getString(R.string.yfloat_circle_border_width), 14, false);
-        TextView value = AppUi.caption(activity, fs.circleBorderWidthDp() + " dp", 13);
+        TextView value = AppUi.caption(activity, activity.getString(R.string.yfloat_dimension_dp, fs.circleBorderWidthDp()), 13);
         value.setGravity(Gravity.END);
         top.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
         top.addView(value, new LinearLayout.LayoutParams(-2, -2));
@@ -75,7 +75,7 @@ final class CircleBorderSettingsUi {
         width.addOnChangeListener((slider, next, fromUser) -> {
             if (!fromUser) return;
             int dp = Math.round(next);
-            value.setText(dp + " dp");
+            value.setText(activity.getString(R.string.yfloat_dimension_dp, dp));
             fs.setInt(FloatSettings.K_CIRCLE_BORDER_WIDTH_DP, dp);
             CircleActiveBorderOverlay.refreshStyle(activity);
         });

@@ -72,10 +72,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     checked = true,
                     granted = rootGranted,
                     uid = if (rootGranted) 0 else null,
-                    message = if (rootGranted) "Root granted" else "Root unavailable or denied"
+                    message = getApplication<Application>().getString(if (rootGranted) R.string.ytm_root_granted else R.string.ytm_root_denied)
                 ),
                 loading = rootGranted,
-                error = if (rootGranted) null else "Root permission is required"
+                error = if (rootGranted) null else getApplication<Application>().getString(R.string.ytm_root_required)
             )
             if (!rootGranted) return@launch
 

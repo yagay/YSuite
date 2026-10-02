@@ -142,10 +142,10 @@ internal fun ScopeDialog(status: ModuleStatus, requestScope: () -> Unit, refresh
                     tone = YStatusTone.Warning,
                 )
                 status.detection.warnings.forEach { warning ->
-                    YStatusRow("Warning", warning, YStatusTone.Error)
+                    YStatusRow(stringResource(R.string.yentry_status_warning), warning, YStatusTone.Error)
                 }
-                status.message?.let { YStatusRow("Status", it, YStatusTone.Neutral) }
-                status.error?.let { YStatusRow("Error", it, YStatusTone.Error) }
+                status.message?.let { YStatusRow(stringResource(R.string.yentry_status_status), it, YStatusTone.Neutral) }
+                status.error?.let { YStatusRow(stringResource(R.string.yentry_status_error), it, YStatusTone.Error) }
 
                 TextButton(onClick = refresh, enabled = !status.requesting) {
                     Text(stringResource(R.string.scope_recheck))

@@ -313,7 +313,7 @@ public class MainActivity extends AppCompatActivity {
             b.list.setAdapter(appAdapter);
             observeApps();
         } else if (!settings) {
-            b.toolbar.setTitle("YNotify");
+            b.toolbar.setTitle(R.string.ynotify_app_name);
             b.searchBox.setHint(R.string.ynotify_search_timeline);
             b.list.setAdapter(eventAdapter);
             observeTimeline();

@@ -97,7 +97,7 @@ fun NfcAppScreen(
     }
 
     YFeatureScaffold(
-        title = "YNFC ${BuildConfig.VERSION_NAME}",
+        title = stringResource(R.string.ynfc_title_version, BuildConfig.VERSION_NAME),
         subtitle = stringResource(R.string.ynfc_subtitle),
     ) { padding ->
         YFeatureList(padding = padding) {

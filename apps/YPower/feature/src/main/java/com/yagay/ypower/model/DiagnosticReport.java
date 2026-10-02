@@ -305,12 +305,7 @@ public class DiagnosticReport {
     private static boolean notBlank(String value) {
         return value != null && !value.isBlank();
     }
-
-    private static String tr(String english, String chinese) {
-        return "zh".equalsIgnoreCase(Locale.getDefault().getLanguage()) ? chinese : english;
-    }
-
-    private static String levelLabel(DiagnosticLevel level) {
+private static String levelLabel(DiagnosticLevel level) {
         if (level == DiagnosticLevel.QUICK) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b9b0f082ed01);
         if (level == DiagnosticLevel.DEEP) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cfb34c6c227b);
         return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e82299110866);

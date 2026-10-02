@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="yfloat_dimension_dp">%1$d dp</string>
+    <string name="yfloat_circle_correction_disabled">圈画纠正已关闭</string>
+    <string name="yfloat_ocr_model_missing">%1$s 尚未下载</string>
+    <string name="yfloat_mlkit_ocr_empty">ML Kit 全屏 OCR 未识别到文字</string>
+    <string name="yfloat_ppocr_empty">PP-OCR 未识别到文字</string>
+    <string name="yfloat_ppocr_failed">PP-OCR 失败</string>
+    <string name="yfloat_invalid_ocr_bitmap">圈画 OCR 位图无效</string>
+    <string name="yfloat_ocr_off">关闭</string>
+</resources>

@@ -39,13 +39,13 @@ final class CircleStableOcr {
         Context app = context.getApplicationContext();
         int mode = new FloatSettings(app).circleCorrectionEngine();
         if (mode == 0) {
-            callback.onFailure(new IllegalStateException("Circle correction disabled"));
+            callback.onFailure(new IllegalStateException(app.getString(R.string.yfloat_circle_correction_disabled)));
             return;
         }
         int model = modelForCircleMode(mode);
         if (!OcrModelManager.isReady(app, model)) {
             callback.onFailure(new IllegalStateException(
-                    OcrModelManager.displayName(model) + " not downloaded"));
+                    app.getString(R.string.yfloat_ocr_model_missing, OcrModelManager.displayName(model))));
             return;
         }
         recognizePaddle(app, bitmap, model, "gesture_correction", callback);
@@ -81,7 +81,7 @@ final class CircleStableOcr {
                                     bitmap.getWidth(), bitmap.getHeight(), 0f, null);
                             if (document == null || document.fullText().isBlank()
                                     || document.chars().isEmpty()) {
-                                callback.onFailure(new IllegalStateException("ML Kit full-screen OCR empty"));
+                                callback.onFailure(new IllegalStateException(app.getString(R.string.yfloat_mlkit_ocr_empty)));
                                 return;
                             }
                             DiagnosticLog.i(app, "FL_CIRCLE_ML_INDEX",
@@ -128,7 +128,7 @@ final class CircleStableOcr {
         PaddleOcrBridge.recognize(app, bitmap, model, new PaddleOcrBridge.Callback() {
             @Override public void onSuccess(OcrDocument raw, long totalMs, int lineCount) {
                 if (raw == null || raw.fullText().isBlank() || raw.chars().isEmpty()) {
-                    callback.onFailure(new IllegalStateException("PP-OCR empty"));
+                    callback.onFailure(new IllegalStateException(app.getString(R.string.yfloat_ppocr_empty)));
                     return;
                 }
                 // PaddleOcrBridge already normalizes PP output through OcrCanonicalGeometry.
@@ -146,7 +146,7 @@ final class CircleStableOcr {
 
             @Override public void onFailure(String message) {
                 callback.onFailure(new IllegalStateException(
-                        message == null || message.isBlank() ? "PP-OCR failed" : message));
+                        message == null || message.isBlank() ? app.getString(R.string.yfloat_ppocr_failed) : message));
             }
         });
     }
@@ -166,7 +166,7 @@ final class CircleStableOcr {
 
     static String correctionModeLabel(Context context) {
         int mode = new FloatSettings(context.getApplicationContext()).circleCorrectionEngine();
-        return mode == 0 ? "off" : modeLabel(mode);
+        return mode == 0 ? context.getString(R.string.yfloat_ocr_off) : modeLabel(mode);
     }
 
     private static String modeLabel(int mode) {
@@ -183,7 +183,7 @@ final class CircleStableOcr {
         if (callback == null) return false;
         if (context == null || bitmap == null || bitmap.isRecycled()
                 || bitmap.getWidth() <= 0 || bitmap.getHeight() <= 0) {
-            callback.onFailure(new IllegalArgumentException("invalid Circle OCR bitmap"));
+            callback.onFailure(new IllegalArgumentException(context.getString(R.string.yfloat_invalid_ocr_bitmap)));
             return false;
         }
         return true;

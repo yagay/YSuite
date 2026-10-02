@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="xposed_description">通知、Toast 与界面提示历史中心</string>
+    <string name="xposed_description">Notification, Toast, and UI prompt history center</string>
 </resources>

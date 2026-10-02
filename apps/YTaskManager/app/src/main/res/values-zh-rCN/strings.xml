@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">YTaskManager</string>
+    <string name="app_description">YTaskManager 是带有 libxposed API 102 系统增强层的 Root 任务管理器。</string>
+</resources>
