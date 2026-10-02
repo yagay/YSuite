@@ -1,1 +1,10 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name="com.yagay.suite.api.YLocaleInitProvider"
+            android:authorities="${applicationId}.ysuite.locale-init"
+            android:exported="false"
+            android:initOrder="100" />
+    </application>
+</manifest>
