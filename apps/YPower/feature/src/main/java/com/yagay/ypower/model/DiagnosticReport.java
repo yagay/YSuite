@@ -51,9 +51,7 @@ public class DiagnosticReport {
     public String syscallSummary = "";
     public final List<String> linkerMappings = new ArrayList<>();
 
-    // Runtime findings contain only behavior actually observed during this diagnostic session.
     public final List<DiagnosticFinding> findings = new ArrayList<>();
-    // Deep-mode static API references are supplemental only. They never enter runtime attribution.
     public final List<DiagnosticFinding> staticEvidence = new ArrayList<>();
     public final List<String> raw = new ArrayList<>();
 
@@ -64,61 +62,49 @@ public class DiagnosticReport {
 
     public String simpleText() {
         StringBuilder b = new StringBuilder();
-        b.append("应用：").append(packageName).append('\n');
-        b.append("级别：").append(level).append('\n');
+        line(b, tr("App", "应用"), packageName);
+        line(b, tr("Level", "级别"), levelLabel(level));
         if (sessionStartMs > 0) {
-            b.append("运行会话：")
-                    .append(formatTime(sessionStartMs))
-                    .append(" - ")
-                    .append(sessionEndMs > 0 ? formatTime(sessionEndMs) : "进行中")
-                    .append('\n');
+            String end = sessionEndMs > 0 ? formatTime(sessionEndMs) : tr("Running", "进行中");
+            line(b, tr("Runtime session", "运行会话"), formatTime(sessionStartMs) + " to " + end);
         }
-        b.append("实际观察事件：").append(observedEventCount).append("\n\n");
+        line(b, tr("Observed events", "实际观察事件"), String.valueOf(observedEventCount));
+        b.append('\n');
 
         if (findings.isEmpty()) {
-            b.append("本次运行未观察到可识别的检测或异常事件。\n");
+            b.append(tr(
+                    "No recognizable detection or abnormal event was observed during this run.",
+                    "本次运行未观察到可识别的检测或异常事件。"
+            )).append('\n');
             return b.toString();
         }
 
-        if (!exitSummary.isBlank()) b.append("退出：").append(exitSummary).append('\n');
+        if (!exitSummary.isBlank()) line(b, tr("Exit", "退出"), exitSummary);
         if (fatalExceptionTimestamp > 0) {
-            b.append("Java Fatal：")
-                    .append(fatalExceptionClass)
-                    .append(fatalExceptionMessage.isBlank() ? "" : " · " + fatalExceptionMessage)
-                    .append('\n');
+            String value = fatalExceptionClass;
+            if (!fatalExceptionMessage.isBlank()) value += ". " + fatalExceptionMessage;
+            line(b, "Java Fatal", value);
         }
-        if (!attribution.isBlank()) b.append("归因：").append(attribution).append('\n');
+        if (!attribution.isBlank()) line(b, tr("Attribution", "归因"), attribution);
         if (!exitSummary.isBlank() || !attribution.isBlank()) b.append('\n');
 
-        if (!perfettoTracePath.isBlank() || !simpleperfDataPath.isBlank()) {
-            b.append("系统级采集：\n");
-            if (!perfettoTracePath.isBlank()) {
-                b.append("• Perfetto：")
-                        .append(perfettoTraceBytes)
-                        .append(" bytes\n");
-            }
-            if (!simpleperfDataPath.isBlank()) {
-                b.append("• simpleperf：")
-                        .append(simpleperfDataBytes)
-                        .append(" bytes\n");
-            }
-            if (!syscallTracePath.isBlank()) {
-                b.append("• Raw syscall（实验）：")
-                        .append(syscallTraceBytes)
-                        .append(" bytes\n");
-            }
+        if (!perfettoTracePath.isBlank() || !simpleperfDataPath.isBlank() || !syscallTracePath.isBlank()) {
+            b.append(tr("System collection", "系统级采集")).append('\n');
+            if (!perfettoTracePath.isBlank()) line(b, "Perfetto", perfettoTraceBytes + " bytes");
+            if (!simpleperfDataPath.isBlank()) line(b, "simpleperf", simpleperfDataBytes + " bytes");
+            if (!syscallTracePath.isBlank()) line(b, tr("Raw syscall experimental", "Raw syscall 实验"), syscallTraceBytes + " bytes");
             b.append('\n');
         }
 
+        int index = 1;
         for (DiagnosticFinding finding : findings) {
-            b.append("• ");
-            if (finding.attributionRank == 1) b.append("[主要归因] ");
-            else if (finding.attributionRank == 2) b.append("[次要归因] ");
-            b.append(finding.title)
-                    .append("  检测状态=")
-                    .append(displayDetectionState(finding));
+            b.append(index++).append(". ");
+            if (finding.attributionRank == 1) b.append(tr("Primary attribution. ", "主要归因。"));
+            else if (finding.attributionRank == 2) b.append(tr("Secondary attribution. ", "次要归因。"));
+            b.append(finding.title).append('\n');
+            line(b, tr("Detection state", "检测状态"), displayDetectionState(finding));
             if (finding.correlationScore > 0) {
-                b.append("  关联 ").append(finding.correlationScore).append("/100");
+                line(b, tr("Correlation score", "关联分数"), finding.correlationScore + " " + tr("of 100", "满分 100"));
             }
             b.append('\n');
         }
@@ -129,117 +115,89 @@ public class DiagnosticReport {
         StringBuilder b = new StringBuilder(simpleText()).append('\n');
         List<DiagnosticFinding> ordered = new ArrayList<>(findings);
         ordered.sort(Comparator.comparingInt((DiagnosticFinding f) -> f.correlationScore).reversed());
+        int index = 1;
         for (DiagnosticFinding f : ordered) {
-            b.append("[ ").append(f.status.zh).append(" ] ");
-            if (f.attributionRank == 1) b.append("[主要归因] ");
-            else if (f.attributionRank == 2) b.append("[次要归因] ");
-            b.append(f.title).append('\n');
-            b.append("类别：").append(f.category).append('\n');
-            if (f.ruleId != null && !f.ruleId.isBlank()) {
-                b.append("规则：").append(f.ruleId).append('\n');
-            }
-            b.append("摘要：").append(f.summary).append('\n');
+            b.append(index++).append(". ").append(f.title).append('\n');
+            line(b, tr("Status", "状态"), f.status.label());
+            if (f.attributionRank == 1) line(b, tr("Attribution level", "归因级别"), tr("Primary", "主要"));
+            else if (f.attributionRank == 2) line(b, tr("Attribution level", "归因级别"), tr("Secondary", "次要"));
+            line(b, tr("Category", "类别"), f.category);
+            if (f.ruleId != null && !f.ruleId.isBlank()) line(b, tr("Rule", "规则"), f.ruleId);
+            line(b, tr("Summary", "摘要"), f.summary);
             if (f.totalCount > 0) {
-                b.append("本次状态：HIT ").append(f.hitCount)
-                        .append(" / CHECKED ").append(f.checkedCount)
-                        .append(" / NOT_HIT ").append(f.notHitCount)
-                        .append(" / UNKNOWN ").append(f.unknownCount)
-                        .append("（总计 ").append(f.totalCount).append("）\n");
-                b.append("应用检测状态：").append(displayDetectionState(f)).append('\n');
-                b.append("代表状态：").append(f.representativeState).append('\n');
+                String states = "HIT " + f.hitCount
+                        + ", CHECKED " + f.checkedCount
+                        + ", NOT_HIT " + f.notHitCount
+                        + ", UNKNOWN " + f.unknownCount
+                        + ", " + tr("total", "总计") + " " + f.totalCount;
+                line(b, tr("Run states", "本次状态"), states);
+                line(b, tr("Detection state", "应用检测状态"), displayDetectionState(f));
+                line(b, tr("Representative state", "代表状态"), String.valueOf(f.representativeState));
             }
             if (f.closestDeltaMs != Long.MAX_VALUE) {
-                b.append("距退出：").append(f.closestDeltaMs).append(" ms\n");
+                line(b, tr("Time before exit", "距退出"), f.closestDeltaMs + " ms");
             }
             if (f.tid >= 0) {
-                b.append("线程：").append(f.thread)
-                        .append(" (pid=").append(f.pid)
-                        .append(", tid=").append(f.tid).append(")\n");
+                line(b, tr("Thread", "线程"), f.thread + ", pid=" + f.pid + ", tid=" + f.tid);
             }
-            if (f.sameThreadAsExit) b.append("与退出：同线程\n");
-            if (f.sharedExitFrames > 0) {
-                b.append("与退出共同调用栈帧：").append(f.sharedExitFrames).append('\n');
-            }
-            if (f.sameThreadAsFatal) b.append("与 Java Fatal：同线程\n");
-            if (f.sharedFatalFrames > 0) {
-                b.append("与 Java Fatal 共同业务栈帧：").append(f.sharedFatalFrames).append('\n');
-            }
-            if (f.input != null && !f.input.isBlank()) b.append("输入：").append(f.input).append('\n');
-            if (f.result != null && !f.result.isBlank()) b.append("结果：").append(f.result).append('\n');
-            if (f.exception != null && !f.exception.isBlank()) b.append("异常：").append(f.exception).append('\n');
-            if (f.throwableId != null && !f.throwableId.isBlank()) {
-                b.append("Throwable ID：").append(f.throwableId).append('\n');
-            }
-            if (f.cause != null && !f.cause.isBlank()) {
-                b.append("Cause：").append(f.cause).append('\n');
-            }
-            if (f.suppressedCount > 0) {
-                b.append("Suppressed：").append(f.suppressedCount).append('\n');
-            }
-            if (f.correlationScore > 0) b.append("退出关联：").append(f.correlationScore).append("/100\n");
-            if (f.detail != null && !f.detail.equals(f.summary)) b.append("详情：").append(f.detail).append('\n');
-            for (String e : f.evidence) b.append("证据：").append(e).append('\n');
+            if (f.sameThreadAsExit) line(b, tr("Exit relation", "与退出"), tr("Same thread", "同线程"));
+            if (f.sharedExitFrames > 0) line(b, tr("Shared exit stack frames", "与退出共同调用栈帧"), String.valueOf(f.sharedExitFrames));
+            if (f.sameThreadAsFatal) line(b, tr("Java Fatal relation", "与 Java Fatal"), tr("Same thread", "同线程"));
+            if (f.sharedFatalFrames > 0) line(b, tr("Shared Java Fatal business frames", "与 Java Fatal 共同业务栈帧"), String.valueOf(f.sharedFatalFrames));
+            if (notBlank(f.input)) line(b, tr("Input", "输入"), f.input);
+            if (notBlank(f.result)) line(b, tr("Result", "结果"), f.result);
+            if (notBlank(f.exception)) line(b, tr("Exception", "异常"), f.exception);
+            if (notBlank(f.throwableId)) line(b, "Throwable ID", f.throwableId);
+            if (notBlank(f.cause)) line(b, "Cause", f.cause);
+            if (f.suppressedCount > 0) line(b, "Suppressed", String.valueOf(f.suppressedCount));
+            if (f.correlationScore > 0) line(b, tr("Exit correlation", "退出关联"), f.correlationScore + " " + tr("of 100", "满分 100"));
+            if (f.detail != null && !f.detail.equals(f.summary)) line(b, tr("Detail", "详情"), f.detail);
+            for (String e : f.evidence) line(b, tr("Evidence", "证据"), e);
             for (FixRecommendation recommendation : f.recommendations) {
-                b.append("说明：").append(recommendation.title).append('\n');
-                b.append("为什么检测：").append(recommendation.whyDetected).append('\n');
-                b.append("开源项目说明：").append(recommendation.projectExplanation).append('\n');
-                b.append("为什么归因：").append(recommendation.whyAttributed).append('\n');
-                b.append("修复/排查：").append(recommendation.repair).append('\n');
-                b.append("参考：").append(recommendation.source).append('\n');
+                line(b, tr("Explanation", "说明"), recommendation.title);
+                line(b, tr("Why it is checked", "为什么检测"), recommendation.whyDetected);
+                line(b, tr("Open-source reference explanation", "开源项目说明"), recommendation.projectExplanation);
+                line(b, tr("Why it is attributed", "为什么归因"), recommendation.whyAttributed);
+                line(b, tr("Repair or investigation", "修复或排查"), recommendation.repair);
+                line(b, tr("Reference", "参考"), recommendation.source);
             }
             b.append('\n');
         }
 
         if (!staticEvidence.isEmpty()) {
-            b.append("静态辅助证据（仅深度诊断；不代表本次运行已执行，也不参与归因）：\n");
+            b.append(tr(
+                    "Static supplemental evidence. Deep diagnostics only. It does not mean the code ran during this session and it is not used for attribution.",
+                    "静态辅助证据。仅用于深度诊断，不代表本次运行已经执行，也不参与归因。"
+            )).append('\n');
+            int staticIndex = 1;
             for (DiagnosticFinding f : staticEvidence) {
-                b.append("• ").append(f.title);
-                if (f.ruleId != null && !f.ruleId.isBlank()) {
-                    b.append(" [").append(f.ruleId).append(']');
-                }
+                b.append(staticIndex++).append(". ").append(f.title).append('\n');
+                if (notBlank(f.ruleId)) line(b, tr("Rule", "规则"), f.ruleId);
+                if (notBlank(f.summary)) line(b, tr("Explanation", "说明"), f.summary);
+                for (String e : f.evidence) line(b, tr("Reference", "引用"), e);
                 b.append('\n');
-                if (f.summary != null && !f.summary.isBlank()) {
-                    b.append("  说明：").append(f.summary).append('\n');
-                }
-                for (String e : f.evidence) {
-                    b.append("  引用：").append(e).append('\n');
-                }
             }
-            b.append('\n');
         }
 
         if (!exceptionPropagation.isEmpty()) {
-            b.append("异常传播链：\n");
-            for (String item : exceptionPropagation) {
-                b.append("• ").append(item).append('\n');
-            }
+            b.append(tr("Exception propagation", "异常传播链")).append('\n');
+            appendNumbered(b, exceptionPropagation);
             b.append('\n');
         }
 
         if (!linkerMappings.isEmpty()) {
-            b.append("JNI / Linker 映射：\n");
-            for (String mapping : linkerMappings) {
-                b.append("• ").append(mapping).append('\n');
-            }
+            b.append(tr("JNI and Linker mapping", "JNI 和 Linker 映射")).append('\n');
+            appendNumbered(b, linkerMappings);
             b.append('\n');
         }
         if (!simpleperfSummary.isBlank()) {
-            b.append("simpleperf Native 调用图摘要：\n")
-                    .append(simpleperfSummary)
-                    .append("\n\n");
+            b.append(tr("simpleperf native call graph summary", "simpleperf Native 调用图摘要")).append('\n')
+                    .append(simpleperfSummary).append("\n\n");
         }
-        if (!perfettoTracePath.isBlank()) {
-            b.append("Perfetto Trace：").append(perfettoTracePath).append('\n');
-        }
-        if (!simpleperfDataPath.isBlank()) {
-            b.append("simpleperf 数据：").append(simpleperfDataPath).append('\n');
-        }
-        if (!simpleperfReportPath.isBlank()) {
-            b.append("simpleperf 报告：").append(simpleperfReportPath).append('\n');
-        }
-        if (!syscallTracePath.isBlank()) {
-            b.append("Raw syscall（实验）：").append(syscallTracePath).append('\n');
-        }
+        if (!perfettoTracePath.isBlank()) line(b, "Perfetto Trace", perfettoTracePath);
+        if (!simpleperfDataPath.isBlank()) line(b, tr("simpleperf data", "simpleperf 数据"), simpleperfDataPath);
+        if (!simpleperfReportPath.isBlank()) line(b, tr("simpleperf report", "simpleperf 报告"), simpleperfReportPath);
+        if (!syscallTracePath.isBlank()) line(b, tr("Raw syscall experimental", "Raw syscall 实验"), syscallTracePath);
 
         return b.toString();
     }
@@ -247,33 +205,44 @@ public class DiagnosticReport {
     public String recommendationText() {
         StringBuilder b = new StringBuilder();
         if (!attribution.isBlank()) {
-            b.append("归因结果：").append(attribution).append("\n\n");
+            line(b, tr("Attribution result", "归因结果"), attribution);
+            b.append('\n');
         }
         int count = 0;
         for (DiagnosticFinding finding : findings) {
             for (FixRecommendation recommendation : finding.recommendations) {
                 count++;
                 b.append(count).append(". ").append(recommendation.title).append('\n');
-                b.append("对应：")
-                        .append(finding.attributionRank == 1 ? "主要归因 · " : "次要归因 · ")
-                        .append(finding.title)
-                        .append("（").append(finding.correlationScore).append("/100）\n");
-                b.append("应用检测状态：").append(displayDetectionState(finding)).append('\n');
-                b.append("为什么检测：").append(recommendation.whyDetected).append('\n');
-                b.append("开源项目说明：").append(recommendation.projectExplanation).append('\n');
-                b.append("为什么这次归因：").append(recommendation.whyAttributed).append('\n');
-                b.append("应该怎样修复/排查：").append(recommendation.repair).append('\n');
-                b.append("参考：").append(recommendation.source).append("\n\n");
+                String level = finding.attributionRank == 1
+                        ? tr("Primary attribution", "主要归因")
+                        : tr("Secondary attribution", "次要归因");
+                line(b, tr("Related finding", "对应"), level + ". " + finding.title);
+                line(b, tr("Correlation score", "关联分数"), finding.correlationScore + " " + tr("of 100", "满分 100"));
+                line(b, tr("Detection state", "应用检测状态"), displayDetectionState(finding));
+                line(b, tr("Why it is checked", "为什么检测"), recommendation.whyDetected);
+                line(b, tr("Open-source reference explanation", "开源项目说明"), recommendation.projectExplanation);
+                line(b, tr("Why this run is attributed", "为什么这次归因"), recommendation.whyAttributed);
+                line(b, tr("Repair or investigation", "应该怎样修复或排查"), recommendation.repair);
+                line(b, tr("Reference", "参考"), recommendation.source);
+                b.append('\n');
             }
         }
         if (count == 0) {
-            return "当前归因证据不足，因此不生成修复建议。\n";
+            return tr(
+                    "The attribution evidence is insufficient, so no repair recommendation is generated.\n",
+                    "当前归因证据不足，因此不生成修复建议。\n"
+            );
         }
         return b.toString();
     }
 
     public String rawText() {
-        if (raw.isEmpty()) return "本次运行没有采集到可显示的原始事件。\n";
+        if (raw.isEmpty()) {
+            return tr(
+                    "No displayable raw event was collected during this run.\n",
+                    "本次运行没有采集到可显示的原始事件。\n"
+            );
+        }
         StringBuilder b = new StringBuilder();
         for (String line : raw) b.append(line).append('\n');
         return b.toString();
@@ -335,24 +304,47 @@ public class DiagnosticReport {
         return o;
     }
 
-    private static String displayDetectionState(DiagnosticFinding finding) {
-        if (finding == null) return "unknown";
+    private static void line(StringBuilder b, String label, String value) {
+        b.append(label).append(": ").append(value == null ? "" : value).append('\n');
+    }
 
+    private static void appendNumbered(StringBuilder b, List<String> values) {
+        for (int i = 0; i < values.size(); i++) {
+            b.append(i + 1).append(". ").append(values.get(i)).append('\n');
+        }
+    }
+
+    private static boolean notBlank(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static String tr(String english, String chinese) {
+        return "zh".equalsIgnoreCase(Locale.getDefault().getLanguage()) ? chinese : english;
+    }
+
+    private static String levelLabel(DiagnosticLevel level) {
+        if (level == DiagnosticLevel.QUICK) return tr("Fast", "快速");
+        if (level == DiagnosticLevel.DEEP) return tr("Deep", "深度");
+        return tr("Standard", "标准");
+    }
+
+    private static String displayDetectionState(DiagnosticFinding finding) {
+        if (finding == null) return tr("Unknown", "未知");
         switch (finding.representativeState) {
             case NOT_HIT:
-                return "false";
+                return tr("Not hit", "未命中");
             case HIT:
-                return "true";
+                return tr("Hit", "命中");
             case CHECKED:
-                return "CHECKED";
+                return tr("Checked", "已检查");
             case UNKNOWN:
             default:
                 if (finding.result != null) {
                     String value = finding.result.trim();
-                    if ("false".equalsIgnoreCase(value)) return "false";
+                    if ("false".equalsIgnoreCase(value)) return tr("Not hit", "未命中");
                     if (!value.isBlank()) return value;
                 }
-                return "UNKNOWN";
+                return tr("Unknown", "未知");
         }
     }
 
