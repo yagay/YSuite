@@ -19,6 +19,9 @@
     <string name="capability_notification_listener">通知监听</string>
     <string name="shared_capabilities">共享能力：%1$s</string>
     <string name="standalone_app">独立 APK</string>
+    <string name="standalone_package">包名：%1$s</string>
+    <string name="standalone_installed_version">已安装 · %1$s (%2$d)</string>
+    <string name="standalone_installed_unknown_version">已安装</string>
 
     <string name="status_authorized">已授权</string>
     <string name="status_unavailable_or_unauthorized">不可用 / 未授权</string>
@@ -29,6 +32,7 @@
     <string name="status_not_connected">未连接</string>
     <string name="status_unknown">未知</string>
     <string name="status_not_available">不可用</string>
+    <string name="status_not_installed">未安装</string>
 
     <string name="accessibility_settings">无障碍设置</string>
     <string name="enable_accessibility">开启无障碍</string>
@@ -37,7 +41,9 @@
     <string name="enable_notification_listener">开启通知监听</string>
     <string name="export_full_diagnostic">导出整体诊断</string>
     <string name="diagnostic_package">诊断包</string>
-    <string name="open_feature">打开</string>
+    <string name="open_feature">打开内置版</string>
+    <string name="open_standalone">打开独立版</string>
+    <string name="standalone_settings">应用设置</string>
     <string name="enable_feature">启用功能</string>
     <string name="enable_feature_summary">关闭后 Runtime、Hook、Root 和共享服务访问会同步停用。</string>
 
@@ -49,6 +55,8 @@
     <string name="error_open_accessibility_settings">无法打开无障碍设置</string>
     <string name="error_open_overlay_settings">无法打开悬浮窗设置</string>
     <string name="error_open_notification_listener_settings">无法打开通知监听设置</string>
+    <string name="error_open_standalone">无法打开 %1$s 独立版</string>
+    <string name="error_open_standalone_settings">无法打开 %1$s 的应用设置</string>
     <string name="diagnostic_collecting">正在收集%1$s诊断信息…</string>
     <string name="diagnostic_saved">%1$s已保存：%2$s</string>
     <string name="diagnostic_save_failed">%1$s保存失败：%2$s</string>
