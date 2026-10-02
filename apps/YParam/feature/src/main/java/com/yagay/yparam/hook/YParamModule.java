@@ -2,6 +2,8 @@ package com.yagay.yparam.hook;
 
 import android.util.Log;
 
+import com.yagay.suite.api.RuntimeOwnerGate;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.github.libxposed.api.XposedModule;
@@ -16,6 +18,10 @@ public final class YParamModule extends XposedModule {
 
     @Override public void onPackageReady(PackageReadyParam param) {
         if (!param.isFirstPackage()) return;
+        if (!RuntimeOwnerGate.shouldRun("yparam", getModuleApplicationInfo())) {
+            log(Log.INFO, TAG, "Standalone hooks passive; YSuite owns yparam runtime");
+            return;
+        }
         String pkg = param.getPackageName();
         if (pkg == null || pkg.equals("com.yagay.yparam")) return;
         installed.computeIfAbsent(pkg, ignored -> {
