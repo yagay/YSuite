@@ -95,4 +95,11 @@
     <string name="ydiag_severity_error">Error</string>
     <string name="ydiag_severity_warning">Warning</string>
     <string name="ydiag_severity_info">Info</string>
+    <string name="ydiag_export_preparing">Creating the complete diagnostic package.</string>
+    <string name="ydiag_exported_custom">Exported to the custom folder.</string>
+    <string name="ydiag_exported_download">Exported to Download/YDiag.</string>
+    <string name="ydiag_export_failed_detail">Export failed. There is no available session or the destination is not writable.</string>
+    <string name="ydiag_exporting_session">Exporting session %1$s.</string>
+    <string name="ydiag_export_complete">Export complete.</string>
+    <string name="ydiag_export_failed">Export failed.</string>
 </resources>
