@@ -9,8 +9,9 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:title="事件详情"
-        app:navigationIcon="@drawable/ic_back" />
+        android:title="@string/ynotify_event_detail"
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationContentDescription="@string/ynotify_back" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -45,13 +46,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="修正分类" />
+                android:text="@string/ynotify_correct_classification" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="标题"
+                android:text="@string/ynotify_detail_title"
                 android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
 
             <TextView
@@ -65,7 +66,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="完整内容"
+                android:text="@string/ynotify_detail_full_text"
                 android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
 
             <TextView
@@ -79,7 +80,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="通知更新历史"
+                android:text="@string/ynotify_revision_history"
                 android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
 
             <TextView
@@ -94,7 +95,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="消息结构"
+                android:text="@string/ynotify_message_structure"
                 android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
 
             <TextView
@@ -109,7 +110,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="操作按钮"
+                android:text="@string/ynotify_action_buttons"
                 android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
 
             <TextView
@@ -124,7 +125,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="原始 Extras"
+                android:text="@string/ynotify_raw_extras"
                 android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
 
             <TextView
