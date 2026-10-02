@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">YSuite</string>
+    <string name="suite_subtitle">统一宿主 · 插件共享系统能力</string>
+
+    <string name="suite_accessibility_service_label">YSuite 统一无障碍</string>
+    <string name="suite_accessibility_service_desc">为 YSuite 功能提供统一的窗口识别、手势、截图和界面事件能力，只需授权一次。</string>
+    <string name="suite_notification_listener_label">YSuite 统一通知监听</string>
+
+    <string name="runtime_environment_title">统一运行环境</string>
+    <string name="runtime_environment_subtitle">所有系统能力由 YSuite 持有，功能模块只作为插件消费。</string>
+    <string name="runtime_environment_detail">已加入功能：%1$d · 已注册 LSPosed 插件监听：%2$d</string>
+
+    <string name="capability_root">Root</string>
+    <string name="capability_lsposed">LSPosed</string>
+    <string name="capability_accessibility">无障碍</string>
+    <string name="capability_overlay">悬浮窗</string>
+    <string name="capability_notifications">通知</string>
+    <string name="capability_notification_listener">通知监听</string>
+    <string name="shared_capabilities">共享能力：%1$s</string>
+
+    <string name="status_authorized">已授权</string>
+    <string name="status_unavailable_or_unauthorized">不可用 / 未授权</string>
+    <string name="status_checking">检测中</string>
+    <string name="status_not_authorized">未授权</string>
+    <string name="status_connected">已连接</string>
+    <string name="status_authorized_waiting_connection">已授权 · 等待连接</string>
+    <string name="status_not_connected">未连接</string>
+
+    <string name="accessibility_settings">无障碍设置</string>
+    <string name="enable_accessibility">开启无障碍</string>
+    <string name="overlay_settings">悬浮窗</string>
+    <string name="notification_listener_settings">通知监听设置</string>
+    <string name="enable_notification_listener">开启通知监听</string>
+    <string name="export_full_diagnostic">导出整体诊断</string>
+    <string name="diagnostic_package">诊断包</string>
+    <string name="open_feature">打开</string>
+    <string name="enable_feature">启用功能</string>
+    <string name="enable_feature_summary">关闭后 Runtime、Hook、Root 和共享服务访问会同步停用。</string>
+
+    <string name="warning_legacy_accessibility">检测到旧版分模块无障碍授权，请迁移到 YSuite 统一无障碍。</string>
+    <string name="warning_legacy_notification_listener">检测到旧版 YNotify 通知监听授权，请迁移到 YSuite 统一通知监听。</string>
+    <string name="warning_other_accessibility_host">另一独立版本的无障碍也已开启；建议只保留当前实际使用的版本。</string>
+    <string name="warning_other_notification_host">另一独立版本的通知监听也已开启；建议只保留当前实际使用的版本。</string>
+
+    <string name="error_open_accessibility_settings">无法打开无障碍设置</string>
+    <string name="error_open_overlay_settings">无法打开悬浮窗设置</string>
+    <string name="error_open_notification_listener_settings">无法打开通知监听设置</string>
+    <string name="diagnostic_collecting">正在收集%1$s诊断信息…</string>
+    <string name="diagnostic_saved">%1$s已保存：%2$s</string>
+    <string name="diagnostic_save_failed">%1$s保存失败：%2$s</string>
+    <string name="diagnostic_full_label">整体</string>
+    <string name="diagnostic_feature_label">%1$s</string>
+    <string name="feature_enable_failed">%1$s 启用失败：%2$s</string>
+    <string name="feature_open_failed">%1$s 打开失败：%2$s</string>
+
+    <string name="feature_yentrycleaner_name">YEntryCleaner</string>
+    <string name="feature_yentrycleaner_description">分享、打开方式与组件入口清理</string>
+    <string name="feature_ydiag_name">YDiag</string>
+    <string name="feature_ydiag_description">应用日志与故障诊断</string>
+    <string name="feature_ynotify_name">YNotify</string>
+    <string name="feature_ynotify_description">通知 / Toast / 横幅历史</string>
+    <string name="feature_ypower_name">YPower</string>
+    <string name="feature_ypower_description">应用增强、检测与运行时诊断</string>
+    <string name="feature_yminiguard_name">YMiniGuard</string>
+    <string name="feature_yminiguard_description">小窗保活与后台播放守护</string>
+    <string name="feature_ynfc_name">YNFC</string>
+    <string name="feature_ynfc_description">NFC 门禁卡与控制器模拟</string>
+    <string name="feature_ytaskmanager_name">YTaskManager</string>
+    <string name="feature_ytaskmanager_description">进程、性能与系统任务管理</string>
+    <string name="feature_yparam_name">YParam</string>
+    <string name="feature_yparam_description">应用 DPI、语言、定位与参数覆盖</string>
+    <string name="feature_yfloat_name">YFloat</string>
+    <string name="feature_yfloat_description">悬浮操作、文字选框与快捷动作</string>
+</resources>
