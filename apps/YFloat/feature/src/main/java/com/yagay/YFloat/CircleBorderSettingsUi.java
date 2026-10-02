@@ -11,9 +11,6 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 
 /** Focused settings widgets for the Circle Select active-state border. */
 final class CircleBorderSettingsUi {
-    private static final String[] COLOR_LABELS = {
-            "蓝色（默认）", "绿色", "青色", "紫色", "橙色", "红色", "白色"
-    };
     private static final int[] COLOR_VALUES = {
             0xFF4285F4, 0xFF34A853, 0xFF00B8D4, 0xFF9C6ADE,
             0xFFFF8A00, 0xFFEA4335, 0xFFFFFFFF
@@ -21,8 +18,8 @@ final class CircleBorderSettingsUi {
 
     static void add(SettingsActivity activity, FloatSettings fs, LinearLayout parent) {
         SwitchMaterial enabled = AppUi.switchRow(activity,
-                "显示圈画激活边框",
-                "圈画激活时沿完整屏幕边缘显示提示；截图时自动隐藏，不会进入截图",
+                activity.getString(R.string.yfloat_circle_border_show),
+                activity.getString(R.string.yfloat_circle_border_show_desc),
                 fs.circleBorderEnabled(),
                 (button, checked) -> {
                     fs.setBoolean(FloatSettings.K_CIRCLE_BORDER_ENABLED, checked);
@@ -30,9 +27,18 @@ final class CircleBorderSettingsUi {
                 });
         AppUi.addRow(parent, AppUi.switchContainer(enabled));
 
+        String[] colorLabels = {
+                activity.getString(R.string.yfloat_color_blue_default),
+                activity.getString(R.string.yfloat_color_green),
+                activity.getString(R.string.yfloat_color_cyan),
+                activity.getString(R.string.yfloat_color_purple),
+                activity.getString(R.string.yfloat_color_orange),
+                activity.getString(R.string.yfloat_color_red),
+                activity.getString(R.string.yfloat_color_white)
+        };
         Spinner color = new Spinner(activity);
         color.setAdapter(new ArrayAdapter<>(activity,
-                android.R.layout.simple_spinner_dropdown_item, COLOR_LABELS));
+                android.R.layout.simple_spinner_dropdown_item, colorLabels));
         color.setSelection(indexForColor(fs.circleBorderColor()));
         color.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(android.widget.AdapterView<?> p, android.view.View v,
@@ -44,14 +50,16 @@ final class CircleBorderSettingsUi {
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> p) { }
         });
-        addSpinnerRow(activity, parent, "边框颜色", color);
+        addSpinnerRow(activity, parent,
+                activity.getString(R.string.yfloat_circle_border_color), color);
 
         LinearLayout block = AppUi.sliderBlock(activity);
         LinearLayout top = new LinearLayout(activity);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        TextView name = AppUi.text(activity, "边框粗细", 14, false);
-        TextView value = AppUi.caption(activity, fs.circleBorderWidthDp() + "dp", 13);
+        TextView name = AppUi.text(activity,
+                activity.getString(R.string.yfloat_circle_border_width), 14, false);
+        TextView value = AppUi.caption(activity, fs.circleBorderWidthDp() + " dp", 13);
         value.setGravity(Gravity.END);
         top.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
         top.addView(value, new LinearLayout.LayoutParams(-2, -2));
@@ -67,7 +75,7 @@ final class CircleBorderSettingsUi {
         width.addOnChangeListener((slider, next, fromUser) -> {
             if (!fromUser) return;
             int dp = Math.round(next);
-            value.setText(dp + "dp");
+            value.setText(dp + " dp");
             fs.setInt(FloatSettings.K_CIRCLE_BORDER_WIDTH_DP, dp);
             CircleActiveBorderOverlay.refreshStyle(activity);
         });
