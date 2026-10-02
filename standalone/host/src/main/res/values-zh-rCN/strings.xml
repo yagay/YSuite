@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="standalone_entry_not_configured">未配置功能入口页面</string>
+</resources>
