@@ -9,45 +9,50 @@ import android.widget.LinearLayout;
 final class SettingsGesturePage {
     static LinearLayout build(SettingsActivity activity, FloatSettings fs) {
         SettingsPageUi ui = new SettingsPageUi(activity, fs);
-        LinearLayout root = AppUi.pageRoot(activity, "手势与轨迹",
-                "把判定阈值和视觉反馈分开，调节时更容易找到。" );
+        LinearLayout root = AppUi.pageRoot(activity,
+                activity.getString(R.string.yfloat_gesture_settings),
+                activity.getString(R.string.yfloat_gesture_page_desc));
 
-        AppUi.Section timing = AppUi.section(activity, "点击与长按", null);
-        ui.seek(timing.body, "长按时间", FloatSettings.K_LONG_PRESS,
-                150, 1000, fs.longPressMs(), " ms");
-        ui.seek(timing.body, "双击间隔", FloatSettings.K_DOUBLE_TAP,
-                150, 600, fs.doubleTapMs(), " ms");
-        ui.seek(timing.body, "短按最大持续时间", FloatSettings.K_TAP_MAX_MS,
-                80, 400, fs.tapMaxMs(), " ms");
-        ui.seek(timing.body, "手势启动距离", FloatSettings.K_GESTURE_START_DISTANCE,
-                10, 80, fs.gestureStartDistance(), " dp");
+        AppUi.Section timing = AppUi.section(activity,
+                activity.getString(R.string.yfloat_tap_hold_section), null);
+        ui.seek(timing.body, activity.getString(R.string.yfloat_long_press_time),
+                FloatSettings.K_LONG_PRESS, 150, 1000, fs.longPressMs(), " ms");
+        ui.seek(timing.body, activity.getString(R.string.yfloat_double_tap_interval),
+                FloatSettings.K_DOUBLE_TAP, 150, 600, fs.doubleTapMs(), " ms");
+        ui.seek(timing.body, activity.getString(R.string.yfloat_tap_max_duration),
+                FloatSettings.K_TAP_MAX_MS, 80, 400, fs.tapMaxMs(), " ms");
+        ui.seek(timing.body, activity.getString(R.string.yfloat_gesture_start_distance),
+                FloatSettings.K_GESTURE_START_DISTANCE, 10, 80, fs.gestureStartDistance(), " dp");
         AppUi.addSection(root, timing);
 
-        AppUi.Section distance = AppUi.section(activity, "滑动距离", null);
-        ui.seek(distance.body, "下滑长短分界", FloatSettings.K_DOWN_SHORT_DISTANCE,
-                50, 600, fs.downShortDistance(), " dp");
-        ui.seek(distance.body, "侧滑长短分界", FloatSettings.K_SIDE_SHORT_DISTANCE,
-                50, 700, fs.sideShortDistance(), " dp");
+        AppUi.Section distance = AppUi.section(activity,
+                activity.getString(R.string.yfloat_swipe_distance_section), null);
+        ui.seek(distance.body, activity.getString(R.string.yfloat_down_swipe_split),
+                FloatSettings.K_DOWN_SHORT_DISTANCE, 50, 600, fs.downShortDistance(), " dp");
+        ui.seek(distance.body, activity.getString(R.string.yfloat_side_swipe_split),
+                FloatSettings.K_SIDE_SHORT_DISTANCE, 50, 700, fs.sideShortDistance(), " dp");
         AppUi.addSection(root, distance);
 
-        AppUi.Section feedback = AppUi.section(activity, "反馈与轨迹", null);
-        ui.check(feedback.body, "震动反馈", null,
+        AppUi.Section feedback = AppUi.section(activity,
+                activity.getString(R.string.yfloat_feedback_trail_section), null);
+        ui.check(feedback.body, activity.getString(R.string.yfloat_vibration_feedback), null,
                 FloatSettings.K_VIBRATE, fs.vibrate());
-        ui.check(feedback.body, "显示手势轨迹", null,
+        ui.check(feedback.body, activity.getString(R.string.yfloat_show_gesture_trail), null,
                 FloatSettings.K_TRACK, fs.track());
-        ui.seek(feedback.body, "轨迹透明度", FloatSettings.K_LINE_ALPHA,
-                10, 100, fs.lineAlpha(), "%");
-        ui.seek(feedback.body, "轨迹宽度", FloatSettings.K_LINE_WIDTH,
-                1, 24, fs.lineWidthDp(), " dp");
-        ui.check(feedback.body, "轨迹颜色渐变", null,
+        ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_opacity),
+                FloatSettings.K_LINE_ALPHA, 10, 100, fs.lineAlpha(), "%");
+        ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_width),
+                FloatSettings.K_LINE_WIDTH, 1, 24, fs.lineWidthDp(), " dp");
+        ui.check(feedback.body, activity.getString(R.string.yfloat_trail_gradient), null,
                 FloatSettings.K_LINE_GRADIENT, fs.lineGradient());
         ui.lineStyleSpinner(feedback.body);
 
         LinearLayout colorsBlock = AppUi.settingBlock(activity);
-        colorsBlock.addView(AppUi.text(activity, "轨迹颜色", 14, false));
+        colorsBlock.addView(AppUi.text(activity,
+                activity.getString(R.string.yfloat_trail_colors), 14, false));
         EditText lineColors = new EditText(activity);
         AppUi.styleInput(activity, lineColors);
-        lineColors.setHint("例如 #FFFFFF,#42A5F5");
+        lineColors.setHint(R.string.yfloat_trail_colors_hint);
         lineColors.setText(fs.lineColors());
         lineColors.setSingleLine(true);
         lineColors.addTextChangedListener(new TextWatcher() {
