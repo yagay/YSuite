@@ -45,90 +45,96 @@ public class MainActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
 
-        LinearLayout root = AppUi.pageRoot(this, "YFloat",
-                "悬浮取词 · 截图 · OCR");
+        LinearLayout root = AppUi.pageRoot(this,
+                getString(R.string.yfloat_title),
+                getString(R.string.yfloat_subtitle));
 
-        AppUi.Section service = AppUi.section(this, "悬浮服务",
-                "这里只控制运行状态；具体行为放到下面的分类设置。" );
+        AppUi.Section service = AppUi.section(this,
+                getString(R.string.yfloat_service_title),
+                getString(R.string.yfloat_service_desc));
         overlaySwitch = AppUi.switchRow(this,
-                "启用悬浮图标",
-                "关闭后停止常驻服务，开启状态会自动保存",
+                getString(R.string.yfloat_enable_float_icon),
+                getString(R.string.yfloat_enable_float_icon_desc),
                 FloatServiceState.isEnabled(this),
                 (button, checked) -> onOverlayToggle(checked));
         AppUi.addRow(service.body, AppUi.switchContainer(overlaySwitch));
 
         LinearLayout statusRow = AppUi.baseRow(this);
-        statusRow.addView(AppUi.text(this, "当前状态", 15, false),
+        statusRow.addView(AppUi.text(this, getString(R.string.yfloat_current_status), 15, false),
                 new LinearLayout.LayoutParams(0, -2, 1f));
-        serviceStatus = AppUi.statusPill(this, "读取中", false);
+        serviceStatus = AppUi.statusPill(this, getString(R.string.yfloat_status_loading), false);
         statusRow.addView(serviceStatus, new LinearLayout.LayoutParams(-2, -2));
         AppUi.addRow(service.body, statusRow);
         AppUi.addSection(root, service);
 
-        AppUi.Section permissions = AppUi.section(this, "权限",
-                "状态集中显示，需要时直接进入系统设置。" );
+        AppUi.Section permissions = AppUi.section(this,
+                getString(R.string.yfloat_permissions_title),
+                getString(R.string.yfloat_permissions_desc));
         overlayPermission = permissionRow(
-                "悬浮窗",
-                "在其他应用上方显示 YFloat",
+                getString(R.string.yfloat_overlay_permission),
+                getString(R.string.yfloat_overlay_permission_desc),
                 () -> startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName()))));
         AppUi.addRow(permissions.body, overlayPermission.view);
 
         boolean suiteHost = "com.yagay.YSuite".equals(getPackageName());
         accessibilityPermission = permissionRow(
-                suiteHost ? "YSuite 统一无障碍" : "无障碍服务",
-                suiteHost
-                        ? "YFloat 与 YNotify 共用；只需开启一次即可提供识别、截图和界面事件能力"
-                        : "View 识别、系统动作和无障碍截图",
+                getString(suiteHost
+                        ? R.string.yfloat_suite_accessibility
+                        : R.string.yfloat_accessibility_service),
+                getString(suiteHost
+                        ? R.string.yfloat_suite_accessibility_desc
+                        : R.string.yfloat_accessibility_service_desc),
                 this::openAccessibilitySettings);
         AppUi.addRow(permissions.body, accessibilityPermission.view);
 
         if (Build.VERSION.SDK_INT >= 33) {
             notificationPermission = permissionRow(
-                    "通知",
-                    "前台服务常驻通知",
+                    getString(R.string.yfloat_notification_permission),
+                    getString(R.string.yfloat_notification_permission_desc),
                     this::handleNotificationPermission);
             AppUi.addRow(permissions.body, notificationPermission.view);
         }
         AppUi.addSection(root, permissions);
 
-        AppUi.Section settings = AppUi.section(this, "功能设置",
-                "每一项进入独立短页面，不再把所有设置堆在一起。" );
+        AppUi.Section settings = AppUi.section(this,
+                getString(R.string.yfloat_feature_settings),
+                getString(R.string.yfloat_feature_settings_desc));
         AppUi.addRow(settings.body, AppUi.navRow(this,
-                "悬浮图标",
-                "大小、透明度、样式、贴边和显示行为",
+                getString(R.string.yfloat_float_icon_settings),
+                getString(R.string.yfloat_float_icon_settings_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_ICON))));
         AppUi.addRow(settings.body, AppUi.navRow(this,
-                "手势与轨迹",
-                "手势参数、轨迹反馈和动作映射",
+                getString(R.string.yfloat_gesture_settings),
+                getString(R.string.yfloat_gesture_settings_desc),
                 () -> startActivity(new Intent(this, GestureHubActivity.class))));
         AppUi.addRow(settings.body, AppUi.navRow(this,
-                "截图与 OCR",
-                "截图来源、OCR 引擎、模型和识别语言",
+                getString(R.string.yfloat_capture_ocr_settings),
+                getString(R.string.yfloat_capture_ocr_settings_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_CAPTURE))));
         AppUi.addRow(settings.body, AppUi.navRow(this,
-                "环境与显示",
-                "键盘避让、智能入口和按应用隐藏",
+                getString(R.string.yfloat_environment_settings),
+                getString(R.string.yfloat_environment_settings_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_ENVIRONMENT))));
         AppUi.addRow(settings.body, AppUi.navRow(this,
-                "界面与菜单",
-                "主题、文字菜单数量和菜单管理",
+                getString(R.string.yfloat_interface_settings),
+                getString(R.string.yfloat_interface_settings_desc),
                 () -> startActivity(new Intent(this, AppearanceSettingsActivity.class))));
         AppUi.addSection(root, settings);
 
-        AppUi.Section advanced = AppUi.section(this, "高级", null);
+        AppUi.Section advanced = AppUi.section(this, getString(R.string.yfloat_advanced_title), null);
         AppUi.addRow(advanced.body, AppUi.navRow(this,
-                "高级权限",
-                "Root / LSPosed 可选增强、授权状态与失败回退",
+                getString(R.string.yfloat_advanced_permissions),
+                getString(R.string.yfloat_advanced_permissions_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_PRIVILEGE))));
         AppUi.addRow(advanced.body, AppUi.navRow(this,
-                "诊断与调试",
-                "YFloat 自身运行日志",
+                getString(R.string.yfloat_diagnostics),
+                getString(R.string.yfloat_diagnostics_desc),
                 () -> startActivity(new Intent(this, DiagnosticsActivity.class))));
         AppUi.addSection(root, advanced);
 
         TextView footer = AppUi.caption(this,
-                "YFloat " + BuildConfig.VERSION_NAME,
+                getString(R.string.yfloat_version, BuildConfig.VERSION_NAME),
                 12);
         footer.setGravity(Gravity.CENTER_HORIZONTAL);
         footer.setPadding(0, 2, 0, AppUi.dp(this, 4));
@@ -151,21 +157,21 @@ public class MainActivity extends AppCompatActivity {
         if (returnedFromAccessibilitySettings) {
             AccessibilityState.Snapshot snapshot = AccessibilityState.snapshot(this);
             if (!snapshot.hostEnabled) {
-                String message;
+                int messageRes;
                 if (snapshot.sameHostOtherAccessibilityEnabled
                         && "com.yagay.YSuite".equals(getPackageName())) {
-                    message = "检测到旧版 YSuite 分模块无障碍授权；请改为开启“YSuite 统一无障碍”";
+                    messageRes = R.string.yfloat_old_suite_accessibility_warning;
                 } else if (snapshot.otherYFloatEnabled
                         && "com.yagay.YSuite".equals(getPackageName())) {
-                    message = "独立版 YFloat 已开启，但 YSuite 统一无障碍仍未开启";
+                    messageRes = R.string.yfloat_standalone_accessibility_warning;
                 } else if ("com.yagay.YSuite".equals(getPackageName())) {
-                    message = "YSuite 统一无障碍仍未开启";
+                    messageRes = R.string.yfloat_suite_accessibility_still_disabled;
                 } else if (snapshot.otherYFloatEnabled) {
-                    message = "另一版本 YFloat 已开启，但当前版本仍未开启";
+                    messageRes = R.string.yfloat_other_version_accessibility_warning;
                 } else {
-                    message = "YFloat 无障碍仍未开启";
+                    messageRes = R.string.yfloat_accessibility_still_disabled;
                 }
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, messageRes, Toast.LENGTH_LONG).show();
             }
         }
 
@@ -185,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
         if (AccessibilitySettingsNavigator.open(this)) {
             awaitingAccessibilityGrant = true;
         } else {
-            Toast.makeText(this, "无法打开系统无障碍设置", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.yfloat_cannot_open_accessibility, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -202,19 +208,19 @@ public class MainActivity extends AppCompatActivity {
             boolean overlayGranted = Settings.canDrawOverlays(this);
             AccessibilityState.Snapshot a11y = AccessibilityState.snapshot(this);
             if (!overlayGranted && !a11y.hostEnabled) {
-                String message;
+                int messageRes;
                 if (a11y.sameHostOtherAccessibilityEnabled
                         && "com.yagay.YSuite".equals(getPackageName())) {
-                    message = "检测到旧版 YSuite 无障碍授权；请迁移到“YSuite 统一无障碍”";
+                    messageRes = R.string.yfloat_migrate_old_accessibility;
                 } else if (a11y.otherYFloatEnabled
                         && "com.yagay.YSuite".equals(getPackageName())) {
-                    message = "独立版 YFloat 已开启；YSuite 请改为开启统一无障碍";
+                    messageRes = R.string.yfloat_use_suite_accessibility;
                 } else if ("com.yagay.YSuite".equals(getPackageName())) {
-                    message = "请先授予悬浮窗权限或开启 YSuite 统一无障碍";
+                    messageRes = R.string.yfloat_need_overlay_or_suite_accessibility;
                 } else {
-                    message = "请先授予悬浮窗权限或开启当前 YFloat 无障碍服务";
+                    messageRes = R.string.yfloat_need_overlay_or_accessibility;
                 }
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, messageRes, Toast.LENGTH_LONG).show();
                 FloatServiceState.setEnabled(this, false);
                 syncOverlaySwitch(false);
                 refreshStatus();
@@ -225,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
                 FloatServiceState.setEnabled(this, true);
                 syncOverlaySwitch(true);
                 Toast.makeText(this,
-                        "无障碍已授权，正在等待系统连接服务",
+                        R.string.yfloat_accessibility_waiting_connection,
                         Toast.LENGTH_SHORT).show();
                 mainHandler.postDelayed(delayedAccessibilityRefresh, 500L);
                 mainHandler.postDelayed(delayedAccessibilityRefresh, 1500L);
@@ -234,13 +240,13 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (FloatServiceState.start(this)) {
-                Toast.makeText(this, "悬浮图标已开启", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.yfloat_float_icon_enabled, Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "启动失败，已保留开启状态供稍后自动重试", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.yfloat_start_failed_retry, Toast.LENGTH_LONG).show();
             }
         } else {
             FloatServiceState.stop(this);
-            Toast.makeText(this, "悬浮图标已关闭", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.yfloat_float_icon_disabled, Toast.LENGTH_SHORT).show();
         }
         refreshStatus();
     }
@@ -259,17 +265,17 @@ public class MainActivity extends AppCompatActivity {
         boolean enabled = FloatServiceState.isEnabled(this);
         boolean running = FloatService.get() != null;
         if (!enabled) {
-            setServiceStatus("已停止", false);
+            setServiceStatus(getString(R.string.yfloat_status_stopped), false);
         } else if (running && a11y.connected) {
-            setServiceStatus("运行中 · 无障碍已连接", true);
+            setServiceStatus(getString(R.string.yfloat_status_running_accessibility_connected), true);
         } else if (running && a11y.hostEnabled) {
-            setServiceStatus("运行中 · 等待无障碍连接", false);
+            setServiceStatus(getString(R.string.yfloat_status_running_waiting_accessibility), false);
         } else if (running) {
-            setServiceStatus("运行中 · 无障碍未开启", false);
+            setServiceStatus(getString(R.string.yfloat_status_running_accessibility_disabled), false);
         } else if (a11y.hostEnabled && !a11y.connected && !overlayGranted) {
-            setServiceStatus("等待无障碍连接", false);
+            setServiceStatus(getString(R.string.yfloat_status_waiting_accessibility), false);
         } else {
-            setServiceStatus("等待恢复", false);
+            setServiceStatus(getString(R.string.yfloat_status_waiting_recovery), false);
         }
     }
 
@@ -290,12 +296,12 @@ public class MainActivity extends AppCompatActivity {
         TextView sub = AppUi.caption(this, subtitle, 12);
         sub.setPadding(0, AppUi.dp(this, 2), AppUi.dp(this, 8), 0);
         copy.addView(sub);
-        TextView status = AppUi.caption(this, "未授权", 12);
+        TextView status = AppUi.caption(this, getString(R.string.yfloat_permission_not_authorized), 12);
         status.setPadding(0, AppUi.dp(this, 2), 0, 0);
         copy.addView(status);
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton button = AppUi.compactButton(this, "授权");
+        MaterialButton button = AppUi.compactButton(this, getString(R.string.yfloat_permission_authorize));
         button.setOnClickListener(v -> { if (action != null) action.run(); });
         row.addView(button, new LinearLayout.LayoutParams(-2, -2));
         return new PermissionRow(row, status, button);
@@ -303,9 +309,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void updatePermission(PermissionRow row, boolean granted) {
         if (row == null) return;
-        row.status.setText(granted ? "已授权" : "未授权");
+        row.status.setText(granted
+                ? R.string.yfloat_permission_authorized
+                : R.string.yfloat_permission_not_authorized);
         row.status.setTextColor(granted ? AppUi.success(this) : AppUi.warning(this));
-        row.button.setText(granted ? "设置" : "授权");
+        row.button.setText(granted
+                ? R.string.yfloat_permission_settings
+                : R.string.yfloat_permission_authorize);
     }
 
     private void updateAccessibilityPermission(
@@ -316,11 +326,11 @@ public class MainActivity extends AppCompatActivity {
         row.status.setText(snapshot.statusLabel(this));
         row.status.setTextColor(snapshot.hostEnabled ? AppUi.success(this) : AppUi.warning(this));
         if (snapshot.hostEnabled) {
-            row.button.setText("设置");
+            row.button.setText(R.string.yfloat_permission_settings);
         } else if ("com.yagay.YSuite".equals(getPackageName())) {
-            row.button.setText("开启 YSuite");
+            row.button.setText(R.string.yfloat_permission_enable_suite);
         } else {
-            row.button.setText("授权");
+            row.button.setText(R.string.yfloat_permission_authorize);
         }
     }
 
@@ -336,7 +346,7 @@ public class MainActivity extends AppCompatActivity {
                     .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
             startActivity(i);
         } catch (Throwable t) {
-            Toast.makeText(this, "通知权限已授予", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.yfloat_notification_already_authorized, Toast.LENGTH_SHORT).show();
         }
     }
 
