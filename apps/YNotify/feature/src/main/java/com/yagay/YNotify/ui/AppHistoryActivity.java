@@ -51,10 +51,10 @@ public class AppHistoryActivity extends AppCompatActivity {
             }
         });
         b.clearApp.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("清空此应用历史？")
+                .setTitle(R.string.ynotify_clear_app_confirm)
                 .setMessage(pkg)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("清空", (d, w) -> EventStore.deletePackage(this, pkg))
+                .setNegativeButton(R.string.ynotify_cancel, null)
+                .setPositiveButton(R.string.ynotify_clear, (d, w) -> EventStore.deletePackage(this, pkg))
                 .show());
         observe();
     }
