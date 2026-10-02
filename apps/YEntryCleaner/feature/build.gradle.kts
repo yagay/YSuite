@@ -4,6 +4,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val embeddedInSuite = rootProject.findProject(":suite") != null
+val hostPackage = if (embeddedInSuite) "com.yagay.YSuite" else "com.yagay.YEntryCleaner"
 val standaloneVersionCode = 43
 val runtimeVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
     .orNull?.toIntOrNull() ?: standaloneVersionCode
@@ -23,6 +25,7 @@ android {
         buildConfigField("int", "VERSION_CODE", runtimeVersionCode.toString())
         buildConfigField("String", "VERSION_NAME", "\"1.6.18\"")
         buildConfigField("long", "HOOK_COMPAT_VERSION_CODE", "43L")
+        buildConfigField("String", "HOST_PACKAGE", "\"$hostPackage\"")
     }
 
     buildFeatures { compose = true; buildConfig = true }
