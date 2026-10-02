@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -201,7 +202,7 @@ fun YStatusPill(
     }
     Surface(modifier = modifier, shape = MaterialTheme.shapes.small, tonalElevation = 1.dp) {
         Text(
-            text = "$label · $value",
+            text = stringResource(R.string.yui_status_pair, label, value),
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelLarge,
             color = foreground,
@@ -263,18 +264,19 @@ fun YSearchField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    hint: String = "搜索",
+    hint: String? = null,
     enabled: Boolean = true,
     leadingIcon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
 ) {
+    val resolvedHint = hint ?: stringResource(R.string.yui_search)
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
         singleLine = true,
-        label = { Text(hint) },
+        label = { Text(resolvedHint) },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         shape = MaterialTheme.shapes.medium,
@@ -287,10 +289,11 @@ fun YNavigationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    actionLabel: String = "打开",
+    actionLabel: String? = null,
     enabled: Boolean = true,
 ) {
+    val resolvedActionLabel = actionLabel ?: stringResource(R.string.yui_open)
     YSettingRow(title = title, subtitle = subtitle, modifier = modifier) {
-        YSecondaryButton(text = actionLabel, onClick = onClick, enabled = enabled)
+        YSecondaryButton(text = resolvedActionLabel, onClick = onClick, enabled = enabled)
     }
 }
