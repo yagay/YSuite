@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
  */
 sealed interface YPageState {
     data object Ready : YPageState
-    data class Loading(val message: String = "加载中…") : YPageState
+    data class Loading(val message: String? = null) : YPageState
     data class Empty(val message: String) : YPageState
     data class Error(val message: String) : YPageState
 }
