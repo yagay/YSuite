@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.yagay.YNotify.R;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.databinding.ItemEventBinding;
@@ -36,24 +37,33 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
         EventRecord r = items.get(position);
         Context c = h.itemView.getContext();
         h.b.appIcon.setImageDrawable(AppInfoUtil.icon(c, r.packageName));
-        h.b.appName.setText(first(r.appLabel, r.packageName, "未知应用"));
-        h.b.type.setText(typeLabel(r));
+        h.b.appName.setText(first(r.appLabel, r.packageName, c.getString(R.string.ynotify_unknown_app)));
+        h.b.type.setText(typeLabel(c, r));
 
         String title = first(r.title, EventTypes.NOTIFICATION.equals(r.eventType) ? "" : r.className, "");
         h.b.title.setText(title);
         h.b.title.setVisibility(title.isEmpty() ? View.GONE : View.VISIBLE);
 
-        String body = body(r);
+        String body = body(c, r);
         h.b.text.setText(body);
         h.b.text.setVisibility(body.isEmpty() ? View.GONE : View.VISIBLE);
 
-        String details = details(r);
+        String details = details(c, r);
         h.b.details.setText(details);
         h.b.details.setVisibility(details.isEmpty() ? View.GONE : View.VISIBLE);
 
-        String removed = r.removedAt == null ? "" : " · 已移除 " + TimeFormat.shortTime(r.removedAt);
-        String revisions = r.revisionCount > 1 ? " · " + r.revisionCount + " 个版本" : "";
-        h.b.time.setText(TimeFormat.full(r.postedAt) + " · " + r.source + revisions + removed);
+        String removed = r.removedAt == null
+                ? ""
+                : c.getString(R.string.ynotify_event_removed_suffix, TimeFormat.shortTime(r.removedAt));
+        String revisions = r.revisionCount > 1
+                ? c.getString(R.string.ynotify_event_revision_suffix, r.revisionCount)
+                : "";
+        h.b.time.setText(c.getString(
+                R.string.ynotify_event_time_source,
+                TimeFormat.full(r.postedAt),
+                r.source == null ? "" : r.source,
+                revisions,
+                removed));
         h.itemView.setOnClickListener(v -> {
             Intent i = new Intent(c, EventDetailActivity.class);
             i.putExtra("id", r.id);
@@ -63,12 +73,16 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
 
     @Override public int getItemCount() { return items.size(); }
 
-    private static String body(EventRecord r) {
+    private static String body(Context c, EventRecord r) {
         Set<String> out = new LinkedHashSet<>();
         add(out, r.text);
         add(out, r.fullText);
-        if (r.subText != null && !r.subText.isBlank()) add(out, "副标题：" + r.subText.trim());
-        if (r.summaryText != null && !r.summaryText.isBlank()) add(out, "摘要：" + r.summaryText.trim());
+        if (r.subText != null && !r.subText.isBlank()) {
+            add(out, c.getString(R.string.ynotify_body_subtitle, r.subText.trim()));
+        }
+        if (r.summaryText != null && !r.summaryText.isBlank()) {
+            add(out, c.getString(R.string.ynotify_body_summary, r.summaryText.trim()));
+        }
         return String.join("\n", out);
     }
 
@@ -82,61 +96,75 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
         out.add(text);
     }
 
-    private static String details(EventRecord r) {
-        List<String> p = new ArrayList<>();
+    private static String details(Context c, EventRecord r) {
+        List<String> parts = new ArrayList<>();
         if (EventTypes.NOTIFICATION.equals(r.eventType)) {
-            p.add("展示：" + String.join(" · ", surfaces(r)));
+            parts.add(c.getString(
+                    R.string.ynotify_detail_surfaces,
+                    String.join(", ", surfaces(c, r))));
             String channel = first(r.channelName, r.channelId, "");
-            if (!channel.isEmpty()) p.add("Channel：" + channel);
-            if (r.category != null && !r.category.isBlank()) p.add("Category：" + r.category);
-            if (r.progressIndeterminate) p.add("进度：进行中");
-            else if (r.progressMax > 0) p.add("进度：" + r.progress + "/" + r.progressMax);
-            if (r.bubble && !r.bubbleShown) p.add("支持气泡 · 未观察到展开");
-            if (r.fullScreen && !r.fullScreenShown) p.add("有全屏 Intent · 未观察到启动");
-            if (r.foregroundService) p.add("前台服务");
-            if (r.ongoing) p.add("持续通知");
-            if (r.silent) p.add("静默");
-            if (r.conversation) p.add("会话通知");
-        } else if (r.className != null && !r.className.isBlank()) {
-            p.add("类：" + r.className);
-        }
-        return String.join("\n", p);
-    }
-
-    private static List<String> surfaces(EventRecord r) {
-        List<String> p = new ArrayList<>();
-        p.add("通知栏");
-        if (r.headsUp) p.add("横幅");
-        if (r.bubbleShown) p.add("气泡");
-        if (r.fullScreenShown) p.add("全屏");
-        return p;
-    }
-
-    private static String typeLabel(EventRecord r) {
-        if (EventTypes.NOTIFICATION.equals(r.eventType)) {
-            String k = r.notificationKind == null ? "standard" : r.notificationKind;
-            String base;
-            switch (k) {
-                case "call": base = "来电"; break;
-                case "alarm": base = "闹钟"; break;
-                case "media": base = "媒体"; break;
-                case "progress": base = "进度"; break;
-                case "foreground_service": base = "前台服务"; break;
-                case "message": base = "消息"; break;
-                case "system": base = "系统通知"; break;
-                case "ongoing": base = "持续通知"; break;
-                case "silent": base = "静默通知"; break;
-                default: base = "通知"; break;
+            if (!channel.isEmpty()) parts.add(c.getString(R.string.ynotify_detail_channel, channel));
+            if (r.category != null && !r.category.isBlank()) {
+                parts.add(c.getString(R.string.ynotify_detail_category, r.category));
             }
-            return base + " · " + String.join(" · ", surfaces(r));
+            if (r.progressIndeterminate) {
+                parts.add(c.getString(R.string.ynotify_detail_progress_running));
+            } else if (r.progressMax > 0) {
+                parts.add(c.getString(R.string.ynotify_detail_progress_value, r.progress, r.progressMax));
+            }
+            if (r.bubble && !r.bubbleShown) {
+                parts.add(c.getString(R.string.ynotify_detail_bubble_not_shown));
+            }
+            if (r.fullScreen && !r.fullScreenShown) {
+                parts.add(c.getString(R.string.ynotify_detail_fullscreen_not_shown));
+            }
+            if (r.foregroundService) parts.add(c.getString(R.string.ynotify_detail_foreground_service));
+            if (r.ongoing) parts.add(c.getString(R.string.ynotify_detail_ongoing));
+            if (r.silent) parts.add(c.getString(R.string.ynotify_detail_silent));
+            if (r.conversation) parts.add(c.getString(R.string.ynotify_detail_conversation));
+        } else if (r.className != null && !r.className.isBlank()) {
+            parts.add(c.getString(R.string.ynotify_detail_class, r.className));
+        }
+        return String.join("\n", parts);
+    }
+
+    private static List<String> surfaces(Context c, EventRecord r) {
+        List<String> parts = new ArrayList<>();
+        parts.add(c.getString(R.string.ynotify_surface_notification_bar));
+        if (r.headsUp) parts.add(c.getString(R.string.ynotify_surface_heads_up));
+        if (r.bubbleShown) parts.add(c.getString(R.string.ynotify_surface_bubble));
+        if (r.fullScreenShown) parts.add(c.getString(R.string.ynotify_surface_full_screen));
+        return parts;
+    }
+
+    private static String typeLabel(Context c, EventRecord r) {
+        if (EventTypes.NOTIFICATION.equals(r.eventType)) {
+            String kind = r.notificationKind == null ? "standard" : r.notificationKind;
+            String base;
+            switch (kind) {
+                case "call": base = c.getString(R.string.ynotify_kind_call); break;
+                case "alarm": base = c.getString(R.string.ynotify_kind_alarm); break;
+                case "media": base = c.getString(R.string.ynotify_kind_media); break;
+                case "progress": base = c.getString(R.string.ynotify_kind_progress); break;
+                case "foreground_service": base = c.getString(R.string.ynotify_kind_foreground_service); break;
+                case "message": base = c.getString(R.string.ynotify_kind_message); break;
+                case "system": base = c.getString(R.string.ynotify_kind_system); break;
+                case "ongoing": base = c.getString(R.string.ynotify_kind_ongoing); break;
+                case "silent": base = c.getString(R.string.ynotify_kind_silent); break;
+                default: base = c.getString(R.string.ynotify_class_notification); break;
+            }
+            return c.getString(
+                    R.string.ynotify_type_with_surfaces,
+                    base,
+                    String.join(", ", surfaces(c, r)));
         }
         switch (r.eventType) {
-            case EventTypes.TOAST: return "Toast";
-            case EventTypes.DIALOG: return "Dialog";
-            case EventTypes.SNACKBAR: return "Snackbar";
-            case EventTypes.POPUP: return "应用弹层";
-            case EventTypes.SYSTEM_UI: return "SystemUI";
-            default: return "界面提示";
+            case EventTypes.TOAST: return c.getString(R.string.ynotify_filter_toast);
+            case EventTypes.DIALOG: return c.getString(R.string.ynotify_class_dialog);
+            case EventTypes.SNACKBAR: return c.getString(R.string.ynotify_filter_snackbar);
+            case EventTypes.POPUP: return c.getString(R.string.ynotify_filter_popup);
+            case EventTypes.SYSTEM_UI: return c.getString(R.string.ynotify_type_system_ui);
+            default: return c.getString(R.string.ynotify_class_other_ui);
         }
     }
 
