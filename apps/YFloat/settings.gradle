@@ -21,4 +21,4 @@ if (localApi.isDirectory() && localUi.isDirectory()) {
 }
 
 rootProject.name = 'YFloat'
-include ':app', ':feature', ':ppocr-sdk'
+include ':feature', ':ppocr-sdk'
