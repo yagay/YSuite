@@ -258,7 +258,9 @@ public final class MainActivity extends Activity {
         boolean active = GuardApp.getBoolean(ConfigKeys.DIAGNOSTICS_ACTIVE);
         String started = GuardApp.getString(ConfigKeys.DIAGNOSTICS_STARTED_AT);
         if (active) {
-            String startedSuffix = started.isEmpty() ? "" : " · start=" + started;
+            String startedSuffix = started.isEmpty()
+                    ? ""
+                    : getString(R.string.ymg_diag_started_at, started);
             YViewLayout.setStatus(
                     diagnosticsStatus,
                     getString(R.string.ymg_diag_running, startedSuffix),
