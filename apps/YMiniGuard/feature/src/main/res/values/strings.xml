@@ -61,7 +61,7 @@
     <string name="ymg_target_force_title">Force OPlus mini-window</string>
     <string name="ymg_target_background_title">Background-playback apps</string>
     <string name="ymg_target_foreground_title">Always-foreground apps</string>
-    <string name="ymg_target_force_help">When selected, only the app's OPlus FlexibleWindow support/blacklist checks are bypassed. OxygenOS still launches the app and enters mini-window mode itself.</string>
+    <string name="ymg_target_force_help">When selected, only the app’s OPlus FlexibleWindow support/blacklist checks are bypassed. OxygenOS still launches the app and enters mini-window mode itself.</string>
     <string name="ymg_target_background_help">When selected, the app enters BACKGROUND_PROTECTED after leaving normal full-screen mode for the launcher, another app, or the lock screen. In-app navigation, finishing Activities, force-stop, and real closure are not intercepted.</string>
     <string name="ymg_target_foreground_help">When selected, YMiniGuard keeps the app foreground and playing only while it is actually in an OPlus mini-window, edge mini-window, or lock-screen mini-window. Normal full-screen state is untouched.</string>
     <string name="ymg_search_apps">Search app name or package</string>
