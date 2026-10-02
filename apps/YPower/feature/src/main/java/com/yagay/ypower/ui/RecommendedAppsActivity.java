@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.yagay.ypower.R;
 import com.yagay.ypower.data.ProfileStore;
 import com.yagay.ypower.data.RecommendedAppRegistry;
 import com.yagay.ypower.model.AppProfile;
@@ -33,18 +34,21 @@ public class RecommendedAppsActivity extends AppCompatActivity {
     private void buildUi() {
         YViewScreen screen = YViewLayout.install(
                 this,
-                "推荐应用",
-                "只显示已安装且 YPower 有明确推荐规则的应用"
+                getString(R.string.yp_recommended_title),
+                getString(R.string.yp_recommended_subtitle)
         );
         LinearLayout root = screen.getContent();
         root.addView(YViewLayout.statusLine(
                 this,
                 XposedBridgeManager.isReady()
-                        ? "LSPosed Service 已连接；一键推荐会同步 Scope"
-                        : "LSPosed Service 未连接；推荐配置会先保存",
+                        ? getString(R.string.yp_recommended_lsposed_connected)
+                        : getString(R.string.yp_recommended_lsposed_disconnected),
                 XposedBridgeManager.isReady() ? YViewStatusTone.Good : YViewStatusTone.Warning
         ));
-        YViewLayout.sectionHeader(root, "可用推荐", "应用后会启用 YPower、保存推荐 Hook，并请求 LSPosed Scope。");
+        YViewLayout.sectionHeader(
+                root,
+                getString(R.string.yp_recommended_section),
+                getString(R.string.yp_recommended_section_desc));
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         root.addView(list);
@@ -67,7 +71,7 @@ public class RecommendedAppsActivity extends AppCompatActivity {
         }
 
         if (count == 0) {
-            list.addView(YViewLayout.emptyState(this, "当前已安装应用中暂时没有命中内置推荐规则。"));
+            list.addView(YViewLayout.emptyState(this, getString(R.string.yp_no_recommendations)));
         }
     }
 
@@ -77,13 +81,13 @@ public class RecommendedAppsActivity extends AppCompatActivity {
                 preset.displayName,
                 preset.packageName
         );
-        card.addView(YViewLayout.detailBlock(this, "推荐原因", preset.reason));
-        card.addView(YViewLayout.detailBlock(this, "推荐 Hook", preset.hookSummary()));
+        card.addView(YViewLayout.detailBlock(this, getString(R.string.yp_recommendation_reason), preset.reason));
+        card.addView(YViewLayout.detailBlock(this, getString(R.string.yp_recommended_hooks), preset.hookSummary()));
 
         LinearLayout buttons = YViewLayout.actionRow(card);
-        Button apply = YViewLayout.primaryButton(this, "一键推荐 + LSPosed");
+        Button apply = YViewLayout.primaryButton(this, getString(R.string.yp_apply_recommended_short));
         apply.setOnClickListener(v -> applyPreset(preset));
-        Button detail = YViewLayout.secondaryButton(this, "设置");
+        Button detail = YViewLayout.secondaryButton(this, getString(R.string.yp_settings));
         detail.setOnClickListener(v -> {
             Intent i = new Intent(this, AppDetailActivity.class);
             i.putExtra("package", preset.packageName);
@@ -97,11 +101,11 @@ public class RecommendedAppsActivity extends AppCompatActivity {
         AppProfile profile = ProfileStore.get(this).applyRecommendedPreset(preset);
         EnhancementEngine.applyAsync(this, profile, result -> runOnUiThread(() -> {
             String scope = XposedBridgeManager.isReady()
-                    ? "已请求同步到 LSPosed Scope"
-                    : "LSPosed 未连接；配置已保存，连接后会再次请求 Scope";
+                    ? getString(R.string.yp_scope_requested)
+                    : getString(R.string.yp_scope_saved_for_later);
             Toast.makeText(
                     this,
-                    preset.displayName + "：推荐配置已应用\n" + scope + "\n" + result.summary(),
+                    getString(R.string.yp_recommended_applied, preset.displayName, scope, result.summary()),
                     Toast.LENGTH_LONG
             ).show();
             populate();
