@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ynotify_unknown_app">Unknown app</string>
+    <string name="ynotify_last_record">Last record: %1$s</string>
+    <string name="ynotify_body_subtitle">Subtitle: %1$s</string>
+    <string name="ynotify_body_summary">Summary: %1$s</string>
+    <string name="ynotify_detail_surfaces">Surfaces: %1$s</string>
+    <string name="ynotify_detail_channel">Channel: %1$s</string>
+    <string name="ynotify_detail_category">Category: %1$s</string>
+    <string name="ynotify_detail_progress_running">Progress: running</string>
+    <string name="ynotify_detail_progress_value">Progress: %1$d of %2$d</string>
+    <string name="ynotify_detail_bubble_not_shown">Bubble supported. No expanded bubble was observed.</string>
+    <string name="ynotify_detail_fullscreen_not_shown">Full-screen intent available. No launch was observed.</string>
+    <string name="ynotify_detail_foreground_service">Foreground service</string>
+    <string name="ynotify_detail_ongoing">Ongoing notification</string>
+    <string name="ynotify_detail_silent">Silent</string>
+    <string name="ynotify_detail_conversation">Conversation notification</string>
+    <string name="ynotify_detail_class">Class: %1$s</string>
+    <string name="ynotify_surface_notification_bar">Notification bar</string>
+    <string name="ynotify_surface_heads_up">Heads-up</string>
+    <string name="ynotify_surface_bubble">Bubble</string>
+    <string name="ynotify_surface_full_screen">Full screen</string>
+    <string name="ynotify_kind_call">Call</string>
+    <string name="ynotify_kind_alarm">Alarm</string>
+    <string name="ynotify_kind_media">Media</string>
+    <string name="ynotify_kind_progress">Progress</string>
+    <string name="ynotify_kind_foreground_service">Foreground service</string>
+    <string name="ynotify_kind_message">Message</string>
+    <string name="ynotify_kind_system">System notification</string>
+    <string name="ynotify_kind_ongoing">Ongoing notification</string>
+    <string name="ynotify_kind_silent">Silent notification</string>
+    <string name="ynotify_type_with_surfaces">%1$s. Surfaces: %2$s</string>
+    <string name="ynotify_type_system_ui">System UI</string>
+    <string name="ynotify_event_revision_suffix">. Revisions: %1$d</string>
+    <string name="ynotify_event_removed_suffix">. Removed: %1$s</string>
+    <string name="ynotify_event_time_source">%1$s. Source: %2$s%3$s%4$s</string>
+</resources>
