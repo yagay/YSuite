@@ -55,9 +55,17 @@ class MainActivity : YComposeActivity() {
                 runCatching { SuiteLog.export(this@MainActivity, modules) }
             }
             result.onSuccess { path ->
-                Toast.makeText(this@MainActivity, getString(R.string.diagnostic_saved, label, path), Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.diagnostic_saved, label, path),
+                    Toast.LENGTH_LONG,
+                ).show()
             }.onFailure {
-                Toast.makeText(this@MainActivity, getString(R.string.diagnostic_save_failed, label, it.javaClass.simpleName), Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.diagnostic_save_failed, label, it.javaClass.simpleName),
+                    Toast.LENGTH_LONG,
+                ).show()
             }
         }
     }
@@ -71,6 +79,9 @@ class MainActivity : YComposeActivity() {
                 features.forEach { put(it.id, store.isEnabled(it)) }
             }
         }
+        val standaloneApps = remember {
+            mutableStateMapOf<String, StandaloneAppManager.Snapshot?>()
+        }
         var rootAvailable by remember { mutableStateOf<Boolean?>(null) }
         var xposedConnected by remember { mutableStateOf(SuiteXposedServiceBroker.isConnected()) }
         var permissions by remember { mutableStateOf(SuitePermissionState.snapshot(this)) }
@@ -83,8 +94,25 @@ class MainActivity : YComposeActivity() {
         }
 
         LaunchedEffect(resumeTick) {
-            rootAvailable = withContext(Dispatchers.IO) { RootManager.isAvailable(this@MainActivity) }
+            rootAvailable = withContext(Dispatchers.IO) {
+                RootManager.isAvailable(this@MainActivity)
+            }
             permissions = SuitePermissionState.snapshot(this@MainActivity)
+
+            val refreshedStandaloneApps = withContext(Dispatchers.IO) {
+                features.associate { feature ->
+                    feature.id to if (feature.standaloneEnabled) {
+                        StandaloneAppManager.snapshot(
+                            this@MainActivity,
+                            feature.standalonePackageName,
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+            standaloneApps.clear()
+            standaloneApps.putAll(refreshedStandaloneApps)
         }
 
         LaunchedEffect(Unit) {
@@ -106,9 +134,15 @@ class MainActivity : YComposeActivity() {
                         rootAvailable = rootAvailable,
                         xposedConnected = xposedConnected,
                         permissions = permissions,
-                        onAccessibility = { SuitePermissionState.openAccessibilitySettings(this@MainActivity) },
-                        onOverlay = { SuitePermissionState.openOverlaySettings(this@MainActivity) },
-                        onNotificationListener = { SuitePermissionState.openNotificationListenerSettings(this@MainActivity) },
+                        onAccessibility = {
+                            SuitePermissionState.openAccessibilitySettings(this@MainActivity)
+                        },
+                        onOverlay = {
+                            SuitePermissionState.openOverlaySettings(this@MainActivity)
+                        },
+                        onNotificationListener = {
+                            SuitePermissionState.openNotificationListenerSettings(this@MainActivity)
+                        },
                         onExport = { exportDiagnostic(null, fullDiagnosticLabel) },
                     )
                 }
@@ -116,6 +150,7 @@ class MainActivity : YComposeActivity() {
                 items(features.size, key = { features[it].id }) { index ->
                     val feature = features[index]
                     val localizedName = localizedFeatureName(feature)
+                    val standalone = standaloneApps[feature.id]
                     FeatureCard(
                         feature = feature,
                         localizedName = localizedName,
@@ -123,6 +158,7 @@ class MainActivity : YComposeActivity() {
                         isEnabled = enabled[feature.id] == true,
                         rootAvailable = rootAvailable,
                         xposedConnected = xposedConnected,
+                        standalone = standalone,
                         onEnabledChange = { next ->
                             store.setEnabled(feature, next)
                             enabled[feature.id] = store.isEnabled(feature)
@@ -132,14 +168,45 @@ class MainActivity : YComposeActivity() {
                         },
                         onOpen = {
                             SuiteCrashTracker.markActiveFeature(this@MainActivity, feature.id)
-                            runCatching { startActivity(feature.createIntent(this@MainActivity)) }
-                                .onFailure {
-                                    SuiteLog.e(this@MainActivity, feature.id, "open failed", it)
-                                    SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
-                                    Toast.makeText(this@MainActivity, getString(R.string.feature_open_failed, localizedName, it.javaClass.simpleName), Toast.LENGTH_LONG).show()
-                                }
+                            runCatching {
+                                startActivity(feature.createIntent(this@MainActivity))
+                            }.onFailure {
+                                SuiteLog.e(this@MainActivity, feature.id, "open failed", it)
+                                SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(
+                                        R.string.feature_open_failed,
+                                        localizedName,
+                                        it.javaClass.simpleName,
+                                    ),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
                         },
-                        onExportLog = { exportDiagnostic(setOf(feature.id), localizedName) },
+                        onOpenStandalone = {
+                            val packageName = feature.standalonePackageName ?: return@FeatureCard
+                            if (!StandaloneAppManager.open(this@MainActivity, packageName)) {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(R.string.error_open_standalone, localizedName),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                        },
+                        onStandaloneSettings = {
+                            val packageName = feature.standalonePackageName ?: return@FeatureCard
+                            if (!StandaloneAppManager.openSettings(this@MainActivity, packageName)) {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(R.string.error_open_standalone_settings, localizedName),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                        },
+                        onExportLog = {
+                            exportDiagnostic(setOf(feature.id), localizedName)
+                        },
                     )
                 }
             }
@@ -161,32 +228,128 @@ private fun RuntimeEnvironmentCard(
     YFeatureCard(
         title = stringResource(R.string.runtime_environment_title),
         subtitle = stringResource(R.string.runtime_environment_subtitle),
-        detail = stringResource(R.string.runtime_environment_detail, featureCount, SuiteXposedServiceBroker.listenerCount()),
+        detail = stringResource(
+            R.string.runtime_environment_detail,
+            featureCount,
+            SuiteXposedServiceBroker.listenerCount(),
+        ),
     ) {
-        YStatusRow(stringResource(R.string.capability_root), when (rootAvailable) { true -> stringResource(R.string.status_authorized); false -> stringResource(R.string.status_unavailable_or_unauthorized); null -> stringResource(R.string.status_checking) }, when (rootAvailable) { true -> YStatusTone.Good; false -> YStatusTone.Error; null -> YStatusTone.Neutral })
-        YStatusRow(stringResource(R.string.capability_lsposed), if (xposedConnected) stringResource(R.string.status_connected) else stringResource(R.string.status_not_connected), if (xposedConnected) YStatusTone.Good else YStatusTone.Warning)
-        YStatusRow(stringResource(R.string.capability_accessibility), when { permissions.accessibilityConnected -> stringResource(R.string.status_connected); permissions.accessibilityEnabled -> stringResource(R.string.status_authorized_waiting_connection); else -> stringResource(R.string.status_not_authorized) }, when { permissions.accessibilityConnected -> YStatusTone.Good; permissions.accessibilityEnabled -> YStatusTone.Warning; else -> YStatusTone.Error })
-        YStatusRow(stringResource(R.string.capability_overlay), if (permissions.overlayGranted) stringResource(R.string.status_authorized) else stringResource(R.string.status_not_authorized), if (permissions.overlayGranted) YStatusTone.Good else YStatusTone.Warning)
-        YStatusRow(stringResource(R.string.capability_notifications), if (permissions.notificationsGranted) stringResource(R.string.status_authorized) else stringResource(R.string.status_not_authorized), if (permissions.notificationsGranted) YStatusTone.Good else YStatusTone.Warning)
-        YStatusRow(stringResource(R.string.capability_notification_listener), when { permissions.notificationListenerConnected -> stringResource(R.string.status_connected); permissions.notificationListenerGranted -> stringResource(R.string.status_authorized_waiting_connection); else -> stringResource(R.string.status_not_authorized) }, when { permissions.notificationListenerConnected -> YStatusTone.Good; permissions.notificationListenerGranted -> YStatusTone.Warning; else -> YStatusTone.Error })
-        if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) HostWarning(stringResource(R.string.warning_legacy_accessibility))
-        if (permissions.legacyNotificationListenerEnabled && !permissions.notificationListenerGranted) HostWarning(stringResource(R.string.warning_legacy_notification_listener))
-        if (permissions.otherAccessibilityHostEnabled) HostWarning(stringResource(R.string.warning_other_accessibility_host))
-        if (permissions.otherNotificationListenerHostEnabled) HostWarning(stringResource(R.string.warning_other_notification_host))
-        YActionRow {
-            YSecondaryButton(text = if (permissions.accessibilityEnabled) stringResource(R.string.accessibility_settings) else stringResource(R.string.enable_accessibility), onClick = onAccessibility)
-            YSecondaryButton(text = stringResource(R.string.overlay_settings), onClick = onOverlay)
+        YStatusRow(
+            stringResource(R.string.capability_root),
+            when (rootAvailable) {
+                true -> stringResource(R.string.status_authorized)
+                false -> stringResource(R.string.status_unavailable_or_unauthorized)
+                null -> stringResource(R.string.status_checking)
+            },
+            when (rootAvailable) {
+                true -> YStatusTone.Good
+                false -> YStatusTone.Error
+                null -> YStatusTone.Neutral
+            },
+        )
+        YStatusRow(
+            stringResource(R.string.capability_lsposed),
+            if (xposedConnected) {
+                stringResource(R.string.status_connected)
+            } else {
+                stringResource(R.string.status_not_connected)
+            },
+            if (xposedConnected) YStatusTone.Good else YStatusTone.Warning,
+        )
+        YStatusRow(
+            stringResource(R.string.capability_accessibility),
+            when {
+                permissions.accessibilityConnected -> stringResource(R.string.status_connected)
+                permissions.accessibilityEnabled -> stringResource(R.string.status_authorized_waiting_connection)
+                else -> stringResource(R.string.status_not_authorized)
+            },
+            when {
+                permissions.accessibilityConnected -> YStatusTone.Good
+                permissions.accessibilityEnabled -> YStatusTone.Warning
+                else -> YStatusTone.Error
+            },
+        )
+        YStatusRow(
+            stringResource(R.string.capability_overlay),
+            if (permissions.overlayGranted) {
+                stringResource(R.string.status_authorized)
+            } else {
+                stringResource(R.string.status_not_authorized)
+            },
+            if (permissions.overlayGranted) YStatusTone.Good else YStatusTone.Warning,
+        )
+        YStatusRow(
+            stringResource(R.string.capability_notifications),
+            if (permissions.notificationsGranted) {
+                stringResource(R.string.status_authorized)
+            } else {
+                stringResource(R.string.status_not_authorized)
+            },
+            if (permissions.notificationsGranted) YStatusTone.Good else YStatusTone.Warning,
+        )
+        YStatusRow(
+            stringResource(R.string.capability_notification_listener),
+            when {
+                permissions.notificationListenerConnected -> stringResource(R.string.status_connected)
+                permissions.notificationListenerGranted -> stringResource(R.string.status_authorized_waiting_connection)
+                else -> stringResource(R.string.status_not_authorized)
+            },
+            when {
+                permissions.notificationListenerConnected -> YStatusTone.Good
+                permissions.notificationListenerGranted -> YStatusTone.Warning
+                else -> YStatusTone.Error
+            },
+        )
+        if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) {
+            HostWarning(stringResource(R.string.warning_legacy_accessibility))
+        }
+        if (permissions.legacyNotificationListenerEnabled && !permissions.notificationListenerGranted) {
+            HostWarning(stringResource(R.string.warning_legacy_notification_listener))
+        }
+        if (permissions.otherAccessibilityHostEnabled) {
+            HostWarning(stringResource(R.string.warning_other_accessibility_host))
+        }
+        if (permissions.otherNotificationListenerHostEnabled) {
+            HostWarning(stringResource(R.string.warning_other_notification_host))
         }
         YActionRow {
-            YSecondaryButton(text = if (permissions.notificationListenerGranted) stringResource(R.string.notification_listener_settings) else stringResource(R.string.enable_notification_listener), onClick = onNotificationListener)
-            YSecondaryButton(text = stringResource(R.string.export_full_diagnostic), onClick = onExport)
+            YSecondaryButton(
+                text = if (permissions.accessibilityEnabled) {
+                    stringResource(R.string.accessibility_settings)
+                } else {
+                    stringResource(R.string.enable_accessibility)
+                },
+                onClick = onAccessibility,
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.overlay_settings),
+                onClick = onOverlay,
+            )
+        }
+        YActionRow {
+            YSecondaryButton(
+                text = if (permissions.notificationListenerGranted) {
+                    stringResource(R.string.notification_listener_settings)
+                } else {
+                    stringResource(R.string.enable_notification_listener)
+                },
+                onClick = onNotificationListener,
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.export_full_diagnostic),
+                onClick = onExport,
+            )
         }
     }
 }
 
 @Composable
 private fun HostWarning(message: String) {
-    Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    Text(
+        message,
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.bodySmall,
+    )
 }
 
 @Composable
@@ -197,27 +360,81 @@ private fun FeatureCard(
     isEnabled: Boolean,
     rootAvailable: Boolean?,
     xposedConnected: Boolean,
+    standalone: StandaloneAppManager.Snapshot?,
     onEnabledChange: (Boolean) -> Unit,
     onOpen: () -> Unit,
+    onOpenStandalone: () -> Unit,
+    onStandaloneSettings: () -> Unit,
     onExportLog: () -> Unit,
 ) {
-    val capabilities = feature.sharedCapabilities.map { localizedCapabilityName(it) }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
+    val capabilities = feature.sharedCapabilities
+        .map { localizedCapabilityName(it) }
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString(" + ")
+
     YFeatureCard(
         title = localizedName,
         subtitle = localizedDescription,
         detail = capabilities?.let { stringResource(R.string.shared_capabilities, it) },
     ) {
-        YStatusRow(
-            label = stringResource(R.string.standalone_app),
-            value = if (feature.standaloneEnabled) feature.standalonePackageName ?: stringResource(R.string.status_unknown) else stringResource(R.string.status_not_available),
-            tone = if (feature.standaloneEnabled && feature.standalonePackageName != null) YStatusTone.Good else YStatusTone.Neutral,
-        )
+        if (feature.standaloneEnabled) {
+            val standaloneValue = when {
+                standalone == null -> stringResource(R.string.status_checking)
+                !standalone.installed -> stringResource(R.string.status_not_installed)
+                standalone.versionName != null && standalone.versionCode != null -> {
+                    stringResource(
+                        R.string.standalone_installed_version,
+                        standalone.versionName,
+                        standalone.versionCode,
+                    )
+                }
+                else -> stringResource(R.string.standalone_installed_unknown_version)
+            }
+            val standaloneTone = when {
+                standalone == null -> YStatusTone.Neutral
+                standalone.installed -> YStatusTone.Good
+                else -> YStatusTone.Warning
+            }
+            YStatusRow(
+                label = stringResource(R.string.standalone_app),
+                value = standaloneValue,
+                tone = standaloneTone,
+            )
+            feature.standalonePackageName?.let { packageName ->
+                Text(
+                    text = stringResource(R.string.standalone_package, packageName),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+
         if (feature.requiresRoot) {
-            YStatusRow(stringResource(R.string.capability_root), when (rootAvailable) { true -> stringResource(R.string.status_authorized); false -> stringResource(R.string.status_unavailable_or_unauthorized); null -> stringResource(R.string.status_checking) }, when (rootAvailable) { true -> YStatusTone.Good; false -> YStatusTone.Error; null -> YStatusTone.Neutral })
+            YStatusRow(
+                stringResource(R.string.capability_root),
+                when (rootAvailable) {
+                    true -> stringResource(R.string.status_authorized)
+                    false -> stringResource(R.string.status_unavailable_or_unauthorized)
+                    null -> stringResource(R.string.status_checking)
+                },
+                when (rootAvailable) {
+                    true -> YStatusTone.Good
+                    false -> YStatusTone.Error
+                    null -> YStatusTone.Neutral
+                },
+            )
         }
         if (feature.requiresHook) {
-            YStatusRow(stringResource(R.string.capability_lsposed), if (xposedConnected) stringResource(R.string.status_connected) else stringResource(R.string.status_not_connected), if (xposedConnected) YStatusTone.Good else YStatusTone.Warning)
+            YStatusRow(
+                stringResource(R.string.capability_lsposed),
+                if (xposedConnected) {
+                    stringResource(R.string.status_connected)
+                } else {
+                    stringResource(R.string.status_not_connected)
+                },
+                if (xposedConnected) YStatusTone.Good else YStatusTone.Warning,
+            )
         }
+
         YSettingSwitch(
             title = stringResource(R.string.enable_feature),
             subtitle = stringResource(R.string.enable_feature_summary),
@@ -225,8 +442,29 @@ private fun FeatureCard(
             onCheckedChange = onEnabledChange,
         )
         YActionRow {
-            YPrimaryButton(text = stringResource(R.string.open_feature), onClick = onOpen, enabled = isEnabled)
-            YSecondaryButton(text = stringResource(R.string.diagnostic_package), onClick = onExportLog)
+            YPrimaryButton(
+                text = stringResource(R.string.open_feature),
+                onClick = onOpen,
+                enabled = isEnabled,
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.diagnostic_package),
+                onClick = onExportLog,
+            )
+        }
+        if (feature.standaloneEnabled && standalone?.installed == true) {
+            YActionRow {
+                if (standalone.launchable) {
+                    YSecondaryButton(
+                        text = stringResource(R.string.open_standalone),
+                        onClick = onOpenStandalone,
+                    )
+                }
+                YSecondaryButton(
+                    text = stringResource(R.string.standalone_settings),
+                    onClick = onStandaloneSettings,
+                )
+            }
         }
     }
 }
