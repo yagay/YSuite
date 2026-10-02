@@ -16,7 +16,8 @@ KOTLIN_FACTORY_RE = re.compile(
     re.MULTILINE,
 )
 JAVA_FACTORY_RE = re.compile(
-    r"\bpublic\s+static\s+[A-Za-z0-9_$.<>?]+\s+get\s*\(\s*"
+    r"\bpublic\s+static(?:\s+(?:synchronized|final|strictfp))*\s+"
+    r"[A-Za-z0-9_$.<>?]+\s+get\s*\(\s*"
     r"(?:@\w+(?:\([^)]*\))?\s*)*Context\s+[A-Za-z_][A-Za-z0-9_]*\b",
     re.MULTILINE,
 )
