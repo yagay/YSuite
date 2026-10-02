@@ -21,4 +21,4 @@ if (localApi.isDirectory && localUi.isDirectory) {
 }
 
 rootProject.name = "YMiniGuard"
-include(":app", ":feature")
+include(":feature")
