@@ -95,4 +95,11 @@
     <string name="ydiag_severity_error">异常</string>
     <string name="ydiag_severity_warning">警告</string>
     <string name="ydiag_severity_info">信息</string>
+    <string name="ydiag_export_preparing">正在生成完整诊断包。</string>
+    <string name="ydiag_exported_custom">已导出到自定义目录。</string>
+    <string name="ydiag_exported_download">已导出到 Download/YDiag。</string>
+    <string name="ydiag_export_failed_detail">导出失败。没有可用会话或目录不可写。</string>
+    <string name="ydiag_exporting_session">正在导出会话 %1$s。</string>
+    <string name="ydiag_export_complete">导出完成。</string>
+    <string name="ydiag_export_failed">导出失败。</string>
 </resources>
