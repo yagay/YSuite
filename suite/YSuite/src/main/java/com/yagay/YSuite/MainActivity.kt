@@ -89,7 +89,6 @@ class MainActivity : YComposeActivity() {
         }
         var rootAvailable by remember { mutableStateOf<Boolean?>(null) }
         var xposedConnected by remember { mutableStateOf(SuiteXposedServiceBroker.isConnected()) }
-        var xposedStatus by remember { mutableStateOf(SuiteXposedServiceBroker.statusLabel()) }
         var permissions by remember { mutableStateOf(SuitePermissionState.snapshot(this)) }
         var resumeTick by remember { mutableIntStateOf(0) }
         val fullDiagnosticLabel = stringResource(R.string.diagnostic_full_label)
@@ -109,7 +108,6 @@ class MainActivity : YComposeActivity() {
         LaunchedEffect(Unit) {
             while (true) {
                 xposedConnected = SuiteXposedServiceBroker.isConnected()
-                xposedStatus = SuiteXposedServiceBroker.statusLabel()
                 permissions = SuitePermissionState.snapshot(this@MainActivity)
                 delay(1_000L)
             }
@@ -125,7 +123,6 @@ class MainActivity : YComposeActivity() {
                         featureCount = features.size,
                         rootAvailable = rootAvailable,
                         xposedConnected = xposedConnected,
-                        xposedStatus = xposedStatus,
                         permissions = permissions,
                         onAccessibility = {
                             if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
@@ -234,8 +231,7 @@ private fun RuntimeEnvironmentCard(
     featureCount: Int,
     rootAvailable: Boolean?,
     xposedConnected: Boolean,
-    xposedStatus: String,
-    permissions: SuitePermissionSnapshot,
+    permissions: SuitePermissionState.Snapshot,
     onAccessibility: () -> Unit,
     onOverlay: () -> Unit,
     onNotificationListener: () -> Unit,
@@ -265,12 +261,25 @@ private fun RuntimeEnvironmentCard(
         )
         YStatusRow(
             stringResource(R.string.capability_lsposed),
-            if (xposedConnected) xposedStatus else stringResource(R.string.status_not_connected),
+            if (xposedConnected) {
+                stringResource(R.string.status_connected)
+            } else {
+                stringResource(R.string.status_not_connected)
+            },
+            if (xposedConnected) YStatusTone.Good else YStatusTone.Warning,
         )
         YStatusRow(
             stringResource(R.string.capability_accessibility),
-            permissions.accessibilityLabel,
-            if (permissions.accessibilityEnabled) YStatusTone.Good else YStatusTone.Warning,
+            when {
+                permissions.accessibilityConnected -> stringResource(R.string.status_connected)
+                permissions.accessibilityEnabled -> stringResource(R.string.status_authorized_waiting_connection)
+                else -> stringResource(R.string.status_not_authorized)
+            },
+            when {
+                permissions.accessibilityConnected -> YStatusTone.Good
+                permissions.accessibilityEnabled -> YStatusTone.Warning
+                else -> YStatusTone.Error
+            },
         )
         YStatusRow(
             stringResource(R.string.capability_overlay),
