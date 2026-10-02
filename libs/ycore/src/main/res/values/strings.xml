@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ycore_not_connected">Not connected</string>
+    <string name="ycore_connected_api">Connected · API %1$d</string>
+    <string name="ycore_root_operation_failed">Root operation failed</string>
+    <string name="ycore_root_operation_timed_out">Root operation timed out</string>
+</resources>
