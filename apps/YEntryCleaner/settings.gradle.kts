@@ -21,4 +21,4 @@ if (localApi.isDirectory && localUi.isDirectory) {
 }
 
 rootProject.name = "YEntryCleaner"
-include(":app", ":feature")
+include(":feature")
