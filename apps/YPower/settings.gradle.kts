@@ -27,4 +27,4 @@ if (localApi.isDirectory && localUi.isDirectory) {
 }
 
 rootProject.name = "YPower"
-include(":app", ":feature")
+include(":feature")
