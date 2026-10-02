@@ -1,5 +1,8 @@
 package com.yagay.ypower.model;
 
+import com.yagay.ypower.BuildConfig;
+import com.yagay.suite.api.RuntimeOwnerGate;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -128,6 +131,28 @@ public class AppProfile {
                 }
             }
         } catch (JSONException ignored) {
+        }
+
+        // All YPower hook modules and root policies consume AppProfile. Making a standalone profile
+        // inactive here neutralizes already-loaded standalone hooks without touching each large hook
+        // implementation separately. The same feature code embedded in YSuite remains active because
+        // its compile-time host identity is com.yagay.YSuite.
+        if (!RuntimeOwnerGate.shouldRun("ypower", BuildConfig.HOST_PACKAGE)) {
+            p.enabled = false;
+            p.simulateSystemApp = false;
+            p.simulatePermissions = false;
+            p.tracePackageScan = false;
+            p.traceFiles = false;
+            p.traceCommands = false;
+            p.traceProperties = false;
+            p.tracePermissions = false;
+            p.traceDebugger = false;
+            p.traceExceptions = false;
+            p.traceSecurityApis = false;
+            p.traceNative = false;
+            p.traceSyscalls = false;
+            p.traceJava = false;
+            p.traceEnvironment = false;
         }
         return p;
     }
