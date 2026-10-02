@@ -1,4 +1,4 @@
-name: Build affected standalone apps
+name: Build affected standalone features
 
 on:
   push:
@@ -22,10 +22,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify mirrored version catalogs
-        run: python3 tools/sync_version_catalog.py --check
+      - name: Verify generated catalogs
+        run: |
+          python3 tools/generate_feature_catalog.py --check
+          python3 tools/generate_standalone_catalog.py --check
+          python3 tools/sync_version_catalog.py --check
 
-      - name: Plan affected standalone apps
+      - name: Plan affected standalone features
         id: plan
         shell: bash
         env:
@@ -83,17 +86,16 @@ jobs:
             "build-tools;${{ steps.versions.outputs.build_tools }}" \
             "platform-tools"
 
-      - name: Build ${{ matrix.app }} debug ARM64
+      - name: Build ${{ matrix.app }} through generic standalone host
         shell: bash
         env:
           APP: ${{ matrix.app }}
         run: |
           set -euo pipefail
-          SHARED_BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          gradle -p "apps/${APP}" --no-daemon --stacktrace \
+          gradle --no-daemon --stacktrace \
             -PciArm64Only=true \
-            -PySuiteSharedBranch="${SHARED_BRANCH}" \
-            :app:assembleDebug
+            -PySuiteStandaloneFeature="${APP}" \
+            buildFeatureDebug
 
       - name: Verify ABI and prepare fixed APK name
         shell: bash
@@ -108,11 +110,15 @@ jobs:
           from pathlib import Path
 
           app = os.environ["APP"]
-          output = Path("apps") / app / "app" / "build" / "outputs" / "apk" / "debug"
-          apks = [p for p in output.glob("*.apk") if "androidTest" not in p.name]
-          if len(apks) != 1:
-              raise SystemExit(f"{app}: expected one debug APK, found {apks}")
-          apk = apks[0]
+          output = Path("build/standalone")
+          expected = output / f"{app}-debug.apk"
+          if not expected.is_file():
+              apks = sorted(output.glob("*-debug.apk"))
+              if len(apks) != 1:
+                  raise SystemExit(f"{app}: expected one standalone debug APK, found {apks}")
+              apk = apks[0]
+          else:
+              apk = expected
           abis = set()
           with zipfile.ZipFile(apk) as zf:
               for name in zf.namelist():
