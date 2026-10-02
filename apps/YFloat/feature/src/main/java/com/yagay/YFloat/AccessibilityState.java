@@ -56,19 +56,23 @@ public final class AccessibilityState {
         }
 
         public String statusLabel(Context context) {
-            if (connected) return "已授权 · 已连接";
-            if (hostEnabled) return "已授权 · 等待连接";
-            if (context != null && SUITE_PACKAGE.equals(context.getPackageName())
+            if (context == null) return "";
+            if (connected) return context.getString(R.string.yfloat_a11y_authorized_connected);
+            if (hostEnabled) return context.getString(R.string.yfloat_a11y_authorized_waiting);
+            if (SUITE_PACKAGE.equals(context.getPackageName())
                     && sameHostOtherAccessibilityEnabled) {
-                return "旧版 YSuite 无障碍仍开启 · 请迁移到统一无障碍";
+                return context.getString(R.string.yfloat_a11y_legacy_suite_enabled);
             }
-            if (otherYFloatEnabled && context != null
-                    && SUITE_PACKAGE.equals(context.getPackageName())) {
-                return "独立版 YFloat 已开启 · YSuite 统一无障碍未开启";
+            if (otherYFloatEnabled && SUITE_PACKAGE.equals(context.getPackageName())) {
+                return context.getString(R.string.yfloat_a11y_standalone_enabled_suite_disabled);
             }
-            if (otherYFloatEnabled) return "其他宿主 YFloat 已开启 · 当前版未开启";
-            if (sameHostOtherAccessibilityEnabled) return "同一宿主其他无障碍已开启 · 当前未授权";
-            return "未授权";
+            if (otherYFloatEnabled) {
+                return context.getString(R.string.yfloat_a11y_other_host_enabled);
+            }
+            if (sameHostOtherAccessibilityEnabled) {
+                return context.getString(R.string.yfloat_a11y_same_host_other_enabled);
+            }
+            return context.getString(R.string.yfloat_permission_not_authorized);
         }
     }
 
@@ -97,8 +101,6 @@ public final class AccessibilityState {
         Set<String> enabledComponents = new LinkedHashSet<>();
         Set<String> sameHostOtherComponents = new LinkedHashSet<>();
 
-        // Primary path. Do not gate this on manager.isEnabled(): some OEM builds lag that flag
-        // while already returning the concrete enabled services.
         try {
             AccessibilityManager manager =
                     (AccessibilityManager) app.getSystemService(Context.ACCESSIBILITY_SERVICE);
