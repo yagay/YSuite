@@ -84,7 +84,7 @@ final class GuardConfig {
     }
 
     static boolean enabled() {
-        return RuntimeOwnerGate.shouldRun("yminiguard", hostPackage())
+        return RuntimeOwnerGate.shouldRun("yminiguard", BuildConfig.HOST_PACKAGE)
                 && bool(ConfigKeys.MASTER_ENABLED);
     }
 
