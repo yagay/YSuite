@@ -180,7 +180,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 if (ri.activityInfo == null) continue;
                 String key = spec.type + "|" + ri.activityInfo.packageName + "|" + ri.activityInfo.name;
                 if (!seen.add(key)) continue;
-                all.add(new Discovered(appLabel + " · " + spec.title,
+                all.add(new Discovered(appLabel + ": " + spec.title,
                         resolveLabel(ri), appIcon(pkg), ri.activityInfo.packageName,
                         ri.activityInfo.name, spec.type));
             }
@@ -312,7 +312,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                     ai.name,
                     shortClass(ai.name))) continue;
             Discovered d = new Discovered(
-                    appName + " · " + spec.title,
+                    appName + ": " + spec.title,
                     activityName, appIcon(ai.packageName),
                     ai.packageName, ai.name, spec.type);
             AppUi.addRow(body, customDiscoveredRow(d));
@@ -552,10 +552,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
         row.setPadding(AppUi.dp(this, 6), AppUi.dp(this, 7),
                 AppUi.dp(this, 6), AppUi.dp(this, 7));
 
-        TextView handle = AppUi.text(this, "≡", 22, false);
-        handle.setTextColor(AppUi.textSecondary(this));
-        handle.setGravity(Gravity.CENTER);
-        handle.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_8fa208fab808));
+        ImageView handle = iconButton(
+                R.drawable.yfloat_ic_drag_handle,
+                true,
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_8fa208fab808));
         handle.setOnLongClickListener(v -> {
             if (beforeDrag != null) beforeDrag.run();
             ClipData clip = ClipData.newPlainText("YFloat menu item", dragKey);
@@ -579,18 +579,24 @@ public final class MenuPickerActivity extends AppCompatActivity {
         }
         row.addView(texts, new LinearLayout.LayoutParams(0, dp(52), 1f));
 
-        TextView up = sortButton("↑", index > 0);
-        up.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a283bf829d2e));
+        ImageView up = iconButton(
+                R.drawable.yfloat_ic_arrow_up,
+                index > 0,
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a283bf829d2e));
         up.setOnClickListener(v -> { if (moveUp != null) moveUp.run(); });
         row.addView(up, new LinearLayout.LayoutParams(dp(34), dp(42)));
 
-        TextView down = sortButton("↓", index < total - 1);
-        down.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e8ccedf0f78c));
+        ImageView down = iconButton(
+                R.drawable.yfloat_ic_arrow_down,
+                index < total - 1,
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e8ccedf0f78c));
         down.setOnClickListener(v -> { if (moveDown != null) moveDown.run(); });
         row.addView(down, new LinearLayout.LayoutParams(dp(34), dp(42)));
 
-        TextView delete = sortButton("×", true);
-        delete.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a5758272df8c));
+        ImageView delete = iconButton(
+                R.drawable.yfloat_ic_close,
+                true,
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a5758272df8c));
         delete.setOnClickListener(v -> { if (remove != null) remove.run(); });
         row.addView(delete, new LinearLayout.LayoutParams(dp(36), dp(42)));
         return row;
@@ -627,9 +633,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
             side.setOnClickListener(v -> { if (action != null) action.run(); });
             row.addView(side, new LinearLayout.LayoutParams(-2, -2));
         } else {
-            TextView arrow = AppUi.text(this, "›", 24, false);
-            arrow.setTextColor(AppUi.textSecondary(this));
-            arrow.setGravity(Gravity.CENTER);
+            ImageView arrow = iconButton(R.drawable.yfloat_ic_chevron_right, true, null);
+            arrow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             row.addView(arrow, new LinearLayout.LayoutParams(dp(28), dp(42)));
         }
         row.setOnClickListener(v -> { if (action != null) action.run(); });
@@ -664,7 +669,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private void addLocalBack(LinearLayout root, String label) {
-        MaterialButton back = AppUi.secondaryButton(this, "‹ " + label);
+        MaterialButton back = AppUi.secondaryButton(this, label);
+        back.setIconResource(R.drawable.yfloat_ic_arrow_back);
+        back.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
+        back.setIconPadding(dp(8));
         back.setOnClickListener(v -> {
             Runnable action = localBackAction;
             if (action != null) action.run();
@@ -682,6 +690,23 @@ public final class MenuPickerActivity extends AppCompatActivity {
             if (y < (child.getTop() + child.getBottom()) / 2f) return i;
         }
         return count - 1;
+    }
+
+    private ImageView iconButton(int iconRes, boolean enabled, String contentDescription) {
+        ImageView view = new ImageView(this);
+        view.setImageResource(iconRes);
+        view.setEnabled(enabled);
+        view.setClickable(enabled);
+        view.setFocusable(enabled);
+        view.setContentDescription(contentDescription);
+        view.setPadding(dp(8), dp(8), dp(8), dp(8));
+        view.setAlpha(enabled ? 1f : 0.38f);
+        view.setColorFilter(enabled ? AppUi.textPrimary(this) : AppUi.textSecondary(this));
+        android.util.TypedValue out = new android.util.TypedValue();
+        if (getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, out, true)) {
+            view.setBackgroundResource(out.resourceId);
+        }
+        return view;
     }
 
     private TextView sortButton(String value, boolean enabled) {

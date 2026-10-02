@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="yfloat_capture_probe_success">通过：安全窗口内容已出现在截图 Bitmap 中。共采样 %2$d 个，命中 %1$d 个。Bitmap 宽 %3$d，高 %4$d。</string>
+    <string name="yfloat_capture_probe_failure">未通过：截图 API 有返回，但没有抓到 FLAG_SECURE 测试页的标记颜色。共采样 %2$d 个，命中 %1$d 个。这通常表示 system_server Hook 点与当前 OxygenOS 版本不匹配，或安全层仍在更下游被过滤。</string>
+    <string name="yfloat_app_name">YFloat</string>
+</resources>

@@ -262,8 +262,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (details.isNotEmpty()) append('\n')
                     details.forEachIndexed { index, item ->
                         if (index > 0) append('\n')
-                        append(if (item.included) "✓ " else "✕ ")
-                        append(item.candidate.appLabel)
+                        append(app.getString(
+                            if (item.included) R.string.yentry_file_preview_included
+                            else R.string.yentry_file_preview_excluded,
+                            item.candidate.appLabel
+                        ))
                         item.rank?.let { append(app.getString(R.string.file_preview_rank, it)) }
                         item.selectedBy?.let {
                             append(app.getString(R.string.file_preview_source, selectionSourceTitle(it)))

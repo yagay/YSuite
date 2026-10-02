@@ -66,7 +66,7 @@ public final class ListenerStateStore {
         if (message.length() > 800) message = message.substring(0, 800);
         prefs(context).edit()
                 .putLong("last_error_time", System.currentTimeMillis())
-                .putString("last_error", stage + " · " + (pkg == null ? "" : pkg) + " · " + message)
+                .putString("last_error", stage + ": " + (pkg == null ? "" : pkg) + ": " + message)
                 .apply();
         DiagLog.e(context, "ListenerState", stage + " pkg=" + (pkg == null ? "" : pkg), error);
     }

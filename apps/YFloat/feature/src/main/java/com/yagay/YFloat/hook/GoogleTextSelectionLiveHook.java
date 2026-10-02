@@ -356,7 +356,7 @@ final class GoogleTextSelectionLiveHook {
     }
 
     private static String trim(String value, int max) {
-        return value.length() <= max ? value : value.substring(0, max) + "…";
+        return value.length() <= max ? value : value.substring(0, max) + "...";
     }
 
     private static final class LiveBounds {

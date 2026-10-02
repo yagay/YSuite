@@ -149,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
 
         TextView text = new TextView(this);
         boolean recommended = RecommendedAppRegistry.find(packageName) != null;
-        text.setText((recommended ? "★ " : "") + label + "\n" + packageName
+        text.setText(label + "\n" + packageName
                 + (recommended ? "\n" + getString(R.string.yp_recommended_available) : ""));
         YView.styleBody(text);
         text.setTextSize(15f);

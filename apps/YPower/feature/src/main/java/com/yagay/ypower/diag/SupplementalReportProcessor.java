@@ -181,7 +181,7 @@ public final class SupplementalReportProcessor {
         flow.result = "CHECKED";
 
         for (DiagnosticFinding item : matched) {
-            flow.evidence(item.ruleId + " · " + item.title
+            flow.evidence(item.ruleId + ": " + item.title
                     + " · state=" + item.representativeState);
         }
         if (latestFinding != null) {

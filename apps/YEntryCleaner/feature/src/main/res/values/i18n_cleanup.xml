@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="yentry_list_separator">, </string>
+    <string name="yentry_file_preview_included">Included: %1$s</string>
+    <string name="yentry_file_preview_excluded">Excluded: %1$s</string>
+</resources>

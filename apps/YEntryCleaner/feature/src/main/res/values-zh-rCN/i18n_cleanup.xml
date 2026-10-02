@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="yentry_list_separator">、</string>
+    <string name="yentry_file_preview_included">包含：%1$s</string>
+    <string name="yentry_file_preview_excluded">排除：%1$s</string>
+</resources>

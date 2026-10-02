@@ -69,7 +69,7 @@
     <string name="ypower_generated_29f27b254c25">仅用于调用链解释，不作为安全检测原因。</string>
     <string name="ypower_generated_29fb4da4c442">目标 APK 的 DEX 中存在 qemu/goldfish/ranchu/EGL/GL/虚拟化相关引用。</string>
     <string name="ypower_generated_2a2c7b0d968f">应用通过 MessageDigest 对签名、APK、DEX 或 SO 数据计算摘要。</string>
-    <string name="ypower_generated_2a68a9d90e93">当前归因证据不足，因此不生成修复建议。\\n</string>
+    <string name="ypower_generated_2a68a9d90e93">当前归因证据不足，因此不生成修复建议。\\\\n</string>
     <string name="ypower_generated_2acb5d7f2044">仅记录 request/pid/result。</string>
     <string name="ypower_generated_2ad5e7e449a3">记录具体 fd 路径与 readlink 结果；单纯扫描保持 CHECKED。</string>
     <string name="ypower_generated_2bbf21117d07">查看具体 key 和返回值；UNKNOWN/CHECKED 不作为强归因依据。</string>
@@ -302,7 +302,7 @@
     <string name="ypower_generated_a35a2dc3e518">KeyAttestation 项目使用 challenge 生成可验证证书链；这比普通 KeyStore 调用更接近完整性校验。</string>
     <string name="ypower_generated_a36071df830a">SELinux 进程上下文读取</string>
     <string name="ypower_generated_a4295ddc746b">System.exit 主动退出</string>
-    <string name="ypower_generated_a559c1fe92d6">本次运行没有采集到可显示的原始事件。\\n</string>
+    <string name="ypower_generated_a559c1fe92d6">本次运行没有采集到可显示的原始事件。\\\\n</string>
     <string name="ypower_generated_a5ab2a7bcca7">记录 challenge 长度、调用栈和后续证书链查询；不修改 challenge 或 attestation 结果。</string>
     <string name="ypower_generated_a651fa3241a3">异常已经冒泡到线程顶层并进入 Thread 的未捕获异常分发路径。</string>
     <string name="ypower_generated_a7be7dbb2c38">结合连接成功、调用栈、重复性以及后续异常/退出判断；不要用单一 socket 信号直接下结论。</string>

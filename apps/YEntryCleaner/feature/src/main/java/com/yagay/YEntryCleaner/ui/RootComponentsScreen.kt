@@ -283,7 +283,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                 R.string.root_disabled_summary,
                                 components.count { it.enabled == false },
                                 components.size,
-                                kindTitles.joinToString(" · ")
+                                kindTitles.joinToString(stringResource(R.string.yentry_list_separator))
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

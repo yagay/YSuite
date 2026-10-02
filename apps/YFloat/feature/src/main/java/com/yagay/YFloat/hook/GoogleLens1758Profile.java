@@ -906,12 +906,12 @@ final class GoogleLens1758Profile {
             out = value.getClass().getName();
         }
         out = out.replace("\n", " ").replace("\r", " ").replace("\u0000", "?");
-        return out.length() <= max ? out : out.substring(0, max) + "…";
+        return out.length() <= max ? out : out.substring(0, max) + "...";
     }
 
     private static String quote(String value, int max) {
         String out = value == null ? "" : value.replace("\n", " ").replace("\r", " ");
-        if (out.length() > max) out = out.substring(0, max) + "…";
+        if (out.length() > max) out = out.substring(0, max) + "...";
         return "\"" + out + "\"";
     }
 

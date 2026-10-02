@@ -5,7 +5,7 @@
         android:name="com.yagay.YNotify.YNotifyApp"
         android:allowBackup="false"
         android:icon="@drawable/ic_ynotify"
-        android:label="YNotify"
+        android:label="@string/ynotify_app_name"
         android:description="@string/xposed_description"
         android:supportsRtl="true"
         android:theme="@style/Theme.YNotify">

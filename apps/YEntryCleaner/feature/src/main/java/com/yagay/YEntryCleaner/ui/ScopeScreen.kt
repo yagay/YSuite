@@ -62,7 +62,7 @@ internal fun ScopeDialog(status: ModuleStatus, requestScope: () -> Unit, refresh
                                 host.packageName,
                                 host.className,
                                 host.processName,
-                                host.scenarios.joinToString(" · "),
+                                host.scenarios.joinToString(stringResource(R.string.yentry_list_separator)),
                             ),
                         ) {
                             when {

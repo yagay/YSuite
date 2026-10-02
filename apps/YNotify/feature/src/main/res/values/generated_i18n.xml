@@ -2,15 +2,15 @@
 <resources>
     <string name="ynotify_generated_0ad7a125e250">Insufficient evidence </string>
     <string name="ynotify_generated_0d8672f9af65">Type corrections </string>
-    <string name="ynotify_generated_11c25e70fda9">Included content:\\n</string>
-    <string name="ynotify_generated_15afac2c9263">Note: system logcat, LSPosed logs, dumpsys, ANR/tombstone data may contain app names, notification content, or other personal information. Verify the recipient before sharing the ZIP.\\n</string>
-    <string name="ynotify_generated_342c4a97e927">YNotify diagnostic log bundle\\n</string>
+    <string name="ynotify_generated_11c25e70fda9">Included content:\\\\n</string>
+    <string name="ynotify_generated_15afac2c9263">Note: system logcat, LSPosed logs, dumpsys, ANR/tombstone data may contain app names, notification content, or other personal information. Verify the recipient before sharing the ZIP.\\\\n</string>
+    <string name="ynotify_generated_342c4a97e927">YNotify diagnostic log bundle\\\\n</string>
     <string name="ynotify_generated_38f877f8ffe6">Cross-app heads-up links </string>
     <string name="ynotify_generated_3ebef972d88b">Old merges rechecked </string>
     <string name="ynotify_generated_49fe92fc83df">Android system</string>
     <string name="ynotify_generated_56a84253e54d">Heads-up links </string>
     <string name="ynotify_generated_6dd342ab26af">Root logs: </string>
-    <string name="ynotify_generated_6f9a23a73855">YNotify does not intentionally export its HMAC secret, database key, LSPosed configuration database, or private root-module configuration files.\\n</string>
+    <string name="ynotify_generated_6f9a23a73855">YNotify does not intentionally export its HMAC secret, database key, LSPosed configuration database, or private root-module configuration files.\\\\n</string>
     <string name="ynotify_generated_76e6723dc54e">Repair failed: </string>
     <string name="ynotify_generated_77791c0c2b7a">Generated: </string>
     <string name="ynotify_generated_7817c7c25cb8">Not collected</string>
@@ -19,11 +19,11 @@
     <string name="ynotify_generated_a4f4ad23b54d">Notification subtype corrections </string>
     <string name="ynotify_generated_b99e7464c42d">Duplicate notifications merged </string>
     <string name="ynotify_generated_c447ebe95bf0">Manual classifications preserved </string>
-    <string name="ynotify_generated_ccb4b64d0e71">\\nOn first use, grant root to YNotify in KernelSU/Magisk and export again.\\n</string>
+    <string name="ynotify_generated_ccb4b64d0e71">\\\\nOn first use, grant root to YNotify in KernelSU/Magisk and export again.\\\\n</string>
     <string name="ynotify_generated_d410d88f8154"> records. </string>
     <string name="ynotify_generated_d61fd687e483">SystemUI classifications </string>
     <string name="ynotify_generated_dd5a3210820c">App version: </string>
-    <string name="ynotify_generated_e1e4ae57de69">Root logs were not collected.\\n\\n</string>
+    <string name="ynotify_generated_e1e4ae57de69">Root logs were not collected.\\\\n\\\\n</string>
     <string name="ynotify_generated_e5ec6ab52278">Unknown app</string>
     <string name="ynotify_generated_ee918ab7c27d">Scanned </string>
 </resources>

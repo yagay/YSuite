@@ -578,7 +578,7 @@ public final class DiagnosticEngine {
                 String mapping;
                 if (closest != null) {
                     mapping = closest.input
-                            + " → " + event.input
+                            + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_flow_to) + event.input
                             + "（Δ=" + Math.abs(event.ts - closest.ts) + "ms"
                             + (event.tid == closest.tid ? com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_c4aff3a7ed3e) : "")
                             + "）";
@@ -593,7 +593,7 @@ public final class DiagnosticEngine {
 
             if (DetectionRuleIds.LINKER_DLSYM.equals(event.ruleId)) {
                 String mapping = event.source
-                        + " → " + event.input
+                        + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_flow_to) + event.input
                         + (event.result == null || event.result.isBlank()
                         ? ""
                         : " = " + event.result);

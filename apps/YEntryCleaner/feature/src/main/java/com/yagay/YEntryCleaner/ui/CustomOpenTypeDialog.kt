@@ -69,7 +69,7 @@ internal fun CustomOpenTypeDialog(
                                 if (definition.mimeTypes.isNotEmpty()) {
                                     append(stringResource(R.string.custom_open_mime_summary, definition.mimeTypes.joinToString()))
                                 }
-                                if (definition.mimeTypes.isNotEmpty() && definition.extensions.isNotEmpty()) append(" · ")
+                                if (definition.mimeTypes.isNotEmpty() && definition.extensions.isNotEmpty()) append(stringResource(R.string.yentry_list_separator))
                                 if (definition.extensions.isNotEmpty()) {
                                     append(
                                         stringResource(

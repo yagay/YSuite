@@ -148,7 +148,7 @@ public final class StaticApiReferenceScanner {
                     for (String pattern : rule.getValue()) {
                         if (found.size() >= MAX_EVIDENCE_PER_RULE) break;
                         if (lower.contains(pattern.toLowerCase())) {
-                            found.add(apkName + "!" + entry.getName() + " → " + pattern);
+                            found.add(apkName + "!" + entry.getName() + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_flow_to) + pattern);
                         }
                     }
                 }

@@ -81,6 +81,6 @@ public final class ViewNodeCandidate {
 
     private static String safe(String value) { return value == null ? "" : value; }
     private static String ellipsize(String value) {
-        return value.length() > 80 ? value.substring(0, 80) + "…" : value;
+        return value.length() > 80 ? value.substring(0, 80) + "..." : value;
     }
 }

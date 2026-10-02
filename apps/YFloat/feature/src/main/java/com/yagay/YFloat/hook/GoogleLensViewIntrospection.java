@@ -146,7 +146,7 @@ final class GoogleLensViewIntrospection {
     static String trim(String value, int max) {
         if (value == null) return "";
         String out = value.replace("\n", " ").replace("\r", " ").replace("\u0000", "?");
-        return out.length() <= max ? out : out.substring(0, max) + "…";
+        return out.length() <= max ? out : out.substring(0, max) + "...";
     }
 
     static View findByClassName(View view, String className) {

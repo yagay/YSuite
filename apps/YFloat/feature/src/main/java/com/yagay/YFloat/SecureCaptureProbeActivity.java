@@ -184,13 +184,13 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
 
         if (success) {
             showResult(true,
-                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_db07a5731fad) + matches + "/" + total
-                            + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_e23d94219f3c) + width + "×" + height + "。",
+                    com.yagay.suite.api.YLocale.text(
+                            R.string.yfloat_capture_probe_success, matches, total, width, height),
                     null);
         } else {
             showResult(false,
-                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_b71f7fcefc49)
-                            + matches + "/" + total + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_6b96e533a646),
+                    com.yagay.suite.api.YLocale.text(
+                            R.string.yfloat_capture_probe_failure, matches, total),
                     null);
         }
     }

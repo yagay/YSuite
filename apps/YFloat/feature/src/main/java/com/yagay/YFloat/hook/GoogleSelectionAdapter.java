@@ -267,7 +267,7 @@ final class GoogleSelectionAdapter {
     private static String safe(String value) {
         if (value == null) return "";
         String out = value.replace('\n', ' ').replace('\r', ' ');
-        return out.length() <= 300 ? out : out.substring(0, 300) + "…";
+        return out.length() <= 300 ? out : out.substring(0, 300) + "...";
     }
 
     private GoogleSelectionAdapter() {}

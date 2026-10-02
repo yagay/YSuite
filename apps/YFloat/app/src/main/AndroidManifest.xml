@@ -2,7 +2,7 @@
     <application
         android:name="com.yagay.YFloat.YFloatApp"
         android:theme="@style/Theme.YFloat"
-        android:label="YFloat"
+        android:label="@string/yfloat_app_name"
         android:description="@string/app_description"
         android:allowBackup="false"
         android:supportsRtl="true"

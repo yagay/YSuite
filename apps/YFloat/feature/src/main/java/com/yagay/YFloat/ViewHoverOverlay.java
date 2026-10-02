@@ -240,7 +240,7 @@ public final class ViewHoverOverlay {
             float x = Math.max(dp(8), Math.min(r.left, getWidth() - dp(180)));
             float y = r.top > dp(28) ? r.top - dp(8)
                     : Math.min(getHeight() - dp(8), r.bottom + dp(20));
-            if (text.length() > 90) text = text.substring(0, 90) + "…";
+            if (text.length() > 90) text = text.substring(0, 90) + "...";
             SelectionVisuals.drawText(canvas, text, x, y, label);
         }
 

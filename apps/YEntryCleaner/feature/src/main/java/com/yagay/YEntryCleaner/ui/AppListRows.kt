@@ -76,7 +76,7 @@ internal fun AppRow(
                     R.string.app_row_selection_summary,
                     selectedCount,
                     group.components.size,
-                    kindTitles.joinToString(" · ")
+                    kindTitles.joinToString(stringResource(R.string.yentry_list_separator))
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
