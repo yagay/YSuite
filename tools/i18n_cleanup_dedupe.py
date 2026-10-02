@@ -25,8 +25,21 @@ def remove_keys(path: Path) -> None:
         tree.write(path, encoding="utf-8", xml_declaration=True)
 
 
+def preserve_locale_root_import() -> None:
+    path = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/model/DiagnosticReport.java"
+    text = path.read_text(encoding="utf-8")
+    if "Locale.ROOT" not in text or "import java.util.Locale;" in text:
+        return
+    marker = "import java.util.List;\n"
+    if marker not in text:
+        raise RuntimeError("DiagnosticReport import marker not found")
+    text = text.replace(marker, marker + "import java.util.Locale;\n", 1)
+    path.write_text(text, encoding="utf-8")
+
+
 base = ROOT / "apps/YNotify/feature/src/main/res"
 for locale in ("values", "values-zh-rCN"):
     remove_keys(base / locale / "dynamic_i18n.xml")
 
+preserve_locale_root_import()
 print("I18N_CLEANUP_DEDUPE=ok")
