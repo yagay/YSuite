@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import com.yagay.suite.api.FeatureHost
 import com.yagay.suite.api.ManagedFeatureRuntime
+import com.yagay.suite.api.YLocale
 import com.yagay.ydiag.data.Preferences
 import com.yagay.ydiag.root.RootShell
 import com.yagay.ydiag.service.MonitorService
@@ -61,7 +62,7 @@ class YDiagRuntime private constructor(context: Context) :
         }
         enabled = true
         if (xposedService == null) {
-            _moduleState.value = ModuleState(message = "LSPosed 未连接")
+            _moduleState.value = ModuleState(message = YLocale.text(R.string.ydiag_lsposed_not_connected))
         }
         Log.i(TAG, "managed runtime enabled")
     }
@@ -92,7 +93,7 @@ class YDiagRuntime private constructor(context: Context) :
             appContext.stopService(Intent(appContext, MonitorService::class.java))
         }.onFailure { Log.w(TAG, "Unable to stop MonitorService during disable", it) }
 
-        _moduleState.value = ModuleState(message = "YDiag 已由 YSuite 停用")
+        _moduleState.value = ModuleState(message = YLocale.text(R.string.ydiag_disabled_by_suite))
         Log.i(TAG, "managed runtime disabled; jobs and monitor service stopped")
     }
 
@@ -145,7 +146,7 @@ class YDiagRuntime private constructor(context: Context) :
         if (xposedService === service) xposedService = null
         activationInFlight.clear()
         if (enabled) {
-            _moduleState.value = ModuleState(message = "LSPosed 连接已断开")
+            _moduleState.value = ModuleState(message = YLocale.text(R.string.ydiag_lsposed_disconnected))
         }
     }
 
@@ -155,7 +156,7 @@ class YDiagRuntime private constructor(context: Context) :
         appScope.launch {
             if (!enabled) return@launch
             val service = xposedService ?: run {
-                _moduleState.value = ModuleState(message = "Root 监控正常；LSPosed 深度追踪未连接")
+                _moduleState.value = ModuleState(message = YLocale.text(R.string.ydiag_root_active_lsposed_missing))
                 return@launch
             }
             runCatching {
@@ -188,7 +189,7 @@ class YDiagRuntime private constructor(context: Context) :
             }.onFailure {
                 Log.e(TAG, "Deep tracking sync failed", it)
                 _moduleState.value = _moduleState.value.copy(
-                    message = "LSPosed 配置同步失败：${it.javaClass.simpleName}"
+                    message = YLocale.text(R.string.ydiag_lsposed_sync_failed, it.javaClass.simpleName)
                 )
             }
         }
@@ -200,9 +201,9 @@ class YDiagRuntime private constructor(context: Context) :
             if (!enabled) return@launch
             val service = xposedService
             _moduleState.value = if (service == null) {
-                ModuleState(message = "LSPosed 未连接")
+                ModuleState(message = YLocale.text(R.string.ydiag_lsposed_not_connected))
             } else runCatching { moduleSnapshot(service) }.getOrElse {
-                ModuleState(connected = true, message = "读取 LSPosed 状态失败")
+                ModuleState(connected = true, message = YLocale.text(R.string.ydiag_lsposed_read_failed))
             }
         }
     }
@@ -227,7 +228,7 @@ class YDiagRuntime private constructor(context: Context) :
                 synchronized(requestedScope) { requestedScope.removeAll(request) }
                 _moduleState.value = _moduleState.value.copy(
                     pendingScope = request,
-                    message = "Root 日志已生效；YSuite Scope 请求失败",
+                    message = YLocale.text(R.string.ydiag_root_active_suite_scope_failed),
                 )
                 return
             }
@@ -260,7 +261,7 @@ class YDiagRuntime private constructor(context: Context) :
                     if (!enabled) return
                     _moduleState.value = _moduleState.value.copy(
                         pendingScope = request,
-                        message = "Root 日志已生效；深度 Scope 未授权：$message",
+                        message = YLocale.text(R.string.ydiag_scope_denied, message),
                     )
                 }
             })
@@ -270,7 +271,7 @@ class YDiagRuntime private constructor(context: Context) :
             Log.e(TAG, "Scope request failed", it)
             _moduleState.value = _moduleState.value.copy(
                 pendingScope = request,
-                message = "Root 日志已生效；Scope 请求失败：${it.javaClass.simpleName}",
+                message = YLocale.text(R.string.ydiag_scope_request_failed, it.javaClass.simpleName),
             )
         }
     }
@@ -294,7 +295,7 @@ class YDiagRuntime private constructor(context: Context) :
         if (!enabled || targets.isEmpty() || mode != Preferences.ACTIVATION_AUTO) return
         if (!RootShell.isAvailable()) {
             _moduleState.value = moduleSnapshot(service).copy(
-                message = "深度 Scope 已授权；Root 不可用，请手动重新打开目标 App",
+                message = YLocale.text(R.string.ydiag_root_unavailable_reopen),
             )
             return
         }
@@ -330,7 +331,7 @@ class YDiagRuntime private constructor(context: Context) :
             if (!stopped) {
                 activationInFlight -= packageName
                 _moduleState.value = moduleSnapshot(service).copy(
-                    message = "无法自动重启 $packageName，请手动重新打开",
+                    message = YLocale.text(R.string.ydiag_relaunch_failed, packageName),
                 )
                 continue
             }
@@ -372,16 +373,16 @@ class YDiagRuntime private constructor(context: Context) :
         }
 
         val message = when {
-            pending.isNotEmpty() -> "Root 日志已生效；等待授权 ${pending.size} 个 Hook Scope"
+            pending.isNotEmpty() -> YLocale.text(R.string.ydiag_waiting_scope, pending.size)
             pendingActivation.isNotEmpty() ->
-                "正在自动重新加载 ${pendingActivation.size} 个目标 App，使 Hook 立即生效"
+                YLocale.text(R.string.ydiag_auto_reloading, pendingActivation.size)
             trackedTargets.isNotEmpty() && restartRequired.isEmpty() ->
-                "深度 Hook 已加载 ${trackedTargets.size}/${trackedTargets.size}"
+                YLocale.text(R.string.ydiag_hooks_loaded, trackedTargets.size, trackedTargets.size)
             restartRequired.isNotEmpty() && preferences.deepActivationMode == Preferences.ACTIVATION_AUTO ->
-                "Scope 已授权；${restartRequired.size} 个目标等待自动/手动重新打开"
+                YLocale.text(R.string.ydiag_restart_waiting_auto, restartRequired.size)
             restartRequired.isNotEmpty() ->
-                "Scope 已授权；${restartRequired.size} 个目标需重新打开后启用深度 Hook"
-            else -> "LSPosed API ${service.apiVersion} 已连接"
+                YLocale.text(R.string.ydiag_restart_required, restartRequired.size)
+            else -> YLocale.text(R.string.ydiag_api_connected, service.apiVersion)
         }
 
         return ModuleState(
