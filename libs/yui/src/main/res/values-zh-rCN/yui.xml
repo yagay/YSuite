@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yui_loading">加载中…</string>
+    <string name="yui_search">搜索</string>
+    <string name="yui_open">打开</string>
+</resources>
