@@ -54,8 +54,20 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             ?: hookPid.takeIf { it > 0 } ?: commandPid.takeIf { it > 0 } ?: scopePid.takeIf { it > 0 } ?: rfPid
         val hookBuild = map[ConfigProvider.KEY_HOOK_BUILD]?.toIntOrNull() ?: 0
         val rawRfStatus = map[ConfigProvider.KEY_RF_STATUS] ?: "IDLE"
-        val controllerEpoch = map[ConfigProvider.KEY_CONTROLLER_EPOCH]?.toLongOrNull() ?: 0L
+        val rawControllerEpoch = map[ConfigProvider.KEY_CONTROLLER_EPOCH]?.toLongOrNull() ?: 0L
         val rfControllerEpoch = map[ConfigProvider.KEY_RF_CONTROLLER_EPOCH]?.toLongOrNull() ?: Long.MIN_VALUE
+        val providerAccepted = map[ConfigProvider.KEY_RF_ACCEPTED].toBoolean()
+        val providerVerified = map[ConfigProvider.KEY_VERIFICATION_CONFIDENCE] == "VERIFIED"
+        val sameRfProcess = currentPid > 0 && rfPid == currentPid && (runtimePid == 0 || runtimePid == currentPid)
+
+        // Compatibility repair for early schema-7 snapshots: they could contain a verified RF
+        // epoch without the matching controller_epoch. HookConfigStore now persists the missing
+        // controller epoch, but the UI must not briefly downgrade an already verified native write
+        // to STALE while that repair is happening.
+        val controllerEpoch = if (
+            rawControllerEpoch <= 0L && rfControllerEpoch > 0L && providerAccepted && providerVerified && sameRfProcess
+        ) rfControllerEpoch else rawControllerEpoch
+
         val rfFresh = RfFreshness.isFresh(
             currentPid = currentPid,
             runtimePid = runtimePid,
@@ -65,6 +77,12 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
         )
         val restartTransition = map[ConfigProvider.KEY_COMMAND_STATUS] == "RESTART_REQUIRED" &&
             map[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull() == map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull()
+        val lifecycleReverifyPending = rfFresh &&
+            map[ConfigProvider.KEY_REFRESH_TRIGGER_STATUS] in setOf(
+                "LIFECYCLE_INVALIDATED",
+                "LIFECYCLE_REPLAY_WAIT",
+                "LIFECYCLE_FAILED"
+            )
         val visibleRfStatus = when {
             rawRfStatus == "IDLE" -> "IDLE"
             rfFresh -> rawRfStatus
@@ -73,6 +91,7 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             else -> "STALE($rawRfStatus)"
         }
         val semanticVisible = rfFresh || rfPid == 0 || restartTransition
+        val rawOperation = map[ConfigProvider.KEY_OPERATION_STATE] ?: "IDLE"
         return RuntimeStatus(
             appBuild = map[ConfigProvider.KEY_APP_BUILD]?.toIntOrNull() ?: 0,
             hookBuild = hookBuild,
@@ -91,10 +110,14 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             commandStatus = map[ConfigProvider.KEY_COMMAND_STATUS] ?: "IDLE",
             commandDetail = map[ConfigProvider.KEY_COMMAND_DETAIL]?.takeIf { it.isNotBlank() },
             commandPid = commandPid,
-            operationState = if (semanticVisible) map[ConfigProvider.KEY_OPERATION_STATE] ?: "IDLE" else "STALE",
+            operationState = when {
+                !semanticVisible -> "STALE"
+                lifecycleReverifyPending && rawOperation == "IDLE" -> "REVERIFY_PENDING"
+                else -> rawOperation
+            },
             effectiveState = if (semanticVisible) map[ConfigProvider.KEY_EFFECTIVE_STATE] ?: "UNKNOWN" else "UNKNOWN",
             verificationConfidence = if (semanticVisible) map[ConfigProvider.KEY_VERIFICATION_CONFIDENCE] ?: "NONE" else "NONE",
-            rfAccepted = rfFresh && map[ConfigProvider.KEY_RF_ACCEPTED].toBoolean(),
+            rfAccepted = rfFresh && providerAccepted,
             rfStatus = visibleRfStatus,
             rfUid = if (rfFresh) map[ConfigProvider.KEY_RF_UID]?.takeIf { it.isNotBlank() } else null,
             rfSource = if (rfFresh) map[ConfigProvider.KEY_RF_SOURCE]?.takeIf { it.isNotBlank() } else null,
