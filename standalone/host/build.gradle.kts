@@ -115,6 +115,12 @@ android {
             resources.srcDir(generatedXposedResourcesDir)
         }
     }
+
+    // Host-level native packaging policy shared with the full YSuite application.
+    // Some Features (currently YPower) receive bytehook from both CMake/JNI and an AAR.
+    packaging {
+        jniLibs.pickFirsts += setOf("**/libbytehook.so")
+    }
 }
 
 tasks.named("preBuild").configure {
