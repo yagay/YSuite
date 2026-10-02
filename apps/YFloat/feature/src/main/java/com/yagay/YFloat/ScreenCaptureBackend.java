@@ -20,7 +20,7 @@ final class ScreenCaptureBackend {
         boolean fallbackNormal = capture.fallbackNormal();
 
         DiagnosticLog.i(app, "SCREENSHOT_BACKEND", "mode="
-                + PrivilegeManager.modeLabel(settings)
+                + PrivilegeManager.modeLabel(app, settings)
                 + " accessibilityPreferred=" + settings.accessibilityScreenshot()
                 + " rootFeature=" + settings.rootScreenshot()
                 + " rootAllowed=" + rootAllowed
