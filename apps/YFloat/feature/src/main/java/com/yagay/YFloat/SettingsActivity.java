@@ -46,15 +46,29 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private LinearLayout buildHomePage() {
-        LinearLayout root = AppUi.pageRoot(this, "设置",
-                "按功能进入独立页面，修改后立即生效。" );
-        AppUi.Section categories = AppUi.section(this, "分类", null);
-        addCategory(categories.body, "悬浮图标", "外观、贴边、显示行为", SECTION_ICON);
-        addCategory(categories.body, "手势与轨迹", "点击、长按、滑动阈值与轨迹", SECTION_GESTURE);
-        addCategory(categories.body, "截图与 OCR", "截图来源、OCR 引擎、模型与语言", SECTION_CAPTURE);
-        addCategory(categories.body, "环境与显示", "键盘避让、智能入口、按应用隐藏", SECTION_ENVIRONMENT);
-        addCategory(categories.body, "高级权限", "Root / LSPosed 可选增强、状态与失败回退", SECTION_PRIVILEGE);
-        addCategory(categories.body, "手势动作映射", "给每种手势分配动作", SECTION_ACTIONS);
+        LinearLayout root = AppUi.pageRoot(this,
+                getString(R.string.yfloat_settings_title),
+                getString(R.string.yfloat_settings_desc));
+        AppUi.Section categories = AppUi.section(this,
+                getString(R.string.yfloat_settings_categories), null);
+        addCategory(categories.body,
+                getString(R.string.yfloat_float_icon_settings),
+                getString(R.string.yfloat_settings_icon_desc), SECTION_ICON);
+        addCategory(categories.body,
+                getString(R.string.yfloat_gesture_settings),
+                getString(R.string.yfloat_settings_gesture_desc), SECTION_GESTURE);
+        addCategory(categories.body,
+                getString(R.string.yfloat_capture_ocr_settings),
+                getString(R.string.yfloat_settings_capture_desc), SECTION_CAPTURE);
+        addCategory(categories.body,
+                getString(R.string.yfloat_environment_settings),
+                getString(R.string.yfloat_settings_environment_desc), SECTION_ENVIRONMENT);
+        addCategory(categories.body,
+                getString(R.string.yfloat_advanced_permissions),
+                getString(R.string.yfloat_settings_privilege_desc), SECTION_PRIVILEGE);
+        addCategory(categories.body,
+                getString(R.string.yfloat_settings_actions),
+                getString(R.string.yfloat_settings_actions_desc), SECTION_ACTIONS);
         AppUi.addSection(root, categories);
         return root;
     }
