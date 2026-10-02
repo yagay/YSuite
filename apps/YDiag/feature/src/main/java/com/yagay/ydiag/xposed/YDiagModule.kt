@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.util.Log
 import android.webkit.WebView
 import com.yagay.ydiag.YDiagApp
+import com.yagay.suite.api.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.HotReloadedParam
@@ -105,6 +106,20 @@ class YDiagModule : XposedModule() {
 
     @Synchronized
     private fun refreshConfiguration(reason: String) {
+        if (!RuntimeOwnerGate.shouldRun("ydiag", getModuleApplicationInfo())) {
+            val wasTracked = tracked
+            tracked = false
+            optionSnapshot = emptySet()
+            Log.i(
+                TAG,
+                "CONFIG package=$packageName process=$processName tracked=false owner=ysuite reason=$reason"
+            )
+            if (wasTracked) {
+                Log.i(TAG, "TRACKING_DISABLED package=$packageName process=$processName hooks_remain_passthrough=true")
+            }
+            return
+        }
+
         val targets = runCatching {
             preferences.getStringSet(YDiagApp.KEY_TARGETS, emptySet()).orEmpty().toSet()
         }.getOrDefault(emptySet())
