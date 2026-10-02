@@ -51,11 +51,12 @@ val selected = when {
 
 val ciArm64Only = providers.gradleProperty("ciArm64Only").orNull == "true"
 val generatedXposedResources = layout.buildDirectory.dir("generated/standalone-xposed")
+val generatedXposedResourcesDir = generatedXposedResources.get().asFile
 
 val generateStandaloneXposedResources = tasks.register("generateStandaloneXposedResources") {
-    outputs.dir(generatedXposedResources)
+    outputs.dir(generatedXposedResourcesDir)
     doLast {
-        val root = generatedXposedResources.get().asFile
+        val root = generatedXposedResourcesDir
         root.deleteRecursively()
         if (selected.hooks.isEmpty()) return@doLast
 
@@ -111,7 +112,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            resources.srcDir(generatedXposedResources)
+            resources.srcDir(generatedXposedResourcesDir)
         }
     }
 }
