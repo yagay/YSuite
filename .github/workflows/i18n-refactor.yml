@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: i18n-refactor-main
+  cancel-in-progress: false
+
 jobs:
   migrate:
     runs-on: ubuntu-24.04
