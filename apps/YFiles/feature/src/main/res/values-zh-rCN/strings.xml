@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><resources>
+<string name="yfiles_title">YFiles</string><string name="yfiles_subtitle">使用 YSuite 统一 UI、Root 与诊断能力的增强文件管理器</string>
+<string name="location">当前位置</string><string name="search_files">搜索文件</string><string name="show_hidden">显示隐藏文件</string><string name="root_mode">Root 视图</string><string name="root_mode_summary">集成到 YSuite 时使用统一 Root 网关。</string>
+<string name="parent">上一级</string><string name="refresh">刷新</string><string name="new_folder">新建文件夹</string><string name="folder_name">文件夹名称</string><string name="create">创建</string><string name="cancel">取消</string>
+<string name="access_status">访问能力</string><string name="access_status_summary">存储权限与统一特权能力</string><string name="all_files_access">所有文件访问</string><string name="root_access">Root</string><string name="granted">已授权</string><string name="not_granted">未授权</string><string name="available">可用</string><string name="unavailable">不可用</string><string name="open_settings">打开设置</string>
+<string name="error">错误</string><string name="empty_folder">文件夹为空</string><string name="folder">文件夹</string><string name="open">打开</string><string name="delete">删除</string><string name="root_entry">Root 项目</string>
+<string name="documentsui_integration">系统文件选择器集成</string><string name="documentsui_summary">保留 DocumentsUI 和 SAF 以保证兼容性。</string><string name="documentsui">DocumentsUI</string><string name="preserved">保留兼容</string><string name="documentsui_note">YFiles 提供更完整的文件管理界面；LSPosed 桥接保留给安全增强系统选择器，不破坏 URI 授权。</string>
+</resources>

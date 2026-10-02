@@ -167,3 +167,31 @@ replaced_components = [
   { type = "provider", class = "com.yagay.YFloat.GoogleCtsBridgeProvider" },
 ]
 hooks = [{ id = "yfloat/main", class = "com.yagay.YFloat.hook.YFloatModule" }]
+
+[[feature]]
+id = "ydownload"
+name = "YDownload"
+description = "Download manager, resumable HTTP engine, and DownloadProvider compatibility bridge"
+gradle_module = ":ydownload-feature"
+project_dir = "apps/YDownload/feature"
+entry_activity = "com.yagay.ydownload.MainActivity"
+runtime = "com.yagay.ydownload.YDownloadSuiteRuntime"
+standalone_package = "com.yagay.ydownload"
+standalone_enabled = true
+capabilities = ["ROOT", "LSPOSED", "NOTIFICATIONS"]
+lifecycle = "managed"
+hooks = [{ id = "ydownload/main", class = "com.yagay.ydownload.xposed.YDownloadModule" }]
+
+[[feature]]
+id = "yfiles"
+name = "YFiles"
+description = "Enhanced file manager, Root browser, and DocumentsUI compatibility bridge"
+gradle_module = ":yfiles-feature"
+project_dir = "apps/YFiles/feature"
+entry_activity = "com.yagay.yfiles.MainActivity"
+runtime = "com.yagay.yfiles.YFilesSuiteRuntime"
+standalone_package = "com.yagay.yfiles"
+standalone_enabled = true
+capabilities = ["ROOT", "LSPOSED"]
+lifecycle = "managed"
+hooks = [{ id = "yfiles/main", class = "com.yagay.yfiles.xposed.YFilesModule" }]

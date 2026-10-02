@@ -9,3 +9,5 @@
 :ytask-feature	apps/YTaskManager/feature
 :yparam-feature	apps/YParam/feature
 :yfloat-feature	apps/YFloat/feature
+:ydownload-feature	apps/YDownload/feature
+:yfiles-feature	apps/YFiles/feature

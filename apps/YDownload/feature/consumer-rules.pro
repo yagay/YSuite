@@ -1,0 +1,1 @@
+-keep class com.yagay.ydownload.YDownloadSuiteRuntime { public static ** get(android.content.Context); }

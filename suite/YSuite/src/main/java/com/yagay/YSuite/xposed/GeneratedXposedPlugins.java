@@ -20,6 +20,8 @@ final class GeneratedXposedPlugins {
             new Entry("ytaskmanager/main", "com.yagay.YTaskManager.xposed.TaskManagerModule"),
             new Entry("yparam/main", "com.yagay.yparam.hook.YParamModule"),
             new Entry("yfloat/main", "com.yagay.YFloat.hook.YFloatModule"),
+            new Entry("ydownload/main", "com.yagay.ydownload.xposed.YDownloadModule"),
+            new Entry("yfiles/main", "com.yagay.yfiles.xposed.YFilesModule"),
     };
 
     record Entry(String id, String entryClassName) {}
