@@ -11,12 +11,14 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.lifecycleScope
 import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.RootManager
+import com.yagay.suite.core.SuiteCapability
 import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
@@ -47,17 +49,29 @@ class MainActivity : YComposeActivity() {
     }
 
     private fun exportDiagnostic(modules: Set<String>?, label: String) {
-        Toast.makeText(this, "正在收集 $label 诊断信息…", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            this,
+            getString(R.string.diagnostic_collecting, label),
+            Toast.LENGTH_SHORT,
+        ).show()
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching { SuiteLog.export(this@MainActivity, modules) }
             }
             result.onSuccess { path ->
-                Toast.makeText(this@MainActivity, "$label 已保存：$path", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.diagnostic_saved, label, path),
+                    Toast.LENGTH_LONG,
+                ).show()
             }.onFailure {
                 Toast.makeText(
                     this@MainActivity,
-                    "$label 保存失败：${it.javaClass.simpleName}",
+                    getString(
+                        R.string.diagnostic_save_failed,
+                        label,
+                        it.javaClass.simpleName,
+                    ),
                     Toast.LENGTH_LONG,
                 ).show()
             }
@@ -74,9 +88,11 @@ class MainActivity : YComposeActivity() {
             }
         }
         var rootAvailable by remember { mutableStateOf<Boolean?>(null) }
+        var xposedConnected by remember { mutableStateOf(SuiteXposedServiceBroker.isConnected()) }
         var xposedStatus by remember { mutableStateOf(SuiteXposedServiceBroker.statusLabel()) }
         var permissions by remember { mutableStateOf(SuitePermissionState.snapshot(this)) }
         var resumeTick by remember { mutableIntStateOf(0) }
+        val fullDiagnosticLabel = stringResource(R.string.diagnostic_full_label)
 
         LifecycleResumeEffect(Unit) {
             resumeTick++
@@ -92,6 +108,7 @@ class MainActivity : YComposeActivity() {
 
         LaunchedEffect(Unit) {
             while (true) {
+                xposedConnected = SuiteXposedServiceBroker.isConnected()
                 xposedStatus = SuiteXposedServiceBroker.statusLabel()
                 permissions = SuitePermissionState.snapshot(this@MainActivity)
                 delay(1_000L)
@@ -99,39 +116,56 @@ class MainActivity : YComposeActivity() {
         }
 
         YFeatureScaffold(
-            title = "YSuite",
-            subtitle = "统一宿主 · 插件共享系统能力",
+            title = stringResource(R.string.app_name),
+            subtitle = stringResource(R.string.suite_subtitle),
         ) { scaffoldPadding ->
             YFeatureList(padding = scaffoldPadding) {
                 item {
                     RuntimeEnvironmentCard(
                         featureCount = features.size,
                         rootAvailable = rootAvailable,
+                        xposedConnected = xposedConnected,
                         xposedStatus = xposedStatus,
                         permissions = permissions,
                         onAccessibility = {
                             if (!SuitePermissionState.openAccessibilitySettings(this@MainActivity)) {
-                                Toast.makeText(this@MainActivity, "无法打开无障碍设置", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(R.string.error_open_accessibility_settings),
+                                    Toast.LENGTH_LONG,
+                                ).show()
                             }
                         },
                         onOverlay = {
                             if (!SuitePermissionState.openOverlaySettings(this@MainActivity)) {
-                                Toast.makeText(this@MainActivity, "无法打开悬浮窗设置", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(R.string.error_open_overlay_settings),
+                                    Toast.LENGTH_LONG,
+                                ).show()
                             }
                         },
                         onNotificationListener = {
                             if (!SuitePermissionState.openNotificationListenerSettings(this@MainActivity)) {
-                                Toast.makeText(this@MainActivity, "无法打开通知监听设置", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(R.string.error_open_notification_listener_settings),
+                                    Toast.LENGTH_LONG,
+                                ).show()
                             }
                         },
-                        onExport = { exportDiagnostic(null, "整体诊断") },
+                        onExport = { exportDiagnostic(null, fullDiagnosticLabel) },
                     )
                 }
 
                 items(features.size, key = { features[it].id }) { index ->
                     val feature = features[index]
+                    val localizedName = localizedFeatureName(feature)
+                    val localizedDescription = localizedFeatureDescription(feature)
                     FeatureCard(
                         feature = feature,
+                        localizedName = localizedName,
+                        localizedDescription = localizedDescription,
                         isEnabled = enabled[feature.id] == true,
                         onEnabledChange = { next ->
                             store.setEnabled(feature, next)
@@ -149,7 +183,11 @@ class MainActivity : YComposeActivity() {
                                         SuiteLog.e(this@MainActivity, feature.id, "host enable failed", it)
                                         Toast.makeText(
                                             this@MainActivity,
-                                            "${feature.name} 启用失败：${it.javaClass.simpleName}",
+                                            getString(
+                                                R.string.feature_enable_failed,
+                                                localizedName,
+                                                it.javaClass.simpleName,
+                                            ),
                                             Toast.LENGTH_LONG,
                                         ).show()
                                     }
@@ -174,12 +212,16 @@ class MainActivity : YComposeActivity() {
                                     SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
                                     Toast.makeText(
                                         this@MainActivity,
-                                        "${feature.name} 打开失败：${it.javaClass.simpleName}",
+                                        getString(
+                                            R.string.feature_open_failed,
+                                            localizedName,
+                                            it.javaClass.simpleName,
+                                        ),
                                         Toast.LENGTH_LONG,
                                     ).show()
                                 }
                         },
-                        onExportLog = { exportDiagnostic(setOf(feature.id), "${feature.name} 诊断") },
+                        onExportLog = { exportDiagnostic(setOf(feature.id), localizedName) },
                     )
                 }
             }
@@ -191,6 +233,7 @@ class MainActivity : YComposeActivity() {
 private fun RuntimeEnvironmentCard(
     featureCount: Int,
     rootAvailable: Boolean?,
+    xposedConnected: Boolean,
     xposedStatus: String,
     permissions: SuitePermissionSnapshot,
     onAccessibility: () -> Unit,
@@ -199,16 +242,20 @@ private fun RuntimeEnvironmentCard(
     onExport: () -> Unit,
 ) {
     YFeatureCard(
-        title = "统一运行环境",
-        subtitle = "所有系统能力由 YSuite 持有，功能模块只作为插件消费。",
-        detail = "已加入功能：$featureCount · 已注册 LSPosed 插件监听：${SuiteXposedServiceBroker.listenerCount()}",
+        title = stringResource(R.string.runtime_environment_title),
+        subtitle = stringResource(R.string.runtime_environment_subtitle),
+        detail = stringResource(
+            R.string.runtime_environment_detail,
+            featureCount,
+            SuiteXposedServiceBroker.listenerCount(),
+        ),
     ) {
         YStatusRow(
-            label = "Root",
+            label = stringResource(R.string.capability_root),
             value = when (rootAvailable) {
-                true -> "已授权"
-                false -> "不可用 / 未授权"
-                null -> "检测中"
+                true -> stringResource(R.string.status_authorized)
+                false -> stringResource(R.string.status_unavailable_or_unauthorized)
+                null -> stringResource(R.string.status_checking)
             },
             tone = when (rootAvailable) {
                 true -> YStatusTone.Good
@@ -216,28 +263,39 @@ private fun RuntimeEnvironmentCard(
                 null -> YStatusTone.Neutral
             },
         )
-        YStatusRow("LSPosed", xposedStatus)
         YStatusRow(
-            "无障碍",
+            stringResource(R.string.capability_lsposed),
+            if (xposedConnected) xposedStatus else stringResource(R.string.status_not_connected),
+        )
+        YStatusRow(
+            stringResource(R.string.capability_accessibility),
             permissions.accessibilityLabel,
             if (permissions.accessibilityEnabled) YStatusTone.Good else YStatusTone.Warning,
         )
         YStatusRow(
-            "悬浮窗",
-            if (permissions.overlayGranted) "已授权" else "未授权",
+            stringResource(R.string.capability_overlay),
+            if (permissions.overlayGranted) {
+                stringResource(R.string.status_authorized)
+            } else {
+                stringResource(R.string.status_not_authorized)
+            },
             if (permissions.overlayGranted) YStatusTone.Good else YStatusTone.Warning,
         )
         YStatusRow(
-            "通知",
-            if (permissions.notificationsGranted) "已授权" else "未授权",
+            stringResource(R.string.capability_notifications),
+            if (permissions.notificationsGranted) {
+                stringResource(R.string.status_authorized)
+            } else {
+                stringResource(R.string.status_not_authorized)
+            },
             if (permissions.notificationsGranted) YStatusTone.Good else YStatusTone.Warning,
         )
         YStatusRow(
-            "通知监听",
+            stringResource(R.string.capability_notification_listener),
             when {
-                permissions.notificationListenerConnected -> "已连接"
-                permissions.notificationListenerGranted -> "已授权 · 等待连接"
-                else -> "未授权"
+                permissions.notificationListenerConnected -> stringResource(R.string.status_connected)
+                permissions.notificationListenerGranted -> stringResource(R.string.status_authorized_waiting_connection)
+                else -> stringResource(R.string.status_not_authorized)
             },
             when {
                 permissions.notificationListenerConnected -> YStatusTone.Good
@@ -247,31 +305,39 @@ private fun RuntimeEnvironmentCard(
         )
 
         if (permissions.legacyAccessibilityEnabled && !permissions.accessibilityEnabled) {
-            HostWarning("检测到旧版分模块无障碍授权，请迁移到 YSuite 统一无障碍。")
+            HostWarning(stringResource(R.string.warning_legacy_accessibility))
         }
         if (permissions.legacyNotificationListenerEnabled && !permissions.notificationListenerGranted) {
-            HostWarning("检测到旧版 YNotify 通知监听授权，请迁移到 YSuite 统一通知监听。")
+            HostWarning(stringResource(R.string.warning_legacy_notification_listener))
         }
         if (permissions.otherAccessibilityHostEnabled) {
-            HostWarning("另一独立版本的无障碍也已开启；建议只保留当前实际使用的版本。")
+            HostWarning(stringResource(R.string.warning_other_accessibility_host))
         }
         if (permissions.otherNotificationListenerHostEnabled) {
-            HostWarning("另一独立版本的通知监听也已开启；建议只保留当前实际使用的版本。")
+            HostWarning(stringResource(R.string.warning_other_notification_host))
         }
 
         YActionRow {
             YSecondaryButton(
-                text = if (permissions.accessibilityEnabled) "无障碍设置" else "开启无障碍",
+                text = if (permissions.accessibilityEnabled) {
+                    stringResource(R.string.accessibility_settings)
+                } else {
+                    stringResource(R.string.enable_accessibility)
+                },
                 onClick = onAccessibility,
             )
-            YSecondaryButton(text = "悬浮窗", onClick = onOverlay)
+            YSecondaryButton(text = stringResource(R.string.overlay_settings), onClick = onOverlay)
         }
         YActionRow {
             YSecondaryButton(
-                text = if (permissions.notificationListenerGranted) "通知监听设置" else "开启通知监听",
+                text = if (permissions.notificationListenerGranted) {
+                    stringResource(R.string.notification_listener_settings)
+                } else {
+                    stringResource(R.string.enable_notification_listener)
+                },
                 onClick = onNotificationListener,
             )
-            YSecondaryButton(text = "导出整体诊断", onClick = onExport)
+            YSecondaryButton(text = stringResource(R.string.export_full_diagnostic), onClick = onExport)
         }
     }
 }
@@ -288,28 +354,77 @@ private fun HostWarning(message: String) {
 @Composable
 private fun FeatureCard(
     feature: FeatureSpec,
+    localizedName: String,
+    localizedDescription: String,
     isEnabled: Boolean,
     onEnabledChange: (Boolean) -> Unit,
     onOpen: () -> Unit,
     onExportLog: () -> Unit,
 ) {
+    val capabilities = feature.sharedCapabilities
+        .map { localizedCapabilityName(it) }
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString(" + ")
+
     YFeatureCard(
-        title = feature.name,
-        subtitle = feature.description,
-        detail = feature.sharedCapabilities
-            .map { it.displayName }
-            .takeIf { it.isNotEmpty() }
-            ?.joinToString(prefix = "共享能力：", separator = " + "),
+        title = localizedName,
+        subtitle = localizedDescription,
+        detail = capabilities?.let { stringResource(R.string.shared_capabilities, it) },
     ) {
         YSettingSwitch(
-            title = "启用功能",
-            subtitle = "关闭后 Runtime、Hook、Root 和共享服务访问会同步停用。",
+            title = stringResource(R.string.enable_feature),
+            subtitle = stringResource(R.string.enable_feature_summary),
             checked = isEnabled,
             onCheckedChange = onEnabledChange,
         )
         YActionRow {
-            YPrimaryButton(text = "打开", onClick = onOpen, enabled = isEnabled)
-            YSecondaryButton(text = "诊断包", onClick = onExportLog)
+            YPrimaryButton(
+                text = stringResource(R.string.open_feature),
+                onClick = onOpen,
+                enabled = isEnabled,
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.diagnostic_package),
+                onClick = onExportLog,
+            )
         }
     }
+}
+
+@Composable
+private fun localizedFeatureName(feature: FeatureSpec): String = when (feature.id) {
+    "yentrycleaner" -> stringResource(R.string.feature_yentrycleaner_name)
+    "ydiag" -> stringResource(R.string.feature_ydiag_name)
+    "ynotify" -> stringResource(R.string.feature_ynotify_name)
+    "ypower" -> stringResource(R.string.feature_ypower_name)
+    "yminiguard" -> stringResource(R.string.feature_yminiguard_name)
+    "ynfc" -> stringResource(R.string.feature_ynfc_name)
+    "ytaskmanager" -> stringResource(R.string.feature_ytaskmanager_name)
+    "yparam" -> stringResource(R.string.feature_yparam_name)
+    "yfloat" -> stringResource(R.string.feature_yfloat_name)
+    else -> feature.name
+}
+
+@Composable
+private fun localizedFeatureDescription(feature: FeatureSpec): String = when (feature.id) {
+    "yentrycleaner" -> stringResource(R.string.feature_yentrycleaner_description)
+    "ydiag" -> stringResource(R.string.feature_ydiag_description)
+    "ynotify" -> stringResource(R.string.feature_ynotify_description)
+    "ypower" -> stringResource(R.string.feature_ypower_description)
+    "yminiguard" -> stringResource(R.string.feature_yminiguard_description)
+    "ynfc" -> stringResource(R.string.feature_ynfc_description)
+    "ytaskmanager" -> stringResource(R.string.feature_ytaskmanager_description)
+    "yparam" -> stringResource(R.string.feature_yparam_description)
+    "yfloat" -> stringResource(R.string.feature_yfloat_description)
+    else -> feature.description
+}
+
+@Composable
+private fun localizedCapabilityName(capability: SuiteCapability): String = when (capability) {
+    SuiteCapability.ROOT -> stringResource(R.string.capability_root)
+    SuiteCapability.LSPOSED -> stringResource(R.string.capability_lsposed)
+    SuiteCapability.ACCESSIBILITY -> stringResource(R.string.capability_accessibility)
+    SuiteCapability.OVERLAY -> stringResource(R.string.capability_overlay)
+    SuiteCapability.NOTIFICATIONS -> stringResource(R.string.capability_notifications)
+    SuiteCapability.NOTIFICATION_LISTENER -> stringResource(R.string.capability_notification_listener)
 }
