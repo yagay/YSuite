@@ -18,3 +18,17 @@ subprojects {
         }
     }
 }
+
+// Convenience entry points for the generic standalone composer.
+// Example: ./gradlew buildFeatureDebug -PySuiteStandaloneFeature=yfiles
+tasks.register("buildFeatureDebug") {
+    group = "build"
+    description = "Build one Feature as a standalone debug APK using -PySuiteStandaloneFeature=<id>."
+    dependsOn(":standalone:packageFeatureDebug")
+}
+
+tasks.register("buildFeatureRelease") {
+    group = "build"
+    description = "Build one Feature as a standalone release APK using -PySuiteStandaloneFeature=<id>."
+    dependsOn(":standalone:packageFeatureRelease")
+}
