@@ -1,54 +1,46 @@
 # YSuite
 
-YSuite is the monorepo for the Android/LSPosed projects that share the YSuite host, UI and runtime infrastructure.
+YSuite is the monorepo for the Android/LSPosed projects that share one host runtime, one UI system and one set of platform-facing infrastructure.
+
+## Architecture in one sentence
+
+**YSuite is the only full production app; every product area is a reusable Feature, and any Feature can be packaged into a standalone APK on demand by the generic standalone host.**
+
+Feature business code is never copied between the combined app and standalone builds.
 
 ## Repository layout
 
 ```text
 YSuite/
-├── apps/
-│   ├── YDiag/
-│   ├── YNotify/
-│   ├── YPower/
-│   ├── YMiniGuard/
-│   ├── YEntryCleaner/
-│   ├── YNFC/
-│   ├── YTaskManager/
-│   ├── YParam/
-│   └── YFloat/
+├── apps/                     # Feature source folders (legacy app shells remain only as migration copies)
+│   ├── YDiag/feature/
+│   ├── YDownload/feature/
+│   ├── YFiles/feature/
+│   └── ...
 ├── libs/
-│   ├── ycore/
-│   └── yui/
+│   ├── yapi/                 # narrow Feature/Host contracts
+│   ├── ycore/                # shared host runtime, Root, logging, lifecycle, diagnostics
+│   └── yui/                  # shared UI framework
 ├── suite/
-│   └── YSuite/
-├── docs/
+│   └── YSuite/               # the one full production application host
+├── standalone/
+│   └── host/                 # one generic APK shell for every Feature
+├── config/
+│   ├── features.toml         # single source of truth
+│   └── generated/
 ├── tools/
 └── .github/workflows/
 ```
 
-## Architecture
+## Host ownership
 
-Each project under `apps/` keeps its standalone `app/` shell and reusable `feature/` module. The unified YSuite APK consumes those same feature modules directly, so feature code is not copied into the host.
+When Features are combined into YSuite, application-level capabilities have one owner. Shared Root, LSPosed entry/routing, logging, crash handling, settings infrastructure, diagnostics and other global services live in the host/core layer. Feature modules consume these capabilities through shared contracts instead of creating another app infrastructure stack.
 
-`libs/yui` is the shared UI implementation. `libs/ycore` owns host-level contracts and shared runtime infrastructure. Code moves into `libs/` only when multiple projects genuinely share it; app-specific behavior stays inside its app folder.
+Android components that genuinely need separate declarations (for example some TileService, AccessibilityService, DocumentsProvider, AppWidgetProvider or VPNService cases) are treated as host-managed slots rather than as independent app infrastructure.
 
-The unified APK host is `suite/YSuite` with application id `com.yagay.YSuite`. YSuite remains the physical owner for shared system-facing capabilities such as the combined Xposed entry and host-level services.
+`tools/verify_feature_boundaries.py`, host ownership checks and the integration scanner protect these boundaries in CI.
 
-## Included projects
-
-- YDiag
-- YNotify
-- YPower
-- YMiniGuard
-- YEntryCleaner
-- YNFC
-- YTaskManager
-- YParam
-- YFloat
-
-## Build
-
-Build the unified compact ARM64 APK from the repository root:
+## Build the full YSuite APK
 
 ```bash
 gradle :suite:assembleCompact
@@ -56,7 +48,45 @@ gradle :suite:assembleCompact
 
 The resulting APK is under `suite/YSuite/build/outputs/apk/compact/`.
 
-The original standalone repositories remain intact as migration safety copies. New shared development uses this monorepo as the source of truth.
+## Build one Feature as an APK
+
+The generic standalone host reads the same `config/features.toml` metadata used by YSuite.
+
+```bash
+gradle buildFeatureDebug -PySuiteStandaloneFeature=yfiles
+```
+
+Output:
+
+```text
+build/standalone/YFiles-debug.apk
+```
+
+Release example:
+
+```bash
+gradle buildFeatureRelease -PySuiteStandaloneFeature=ydownload
+```
+
+Output:
+
+```text
+build/standalone/YDownload.apk
+```
+
+The standalone APK and YSuite both compile the same Feature module. There is no second copy of its business logic, UI or Hook implementation.
+
+## Adding a Feature
+
+The long-term path is:
+
+1. create one Android library Feature;
+2. register it once in `config/features.toml`;
+3. regenerate/check catalogs;
+4. use shared Host API/Core/YUI instead of creating app-level infrastructure;
+5. verify both standalone composition and full YSuite composition.
+
+The build system and CI derive the rest from the Feature catalog.
 
 ## Project rules
 
