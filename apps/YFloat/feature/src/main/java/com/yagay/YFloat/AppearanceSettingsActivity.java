@@ -16,41 +16,42 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
 
-        LinearLayout root = AppUi.pageRoot(this, "界面与菜单",
-                "主题、文字菜单显示和各类菜单管理。" );
+        LinearLayout root = AppUi.pageRoot(this,
+                getString(R.string.yfloat_appearance_title),
+                getString(R.string.yfloat_appearance_desc));
 
-        AppUi.Section theme = AppUi.section(this, "主题", null);
+        AppUi.Section theme = AppUi.section(this, getString(R.string.yfloat_theme_title), null);
         addThemeSpinner(theme.body);
         AppUi.addSection(root, theme);
 
-        AppUi.Section textMenu = AppUi.section(this, "文字菜单主栏",
-                "数字表示实际操作项目数量；“⋮”始终额外显示，不计入数量。" );
+        AppUi.Section textMenu = AppUi.section(this,
+                getString(R.string.yfloat_text_menu_title),
+                getString(R.string.yfloat_text_menu_desc));
         addMainItemCountSlider(textMenu.body);
         AppUi.addSection(root, textMenu);
 
-        TextView note = AppUi.caption(this,
-                "超出主栏数量的自定义操作仍保留在“⋮”菜单中，不会被删除。",
-                12);
+        TextView note = AppUi.caption(this, getString(R.string.yfloat_text_menu_note), 12);
         note.setPadding(AppUi.dp(this, 4), 0, AppUi.dp(this, 4), AppUi.dp(this, 4));
         root.addView(note);
 
-        AppUi.Section menus = AppUi.section(this, "菜单管理",
-                "管理结果菜单中的项目、顺序、隐藏状态和显示名称。" );
+        AppUi.Section menus = AppUi.section(this,
+                getString(R.string.yfloat_menu_management),
+                getString(R.string.yfloat_menu_management_desc));
         AppUi.addRow(menus.body, AppUi.navRow(this,
-                "文字操作菜单",
-                "添加、排序和移除自定义文字操作",
+                getString(R.string.yfloat_text_action_menu),
+                getString(R.string.yfloat_text_action_menu_desc),
                 () -> startActivity(MenuPickerActivity.customIntent(this))));
         AppUi.addRow(menus.body, AppUi.navRow(this,
-                "分享菜单",
-                "管理分享目标和显示顺序",
+                getString(R.string.yfloat_share_menu),
+                getString(R.string.yfloat_share_menu_desc),
                 () -> startActivity(MenuPickerActivity.targetIntent(this, TargetMenuStore.MODE_SHARE))));
         AppUi.addRow(menus.body, AppUi.navRow(this,
-                "打开 / 处理菜单",
-                "管理 PROCESS_TEXT 目标和显示顺序",
+                getString(R.string.yfloat_process_menu),
+                getString(R.string.yfloat_process_menu_desc),
                 () -> startActivity(MenuPickerActivity.targetIntent(this, TargetMenuStore.MODE_PROCESS))));
         AppUi.addRow(menus.body, AppUi.navRow(this,
-                "修改菜单显示名称",
-                "统一缩短文字、分享和处理菜单中的项目名称",
+                getString(R.string.yfloat_rename_menu_items),
+                getString(R.string.yfloat_rename_menu_items_desc),
                 () -> startActivity(new android.content.Intent(this, MenuLabelEditorActivity.class))));
         AppUi.addSection(root, menus);
 
@@ -65,13 +66,17 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
 
         LinearLayout copy = new LinearLayout(this);
         copy.setOrientation(LinearLayout.VERTICAL);
-        copy.addView(AppUi.text(this, "主题模式", 14, false));
-        TextView sub = AppUi.caption(this, "跟随系统、始终浅色或始终深色", 12);
+        copy.addView(AppUi.text(this, getString(R.string.yfloat_theme_mode), 14, false));
+        TextView sub = AppUi.caption(this, getString(R.string.yfloat_theme_mode_desc), 12);
         sub.setPadding(0, AppUi.dp(this, 2), AppUi.dp(this, 8), 0);
         copy.addView(sub);
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        String[] labels = {"跟随系统", "浅色", "深色"};
+        String[] labels = {
+                getString(R.string.yfloat_theme_system),
+                getString(R.string.yfloat_theme_light),
+                getString(R.string.yfloat_theme_dark)
+        };
         Spinner spinner = new Spinner(this);
         spinner.setAdapter(new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item, labels));
@@ -96,8 +101,8 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = AppUi.text(this, "主菜单操作数量", 14, false);
-        TextView value = AppUi.caption(this, current + " 个", 13);
+        TextView title = AppUi.text(this, getString(R.string.yfloat_main_menu_count), 14, false);
+        TextView value = AppUi.caption(this, getString(R.string.yfloat_item_count, current), 13);
         value.setGravity(Gravity.END);
         top.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
         top.addView(value, new LinearLayout.LayoutParams(-2, -2));
@@ -111,23 +116,22 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
         slider.addOnChangeListener((s, next, fromUser) -> {
             int count = Math.round(next);
             TextMenuSettings.setMainItemCount(this, count);
-            value.setText(TextMenuSettings.mainItemCount(this) + " 个");
+            value.setText(getString(R.string.yfloat_item_count, TextMenuSettings.mainItemCount(this)));
         });
         slider.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
             @Override public void onStartTrackingTouch(Slider slider) { }
             @Override public void onStopTrackingTouch(Slider slider) {
                 int count = Math.round(slider.getValue());
                 TextMenuSettings.setMainItemCount(AppearanceSettingsActivity.this, count);
-                value.setText(TextMenuSettings.mainItemCount(AppearanceSettingsActivity.this) + " 个");
+                value.setText(getString(R.string.yfloat_item_count,
+                        TextMenuSettings.mainItemCount(AppearanceSettingsActivity.this)));
             }
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = AppUi.dp(this, 4);
         block.addView(slider, lp);
 
-        TextView hint = AppUi.caption(this,
-                "可设置 4～8 个实际操作；复制、全选、分享会计入，‘⋮’不计入并始终额外显示。",
-                12);
+        TextView hint = AppUi.caption(this, getString(R.string.yfloat_main_menu_count_hint), 12);
         hint.setPadding(0, AppUi.dp(this, 2), 0, 0);
         block.addView(hint);
 
