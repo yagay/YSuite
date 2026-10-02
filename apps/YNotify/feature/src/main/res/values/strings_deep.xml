@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ynotify_unknown_app">Unknown app</string>
+    <string name="ynotify_app_icon">App icon</string>
     <string name="ynotify_last_record">Last record: %1$s</string>
     <string name="ynotify_body_subtitle">Subtitle: %1$s</string>
     <string name="ynotify_body_summary">Summary: %1$s</string>
