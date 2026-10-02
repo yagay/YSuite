@@ -87,7 +87,7 @@ android {
         versionCode = providers.gradleProperty("ySuiteStandaloneVersionCode").orNull?.toIntOrNull() ?: 1
         versionName = providers.gradleProperty("ySuiteStandaloneVersionName").orNull ?: "0.1.0"
 
-        manifestPlaceholders["standaloneAppName"] = selected.name
+        resValue("string", "standalone_app_name", selected.name)
         manifestPlaceholders["standaloneFeatureId"] = selected.id
         manifestPlaceholders["standaloneEntryActivity"] = selected.entryActivity
 
