@@ -53,12 +53,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.yagay.YTaskManager.MainViewModel
+import com.yagay.YTaskManager.R
 import com.yagay.YTaskManager.model.CpuCoreInfo
 import com.yagay.YTaskManager.model.NetworkEntry
 import com.yagay.YTaskManager.model.ProcessEntry
@@ -98,18 +100,18 @@ fun TaskManagerApp(viewModel: MainViewModel) {
     }
 
     YFeatureScaffold(
-        title = "YTaskManager",
+        title = stringResource(R.string.ytm_app_name),
         subtitle = when (page) {
-            HomePage.PROCESSES -> "${state.processCount} processes • ${state.threadCount} threads"
-            HomePage.RESOURCES -> "CPU • RAM • GPU"
-            HomePage.NETWORK -> "Per-app realtime download / upload"
+            HomePage.PROCESSES -> stringResource(R.string.ytm_process_summary, state.processCount, state.threadCount)
+            HomePage.RESOURCES -> stringResource(R.string.ytm_resource_summary)
+            HomePage.NETWORK -> stringResource(R.string.ytm_network_summary)
         },
         actions = {
             IconButton(onClick = viewModel::refresh) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.ytm_refresh))
             }
             IconButton(onClick = { showSettings = true }) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings")
+                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ytm_settings))
             }
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -163,17 +165,17 @@ fun TaskManagerApp(viewModel: MainViewModel) {
     pendingKill?.let { (process, forceStop) ->
         AlertDialog(
             onDismissRequest = { pendingKill = null },
-            title = { Text(if (forceStop) "Force stop app?" else "Kill process?") },
+            title = { Text(stringResource(if (forceStop) R.string.ytm_force_stop_question else R.string.ytm_kill_question)) },
             text = { Text(process.displayName) },
             confirmButton = {
                 Button(onClick = {
                     pendingKill = null
                     selected = null
                     if (forceStop) viewModel.forceStop(process) else viewModel.killProcess(process)
-                }) { Text("Confirm") }
+                }) { Text(stringResource(R.string.ytm_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingKill = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingKill = null }) { Text(stringResource(R.string.ytm_cancel)) }
             },
         )
     }
@@ -204,9 +206,9 @@ private fun PageSelector(page: HomePage, onPage: (HomePage) -> Unit) {
                 label = {
                     Text(
                         when (item) {
-                            HomePage.PROCESSES -> "Processes"
-                            HomePage.RESOURCES -> "Resources"
-                            HomePage.NETWORK -> "Network"
+                            HomePage.PROCESSES -> stringResource(R.string.ytm_processes)
+                            HomePage.RESOURCES -> stringResource(R.string.ytm_resources)
+                            HomePage.NETWORK -> stringResource(R.string.ytm_network)
                         },
                     )
                 },
@@ -251,12 +253,12 @@ private fun StatusSection(state: TaskManagerUiState) {
     ) {
         YStatusPill(
             label = "Root",
-            value = if (state.root.granted) "OK" else "Unavailable",
+            value = if (state.root.granted) stringResource(R.string.ytm_ok) else stringResource(R.string.ytm_root_unavailable),
             tone = if (state.root.granted) YStatusTone.Good else YStatusTone.Error,
         )
         YStatusPill(
             label = "LSPosed",
-            value = if (state.framework.detected) "Detected" else "Not detected",
+            value = if (state.framework.detected) stringResource(R.string.ytm_detected) else stringResource(R.string.ytm_not_detected),
             tone = if (state.framework.detected) YStatusTone.Good else YStatusTone.Warning,
         )
     }
@@ -272,27 +274,27 @@ private fun FilterSection(
     onLinux: (Boolean) -> Unit,
 ) {
     YFeatureCard(
-        title = "Process filter",
-        subtitle = "Search, process type and sort order",
+        title = stringResource(R.string.ytm_process_filter),
+        subtitle = stringResource(R.string.ytm_process_filter_desc),
         modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
     ) {
         YSearchField(
             value = state.query,
             onValueChange = onQuery,
-            hint = "Process, app, package, PID, UID",
+            hint = stringResource(R.string.ytm_search_hint),
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             trailingIcon = if (state.query.isNotEmpty()) {
                 {
                     IconButton(onClick = { onQuery("") }) {
-                        Icon(Icons.Default.Close, contentDescription = "Clear")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.ytm_clear))
                     }
                 }
             } else null,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(selected = state.showUserApps, onClick = { onUser(!state.showUserApps) }, label = { Text("User") })
-            FilterChip(selected = state.showSystemApps, onClick = { onSystem(!state.showSystemApps) }, label = { Text("System") })
-            FilterChip(selected = state.showLinuxProcesses, onClick = { onLinux(!state.showLinuxProcesses) }, label = { Text("Linux") })
+            FilterChip(selected = state.showUserApps, onClick = { onUser(!state.showUserApps) }, label = { Text(stringResource(R.string.ytm_user)) })
+            FilterChip(selected = state.showSystemApps, onClick = { onSystem(!state.showSystemApps) }, label = { Text(stringResource(R.string.ytm_system)) })
+            FilterChip(selected = state.showLinuxProcesses, onClick = { onLinux(!state.showLinuxProcesses) }, label = { Text(stringResource(R.string.ytm_linux)) })
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ProcessSort.entries.forEach { item ->
@@ -351,7 +353,7 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
 
     if (filtered.isEmpty()) {
         YFeatureEmpty(
-            message = "No processes match the current filter.",
+            message = stringResource(R.string.ytm_no_processes),
             modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
         )
         return
@@ -387,18 +389,18 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
                     modifier = Modifier.weight(1f),
                 )
                 if (process.isPinned) {
-                    Icon(Icons.Default.PushPin, contentDescription = "Pinned", modifier = Modifier.size(15.dp))
+                    Icon(Icons.Default.PushPin, contentDescription = stringResource(R.string.ytm_pinned), modifier = Modifier.size(15.dp))
                 }
-                if (process.isForeground) Text(" FG", style = MaterialTheme.typography.labelSmall)
+                if (process.isForeground) Text(" ${stringResource(R.string.ytm_foreground_short)}", style = MaterialTheme.typography.labelSmall)
             }
             Text(
-                "PID ${process.pid}  ${process.userName}  ${kindLabel(process.kind)}  ${process.threads}T",
+                stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "↓ ${formatSpeed(process.rxBytesPerSecond)}    ↑ ${formatSpeed(process.txBytesPerSecond)}",
+                stringResource(R.string.ytm_download_upload, formatSpeed(process.rxBytesPerSecond), formatSpeed(process.txBytesPerSecond)),
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
             )
@@ -414,64 +416,66 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
 private fun ResourcePage(state: TaskManagerUiState) {
     val s = state.system
     val g = state.gpu
+    val unknown = stringResource(R.string.ytm_unknown)
+    val noData = stringResource(R.string.ytm_no_data)
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
     ) {
         item {
             SectionCard("CPU") {
-                MetricLine("Usage", String.format(Locale.getDefault(), "%.1f%%", s.cpuPercent))
+                MetricLine(stringResource(R.string.ytm_usage), String.format(Locale.getDefault(), "%.1f%%", s.cpuPercent))
                 HistoryChart(state.cpuHistory)
             }
         }
         item {
             SectionCard("RAM") {
-                MetricLine("Used", "${formatBytes(s.ramUsedBytes)} / ${formatBytes(s.ramTotalBytes)}")
-                MetricLine("Available", formatBytes(s.ramAvailableBytes))
-                MetricLine("Cached", formatBytes(s.cachedBytes))
-                MetricLine("Buffers", formatBytes(s.buffersBytes))
+                MetricLine(stringResource(R.string.ytm_used), "${formatBytes(s.ramUsedBytes)} / ${formatBytes(s.ramTotalBytes)}")
+                MetricLine(stringResource(R.string.ytm_available), formatBytes(s.ramAvailableBytes))
+                MetricLine(stringResource(R.string.ytm_cached), formatBytes(s.cachedBytes))
+                MetricLine(stringResource(R.string.ytm_buffers), formatBytes(s.buffersBytes))
                 HistoryChart(state.ramHistory)
             }
         }
         item {
             SectionCard("SWAP") {
-                MetricLine("Used", "${formatBytes(s.swapUsedBytes)} / ${formatBytes(s.swapTotalBytes)}")
+                MetricLine(stringResource(R.string.ytm_used), "${formatBytes(s.swapUsedBytes)} / ${formatBytes(s.swapTotalBytes)}")
                 HistoryChart(state.swapHistory)
             }
         }
         item {
-            SectionCard("Processor information") {
-                MetricLine("SoC", s.soc.ifBlank { "Unknown" })
-                MetricLine("Architecture", s.architecture.ifBlank { "Unknown" })
-                MetricLine("ABI", s.abi.ifBlank { "Unknown" })
-                MetricLine("CPU cores", s.cpuCoreCount.toString())
-                MetricLine("Governor", s.governor.ifBlank { "Unknown" })
-                MetricLine("Temperature", s.cpuTemperatureC?.let { String.format(Locale.US, "%.1f °C", it) } ?: "No data")
-                MetricLine("Uptime", formatDuration(s.uptimeMillis))
-                MetricLine("Load", String.format(Locale.US, "%.2f", s.load1))
-                MetricLine("Processes", state.processCount.toString())
-                MetricLine("Threads", state.threadCount.toString())
+            SectionCard(stringResource(R.string.ytm_processor_information)) {
+                MetricLine("SoC", s.soc.ifBlank { unknown })
+                MetricLine(stringResource(R.string.ytm_architecture), s.architecture.ifBlank { unknown })
+                MetricLine("ABI", s.abi.ifBlank { unknown })
+                MetricLine(stringResource(R.string.ytm_cpu_cores), s.cpuCoreCount.toString())
+                MetricLine(stringResource(R.string.ytm_governor), s.governor.ifBlank { unknown })
+                MetricLine(stringResource(R.string.ytm_temperature), s.cpuTemperatureC?.let { String.format(Locale.US, "%.1f C", it) } ?: noData)
+                MetricLine(stringResource(R.string.ytm_uptime), formatDuration(s.uptimeMillis))
+                MetricLine(stringResource(R.string.ytm_load), String.format(Locale.US, "%.2f", s.load1))
+                MetricLine(stringResource(R.string.ytm_processes), state.processCount.toString())
+                MetricLine(stringResource(R.string.ytm_threads), state.threadCount.toString())
             }
         }
         item {
-            SectionCard("CPU frequencies") {
-                if (s.cpuCores.isEmpty()) Text("No cpufreq data", style = MaterialTheme.typography.bodySmall)
+            SectionCard(stringResource(R.string.ytm_cpu_frequencies)) {
+                if (s.cpuCores.isEmpty()) Text(stringResource(R.string.ytm_no_cpufreq), style = MaterialTheme.typography.bodySmall)
                 else s.cpuCores.forEach { CpuCoreRow(it) }
             }
         }
         item {
             SectionCard("GPU") {
-                MetricLine("Usage", g.usagePercent?.let { String.format(Locale.US, "%.1f%%", it) } ?: "No data")
+                MetricLine(stringResource(R.string.ytm_usage), g.usagePercent?.let { String.format(Locale.US, "%.1f%%", it) } ?: noData)
                 HistoryChart(state.gpuHistory)
-                MetricLine("Vendor", g.vendor ?: "No data")
-                MetricLine("Renderer", g.renderer ?: "No data")
-                MetricLine("OpenGL", g.openGlVersion ?: "No data")
-                MetricLine("GLSL", g.glslVersion ?: "No data")
-                MetricLine("Vulkan", if (g.vulkanSupported) "Supported" else "Not supported")
-                MetricLine("Vulkan API", g.vulkanApiVersion ?: "No data")
-                MetricLine("GPU current", formatHz(g.currentHz))
-                MetricLine("GPU min", formatHz(g.minHz))
-                MetricLine("GPU max", formatHz(g.maxHz))
+                MetricLine(stringResource(R.string.ytm_vendor), g.vendor ?: noData)
+                MetricLine(stringResource(R.string.ytm_renderer), g.renderer ?: noData)
+                MetricLine("OpenGL", g.openGlVersion ?: noData)
+                MetricLine("GLSL", g.glslVersion ?: noData)
+                MetricLine("Vulkan", if (g.vulkanSupported) stringResource(R.string.ytm_vulkan_supported) else stringResource(R.string.ytm_vulkan_not_supported))
+                MetricLine("Vulkan API", g.vulkanApiVersion ?: noData)
+                MetricLine(stringResource(R.string.ytm_gpu_current), formatHz(g.currentHz))
+                MetricLine(stringResource(R.string.ytm_gpu_min), formatHz(g.minHz))
+                MetricLine(stringResource(R.string.ytm_gpu_max), formatHz(g.maxHz))
             }
         }
         item { Spacer(Modifier.height(12.dp)) }
@@ -483,14 +487,14 @@ private fun NetworkPage(state: TaskManagerUiState) {
     val network = state.network
     Column(Modifier.fillMaxSize()) {
         YFeatureCard(
-            title = "Realtime app speed",
-            subtitle = "↓ current download · ↑ current upload",
-            detail = "Backend: ${network.backend} · sampling about once per second",
+            title = stringResource(R.string.ytm_realtime_speed),
+            subtitle = stringResource(R.string.ytm_realtime_speed_desc),
+            detail = stringResource(R.string.ytm_backend_detail, network.backend),
             modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
         )
         if (network.entries.isEmpty()) {
             YFeatureEmpty(
-                "No active app traffic yet",
+                stringResource(R.string.ytm_no_traffic),
                 Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
             )
         } else {
@@ -517,22 +521,20 @@ private fun NetworkRow(entry: NetworkEntry) {
         Column(Modifier.weight(1f)) {
             Text(entry.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                buildString {
-                    append("UID ${entry.uid}")
-                    if (entry.system) append(" • System")
-                    if (entry.packageNames.isNotEmpty()) {
-                        append(" • ")
-                        append(entry.packageNames.joinToString(", "))
-                    }
-                },
+                stringResource(
+                    R.string.ytm_network_identity,
+                    entry.uid,
+                    if (entry.system) stringResource(R.string.ytm_system_suffix) else "",
+                    if (entry.packageNames.isNotEmpty()) stringResource(R.string.ytm_package_suffix, entry.packageNames.joinToString(", ")) else "",
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("↓ ${formatSpeed(entry.rxBytesPerSecond)}", fontWeight = FontWeight.Medium)
-            Text("↑ ${formatSpeed(entry.txBytesPerSecond)}", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.ytm_download_value, formatSpeed(entry.rxBytesPerSecond)), fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.ytm_upload_value, formatSpeed(entry.txBytesPerSecond)), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -556,7 +558,7 @@ private fun CpuCoreRow(core: CpuCoreInfo) {
     Column(Modifier.fillMaxWidth()) {
         Text("CPU ${core.core}", style = MaterialTheme.typography.labelMedium)
         Text(
-            "${formatKHz(core.minKHz)} / ${formatKHz(core.currentKHz)} / ${formatKHz(core.maxKHz)}   min/current/max",
+            stringResource(R.string.ytm_frequency_order, formatKHz(core.minKHz), formatKHz(core.currentKHz), formatKHz(core.maxKHz)),
             style = MaterialTheme.typography.bodySmall,
         )
     }
@@ -636,33 +638,33 @@ private fun ProcessDialog(
                 item { CopyDetail("PID", process.pid.toString()) }
                 if (process.ppid != 0) item { ParentDetail(process.ppid, parent, onOpenParent) }
                 item { CopyDetail("UID", process.uid.toString()) }
-                item { CopyDetail("User", process.userName) }
-                item { CopyDetail("CPU Usage", String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent)) }
-                item { CopyDetail("RAM Usage", formatBytes(process.rssKb * 1024L)) }
-                item { CopyDetail("Realtime download", formatSpeed(process.rxBytesPerSecond)) }
-                item { CopyDetail("Realtime upload", formatSpeed(process.txBytesPerSecond)) }
-                if (process.virtualMemoryKb > 0L) item { CopyDetail("Virtual Memory", formatBytes(process.virtualMemoryKb * 1024L)) }
-                item { CopyDetail("Foreground", if (process.isForeground) "Yes" else "No") }
-                item { CopyDetail("Threads", process.threads.toString()) }
-                item { CopyDetail("Nice Value", process.nice.toString()) }
-                item { CopyDetail("Status", process.state) }
-                item { CopyDetail("Start Time", formatStartTime(process.startTimeMillis)) }
-                item { CopyDetail("Elapsed Time", formatDuration(process.elapsedTimeMillis)) }
-                process.executablePath?.let { value -> item { CopyDetail("Executable Path", value) } }
+                item { CopyDetail(stringResource(R.string.ytm_user), process.userName) }
+                item { CopyDetail(stringResource(R.string.ytm_cpu_usage), String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent)) }
+                item { CopyDetail(stringResource(R.string.ytm_ram_usage), formatBytes(process.rssKb * 1024L)) }
+                item { CopyDetail(stringResource(R.string.ytm_realtime_download), formatSpeed(process.rxBytesPerSecond)) }
+                item { CopyDetail(stringResource(R.string.ytm_realtime_upload), formatSpeed(process.txBytesPerSecond)) }
+                if (process.virtualMemoryKb > 0L) item { CopyDetail(stringResource(R.string.ytm_virtual_memory), formatBytes(process.virtualMemoryKb * 1024L)) }
+                item { CopyDetail(stringResource(R.string.ytm_foreground), if (process.isForeground) stringResource(R.string.ytm_yes) else stringResource(R.string.ytm_no)) }
+                item { CopyDetail(stringResource(R.string.ytm_threads), process.threads.toString()) }
+                item { CopyDetail(stringResource(R.string.ytm_nice_value), process.nice.toString()) }
+                item { CopyDetail(stringResource(R.string.ytm_status), process.state) }
+                item { CopyDetail(stringResource(R.string.ytm_start_time), formatStartTime(process.startTimeMillis, stringResource(R.string.ytm_unknown))) }
+                item { CopyDetail(stringResource(R.string.ytm_elapsed_time), formatDuration(process.elapsedTimeMillis)) }
+                process.executablePath?.let { value -> item { CopyDetail(stringResource(R.string.ytm_executable_path), value) } }
                 process.cgroup?.let { value -> item { CopyDetail("Cgroup", value) } }
-                if (process.packageNames.isNotEmpty()) item { CopyDetail("Package", process.packageNames.joinToString("\n")) }
-                item { CopyDetail("Command", process.command) }
-                process.oomScoreAdj?.let { value -> item { CopyDetail("OOM score adj", value.toString()) } }
+                if (process.packageNames.isNotEmpty()) item { CopyDetail(stringResource(R.string.ytm_package), process.packageNames.joinToString("\n")) }
+                item { CopyDetail(stringResource(R.string.ytm_command), process.command) }
+                process.oomScoreAdj?.let { value -> item { CopyDetail(stringResource(R.string.ytm_oom_score_adj), value.toString()) } }
             }
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                TextButton(onClick = onPin) { Text(if (process.isPinned) "Unpin" else "Pin") }
-                if (process.packageName != null) Button(onClick = onForceStop) { Text("Force stop") }
-                Button(onClick = onKill) { Text("Kill PID") }
+                TextButton(onClick = onPin) { Text(stringResource(if (process.isPinned) R.string.ytm_unpin else R.string.ytm_pin)) }
+                if (process.packageName != null) Button(onClick = onForceStop) { Text(stringResource(R.string.ytm_force_stop)) }
+                Button(onClick = onKill) { Text(stringResource(R.string.ytm_kill_pid)) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.ytm_close)) } },
     )
 }
 
@@ -671,6 +673,7 @@ private fun ProcessDialog(
 private fun CopyDetail(label: String, value: String) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+    val copied = stringResource(R.string.ytm_copied, label)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -678,7 +681,7 @@ private fun CopyDetail(label: String, value: String) {
                 onClick = {},
                 onLongClick = {
                     clipboard.setText(AnnotatedString(value))
-                    Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
                 },
             )
             .padding(vertical = 3.dp),
@@ -694,6 +697,7 @@ private fun CopyDetail(label: String, value: String) {
 private fun ParentDetail(ppid: Int, parent: ProcessEntry?, onOpenParent: (ProcessEntry) -> Unit) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+    val copied = stringResource(R.string.ytm_parent_copied)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -701,14 +705,14 @@ private fun ParentDetail(ppid: Int, parent: ProcessEntry?, onOpenParent: (Proces
                 onClick = { parent?.let(onOpenParent) },
                 onLongClick = {
                     clipboard.setText(AnnotatedString(ppid.toString()))
-                    Toast.makeText(context, "Parent PID copied", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
                 },
             )
             .padding(vertical = 3.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text("Parent PID", style = MaterialTheme.typography.bodySmall)
-        Text(if (parent != null) "$ppid ›" else "$ppid (not found)", style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.ytm_parent_pid), style = MaterialTheme.typography.bodySmall)
+        Text(if (parent != null) ppid.toString() else stringResource(R.string.ytm_parent_not_found, ppid), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -722,25 +726,25 @@ private fun SettingsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Process settings") },
+        title = { Text(stringResource(R.string.ytm_process_settings)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ToggleRow("Auto refresh", state.autoRefresh, onAutoRefresh)
-                ToggleRow("Confirm before kill", state.confirmKill, onConfirmKill)
-                Text("Refresh interval", style = MaterialTheme.typography.labelLarge)
+                ToggleRow(stringResource(R.string.ytm_auto_refresh), state.autoRefresh, onAutoRefresh)
+                ToggleRow(stringResource(R.string.ytm_confirm_before_kill), state.confirmKill, onConfirmKill)
+                Text(stringResource(R.string.ytm_refresh_interval), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(500L, 800L, 1000L, 2000L).forEach { value ->
                         FilterChip(
                             selected = state.refreshIntervalMs == value,
                             onClick = { onRefreshInterval(value) },
-                            label = { Text("${value}ms") },
+                            label = { Text("${value} ms") },
                         )
                     }
                 }
-                Text("Network speed is sampled independently about once per second.", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.ytm_network_sampling), style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.ytm_done)) } },
     )
 }
 
@@ -749,23 +753,25 @@ private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean
     YSettingSwitch(title = label, checked = checked, onCheckedChange = onCheckedChange)
 }
 
+@Composable
 private fun sortLabel(sort: ProcessSort): String = when (sort) {
     ProcessSort.MEMORY -> "RAM"
     ProcessSort.CPU -> "CPU"
-    ProcessSort.DOWNLOAD -> "↓"
-    ProcessSort.UPLOAD -> "↑"
+    ProcessSort.DOWNLOAD -> stringResource(R.string.ytm_sort_download)
+    ProcessSort.UPLOAD -> stringResource(R.string.ytm_sort_upload)
     ProcessSort.NAME -> "A-Z"
     ProcessSort.PID -> "PID"
 }
 
+@Composable
 private fun kindLabel(kind: ProcessKind): String = when (kind) {
-    ProcessKind.USER_APP -> "User"
-    ProcessKind.SYSTEM_APP -> "System"
-    ProcessKind.LINUX -> "Linux"
+    ProcessKind.USER_APP -> stringResource(R.string.ytm_user)
+    ProcessKind.SYSTEM_APP -> stringResource(R.string.ytm_system)
+    ProcessKind.LINUX -> stringResource(R.string.ytm_linux)
 }
 
-private fun formatStartTime(timeMs: Long): String {
-    if (timeMs <= 0L) return "Unknown"
+private fun formatStartTime(timeMs: Long, unknown: String): String {
+    if (timeMs <= 0L) return unknown
     return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(Date(timeMs))
 }
 
@@ -800,7 +806,7 @@ private fun formatBytes(bytes: Long): String {
 private fun formatSpeed(bytesPerSecond: Long): String = "${formatBytes(bytesPerSecond)}/s"
 
 private fun formatKHz(khz: Long?): String =
-    if (khz == null || khz <= 0L) "—" else String.format(Locale.US, "%.2f GHz", khz / 1_000_000.0)
+    if (khz == null || khz <= 0L) "-" else String.format(Locale.US, "%.2f GHz", khz / 1_000_000.0)
 
 private fun formatHz(hz: Long?): String =
-    if (hz == null || hz <= 0L) "—" else String.format(Locale.US, "%.0f MHz", hz / 1_000_000.0)
+    if (hz == null || hz <= 0L) "-" else String.format(Locale.US, "%.0f MHz", hz / 1_000_000.0)
