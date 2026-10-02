@@ -2,6 +2,7 @@ package com.yagay.YNotify;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
 
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.util.DiagLog;
@@ -11,6 +12,7 @@ import com.yagay.suite.api.ManagedFeatureRuntime;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Locale;
 
 import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
@@ -26,10 +28,25 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
     public static final String KEY_HOOK_PROCESS = "hook_process";
     private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
 
+    private enum FrameworkState {
+        DISCONNECTED,
+        DISABLED,
+        API_TOO_OLD,
+        REMOTE_UNSUPPORTED,
+        CONNECTED,
+        CONNECT_FAILED,
+        DIED
+    }
+
     private static volatile YNotifyRuntime instance;
     private static volatile XposedService service;
     private static volatile SharedPreferences remote;
-    private static volatile String frameworkStatus = "LSPosed/API 102 服务未连接";
+    private static volatile FrameworkState frameworkState = FrameworkState.DISCONNECTED;
+    private static volatile String frameworkName = "LSPosed";
+    private static volatile String frameworkVersion = "";
+    private static volatile int frameworkApi = 0;
+    private static volatile int frameworkScopeCount = 0;
+    private static volatile String frameworkError = "";
 
     private final Context context;
     private volatile boolean enabled = true;
@@ -88,7 +105,7 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
         enabled = true;
         ListenerStateStore.markProcessStarted(context);
         HookAuth.ensureLocalSecret(context);
-        if (service == null) frameworkStatus = "LSPosed/API 102 服务未连接";
+        if (service == null) frameworkState = FrameworkState.DISCONNECTED;
         DiagLog.i(context, "YNotifyRuntime", "managed runtime enabled");
     }
 
@@ -97,7 +114,7 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
         enabled = false;
         service = null;
         remote = null;
-        frameworkStatus = "YNotify 已由 YSuite 停用";
+        frameworkState = FrameworkState.DISABLED;
         DiagLog.i(context, "YNotifyRuntime", "managed runtime disabled; framework references released");
     }
 
@@ -111,14 +128,17 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
     public void onServiceBind(XposedService bound) {
         if (!enabled) return;
         try {
-            if (bound.getApiVersion() < 102) {
-                frameworkStatus = "框架 API " + bound.getApiVersion() + "，需要 API 102";
-                DiagLog.w(context, "LSPosed", frameworkStatus);
+            frameworkName = bound.getFrameworkName();
+            frameworkVersion = bound.getFrameworkVersion();
+            frameworkApi = bound.getApiVersion();
+            if (frameworkApi < 102) {
+                frameworkState = FrameworkState.API_TOO_OLD;
+                DiagLog.w(context, "LSPosed", "framework API " + frameworkApi + "; API 102 required");
                 return;
             }
             if ((bound.getFrameworkProperties() & XposedService.PROP_CAP_REMOTE) == 0) {
-                frameworkStatus = bound.getFrameworkName() + " 不支持 Remote Preferences";
-                DiagLog.w(context, "LSPosed", frameworkStatus);
+                frameworkState = FrameworkState.REMOTE_UNSUPPORTED;
+                DiagLog.w(context, "LSPosed", frameworkName + " does not support Remote Preferences");
                 return;
             }
             SharedPreferences prefs = bound.getRemotePreferences(REMOTE_GROUP);
@@ -138,12 +158,14 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
             service = bound;
             remote = prefs;
             List<String> scope = bound.getScope();
-            frameworkStatus = bound.getFrameworkName() + " " + bound.getFrameworkVersion()
-                    + " · API " + bound.getApiVersion()
-                    + " · Scope " + (scope == null ? 0 : scope.size());
-            DiagLog.i(context, "LSPosed", "service bound: " + frameworkStatus);
+            frameworkScopeCount = scope == null ? 0 : scope.size();
+            frameworkState = FrameworkState.CONNECTED;
+            frameworkError = "";
+            DiagLog.i(context, "LSPosed", "service bound: " + frameworkName + " " + frameworkVersion
+                    + ", API " + frameworkApi + ", scope " + frameworkScopeCount);
         } catch (Throwable t) {
-            frameworkStatus = "LSPosed 服务连接失败：" + t.getClass().getSimpleName();
+            frameworkError = t.getClass().getSimpleName();
+            frameworkState = FrameworkState.CONNECT_FAILED;
             DiagLog.e(context, "LSPosed", "service bind failed", t);
         }
     }
@@ -154,14 +176,15 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
             service = null;
             remote = null;
             if (enabled) {
-                frameworkStatus = "LSPosed/API 102 服务已断开";
+                frameworkState = FrameworkState.DIED;
                 DiagLog.w(context, "LSPosed", "service died/disconnected");
             }
         }
     }
 
-    public static String runtimeStatus() {
-        StringBuilder out = new StringBuilder(frameworkStatus);
+    public static String runtimeStatus(Context context) {
+        boolean zh = isChinese(context);
+        StringBuilder out = new StringBuilder(frameworkStatusText(zh));
         SharedPreferences prefs = remote;
         if (prefs != null) {
             long heartbeat = prefs.getLong(KEY_HOOK_HEARTBEAT, 0L);
@@ -169,15 +192,69 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
             String pkg = prefs.getString(KEY_HOOK_PACKAGE, "");
             if (heartbeat > 0) {
                 long age = Math.max(0L, System.currentTimeMillis() - heartbeat);
-                out.append("\nHook：")
-                        .append(age < 120_000L ? "运行中" : "已加载但心跳较旧")
-                        .append(" · v").append(version == null ? "?" : version);
-                if (pkg != null && !pkg.isEmpty()) out.append(" · ").append(pkg);
-                out.append("\n最后心跳：").append(age / 1000L).append(" 秒前");
+                out.append('\n')
+                        .append(zh ? "Hook 状态：" : "Hook status: ")
+                        .append(age < 120_000L
+                                ? (zh ? "运行中" : "Running")
+                                : (zh ? "已加载，但心跳较旧" : "Loaded, but the heartbeat is old"));
+                out.append('\n').append(zh ? "Hook 版本：" : "Hook version: ")
+                        .append(version == null || version.isEmpty() ? "?" : version);
+                if (pkg != null && !pkg.isEmpty()) {
+                    out.append('\n').append(zh ? "Hook 包名：" : "Hook package: ").append(pkg);
+                }
+                out.append('\n').append(zh ? "最后心跳：" : "Last heartbeat: ")
+                        .append(age / 1000L)
+                        .append(zh ? " 秒前" : " seconds ago");
             } else {
-                out.append("\nHook：尚未收到运行心跳");
+                out.append('\n').append(zh ? "Hook 状态：尚未收到运行心跳" : "Hook status: no runtime heartbeat received yet");
             }
         }
         return out.toString();
+    }
+
+    private static String frameworkStatusText(boolean zh) {
+        switch (frameworkState) {
+            case DISABLED:
+                return zh ? "YNotify 已由 YSuite 停用" : "YNotify is disabled by YSuite";
+            case API_TOO_OLD:
+                return zh
+                        ? frameworkName + " API " + frameworkApi + "。需要 API 102。"
+                        : frameworkName + " API " + frameworkApi + ". API 102 is required.";
+            case REMOTE_UNSUPPORTED:
+                return zh
+                        ? frameworkName + " 不支持 Remote Preferences。"
+                        : frameworkName + " does not support Remote Preferences.";
+            case CONNECTED:
+                return zh
+                        ? frameworkName + " " + frameworkVersion + " 已连接。API " + frameworkApi
+                            + "。Scope 数量 " + frameworkScopeCount + "。"
+                        : frameworkName + " " + frameworkVersion + " connected. API " + frameworkApi
+                            + ". Scope count " + frameworkScopeCount + ".";
+            case CONNECT_FAILED:
+                return zh
+                        ? "LSPosed 服务连接失败：" + frameworkError
+                        : "LSPosed service connection failed: " + frameworkError;
+            case DIED:
+                return zh ? "LSPosed API 102 服务已断开" : "LSPosed API 102 service disconnected";
+            case DISCONNECTED:
+            default:
+                return zh ? "LSPosed API 102 服务未连接" : "LSPosed API 102 service is not connected";
+        }
+    }
+
+    private static boolean isChinese(Context context) {
+        Locale locale;
+        try {
+            if (context != null && Build.VERSION.SDK_INT >= 24) {
+                locale = context.getResources().getConfiguration().getLocales().get(0);
+            } else if (context != null) {
+                locale = context.getResources().getConfiguration().locale;
+            } else {
+                locale = Locale.getDefault();
+            }
+        } catch (Throwable ignored) {
+            locale = Locale.getDefault();
+        }
+        return locale != null && "zh".equalsIgnoreCase(locale.getLanguage());
     }
 }
