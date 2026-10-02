@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - tools/i18n_runtime_refactor.py
+      - tools/i18n_dynamic_refactor.py
       - .github/workflows/i18n-refactor.yml
 
 permissions:
@@ -28,6 +29,7 @@ jobs:
       - name: Refactor runtime text
         run: |
           python3 tools/i18n_runtime_refactor.py
+          python3 tools/i18n_dynamic_refactor.py
           python3 tools/generate_feature_catalog.py
           python3 tools/i18n_audit.py
 
@@ -79,5 +81,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "refactor(i18n): resourceize remaining runtime copy"
+          git commit -m "refactor(i18n): resourceize structured dynamic copy"
           git push origin HEAD:main
