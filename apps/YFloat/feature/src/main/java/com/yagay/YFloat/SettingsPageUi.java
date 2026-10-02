@@ -37,8 +37,8 @@ final class SettingsPageUi {
 
     void fullscreenModeCheck(LinearLayout parent) {
         SwitchMaterial toggle = AppUi.switchRow(activity,
-                "全屏应用自动隐藏",
-                "进入全屏内容时自动隐藏悬浮图标",
+                activity.getString(R.string.yfloat_fullscreen_auto_hide),
+                activity.getString(R.string.yfloat_fullscreen_auto_hide_desc),
                 fs.fullscreenHideMode() != 0,
                 (button, checked) -> fs.setInt(FloatSettings.K_HIDE_FULLSCREEN, checked ? 2 : 0));
         AppUi.addRow(parent, AppUi.switchContainer(toggle));
@@ -81,7 +81,7 @@ final class SettingsPageUi {
         int selected = 0;
         String now = fs.action(key, def);
         for (int i = 0; i < actionIds.length; i++) {
-            labels[i] = ActionId.label(actionIds[i]);
+            labels[i] = ActionId.label(activity, actionIds[i]);
             if (actionIds[i].equals(now)) selected = i;
         }
         addPreferenceSpinner(parent, label, labels, selected, false,
@@ -89,42 +89,49 @@ final class SettingsPageUi {
     }
 
     void styleSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, "图标样式",
-                new String[]{"蓝色镜头", "深色镜头", "浅色镜头", "自定义图片 / GIF", "多图轮播"},
-                fs.style(), FloatSettings.K_STYLE, false);
+        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_icon_style),
+                new String[]{
+                        activity.getString(R.string.yfloat_icon_style_blue),
+                        activity.getString(R.string.yfloat_icon_style_dark),
+                        activity.getString(R.string.yfloat_icon_style_light),
+                        activity.getString(R.string.yfloat_icon_style_custom),
+                        activity.getString(R.string.yfloat_icon_style_slideshow)
+                }, fs.style(), FloatSettings.K_STYLE, false);
     }
 
     void lineStyleSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, "轨迹样式",
-                new String[]{"圆角", "方形", "圆角增强"},
-                fs.lineStyle(), FloatSettings.K_LINE_STYLE, false);
+        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_trail_style),
+                new String[]{
+                        activity.getString(R.string.yfloat_trail_style_round),
+                        activity.getString(R.string.yfloat_trail_style_square),
+                        activity.getString(R.string.yfloat_trail_style_enhanced)
+                }, fs.lineStyle(), FloatSettings.K_LINE_STYLE, false);
     }
 
     void ocrEngineSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, "OCR 引擎", new String[]{
-                "自动：Small → Medium → ML Kit",
-                "PP-OCRv6 Medium 高精度",
-                "PP-OCRv6 Small 平衡",
-                "ML Kit 快速"
+        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_ocr_engine), new String[]{
+                activity.getString(R.string.yfloat_ocr_auto),
+                activity.getString(R.string.yfloat_ocr_medium),
+                activity.getString(R.string.yfloat_ocr_small),
+                activity.getString(R.string.yfloat_ocr_mlkit)
         }, fs.ocrEngineMode(), FloatSettings.K_OCR_ENGINE, true);
     }
 
-
     void circleFullOcrEngineSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, "整屏识别引擎", new String[]{
-                "ML Kit 快速",
-                "PP-OCRv6 Tiny 超轻量",
-                "PP-OCRv6 Small 平衡",
-                "PP-OCRv6 Medium 高精度"
+        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_fullscreen_ocr_engine), new String[]{
+                activity.getString(R.string.yfloat_ocr_mlkit),
+                activity.getString(R.string.yfloat_ocr_tiny),
+                activity.getString(R.string.yfloat_ocr_small),
+                activity.getString(R.string.yfloat_ocr_medium)
         }, fs.circleFullOcrEngine(), FloatSettings.K_CIRCLE_FULL_OCR_ENGINE, true);
     }
 
     void circleCorrectionEngineSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, "局部校正引擎", new String[]{
-                "关闭局部校正",
-                "PP-OCRv6 Tiny 超轻量",
-                "PP-OCRv6 Small 平衡",
-                "PP-OCRv6 Medium 高精度"
+        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_correction_engine), new String[]{
+                activity.getString(R.string.yfloat_correction_off),
+                activity.getString(R.string.yfloat_ocr_tiny),
+                activity.getString(R.string.yfloat_ocr_small),
+                activity.getString(R.string.yfloat_ocr_medium)
         }, fs.circleCorrectionEngine(), FloatSettings.K_CIRCLE_CORRECTION_ENGINE, true);
     }
 
@@ -181,8 +188,10 @@ final class SettingsPageUi {
 
         LinearLayout buttons = new LinearLayout(activity);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
-        MaterialButton download = AppUi.compactButton(activity, "下载 / 更新");
-        MaterialButton remove = AppUi.compactButton(activity, "删除");
+        MaterialButton download = AppUi.compactButton(activity,
+                activity.getString(R.string.yfloat_model_download_update));
+        MaterialButton remove = AppUi.compactButton(activity,
+                activity.getString(R.string.yfloat_model_delete));
         addWeightedButton(buttons, download, true);
         addWeightedButton(buttons, remove, false);
         LinearLayout.LayoutParams buttonsLp = new LinearLayout.LayoutParams(-1, -2);
@@ -194,13 +203,16 @@ final class SettingsPageUi {
             try {
                 boolean ready = OcrModelManager.isReady(activity, model);
                 long mb = OcrModelManager.installedBytes(activity, model) / (1024 * 1024);
-                status.setText(OcrModelManager.displayName(model) + " · "
-                        + (ready ? "已下载 " + mb + " MB" : "未下载"));
+                status.setText(ready
+                        ? activity.getString(R.string.yfloat_model_ready,
+                                OcrModelManager.displayName(model), mb)
+                        : activity.getString(R.string.yfloat_model_missing,
+                                OcrModelManager.displayName(model)));
                 status.setTextColor(ready ? AppUi.success(activity) : AppUi.textPrimary(activity));
                 remove.setEnabled(ready && !OcrModelManager.isDownloading(model));
                 download.setEnabled(!OcrModelManager.isDownloading(model));
             } catch (Throwable t) {
-                status.setText("本地模型状态读取失败");
+                status.setText(R.string.yfloat_model_status_failed);
                 status.setTextColor(AppUi.warning(activity));
                 remove.setEnabled(false);
                 download.setEnabled(false);
@@ -216,19 +228,26 @@ final class SettingsPageUi {
             try {
                 OcrModelManager.download(activity, model, new OcrModelManager.Callback() {
                     @Override public void onProgress(String stage, int percent) {
-                        status.setText(OcrModelManager.displayName(model) + " · " + stage + " " + percent + "%");
+                        status.setText(activity.getString(R.string.yfloat_model_progress,
+                                OcrModelManager.displayName(model), stage, percent));
                     }
                     @Override public void onSuccess() {
-                        Toast.makeText(activity, "模型下载完成", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(activity,
+                                R.string.yfloat_model_download_complete,
+                                Toast.LENGTH_SHORT).show();
                         refresh.run();
                     }
                     @Override public void onFailure(String message) {
-                        Toast.makeText(activity, "下载失败: " + message, Toast.LENGTH_LONG).show();
+                        Toast.makeText(activity,
+                                activity.getString(R.string.yfloat_model_download_failed, message),
+                                Toast.LENGTH_LONG).show();
                         refresh.run();
                     }
                 });
             } catch (Throwable t) {
-                Toast.makeText(activity, "模型下载初始化失败", Toast.LENGTH_LONG).show();
+                Toast.makeText(activity,
+                        R.string.yfloat_model_download_init_failed,
+                        Toast.LENGTH_LONG).show();
                 DiagnosticLog.i(activity, "OCR_MODEL_UI",
                         "download launch failure=" + t.getClass().getSimpleName());
                 refresh.run();
@@ -242,9 +261,15 @@ final class SettingsPageUi {
 
     void addOcrLanguageChecks(LinearLayout parent) {
         Set<String> selected = new HashSet<>(OcrLanguages.get(activity));
-        AppUi.addRow(parent, ocrLanguageCheck("简体中文", OcrLanguages.ZH_HANS, selected));
-        AppUi.addRow(parent, ocrLanguageCheck("繁體中文", OcrLanguages.ZH_HANT, selected));
-        AppUi.addRow(parent, ocrLanguageCheck("English", OcrLanguages.ENGLISH, selected));
+        AppUi.addRow(parent, ocrLanguageCheck(
+                activity.getString(R.string.yfloat_ocr_language_simplified_chinese),
+                OcrLanguages.ZH_HANS, selected));
+        AppUi.addRow(parent, ocrLanguageCheck(
+                activity.getString(R.string.yfloat_ocr_language_traditional_chinese),
+                OcrLanguages.ZH_HANT, selected));
+        AppUi.addRow(parent, ocrLanguageCheck(
+                activity.getString(R.string.yfloat_ocr_language_english),
+                OcrLanguages.ENGLISH, selected));
     }
 
     private MaterialCheckBox ocrLanguageCheck(String label, String code, Set<String> selected) {
@@ -263,7 +288,9 @@ final class SettingsPageUi {
             if (selected.isEmpty()) {
                 selected.add(lang);
                 button.setChecked(true);
-                Toast.makeText(activity, "至少选择一种 OCR 语言", Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity,
+                        R.string.yfloat_ocr_language_required,
+                        Toast.LENGTH_SHORT).show();
                 return;
             }
             OcrLanguages.save(activity, selected);
