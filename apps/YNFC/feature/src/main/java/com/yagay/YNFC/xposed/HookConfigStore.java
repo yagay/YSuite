@@ -6,18 +6,12 @@ import android.net.Uri;
 
 import com.yagay.suite.api.RuntimeOwnerGate;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Reads and decodes the durable command snapshot without owning command execution. */
 final class HookConfigStore {
     SimConfig read() {
-        if (!RuntimeOwnerGate.shouldRun("ynfc", hostPackage())) {
-            // Keep the already-loaded standalone hook in a deterministic initialized-but-inactive
-            // state. This avoids retry loops while YSuite owns NFC behaviour.
-            return decode(Collections.emptyMap());
-        }
         Context context = NfcHookUtils.currentContext();
         if (context == null) return SimConfig.uninitialized();
         Map<String, String> values = new HashMap<>();
@@ -54,13 +48,24 @@ final class HookConfigStore {
     }
 
     private static Uri configUri() {
-        return Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
+        return Uri.parse("content://" + effectiveAuthority() + "/settings");
     }
 
-    private static String hostPackage() {
-        String authority = com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY;
-        return authority != null && authority.startsWith(RuntimeOwnerGate.SUITE_PACKAGE + ".")
-                ? RuntimeOwnerGate.SUITE_PACKAGE
-                : "com.yagay.YNFC";
+    /**
+     * Do not disable an already-loaded standalone NFC hook merely because YSuite claimed the
+     * feature. On LSPosed the suite hook may not yet be scoped/reloaded in the NFC process, which
+     * creates a zero-owner window. While YSuite owns the feature, let the compatibility hook read
+     * the suite provider instead; once the suite hook is live both sides consume the same durable
+     * command generation rather than diverging configurations.
+     */
+    private static String effectiveAuthority() {
+        String configured = com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY;
+        boolean embedded = configured != null
+                && configured.startsWith(RuntimeOwnerGate.SUITE_PACKAGE + ".");
+        if (embedded) return configured;
+        if (RuntimeOwnerGate.OWNER_SUITE.equals(RuntimeOwnerGate.readOwner("ynfc"))) {
+            return RuntimeOwnerGate.SUITE_PACKAGE + ".ynfc.config";
+        }
+        return configured;
     }
 }
