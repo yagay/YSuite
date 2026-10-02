@@ -2,133 +2,222 @@
 
 ## Goal
 
-Keep the codebase easy to change while allowing every project to build both independently and inside one unified APK.
+YSuite is one application platform, not a collection of applications merged after the fact.
 
-The default rule is: if behavior, UI infrastructure, dependency versions or host plumbing can be shared safely, keep one implementation and make both standalone apps and YSuite use it.
+The production rule is:
+
+> **One YSuite host + many pure Features + one generic standalone composer.**
+
+Every Feature keeps one source implementation. The same Feature can be:
+
+- embedded into the complete `YSuite.apk`;
+- packaged alone as `YFiles-debug.apk`, `YDownload.apk`, etc. through the generic standalone host.
+
+Independent APK packaging is a build composition choice, not a second implementation.
 
 ## Layers
 
-### 1. `ui/` — one shared UI source
+### 1. `libs/yapi` — stable Feature/Host contract
 
-`YSuite/ui` is the single YUI implementation. It owns:
+Feature code depends on narrow host contracts instead of concrete Application classes.
 
-- Material theme, Day/Night behavior, typography, shapes and spacing tokens;
-- normal Activity/window shell, edge-to-edge and system-bar handling;
-- shared Compose Activity/scaffold/page components;
-- common cards, settings rows, status/loading/error/empty states and dialog action bars;
-- common AndroidX/Material/Compose UI dependency versions.
+Shared contracts cover host identity, declared capabilities, Root execution, process reload, framework state and host logging. New cross-feature interaction should be expressed through a shared capability contract rather than direct Feature-to-Feature Gradle dependencies.
 
-YSuite uses the local `:ui` project. Standalone projects resolve exactly the same source from `YSuite/main` with Gradle `sourceControl` and depend on `com.github.yagay.YSuite:ui` using the `main` branch.
+A Feature must not assume the host package is `com.yagay.YSuite`; the same source must work when packaged with its standalone application id.
 
-There is no separate JitPack/AAR publication path. A Gradle source-dependency checkout does not initialize YSuite feature submodules, so `settings.gradle.kts` exposes only `:ui`. A normal recursive YSuite checkout exposes the complete host.
+### 2. `libs/ycore` — one runtime implementation
 
-Feature code must not create a second general-purpose Theme/Insets/window framework. A genuinely special window, such as capture/transparent/overlay infrastructure, declares an explicit YUI opt-out rather than adding a class-name exception inside YUI.
+`ycore` is the shared runtime used by both the complete YSuite host and generic standalone composition. It owns shared infrastructure such as:
 
-### 2. `core/` — shared host contracts only
+- Feature registry/state/lifecycle;
+- Root gateway/process ownership;
+- logging and diagnostics;
+- crash attribution;
+- LSPosed host coordination used by the combined app;
+- shared host identity/ID rules;
+- other process-global infrastructure that must not be reimplemented by each Feature.
 
-Keep this intentionally small. It owns:
+A standalone package should reuse this runtime instead of creating a `YFilesRootManager`, `YDownloadLogger`, etc.
 
-- feature registry and feature enable state;
-- shared Root host entry/status;
-- shared YSuite logging/export;
-- crash attribution and active-feature context;
-- constants/contracts needed by both the host and reusable feature modules.
+### 3. `libs/yui` — one UI framework
 
-It should not absorb feature business logic or duplicate YUI behavior.
+YUI owns the shared theme, ordinary Activity/window shell, edge-to-edge handling, standard Compose primitives and reusable UI components.
 
-### 3. `suite/` — unified shell
+Features own business-specific screens and interactions, but must not fork a second general-purpose design system.
 
-The YSuite app owns:
+### 4. `apps/*/feature` — pure reusable Feature implementation
 
-- launcher/home UI built with YUI;
-- shared Root/LSPosed/Hook host presentation;
-- shared diagnostics and permission entry points;
-- feature enable/disable controls;
-- feature launch and crash attribution.
+The long-term source of each product area is its Android library Feature module.
 
-The shell should not copy feature screens or maintain a second window/theme coordinator.
+Feature code may contain business UI, ViewModels, repositories, Hook handlers, task handlers, databases and Android components that genuinely belong to that capability. It must not become a second application host.
 
-### 4. `feature/` — reusable feature implementation
+Feature modules must therefore avoid owning:
 
-Each project keeps its actual feature UI/business/runtime here. Both the standalone app and YSuite depend on the same module.
+- an `Application` implementation through their reusable manifest;
+- host-level LSPosed module metadata;
+- a separate global Root/logging/crash framework;
+- direct dependencies on another Feature module;
+- hard-coded `com.yagay.YSuite` package assumptions;
+- generic global component IDs that collide when multiple Features share one APK.
 
-Feature modules may contain Compose, AppCompat, classic Activity/View, services, providers, databases and Hook code, but host-dependent initialization must be explicit rather than relying on a standalone `Application` side effect.
+Reusable Android resources should use module-specific names such as `yfiles_*`, `ydownload_*`, `ydiag_*` wherever practical.
 
-Reusable feature resources are part of the same final Android resource table when YSuite is built, so feature-owned resource names must be module-specific wherever practical. Use names such as `yentrycleaner_*`, `ynotify_*`, `yfloat_*`, and module-specific compatibility theme aliases rather than generic names such as `AppTheme`, `accessibility_service_config`, or shared launcher names.
+### 5. `suite/YSuite` — the only full production app host
 
-Application-level resources belong in the standalone `app/` shell when the reusable feature does not need them. This includes launcher artwork, standalone `app_name` / app description metadata, per-app locale configuration and similar APK identity resources.
+The full YSuite APK owns the application boundary and combined system integration:
 
-YSuite CI runs `tools/scan_feature_integration.py --fail-on-high-risk`. New cross-feature resource collisions are build failures. UI bypasses such as a new local general-purpose `MaterialTheme`, edge-to-edge owner or system-bar padding path should be surfaced by the integration scan and either removed or documented as a real special case.
+- launcher/home UI;
+- `Application`;
+- single combined LSPosed entry and Hook registry;
+- shared Root/runtime ownership;
+- shared Accessibility/Notification/Boot/IPC routers where reuse is valid;
+- feature enable/disable state and lifecycle;
+- combined diagnostics and crash attribution.
 
-### 5. `app/` — standalone shell
+The host consumes every configured Feature module directly from `config/features.toml` generated metadata.
 
-Each standalone APK should be thin. It supplies launcher/application/package wiring and standalone implementations of host services that the feature needs. It must use the same YUI source rather than carrying a copied theme or UI dependency stack.
+### 6. `standalone/host` — one generic standalone composer
 
-## UI strategy
+There is one standalone application module for all Features.
 
-Unify infrastructure aggressively, but do not force unrelated business screens into one layout.
+A build selects one Feature:
 
-YUI owns:
+```bash
+gradle buildFeatureDebug -PySuiteStandaloneFeature=yfiles
+```
 
-- theme and visual tokens;
-- system bars, safe areas and ordinary Activity shell;
-- common top-level page/scaffold patterns;
-- common buttons/cards/status/settings/loading/error/empty components;
-- shared UI dependency versions.
+The build composer derives from `config/features.toml`:
 
-Features own:
+- Feature module;
+- application id;
+- app name;
+- entry Activity;
+- standalone LSPosed entry metadata;
+- output APK name.
 
-- business state and actions;
-- feature-specific lists, editors and visualizations;
-- dimensions that have functional meaning rather than global design meaning.
+The resulting APK contains shared Host Runtime + YUI + exactly the selected Feature. The generic host contains no Feature business logic.
 
-This keeps global changes simple without flattening every screen into the same business layout.
+Legacy `apps/*/app` shells may remain temporarily as migration/reference copies, but they are no longer the preferred CI/build path and should not receive new business infrastructure.
+
+## Android component ownership
+
+"Unified" does not mean forcing every Android component into one physical class. Components fall into three ownership classes.
+
+### Global singletons
+
+Use one host implementation where process/application semantics require one owner, for example:
+
+- Application;
+- Root session/manager;
+- crash handler;
+- global logger;
+- full-app LSPosed entry;
+- shared configuration/runtime registries.
+
+### Shared routers/brokers
+
+Use one host router when several Features can safely share the platform component, for example:
+
+- boot/package event routing;
+- notification management;
+- foreground task brokerage;
+- shared IPC entry points;
+- some FileProvider/Storage bridges.
+
+### Host-managed independent slots
+
+Some Android APIs legitimately require separate declarations or metadata. Examples can include:
+
+- TileService;
+- AppWidgetProvider;
+- DocumentsProvider;
+- special AccessibilityService variants;
+- VPNService;
+- feature-specific providers/services with distinct contracts.
+
+These are allowed, but they remain host-governed and must use collision-safe class names, authorities, actions and resources.
+
+## Feature dependency rule
+
+A Feature must not use:
+
+```kotlin
+implementation(project(":another-feature"))
+```
+
+for normal cross-feature behavior.
+
+Instead expose a narrow capability through the shared Host API. Optional capability consumers must provide a fallback when the provider Feature is absent in a standalone build.
+
+This keeps every Feature independently composable.
+
+## Identity and global ID rule
+
+Any identifier that becomes global inside one APK must be namespaced or allocated by shared infrastructure, including:
+
+- provider authorities;
+- broadcast actions;
+- notification channels/IDs;
+- WorkManager unique names;
+- preference keys/files;
+- database names;
+- file/cache directories;
+- deep links;
+- request IDs and other host-wide registries.
+
+Feature code must derive real package identity from the host/context rather than hard-coding the YSuite application id.
 
 ## Root / Hook strategy
 
-- Standalone APK: feature may use its standalone host implementation.
-- YSuite: prefer one shared Root session/command layer and one shared LSPosed/Hook host layer.
-- Feature code should depend on a narrow contract, not a concrete standalone Application class.
-- Hook process entry points remain process-safe and explicit; do not move Android UI state into Hook processes.
+- Full YSuite: one Root runtime and one LSPosed module entry with Feature Hook plugins routed through host ownership.
+- Standalone composition: the generic shell packages only the selected Feature Hook entries while reusing the same Feature Hook implementation.
+- Hook business code remains one source file regardless of package mode.
+- Duplicate physical hooks in the combined host are coordinated by the host Hook registry.
 
-## Logging and diagnostics strategy
+## Logging and diagnostics
 
-All YSuite logs use one host writer and module IDs from `FeatureRegistry`.
+Combined YSuite logs use the shared host writer with Feature IDs from the Feature registry.
 
-Required events include host start/version, per-feature enabled state, runtime initialization, feature open failures, Root/Hook failures and uncaught crashes with active-feature attribution. Do not log high-frequency successful refresh loops.
+The same Feature should call host contracts rather than inventing a second logger for standalone mode. This keeps standalone testing representative of behavior after the Feature is placed back into YSuite.
 
-Diagnostic export is built fresh at export time and combines shared evidence with module logs.
+## Build and CI contract
 
-Exports:
+Validation is layered:
 
-- full: `Download/YSuite/YSuite-all-diagnostic-<timestamp>.zip`
-- module: `Download/YSuite/YSuite-<module>-diagnostic-<timestamp>.zip`
+1. Feature catalog generation/check;
+2. Feature/Host boundary check;
+3. affected standalone Feature composition;
+4. integration/resource/manifest hazard scan;
+5. full YSuite build.
 
-## Module add/remove contract
+`tools/verify_feature_boundaries.py` rejects direct Feature-to-Feature dependencies, duplicate Android component ownership, duplicate authorities, Feature-owned Application declarations and Feature-packaged LSPosed host metadata.
 
-Adding a feature should normally require:
+`tools/scan_feature_integration.py` remains responsible for broader integration/resource hazards.
 
-1. add the Git submodule / feature project;
-2. include its Gradle feature module;
-3. add one `FeatureSpec`;
-4. make the standalone project use the shared YUI source if it has ordinary UI;
-5. add Hook metadata only if the feature actually has Hook entry points.
+## Adding a Feature
 
-Removing a feature should be the reverse. No unrelated feature should need modification.
+A normal new Feature should require:
+
+1. create one reusable Android library Feature;
+2. register it in `config/features.toml`;
+3. regenerate/check generated catalogs;
+4. use YAPI/YCore/YUI capabilities instead of creating another app stack;
+5. build it alone through `:standalone`;
+6. build it as part of YSuite.
+
+Adding a Feature should not require creating another full Application module.
 
 ## Migration rule
 
-For each module:
+Existing Features are migrated incrementally:
 
-1. keep shared business/UI/runtime in `feature`;
-2. remove standalone-only `Application` assumptions;
-3. wire shared host services behind small contracts;
-4. isolate reusable feature resources from standalone APK identity resources;
-5. remove duplicate theme/window/Insets/common UI implementations in favor of YUI;
-6. remove duplicate shared UI dependency versions;
-7. verify standalone build through the YUI Git source dependency;
-8. verify YSuite build and integration scan;
-9. verify open/return/disable/diagnostic export;
-10. only then remove old compatibility code.
+1. keep all business/UI/runtime logic in `feature`;
+2. move shared Root/logging/runtime plumbing behind Host API/Core;
+3. remove standalone-only Application assumptions from reusable source;
+4. remove direct Feature-to-Feature dependencies;
+5. namespace reusable resources and host-global IDs;
+6. verify generic standalone build;
+7. verify full YSuite composition;
+8. only then retire the corresponding legacy `apps/*/app` shell.
 
 Compilation alone is not acceptance; behavior in `PRODUCT_REQUIREMENTS.md` and `MODULE_REQUIREMENTS.md` remains the acceptance contract.
