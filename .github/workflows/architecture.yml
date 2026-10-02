@@ -45,6 +45,9 @@ jobs:
       - name: Verify managed runtime reflection contracts
         run: python3 tools/verify_runtime_contracts.py
 
+      - name: Verify no legacy per-feature app shells
+        run: python3 tools/verify_no_legacy_app_shells.py
+
       - name: Verify Feature/Host boundaries and standalone composer
         run: python3 tools/verify_feature_boundaries.py
 
