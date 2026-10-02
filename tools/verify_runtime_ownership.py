@@ -6,6 +6,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 MANAGER = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/StandaloneAppManager.kt"
 GATE = ROOT / "libs/yapi/src/main/java/com/yagay/suite/api/RuntimeOwnerGate.java"
+HANDOFF_GATE = ROOT / "libs/yapi/src/main/java/com/yagay/suite/api/RuntimeHandoffGate.java"
+HANDOFF_PROVIDER = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/ipc/SuiteRuntimeHandoffProvider.kt"
+SUITE_MANIFEST = ROOT / "suite/YSuite/src/main/AndroidManifest.xml"
 
 # These are hook communication/status channels, not duplicate Android runtime owners. They must
 # remain registered in the standalone APK so already-loaded hooks can retire/read status cleanly.
@@ -39,11 +42,15 @@ def fail(message: str) -> None:
 
 
 def main() -> None:
-    if not MANAGER.is_file() or not GATE.is_file():
-        fail("owner manager/gate is missing")
+    required = (MANAGER, GATE, HANDOFF_GATE, HANDOFF_PROVIDER, SUITE_MANIFEST)
+    if any(not path.is_file() for path in required):
+        fail("owner manager/gate/handoff provider is missing")
 
     manager = MANAGER.read_text(encoding="utf-8")
     gate = GATE.read_text(encoding="utf-8")
+    handoff = HANDOFF_GATE.read_text(encoding="utf-8")
+    provider = HANDOFF_PROVIDER.read_text(encoding="utf-8")
+    manifest = SUITE_MANIFEST.read_text(encoding="utf-8")
 
     if "settings put global" not in manager or "settings delete global" not in manager:
         fail("StandaloneAppManager no longer claims/releases the global runtime owner")
@@ -51,6 +58,13 @@ def main() -> None:
         fail("StandaloneAppManager must resolve package ownership from FeatureRegistry")
     if "OWNER_SUITE" not in gate or "KEY_PREFIX" not in gate:
         fail("RuntimeOwnerGate contract is incomplete")
+
+    if "METHOD_MARK_ACTIVE" not in handoff or "shouldStandaloneFallback" not in handoff:
+        fail("RuntimeHandoffGate no longer provides positive target-process acknowledgement")
+    if "processStartToken" not in provider or "Binder.getCallingPid" not in provider:
+        fail("SuiteRuntimeHandoffProvider must bind acknowledgements to the live target process")
+    if "SuiteRuntimeHandoffProvider" not in manifest or "com.yagay.YSuite.runtime_handoff" not in manifest:
+        fail("YSuite manifest no longer exposes the runtime handoff provider")
 
     for component in FORBIDDEN_SUPPRESSION:
         if component in manager:
@@ -63,6 +77,13 @@ def main() -> None:
         if "RuntimeOwnerGate" not in source or feature_id not in source:
             fail(f"{feature_id} no longer checks RuntimeOwnerGate")
 
+    # NFC and Google Circle are timing-sensitive: owner claim alone must never retire their
+    # standalone compatibility hook. Positive live-process acknowledgement is mandatory.
+    for feature_id in ("ynfc", "yfloat"):
+        source = OWNER_AWARE_FILES[feature_id].read_text(encoding="utf-8")
+        if "RuntimeHandoffGate" not in source:
+            fail(f"{feature_id} no longer requires live target-process handoff acknowledgement")
+
     # YEntryCleaner component-state/discovery guards share a second centralized policy path.
     entry_component_policy = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/xposed/RuntimeComponentPolicy.kt"
     component_source = entry_component_policy.read_text(encoding="utf-8")
@@ -71,6 +92,7 @@ def main() -> None:
 
     print(
         "runtime ownership OK: global owner transaction present, hook bridges preserved, "
+        "YNFC/YFloat use live-process handoff acknowledgement, "
         f"{len(OWNER_AWARE_FILES)} feature runtime paths owner-aware"
     )
 
