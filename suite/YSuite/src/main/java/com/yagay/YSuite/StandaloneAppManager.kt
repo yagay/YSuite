@@ -16,6 +16,43 @@ object StandaloneAppManager {
     private const val PREFS = "standalone_management"
     private const val KEY_PREFIX = "managed:"
 
+    /**
+     * Components that must surrender ownership while the corresponding feature is managed by the
+     * combined host. Activities stay enabled so YSuite can still open the standalone UI explicitly.
+     */
+    private val managedRuntimeComponents = mapOf(
+        "com.yagay.YEntryCleaner" to listOf(
+            "com.yagay.YEntryCleaner.runtime.ComponentReconcileReceiver",
+            "com.yagay.YEntryCleaner.runtime.ComponentReconcileJobService",
+        ),
+        "com.yagay.ydiag" to listOf(
+            "com.yagay.ydiag.service.MonitorService",
+        ),
+        "com.yagay.YNotify" to listOf(
+            "com.yagay.YNotify.collector.NotificationCaptureService",
+            "com.yagay.YNotify.collector.UiAccessibilityService",
+            "com.yagay.YNotify.collector.XposedEventReceiver",
+        ),
+        "com.yagay.ypower" to listOf(
+            "com.yagay.ypower.root.BootReceiver",
+            "com.yagay.ypower.root.YPowerRootService",
+        ),
+        "com.yagay.YMiniGuard" to listOf(
+            "com.yagay.YMiniGuard.EngineStatusProvider",
+        ),
+        "com.yagay.YNFC" to listOf(
+            "com.yagay.YNFC.ConfigProvider",
+        ),
+        "com.yagay.YFloat" to listOf(
+            "com.yagay.YFloat.FloatService",
+            "com.yagay.YFloat.LensAccessibilityService",
+            "com.yagay.YFloat.FloatServiceBootReceiver",
+            "com.yagay.YFloat.GoogleCtsBridgeProvider",
+            "com.yagay.YFloat.GoogleCtsBridgeReceiver",
+            "com.yagay.YFloat.GoogleCtsTraceReceiver",
+        ),
+    )
+
     data class Snapshot(
         val packageName: String,
         val installed: Boolean,
@@ -76,8 +113,9 @@ object StandaloneAppManager {
             .getBoolean(KEY_PREFIX + packageName, false)
 
     /**
-     * Managed standalone APKs remain fully enabled; only their launcher alias is hidden. This keeps
-     * services/providers/hooks available for diagnostics while making YSuite the visible entry point.
+     * Managed standalone APKs stay installed and their real activities stay enabled. YSuite hides
+     * the launcher alias and disables only background/system components that would otherwise create
+     * duplicate ownership with the combined host.
      */
     fun setManaged(context: Context, packageName: String, managed: Boolean): ManagementResult {
         if (!isSafePackageName(packageName)) return ManagementResult(false, "invalid package")
@@ -88,8 +126,15 @@ object StandaloneAppManager {
             return ManagementResult(false, "standalone APK must be updated before launcher management")
         }
 
+        val componentsResult = setRuntimeComponentsEnabled(context, packageName, enabled = !managed)
+        if (!componentsResult.success) return componentsResult
+
         val launcherResult = setLauncherHidden(context, packageName, managed)
-        if (!launcherResult.success) return launcherResult
+        if (!launcherResult.success) {
+            // Best-effort rollback so a failed launcher command never leaves a half-managed APK.
+            setRuntimeComponentsEnabled(context, packageName, enabled = managed)
+            return launcherResult
+        }
 
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
@@ -98,7 +143,7 @@ object StandaloneAppManager {
         return ManagementResult(true)
     }
 
-    /** Re-applies the launcher state after the standalone APK is updated/reinstalled. */
+    /** Re-applies ownership after the standalone APK is updated/reinstalled. */
     fun reconcileManaged(context: Context, packageName: String): ManagementResult {
         if (!isManaged(context, packageName)) return ManagementResult(true)
         val state = snapshot(context, packageName) ?: return ManagementResult(false, "package unavailable")
@@ -106,8 +151,10 @@ object StandaloneAppManager {
         if (!state.launcherAliasSupported) {
             return ManagementResult(false, "standalone APK does not expose LauncherAlias")
         }
-        if (state.launcherHidden) return ManagementResult(true)
-        return setLauncherHidden(context, packageName, true)
+        val componentsResult = setRuntimeComponentsEnabled(context, packageName, enabled = false)
+        if (!componentsResult.success) return componentsResult
+        return if (state.launcherHidden) ManagementResult(true)
+        else setLauncherHidden(context, packageName, true)
     }
 
     fun setLauncherHidden(context: Context, packageName: String, hidden: Boolean): ManagementResult {
@@ -116,15 +163,51 @@ object StandaloneAppManager {
             return ManagementResult(false, "LauncherAlias not found")
         }
         val component = "$packageName/$packageName.LauncherAlias"
-        val command = if (hidden) {
-            "cmd package disable-user --user 0 $component"
-        } else {
-            "cmd package enable $component"
+        return runPackageCommand(
+            context = context,
+            operation = if (hidden) "hide-standalone-launcher" else "restore-standalone-launcher",
+            command = if (hidden) {
+                "cmd package disable-user --user 0 $component"
+            } else {
+                "cmd package enable $component"
+            },
+        )
+    }
+
+    private fun setRuntimeComponentsEnabled(
+        context: Context,
+        packageName: String,
+        enabled: Boolean,
+    ): ManagementResult {
+        val components = managedRuntimeComponents[packageName].orEmpty()
+        for (className in components) {
+            if (!isSafeComponentName(className)) {
+                return ManagementResult(false, "invalid component: $className")
+            }
+            val flattened = "$packageName/$className"
+            val result = runPackageCommand(
+                context = context,
+                operation = if (enabled) "restore-standalone-component" else "suppress-standalone-component",
+                command = if (enabled) {
+                    "cmd package enable $flattened"
+                } else {
+                    "cmd package disable-user --user 0 $flattened"
+                },
+            )
+            if (!result.success) return result
         }
+        return ManagementResult(true)
+    }
+
+    private fun runPackageCommand(
+        context: Context,
+        operation: String,
+        command: String,
+    ): ManagementResult {
         val result = SuiteRootGateway.execute(
             context = context,
             pluginId = SuiteContract.HOST_MODULE_ID,
-            operation = if (hidden) "hide-standalone-launcher" else "restore-standalone-launcher",
+            operation = operation,
             command = command,
             timeoutSeconds = 10L,
         )
@@ -187,4 +270,7 @@ object StandaloneAppManager {
 
     private fun isSafePackageName(packageName: String): Boolean =
         packageName.matches(Regex("[A-Za-z0-9_.]+")) && '.' in packageName
+
+    private fun isSafeComponentName(className: String): Boolean =
+        className.matches(Regex("[A-Za-z0-9_.$]+")) && '.' in className
 }
