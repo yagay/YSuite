@@ -57,6 +57,16 @@ def fix_ydiag_duplicates() -> None:
         )
 
 
+def fix_yfloat_resource_escaping() -> None:
+    # aapt treats an unescaped ASCII apostrophe in values XML as a string escape boundary.
+    # Keep the sentence readable and locale-safe by using the typographic apostrophe instead.
+    upsert_resource(
+        ROOT / "apps/YFloat/feature/src/main/res/values/dynamic_i18n.xml",
+        "yfloat_dynamic_436814f4594d",
+        "This is YFloat’s FLAG_SECURE test window. Verifying whether the system_server hook can capture its marker colors during a short lease…",
+    )
+
+
 def fix_ycore_dynamic_status() -> None:
     for locale, value in (
         ("values", "Connected · API %1$d"),
@@ -150,6 +160,7 @@ def fix_ynotify_hook_boundary() -> None:
 
 def main() -> None:
     fix_ydiag_duplicates()
+    fix_yfloat_resource_escaping()
     fix_ycore_dynamic_status()
     fix_ynotify_hook_boundary()
     print("I18N_DYNAMIC_POSTFIX=ok")
