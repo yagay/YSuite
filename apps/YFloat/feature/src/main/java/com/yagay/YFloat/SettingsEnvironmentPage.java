@@ -10,23 +10,26 @@ import android.widget.LinearLayout;
 final class SettingsEnvironmentPage {
     static LinearLayout build(SettingsActivity activity, FloatSettings fs) {
         SettingsPageUi ui = new SettingsPageUi(activity, fs);
-        LinearLayout root = AppUi.pageRoot(activity, "环境与显示",
-                "与当前应用、键盘和屏幕环境有关的行为。" );
+        LinearLayout root = AppUi.pageRoot(activity,
+                activity.getString(R.string.yfloat_environment_settings),
+                activity.getString(R.string.yfloat_environment_page_desc));
 
-        AppUi.Section behavior = AppUi.section(activity, "显示行为", null);
-        ui.check(behavior.body, "键盘出现时避让图标", null,
+        AppUi.Section behavior = AppUi.section(activity,
+                activity.getString(R.string.yfloat_display_behavior_section), null);
+        ui.check(behavior.body, activity.getString(R.string.yfloat_avoid_keyboard), null,
                 FloatSettings.K_IME_AVOID, fs.imeAvoid());
-        ui.check(behavior.body, "Quick Move / 智能屏幕入口", null,
+        ui.check(behavior.body, activity.getString(R.string.yfloat_quick_move_entry), null,
                 FloatSettings.K_QUICK_MOVE, fs.quickMoveEnabled());
         AppUi.addSection(root, behavior);
 
-        AppUi.Section hidden = AppUi.section(activity, "按应用隐藏",
-                "输入包名，使用逗号、空格或换行分隔。" );
+        AppUi.Section hidden = AppUi.section(activity,
+                activity.getString(R.string.yfloat_hide_by_app_section),
+                activity.getString(R.string.yfloat_hide_by_app_desc));
         LinearLayout hideBlock = AppUi.settingBlock(activity);
         EditText edit = new EditText(activity);
         AppUi.styleInput(activity, edit);
         edit.setText(fs.hiddenPackagesRaw());
-        edit.setHint("com.example.game\ncom.example.bank");
+        edit.setHint(R.string.yfloat_package_list_hint);
         edit.setSingleLine(false);
         edit.setGravity(Gravity.TOP | Gravity.START);
         edit.setMinHeight(AppUi.dp(activity, 110));
