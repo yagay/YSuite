@@ -29,8 +29,8 @@ public final class FixRecommendationEngine {
             );
 
             String role = finding.attributionRank == 1
-                    ? tr("Primary attribution", "主要归因")
-                    : tr("Secondary attribution", "次要归因");
+                    ? com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_464d2bd27a32)
+                    : com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2487c9061fec);
             finding.recommendations.add(new FixRecommendation(
                     role + ": " + rule.title,
                     rule.whyDetected,

@@ -44,7 +44,7 @@ public final class EditableRegionOverlay {
             active = view;
             return;
         }
-        Toast.makeText(app, "区域选择器启动失败", Toast.LENGTH_LONG).show();
+        Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_98208f885cc7), Toast.LENGTH_LONG).show();
         try { screenshot.recycle(); } catch (Throwable ignored) {}
     }
 
@@ -100,14 +100,14 @@ public final class EditableRegionOverlay {
 
             if (!hasSelection || selection.isEmpty()) {
                 canvas.drawRect(0, 0, getWidth(), getHeight(), shadePaint);
-                drawTopTip(canvas, "拖动框选区域");
+                drawTopTip(canvas, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ab3f92cb0baf));
                 return;
             }
 
             drawShadeOutside(canvas, selection);
             canvas.drawRect(selection, borderPaint);
             drawHandles(canvas, selection);
-            drawTopTip(canvas, "拖动内部移动 · 拖边/角调整");
+            drawTopTip(canvas, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_54258f6b1d28));
             drawActions(canvas);
         }
 
@@ -141,7 +141,7 @@ public final class EditableRegionOverlay {
             float totalW = getWidth() - margin * 2 - gap * 3;
             float w = totalW / 4f;
             float top = getHeight() - h - dp(16);
-            String[] labels = {"自动识别", "OCR", "View文字", "取消"};
+            String[] labels = {com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a6e1a6b89308), "OCR", com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c597f44da8a0), com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bd576c86d82c)};
             int[] actions = {A_AUTO, A_OCR, A_VIEW, A_CANCEL};
             for (int i = 0; i < 4; i++) {
                 float left = margin + i * (w + gap);
@@ -281,7 +281,7 @@ public final class EditableRegionOverlay {
             Rect screenRect = selectionInScreen();
             Bitmap crop = cropToSelection(screenRect);
             if (crop == null) {
-                Toast.makeText(context, "选区截取失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ff300d425643), Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -296,7 +296,7 @@ public final class EditableRegionOverlay {
             if (action == A_VIEW) {
                 if (viewText.isEmpty()) {
                     recycle(crop);
-                    Toast.makeText(context, "选区内没有可提取的 View 文字", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_24f131495f43), Toast.LENGTH_SHORT).show();
                     return;
                 }
                 close();

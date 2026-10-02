@@ -63,7 +63,7 @@ public final class GoogleAppController {
             Result result;
             if (!settings.canUseRoot()) {
                 result = new Result(false, State.UNKNOWN,
-                        "需要同时开启“增强模式”和“使用 Root 功能”");
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_014ec802a651));
             } else {
                 result = runRoot(operation);
             }
@@ -93,7 +93,7 @@ public final class GoogleAppController {
         String detail = command.text();
         State state = parseState(detail);
         boolean success = command.success() && operationSucceeded(operation, state);
-        if (detail.isBlank()) detail = command.failureMessage("Root 命令超时");
+        if (detail.isBlank()) detail = command.failureMessage(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a569c77d0225));
         return new Result(success, state, detail);
     }
 
@@ -166,12 +166,12 @@ public final class GoogleAppController {
     }
 
     public static String stateLabel(State state) {
-        if (state == null) return "未知";
+        if (state == null) return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_87f340e4520f);
         return switch (state) {
-            case RUNNING -> "正在运行";
-            case STOPPED -> "已停止";
-            case FROZEN -> "已冻结";
-            case UNKNOWN -> "未知";
+            case RUNNING -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c165245d09cc);
+            case STOPPED -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_82ea24a65a9f);
+            case FROZEN -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_07a55b115cc4);
+            case UNKNOWN -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_87f340e4520f);
         };
     }
 

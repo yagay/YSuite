@@ -62,49 +62,46 @@ public class DiagnosticReport {
 
     public String simpleText() {
         StringBuilder b = new StringBuilder();
-        line(b, tr("App", "应用"), packageName);
-        line(b, tr("Level", "级别"), levelLabel(level));
+        line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_35d63f9d6d8c), packageName);
+        line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3225693c8052), levelLabel(level));
         if (sessionStartMs > 0) {
-            String end = sessionEndMs > 0 ? formatTime(sessionEndMs) : tr("Running", "进行中");
-            line(b, tr("Runtime session", "运行会话"), formatTime(sessionStartMs) + " to " + end);
+            String end = sessionEndMs > 0 ? formatTime(sessionEndMs) : com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_df143870c04b);
+            line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8f20edcbd6df), formatTime(sessionStartMs) + " to " + end);
         }
-        line(b, tr("Observed events", "实际观察事件"), String.valueOf(observedEventCount));
+        line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9114928331c8), String.valueOf(observedEventCount));
         b.append('\n');
 
         if (findings.isEmpty()) {
-            b.append(tr(
-                    "No recognizable detection or abnormal event was observed during this run.",
-                    "本次运行未观察到可识别的检测或异常事件。"
-            )).append('\n');
+            b.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cb544251b098)).append('\n');
             return b.toString();
         }
 
-        if (!exitSummary.isBlank()) line(b, tr("Exit", "退出"), exitSummary);
+        if (!exitSummary.isBlank()) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_fd60953f03cd), exitSummary);
         if (fatalExceptionTimestamp > 0) {
             String value = fatalExceptionClass;
             if (!fatalExceptionMessage.isBlank()) value += ". " + fatalExceptionMessage;
             line(b, "Java Fatal", value);
         }
-        if (!attribution.isBlank()) line(b, tr("Attribution", "归因"), attribution);
+        if (!attribution.isBlank()) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cc8c6af5b345), attribution);
         if (!exitSummary.isBlank() || !attribution.isBlank()) b.append('\n');
 
         if (!perfettoTracePath.isBlank() || !simpleperfDataPath.isBlank() || !syscallTracePath.isBlank()) {
-            b.append(tr("System collection", "系统级采集")).append('\n');
+            b.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3acf7aeb4f70)).append('\n');
             if (!perfettoTracePath.isBlank()) line(b, "Perfetto", perfettoTraceBytes + " bytes");
             if (!simpleperfDataPath.isBlank()) line(b, "simpleperf", simpleperfDataBytes + " bytes");
-            if (!syscallTracePath.isBlank()) line(b, tr("Raw syscall experimental", "Raw syscall 实验"), syscallTraceBytes + " bytes");
+            if (!syscallTracePath.isBlank()) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_081ba34fa472), syscallTraceBytes + " bytes");
             b.append('\n');
         }
 
         int index = 1;
         for (DiagnosticFinding finding : findings) {
             b.append(index++).append(". ");
-            if (finding.attributionRank == 1) b.append(tr("Primary attribution. ", "主要归因。"));
-            else if (finding.attributionRank == 2) b.append(tr("Secondary attribution. ", "次要归因。"));
+            if (finding.attributionRank == 1) b.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6f3bc8a9fc39));
+            else if (finding.attributionRank == 2) b.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5da39a419ad3));
             b.append(finding.title).append('\n');
-            line(b, tr("Detection state", "检测状态"), displayDetectionState(finding));
+            line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_81c4e4e7a4c8), displayDetectionState(finding));
             if (finding.correlationScore > 0) {
-                line(b, tr("Correlation score", "关联分数"), finding.correlationScore + " " + tr("of 100", "满分 100"));
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0810979d5fe5), finding.correlationScore + " " + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0ecf13cfed47));
             }
             b.append('\n');
         }
@@ -118,86 +115,83 @@ public class DiagnosticReport {
         int index = 1;
         for (DiagnosticFinding f : ordered) {
             b.append(index++).append(". ").append(f.title).append('\n');
-            line(b, tr("Status", "状态"), f.status.label());
-            if (f.attributionRank == 1) line(b, tr("Attribution level", "归因级别"), tr("Primary", "主要"));
-            else if (f.attributionRank == 2) line(b, tr("Attribution level", "归因级别"), tr("Secondary", "次要"));
-            line(b, tr("Category", "类别"), f.category);
-            if (f.ruleId != null && !f.ruleId.isBlank()) line(b, tr("Rule", "规则"), f.ruleId);
-            line(b, tr("Summary", "摘要"), f.summary);
+            line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d925f905dbc7), f.status.label());
+            if (f.attributionRank == 1) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f1151a2b5b87), com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_59dd7f2a15a6));
+            else if (f.attributionRank == 2) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f1151a2b5b87), com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c709c646caa6));
+            line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4e1be532447f), f.category);
+            if (f.ruleId != null && !f.ruleId.isBlank()) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_926188a1031f), f.ruleId);
+            line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a0a8ca755df0), f.summary);
             if (f.totalCount > 0) {
                 String states = "HIT " + f.hitCount
                         + ", CHECKED " + f.checkedCount
                         + ", NOT_HIT " + f.notHitCount
                         + ", UNKNOWN " + f.unknownCount
-                        + ", " + tr("total", "总计") + " " + f.totalCount;
-                line(b, tr("Run states", "本次状态"), states);
-                line(b, tr("Detection state", "应用检测状态"), displayDetectionState(f));
-                line(b, tr("Representative state", "代表状态"), String.valueOf(f.representativeState));
+                        + ", " + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6a2109cfaaca) + " " + f.totalCount;
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8b1dae00dd60), states);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3057e103ffb7), displayDetectionState(f));
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_dbe62bdb4e56), String.valueOf(f.representativeState));
             }
             if (f.closestDeltaMs != Long.MAX_VALUE) {
-                line(b, tr("Time before exit", "距退出"), f.closestDeltaMs + " ms");
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a862d30463ac), f.closestDeltaMs + " ms");
             }
             if (f.tid >= 0) {
-                line(b, tr("Thread", "线程"), f.thread + ", pid=" + f.pid + ", tid=" + f.tid);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9c16645c55a6), f.thread + ", pid=" + f.pid + ", tid=" + f.tid);
             }
-            if (f.sameThreadAsExit) line(b, tr("Exit relation", "与退出"), tr("Same thread", "同线程"));
-            if (f.sharedExitFrames > 0) line(b, tr("Shared exit stack frames", "与退出共同调用栈帧"), String.valueOf(f.sharedExitFrames));
-            if (f.sameThreadAsFatal) line(b, tr("Java Fatal relation", "与 Java Fatal"), tr("Same thread", "同线程"));
-            if (f.sharedFatalFrames > 0) line(b, tr("Shared Java Fatal business frames", "与 Java Fatal 共同业务栈帧"), String.valueOf(f.sharedFatalFrames));
-            if (notBlank(f.input)) line(b, tr("Input", "输入"), f.input);
-            if (notBlank(f.result)) line(b, tr("Result", "结果"), f.result);
-            if (notBlank(f.exception)) line(b, tr("Exception", "异常"), f.exception);
+            if (f.sameThreadAsExit) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f5f82a540533), com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c05c6221a1e7));
+            if (f.sharedExitFrames > 0) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_25bcccd9d858), String.valueOf(f.sharedExitFrames));
+            if (f.sameThreadAsFatal) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bcc9bbb54868), com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c05c6221a1e7));
+            if (f.sharedFatalFrames > 0) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_60b5c4f8f3c2), String.valueOf(f.sharedFatalFrames));
+            if (notBlank(f.input)) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_61ac3df8f882), f.input);
+            if (notBlank(f.result)) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_933009f496a0), f.result);
+            if (notBlank(f.exception)) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_dbfaff4d3c05), f.exception);
             if (notBlank(f.throwableId)) line(b, "Throwable ID", f.throwableId);
             if (notBlank(f.cause)) line(b, "Cause", f.cause);
             if (f.suppressedCount > 0) line(b, "Suppressed", String.valueOf(f.suppressedCount));
-            if (f.correlationScore > 0) line(b, tr("Exit correlation", "退出关联"), f.correlationScore + " " + tr("of 100", "满分 100"));
-            if (f.detail != null && !f.detail.equals(f.summary)) line(b, tr("Detail", "详情"), f.detail);
-            for (String e : f.evidence) line(b, tr("Evidence", "证据"), e);
+            if (f.correlationScore > 0) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9b106581db4e), f.correlationScore + " " + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0ecf13cfed47));
+            if (f.detail != null && !f.detail.equals(f.summary)) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_fd2b4530c5c8), f.detail);
+            for (String e : f.evidence) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8627da61e118), e);
             for (FixRecommendation recommendation : f.recommendations) {
-                line(b, tr("Explanation", "说明"), recommendation.title);
-                line(b, tr("Why it is checked", "为什么检测"), recommendation.whyDetected);
-                line(b, tr("Open-source reference explanation", "开源项目说明"), recommendation.projectExplanation);
-                line(b, tr("Why it is attributed", "为什么归因"), recommendation.whyAttributed);
-                line(b, tr("Repair or investigation", "修复或排查"), recommendation.repair);
-                line(b, tr("Reference", "参考"), recommendation.source);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_46aa5a1b77cc), recommendation.title);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8a7c34c165cd), recommendation.whyDetected);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7aed0d10ef23), recommendation.projectExplanation);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cfc2ebe19f3f), recommendation.whyAttributed);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bdc2cc5cce19), recommendation.repair);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a317091e2f09), recommendation.source);
             }
             b.append('\n');
         }
 
         if (!staticEvidence.isEmpty()) {
-            b.append(tr(
-                    "Static supplemental evidence. Deep diagnostics only. It does not mean the code ran during this session and it is not used for attribution.",
-                    "静态辅助证据。仅用于深度诊断，不代表本次运行已经执行，也不参与归因。"
-            )).append('\n');
+            b.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0118ea5f4a77)).append('\n');
             int staticIndex = 1;
             for (DiagnosticFinding f : staticEvidence) {
                 b.append(staticIndex++).append(". ").append(f.title).append('\n');
-                if (notBlank(f.ruleId)) line(b, tr("Rule", "规则"), f.ruleId);
-                if (notBlank(f.summary)) line(b, tr("Explanation", "说明"), f.summary);
-                for (String e : f.evidence) line(b, tr("Reference", "引用"), e);
+                if (notBlank(f.ruleId)) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_926188a1031f), f.ruleId);
+                if (notBlank(f.summary)) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_46aa5a1b77cc), f.summary);
+                for (String e : f.evidence) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2791434111b3), e);
                 b.append('\n');
             }
         }
 
         if (!exceptionPropagation.isEmpty()) {
-            b.append(tr("Exception propagation", "异常传播链")).append('\n');
+            b.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_556c83bc3aa7)).append('\n');
             appendNumbered(b, exceptionPropagation);
             b.append('\n');
         }
 
         if (!linkerMappings.isEmpty()) {
-            b.append(tr("JNI and Linker mapping", "JNI 和 Linker 映射")).append('\n');
+            b.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_abb7a244e59e)).append('\n');
             appendNumbered(b, linkerMappings);
             b.append('\n');
         }
         if (!simpleperfSummary.isBlank()) {
-            b.append(tr("simpleperf native call graph summary", "simpleperf Native 调用图摘要")).append('\n')
+            b.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2c2eb0fa3b6f)).append('\n')
                     .append(simpleperfSummary).append("\n\n");
         }
         if (!perfettoTracePath.isBlank()) line(b, "Perfetto Trace", perfettoTracePath);
-        if (!simpleperfDataPath.isBlank()) line(b, tr("simpleperf data", "simpleperf 数据"), simpleperfDataPath);
-        if (!simpleperfReportPath.isBlank()) line(b, tr("simpleperf report", "simpleperf 报告"), simpleperfReportPath);
-        if (!syscallTracePath.isBlank()) line(b, tr("Raw syscall experimental", "Raw syscall 实验"), syscallTracePath);
+        if (!simpleperfDataPath.isBlank()) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3af848644bd8), simpleperfDataPath);
+        if (!simpleperfReportPath.isBlank()) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ba05931f6be5), simpleperfReportPath);
+        if (!syscallTracePath.isBlank()) line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_081ba34fa472), syscallTracePath);
 
         return b.toString();
     }
@@ -205,7 +199,7 @@ public class DiagnosticReport {
     public String recommendationText() {
         StringBuilder b = new StringBuilder();
         if (!attribution.isBlank()) {
-            line(b, tr("Attribution result", "归因结果"), attribution);
+            line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2e61fddc21ee), attribution);
             b.append('\n');
         }
         int count = 0;
@@ -214,34 +208,28 @@ public class DiagnosticReport {
                 count++;
                 b.append(count).append(". ").append(recommendation.title).append('\n');
                 String level = finding.attributionRank == 1
-                        ? tr("Primary attribution", "主要归因")
-                        : tr("Secondary attribution", "次要归因");
-                line(b, tr("Related finding", "对应"), level + ". " + finding.title);
-                line(b, tr("Correlation score", "关联分数"), finding.correlationScore + " " + tr("of 100", "满分 100"));
-                line(b, tr("Detection state", "应用检测状态"), displayDetectionState(finding));
-                line(b, tr("Why it is checked", "为什么检测"), recommendation.whyDetected);
-                line(b, tr("Open-source reference explanation", "开源项目说明"), recommendation.projectExplanation);
-                line(b, tr("Why this run is attributed", "为什么这次归因"), recommendation.whyAttributed);
-                line(b, tr("Repair or investigation", "应该怎样修复或排查"), recommendation.repair);
-                line(b, tr("Reference", "参考"), recommendation.source);
+                        ? com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_464d2bd27a32)
+                        : com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2487c9061fec);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e161cf3369d3), level + ". " + finding.title);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0810979d5fe5), finding.correlationScore + " " + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0ecf13cfed47));
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3057e103ffb7), displayDetectionState(finding));
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8a7c34c165cd), recommendation.whyDetected);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7aed0d10ef23), recommendation.projectExplanation);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6456781ef53b), recommendation.whyAttributed);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7c805bd2a8b6), recommendation.repair);
+                line(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a317091e2f09), recommendation.source);
                 b.append('\n');
             }
         }
         if (count == 0) {
-            return tr(
-                    "The attribution evidence is insufficient, so no repair recommendation is generated.\n",
-                    "当前归因证据不足，因此不生成修复建议。\n"
-            );
+            return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2a68a9d90e93);
         }
         return b.toString();
     }
 
     public String rawText() {
         if (raw.isEmpty()) {
-            return tr(
-                    "No displayable raw event was collected during this run.\n",
-                    "本次运行没有采集到可显示的原始事件。\n"
-            );
+            return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a559c1fe92d6);
         }
         StringBuilder b = new StringBuilder();
         for (String line : raw) b.append(line).append('\n');
@@ -323,28 +311,28 @@ public class DiagnosticReport {
     }
 
     private static String levelLabel(DiagnosticLevel level) {
-        if (level == DiagnosticLevel.QUICK) return tr("Fast", "快速");
-        if (level == DiagnosticLevel.DEEP) return tr("Deep", "深度");
-        return tr("Standard", "标准");
+        if (level == DiagnosticLevel.QUICK) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b9b0f082ed01);
+        if (level == DiagnosticLevel.DEEP) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cfb34c6c227b);
+        return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e82299110866);
     }
 
     private static String displayDetectionState(DiagnosticFinding finding) {
-        if (finding == null) return tr("Unknown", "未知");
+        if (finding == null) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_87f340e4520f);
         switch (finding.representativeState) {
             case NOT_HIT:
-                return tr("Not hit", "未命中");
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7f759987a658);
             case HIT:
-                return tr("Hit", "命中");
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_faaa5ec8d944);
             case CHECKED:
-                return tr("Checked", "已检查");
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6549ed732c87);
             case UNKNOWN:
             default:
                 if (finding.result != null) {
                     String value = finding.result.trim();
-                    if ("false".equalsIgnoreCase(value)) return tr("Not hit", "未命中");
+                    if ("false".equalsIgnoreCase(value)) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7f759987a658);
                     if (!value.isBlank()) return value;
                 }
-                return tr("Unknown", "未知");
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_87f340e4520f);
         }
     }
 

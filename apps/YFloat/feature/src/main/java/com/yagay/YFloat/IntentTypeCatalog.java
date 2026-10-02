@@ -54,17 +54,17 @@ public final class IntentTypeCatalog {
     }
 
     private static final List<Spec> ALL = List.of(
-            new Spec(CustomMenuActionStore.TYPE_LAUNCH, "启动应用", "应用主启动入口"),
-            new Spec(CustomMenuActionStore.TYPE_SEND_TEXT, "分享文字", "ACTION_SEND · text/plain"),
-            new Spec(CustomMenuActionStore.TYPE_PROCESS_TEXT, "处理文字", "ACTION_PROCESS_TEXT"),
-            new Spec(CustomMenuActionStore.TYPE_VIEW_WEB, "网页打开/搜索", "ACTION_VIEW · http/https"),
-            new Spec(CustomMenuActionStore.TYPE_WEB_SEARCH, "网页搜索", "ACTION_WEB_SEARCH"),
-            new Spec(CustomMenuActionStore.TYPE_DIAL, "拨号", "ACTION_DIAL"),
-            new Spec(CustomMenuActionStore.TYPE_SMS, "短信", "ACTION_SENDTO · sms"),
-            new Spec(CustomMenuActionStore.TYPE_EMAIL, "邮件", "ACTION_SENDTO · mail"),
-            new Spec(CustomMenuActionStore.TYPE_MAP, "地图搜索", "ACTION_VIEW · geo"),
-            new Spec(CustomMenuActionStore.TYPE_TRANSLATE, "翻译", "ACTION_TRANSLATE"),
-            new Spec(CustomMenuActionStore.TYPE_VIEW_TEXT, "打开纯文本", "ACTION_VIEW · text/plain")
+            new Spec(CustomMenuActionStore.TYPE_LAUNCH, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_7fe957b4e334), "应用主启动入口"),
+            new Spec(CustomMenuActionStore.TYPE_SEND_TEXT, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f258fec45ef0), "ACTION_SEND · text/plain"),
+            new Spec(CustomMenuActionStore.TYPE_PROCESS_TEXT, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bacfe3e73295), "ACTION_PROCESS_TEXT"),
+            new Spec(CustomMenuActionStore.TYPE_VIEW_WEB, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_be4f13a31f24), "ACTION_VIEW · http/https"),
+            new Spec(CustomMenuActionStore.TYPE_WEB_SEARCH, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d9be509376b2), "ACTION_WEB_SEARCH"),
+            new Spec(CustomMenuActionStore.TYPE_DIAL, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ea0eca2434fa), "ACTION_DIAL"),
+            new Spec(CustomMenuActionStore.TYPE_SMS, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_943ba3b6b72e), "ACTION_SENDTO · sms"),
+            new Spec(CustomMenuActionStore.TYPE_EMAIL, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_467d3205e6b0), "ACTION_SENDTO · mail"),
+            new Spec(CustomMenuActionStore.TYPE_MAP, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3247f3fc702a), "ACTION_VIEW · geo"),
+            new Spec(CustomMenuActionStore.TYPE_TRANSLATE, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6c51b8bbb258), "ACTION_TRANSLATE"),
+            new Spec(CustomMenuActionStore.TYPE_VIEW_TEXT, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_4043fbe3b425), "ACTION_VIEW · text/plain")
     );
 
     public static List<Spec> all() { return ALL; }

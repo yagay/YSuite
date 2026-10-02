@@ -58,9 +58,9 @@ public final class ViewNodeCandidate {
         if (!semanticLabel.isBlank()) return ellipsize(semanticLabel);
         if (iconLike) {
             String idName = shortId();
-            if (!idName.isBlank()) return "图标 · " + idName;
+            if (!idName.isBlank()) return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_74de5356f1c5) + idName;
             String cls = shortClass();
-            return cls.isBlank() ? "图标" : "图标 · " + cls;
+            return cls.isBlank() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c0b272e13388) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_74de5356f1c5) + cls;
         }
         String cls = shortClass();
         if (!cls.isBlank()) return cls;

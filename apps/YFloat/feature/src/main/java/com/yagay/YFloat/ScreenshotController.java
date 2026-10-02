@@ -34,7 +34,7 @@ public final class ScreenshotController {
                 recycle(b);
                 DiagnosticLog.i(app, "SCREENSHOT_FLOW", "full result failed region=false error="
                         + ScreenCaptureBackend.safeMessage(t));
-                Toast.makeText(app, "截图结果处理失败", Toast.LENGTH_LONG).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_82009ef332cb), Toast.LENGTH_LONG).show();
             } finally {
                 transaction.close();
             }
@@ -63,7 +63,7 @@ public final class ScreenshotController {
                         + (ocr ? "ocr" : "screenshot") + " error="
                         + ScreenCaptureBackend.safeMessage(t));
                 Toast.makeText(app,
-                        ocr ? "OCR 区域选择器启动失败" : "区域选择器启动失败",
+                        ocr ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ef2185e0b840) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_98208f885cc7),
                         Toast.LENGTH_LONG).show();
             } finally {
                 transaction.close();
@@ -84,7 +84,7 @@ public final class ScreenshotController {
         ScreenshotCaptureSession.capture(app, fs, raw -> {
             if (raw == null || raw.isRecycled()) {
                 DiagnosticLog.i(app, "SCREENSHOT_CAPTURE", "region editor invalid bitmap");
-                Toast.makeText(app, "区域截图失败: 截图无效", Toast.LENGTH_LONG).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e10658f5da33), Toast.LENGTH_LONG).show();
                 transaction.close();
                 return;
             }
@@ -95,7 +95,7 @@ public final class ScreenshotController {
             } catch (Throwable t) {
                 recycle(raw);
                 DiagnosticLog.i(app, "REGION_EDIT", "open failed=" + ScreenCaptureBackend.safeMessage(t));
-                Toast.makeText(app, "区域编辑器启动失败", Toast.LENGTH_LONG).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3255c4611932), Toast.LENGTH_LONG).show();
             } finally {
                 transaction.close();
             }
@@ -103,7 +103,7 @@ public final class ScreenshotController {
             DiagnosticLog.i(app, "SCREENSHOT_CAPTURE", "region editor backend failed="
                     + ScreenCaptureBackend.safeMessage(t));
             Toast.makeText(app,
-                    "区域截图失败: " + ScreenCaptureBackend.safeMessage(t), Toast.LENGTH_LONG).show();
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_0b5152081466) + ScreenCaptureBackend.safeMessage(t), Toast.LENGTH_LONG).show();
             transaction.close();
         });
     }
@@ -147,7 +147,7 @@ public final class ScreenshotController {
                 recycle(crop);
             }
             transaction.close();
-        }, error -> transaction.close(), "区域截图", false);
+        }, error -> transaction.close(), com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3a81e05edd1c), false);
     }
 
     public static void captureBoundsForViewCandidate(Context c, Rect screenBounds,
@@ -181,7 +181,7 @@ public final class ScreenshotController {
                 recycle(crop);
             }
             transaction.close();
-        }, error -> transaction.close(), "View 截图", false);
+        }, error -> transaction.close(), com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_abcc72ed9eea), false);
     }
 
     public static void captureBoundsForVisualCandidate(Context c, Rect screenBounds,
@@ -204,7 +204,7 @@ public final class ScreenshotController {
                 recycle(crop);
             }
             transaction.close();
-        }, error -> transaction.close(), "View 截图", false);
+        }, error -> transaction.close(), com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_abcc72ed9eea), false);
     }
 
     /**
@@ -232,7 +232,7 @@ public final class ScreenshotController {
                 DiagnosticLog.i(app, "SCREENSHOT_CROP", "failed label=" + label
                         + " raw=" + bitmapSize(raw) + " requested=" + screenBounds
                         + " error=" + ScreenCaptureBackend.safeMessage(t));
-                Toast.makeText(app, label + "失败: 裁剪失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(app, label + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_39c11d7a381a), Toast.LENGTH_SHORT).show();
                 if (onFailure != null) onFailure.accept(t);
                 if (fallbackToFreeOcr) captureForOcr(app);
                 return;
@@ -245,14 +245,14 @@ public final class ScreenshotController {
                         + " crop=" + bitmapSize(crop)
                         + " error=" + ScreenCaptureBackend.safeMessage(t));
                 recycle(crop);
-                Toast.makeText(app, label + "结果处理失败", Toast.LENGTH_LONG).show();
+                Toast.makeText(app, label + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_0ca5f1bb6fd6), Toast.LENGTH_LONG).show();
                 if (onFailure != null) onFailure.accept(t);
             }
         }, t -> {
             DiagnosticLog.i(app, "SCREENSHOT_CAPTURE", "backend failed label=" + label
                     + " error=" + ScreenCaptureBackend.safeMessage(t));
             Toast.makeText(app,
-                    "截图失败: " + ScreenCaptureBackend.safeMessage(t), Toast.LENGTH_LONG).show();
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c313157900f2) + ScreenCaptureBackend.safeMessage(t), Toast.LENGTH_LONG).show();
             if (onFailure != null) onFailure.accept(t);
         });
     }
@@ -273,14 +273,14 @@ public final class ScreenshotController {
                 recycle(raw);
                 DiagnosticLog.i(app, "SCREENSHOT_CROP", "full failed error="
                         + ScreenCaptureBackend.safeMessage(t));
-                Toast.makeText(app, "截图处理失败", Toast.LENGTH_LONG).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e63c43d67f56), Toast.LENGTH_LONG).show();
                 if (fail != null) fail.accept(t);
             }
         }, t -> {
             DiagnosticLog.i(app, "SCREENSHOT_CAPTURE", "full backend failed error="
                     + ScreenCaptureBackend.safeMessage(t));
             Toast.makeText(app,
-                    "截图失败: " + ScreenCaptureBackend.safeMessage(t), Toast.LENGTH_LONG).show();
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c313157900f2) + ScreenCaptureBackend.safeMessage(t), Toast.LENGTH_LONG).show();
             if (fail != null) fail.accept(t);
         });
     }
@@ -298,7 +298,7 @@ public final class ScreenshotController {
 
     static void save(Context c, Bitmap b) {
         if (b == null || b.isRecycled()) {
-            Toast.makeText(c, "截图无效", Toast.LENGTH_LONG).show();
+            Toast.makeText(c, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ff9483c9f097), Toast.LENGTH_LONG).show();
             return;
         }
         String name = "YFloat_"
@@ -309,18 +309,18 @@ public final class ScreenshotController {
         v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/YFloat");
         var uri = c.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
         if (uri == null) {
-            Toast.makeText(c, "保存失败", Toast.LENGTH_LONG).show();
+            Toast.makeText(c, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_dac13477bc15), Toast.LENGTH_LONG).show();
             return;
         }
         try (OutputStream o = c.getContentResolver().openOutputStream(uri)) {
             if (o == null || !b.compress(Bitmap.CompressFormat.PNG, 100, o)) {
-                throw new IllegalStateException("PNG 写入失败");
+                throw new IllegalStateException(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31848a0190d9));
             }
-            Toast.makeText(c, "已保存到 Pictures/YFloat", Toast.LENGTH_SHORT).show();
+            Toast.makeText(c, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_39e4a7433a12), Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             c.getContentResolver().delete(uri, null, null);
             Toast.makeText(c,
-                    "保存失败: " + ScreenCaptureBackend.safeMessage(e), Toast.LENGTH_LONG).show();
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_770db598e055) + ScreenCaptureBackend.safeMessage(e), Toast.LENGTH_LONG).show();
         }
     }
 

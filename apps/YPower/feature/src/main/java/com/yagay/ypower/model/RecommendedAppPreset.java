@@ -65,18 +65,18 @@ public final class RecommendedAppPreset {
 
     public String hookSummary() {
         StringBuilder b = new StringBuilder();
-        if (tracePackageScan) append(b, "包扫描");
-        if (traceFiles) append(b, "文件/proc");
-        if (traceCommands) append(b, "命令/退出");
-        if (traceProperties) append(b, "系统属性");
-        if (tracePermissions) append(b, "权限查询");
-        if (traceDebugger) append(b, "调试器检测");
-        if (traceExceptions) append(b, "异常传播");
-        if (traceSecurityApis) append(b, "现代安全API");
-        if (simulateSystemApp) append(b, "系统身份模拟");
-        if (simulatePermissions) append(b, "权限状态模拟");
-        if (traceStacks) append(b, "短调用栈");
-        return b.length() == 0 ? "无需 LSPosed Hook" : b.toString();
+        if (tracePackageScan) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_494fc333ccb2));
+        if (traceFiles) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3103e8e64678));
+        if (traceCommands) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_26394c4aba74));
+        if (traceProperties) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_95f96608c2c4));
+        if (tracePermissions) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6fafdf537988));
+        if (traceDebugger) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e32e081fee63));
+        if (traceExceptions) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c4703a1b1c6c));
+        if (traceSecurityApis) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ee11287b0419));
+        if (simulateSystemApp) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_457a46fb5c7d));
+        if (simulatePermissions) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d604c31a0920));
+        if (traceStacks) append(b, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d46c20543e5a));
+        return b.length() == 0 ? com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1894ca1044e6) : b.toString();
     }
 
     private static void append(StringBuilder b, String text) {

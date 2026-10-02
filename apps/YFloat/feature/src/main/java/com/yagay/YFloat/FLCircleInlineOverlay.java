@@ -303,7 +303,7 @@ final class FLCircleInlineOverlay {
         }
 
         private void drawScreenshotConfirm(Canvas canvas, RectF selected) {
-            String label = "完成";
+            String label = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6f1359d0747a);
             float width = dp(64);
             float height = dp(36);
             float gap = dp(8);
@@ -423,13 +423,13 @@ final class FLCircleInlineOverlay {
         private void drawHint(Canvas canvas) {
             String text;
             if (screenshotSelection != null) {
-                text = "调整截图窗口 · 调好后点完成";
+                text = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_45588fd9456e);
             } else if (resolvingText) {
-                text = "正在识别选区文字";
+                text = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_9c08076fde9e);
             } else if (textSelection.hasSelection()) {
-                text = "文字已选中 · 拖动手柄可跨行/段落调整";
+                text = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_7a674ececf86);
             } else {
-                text = "点击/涂抹选择文字 · 圈画截图";
+                text = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fd87268d0c52);
             }
 
             float width = Math.min(getWidth() - dp(32), hintTextPaint.measureText(text) + dp(30));
@@ -653,7 +653,7 @@ final class FLCircleInlineOverlay {
                         + gesture.kind + " source=" + (result == null ? "null" : result.source)
                         + " error=" + (result == null || result.error == null ? "none"
                         : ScreenCaptureBackend.safeMessage(result.error)));
-                Toast.makeText(context, "当前位置未识别到文字", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d83fd46a6d18), Toast.LENGTH_SHORT).show();
                 invalidate();
                 return;
             }
@@ -667,7 +667,7 @@ final class FLCircleInlineOverlay {
                 DiagnosticLog.i(context, "FL_CIRCLE_TEXT_SELECT", "resolved=false gesture="
                         + gesture.kind + " source=" + result.source
                         + " reason=planner_hint_unmappable");
-                Toast.makeText(context, "当前位置未识别到可选文字", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a8ccabc2ef19), Toast.LENGTH_SHORT).show();
                 invalidate();
                 return;
             }
@@ -790,7 +790,7 @@ final class FLCircleInlineOverlay {
             Rect bitmapRect = FLCircleSelection.exactRectAndClamp(screenshotSelection.bounds,
                     frame.bitmap.getWidth(), frame.bitmap.getHeight());
             if (bitmapRect.isEmpty()) {
-                Toast.makeText(context, "截图范围无效", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e0483a249bd9), Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -807,7 +807,7 @@ final class FLCircleInlineOverlay {
             } catch (Throwable t) {
                 DiagnosticLog.i(context, "FL_CIRCLE_SCREENSHOT_FRAME", "crop failed="
                         + ScreenCaptureBackend.safeMessage(t));
-                Toast.makeText(context, "圈画截图失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_943cd8c0a9bb), Toast.LENGTH_SHORT).show();
                 return;
             }
 

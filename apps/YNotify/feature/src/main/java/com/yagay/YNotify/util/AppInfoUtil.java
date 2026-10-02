@@ -13,7 +13,7 @@ public final class AppInfoUtil {
     private AppInfoUtil() {}
 
     public static String label(Context context, String pkg) {
-        if (pkg == null || pkg.isEmpty()) return "未知应用";
+        if (pkg == null || pkg.isEmpty()) return com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_e5ec6ab52278);
         String cached = LABELS.get(pkg);
         if (cached != null) return cached;
         String result;
@@ -23,7 +23,7 @@ public final class AppInfoUtil {
             CharSequence label = pm.getApplicationLabel(ai);
             result = label == null ? pkg : label.toString();
         } catch (Throwable ignored) {
-            if ("android".equals(pkg)) result = "Android 系统";
+            if ("android".equals(pkg)) result = com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_49fe92fc83df);
             else if ("com.android.systemui".equals(pkg)) result = "System UI";
             else result = pkg;
         }

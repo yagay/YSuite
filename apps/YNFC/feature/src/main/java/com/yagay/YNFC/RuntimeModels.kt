@@ -1,7 +1,7 @@
 package com.yagay.YNFC
 
 enum class LogSource(val label: String) {
-    STATUS("状态"), LSPOSED("LSPosed"), KERNEL_SU("KernelSU"), SYSTEM("系统"),
+    STATUS(com.yagay.suite.api.YLocale.text(com.yagay.YNFC.R.string.ynfc_generated_d925f905dbc7)), LSPOSED("LSPosed"), KERNEL_SU("KernelSU"), SYSTEM(com.yagay.suite.api.YLocale.text(com.yagay.YNFC.R.string.ynfc_generated_460c85ddef5d)),
     NFC("NFC"), HAL("HAL"), PROVIDER("Provider"), APP("App")
 }
 

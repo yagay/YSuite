@@ -119,7 +119,7 @@ public final class OcrEngine {
         if (deliverUi && service != null) service.onCircleRecognizeStarted();
         if (b == null || b.isRecycled() || b.getWidth() <= 0 || b.getHeight() <= 0) {
             fail(app, service, callback, deliverUi, request, "ocr_invalid_bitmap",
-                    "OCR失败: 图片无效", new IllegalArgumentException("invalid bitmap"));
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_57397f700acc), new IllegalArgumentException("invalid bitmap"));
             return;
         }
         startSelectedEngine(app, service, b, anchor, callback, deliverUi, request);
@@ -153,7 +153,7 @@ public final class OcrEngine {
                     OcrModelManager.MEDIUM, true, null, request);
         } else {
             if (deliverUi) {
-                Toast.makeText(app, "未下载 PP-OCRv6 模型，暂用 ML Kit；可在设置中下载",
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6bfcd46cd7df),
                         Toast.LENGTH_SHORT).show();
             }
             startMlKitPipeline(app, service, source, anchor, callback, deliverUi,
@@ -172,7 +172,7 @@ public final class OcrEngine {
                         "local_model_missing", request);
             } else {
                 fail(app, service, callback, deliverUi, request, "ppocr_model_missing",
-                        "请先在设置中下载 " + OcrModelManager.displayName(model),
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fc273b894efa) + OcrModelManager.displayName(model),
                         new IllegalStateException("PP-OCR model missing"));
             }
             return;
@@ -197,7 +197,7 @@ public final class OcrEngine {
                                 "ppocr_empty", request);
                     } else {
                         fail(app, service, callback, deliverUi, request, "ppocr_empty",
-                                "未识别到文字", new IllegalStateException("PP-OCR empty"));
+                                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_198d486cbbbb), new IllegalStateException("PP-OCR empty"));
                     }
                     return;
                 }
@@ -222,7 +222,7 @@ public final class OcrEngine {
                             "ppocr_failure:" + message, request);
                 } else {
                     fail(app, service, callback, deliverUi, request, "ppocr_failure",
-                            "PP-OCRv6 失败: " + message, new IllegalStateException(message));
+                            com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fb90be9a6988) + message, new IllegalStateException(message));
                 }
             }
         });
@@ -271,7 +271,7 @@ public final class OcrEngine {
                     chinese, english, request).start();
         } catch (Throwable t) {
             fail(app, service, callback, deliverUi, request, "mlkit_init_failure",
-                    "OCR失败: " + safe(t), t);
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f44c1310c51b) + safe(t), t);
         }
     }
 
@@ -326,7 +326,7 @@ public final class OcrEngine {
         void start() {
             if (expected <= 0) {
                 fail(app, service, callback, deliverUi, request,
-                        "mlkit_no_script", "未启用 OCR 语言",
+                        "mlkit_no_script", com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6172d94a0fb7),
                         new IllegalStateException("no ML Kit script enabled"));
                 return;
             }
@@ -381,7 +381,7 @@ public final class OcrEngine {
                     source.getWidth(), source.getHeight());
             if (result == null || result.fullText().isBlank()) {
                 fail(app, service, callback, deliverUi, request, "ocr_empty",
-                        "未识别到文字", lastError == null
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_198d486cbbbb), lastError == null
                                 ? new IllegalStateException("ML Kit empty") : lastError);
                 return;
             }
@@ -640,7 +640,7 @@ public final class OcrEngine {
             }
             if (deliverUi) {
                 if (service != null) service.onCircleFinished(reason);
-                Toast.makeText(app, userMessage == null ? "OCR失败" : userMessage, Toast.LENGTH_SHORT).show();
+                Toast.makeText(app, userMessage == null ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b46129cf4767) : userMessage, Toast.LENGTH_SHORT).show();
             }
         });
     }

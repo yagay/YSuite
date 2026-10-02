@@ -67,7 +67,7 @@ final class ResultSession implements AutoCloseable {
         return switch (mode) {
             case VIEW_TEXT -> text;
             case VIEW_IMAGE -> meta;
-            case OCR -> text.isBlank() ? "未识别到文字" : text;
+            case OCR -> text.isBlank() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_198d486cbbbb) : text;
             case SCREENSHOT -> "";
         };
     }
@@ -92,16 +92,16 @@ final class ResultSession implements AutoCloseable {
     String title() {
         if (mode != Mode.OCR) {
             return switch (mode) {
-                case SCREENSHOT -> "区域截图";
-                case VIEW_TEXT -> "View 内容";
-                case VIEW_IMAGE -> "View / 图标";
-                case OCR -> "OCR 结果";
+                case SCREENSHOT -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3a81e05edd1c);
+                case VIEW_TEXT -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e563a89b884b);
+                case VIEW_IMAGE -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_91bc26a4d190);
+                case OCR -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_0efad46ab00e);
             };
         }
         return switch (originMode) {
-            case SCREENSHOT -> "区域截图 · OCR";
-            case VIEW_TEXT, VIEW_IMAGE -> "View 内容 · OCR";
-            case OCR -> "OCR 结果";
+            case SCREENSHOT -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_9a9ff7db31b7);
+            case VIEW_TEXT, VIEW_IMAGE -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_73bf0c50f781);
+            case OCR -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_0efad46ab00e);
         };
     }
 
@@ -136,7 +136,7 @@ final class ResultSession implements AutoCloseable {
     }
 
     private static String buildViewMeta(ViewNodeCandidate view) {
-        if (view == null) return "图片 View";
+        if (view == null) return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_8dcb1299c064);
         StringBuilder meta = new StringBuilder(view.label());
         if (!view.className().isBlank()) meta.append('\n').append(view.className());
         if (!view.viewId().isBlank()) meta.append('\n').append(view.viewId());

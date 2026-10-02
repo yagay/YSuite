@@ -68,14 +68,14 @@ final class GoogleRegionConfirmOverlay {
         host = new FlOverlayWindowHost(app);
 
         TextView view = new TextView(app);
-        view.setText("完成");
+        view.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6f1359d0747a));
         view.setTextColor(Color.WHITE);
         view.setTextSize(15f);
         view.setTypeface(Typeface.DEFAULT_BOLD);
         view.setGravity(Gravity.CENTER);
         view.setClickable(true);
         view.setFocusable(false);
-        view.setContentDescription("完成区域选择");
+        view.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_9b6a4d50246b));
         view.setElevation(ScreenGeometry.dp(app, 8f));
 
         GradientDrawable background = new GradientDrawable();

@@ -59,7 +59,7 @@ final class FLCircleController {
                 frame.recycle();
                 CircleActiveBorderOverlay.hide(app, "overlay_failed");
                 restore(app, transaction, session, "overlay_failed");
-                Toast.makeText(app, "圈画识别启动失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3e282a4690cb), Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -85,7 +85,7 @@ final class FLCircleController {
             restore(app, transaction, session, "capture_failed");
             DiagnosticLog.i(app, "FL_CIRCLE", "capture failed="
                     + ScreenCaptureBackend.safeMessage(error));
-            Toast.makeText(app, "圈画识别截图失败: "
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ba7abd8858e1)
                     + ScreenCaptureBackend.safeMessage(error), Toast.LENGTH_LONG).show();
         });
     }

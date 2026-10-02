@@ -30,7 +30,7 @@ public final class CapturePolicy {
     }
 
     public static void redact(EventRecord r) {
-        r.title = "[内容已隐藏]";
+        r.title = com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_84cbd6cb6856);
         r.text = null;
         r.fullText = null;
         r.subText = null;

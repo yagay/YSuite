@@ -35,7 +35,7 @@ final class RootCommandExecutor {
         }
 
         String failureMessage(String timeoutMessage) {
-            if (timedOut) return timeoutMessage == null ? "Root 命令超时" : timeoutMessage;
+            if (timedOut) return timeoutMessage == null ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a569c77d0225) : timeoutMessage;
             if (error != null) {
                 String message = error.getMessage();
                 return message == null || message.isBlank()

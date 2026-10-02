@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ydiag_generated_01246ded0fcd">SELinux denial</string>
+    <string name="ydiag_generated_024581fdef17">Failed to start Perfetto</string>
+    <string name="ydiag_generated_035d88bc1f6b">Deep performance trace is being collected in the background</string>
+    <string name="ydiag_generated_0527e270df25">Log collection failed</string>
+    <string name="ydiag_generated_0e9808dbeec6">Monitoring</string>
+    <string name="ydiag_generated_0ec8abf4b4a8">Stop monitoring</string>
+    <string name="ydiag_generated_1b885f2b7ece">Service destroyed</string>
+    <string name="ydiag_generated_20d043082048">Application not responding (ANR)</string>
+    <string name="ydiag_generated_2a022a101a28">WebView renderer failure</string>
+    <string name="ydiag_generated_2e141aae5a13">Binder payload too large</string>
+    <string name="ydiag_generated_2f9d0e5b5b93">Binder target process died</string>
+    <string name="ydiag_generated_3c0018a1f3a0">Permission or system restriction</string>
+    <string name="ydiag_generated_4a568b621425">Perfetto did not produce a trace</string>
+    <string name="ydiag_generated_526c9a84edb4">Perfetto saved</string>
+    <string name="ydiag_generated_530aaa21e71d">User marker: problem occurred</string>
+    <string name="ydiag_generated_547dc83b27e6">User-marked problem timestamp</string>
+    <string name="ydiag_generated_590414cd2064">Monitoring stopped</string>
+    <string name="ydiag_generated_71544cb78165">Target class not found</string>
+    <string name="ydiag_generated_7e66b12714fc">Monitoring targets updated</string>
+    <string name="ydiag_generated_8c8d3191fffc">Export diagnostic package</string>
+    <string name="ydiag_generated_a9cf84ce0ef3">Method signature not found</string>
+    <string name="ydiag_generated_aea161857cf0">Prioritize logs around this timestamp</string>
+    <string name="ydiag_generated_b869274a1104">The device may not support the current Perfetto command, or the Root call failed</string>
+    <string name="ydiag_generated_cbc0f32ca62b">LSPosed Hook failure</string>
+    <string name="ydiag_generated_d7d211f60f7b">Perfetto started</string>
+    <string name="ydiag_generated_d7d812116480">Out of memory (OOM)</string>
+    <string name="ydiag_generated_d807863f118b">Java/Kotlin crash</string>
+    <string name="ydiag_generated_f1e0591e5bc4">Diagnostic option was disabled</string>
+    <string name="ydiag_generated_f2d617104aa8">Problem timestamp marked</string>
+    <string name="ydiag_generated_f8256e2521e6">YDiag automatic diagnostic summary</string>
+</resources>

@@ -35,10 +35,10 @@ public final class ImageActionMenu {
         LinearLayout root = FloatingMenuUi.root(app, 18);
         root.setPadding(dp(app, 4), dp(app, 4), dp(app, 4), dp(app, 4));
 
-        TextView copy = FloatingMenuUi.row(app, "复制图片", null);
-        TextView share = FloatingMenuUi.row(app, "分享图片", null);
-        TextView openWith = FloatingMenuUi.row(app, "打开方式", null);
-        TextView save = FloatingMenuUi.row(app, "保存图片", null);
+        TextView copy = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2141db002cc3), null);
+        TextView share = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bd0e3d6f4b1d), null);
+        TextView openWith = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c41a0fcaa12b), null);
+        TextView save = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_34cebf59ef93), null);
         root.addView(copy, new LinearLayout.LayoutParams(-1, dp(app, 48)));
         root.addView(share, new LinearLayout.LayoutParams(-1, dp(app, 48)));
         root.addView(openWith, new LinearLayout.LayoutParams(-1, dp(app, 48)));

@@ -74,9 +74,9 @@ final class UnifiedResultPanel {
 
         LinearLayout actions = ResultUi.actionRow(context);
         ocrButton = ResultUi.button(context, "OCR");
-        copyButton = ResultUi.button(context, "复制");
-        saveButton = ResultUi.button(context, "保存");
-        closeButton = ResultUi.button(context, "关闭");
+        copyButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7));
+        saveButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_82522e2a87bf));
+        closeButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_59a26fdc46ce));
         actions.addView(ocrButton, new LinearLayout.LayoutParams(0, -1, 1));
         actions.addView(copyButton, new LinearLayout.LayoutParams(0, -1, 1));
         actions.addView(saveButton, new LinearLayout.LayoutParams(0, -1, 1));
@@ -178,20 +178,20 @@ final class UnifiedResultPanel {
         boolean canSave = s != null && s.canSave();
 
         ocrButton.setEnabled(canOcr && !ocrRunning);
-        ocrButton.setText(ocrRunning ? "识别中…"
-                : s != null && s.mode() == ResultSession.Mode.OCR ? "重新识别" : "OCR");
+        ocrButton.setText(ocrRunning ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_27662fcdbce1)
+                : s != null && s.mode() == ResultSession.Mode.OCR ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b579e97a6ef4) : "OCR");
         setEnabledVisual(ocrButton, canOcr && !ocrRunning);
 
         copyButton.setEnabled(canCopy);
-        copyButton.setText("复制");
+        copyButton.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7));
         setEnabledVisual(copyButton, canCopy);
 
         saveButton.setEnabled(canSave);
-        saveButton.setText("保存");
+        saveButton.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_82522e2a87bf));
         setEnabledVisual(saveButton, canSave);
 
         closeButton.setEnabled(true);
-        closeButton.setText("关闭");
+        closeButton.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_59a26fdc46ce));
         setEnabledVisual(closeButton, true);
     }
 
@@ -233,7 +233,7 @@ final class UnifiedResultPanel {
             if (value.isBlank()) value = session.displayText();
             ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("YFloat", value));
-            Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e84b8e9c556), Toast.LENGTH_SHORT).show();
             return;
         }
 

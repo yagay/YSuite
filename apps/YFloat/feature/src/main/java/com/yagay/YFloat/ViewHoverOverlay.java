@@ -236,7 +236,7 @@ public final class ViewHoverOverlay {
 
             SelectionVisuals.drawFrame(canvas, r, border);
             String text = (candidate.type() == ScreenCandidate.Type.ROOT || candidate.fullscreenLike())
-                    ? "整屏 View" : candidate.label();
+                    ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a195841cb3e3) : candidate.label();
             float x = Math.max(dp(8), Math.min(r.left, getWidth() - dp(180)));
             float y = r.top > dp(28) ? r.top - dp(8)
                     : Math.min(getHeight() - dp(8), r.bottom + dp(20));

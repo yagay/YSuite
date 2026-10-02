@@ -731,7 +731,7 @@ public final class DiagnosticEngine {
                 return detected("command", "敏感命令检测",
                         "目标 App 实际执行了诊断规则命中的命令");
             case "debugger":
-                return detected("debugger", "调试器检测",
+                return detected("debugger", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e32e081fee63),
                         "目标 App 实际查询了调试器状态");
             case "permission":
                 return detected("permission", "权限状态查询",
@@ -829,17 +829,17 @@ public final class DiagnosticEngine {
             case ApplicationExitInfo.REASON_ANR:
                 return "ANR";
             case ApplicationExitInfo.REASON_LOW_MEMORY:
-                return "低内存结束进程";
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_63098b4af3e7);
             case ApplicationExitInfo.REASON_SIGNALED:
-                return "Signal 结束进程";
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1737e438c1f1);
             case ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE:
-                return "资源使用异常结束";
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9f392099c772);
             case ApplicationExitInfo.REASON_INITIALIZATION_FAILURE:
-                return "初始化失败";
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8d2d4c45dcb2);
             case ApplicationExitInfo.REASON_EXIT_SELF:
-                return "应用自行退出";
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_092928e10d9f);
             default:
-                return "进程退出";
+                return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9572dbb60dfb);
         }
     }
 

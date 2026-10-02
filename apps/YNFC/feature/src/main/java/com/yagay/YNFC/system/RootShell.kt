@@ -156,7 +156,7 @@ class RootShell(context: Context) {
         if (now - lastRootToastAt < 3000L) return
         lastRootToastAt = now
         Handler(Looper.getMainLooper()).post {
-            Toast.makeText(appContext, "Root 获取失败，请在 Root 管理器中授予本应用权限", Toast.LENGTH_LONG).show()
+            Toast.makeText(appContext, com.yagay.suite.api.YLocale.text(com.yagay.YNFC.R.string.ynfc_generated_d592225d23cd), Toast.LENGTH_LONG).show()
         }
     }
 }

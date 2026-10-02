@@ -101,14 +101,14 @@ class MonitorService : Service() {
             session?.updateTargets(targets, options)
         }
 
-        addSystemEvent("监控目标已更新", targets.joinToString())
+        addSystemEvent(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_7e66b12714fc), targets.joinToString())
         startProcessTracker()
         if (logJob == null || bufferSignature(previousOptions) != bufferSignature(options)) {
             restartLogcat()
         }
         syncPerfetto(previousOptions)
         runtime.syncDeepTracking(targets, options)
-        publish("正在监控")
+        publish(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_0e9808dbeec6))
     }
 
     private fun restartLogcat() {
@@ -136,7 +136,7 @@ class MonitorService : Service() {
                     }
                 }
             } catch (failure: Throwable) {
-                addSystemIssue("日志采集失败", failure.toString())
+                addSystemIssue(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_0527e270df25), failure.toString())
             }
         }
     }
@@ -151,7 +151,7 @@ class MonitorService : Service() {
                     session?.appendProcessSnapshot(snapshot.values.joinToString("\n") {
                         "${it.pid}\t${it.uid}\t${it.name}\t${it.packageName}"
                     })
-                    publish("正在监控")
+                    publish(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_0e9808dbeec6))
                 }
                 delay(2500)
             }
@@ -166,12 +166,12 @@ class MonitorService : Service() {
             val controller = PerfettoController(requireNotNull(session).directory, applicationInfo.uid)
             if (controller.start()) {
                 perfetto = controller
-                addSystemEvent("Perfetto 已启动", "深度性能 Trace 正在后台采集")
+                addSystemEvent(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_d7d211f60f7b), com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_035d88bc1f6b))
             } else {
-                addSystemIssue("Perfetto 启动失败", "设备可能不支持当前 Perfetto 命令或 Root 调用失败")
+                addSystemIssue(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_024581fdef17), com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_b869274a1104))
             }
         } else if (!enabled && wasEnabled) {
-            collectPerfetto("诊断开关已关闭")
+            collectPerfetto(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_f1e0591e5bc4))
         }
     }
 
@@ -180,9 +180,9 @@ class MonitorService : Service() {
         perfetto = null
         val file = controller.stopAndCollect()
         if (file != null) {
-            addSystemEvent("Perfetto 已保存", "$reason · ${file.name} · ${file.length()} bytes")
+            addSystemEvent(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_526c9a84edb4), "$reason · ${file.name} · ${file.length()} bytes")
         } else {
-            addSystemIssue("Perfetto 未生成 Trace", reason)
+            addSystemIssue(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_4a568b621425), reason)
         }
     }
 
@@ -220,13 +220,13 @@ class MonitorService : Service() {
             source = "YDIAG",
             severity = Severity.WARNING.name,
             category = "problem_marker",
-            title = "用户标记：问题发生了",
-            detail = "以此时间点为中心优先分析前后日志",
+            title = com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_530aaa21e71d),
+            detail = com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_aea161857cf0),
         )
         session?.appendTimeline(event)
         rememberEvent(event)
-        if ("perfetto" in options) collectPerfetto("用户标记问题时间点")
-        publish("已标记问题时间点")
+        if ("perfetto" in options) collectPerfetto(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_547dc83b27e6))
+        publish(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_f2d617104aa8))
     }
 
     private fun addSystemEvent(title: String, detail: String) {
@@ -294,12 +294,12 @@ class MonitorService : Service() {
     }
 
     private fun prepareExportInternal() {
-        if ("perfetto" in options) collectPerfetto("导出诊断包")
+        if ("perfetto" in options) collectPerfetto(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_8c8d3191fffc))
         session?.flush()
     }
 
     private fun stopMonitoring() {
-        collectPerfetto("停止监控")
+        collectPerfetto(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_0ec8abf4b4a8))
         runtime.syncDeepTracking(emptySet(), options)
         targets = emptySet()
         preferences.selectedPackages = emptySet()
@@ -310,7 +310,7 @@ class MonitorService : Service() {
         session?.close()
         session = null
         processes = emptyMap()
-        publish("监控已停止")
+        publish(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_590414cd2064))
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -335,7 +335,7 @@ class MonitorService : Service() {
 
     override fun onDestroy() {
         if (activeInstance === this) activeInstance = null
-        runCatching { collectPerfetto("服务销毁") }
+        runCatching { collectPerfetto(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_1b885f2b7ece)) }
         runCatching { session?.close() }
         runCatching { logcatProcess?.destroy() }
         scope.cancel()

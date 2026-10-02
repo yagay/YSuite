@@ -48,8 +48,8 @@ public final class HistoryRepairEngine {
         public boolean succeeded() { return error == null || error.isEmpty(); }
 
         public String summary() {
-            if (!succeeded()) return "修复失败：" + error;
-            return "扫描 " + scanned + " 条 · 类型纠正 " + eventTypeChanged
+            if (!succeeded()) return com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_76e6723dc54e) + error;
+            return com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_ee918ab7c27d) + scanned + " 条 · 类型纠正 " + eventTypeChanged
                     + " 条 · SystemUI " + systemUiClassified
                     + " 条 · 通知子类型纠正 " + notificationKindChanged
                     + " 条 · 横幅关联 " + mergedUi

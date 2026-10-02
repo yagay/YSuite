@@ -11,422 +11,422 @@ public final class DetectionRuleCatalog {
     private static final Map<String, DetectionRuleDefinition> RULES = new LinkedHashMap<>();
 
     static {
-        add(DetectionRuleIds.ROOT_FILE_SU, "root", "su 二进制文件检测",
-                "应用检查传统 su 路径，是为了判断设备上是否存在可直接获得高权限的 su 二进制文件。",
-                "RootBeer 将 su binary 作为 Root 的一个信号，同时明确提醒单一信号并不能 100% 证明整个设备状态。",
-                "在应用官方支持的未修改设备状态下做 A/B 复测；如果是自己的应用，不要让单一 su 信号直接触发强制退出。",
+        add(DetectionRuleIds.ROOT_FILE_SU, "root", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_10fa893138d4),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f389fdfdd96f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_873791cf48cb),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4ae3c07ad13e),
                 "RootBeer / RootRoot");
 
-        add(DetectionRuleIds.ROOT_FILE_MAGISK, "root", "Magisk 路径检测",
-                "应用检查 Magisk 相关路径，是为了识别常见 systemless Root 环境。",
-                "RootBeer、RootRoot 等项目把 Root 管理器、文件和 systemless 痕迹作为多种环境信号的一部分，而不是单一绝对结论。",
-                "确认该检查是否真实命中且稳定紧邻退出；第三方应用应在其官方支持环境下复测，自有应用应避免单一信号直接退出。",
+        add(DetectionRuleIds.ROOT_FILE_MAGISK, "root", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e95f62abb8e5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7165ef94c13b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7774b353a1a0),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_90f7cf4acf99),
                 "RootBeer / RootRoot");
 
-        add(DetectionRuleIds.ROOT_FILE_KERNELSU, "root", "KernelSU 路径检测",
-                "应用检查 KernelSU 相关路径，是为了识别内核级 Root/管理环境的痕迹。",
-                "Root/环境检测项目通常会把已知管理器、文件、mount 与属性组合成多因素信号。",
-                "确认具体路径和返回结果；仅当相同 HIT 多次紧邻退出时才作为主要环境归因。",
+        add(DetectionRuleIds.ROOT_FILE_KERNELSU, "root", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8b0a3fe8f335),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f0ffb2c7d79a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8b6227d1c406),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f880058b0f43),
                 "RootRoot / Ruru");
 
-        add(DetectionRuleIds.ROOT_FILE_APATCH, "root", "APatch 路径检测",
-                "应用检查 APatch 相关路径，是为了识别另一类 Root/系统修改环境。",
-                "环境检测项目通常依赖多种文件、包和系统属性信号，单项命中不应被当成绝对结论。",
-                "确认具体路径和返回结果，并在官方支持设备状态下 A/B；自有应用应将单项信号降级为风险证据而非直接退出条件。",
+        add(DetectionRuleIds.ROOT_FILE_APATCH, "root", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_97108469d74f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2618006e23c5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_92cfe19b14ed),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f41dea35a0b8),
                 "RootRoot / Ruru");
 
-        add(DetectionRuleIds.ROOT_DATA_ADB, "mount", "/data/adb 环境访问",
-                "应用访问 /data/adb，通常是为了观察 Root 模块、systemless 组件或相关文件结构。",
-                "现代 Root 不一定修改 /system 本体，因此 mount 和 /data/adb 会成为额外环境信号。",
-                "把它视为 CHECKED，只有读到更具体的 Root 目标或与退出形成稳定调用链时再提升归因。",
+        add(DetectionRuleIds.ROOT_DATA_ADB, "mount", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5da489ec4ab2),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a9a4cd74b5d0),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b1dea124e44a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_693903731694),
                 "Root detection / systemless environment model");
 
-        add(DetectionRuleIds.HOOK_PROC_MAPS, "hook", "/proc/self/maps 注入环境检查",
-                "应用读取自身 maps，通常是为了查看已加载 SO、映射区或运行时注入痕迹。",
-                "LSPosed/Frida/Hook 类检测经常会检查 maps；但“成功读取 maps”只表示执行了检查，不代表已经发现 Hook。",
-                "只有后续规则实际识别出具体映射目标，或该检查与退出共享调用链并稳定复现时，才提高可信度。",
+        add(DetectionRuleIds.HOOK_PROC_MAPS, "hook", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_dac130b4d12a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5f438a026897),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d6da7177c658),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_327ec625e9b3),
                 "LSPosed / ByteHook / ShadowHook diagnostics");
 
-        add(DetectionRuleIds.DEBUG_PROC_STATUS, "debugger", "/proc/self/status 调试状态检查",
-                "应用读取 status 通常是为了查看 TracerPid 等调试状态。",
-                "打开 /proc/self/status 本身不是调试器命中；只有实际解析到非零 TracerPid 等结果才能视为 HIT。",
-                "保持为 CHECKED，结合 Debug API、ptrace 或实际 TracerPid 结果再归因。",
+        add(DetectionRuleIds.DEBUG_PROC_STATUS, "debugger", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b49b50294380),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_156c9daa7111),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b0ae103ba454),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1b2cbf3e3d04),
                 "Android debugger diagnostics");
 
-        add(DetectionRuleIds.MOUNT_PROC_MOUNT, "mount", "Mount namespace 检查",
-                "应用读取 mountinfo 或 mounts，是为了观察 overlay、bind mount、systemless Root 或异常挂载。",
-                "RootBeer 等项目指出传统“system 是否可写”不足以覆盖 systemless Root，因此 mount 线索经常作为补充。",
-                "读取 mount 文件本身只算 CHECKED；只有解析到具体可疑挂载后才应标记 HIT。",
+        add(DetectionRuleIds.MOUNT_PROC_MOUNT, "mount", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_00cbf25ee247),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_961688b4330b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2d86785957c2),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ab11bb5374ae),
                 "RootBeer / proc-mount diagnostics");
 
-        addPackage(DetectionRuleIds.PACKAGE_MAGISK, "Magisk 包名检测", "Magisk", "RootBeer / Ruru");
-        addPackage(DetectionRuleIds.PACKAGE_KERNELSU, "KernelSU 包名检测", "KernelSU", "Ruru / RootRoot");
-        addPackage(DetectionRuleIds.PACKAGE_APATCH, "APatch 包名检测", "APatch", "Ruru / RootRoot");
-        addPackage(DetectionRuleIds.PACKAGE_LSPOSED, "LSPosed 包名检测", "LSPosed", "LSPosed / Ruru");
-        addPackage(DetectionRuleIds.PACKAGE_XPOSED, "Xposed 包名检测", "Xposed", "Xposed / Ruru");
-        addPackage(DetectionRuleIds.PACKAGE_FRIDA, "Frida 包/组件检测", "Frida", "Frida / RASP detection projects");
-        addPackage(DetectionRuleIds.PACKAGE_SHIZUKU, "Shizuku 包名检测", "Shizuku", "Shizuku / package-query diagnostics");
+        addPackage(DetectionRuleIds.PACKAGE_MAGISK, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_db93e4bf9aa2), "Magisk", "RootBeer / Ruru");
+        addPackage(DetectionRuleIds.PACKAGE_KERNELSU, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ccf8c03b6184), "KernelSU", "Ruru / RootRoot");
+        addPackage(DetectionRuleIds.PACKAGE_APATCH, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f3629bb1cb77), "APatch", "Ruru / RootRoot");
+        addPackage(DetectionRuleIds.PACKAGE_LSPOSED, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_890a872c393c), "LSPosed", "LSPosed / Ruru");
+        addPackage(DetectionRuleIds.PACKAGE_XPOSED, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3efdeeb1e5bc), "Xposed", "Xposed / Ruru");
+        addPackage(DetectionRuleIds.PACKAGE_FRIDA, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d34a043bbb43), "Frida", "Frida / RASP detection projects");
+        addPackage(DetectionRuleIds.PACKAGE_SHIZUKU, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_187f5cf77cb2), "Shizuku", "Shizuku / package-query diagnostics");
 
-        add(DetectionRuleIds.PACKAGE_ENUMERATION, "package", "已安装应用枚举",
-                "应用枚举已安装包可能用于功能发现、兼容性判断或环境风险检查。",
-                "枚举动作本身不能说明命中了敏感包；应把返回列表中的每个具体敏感目标拆成独立 Rule 事件。",
-                "保持为 CHECKED；只有具体 PACKAGE_* 规则返回目标包时才算 HIT。",
+        add(DetectionRuleIds.PACKAGE_ENUMERATION, "package", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_15ccaf3b70f7),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8bf8168330e8),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4d707f31e88d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3f2c27bf2cef),
                 "Android PackageManager / RootBeer");
 
-        addProperty(DetectionRuleIds.PROP_VERIFIED_BOOT, "Verified Boot 状态检测",
-                "读取 verified boot 状态用于了解启动链完整性。", "Android Verified Boot");
-        addProperty(DetectionRuleIds.PROP_VBMETA_STATE, "VBMeta 状态检测",
-                "读取 vbmeta device state 用于了解设备启动验证状态。", "Android Verified Boot");
-        addProperty(DetectionRuleIds.PROP_FLASH_LOCKED, "Bootloader Lock 状态检测",
-                "读取 flash lock 状态用于了解 bootloader 是否锁定。", "Android Verified Boot");
-        addProperty(DetectionRuleIds.PROP_DEBUGGABLE, "ro.debuggable 检测",
-                "应用读取 ro.debuggable 用于判断系统是否是可调试构建。", "RootBeer / Android build properties");
-        addProperty(DetectionRuleIds.PROP_SECURE, "ro.secure 检测",
-                "应用读取 ro.secure 用于判断系统安全属性。", "RootBeer / Android build properties");
-        addProperty(DetectionRuleIds.PROP_BUILD_TAGS, "Build Tags 检测",
-                "应用读取 build tags 常用于观察 test-keys 等非标准构建信号。", "RootBeer");
-        addProperty(DetectionRuleIds.PROP_BUILD_TYPE, "Build Type 检测",
-                "应用读取 build type 用于了解 user/userdebug/eng 等构建类型。", "Android build properties");
-        add(DetectionRuleIds.PROP_GENERIC, "environment", "系统属性检查",
-                "应用读取环境相关 property 以判断设备构建或运行环境。",
-                "只有具体 property 的实际返回值能决定它是否真正命中某种风险状态。",
-                "查看具体 key 和返回值；UNKNOWN/CHECKED 不作为强归因依据。",
+        addProperty(DetectionRuleIds.PROP_VERIFIED_BOOT, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_aa286bc0558f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_631cff8f9a98), "Android Verified Boot");
+        addProperty(DetectionRuleIds.PROP_VBMETA_STATE, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_90558c47eb4e),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_434c06705336), "Android Verified Boot");
+        addProperty(DetectionRuleIds.PROP_FLASH_LOCKED, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_375873a3ca6d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_63b980c5d093), "Android Verified Boot");
+        addProperty(DetectionRuleIds.PROP_DEBUGGABLE, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4a0b0948b127),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7fe9b657282e), "RootBeer / Android build properties");
+        addProperty(DetectionRuleIds.PROP_SECURE, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e543da889146),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c1622541535b), "RootBeer / Android build properties");
+        addProperty(DetectionRuleIds.PROP_BUILD_TAGS, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_05d1ca2a8f85),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a2fbc5c793f0), "RootBeer");
+        addProperty(DetectionRuleIds.PROP_BUILD_TYPE, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e4cec1db5326),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_dd76573bf497), "Android build properties");
+        add(DetectionRuleIds.PROP_GENERIC, "environment", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f8549f2bb258),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6631f4e7ffe8),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_adf0ff58bc63),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2bbf21117d07),
                 "Android SystemProperties");
 
-        addCommand(DetectionRuleIds.CMD_SU, "su 命令检测",
-                "应用执行 which su 或 su 相关命令通常是为了查询 su 是否可执行。");
-        addCommand(DetectionRuleIds.CMD_GETPROP, "getprop 环境查询",
-                "应用通过 shell 读取系统属性以检查运行环境。");
-        addCommand(DetectionRuleIds.CMD_MOUNT, "mount 命令检查",
-                "应用执行 mount 相关命令通常是为了查看挂载环境。");
-        addCommand(DetectionRuleIds.CMD_SELINUX, "SELinux 状态检查",
-                "应用执行 getenforce 用于读取 SELinux 状态。");
+        addCommand(DetectionRuleIds.CMD_SU, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_fefa6d8a6731),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9f6d454986e9));
+        addCommand(DetectionRuleIds.CMD_GETPROP, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_750175a02ed4),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f828ebdd3ccf));
+        addCommand(DetectionRuleIds.CMD_MOUNT, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f77cdd87293c),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cee5ddc07a2d));
+        addCommand(DetectionRuleIds.CMD_SELINUX, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_80da3f80fba0),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5b7257caed33));
 
-        add(DetectionRuleIds.DEBUG_IS_CONNECTED, "debugger", "Debugger 连接检测",
-                "应用调用 Debug.isDebuggerConnected() 判断当前进程是否连接 Java 调试器。",
-                "返回 true 才是 HIT；false 是明确 NOT_HIT。",
-                "如果 HIT 与退出稳定相关，关闭开发调试环境后复测；自有应用应避免把单一调试信号直接变成不透明退出。",
+        add(DetectionRuleIds.DEBUG_IS_CONNECTED, "debugger", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1c94387caab1),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e04d213fd77b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_461d7040c6ce),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d3873a971543),
                 "Android Debug API");
-        add(DetectionRuleIds.DEBUG_WAITING, "debugger", "Debugger 等待状态检测",
-                "应用调用 Debug.waitingForDebugger() 判断是否正在等待调试器。",
-                "返回 true 才是 HIT；false 是明确 NOT_HIT。",
-                "如果 HIT 与退出稳定相关，关闭调试会话后复测。",
+        add(DetectionRuleIds.DEBUG_WAITING, "debugger", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_73f931777e05),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7d3033f30ac8),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_461d7040c6ce),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_81e1269dd44a),
                 "Android Debug API");
 
-        add(DetectionRuleIds.NATIVE_PTRACE, "debugger", "Native ptrace 检查",
-                "Native 代码调用 ptrace 可能用于调试控制、反调试或进程跟踪。",
-                "单次 ptrace 调用或 EPERM 并不能独立证明存在调试器，因此默认只视为 CHECKED。",
-                "结合 /proc/self/status、Debug API 和退出调用链综合判断。",
+        add(DetectionRuleIds.NATIVE_PTRACE, "debugger", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_58a008721df5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_159a787d1755),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e9c33f4eb391),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_370b201a50e3),
                 "Android/Linux ptrace diagnostics");
 
-        add(DetectionRuleIds.PERMISSION_QUERY, "permission", "权限状态查询",
-                "应用检查权限是为了确认受保护 API 是否可用。",
-                "真实系统权限/AppOps 与应用侧查询是不同层级；返回 DENIED 只表示权限状态问题，不是安全环境命中。",
-                "根据具体 permission、SecurityException 和系统 AppOps 状态排查，不要用查询结果模拟代替真实授权。",
+        add(DetectionRuleIds.PERMISSION_QUERY, "permission", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_abde6ee50bf3),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_30970f87eaa3),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d2fe285f71a2),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_34e7e749fe51),
                 "App Manager / Android permissions");
 
-        addExit(DetectionRuleIds.EXIT_SYSTEM, "System.exit 主动退出");
-        addExit(DetectionRuleIds.EXIT_HALT, "Runtime.halt 主动退出");
-        addExit(DetectionRuleIds.EXIT_KILL_PROCESS, "killProcess 主动退出");
-        addExit(DetectionRuleIds.EXIT_NATIVE_ABORT, "Native abort 主动退出");
-        addExit(DetectionRuleIds.EXIT_NATIVE_EXIT, "Native exit/_exit 主动退出");
-        addExit(DetectionRuleIds.EXIT_NATIVE_KILL, "Native kill/tgkill 主动退出");
+        addExit(DetectionRuleIds.EXIT_SYSTEM, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a4295ddc746b));
+        addExit(DetectionRuleIds.EXIT_HALT, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3280e4060022));
+        addExit(DetectionRuleIds.EXIT_KILL_PROCESS, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a9099a8a876a));
+        addExit(DetectionRuleIds.EXIT_NATIVE_ABORT, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_358113821976));
+        addExit(DetectionRuleIds.EXIT_NATIVE_EXIT, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_22a5ca296cda));
+        addExit(DetectionRuleIds.EXIT_NATIVE_KILL, com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c961abc6a716));
 
-        add(DetectionRuleIds.KERNEL_UNAME_QUERY, "kernel", "Kernel uname 查询",
-                "应用通过 uname/syscall 查询内核版本与构建身份。",
-                "DuckDetector 会把 uname、/proc/version、os.version 等多个来源做一致性比较。",
-                "记录实际返回值与调用栈；如果只是查询则保持 CHECKED，只有后续命中具体异常特征才升级归因。",
+        add(DetectionRuleIds.KERNEL_UNAME_QUERY, "kernel", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a33d2fad45aa),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bf09a5ed0243),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c7997d24866c),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_606c93932856),
                 "DuckDetector Kernel Check / Linux uname");
-        add(DetectionRuleIds.KERNEL_PROC_VERSION, "kernel", "/proc/version 查询",
-                "应用读取 /proc/version 以获取内核编译与版本信息。",
-                "DuckDetector 会把 /proc/version 与 uname、sysctl 等来源交叉比较。",
-                "仅表示执行了检查；结合具体内容和退出链判断。",
+        add(DetectionRuleIds.KERNEL_PROC_VERSION, "kernel", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_247328688c21),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a34d375c85be),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_25b733caf56f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_74efaecfac3d),
                 "DuckDetector Kernel Check");
-        add(DetectionRuleIds.KERNEL_CMDLINE_QUERY, "kernel", "/proc/cmdline 查询",
-                "应用读取 boot cmdline 以检查启动参数、内核参数或修改痕迹。",
-                "DuckDetector 对 boot cmdline 有独立规则扫描。",
-                "仅表示检查发生；不要因为读取成功就直接判定异常。",
+        add(DetectionRuleIds.KERNEL_CMDLINE_QUERY, "kernel", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_359f81863d39),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_79ea1731a247),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4ef89dce84b1),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4d1c27fbc9f8),
                 "DuckDetector Kernel Check");
-        add(DetectionRuleIds.KERNEL_OSRELEASE_QUERY, "kernel", "kernel osrelease 查询",
-                "应用读取 /proc/sys/kernel/osrelease 获取运行内核版本。",
-                "DuckDetector 将其作为内核身份一致性来源之一。",
-                "结合 uname/System.getProperty(os.version) 做一致性分析。",
+        add(DetectionRuleIds.KERNEL_OSRELEASE_QUERY, "kernel", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3f9ea5181777),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_00e681241287),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0e6a7ec7205f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7fabe083d533),
                 "DuckDetector Kernel Check");
-        add(DetectionRuleIds.KERNEL_SYS_VERSION_QUERY, "kernel", "kernel version 查询",
-                "应用读取 /proc/sys/kernel/version 获取内核构建信息。",
-                "DuckDetector 将其作为内核身份一致性来源之一。",
-                "结合其他内核身份来源交叉确认。",
+        add(DetectionRuleIds.KERNEL_SYS_VERSION_QUERY, "kernel", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b185e6bfa32d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4cf9c8e8c961),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0e6a7ec7205f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3a762d836bc6),
                 "DuckDetector Kernel Check");
-        add(DetectionRuleIds.KERNEL_KPTR_QUERY, "kernel", "kptr_restrict 查询",
-                "应用读取 kptr_restrict 判断内核指针暴露策略。",
-                "DuckDetector 将 kptr_restrict 作为信息性内核安全状态。",
-                "仅记录实际值与上下文，不把它单独当成 Root 原因。",
+        add(DetectionRuleIds.KERNEL_KPTR_QUERY, "kernel", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_106274c90bae),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_dadeb1cf92dc),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cabcf32a8fe7),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_84fcaedebf44),
                 "DuckDetector Kernel Check");
 
-        add(DetectionRuleIds.SELINUX_ENFORCE_READ, "selinux", "SELinux enforcing 状态读取",
-                "应用读取 selinuxfs enforcing 状态。",
-                "DuckDetector 同时比较 selinuxfs、getenforce、proc attr 等来源。",
-                "仅表示 SELinux 状态检查发生；结合实际值和多来源一致性判断。",
+        add(DetectionRuleIds.SELINUX_ENFORCE_READ, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5f0c3f79ac54),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_971ca411538f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e9de3867f0a5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_43ba584161f4),
                 "DuckDetector SELinux");
-        add(DetectionRuleIds.SELINUX_CONTEXT_READ, "selinux", "SELinux 进程上下文读取",
-                "应用读取 /proc/self/attr/current 获取当前进程 SELinux context。",
-                "DuckDetector 会进一步分析 context 类型与 policy 一致性。",
-                "记录真实 context 与调用链；不要把读取动作本身当异常。",
+        add(DetectionRuleIds.SELINUX_CONTEXT_READ, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a36071df830a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_55363502b025),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c6b736c9393b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_41faa83170d2),
                 "DuckDetector SELinux");
-        add(DetectionRuleIds.SELINUX_POLICY_READ, "selinux", "SELinux policy/selinuxfs 查询",
-                "应用访问 /sys/fs/selinux 下的 policy/status/class 等信息。",
-                "DuckDetector 会检查 policy version、security classes、permissive domain 与 policyload 状态。",
-                "仅记录具体路径和返回结果；异常归因需结合后续退出。",
+        add(DetectionRuleIds.SELINUX_POLICY_READ, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5ded98c7b33a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e42a0594a921),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e03414c8ff6d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1757eae6bca5),
                 "DuckDetector SELinux");
-        add(DetectionRuleIds.SELINUX_XATTR_QUERY, "selinux", "SELinux xattr 查询",
-                "应用通过 getxattr/lgetxattr 查询 security.selinux 等扩展属性。",
-                "DuckDetector 用文件/context 一致性作为 SELinux 完整性证据之一。",
-                "记录目标路径、attribute 名和返回结果，不修改原值。",
+        add(DetectionRuleIds.SELINUX_XATTR_QUERY, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_35522d4bf01b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_680e3885d574),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0a54cb4b4286),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1e2fee6ccc91),
                 "DuckDetector SELinux / Linux xattr");
 
-        add(DetectionRuleIds.MEMORY_SMAPS_QUERY, "memory", "/proc/self/smaps 查询",
-                "应用读取 smaps 获取更细粒度的映射、权限与内存区域信息。",
-                "DuckDetector 的 Memory/Zygisk 模块会分析 smaps、匿名映射和可疑 loader 痕迹。",
-                "仅表示内存完整性检查发生；具体异常需由内容分析或后续规则确认。",
+        add(DetectionRuleIds.MEMORY_SMAPS_QUERY, "memory", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5420bd2be920),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0164bf55f8c0),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5e98aabe93c8),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6fe5d2231521),
                 "DuckDetector Memory / Zygisk");
-        add(DetectionRuleIds.MEMORY_FD_QUERY, "memory", "进程 FD 扫描",
-                "应用扫描 /proc/self/fd 或其他进程 fd 以寻找 memfd、deleted SO、设备句柄等。",
-                "DuckDetector Memory/Zygisk 都包含 FD probe。",
-                "记录具体 fd 路径与 readlink 结果；单纯扫描保持 CHECKED。",
+        add(DetectionRuleIds.MEMORY_FD_QUERY, "memory", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f10c5425a271),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cdfc08810933),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1f57e19b3565),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2ad5e7e449a3),
                 "DuckDetector Memory / Zygisk");
-        add(DetectionRuleIds.MEMORY_TASK_QUERY, "memory", "线程/Task 扫描",
-                "应用扫描 /proc/self/task 等线程信息。",
-                "DuckDetector Zygisk 模块包含 thread probe。",
-                "记录实际访问与调用栈；只有具体命中线程特征后再升级。",
+        add(DetectionRuleIds.MEMORY_TASK_QUERY, "memory", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f4f21d48a812),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_929987107870),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_433570af6297),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9360347bd33c),
                 "DuckDetector Zygisk");
-        add(DetectionRuleIds.MEMORY_LINKER_ENUM_QUERY, "memory", "Linker 模块枚举",
-                "应用调用 dl_iterate_phdr 等方式枚举已加载 ELF 模块。",
-                "DuckDetector 会比较 linker 视图与 /proc/self/maps 是否一致。",
-                "作为 CHECKED 证据；若后续发现 maps/linker 不一致再形成具体 finding。",
+        add(DetectionRuleIds.MEMORY_LINKER_ENUM_QUERY, "memory", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_60e2fe17d5fa),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e26d6d240871),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_31eab8743eff),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d438c5e79d3a),
                 "DuckDetector Memory linker detector");
-        add(DetectionRuleIds.MEMORY_SIGNAL_QUERY, "memory", "Signal handler 查询/设置",
-                "应用查询或设置 sigaction，可能用于检查 SIGTRAP/SIGSEGV 等 handler 是否异常。",
-                "DuckDetector Memory 模块检查多个 signal handler 的落点与映射来源。",
-                "记录 signal、handler 与调用栈，不修改 handler。",
+        add(DetectionRuleIds.MEMORY_SIGNAL_QUERY, "memory", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8036a7a2f3da),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f69b2c2bedeb),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_47589448510f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ce2114f49bea),
                 "DuckDetector Memory signal detector");
-        add(DetectionRuleIds.MEMORY_VDSO_QUERY, "memory", "vDSO / auxv 查询",
-                "应用通过 getauxval 等方式检查 vDSO 基址和运行时布局。",
-                "DuckDetector 会比较 AT_SYSINFO_EHDR 与 [vdso] mapping。",
-                "记录查询结果并与 maps 信息关联；单次查询保持 CHECKED。",
+        add(DetectionRuleIds.MEMORY_VDSO_QUERY, "memory", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8f55d828eefb),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_90c6df3a893b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_fa7cf9df6e73),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6f942171b47d),
                 "DuckDetector Memory vDSO detector");
-        add(DetectionRuleIds.MEMORY_MPROTECT_QUERY, "memory", "内存权限修改/检查",
-                "应用调用 mprotect 改变或验证内存页权限，常见于完整性、自保护和 JIT 场景。",
-                "这不是单独的风险命中，但与可执行匿名映射或 Hook 检查结合时有诊断价值。",
-                "记录地址、长度、prot 与调用者 SO，仅用于归因。",
+        add(DetectionRuleIds.MEMORY_MPROTECT_QUERY, "memory", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f611b7fa434d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_af79d456fbdd),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bfa98da90171),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cdd1b0001a46),
                 "Linux mprotect / DuckDetector memory model");
 
-        add(DetectionRuleIds.KEYSTORE_INSTANCE_QUERY, "attestation", "AndroidKeyStore / KeyStore 实例查询",
-                "应用初始化 KeyStore/AndroidKeyStore，可能用于普通密钥操作，也可能是后续硬件背书链的入口。",
-                "KeyAttestation/SPIC 等项目都会经过 AndroidKeyStore/KeyMint 相关 API；单纯 getInstance 只表示 CHECKED。",
-                "结合后续 attestation challenge、StrongBox、certificate chain 和退出链判断，不把普通 KeyStore 使用误判成安全检测。",
+        add(DetectionRuleIds.KEYSTORE_INSTANCE_QUERY, "attestation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_03a45d0ee7f9),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_61a55d837176),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cde2cd6c2327),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2f2db3655805),
                 "AndroidKeyStore / KeyAttestation");
         add(DetectionRuleIds.KEY_ATTESTATION_CHALLENGE, "attestation", "Key Attestation Challenge",
-                "应用设置 attestation challenge，明确表示它准备请求设备/密钥硬件背书。",
-                "KeyAttestation 项目使用 challenge 生成可验证证书链；这比普通 KeyStore 调用更接近完整性校验。",
-                "记录 challenge 长度、调用栈和后续证书链查询；不修改 challenge 或 attestation 结果。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_71843ebc935f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a35a2dc3e518),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a5ab2a7bcca7),
                 "Android Key Attestation / KeyMint");
-        add(DetectionRuleIds.KEY_STRONGBOX_REQUEST, "attestation", "StrongBox 请求",
-                "应用显式要求 StrongBox-backed key，通常用于更强硬件隔离保证。",
-                "StrongBox/KeyMint 是 Android 硬件密钥安全层的一部分。",
-                "记录是否请求 StrongBox 以及后续是否失败/降级，不修改原配置。",
+        add(DetectionRuleIds.KEY_STRONGBOX_REQUEST, "attestation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2eb2693c3600),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_da3b806f354b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1fa3ede64945),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bcd20c687b4f),
                 "Android StrongBox / KeyMint");
-        add(DetectionRuleIds.KEY_CERT_CHAIN_QUERY, "attestation", "Attestation 证书链查询",
-                "应用读取 AndroidKeyStore certificate chain，常用于解析设备/密钥 attestation extension。",
-                "KeyAttestation 会解析证书链和 attestation extension 来判断安全级别与设备状态。",
-                "记录 alias、链长度和调用栈；若后续出现异常/退出再作为归因证据。",
+        add(DetectionRuleIds.KEY_CERT_CHAIN_QUERY, "attestation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2e4eeb73d1f1),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e129dafc1347),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cf073b5084f5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_186bc99824ce),
                 "KeyAttestation / AndroidKeyStore");
-        add(DetectionRuleIds.KEY_SECURITY_LEVEL_QUERY, "attestation", "Key 安全级别查询",
-                "应用读取 KeyInfo/安全级别信息，用于区分软件、TEE 或 StrongBox 实现。",
-                "Android Keystore/KeyMint 暴露 security level/inside-secure-hardware 等信息。",
-                "记录真实返回值与调用栈，不把任何单一安全级别自动判成异常。",
+        add(DetectionRuleIds.KEY_SECURITY_LEVEL_QUERY, "attestation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_80a82cead088),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ab5a104c6c52),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9a5069c21530),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e48426a43129),
                 "Android KeyInfo / KeyMint");
 
-        add(DetectionRuleIds.PLAY_INTEGRITY_REQUEST, "integrity", "Play Integrity Token 请求",
-                "应用请求 Play Integrity token，通常用于设备/应用/账号完整性验证。",
-                "SPIC 等开源项目演示了 IntegrityManager 请求 token 的标准流程；最终 verdict 可能在服务端解析。",
-                "记录 request 参数、时间和后续异常/退出；若看不到服务端 verdict，就只标记 CHECKED。",
+        add(DetectionRuleIds.PLAY_INTEGRITY_REQUEST, "integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b2ec439a5a1f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bcbf71dd328d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_50699ed1e07a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_414a18b78de0),
                 "Google Play Integrity / SPIC");
-        add(DetectionRuleIds.PLAY_INTEGRITY_STANDARD_PREPARE, "integrity", "Standard Integrity 准备请求",
-                "应用准备 Standard Integrity token provider。",
-                "新式 Standard Integrity API 通常先 prepare，再由 provider 发起 token 请求。",
-                "记录准备阶段及调用栈，不推断最终 verdict。",
+        add(DetectionRuleIds.PLAY_INTEGRITY_STANDARD_PREPARE, "integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_27ffcd9e79d3),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d50556667e13),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_627980402578),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d0e383420e8c),
                 "Google Play Integrity Standard API");
-        add(DetectionRuleIds.PLAY_INTEGRITY_STANDARD_REQUEST, "integrity", "Standard Integrity Token 请求",
-                "应用通过 Standard Integrity provider 请求 token。",
-                "该事件能证明 App 实际发起了完整性请求，但不能单独说明 verdict 通过或失败。",
-                "结合返回异常、后续 token 读取和退出时序判断。",
+        add(DetectionRuleIds.PLAY_INTEGRITY_STANDARD_REQUEST, "integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_892f2ba3fe66),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1089fb602593),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6cfc3451d170),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_94cafdacd10a),
                 "Google Play Integrity Standard API");
-        add(DetectionRuleIds.PLAY_INTEGRITY_TOKEN_QUERY, "integrity", "Play Integrity Token 读取",
-                "应用读取 Integrity token 字符串，通常会随后发送到服务端。",
-                "客户端通常看不到最终服务端 verdict；token 本身只证明请求已完成到客户端阶段。",
-                "只记录 token 是否非空和长度，不记录完整 token 内容。",
+        add(DetectionRuleIds.PLAY_INTEGRITY_TOKEN_QUERY, "integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_587908893161),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d13958d68a2d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b41f198ded2e),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f3ad0b05fc99),
                 "Google Play Integrity");
 
-        add(DetectionRuleIds.SELINUX_ACCESS_PROBE, "selinux", "DirtySepolicy access 探针",
-                "应用访问 /sys/fs/selinux/access 或调用等价 policy access 检查，用于直接询问某条 SELinux 访问是否允许。",
-                "DirtySepolicy 使用 SELinux policy 查询链来识别被修改/注入的策略状态。",
-                "记录路径、上下文和时序；单次访问保持 CHECKED，连续 context→access→status/policyload 更有诊断价值。",
+        add(DetectionRuleIds.SELINUX_ACCESS_PROBE, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b984d74a8fe4),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8fff7fbbcd9e),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b1661c89831a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8d629aa44d21),
                 "LSPosed DirtySepolicy");
-        add(DetectionRuleIds.SELINUX_STATUS_SEQNO, "selinux", "SELinux status/seqno 查询",
-                "应用读取 selinux status/sequence 以观察 policy reload 或状态变化。",
-                "DirtySepolicy/SELinux 深度检测会结合 status 与 access/context 查询。",
-                "记录具体调用链，不把读取行为本身视为 HIT。",
+        add(DetectionRuleIds.SELINUX_STATUS_SEQNO, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_805d86b31792),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c8b1c1132d5d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_24b64514dcaa),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bdb813eafebb),
                 "DirtySepolicy / SELinux status");
-        add(DetectionRuleIds.SELINUX_POLICYLOAD_QUERY, "selinux", "SELinux policyload 查询",
-                "应用访问 policyload 等节点观察 policy 重新加载状态。",
-                "DirtySepolicy 类检测会把 policy 状态变化作为环境线索。",
-                "仅作为 CHECKED 证据，与其他 SELinux 探针链联合分析。",
+        add(DetectionRuleIds.SELINUX_POLICYLOAD_QUERY, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1854da471f1f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_830a694271df),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1ff9eefcd17a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ef1f60d7dadf),
                 "DirtySepolicy / SELinux policy");
-        add(DetectionRuleIds.APP_ZYGOTE_PROBE, "selinux", "App-Zygote/隔离进程探针",
-                "应用通过 isolated/app-zygote 进程行为检查 SELinux/运行环境差异。",
-                "DirtySepolicy 公开实现利用 App Zygote 场景观察策略行为。",
-                "只记录进程创建/隔离链和 SELinux 探针，不修改进程或策略。",
+        add(DetectionRuleIds.APP_ZYGOTE_PROBE, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_821df77d6285),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_232cae2157bd),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6b53676d13aa),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_aea0af6b795b),
                 "DirtySepolicy / Android App Zygote");
 
-        add(DetectionRuleIds.PROCESS_FORK_QUERY, "zygisk", "fork/vfork 进程探针",
-                "应用创建子进程后可能继续做 ptrace/waitpid 比较，用于反调试或 Zygisk 事件探测。",
-                "DetectZygisk 使用 fork + ptrace + waitpid + PTRACE_GETEVENTMSG 组合。",
-                "单独 fork 只算 CHECKED，只有形成完整序列并接近退出才提高归因。",
+        add(DetectionRuleIds.PROCESS_FORK_QUERY, "zygisk", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0f7a3fd8341c),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_081dcd664602),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2cdaba881c6f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f93ceeee1a58),
                 "DetectZygisk / Linux process");
-        add(DetectionRuleIds.PROCESS_WAITPID_QUERY, "zygisk", "waitpid 进程事件等待",
-                "应用等待子进程/ptrace 事件，常用于反调试或 Zygisk 行为探针。",
-                "DetectZygisk 的关键流程包含 waitpid。",
-                "与 fork/ptrace request 同 TID/同时间窗口联合分析。",
+        add(DetectionRuleIds.PROCESS_WAITPID_QUERY, "zygisk", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8791315a9ba3),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9f16dea905e4),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bb304b1716ce),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_98322c873f86),
                 "DetectZygisk / ptrace");
         add(DetectionRuleIds.PTRACE_ATTACH_QUERY, "zygisk", "PTRACE_ATTACH",
-                "应用主动 attach 目标进程，可能用于反调试自检或 Zygisk 行为探针。",
-                "DetectZygisk 通过 ptrace attach 进入后续 event-message 检测。",
-                "记录 target pid、返回值和调用者 SO，不修改 ptrace 行为。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5ec0271b64ee),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_96d211cab572),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_968c717709cd),
                 "DetectZygisk");
         add(DetectionRuleIds.PTRACE_EVENTMSG_QUERY, "zygisk", "PTRACE_GETEVENTMSG",
-                "应用读取 ptrace event message，是 DetectZygisk 一类流程的关键步骤。",
-                "这比笼统记录 ptrace() 更能识别具体 Zygisk 探测链。",
-                "与 fork/waitpid/PTRACE_ATTACH 序列关联，不单独判断设备状态。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ff54a32de075),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_71a43aff7c1d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4f8c73c14905),
                 "DetectZygisk");
         add(DetectionRuleIds.PTRACE_SYSCALL_QUERY, "debugger", "PTRACE_SYSCALL",
-                "应用要求被跟踪进程在 syscall 边界暂停。",
-                "常用于调试、反调试和 syscall 行为分析。",
-                "仅记录 request/pid/result。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a14fb722c1cd),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7c267fd79ffd),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2acb5d7f2044),
                 "Linux ptrace");
         add(DetectionRuleIds.PTRACE_DETACH_QUERY, "zygisk", "PTRACE_DETACH",
-                "应用结束 ptrace 跟踪。",
-                "与 attach/geteventmsg/waitpid 一起可以还原完整探针生命周期。",
-                "仅记录行为与时序。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ab1372a68573),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_089120edee1b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_72d63510e43d),
                 "DetectZygisk / Linux ptrace");
 
-        add(DetectionRuleIds.APP_SIGNATURE_QUERY, "self_integrity", "自身签名/SigningInfo 查询",
-                "应用读取自己的 signing certificate 或 package signing info，常用于自完整性与重打包检测。",
-                "GarudaDefender 等 RASP 项目会验证签名与 APK 是否被重签名。",
-                "记录查询目标、flags、调用栈和后续摘要计算；不修改签名数据。",
+        add(DetectionRuleIds.APP_SIGNATURE_QUERY, "self_integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6be72b3efac1),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_db386211072d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2cd0ea248922),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c194508b20c0),
                 "Android SigningInfo / GarudaDefender");
-        add(DetectionRuleIds.SELF_APK_READ, "self_integrity", "自身 APK 读取",
-                "应用直接打开自身 APK/BASE APK，可能用于计算摘要、检查资源或反篡改。",
-                "自完整性方案常读取 base.apk 并检查 ZIP/签名/DEX 内容。",
-                "记录路径、API、调用栈；普通资源读取只算 CHECKED。",
+        add(DetectionRuleIds.SELF_APK_READ, "self_integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_76d336e588db),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d5f93b5dc531),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d2d333f8fef3),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5f173fee908a),
                 "APK integrity / GarudaDefender");
-        add(DetectionRuleIds.SELF_DEX_READ, "self_integrity", "DEX 完整性读取",
-                "应用读取 classes*.dex，可能用于 checksum/代码完整性验证。",
-                "RASP/防篡改项目会对 DEX 进行摘要或结构检查。",
-                "记录具体 dex 路径与后续 MessageDigest 使用。",
+        add(DetectionRuleIds.SELF_DEX_READ, "self_integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b02e7e1991c5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f8e28db9fe9e),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b7b523d00a08),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f2c6721f017a),
                 "DEX integrity / GarudaDefender");
-        add(DetectionRuleIds.SELF_SO_READ, "self_integrity", "Native SO 完整性读取",
-                "应用直接读取自身 native library，可能用于 ELF/哈希/Hook 完整性检查。",
-                "Native RASP 常校验 SO 文件与内存映射。",
-                "记录 SO 路径、调用者、后续摘要计算和退出链。",
+        add(DetectionRuleIds.SELF_SO_READ, "self_integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d897be6adb58),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_075c0972e348),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8f4bab065010),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c99df70ed7a8),
                 "Native integrity / GarudaDefender");
-        add(DetectionRuleIds.CERTIFICATE_DIGEST_QUERY, "self_integrity", "证书/代码摘要计算",
-                "应用通过 MessageDigest 对签名、APK、DEX 或 SO 数据计算摘要。",
-                "摘要算法本身用途广泛，因此默认只算 CHECKED；需要与 signing/APK/DEX/SO 读取链联合判断。",
-                "记录算法、输入长度和调用栈，不记录完整敏感内容。",
+        add(DetectionRuleIds.CERTIFICATE_DIGEST_QUERY, "self_integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_94e4c9ad5949),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_2a2c7b0d968f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_69feb7f2fe0d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_87462b2d5450),
                 "Java MessageDigest / app integrity");
 
-        add(DetectionRuleIds.ATTESTATION_FLOW, "attestation", "Attestation 调用链",
-                "YPower 在同一次会话中观察到 KeyStore/attestation challenge/证书链或安全级别查询组成的连续调用。",
-                "这表示目标 App 正在执行硬件密钥/背书相关流程，但不等于 attestation verdict 失败。",
-                "查看 challenge、StrongBox、certificate chain、异常与退出时序，必要时在官方支持设备状态下复测。",
+        add(DetectionRuleIds.ATTESTATION_FLOW, "attestation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_87ec0e0319a2),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_48d633ff0d12),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b6d4a7e7d56d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_91a79ea7d5c5),
                 "Android Key Attestation / KeyAttestation");
-        add(DetectionRuleIds.PLAY_INTEGRITY_FLOW, "integrity", "Play Integrity 调用链",
-                "YPower 观察到 prepare/request/token 等 Play Integrity API 组成完整性请求流程。",
-                "客户端侧通常只能看到 token 请求与返回，最终 verdict 可能在服务端解析。",
-                "结合请求异常、token 是否返回和退出时间线，不推断不可见的服务端 verdict。",
+        add(DetectionRuleIds.PLAY_INTEGRITY_FLOW, "integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b92e4c8f89ca),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_0abeeac1e350),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_187172256c72),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ddfc05f5e85b),
                 "Google Play Integrity / SPIC");
-        add(DetectionRuleIds.DIRTY_SEPOLICY_FLOW, "selinux", "DirtySepolicy 风格探针链",
-                "YPower 观察到 context/access/status/policyload 等 SELinux policy 查询形成连续探针链。",
-                "DirtySepolicy 使用 App-Zygote/SELinux policy 查询来识别策略环境差异。",
-                "把它作为 CHECKED 组合证据；只有和明确异常/退出稳定相关时才提高归因。",
+        add(DetectionRuleIds.DIRTY_SEPOLICY_FLOW, "selinux", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3562562d988f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_10ee1223a11d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8df003406074),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ebabde456087),
                 "LSPosed DirtySepolicy");
-        add(DetectionRuleIds.ZYGISK_PTRACE_FLOW, "zygisk", "Zygisk ptrace 探针链",
-                "YPower 观察到 fork/waitpid/PTRACE_ATTACH/PTRACE_GETEVENTMSG 等组合调用。",
-                "DetectZygisk 使用这类 ptrace event-message 序列观察部分 Zygisk 行为。",
-                "记录完整序列、PID/TID和返回值，不修改 ptrace 结果。",
+        add(DetectionRuleIds.ZYGISK_PTRACE_FLOW, "zygisk", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_34b8db6b9148),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_691e0dab4d8d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_41acb9e25248),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c067a1bdcda0),
                 "DetectZygisk");
-        add(DetectionRuleIds.SELF_INTEGRITY_FLOW, "self_integrity", "App 自完整性检查链",
-                "YPower 观察到自身签名/APK/DEX/SO读取与摘要计算形成连续链。",
-                "RASP/防篡改项目常组合签名、APK/DEX/SO校验，而不是依赖单个 API。",
-                "查看实际目标文件、摘要算法和后续退出链；普通资源读取不应单独判定异常。",
+        add(DetectionRuleIds.SELF_INTEGRITY_FLOW, "self_integrity", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_65318f5d830b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4a2c036bf8af),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_df8a5b0af495),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1ecd56b9df7a),
                 "GarudaDefender / Android app integrity");
 
-        add(DetectionRuleIds.JAVA_LOAD_LIBRARY, "instrumentation", "Java Native 库加载",
-                "应用通过 System.load/System.loadLibrary 加载 native 库；这能建立 Java 调用栈到 SO 的入口映射。",
-                "这是诊断映射事件，不是安全检测命中。与 dlopen 事件按时间/TID 对齐后，可帮助定位 Java→JNI→SO 的调用关系。",
-                "用于解释调用链，不作为安全风险归因项。",
+        add(DetectionRuleIds.JAVA_LOAD_LIBRARY, "instrumentation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a9b331bfb8a3),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c600b532c71a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_53c49a8aef4b),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e21d80013744),
                 "Android Runtime / JNI loading");
-        add(DetectionRuleIds.LINKER_DLOPEN, "instrumentation", "Native dlopen 库加载",
-                "目标进程在 native 层动态加载 SO。",
-                "ByteHook 的 dlopen callback 能观察后续加载的 ELF，并帮助把检测调用归到具体模块。",
-                "用于模块映射和调用链解释，不作为安全风险归因项。",
+        add(DetectionRuleIds.LINKER_DLOPEN, "instrumentation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_50f35b57016e),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_8f9c133744db),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a22f83b35e50),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_82624695da53),
                 "ByteHook dlopen callback");
-        add(DetectionRuleIds.LINKER_DLSYM, "instrumentation", "Native dlsym 符号解析",
-                "目标进程解析 JNI_OnLoad、Java_*、RegisterNatives 或安全相关 native 符号。",
-                "dlsym 记录可以补充 native 符号解析路径，但并不能覆盖所有 RegisterNatives 间接调用。",
-                "用于 JNI/Linker 映射，不作为安全风险归因项。",
+        add(DetectionRuleIds.LINKER_DLSYM, "instrumentation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_47592f644420),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9a4581353742),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d2c52ebf5744),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_21453567ddc3),
                 "Android linker / ByteHook");
 
-        add(DetectionRuleIds.JAVA_UNCAUGHT_EXCEPTION, "error", "Java 未捕获异常",
-                "异常已经冒泡到线程顶层并进入 Thread 的未捕获异常分发路径。",
-                "这是 Java Fatal 的强证据；YPower 只在原处理链之前记录 Throwable，不替换也不吞掉目标 App 的 Handler。",
-                "优先查看异常类型、message、业务栈以及它前面的安全检测事件；修复真正抛出异常的业务/权限/状态问题。",
+        add(DetectionRuleIds.JAVA_UNCAUGHT_EXCEPTION, "error", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_bb8ec6557e9a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a651fa3241a3),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1876dd5b141a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_ec8a16a54057),
                 "Android Thread / RuntimeInit");
-        add(DetectionRuleIds.COROUTINE_UNHANDLED_EXCEPTION, "error", "Kotlin 协程未处理异常",
-                "kotlinx.coroutines 将无法继续由普通协程传播路径处理的异常交给 CoroutineExceptionHandler。",
-                "协程异常不一定导致进程退出；它只是异常传播层证据，后续如果同一个 Throwable 又进入 Java uncaught，可信度会显著提高。",
-                "检查具体 CoroutineContext、Throwable 和调用栈；不要把它单独等同于进程 Crash。",
+        add(DetectionRuleIds.COROUTINE_UNHANDLED_EXCEPTION, "error", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5ae66087dbad),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_fe7244a95c8e),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c22eac5cdc93),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f90f69a770d6),
                 "kotlinx.coroutines CoroutineExceptionHandler");
-        add(DetectionRuleIds.RXJAVA2_GLOBAL_ERROR, "error", "RxJava2 全局错误",
-                "RxJava2 将无法正常交付给下游的异步错误交给 RxJavaPlugins.onError。",
-                "全局 RxJava error 不一定是 Fatal；它属于异步传播证据，需要结合后续 uncaught/exit 再判断。",
-                "检查 Throwable、UndeliverableException 根因以及后续是否进入未捕获异常或主动退出。",
+        add(DetectionRuleIds.RXJAVA2_GLOBAL_ERROR, "error", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a98d06380a33),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_19243d5e9e77),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b4a086bdb8c4),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_002d69b7e843),
                 "RxJava2 RxJavaPlugins");
-        add(DetectionRuleIds.RXJAVA3_GLOBAL_ERROR, "error", "RxJava3 全局错误",
-                "RxJava3 将无法正常交付给下游的异步错误交给 RxJavaPlugins.onError。",
-                "全局 RxJava error 不一定是 Fatal；它属于异步传播证据，需要结合后续 uncaught/exit 再判断。",
-                "检查 Throwable、UndeliverableException 根因以及后续是否进入未捕获异常或主动退出。",
+        add(DetectionRuleIds.RXJAVA3_GLOBAL_ERROR, "error", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_baf9cf69c035),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_02d424ac1705),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_b4a086bdb8c4),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_002d69b7e843),
                 "RxJava3 RxJavaPlugins");
 
-        add(DetectionRuleIds.JAVA_DEFAULT_EXCEPTION_HANDLER_SET, "instrumentation", "设置全局异常处理器",
-                "目标 App 或第三方 SDK 设置了默认 Thread.UncaughtExceptionHandler。",
-                "该事件用于解释 Crashlytics/Bugly/Sentry/自有 Handler 的崩溃处理链，不属于安全风险命中。",
-                "仅用于调用链解释，不作为安全检测原因。",
+        add(DetectionRuleIds.JAVA_DEFAULT_EXCEPTION_HANDLER_SET, "instrumentation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5547226a6cdf),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_71fd1b26ede9),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_c7f2c08c0d0a),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_29f27b254c25),
                 "Java Thread.UncaughtExceptionHandler");
-        add(DetectionRuleIds.JAVA_THREAD_EXCEPTION_HANDLER_SET, "instrumentation", "设置线程异常处理器",
-                "目标 App 为单独线程设置了 Thread.UncaughtExceptionHandler。",
-                "该事件用于解释线程级崩溃处理链，不属于安全风险命中。",
-                "仅用于调用链解释，不作为安全检测原因。",
+        add(DetectionRuleIds.JAVA_THREAD_EXCEPTION_HANDLER_SET, "instrumentation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a97f93ec4e6c),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1057568c7de5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_6fde12bef659),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_29f27b254c25),
                 "Java Thread.UncaughtExceptionHandler");
-        add(DetectionRuleIds.RXJAVA2_ERROR_HANDLER_SET, "instrumentation", "设置 RxJava2 全局错误处理器",
-                "目标 App 或 SDK 安装了 RxJava2 全局 error handler。",
-                "该事件用于说明异步错误最终可能被谁消费，不属于安全风险命中。",
-                "仅用于异常传播解释。",
+        add(DetectionRuleIds.RXJAVA2_ERROR_HANDLER_SET, "instrumentation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_70834f4bbf4d),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f068c4260b70),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3cad5c456423),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_47ffb81b3768),
                 "RxJava2 RxJavaPlugins");
-        add(DetectionRuleIds.RXJAVA3_ERROR_HANDLER_SET, "instrumentation", "设置 RxJava3 全局错误处理器",
-                "目标 App 或 SDK 安装了 RxJava3 全局 error handler。",
-                "该事件用于说明异步错误最终可能被谁消费，不属于安全风险命中。",
-                "仅用于异常传播解释。",
+        add(DetectionRuleIds.RXJAVA3_ERROR_HANDLER_SET, "instrumentation", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_46672adfa8e3),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cbd3f69e6845),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3cad5c456423),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_47ffb81b3768),
                 "RxJava3 RxJavaPlugins");
     }
 
@@ -434,31 +434,31 @@ public final class DetectionRuleCatalog {
 
     private static void addPackage(String id, String title, String target, String ref) {
         add(id, "package", title,
-                "应用查询 " + target + " 相关包名，通常是为了识别已安装的环境管理器、Hook/调试工具或兼容性组件。",
-                "PackageManager 查询只在真正返回目标包时算 HIT；NameNotFoundException 应视为 NOT_HIT。",
-                "查看实际包名、返回结果和退出调用链；不要把单纯枚举动作等同于命中。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_cf32aadc33b1) + target + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f7858d2bb342),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_a2fbfb346d9f),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_f0ecbab8294e),
                 ref);
     }
 
     private static void addProperty(String id, String title, String why, String ref) {
         add(id, "environment", title, why,
-                "系统属性属于环境信号，只有具体返回值满足风险条件时才应标记 HIT。",
-                "核对实际 key/value，并通过同一操作复现确认它是否稳定紧邻退出。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_391d78ee80f9),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_fc208cdfb2da),
                 ref);
     }
 
     private static void addCommand(String id, String title, String why) {
         add(id, "command", title, why,
-                "仅观察到 Runtime.exec/ProcessBuilder 成功创建 Process，不能证明命令输出命中了风险条件。",
-                "当前只标记 CHECKED；后续如果能关联 Process exit code/stdout，再升级为 HIT/NOT_HIT。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_3e4289f36fe5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_d77099de43be),
                 "Android Runtime / ProcessBuilder diagnostics");
     }
 
     private static void addExit(String id, String title) {
         add(id, "exit", title,
-                "这是应用实际执行的退出终点。",
-                "退出 API 是终点而不是前置原因，真正原因应从它前面的检测、异常和调用链中寻找。",
-                "向前关联最高分的非退出规则，不把退出 API 本身当成根因。",
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_5d1eeccdfde5),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7b100013a3d4),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_1566bfdbd835),
                 "xCrash / YPower runtime timeline");
     }
 
@@ -486,10 +486,10 @@ public final class DetectionRuleCatalog {
         return new DetectionRuleDefinition(
                 id == null ? DetectionRuleIds.UNKNOWN : id,
                 category == null ? "unknown" : category,
-                title == null ? "未知检测" : title,
-                "目标 App 在本次运行中执行了该项检查。",
-                "当前规则库没有更具体的开源项目说明。",
-                "查看原始参数、返回值、调用栈和退出时序后再决定是否需要处理。",
+                title == null ? com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_9c01f9c5b4ff) : title,
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_fdd4adf29552),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_4505bbe58f07),
+                com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_788ecbcd7c70),
                 "YPower runtime diagnostics"
         );
     }

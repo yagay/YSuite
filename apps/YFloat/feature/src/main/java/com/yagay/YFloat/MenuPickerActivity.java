@@ -74,27 +74,27 @@ public final class MenuPickerActivity extends AppCompatActivity {
     // -----------------------------------------------------------------------------------------
 
     private void showCustomHome() {
-        LinearLayout root = page("文字操作菜单",
-                "管理选中文字后可调用的应用和 Intent 操作。", null);
+        LinearLayout root = page(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bbd8b45f263b),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6e3a792bba29), null);
 
-        AppUi.Section add = AppUi.section(this, "添加操作",
-                "不需要手动填写包名、Activity、Action 或 MIME。" );
+        AppUi.Section add = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e9d4ef0e0f3),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d3967f250042) );
         AppUi.addRow(add.body, AppUi.navRow(this,
-                "按 App 选择",
-                "先选择应用，再查看它可用的入口",
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b3221af51e30),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_00fc4ee7dba2),
                 this::showCustomApps));
         AppUi.addRow(add.body, AppUi.navRow(this,
-                "按 Intent 类型选择",
-                "先选择操作类型，再选择可以处理它的应用",
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_cc4bc628204a),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_23d869f51ca4),
                 this::showCustomIntentTypes));
         AppUi.addSection(root, add);
 
         List<CustomMenuActionStore.Item> items = CustomMenuActionStore.load(this);
         AppUi.Section current = AppUi.section(this,
-                "当前菜单 · " + items.size() + " 项",
-                "长按 ≡ 可拖动排序，也可以使用右侧按钮精确移动。" );
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_37e04e11cd7e) + items.size() + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_56891917dcd7),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f2d0c5283f9b) );
         if (items.isEmpty()) {
-            addEmpty(current.body, "还没有自定义文字操作");
+            addEmpty(current.body, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1a29d210018d));
         } else {
             current.body.setOnDragListener((v, event) -> onCustomSortDrag(current.body, event));
             for (int i = 0; i < items.size(); i++) {
@@ -116,7 +116,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                         },
                         () -> {
                             CustomMenuActionStore.remove(this, item.id);
-                            Toast.makeText(this, "已移除", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d7156debd885), Toast.LENGTH_SHORT).show();
                             showCustomHome();
                         }));
             }
@@ -146,10 +146,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private void showCustomApps() {
-        LinearLayout root = page("按 App 选择",
-                "选择应用后，YFloat 会读取它可处理的标准 Intent 和可直接启动入口。",
+        LinearLayout root = page(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b3221af51e30),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b16cf344bfe7),
                 this::showCustomHome);
-        addLocalBack(root, "返回文字操作菜单");
+        addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d35e0660dc9b));
 
         List<ApplicationInfo> apps;
         try { apps = new ArrayList<>(pm().getInstalledApplications(0)); }
@@ -158,9 +158,9 @@ public final class MenuPickerActivity extends AppCompatActivity {
         apps.sort(Comparator.comparing(this::appLabel, String.CASE_INSENSITIVE_ORDER));
 
         final List<ApplicationInfo> appList = apps;
-        AppUi.Section list = AppUi.section(this, "应用", null);
+        AppUi.Section list = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca), null);
         renderCustomApps(list.body, appList, "");
-        addSearchField(root, "搜索应用名称或包名", query ->
+        addSearchField(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_48611beed801), query ->
                 renderCustomApps(list.body, appList, query));
         AppUi.addSection(root, list);
         show(root);
@@ -168,9 +168,9 @@ public final class MenuPickerActivity extends AppCompatActivity {
 
     private void showCustomAppActions(String pkg, String appLabel) {
         LinearLayout root = page(appLabel,
-                "标准 Intent 入口优先显示，后面再列出其他可直接启动的 exported Activity。",
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f8ee76155c0a),
                 this::showCustomApps);
-        addLocalBack(root, "返回应用列表");
+        addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ee66c300fff6));
 
         ArrayList<Discovered> all = new ArrayList<>();
         Set<String> seen = new HashSet<>();
@@ -196,16 +196,16 @@ public final class MenuPickerActivity extends AppCompatActivity {
                     String key = CustomMenuActionStore.TYPE_ACTIVITY + "|" + ai.packageName + "|" + ai.name;
                     if (!seen.add(key)) continue;
                     all.add(new Discovered(activityLabel(ai),
-                            "直接打开入口 · " + shortClass(ai.name),
+                            com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fc11417376e3) + shortClass(ai.name),
                             appIcon(pkg), ai.packageName, ai.name,
                             CustomMenuActionStore.TYPE_ACTIVITY));
                 }
             }
         } catch (Throwable ignored) {}
 
-        AppUi.Section entries = AppUi.section(this, "可用入口 · " + all.size() + " 个", null);
+        AppUi.Section entries = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3dc5e4ed0792) + all.size() + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_4380927eaa54), null);
         if (all.isEmpty()) {
-            addEmpty(entries.body, "没有发现可从 YFloat 调用的入口");
+            addEmpty(entries.body, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_19b2e463a253));
         } else {
             for (Discovered d : all) AppUi.addRow(entries.body, customDiscoveredRow(d));
         }
@@ -214,12 +214,12 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private void showCustomIntentTypes() {
-        LinearLayout root = page("按 Intent 类型选择",
-                "先确定操作类型，再从系统确认可以处理它的应用中选择。",
+        LinearLayout root = page(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_cc4bc628204a),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6b2e5f2e8a0b),
                 this::showCustomHome);
-        addLocalBack(root, "返回文字操作菜单");
+        addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d35e0660dc9b));
 
-        AppUi.Section types = AppUi.section(this, "操作类型", null);
+        AppUi.Section types = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b522870a5b41), null);
         for (IntentTypeCatalog.Spec spec : IntentTypeCatalog.all()) {
             AppUi.addRow(types.body, actionRow(spec.title, spec.description, null,
                     () -> showCustomHandlersForType(spec), null));
@@ -232,15 +232,15 @@ public final class MenuPickerActivity extends AppCompatActivity {
         LinearLayout root = page(spec.title,
                 spec.description + " · 只显示系统确认能处理这个 Intent 的应用入口。",
                 this::showCustomIntentTypes);
-        addLocalBack(root, "返回 Intent 类型");
+        addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_69b17b1959f6));
 
         List<ResolveInfo> handlers = query(spec.probeIntent());
         handlers.removeIf(ri -> ri.activityInfo == null || getPackageName().equals(ri.activityInfo.packageName));
         handlers.sort(Comparator.comparing(this::resolveAppThenActivityLabel, String.CASE_INSENSITIVE_ORDER));
 
-        AppUi.Section entries = AppUi.section(this, "可用应用", null);
+        AppUi.Section entries = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f698355e1d6c), null);
         renderIntentHandlers(entries.body, handlers, spec, "");
-        addSearchField(root, "搜索应用名称、包名或 Activity", query ->
+        addSearchField(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c7122a703331), query ->
                 renderIntentHandlers(entries.body, handlers, spec, query));
         AppUi.addSection(root, entries);
         show(root);
@@ -290,7 +290,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                     actionRow(label, pkg, icon, () -> showCustomAppActions(pkg, label), null));
             shown++;
         }
-        if (shown == 0) addEmpty(body, "没有匹配的应用");
+        if (shown == 0) addEmpty(body, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d762aa139025));
         return shown;
     }
 
@@ -320,8 +320,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
         }
         if (shown == 0) {
             addEmpty(body, query == null || query.isBlank()
-                    ? "没有找到可处理此 Intent 的应用"
-                    : "没有匹配的应用或 Activity");
+                    ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f8311b3840d9)
+                    : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2860feba86b5));
         }
         return shown;
     }
@@ -342,16 +342,16 @@ public final class MenuPickerActivity extends AppCompatActivity {
                     actionRow(item.label, shortClass(item.className), targetIcon(item), () -> {
                         saveCurrentTargetOrder(current);
                         if (TargetMenuStore.add(this, targetMode, item)) {
-                            Toast.makeText(this, "已加入", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f0ba972e8baf), Toast.LENGTH_SHORT).show();
                             showTargetManager();
                         }
-                    }, "加入"));
+                    }, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b6ab7d48faeb)));
             shown++;
         }
         if (shown == 0) {
             addEmpty(body, available.isEmpty()
-                    ? "没有可重新加入的系统目标"
-                    : "没有匹配的应用或组件");
+                    ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c679fa60caac)
+                    : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_7883801730b9));
         }
         return shown;
     }
@@ -372,10 +372,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
                     null, d.label, d.pkg, d.cls, d.type);
             boolean added = CustomMenuActionStore.add(this, item);
             Toast.makeText(this,
-                    added ? "已加入 YFloat 菜单" : "这个入口已经加入过了",
+                    added ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d0f2dfdf45c9) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ae3c00ef7b5a),
                     Toast.LENGTH_SHORT).show();
             if (added) showCustomHome();
-        }, "加入");
+        }, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b6ab7d48faeb));
     }
 
     // -----------------------------------------------------------------------------------------
@@ -388,25 +388,25 @@ public final class MenuPickerActivity extends AppCompatActivity {
         List<TargetMenuStore.Item> systemItems = discoverTargetItems();
         List<TargetMenuStore.Item> items = TargetMenuStore.mergeWithSystem(this, targetMode, systemItems);
 
-        LinearLayout root = page(isShareTarget() ? "分享菜单" : "打开 / 处理菜单",
+        LinearLayout root = page(isShareTarget() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_484836c29054) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_adfd32abd31f),
                 isShareTarget()
-                        ? "来源始终是 Android 当前可分享目标，YFloat 只保存排序和隐藏规则。"
-                        : "来源始终是 Android 当前可处理目标，YFloat 只保存排序和隐藏规则。",
+                        ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_78c60f51edc7)
+                        : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a8f164a758a8),
                 null);
 
-        AppUi.Section tools = AppUi.section(this, "管理", null);
+        AppUi.Section tools = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1e1616217b08), null);
         LinearLayout buttons = new LinearLayout(this);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
         buttons.setPadding(AppUi.dp(this, 14), AppUi.dp(this, 8),
                 AppUi.dp(this, 14), AppUi.dp(this, 8));
         MaterialButton add = AppUi.secondaryButton(this,
-                isShareTarget() ? "添加已隐藏项" : "添加已隐藏项");
+                isShareTarget() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c));
         add.setOnClickListener(v -> showTargetAdd());
-        MaterialButton reset = AppUi.secondaryButton(this, "恢复系统顺序");
+        MaterialButton reset = AppUi.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_5be1c4cbf6e8));
         reset.setEnabled(customized);
         reset.setOnClickListener(v -> {
             TargetMenuStore.reset(this, targetMode);
-            Toast.makeText(this, "已恢复当前系统列表顺序", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ac034f023e0c), Toast.LENGTH_SHORT).show();
             showTargetManager();
         });
         LinearLayout.LayoutParams aLp = new LinearLayout.LayoutParams(0, -2, 1f);
@@ -419,10 +419,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
         AppUi.addSection(root, tools);
 
         AppUi.Section current = AppUi.section(this,
-                "当前显示 · " + items.size() + " 项",
-                "长按 ≡ 拖动排序；移除只是从 YFloat 菜单隐藏，不会修改系统应用。" );
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a3c88e3881d7) + items.size() + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_56891917dcd7),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b12aa75c57c1) );
         if (items.isEmpty()) {
-            addEmpty(current.body, "系统当前没有返回可用目标");
+            addEmpty(current.body, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_efe8c5b14163));
         } else {
             current.body.setOnDragListener((v, event) -> onTargetSortDrag(current.body, event, items));
             for (int i = 0; i < items.size(); i++) {
@@ -461,19 +461,19 @@ public final class MenuPickerActivity extends AppCompatActivity {
         Set<String> selected = new HashSet<>();
         for (TargetMenuStore.Item item : current) selected.add(item.key());
 
-        LinearLayout root = page(isShareTarget() ? "添加分享应用" : "添加处理应用",
-                "这里只列出之前从 YFloat 菜单隐藏、但系统仍然可用的目标。",
+        LinearLayout root = page(isShareTarget() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_8c63f2b1f649) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_de88667230fb),
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b122dc2b43b3),
                 this::showTargetManager);
-        addLocalBack(root, "返回当前菜单");
+        addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fab257510ac5));
 
         ArrayList<TargetMenuStore.Item> available = new ArrayList<>();
         for (TargetMenuStore.Item item : discovered) {
             if (!selected.contains(item.key())) available.add(item);
         }
 
-        AppUi.Section list = AppUi.section(this, "可重新加入", null);
+        AppUi.Section list = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fb9f01be58cf), null);
         renderTargetAdd(list.body, available, current, "");
-        addSearchField(root, "搜索应用名称、包名或组件", query ->
+        addSearchField(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_7721bc688162), query ->
                 renderTargetAdd(list.body, available, current, query));
         AppUi.addSection(root, list);
         show(root);
@@ -555,7 +555,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         TextView handle = AppUi.text(this, "≡", 22, false);
         handle.setTextColor(AppUi.textSecondary(this));
         handle.setGravity(Gravity.CENTER);
-        handle.setContentDescription("长按拖动排序");
+        handle.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_8fa208fab808));
         handle.setOnLongClickListener(v -> {
             if (beforeDrag != null) beforeDrag.run();
             ClipData clip = ClipData.newPlainText("YFloat menu item", dragKey);
@@ -580,17 +580,17 @@ public final class MenuPickerActivity extends AppCompatActivity {
         row.addView(texts, new LinearLayout.LayoutParams(0, dp(52), 1f));
 
         TextView up = sortButton("↑", index > 0);
-        up.setContentDescription("上移");
+        up.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a283bf829d2e));
         up.setOnClickListener(v -> { if (moveUp != null) moveUp.run(); });
         row.addView(up, new LinearLayout.LayoutParams(dp(34), dp(42)));
 
         TextView down = sortButton("↓", index < total - 1);
-        down.setContentDescription("下移");
+        down.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e8ccedf0f78c));
         down.setOnClickListener(v -> { if (moveDown != null) moveDown.run(); });
         row.addView(down, new LinearLayout.LayoutParams(dp(34), dp(42)));
 
         TextView delete = sortButton("×", true);
-        delete.setContentDescription("移除");
+        delete.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a5758272df8c));
         delete.setOnClickListener(v -> { if (remove != null) remove.run(); });
         row.addView(delete, new LinearLayout.LayoutParams(dp(36), dp(42)));
         return row;
@@ -724,7 +724,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
             if (c != null && !c.toString().isBlank()) return c.toString();
         } catch (Throwable ignored) {}
         return ri == null || ri.activityInfo == null
-                ? "应用" : activityLabel(ri.activityInfo);
+                ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca) : activityLabel(ri.activityInfo);
     }
 
     private String activityLabel(ActivityInfo ai) {
@@ -736,7 +736,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private String appLabel(ApplicationInfo ai) {
-        if (ai == null) return "应用";
+        if (ai == null) return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca);
         try {
             CharSequence c = ai.loadLabel(pm());
             if (c != null && !c.toString().isBlank()) return c.toString();

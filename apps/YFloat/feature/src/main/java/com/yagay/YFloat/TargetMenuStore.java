@@ -25,7 +25,7 @@ public final class TargetMenuStore {
         public final String className;
 
         public Item(String label, String packageName, String className) {
-            this.label = label == null || label.isBlank() ? "应用" : label;
+            this.label = label == null || label.isBlank() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca) : label;
             this.packageName = packageName == null ? "" : packageName;
             this.className = className == null ? "" : className;
         }
@@ -171,7 +171,7 @@ public final class TargetMenuStore {
     public static String displayLabel(Context c, String mode, String key, String fallback) {
         String alias = key == null ? null : loadAliases(c, mode).get(key);
         if (alias != null && !alias.isBlank()) return alias;
-        return fallback == null || fallback.isBlank() ? "应用" : fallback;
+        return fallback == null || fallback.isBlank() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca) : fallback;
     }
 
     public static boolean move(Context c, String mode, String key, int delta) {

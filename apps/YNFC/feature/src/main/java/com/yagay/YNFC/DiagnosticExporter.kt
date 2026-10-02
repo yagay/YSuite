@@ -27,10 +27,10 @@ internal class DiagnosticExporter(
                     put(MediaStore.MediaColumns.IS_PENDING, 1)
                 }
                 createdUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                    ?: error("无法在 Download 创建日志文件")
+                    ?: error(com.yagay.suite.api.YLocale.text(com.yagay.YNFC.R.string.ynfc_generated_c1b48c1ed75d))
                 resolver.openOutputStream(createdUri!!, "w")?.bufferedWriter()?.use {
                     it.write(collector.buildFullReport(statusSummary))
-                } ?: error("无法写入日志文件")
+                } ?: error(com.yagay.suite.api.YLocale.text(com.yagay.YNFC.R.string.ynfc_generated_0065097e6886))
                 resolver.update(
                     createdUri!!,
                     ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },

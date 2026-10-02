@@ -203,7 +203,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
                     DiagnosticLog.i(FloatService.this, "POSITION",
                             "committed explicit move x=" + lp.x + " y=" + lp.y);
                     android.widget.Toast.makeText(FloatService.this,
-                            "移动图标位置已保存", android.widget.Toast.LENGTH_SHORT).show();
+                            com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_8e0078e928ed), android.widget.Toast.LENGTH_SHORT).show();
                     updateNotification();
                     return;
                 }
@@ -308,7 +308,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
         positionMoveArmed = true;
         DiagnosticLog.i(this, "POSITION", "explicit move mode armed");
         android.widget.Toast.makeText(this,
-                "移动图标位置：拖动悬浮球后松手保存", android.widget.Toast.LENGTH_SHORT).show();
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b2c7574749b7), android.widget.Toast.LENGTH_SHORT).show();
         updateNotification();
     }
 
@@ -630,7 +630,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
         LensAccessibilityService accessibility = LensAccessibilityService.get();
         if (accessibility == null) {
             android.widget.Toast.makeText(this,
-                    "需要开启 YFloat 无障碍服务", android.widget.Toast.LENGTH_SHORT).show();
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_0c0381634359), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
         ScreenshotHideCoordinator.Lease hideLease =
@@ -641,7 +641,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
                     new android.os.Handler(android.os.Looper.getMainLooper())
                             .postDelayed(() -> hideLease.release(this), 100);
                     if (!ok) android.widget.Toast.makeText(this,
-                            "点击下方屏幕失败", android.widget.Toast.LENGTH_SHORT).show();
+                            com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bbc2d3017b48), android.widget.Toast.LENGTH_SHORT).show();
                 }, 80));
     }
 
@@ -861,24 +861,24 @@ public class FloatService extends Service implements android.content.SharedPrefe
         PendingIntent openPi = PendingIntent.getActivity(this, 2, new Intent(this, MainActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        String state = positionMoveArmed ? "移动图标位置：拖动后松手保存"
-                : visibility.manualHidden() ? "图标已手动隐藏"
-                : visibility.lockHidden() ? "锁屏隐藏"
-                : visibility.fullscreenHidden() ? "全屏应用隐藏"
-                : visibility.appHidden() ? "当前应用按规则隐藏"
+        String state = positionMoveArmed ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2a42edf92f1b)
+                : visibility.manualHidden() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_9ddc91206346)
+                : visibility.lockHidden() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_12f97464c051)
+                : visibility.fullscreenHidden() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_0df69cce0511)
+                : visibility.appHidden() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3e7d8d7e9263)
                 : WorkflowSessionManager.current() != null
-                        ? "任务: " + WorkflowSessionManager.current().phase()
-                : visibility.notificationExpanded() ? "通知栏已展开"
-                : "点击进入设置";
+                        ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_969a027fc4d1) + WorkflowSessionManager.current().phase()
+                : visibility.notificationExpanded() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_47bc0c696655)
+                : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e276cc448bb2);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "yfloat")
                 .setSmallIcon(android.R.drawable.ic_menu_search)
-                .setContentTitle("YFloat 悬浮图标已运行")
+                .setContentTitle(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e62113624d72))
                 .setContentText(state)
                 .setContentIntent(openPi)
                 .setOngoing(true);
-        if (visibility.manualHidden()) builder.addAction(0, "显示图标", showPi);
-        builder.addAction(0, "停止", stopPi);
+        if (visibility.manualHidden()) builder.addAction(0, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_08d524a8899a), showPi);
+        builder.addAction(0, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_4ce0488532fd), stopPi);
         return builder.build();
     }
 
@@ -891,7 +891,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
     private void createChannel() {
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         manager.createNotificationChannel(new NotificationChannel(
-                "yfloat", "YFloat 悬浮服务", NotificationManager.IMPORTANCE_LOW));
+                "yfloat", com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bb9383145b54), NotificationManager.IMPORTANCE_LOW));
     }
 
     private int dp(int value) {

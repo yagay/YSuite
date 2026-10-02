@@ -7,7 +7,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "yentrycleaner",
             name = "YEntryCleaner",
-            description = "分享、打开方式与组件入口清理",
+            description = "Share, open-with, and component entry cleanup",
             entryActivityClassName = "com.yagay.YEntryCleaner.ui.MainActivity",
             runtimeInitializerClassName = "com.yagay.YEntryCleaner.YEntryCleanerRuntime",
             sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED),
@@ -22,7 +22,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "ydiag",
             name = "YDiag",
-            description = "应用日志与故障诊断",
+            description = "App logs and fault diagnostics",
             entryActivityClassName = "com.yagay.ydiag.ui.MainActivity",
             runtimeInitializerClassName = "com.yagay.ydiag.YDiagRuntime",
             sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED),
@@ -37,7 +37,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "ynotify",
             name = "YNotify",
-            description = "通知 / Toast / 横幅历史",
+            description = "Notification, Toast, and heads-up history",
             entryActivityClassName = "com.yagay.YNotify.ui.MainActivity",
             runtimeInitializerClassName = "com.yagay.YNotify.YNotifyRuntime",
             sharedCapabilities = setOf(SuiteCapability.LSPOSED, SuiteCapability.ACCESSIBILITY, SuiteCapability.NOTIFICATION_LISTENER),
@@ -52,7 +52,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "ypower",
             name = "YPower",
-            description = "应用增强、检测与运行时诊断",
+            description = "App enhancements, detection, and runtime diagnostics",
             entryActivityClassName = "com.yagay.ypower.ui.MainActivity",
             runtimeInitializerClassName = "com.yagay.ypower.YPowerRuntime",
             sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED),
@@ -67,7 +67,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "yminiguard",
             name = "YMiniGuard",
-            description = "小窗保活与后台播放守护",
+            description = "Mini-window keep-alive and background playback guard",
             entryActivityClassName = "com.yagay.YMiniGuard.MainActivity",
             runtimeInitializerClassName = "com.yagay.YMiniGuard.GuardRuntime",
             sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED, SuiteCapability.NOTIFICATIONS),
@@ -82,7 +82,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "ynfc",
             name = "YNFC",
-            description = "NFC 门禁卡与控制器模拟",
+            description = "NFC access-card and controller emulation",
             entryActivityClassName = "com.yagay.YNFC.MainActivity",
             runtimeInitializerClassName = "com.yagay.YNFC.YNFCSuiteRuntime",
             sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED),
@@ -97,7 +97,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "ytaskmanager",
             name = "YTaskManager",
-            description = "进程、性能与系统任务管理",
+            description = "Process, performance, and system task management",
             entryActivityClassName = "com.yagay.YTaskManager.MainActivity",
             runtimeInitializerClassName = "com.yagay.YTaskManager.YTaskManagerSuiteRuntime",
             sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED),
@@ -112,7 +112,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "yparam",
             name = "YParam",
-            description = "应用 DPI、语言、定位与参数覆盖",
+            description = "App DPI, language, location, and parameter overrides",
             entryActivityClassName = "com.yagay.yparam.ui.MainActivity",
             runtimeInitializerClassName = "com.yagay.yparam.YParamSuiteRuntime",
             sharedCapabilities = setOf(SuiteCapability.LSPOSED),
@@ -127,7 +127,7 @@ internal object GeneratedFeatureCatalog {
         FeatureSpec(
             id = "yfloat",
             name = "YFloat",
-            description = "悬浮操作、文字选框与快捷动作",
+            description = "Floating actions, text selection, and shortcuts",
             entryActivityClassName = "com.yagay.YFloat.MainActivity",
             runtimeInitializerClassName = "com.yagay.YFloat.YFloatSuiteRuntime",
             sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED, SuiteCapability.ACCESSIBILITY, SuiteCapability.OVERLAY, SuiteCapability.NOTIFICATIONS),

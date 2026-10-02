@@ -59,11 +59,11 @@ public final class ImageShareUtils {
             clipboard.setPrimaryClip(clip);
             DiagnosticLog.i(app, "IMAGE_CLIPBOARD", "COPY " + shared.file.getName()
                     + " " + image.getWidth() + "x" + image.getHeight());
-            Toast.makeText(app, "已复制图片", Toast.LENGTH_SHORT).show();
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1e6c2331f879), Toast.LENGTH_SHORT).show();
             return true;
         } catch (Throwable t) {
             DiagnosticLog.i(app, "IMAGE_CLIPBOARD", "FAILED " + t);
-            Toast.makeText(app, "无法复制图片", Toast.LENGTH_SHORT).show();
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b810eec72192), Toast.LENGTH_SHORT).show();
             return false;
         }
     }
@@ -79,14 +79,14 @@ public final class ImageShareUtils {
             send.setClipData(ClipData.newRawUri("YFloat image", shared.uri));
             send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-            Intent chooser = Intent.createChooser(send, "分享图片")
+            Intent chooser = Intent.createChooser(send, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bd0e3d6f4b1d))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             app.startActivity(chooser);
             DiagnosticLog.i(app, "IMAGE_SHARE", "OPEN " + shared.file.getName()
                     + " " + image.getWidth() + "x" + image.getHeight());
         } catch (Throwable t) {
             DiagnosticLog.i(app, "IMAGE_SHARE", "FAILED " + t);
-            Toast.makeText(app, "无法分享图片", Toast.LENGTH_SHORT).show();
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d191a53e1ae7), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -101,14 +101,14 @@ public final class ImageShareUtils {
             view.setClipData(ClipData.newRawUri("YFloat image", shared.uri));
             view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-            Intent chooser = Intent.createChooser(view, "打开方式");
+            Intent chooser = Intent.createChooser(view, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c41a0fcaa12b));
             chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             app.startActivity(chooser);
             DiagnosticLog.i(app, "IMAGE_OPEN_WITH", "OPEN " + shared.file.getName()
                     + " " + image.getWidth() + "x" + image.getHeight());
         } catch (Throwable t) {
             DiagnosticLog.i(app, "IMAGE_OPEN_WITH", "FAILED " + t);
-            Toast.makeText(app, "没有可用的图片应用", Toast.LENGTH_SHORT).show();
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bb633ee5d4cf), Toast.LENGTH_SHORT).show();
         }
     }
 

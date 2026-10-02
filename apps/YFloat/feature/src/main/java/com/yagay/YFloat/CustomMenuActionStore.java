@@ -40,7 +40,7 @@ public final class CustomMenuActionStore {
 
         public Item(String id, String label, String packageName, String className, String type) {
             this.id = id == null || id.isBlank() ? UUID.randomUUID().toString() : id;
-            this.label = label == null ? "应用" : label;
+            this.label = label == null ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca) : label;
             this.packageName = packageName == null ? "" : packageName;
             this.className = className == null ? "" : className;
             this.type = type == null ? TYPE_ACTIVITY : type;
@@ -172,7 +172,7 @@ public final class CustomMenuActionStore {
             return true;
         } catch (Throwable t) {
             DiagnosticLog.i(c, "CUSTOM_MENU", "launch failed " + item.stableKey() + " " + t);
-            Toast.makeText(c, "无法打开 " + item.label, Toast.LENGTH_SHORT).show();
+            Toast.makeText(c, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_0d4375fb9991) + item.label, Toast.LENGTH_SHORT).show();
             return false;
         }
     }
@@ -243,20 +243,20 @@ public final class CustomMenuActionStore {
     }
 
     public static String typeLabel(String type) {
-        if (type == null) return "直接打开";
+        if (type == null) return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f701ed7cec50);
         return switch (type) {
-            case TYPE_LAUNCH -> "启动应用";
-            case TYPE_ACTIVITY -> "直接打开入口";
-            case TYPE_SEND_TEXT -> "分享文字";
-            case TYPE_PROCESS_TEXT -> "处理文字";
-            case TYPE_VIEW_WEB -> "网页打开/搜索";
-            case TYPE_WEB_SEARCH -> "网页搜索";
-            case TYPE_DIAL -> "拨号";
-            case TYPE_SMS -> "短信";
-            case TYPE_EMAIL -> "邮件";
-            case TYPE_MAP -> "地图搜索";
-            case TYPE_TRANSLATE -> "翻译";
-            case TYPE_VIEW_TEXT -> "打开纯文本";
+            case TYPE_LAUNCH -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_7fe957b4e334);
+            case TYPE_ACTIVITY -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ebcacc33deed);
+            case TYPE_SEND_TEXT -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f258fec45ef0);
+            case TYPE_PROCESS_TEXT -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bacfe3e73295);
+            case TYPE_VIEW_WEB -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_be4f13a31f24);
+            case TYPE_WEB_SEARCH -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d9be509376b2);
+            case TYPE_DIAL -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ea0eca2434fa);
+            case TYPE_SMS -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_943ba3b6b72e);
+            case TYPE_EMAIL -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_467d3205e6b0);
+            case TYPE_MAP -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3247f3fc702a);
+            case TYPE_TRANSLATE -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6c51b8bbb258);
+            case TYPE_VIEW_TEXT -> com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_4043fbe3b425);
             default -> type;
         };
     }

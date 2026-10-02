@@ -115,8 +115,8 @@ public final class DiagnosticsExporter {
                             COMMAND_TIMEOUT_MS, 2 * 1024 * 1024)));
                 } else {
                     addText(zip, "root/ROOT_NOT_AVAILABLE.txt",
-                            "Root 日志未收集。\n\n" + formatResult(rootProbe)
-                                    + "\n首次使用时请在 KernelSU/Magisk 中给 NotifyLens 授予 root 后重新导出。\n");
+                            com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_e1e4ae57de69) + formatResult(rootProbe)
+                                    + com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_ccb4b64d0e71));
                 }
             }
 
@@ -138,19 +138,19 @@ public final class DiagnosticsExporter {
     }
 
     private static String readme(boolean rootCollected) {
-        return "NotifyLens 一键诊断日志\n"
-                + "生成时间: " + new Date() + "\n"
-                + "App 版本: " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")\n"
-                + "Root 日志: " + (rootCollected ? "已收集" : "未收集") + "\n\n"
-                + "包含内容:\n"
+        return com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_342c4a97e927)
+                + com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_77791c0c2b7a) + new Date() + "\n"
+                + com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_dd5a3210820c) + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")\n"
+                + com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_6dd342ab26af) + (rootCollected ? com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_7cad343f0ca7) : com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_7817c7c25cb8)) + "\n\n"
+                + com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_11c25e70fda9)
                 + "- NotifyLens 自身滚动日志、通知监听状态、LSPosed API 102/Hook 状态\n"
                 + "- 数据库/分类/合并统计与最近事件元数据（不主动导出通知正文）\n"
                 + "- App 自身 logcat\n"
                 + "- Root / KernelSU/Magisk 环境与已安装 root 模块 module.prop\n"
                 + "- LSPosed 环境与近期 LSPosed 日志\n"
                 + "- Root 可用时的全缓冲区 logcat、notification/accessibility/package/activity dumpsys、dmesg、ANR 和 tombstone 摘要\n\n"
-                + "注意: 系统 logcat、LSPosed 日志、dumpsys、ANR/tombstone 可能包含应用名、通知内容或其他个人信息。分享 ZIP 前请确认接收方可信。\n"
-                + "不会主动导出 NotifyLens 的 HMAC secret、数据库密钥、LSPosed 配置数据库或 root 模块私有配置文件。\n";
+                + com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_15afac2c9263)
+                + com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_6f9a23a73855);
     }
 
     private static String appState(Context context) {

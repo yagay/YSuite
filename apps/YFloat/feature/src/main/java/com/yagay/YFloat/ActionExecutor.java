@@ -62,7 +62,7 @@ public final class ActionExecutor {
 
     private static void global(Context c, LensAccessibilityService service, int action) {
         if (service == null || !service.global(action)) {
-            Toast.makeText(c, "请先开启 YFloat 无障碍服务", Toast.LENGTH_SHORT).show();
+            Toast.makeText(c, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1d357e5dade9), Toast.LENGTH_SHORT).show();
         }
     }
 

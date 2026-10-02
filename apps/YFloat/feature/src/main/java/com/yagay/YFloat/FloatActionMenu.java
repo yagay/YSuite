@@ -215,7 +215,7 @@ public final class FloatActionMenu {
 
         ArrayList<View> items = new ArrayList<>();
 
-        TextView copy = FloatingMenuUi.action(app, "复制", 58);
+        TextView copy = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7), 58);
         items.add(copy);
 
         TextView all = null;
@@ -243,7 +243,7 @@ public final class FloatActionMenu {
         copy.setOnClickListener(v -> {
             ClipboardManager cm = (ClipboardManager) app.getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("YFloat", text));
-            Toast.makeText(app, "已复制", Toast.LENGTH_SHORT).show();
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e84b8e9c556), Toast.LENGTH_SHORT).show();
             dismiss();
         });
         if (all != null) {
@@ -433,7 +433,7 @@ public final class FloatActionMenu {
                 Intent share = new Intent(Intent.ACTION_SEND)
                         .setType("text/plain")
                         .putExtra(Intent.EXTRA_TEXT, text);
-                app.startActivity(Intent.createChooser(share, "分享文字")
+                app.startActivity(Intent.createChooser(share, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f258fec45ef0))
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (Throwable t) {
                 Toast.makeText(app, "无法打开分享菜单", Toast.LENGTH_SHORT).show();
@@ -448,7 +448,7 @@ public final class FloatActionMenu {
                         .setType("text/plain")
                         .putExtra(Intent.EXTRA_PROCESS_TEXT, text)
                         .putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true);
-                app.startActivity(Intent.createChooser(process, "处理文字")
+                app.startActivity(Intent.createChooser(process, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bacfe3e73295))
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (Throwable t) {
                 Toast.makeText(app, "没有可用的文本处理应用", Toast.LENGTH_SHORT).show();

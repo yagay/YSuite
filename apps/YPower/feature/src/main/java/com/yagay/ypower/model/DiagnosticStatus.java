@@ -3,11 +3,11 @@ package com.yagay.ypower.model;
 import java.util.Locale;
 
 public enum DiagnosticStatus {
-    DETECTED("Detected", "检测到"),
-    PASS("Pass", "通过"),
-    FAIL("Fail", "异常"),
-    WARN("Warning", "警告"),
-    UNKNOWN("Unknown", "未知");
+    DETECTED("Detected", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e71233fe898b)),
+    PASS("Pass", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e0561a48579f)),
+    FAIL("Fail", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_7d29ab0fc30a)),
+    WARN("Warning", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_406dd7912457)),
+    UNKNOWN("Unknown", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_87f340e4520f));
 
     public final String code;
     private final String zh;

@@ -36,13 +36,13 @@ final class GoogleCtsTrigger {
 
         FloatSettings fs = new FloatSettings(app);
         if (!fs.enhancedMode() || !fs.lsposedEnabled()) {
-            Toast.makeText(app, "Google 圈画模式需要启用 LSPosed 增强", Toast.LENGTH_SHORT).show();
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a72460296503), Toast.LENGTH_SHORT).show();
             return false;
         }
         LsposedStatusManager.Snapshot status = LsposedStatusManager.snapshot();
         if (!status.serviceConnected || !status.remoteConfigReady
                 || !status.googleScopeEnabled()) {
-            Toast.makeText(app, "请在 LSPosed 作用域勾选 Google App", Toast.LENGTH_LONG).show();
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ec24d8acdb75), Toast.LENGTH_LONG).show();
             return false;
         }
         if (HookReloadManager.googleNeedsReload(app, status)) {
@@ -59,9 +59,9 @@ final class GoogleCtsTrigger {
                 new Handler(Looper.getMainLooper()).postDelayed(() -> trigger(app), 280L);
             });
             if (!started) {
-                Toast.makeText(app, "Google Hook 正在重新加载", Toast.LENGTH_SHORT).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_df9545bb902d), Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(app, "检测到 Hook 更新，正在热重载 Google…",
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3f751dc7d85c),
                         Toast.LENGTH_SHORT).show();
             }
             // The gesture is handled; never fall back to native YFloat circle during reload.
@@ -119,7 +119,7 @@ final class GoogleCtsTrigger {
                 fs.clearGoogleCtsSession();
                 LsposedStatusManager.clearGoogleCtsSessionRemote(token);
                 WorkflowSessionManager.fail(app, workflow, "google_cts_start_failed");
-                Toast.makeText(app, "Google 圈画启动失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_63d7415102df), Toast.LENGTH_SHORT).show();
             } else {
                 WorkflowSessionManager.transition(app, workflow,
                         WorkflowSessionManager.Phase.SELECTING, "google_cts_visible");
@@ -131,7 +131,7 @@ final class GoogleCtsTrigger {
             WorkflowSessionManager.fail(app, workflow, "google_cts_exception");
             DiagnosticLog.i(app, "GOOGLE_CTS_TRIGGER",
                     "failed=" + t.getClass().getSimpleName() + ":" + String.valueOf(t.getMessage()));
-            Toast.makeText(app, "Google 圈画启动失败: " + t.getClass().getSimpleName(),
+            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_def9b880703d) + t.getClass().getSimpleName(),
                     Toast.LENGTH_LONG).show();
             return false;
         }

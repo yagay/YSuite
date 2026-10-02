@@ -92,7 +92,7 @@ public final class RegionOverlay {
                 if (ocr) canvas.drawPath(lasso, paint);
                 else canvas.drawRect(rect(), paint);
             }
-            canvas.drawText(ocr ? "圈选要识别的内容 · 松手开始 OCR" : "拖动选择截图区域",
+            canvas.drawText(ocr ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3f8a53bd11e3) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_08a8b2b534b5),
                     dp(18), dp(38), textPaint);
         }
 
@@ -202,7 +202,7 @@ public final class RegionOverlay {
                     FloatService service = FloatService.get();
                     if (service != null) service.onCircleFinished("selection_error");
                 }
-                Toast.makeText(getContext(), "区域处理失败: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_69359283381b) + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         }
 

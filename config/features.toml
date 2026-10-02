@@ -3,7 +3,7 @@ schema = 3
 [[feature]]
 id = "yentrycleaner"
 name = "YEntryCleaner"
-description = "分享、打开方式与组件入口清理"
+description = "Share, open-with, and component entry cleanup"
 gradle_module = ":yentrycleaner-feature"
 project_dir = "apps/YEntryCleaner/feature"
 entry_activity = "com.yagay.YEntryCleaner.ui.MainActivity"
@@ -20,7 +20,7 @@ hooks = [
 [[feature]]
 id = "ydiag"
 name = "YDiag"
-description = "应用日志与故障诊断"
+description = "App logs and fault diagnostics"
 gradle_module = ":ydiag-feature"
 project_dir = "apps/YDiag/feature"
 entry_activity = "com.yagay.ydiag.ui.MainActivity"
@@ -32,7 +32,7 @@ hooks = [{ id = "ydiag/main", class = "com.yagay.ydiag.xposed.YDiagModule" }]
 [[feature]]
 id = "ynotify"
 name = "YNotify"
-description = "通知 / Toast / 横幅历史"
+description = "Notification, Toast, and heads-up history"
 gradle_module = ":ynotify-feature"
 project_dir = "apps/YNotify/feature"
 entry_activity = "com.yagay.YNotify.ui.MainActivity"
@@ -54,7 +54,7 @@ hooks = [{ id = "ynotify/main", class = "com.yagay.YNotify.xposed.YNotifyModule"
 [[feature]]
 id = "ypower"
 name = "YPower"
-description = "应用增强、检测与运行时诊断"
+description = "App enhancements, detection, and runtime diagnostics"
 gradle_module = ":ypower-feature"
 project_dir = "apps/YPower/feature"
 entry_activity = "com.yagay.ypower.ui.MainActivity"
@@ -75,7 +75,7 @@ hooks = [
 [[feature]]
 id = "yminiguard"
 name = "YMiniGuard"
-description = "小窗保活与后台播放守护"
+description = "Mini-window keep-alive and background playback guard"
 gradle_module = ":yminiguard-feature"
 project_dir = "apps/YMiniGuard/feature"
 entry_activity = "com.yagay.YMiniGuard.MainActivity"
@@ -90,7 +90,7 @@ hooks = [{ id = "yminiguard/main", class = "com.yagay.YMiniGuard.GuardModule" }]
 [[feature]]
 id = "ynfc"
 name = "YNFC"
-description = "NFC 门禁卡与控制器模拟"
+description = "NFC access-card and controller emulation"
 gradle_module = ":ynfc-feature"
 project_dir = "apps/YNFC/feature"
 entry_activity = "com.yagay.YNFC.MainActivity"
@@ -105,7 +105,7 @@ hooks = [{ id = "ynfc/main", class = "com.yagay.YNFC.xposed.NfcInjectionModule" 
 [[feature]]
 id = "ytaskmanager"
 name = "YTaskManager"
-description = "进程、性能与系统任务管理"
+description = "Process, performance, and system task management"
 gradle_module = ":ytask-feature"
 project_dir = "apps/YTaskManager/feature"
 entry_activity = "com.yagay.YTaskManager.MainActivity"
@@ -117,7 +117,7 @@ hooks = [{ id = "ytaskmanager/main", class = "com.yagay.YTaskManager.xposed.Task
 [[feature]]
 id = "yparam"
 name = "YParam"
-description = "应用 DPI、语言、定位与参数覆盖"
+description = "App DPI, language, location, and parameter overrides"
 gradle_module = ":yparam-feature"
 project_dir = "apps/YParam/feature"
 entry_activity = "com.yagay.yparam.ui.MainActivity"
@@ -129,7 +129,7 @@ hooks = [{ id = "yparam/main", class = "com.yagay.yparam.hook.YParamModule" }]
 [[feature]]
 id = "yfloat"
 name = "YFloat"
-description = "悬浮操作、文字选框与快捷动作"
+description = "Floating actions, text selection, and shortcuts"
 gradle_module = ":yfloat-feature"
 project_dir = "apps/YFloat/feature"
 entry_activity = "com.yagay.YFloat.MainActivity"

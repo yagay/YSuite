@@ -81,7 +81,7 @@ class DiagnosticExporter(private val context: Context) {
         File(dir, "summary.json").writeText(json.encodeToString(summary))
         File(dir, "issues.json").writeText(json.encodeToString(issues))
         File(dir, "diagnosis.txt").writeText(buildString {
-            appendLine("YDiag 自动诊断摘要")
+            appendLine(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_f8256e2521e6))
             appendLine("================")
             appendLine("目标: ${meta.targetPackages.joinToString()}")
             appendLine("问题标记: ${meta.problemMarks.joinToString()}")

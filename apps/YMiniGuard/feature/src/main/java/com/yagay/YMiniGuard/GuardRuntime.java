@@ -226,7 +226,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     }
 
     static String getFrameworkName() {
-        return frameworkName.isEmpty() ? "未连接" : frameworkName;
+        return frameworkName.isEmpty() ? com.yagay.suite.api.YLocale.text(com.yagay.YMiniGuard.R.string.ymg_generated_661bf07ed641) : frameworkName;
     }
 
     static SharedPreferences localPrefs() {
