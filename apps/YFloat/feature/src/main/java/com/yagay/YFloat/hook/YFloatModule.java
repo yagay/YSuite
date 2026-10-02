@@ -19,15 +19,15 @@ public final class YFloatModule extends XposedModule {
         runtimeProvider.start();
         log(Log.INFO, TAG,
                 "Module loaded in " + param.getProcessName()
-                        + "; provider=" + (runtimeProvider.isActive() ? "enabled" : "disabled"));
+                        + "; provider=" + (runtimeProvider.isActive() ? "enabled" : "disabled")
+                        + "; owner=" + RuntimeOwnerGate.readOwner("yfloat"));
     }
 
     @Override
     public void onSystemServerStarting(SystemServerStartingParam param) {
-        if (!RuntimeOwnerGate.shouldRun("yfloat", getModuleApplicationInfo())) {
-            log(Log.INFO, TAG, "Standalone hooks passive; YSuite owns yfloat runtime");
-            return;
-        }
+        // Do not retire the standalone hook solely from the owner marker. YSuite can claim the
+        // feature before its LSPosed entry is actually loaded/reloaded in this target process. If we
+        // return here, secure screenshot / Google Circle support has no active owner at all.
         LsposedRuntimeProvider provider = runtimeProvider;
         if (provider == null) {
             log(Log.ERROR, TAG, "system_server provider missing; secure screenshot hook not installed");
@@ -54,16 +54,19 @@ public final class YFloatModule extends XposedModule {
     @Override
     public void onPackageReady(PackageReadyParam param) {
         if (googleCtsInspectorInstalled || !GOOGLE_PACKAGE.equals(param.getPackageName())) return;
-        if (!RuntimeOwnerGate.shouldRun("yfloat", getModuleApplicationInfo())) {
-            log(Log.INFO, TAG, "Standalone Google CTS hook passive; YSuite owns yfloat runtime");
-            return;
-        }
+
+        // Keep the already-loaded compatibility hook alive until YSuite has a positively verified
+        // target-process handoff. A Global Settings owner bit is not proof that the suite module is
+        // scoped and resident in the Google process. The inspector is session-scoped and therefore
+        // safer to keep than to create a zero-owner gap where Circle to Search stops completely.
         LsposedRuntimeProvider provider = runtimeProvider;
         if (provider == null) return;
         try {
             new GoogleCtsRuntimeInspector(this, provider, param.getClassLoader()).install();
             googleCtsInspectorInstalled = true;
-            log(Log.INFO, TAG, "Google CTS marked-session inspector installed");
+            log(Log.INFO, TAG,
+                    "Google CTS marked-session inspector installed; owner="
+                            + RuntimeOwnerGate.readOwner("yfloat"));
         } catch (Throwable t) {
             log(Log.ERROR, TAG, "Failed to install Google CTS marked-session inspector", t);
         }
