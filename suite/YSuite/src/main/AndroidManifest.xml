@@ -7,7 +7,8 @@
     <application
         android:name=".YSuiteApp"
         android:allowBackup="false"
-        android:label="YSuite"
+        android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.YSuite">
 
