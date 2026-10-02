@@ -1,6 +1,7 @@
 package com.yagay.YNFC
 
 import com.yagay.YNFC.system.NfcSystemService
+import com.yagay.suite.api.YLocale
 import java.util.concurrent.Executors
 
 /** Serializes APPLY/STOP commands and preserves their generation/PID verification contract. */
@@ -24,12 +25,17 @@ internal class SimulationCoordinator(
             }
             state = waitForCommandCompletion(generation, card.uid, apply = true, timeoutMs = 12_000)
             val message = when {
-                SimulationResultPolicy.isApplySuccess(state, generation, card.uid) -> "模拟成功 · UID=${card.uid} · NFC进程内确认"
-                !state.hookInstalled -> "模拟请求已保存，但 Hook 未就绪"
-                state.commandGeneration != generation -> "模拟请求被更新的命令替代"
+                SimulationResultPolicy.isApplySuccess(state, generation, card.uid) ->
+                    YLocale.text(R.string.ynfc_sim_apply_success, card.uid)
+                !state.hookInstalled -> YLocale.text(R.string.ynfc_sim_hook_not_ready)
+                state.commandGeneration != generation -> YLocale.text(R.string.ynfc_sim_command_superseded)
                 state.commandStatus == "FAILED" || state.commandStatus == "TRIGGER_FAILED" ->
-                    "模拟失败 · ${state.commandStatus}: ${state.commandDetail ?: state.rfError ?: "unknown"}"
-                else -> "模拟请求已发送 · 等待 RF UID 确认"
+                    YLocale.text(
+                        R.string.ynfc_sim_apply_failure,
+                        state.commandStatus,
+                        state.commandDetail ?: state.rfError ?: "unknown"
+                    )
+                else -> YLocale.text(R.string.ynfc_sim_waiting_rf)
             }
             AppLogger.i("SIMULATION: COMMAND result generation=$generation message=$message\n${statusSummary(state)}")
             onDone(state, message)
@@ -43,7 +49,7 @@ internal class SimulationCoordinator(
             var state = waitForCommandCompletion(generation, null, apply = false, timeoutMs = 6_000)
             if (SimulationResultPolicy.isStopSuccess(state, generation)) {
                 AppLogger.i("SIMULATION: STOP success without restart generation=$generation\n${statusSummary(state)}")
-                onDone(state, "模拟已停止 · 原厂 RF 已由 NFC 进程恢复")
+                onDone(state, YLocale.text(R.string.ynfc_sim_stop_lifecycle_restored))
                 return@execute
             }
 
@@ -51,7 +57,7 @@ internal class SimulationCoordinator(
             if (!runtimeRepository.isCurrentCommandGeneration(generation)) {
                 state = runtimeRepository.read(includeRootPid = true)
                 AppLogger.i("SIMULATION: STOP fallback cancelled because generation=$generation is no longer current")
-                onDone(state, "停止请求已被更新的命令替代")
+                onDone(state, YLocale.text(R.string.ynfc_sim_stop_superseded))
                 return@execute
             }
             val restart = nfcSystemService.restartNfcProcessKeepingEnabled("stop_command_fallback_generation_$generation")
@@ -66,9 +72,9 @@ internal class SimulationCoordinator(
             }
 
             val message = if (SimulationResultPolicy.isStopSuccess(state, generation)) {
-                "模拟已停止 · 已恢复原厂 RF"
+                YLocale.text(R.string.ynfc_sim_stop_restored)
             } else {
-                "模拟已停止 · NFC 已重启，但状态确认未完成"
+                YLocale.text(R.string.ynfc_sim_stop_restart_unconfirmed)
             }
             onDone(state, message)
         }
