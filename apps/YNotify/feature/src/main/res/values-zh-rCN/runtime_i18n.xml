@@ -17,6 +17,5 @@
     <string name="ynotify_runtime_not_connected">LSPosed API 102 服务未连接</string>
     <string name="ynotify_custom_toast">自定义 Toast</string>
     <string name="ynotify_content_hidden">[内容已隐藏]</string>
-    <string name="ynotify_unknown_app">未知应用</string>
     <string name="ynotify_android_system">Android 系统</string>
 </resources>
