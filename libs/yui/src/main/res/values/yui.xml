@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="yui_loading">Loading…</string>
+    <string name="yui_search">Search</string>
+    <string name="yui_open">Open</string>
+
     <dimen name="yui_screen_horizontal">16dp</dimen>
     <dimen name="yui_screen_vertical">12dp</dimen>
     <dimen name="yui_section_gap">12dp</dimen>
