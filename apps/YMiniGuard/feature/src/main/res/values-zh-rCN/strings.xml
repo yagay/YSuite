@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ymg_title">小窗守护</string>
-    <string name="ymg_subtitle">YMiniGuard · OPlus FlexibleWindow · System Scope</string>
+    <string name="ymg_subtitle">YMiniGuard，OPlus FlexibleWindow，System Scope</string>
     <string name="ymg_runtime_title">运行状态</string>
-    <string name="ymg_runtime_desc">核心运行在 system_server，目标 App 不需要加入 LSPosed 作用域。</string>
-    <string name="ymg_engine_checking">System Engine：检测中…</string>
-    <string name="ymg_lsposed_scope">LSPosed 固定作用域：system / system_server</string>
+    <string name="ymg_runtime_desc">核心运行在 system_server，目标应用不需要加入 LSPosed 作用域。</string>
+    <string name="ymg_engine_checking">System Engine：检测中</string>
+    <string name="ymg_lsposed_scope">LSPosed 固定作用域：system 和 system_server</string>
     <string name="ymg_enable">启用小窗守护</string>
-    <string name="ymg_enable_desc">总开关。关闭后不修改一加小窗支持判断，也不应用前台/防清理保护。</string>
+    <string name="ymg_enable_desc">总开关。关闭后不修改一加小窗支持判断，也不应用前台或防清理保护。</string>
     <string name="ymg_hot_reload">自动热重载</string>
     <string name="ymg_hot_reload_desc">更新 APK 后自动加载新的 Engine。Bootstrap Hook 结构变化仍需要重启一次。</string>
     <string name="ymg_reload_now">立即重新加载 System Engine</string>
@@ -17,58 +17,59 @@
     <string name="ymg_recheck">重新检测</string>
 
     <string name="ymg_app_lists_title">应用名单</string>
-    <string name="ymg_app_lists_desc">App 的启动、进入小窗、恢复和关闭完全使用 OxygenOS 自己的方式。YMiniGuard 只监听一加小窗状态。</string>
+    <string name="ymg_app_lists_desc">应用的启动、进入小窗、恢复和关闭完全使用 OxygenOS 自己的方式。YMiniGuard 只监听一加小窗状态。</string>
     <string name="ymg_foreground_apps">始终前台应用</string>
     <string name="ymg_foreground_title">始终前台</string>
-    <string name="ymg_foreground_desc">勾选的 App 只有在真实 OPlus FlexibleWindow、贴边/最小化小窗，或该小窗进入锁屏状态时才保持运行。普通全屏状态不干预。</string>
+    <string name="ymg_foreground_desc">勾选的应用只有在真实 OPlus FlexibleWindow、贴边或最小化小窗，或该小窗进入锁屏状态时才保持运行。普通全屏状态不干预。</string>
     <string name="ymg_background_apps">后台播放应用</string>
     <string name="ymg_background_title">普通后台播放</string>
-    <string name="ymg_background_desc">从普通全屏切到桌面/其他 App 或锁屏时进入 BACKGROUND_PROTECTED；返回原 App 自动解除。</string>
+    <string name="ymg_background_desc">从普通全屏切到桌面、其他应用或锁屏时进入后台保护状态，返回原应用后自动解除。</string>
     <string name="ymg_force_support_apps">强制允许一加小窗应用</string>
     <string name="ymg_support_title">小窗支持</string>
-    <string name="ymg_support_desc">只对勾选的 App 放行一加 FlexibleWindow 支持/黑名单检查；不会主动启动或主动切换小窗。</string>
+    <string name="ymg_support_desc">只对勾选的应用放行一加 FlexibleWindow 支持或黑名单检查，不会主动启动或主动切换小窗。</string>
 
     <string name="ymg_protection_title">运行保护</string>
-    <string name="ymg_protection_desc">小窗继续使用 OPlus 状态驱动；后台播放名单只在离开普通全屏后进入 BACKGROUND_PROTECTED。</string>
+    <string name="ymg_protection_desc">小窗继续使用 OPlus 状态驱动。后台播放名单只在离开普通全屏后进入后台保护状态。</string>
     <string name="ymg_keep_top">受保护进程状态保持 TOP</string>
-    <string name="ymg_keep_top_desc">对真实一加小窗/贴边/锁屏，以及 BACKGROUND_PROTECTED 普通后台进程返回 TOP。</string>
+    <string name="ymg_keep_top_desc">对真实一加小窗、贴边或锁屏小窗，以及后台保护进程返回 TOP。</string>
     <string name="ymg_has_resumed">受保护任务视为存在 Resumed Activity</string>
-    <string name="ymg_has_resumed_desc">对真实一加小窗和 BACKGROUND_PROTECTED 任务返回 true；普通前台不修改。</string>
+    <string name="ymg_has_resumed_desc">对真实一加小窗和后台保护任务返回 true。普通前台不修改。</string>
     <string name="ymg_block_cleanup">阻止系统清理受保护进程</string>
-    <string name="ymg_block_cleanup_desc">保护一加小窗和 BACKGROUND_PROTECTED 进程；强制停止/更新放行，普通后台任务被划掉时仍允许正常关闭。</string>
+    <string name="ymg_block_cleanup_desc">保护一加小窗和后台保护进程。强制停止和更新会放行，普通后台任务被划掉时仍允许正常关闭。</string>
 
     <string name="ymg_diag_title">详细诊断</string>
-    <string name="ymg_diag_desc">记录 OPlus FlexibleWindow 回调、支持判断、Task 状态、前台查询和 OEM 清理链路。</string>
-    <string name="ymg_diag_checking">详细日志：检测中…</string>
+    <string name="ymg_diag_desc">记录 OPlus FlexibleWindow 回调、支持判断、任务状态、前台查询和 OEM 清理链路。</string>
+    <string name="ymg_diag_checking">详细日志：检测中</string>
     <string name="ymg_diag_start">开始详细日志</string>
     <string name="ymg_diag_started">已开始记录 OPlus 小窗详细日志。</string>
     <string name="ymg_diag_stop">停止详细日志</string>
     <string name="ymg_diag_stopped">详细日志已停止。</string>
     <string name="ymg_diag_export">导出诊断 ZIP</string>
-    <string name="ymg_diag_collecting">正在收集 OPlus FlexibleWindow、system_server 和系统状态…</string>
+    <string name="ymg_diag_collecting">正在收集 OPlus FlexibleWindow、system_server 和系统状态。</string>
     <string name="ymg_diag_export_failed">导出失败：%1$s</string>
     <string name="ymg_diag_saved">已保存到 Download/YMiniGuard/%1$s</string>
     <string name="ymg_diag_share">分享诊断 ZIP</string>
-    <string name="ymg_diag_running">详细日志：持续开启%1$s</string>
-    <string name="ymg_diag_disabled">详细日志：关闭</string>
+    <string name="ymg_diag_running">详细日志已开启%1$s</string>
+    <string name="ymg_diag_started_at">。开始时间：%1$s</string>
+    <string name="ymg_diag_disabled">详细日志已关闭</string>
 
     <string name="ymg_engine_lsposed_disconnected">System Engine：LSPosed 服务未连接</string>
-    <string name="ymg_engine_scope_missing">System Engine：作用域缺少 system · 实际=%1$s</string>
-    <string name="ymg_engine_current">System Engine：code %1$d · Bootstrap %2$d · gen %3$d · 跟踪 Task %4$d\n%5$s</string>
-    <string name="ymg_engine_old">System Engine：旧 Engine %1$d / 已安装 APK %2$d\n请重新加载 Engine；若 Bootstrap Hook 已改变，需要重启一次。</string>
+    <string name="ymg_engine_scope_missing">System Engine：作用域缺少 system。实际作用域：%1$s</string>
+    <string name="ymg_engine_current">System Engine：代码 %1$d，Bootstrap %2$d，代数 %3$d，跟踪任务 %4$d\n%5$s</string>
+    <string name="ymg_engine_old">System Engine：旧 Engine %1$d，已安装 APK %2$d\n请重新加载 Engine。若 Bootstrap Hook 已改变，需要重启一次。</string>
     <string name="ymg_engine_no_heartbeat">System Engine：未检测到有效心跳</string>
 
     <string name="ymg_target_force_title">强制允许一加小窗</string>
     <string name="ymg_target_background_title">后台播放应用</string>
     <string name="ymg_target_foreground_title">始终前台应用</string>
-    <string name="ymg_target_force_help">勾选后仅放行该 App 的 OPlus FlexibleWindow 支持/黑名单判断。App 仍由 OxygenOS 自己启动和进入小窗。</string>
-    <string name="ymg_target_background_help">勾选后，该 App 从普通全屏切到桌面/其他 App 或锁屏时进入 BACKGROUND_PROTECTED。同 App 页面跳转、Activity finishing、强制停止和真实关闭不拦截。</string>
-    <string name="ymg_target_foreground_help">勾选后，只有当该 App 当前真实处于一加小窗、贴边小窗或锁屏中的一加小窗时，YMiniGuard 才维持前台和后台播放；普通全屏状态完全不干预。</string>
+    <string name="ymg_target_force_help">勾选后仅放行该应用的 OPlus FlexibleWindow 支持或黑名单判断。应用仍由 OxygenOS 自己启动和进入小窗。</string>
+    <string name="ymg_target_background_help">勾选后，该应用从普通全屏切到桌面、其他应用或锁屏时进入后台保护状态。同一应用内页面跳转、Activity finishing、强制停止和真实关闭不拦截。</string>
+    <string name="ymg_target_foreground_help">勾选后，只有当该应用当前真实处于一加小窗、贴边小窗或锁屏中的一加小窗时，YMiniGuard 才维持前台和后台播放。普通全屏状态完全不干预。</string>
     <string name="ymg_search_apps">搜索应用名或包名</string>
     <string name="ymg_back">返回</string>
     <string name="ymg_load_apps_failed">读取应用列表失败：%1$s</string>
-    <string name="ymg_selected_count">已选择 %1$d 个 · 当前显示 %2$d 个</string>
+    <string name="ymg_selected_count">已选择：%1$d 个。当前显示：%2$d 个。</string>
     <string name="ymg_app_list_failed_title">应用列表启动失败</string>
     <string name="ymg_app_list_failed_detail">%1$s\n%2$s\n\n错误已写入诊断日志。</string>
-    <string name="ymg_system_app_suffix"> · 系统应用</string>
+    <string name="ymg_system_app_suffix">，系统应用</string>
 </resources>
