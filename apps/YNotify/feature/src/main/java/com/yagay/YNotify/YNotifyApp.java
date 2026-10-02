@@ -1,6 +1,7 @@
 package com.yagay.YNotify;
 
 import android.app.Application;
+import android.content.Context;
 
 /** Standalone APK shell; real runtime lives in YNotifyRuntime for suite reuse. */
 public final class YNotifyApp extends Application {
@@ -19,6 +20,10 @@ public final class YNotifyApp extends Application {
     }
 
     public static String runtimeStatus() {
-        return YNotifyRuntime.runtimeStatus();
+        return YNotifyRuntime.runtimeStatus(null);
+    }
+
+    public static String runtimeStatus(Context context) {
+        return YNotifyRuntime.runtimeStatus(context);
     }
 }
