@@ -23,6 +23,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.yagay.yparam.R;
 import com.yagay.yparam.YParamApp;
 import com.yagay.yparam.data.AppConfig;
 import com.yagay.yparam.data.ConfigRepository;
@@ -78,7 +79,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         YViewScreen screen = YViewLayout.install(this, name, packageName);
         root = screen.getContent();
 
-        LinearLayout statusCard = YViewLayout.card(root, "配置状态", "未设置的字段始终返回真实系统/应用默认值");
+        LinearLayout statusCard = YViewLayout.card(root, getString(R.string.yparam_config_status), getString(R.string.yparam_config_status_desc));
         summary = YViewLayout.statusLine(this, "");
         scopeState = YViewLayout.statusLine(this, "");
         statusCard.addView(summary);
@@ -86,104 +87,111 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         refreshStatus();
 
         LinearLayout actions = YViewLayout.actionRow(root);
-        Button scope = YViewLayout.secondaryButton(this, "加入 LSPosed 作用域");
+        Button scope = YViewLayout.secondaryButton(this, getString(R.string.yparam_add_scope));
         scope.setOnClickListener(v -> requestScope());
-        Button save = YViewLayout.primaryButton(this, "保存");
+        Button save = YViewLayout.primaryButton(this, getString(R.string.yparam_save));
         save.setOnClickListener(v -> save());
         YViewLayout.addAction(actions, scope);
         YViewLayout.addAction(actions, save);
 
-        section("快速模板");
+        section(R.string.yparam_quick_presets);
         LinearLayout presets = horizontal();
-        Button tablet = button("平板"); tablet.setOnClickListener(v -> applyPreset("tablet"));
-        Button compact = button("紧凑"); compact.setOnClickListener(v -> applyPreset("compact"));
-        Button uk = button("英国环境"); uk.setOnClickListener(v -> applyPreset("uk"));
+        Button tablet = button(R.string.yparam_preset_tablet); tablet.setOnClickListener(v -> applyPreset("tablet"));
+        Button compact = button(R.string.yparam_preset_compact); compact.setOnClickListener(v -> applyPreset("compact"));
+        Button uk = button(R.string.yparam_preset_uk); uk.setOnClickListener(v -> applyPreset("uk"));
         presets.addView(tablet, weight()); presets.addView(compact, weight()); presets.addView(uk, weight());
         root.addView(presets);
 
         DisplayMetrics dm = getResources().getDisplayMetrics();
         Configuration cf = getResources().getConfiguration();
 
-        section("显示与分辨率");
-        addChoiceField("densityDpi", "DPI / densityDpi", String.valueOf(dm.densityDpi), val(config.densityDpi),
-                "输入任意 72–1000 的 DPI", new String[]{"120","160","213","240","280","320","360","380","400","420","440","480","560","640"});
-        addChoiceField("widthPixels", "虚拟宽度 px", String.valueOf(dm.widthPixels), val(config.widthPixels),
-                "输入自定义宽度", new String[]{"720","900","1080","1200","1440"});
-        addChoiceField("heightPixels", "虚拟高度 px", String.valueOf(dm.heightPixels), val(config.heightPixels),
-                "输入自定义高度", new String[]{"1280","1600","1920","2160","2340","2400","2520","2670","2772","3120","3200"});
-        addChoiceField("smallestWidthDp", "最小宽度 dp", String.valueOf(cf.smallestScreenWidthDp), val(config.smallestWidthDp),
-                "输入自定义 smallestWidthDp", new String[]{"320","360","384","392","411","480","600","720","840"});
-        addChoiceField("screenWidthDp", "screenWidthDp", String.valueOf(cf.screenWidthDp), val(config.screenWidthDp),
-                "输入自定义 screenWidthDp", new String[]{"320","360","384","392","411","480","600","720","840"});
-        addChoiceField("screenHeightDp", "screenHeightDp", String.valueOf(cf.screenHeightDp), val(config.screenHeightDp),
-                "输入自定义 screenHeightDp", new String[]{"640","720","800","840","891","960","1080","1280"});
-        addChoiceField("fontScale", "字体缩放", String.valueOf(cf.fontScale), val(config.fontScale),
-                "输入自定义比例，例如 1.08", new String[]{"0.80","0.90","0.95","1.00","1.05","1.10","1.15","1.20","1.30"});
-        addField("xdpi", "xDpi", String.valueOf(dm.xdpi), val(config.xdpi), "高级参数；留空=真实值");
-        addField("ydpi", "yDpi", String.valueOf(dm.ydpi), val(config.ydpi), "高级参数；留空=真实值");
-        addChoiceField("refreshRate", "刷新率 Hz", defaultRefreshRate(), val(config.refreshRate),
-                "输入自定义刷新率", new String[]{"60","90","120","144","165"});
+        section(R.string.yparam_display_section);
+        addChoiceField("densityDpi", R.string.yparam_density_label, String.valueOf(dm.densityDpi), val(config.densityDpi),
+                R.string.yparam_density_hint, new String[]{"120","160","213","240","280","320","360","380","400","420","440","480","560","640"});
+        addChoiceField("widthPixels", R.string.yparam_width_label, String.valueOf(dm.widthPixels), val(config.widthPixels),
+                R.string.yparam_width_hint, new String[]{"720","900","1080","1200","1440"});
+        addChoiceField("heightPixels", R.string.yparam_height_label, String.valueOf(dm.heightPixels), val(config.heightPixels),
+                R.string.yparam_height_hint, new String[]{"1280","1600","1920","2160","2340","2400","2520","2670","2772","3120","3200"});
+        addChoiceField("smallestWidthDp", R.string.yparam_smallest_width_label, String.valueOf(cf.smallestScreenWidthDp), val(config.smallestWidthDp),
+                R.string.yparam_smallest_width_hint, new String[]{"320","360","384","392","411","480","600","720","840"});
+        addChoiceField("screenWidthDp", R.string.yparam_screen_width_label, String.valueOf(cf.screenWidthDp), val(config.screenWidthDp),
+                R.string.yparam_screen_width_hint, new String[]{"320","360","384","392","411","480","600","720","840"});
+        addChoiceField("screenHeightDp", R.string.yparam_screen_height_label, String.valueOf(cf.screenHeightDp), val(config.screenHeightDp),
+                R.string.yparam_screen_height_hint, new String[]{"640","720","800","840","891","960","1080","1280"});
+        addChoiceField("fontScale", R.string.yparam_font_scale_label, String.valueOf(cf.fontScale), val(config.fontScale),
+                R.string.yparam_font_scale_hint, new String[]{"0.80","0.90","0.95","1.00","1.05","1.10","1.15","1.20","1.30"});
+        addField("xdpi", "xDpi", String.valueOf(dm.xdpi), val(config.xdpi), getString(R.string.yparam_advanced_real_hint));
+        addField("ydpi", "yDpi", String.valueOf(dm.ydpi), val(config.ydpi), getString(R.string.yparam_advanced_real_hint));
+        addChoiceField("refreshRate", R.string.yparam_refresh_rate_label, defaultRefreshRate(), val(config.refreshRate),
+                R.string.yparam_refresh_rate_hint, new String[]{"60","90","120","144","165"});
 
-        section("语言、地区与时间");
-        addChoiceField("localeTag", "Locale / 应用语言", Locale.getDefault().toLanguageTag(), val(config.localeTag),
-                "输入 BCP-47，例如 es-ES", new String[]{"zh-CN","zh-TW","en-GB","en-US","ja-JP","ko-KR","de-DE","fr-FR"});
-        addChoiceField("timeZoneId", "时区", TimeZone.getDefault().getID(), val(config.timeZoneId),
-                "输入 IANA 时区", new String[]{"UTC","Asia/Shanghai","Asia/Hong_Kong","Asia/Tokyo","Asia/Seoul","Asia/Kuala_Lumpur","Asia/Singapore","Europe/London","Europe/Paris","Europe/Berlin","America/New_York","America/Chicago","America/Denver","America/Los_Angeles"});
-        nightMode = addSpinner("深色模式", "系统当前=" + nightText(cf), new String[]{"默认", "浅色", "深色"}, nightIndex(config.nightMode));
+        section(R.string.yparam_region_section);
+        addChoiceField("localeTag", R.string.yparam_locale_label, Locale.getDefault().toLanguageTag(), val(config.localeTag),
+                R.string.yparam_locale_hint, new String[]{"zh-CN","zh-TW","en-GB","en-US","ja-JP","ko-KR","de-DE","fr-FR"});
+        addChoiceField("timeZoneId", R.string.yparam_timezone_label, TimeZone.getDefault().getID(), val(config.timeZoneId),
+                R.string.yparam_timezone_hint, new String[]{"UTC","Asia/Shanghai","Asia/Hong_Kong","Asia/Tokyo","Asia/Seoul","Asia/Kuala_Lumpur","Asia/Singapore","Europe/London","Europe/Paris","Europe/Berlin","America/New_York","America/Chicago","America/Denver","America/Los_Angeles"});
+        nightMode = addSpinner(getString(R.string.yparam_night_mode), getString(R.string.yparam_system_current, nightText(cf)),
+                new String[]{getString(R.string.yparam_default), getString(R.string.yparam_light), getString(R.string.yparam_dark)}, nightIndex(config.nightMode));
 
-        section("窗口与方向");
-        orientation = addSpinner("屏幕方向", defaultOrientation(), new String[]{"默认", "竖屏", "横屏", "全传感器", "锁定当前"}, orientationIndex(config.orientation));
-        screenshots = addSpinner("截图 / FLAG_SECURE", "应用默认", new String[]{"默认", "强制允许截图", "强制禁止截图"}, boolIndex(config.allowScreenshots));
-        keepScreen = addSpinner("保持屏幕常亮", "应用默认", new String[]{"默认", "强制常亮", "不强制常亮"}, boolIndex(config.keepScreenOn));
-        addField("userAgent", "WebView User-Agent", "WebView 默认", val(config.userAgent), "只覆盖 WebSettings.getDefaultUserAgent");
+        section(R.string.yparam_window_section);
+        orientation = addSpinner(getString(R.string.yparam_orientation), defaultOrientation(),
+                new String[]{getString(R.string.yparam_default), getString(R.string.yparam_portrait), getString(R.string.yparam_landscape), getString(R.string.yparam_full_sensor), getString(R.string.yparam_lock_current)}, orientationIndex(config.orientation));
+        screenshots = addSpinner(getString(R.string.yparam_screenshot_label), getString(R.string.yparam_app_default),
+                new String[]{getString(R.string.yparam_default), getString(R.string.yparam_force_allow_screenshot), getString(R.string.yparam_force_block_screenshot)}, boolIndex(config.allowScreenshots));
+        keepScreen = addSpinner(getString(R.string.yparam_keep_screen_label), getString(R.string.yparam_app_default),
+                new String[]{getString(R.string.yparam_default), getString(R.string.yparam_force_screen_on), getString(R.string.yparam_do_not_force_screen_on)}, boolIndex(config.keepScreenOn));
+        addField("userAgent", "WebView User-Agent", getString(R.string.yparam_webview_default), val(config.userAgent), getString(R.string.yparam_user_agent_hint));
 
-        section("定位与模拟");
-        locationMode = addSpinner("定位模式", "真实系统定位", new String[]{"默认/真实", "固定位置", "随机半径"}, locationIndex(config.locationMode));
-        addField("latitude", "纬度", "真实系统定位", val(config.latitude), "-90..90");
-        addField("longitude", "经度", "真实系统定位", val(config.longitude), "-180..180");
-        addField("altitude", "海拔 m", "Location 原值", val(config.altitude), "可留空");
-        addChoiceField("accuracy", "精度 m", "Location 原值", val(config.accuracy),
-                "输入自定义精度", new String[]{"3","5","10","20","50","100"});
-        addChoiceField("speed", "速度 m/s", "Location 原值", val(config.speed),
-                "输入自定义速度", new String[]{"0","1.4","5","10","20","30"});
-        addChoiceField("bearing", "方向 °", "Location 原值", val(config.bearing),
-                "输入 0–360", new String[]{"0","45","90","135","180","225","270","315"});
-        addChoiceField("randomRadiusMeters", "随机半径 m", "0", val(config.randomRadiusMeters),
-                "输入自定义随机半径", new String[]{"0","10","50","100","500","1000","5000"});
-        addChoiceField("locationUpdateIntervalMs", "随机更新间隔 ms", "5000", val(config.locationUpdateIntervalMs),
-                "输入自定义毫秒数", new String[]{"1000","3000","5000","10000","30000","60000"});
+        section(R.string.yparam_location_section);
+        locationMode = addSpinner(getString(R.string.yparam_location_mode), getString(R.string.yparam_real_location),
+                new String[]{getString(R.string.yparam_default_real), getString(R.string.yparam_fixed_location), getString(R.string.yparam_random_radius)}, locationIndex(config.locationMode));
+        addField("latitude", getString(R.string.yparam_latitude), getString(R.string.yparam_real_location), val(config.latitude), "-90 to 90");
+        addField("longitude", getString(R.string.yparam_longitude), getString(R.string.yparam_real_location), val(config.longitude), "-180 to 180");
+        addField("altitude", getString(R.string.yparam_altitude), getString(R.string.yparam_location_original), val(config.altitude), getString(R.string.yparam_optional));
+        addChoiceField("accuracy", R.string.yparam_accuracy, getString(R.string.yparam_location_original), val(config.accuracy),
+                R.string.yparam_accuracy_hint, new String[]{"3","5","10","20","50","100"});
+        addChoiceField("speed", R.string.yparam_speed, getString(R.string.yparam_location_original), val(config.speed),
+                R.string.yparam_speed_hint, new String[]{"0","1.4","5","10","20","30"});
+        addChoiceField("bearing", R.string.yparam_bearing, getString(R.string.yparam_location_original), val(config.bearing),
+                R.string.yparam_bearing_hint, new String[]{"0","45","90","135","180","225","270","315"});
+        addChoiceField("randomRadiusMeters", R.string.yparam_random_radius_label, "0", val(config.randomRadiusMeters),
+                R.string.yparam_random_radius_hint, new String[]{"0","10","50","100","500","1000","5000"});
+        addChoiceField("locationUpdateIntervalMs", R.string.yparam_update_interval, "5000", val(config.locationUpdateIntervalMs),
+                R.string.yparam_update_interval_hint, new String[]{"1000","3000","5000","10000","30000","60000"});
 
-        section("应用原始信息 / 诊断");
-        LinearLayout rawInfo = YViewLayout.card(root, "真实信息快照", "用于对比覆盖前后的环境参数");
+        section(R.string.yparam_diagnostic_section);
+        LinearLayout rawInfo = YViewLayout.card(root, getString(R.string.yparam_snapshot_title), getString(R.string.yparam_snapshot_desc));
         rawInfo.addView(text(buildRawInfo(), 13, false));
 
-        Button reset = YViewLayout.secondaryButton(this, "恢复这个应用全部默认");
+        Button reset = YViewLayout.secondaryButton(this, getString(R.string.yparam_reset_all));
         reset.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("恢复全部默认？")
-                .setMessage("将删除 YParam 对此应用的全部覆盖。应用之后直接读取真实系统/自身默认值。")
-                .setNegativeButton("取消", null)
-                .setPositiveButton("恢复", (d, w) -> {
-                    if (ConfigRepository.reset(packageName)) { config = new AppConfig(); buildUi(); toast("已恢复默认"); }
-                    else toast("LSPosed 服务不可用，未写入");
+                .setTitle(R.string.yparam_reset_title)
+                .setMessage(R.string.yparam_reset_message)
+                .setNegativeButton(R.string.yparam_cancel, null)
+                .setPositiveButton(R.string.yparam_restore, (d, w) -> {
+                    if (ConfigRepository.reset(packageName)) { config = new AppConfig(); buildUi(); toast(R.string.yparam_restored); }
+                    else toast(R.string.yparam_write_unavailable);
                 }).show());
         root.addView(reset);
+    }
+
+    private void addField(String key, int labelRes, String defaultValue, String current, String hint) {
+        addField(key, getString(labelRes), defaultValue, current, hint);
     }
 
     private void addField(String key, String label, String defaultValue, String current, String hint) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(0, dp(6), 0, dp(8));
-        TextView labelView = text(label, 15, true);
-        box.addView(labelView);
-        TextView def = text("默认/真实：" + defaultValue, 12, false);
-        box.addView(def);
+        box.addView(text(label, 15, true));
+        box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
         LinearLayout row = horizontal();
         EditText edit = new EditText(this);
         edit.setSingleLine(true);
         edit.setHint(hint);
         edit.setText(current == null ? "" : current);
         row.addView(edit, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        Button clear = button("恢复");
+        Button clear = button(R.string.yparam_restore);
         clear.setOnClickListener(v -> edit.setText(""));
         row.addView(clear);
         box.addView(row);
@@ -191,17 +199,21 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         root.addView(box);
     }
 
+    private Spinner addChoiceField(String key, int labelRes, String defaultValue, String current, int hintRes, String[] presets) {
+        return addChoiceField(key, getString(labelRes), defaultValue, current, getString(hintRes), presets);
+    }
+
     private Spinner addChoiceField(String key, String label, String defaultValue, String current, String hint, String[] presets) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(0, dp(6), 0, dp(8));
         box.addView(text(label, 15, true));
-        box.addView(text("默认/真实：" + defaultValue, 12, false));
+        box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
 
         String[] options = new String[presets.length + 2];
-        options[0] = "默认";
+        options[0] = getString(R.string.yparam_default);
         System.arraycopy(presets, 0, options, 1, presets.length);
-        options[options.length - 1] = "自定义…";
+        options[options.length - 1] = getString(R.string.yparam_custom);
 
         Spinner spinner = new Spinner(this);
         spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, options));
@@ -235,7 +247,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
 
         LinearLayout row = horizontal();
         row.addView(spinner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        Button reset = button("恢复");
+        Button reset = button(R.string.yparam_restore);
         reset.setOnClickListener(v -> spinner.setSelection(0));
         row.addView(reset);
         box.addView(row);
@@ -249,12 +261,17 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     }
 
     private Spinner addSpinner(String label, String defaultValue, String[] options, int selected) {
-        LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(0, dp(6), 0, dp(8));
-        box.addView(text(label, 15, true)); box.addView(text("默认/真实：" + defaultValue, 12, false));
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(0, dp(6), 0, dp(8));
+        box.addView(text(label, 15, true));
+        box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
         Spinner s = new Spinner(this);
         s.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, options));
         s.setSelection(Math.max(0, Math.min(selected, options.length - 1)));
-        box.addView(s); root.addView(box); return s;
+        box.addView(s);
+        root.addView(box);
+        return s;
     }
 
     private void save() {
@@ -280,32 +297,36 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
             c.locationUpdateIntervalMs = intField("locationUpdateIntervalMs");
             validate(c);
             saveBaselineIfNeeded();
-            if (!ConfigRepository.save(packageName, c)) { toast("LSPosed 服务不可用，未写入"); return; }
-            config = c; refreshStatus(); toast("已保存；已在作用域中的目标 App 重启进程后完整生效，运行时读取项可即时更新");
-        } catch (IllegalArgumentException e) { toast(e.getMessage()); }
+            if (!ConfigRepository.save(packageName, c)) { toast(R.string.yparam_write_unavailable); return; }
+            config = c;
+            refreshStatus();
+            toast(R.string.yparam_saved);
+        } catch (IllegalArgumentException e) {
+            toast(e.getMessage());
+        }
     }
 
     private void validate(AppConfig c) {
-        if (c.densityDpi != null && (c.densityDpi < 72 || c.densityDpi > 1000)) throw new IllegalArgumentException("DPI 建议范围：72–1000");
-        if (c.widthPixels != null && c.widthPixels < 100) throw new IllegalArgumentException("虚拟宽度过小");
-        if (c.heightPixels != null && c.heightPixels < 100) throw new IllegalArgumentException("虚拟高度过小");
-        if (c.latitude != null && (c.latitude < -90 || c.latitude > 90)) throw new IllegalArgumentException("纬度必须在 -90..90");
-        if (c.longitude != null && (c.longitude < -180 || c.longitude > 180)) throw new IllegalArgumentException("经度必须在 -180..180");
-        if (c.locationMode != null && (c.latitude == null || c.longitude == null)) throw new IllegalArgumentException("启用定位模拟需要填写经纬度");
-        if (c.localeTag != null && Locale.forLanguageTag(c.localeTag).getLanguage().isBlank()) throw new IllegalArgumentException("Locale 格式无效，例如 en-GB");
+        if (c.densityDpi != null && (c.densityDpi < 72 || c.densityDpi > 1000)) throw new IllegalArgumentException(getString(R.string.yparam_validation_dpi));
+        if (c.widthPixels != null && c.widthPixels < 100) throw new IllegalArgumentException(getString(R.string.yparam_validation_width));
+        if (c.heightPixels != null && c.heightPixels < 100) throw new IllegalArgumentException(getString(R.string.yparam_validation_height));
+        if (c.latitude != null && (c.latitude < -90 || c.latitude > 90)) throw new IllegalArgumentException(getString(R.string.yparam_validation_latitude));
+        if (c.longitude != null && (c.longitude < -180 || c.longitude > 180)) throw new IllegalArgumentException(getString(R.string.yparam_validation_longitude));
+        if (c.locationMode != null && (c.latitude == null || c.longitude == null)) throw new IllegalArgumentException(getString(R.string.yparam_validation_location));
+        if (c.localeTag != null && Locale.forLanguageTag(c.localeTag).getLanguage().isBlank()) throw new IllegalArgumentException(getString(R.string.yparam_validation_locale));
     }
 
     private void requestScope() {
-        if (YParamApp.getService() == null) { toast("LSPosed 服务未连接"); return; }
+        if (YParamApp.getService() == null) { toast(R.string.yparam_scope_disconnected); return; }
         ConfigRepository.requestScope(packageName, new XposedService.OnScopeEventListener() {
             @Override public void onScopeRequestApproved(List<String> approved) {
                 runOnUiThread(() -> {
                     refreshStatus();
-                    toast(approved != null && approved.contains(packageName) ? "已加入作用域" : "作用域未批准");
+                    toast(approved != null && approved.contains(packageName) ? R.string.yparam_scope_added : R.string.yparam_scope_not_approved);
                 });
             }
             @Override public void onScopeRequestFailed(String message) {
-                runOnUiThread(() -> toast("作用域请求失败：" + message));
+                runOnUiThread(() -> toast(getString(R.string.yparam_scope_failed, message)));
             }
         });
     }
@@ -322,7 +343,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
             setFieldValue("localeTag", "en-GB");
             setFieldValue("timeZoneId", "Europe/London");
         }
-        toast("模板已填入；检查后点击保存");
+        toast(R.string.yparam_preset_applied);
     }
 
     private void setFieldValue(String key, String value) {
@@ -346,12 +367,12 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
 
     private void refreshStatus() {
         if (summary != null) {
-            YViewLayout.setStatus(summary, "YParam 覆盖项：" + config.overrideCount(), config.overrideCount() > 0 ? YViewStatusTone.Good : YViewStatusTone.Neutral);
+            YViewLayout.setStatus(summary, getString(R.string.yparam_override_count, config.overrideCount()), config.overrideCount() > 0 ? YViewStatusTone.Good : YViewStatusTone.Neutral);
         }
         if (scopeState != null) {
             boolean connected = YParamApp.getService() != null;
             boolean inScope = connected && ConfigRepository.isInScope(packageName);
-            String state = !connected ? "LSPosed：未连接" : inScope ? "LSPosed：已在作用域" : "LSPosed：未在作用域";
+            String state = !connected ? getString(R.string.yparam_scope_state_disconnected) : inScope ? getString(R.string.yparam_scope_state_in) : getString(R.string.yparam_scope_state_out);
             YViewLayout.setStatus(scopeState, state, inScope ? YViewStatusTone.Good : connected ? YViewStatusTone.Warning : YViewStatusTone.Error);
         }
     }
@@ -365,13 +386,23 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
 
     private String buildBaseline() {
         try {
-            DisplayMetrics dm = getResources().getDisplayMetrics(); Configuration cf = getResources().getConfiguration();
+            DisplayMetrics dm = getResources().getDisplayMetrics();
+            Configuration cf = getResources().getConfiguration();
             JSONObject j = new JSONObject();
-            j.put("capturedAt", System.currentTimeMillis()); j.put("densityDpi", dm.densityDpi); j.put("widthPixels", dm.widthPixels); j.put("heightPixels", dm.heightPixels);
-            j.put("fontScale", cf.fontScale); j.put("smallestWidthDp", cf.smallestScreenWidthDp); j.put("screenWidthDp", cf.screenWidthDp); j.put("screenHeightDp", cf.screenHeightDp);
-            j.put("locale", Locale.getDefault().toLanguageTag()); j.put("timezone", TimeZone.getDefault().getID());
+            j.put("capturedAt", System.currentTimeMillis());
+            j.put("densityDpi", dm.densityDpi);
+            j.put("widthPixels", dm.widthPixels);
+            j.put("heightPixels", dm.heightPixels);
+            j.put("fontScale", cf.fontScale);
+            j.put("smallestWidthDp", cf.smallestScreenWidthDp);
+            j.put("screenWidthDp", cf.screenWidthDp);
+            j.put("screenHeightDp", cf.screenHeightDp);
+            j.put("locale", Locale.getDefault().toLanguageTag());
+            j.put("timezone", TimeZone.getDefault().getID());
             return j.toString();
-        } catch (Throwable t) { return "{}"; }
+        } catch (Throwable t) {
+            return "{}";
+        }
     }
 
     private String buildRawInfo() {
@@ -379,18 +410,23 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         try {
             PackageInfo pi = getPackageManager().getPackageInfo(packageName, PackageManager.GET_ACTIVITIES | PackageManager.GET_PERMISSIONS);
             ApplicationInfo ai = pi.applicationInfo;
-            b.append("版本：").append(pi.versionName).append(" (").append(pi.getLongVersionCode()).append(")\n");
-            if (ai != null) b.append("UID：").append(ai.uid).append("\nminSdk：").append(ai.minSdkVersion).append("  targetSdk：").append(ai.targetSdkVersion).append('\n');
-            b.append("请求权限：").append(pi.requestedPermissions == null ? 0 : pi.requestedPermissions.length).append('\n');
+            b.append(getString(R.string.yparam_version, pi.versionName, pi.getLongVersionCode())).append('\n');
+            if (ai != null) b.append(getString(R.string.yparam_uid_sdk, ai.uid, ai.minSdkVersion, ai.targetSdkVersion)).append('\n');
+            b.append(getString(R.string.yparam_requested_permissions, pi.requestedPermissions == null ? 0 : pi.requestedPermissions.length)).append('\n');
             ActivityInfo launch = launchActivityInfo();
-            if (launch != null) b.append("启动 Activity：").append(launch.name).append("\nManifest orientation：").append(launch.screenOrientation).append('\n');
-        } catch (Throwable t) { b.append("应用信息读取失败：").append(t.getClass().getSimpleName()).append('\n'); }
-        DisplayMetrics dm = getResources().getDisplayMetrics(); Configuration cf = getResources().getConfiguration();
-        b.append("\n系统显示：").append(dm.widthPixels).append('×').append(dm.heightPixels).append("  ").append(dm.densityDpi).append("dpi\n");
-        b.append("Configuration：").append(cf.screenWidthDp).append('×').append(cf.screenHeightDp).append("dp  sw=").append(cf.smallestScreenWidthDp).append("dp\n");
-        b.append("Locale：").append(Locale.getDefault().toLanguageTag()).append("\nTimezone：").append(TimeZone.getDefault().getID()).append('\n');
+            if (launch != null) b.append(getString(R.string.yparam_launch_activity, launch.name, launch.screenOrientation)).append('\n');
+        } catch (Throwable t) {
+            b.append(getString(R.string.yparam_app_info_failed, t.getClass().getSimpleName())).append('\n');
+        }
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        Configuration cf = getResources().getConfiguration();
+        b.append('\n').append(getString(R.string.yparam_system_display, dm.widthPixels, dm.heightPixels, dm.densityDpi)).append('\n');
+        b.append(getString(R.string.yparam_configuration_info, cf.screenWidthDp, cf.screenHeightDp, cf.smallestScreenWidthDp)).append('\n');
+        b.append(getString(R.string.yparam_locale_timezone, Locale.getDefault().toLanguageTag(), TimeZone.getDefault().getID())).append('\n');
         SharedPreferences p = YParamApp.remotePrefs();
-        if (p != null && p.contains("baseline." + packageName)) b.append("\n首次修改前快照：\n").append(p.getString("baseline." + packageName, ""));
+        if (p != null && p.contains("baseline." + packageName)) {
+            b.append('\n').append(getString(R.string.yparam_baseline_snapshot, p.getString("baseline." + packageName, "")));
+        }
         return b.toString();
     }
 
@@ -399,12 +435,27 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
             var i = getPackageManager().getLaunchIntentForPackage(packageName);
             if (i == null || i.getComponent() == null) return null;
             return getPackageManager().getActivityInfo(i.getComponent(), 0);
-        } catch (Throwable t) { return null; }
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
-    private String defaultOrientation() { ActivityInfo a = launchActivityInfo(); return a == null ? "未声明/无启动 Activity" : String.valueOf(a.screenOrientation); }
-    private String defaultRefreshRate() { try { return String.valueOf(getDisplay().getRefreshRate()); } catch (Throwable t) { return "系统值"; } }
-    private static String nightText(Configuration c) { int n = c.uiMode & Configuration.UI_MODE_NIGHT_MASK; return n == Configuration.UI_MODE_NIGHT_YES ? "深色" : n == Configuration.UI_MODE_NIGHT_NO ? "浅色" : "未指定"; }
+    private String defaultOrientation() {
+        ActivityInfo a = launchActivityInfo();
+        return a == null ? getString(R.string.yparam_orientation_undeclared) : String.valueOf(a.screenOrientation);
+    }
+
+    private String defaultRefreshRate() {
+        try { return String.valueOf(getDisplay().getRefreshRate()); }
+        catch (Throwable t) { return getString(R.string.yparam_system_value); }
+    }
+
+    private String nightText(Configuration c) {
+        int n = c.uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return n == Configuration.UI_MODE_NIGHT_YES ? getString(R.string.yparam_dark)
+                : n == Configuration.UI_MODE_NIGHT_NO ? getString(R.string.yparam_light)
+                : getString(R.string.yparam_unspecified);
+    }
 
     private Integer intField(String k) { String s = stringField(k); return s == null ? null : Integer.valueOf(s); }
     private Float floatField(String k) { String s = stringField(k); return s == null ? null : Float.valueOf(s); }
@@ -417,12 +468,13 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     private static int boolIndex(Boolean b) { return b == null ? 0 : b ? 1 : 2; }
     private static int locationIndex(String s) { return "fixed".equals(s) ? 1 : "random".equals(s) ? 2 : 0; }
 
-    private void section(String s) { YViewLayout.sectionHeader(root, s); }
+    private void section(int resId) { YViewLayout.sectionHeader(root, getString(resId)); }
     private TextView text(String s, int sp, boolean bold) { TextView v = new TextView(this); v.setText(s); v.setTextSize(sp); if (bold) v.setTypeface(v.getTypeface(), android.graphics.Typeface.BOLD); return v; }
-    private Button button(String s) { return YViewLayout.secondaryButton(this, s); }
+    private Button button(int resId) { return YViewLayout.secondaryButton(this, getString(resId)); }
     private LinearLayout horizontal() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.HORIZONTAL); l.setGravity(Gravity.CENTER_VERTICAL); return l; }
     private LinearLayout.LayoutParams weight() { return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); }
     private int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
+    private void toast(int resId) { toast(getString(resId)); }
     private void toast(String s) { Toast.makeText(this, s, Toast.LENGTH_LONG).show(); }
     @Override public void onServiceChanged() { runOnUiThread(this::refreshStatus); }
 }
