@@ -11,6 +11,7 @@ import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.util.AppInfoUtil;
 import com.yagay.YNotify.util.DiagLog;
 import com.yagay.YNotify.util.HookAuth;
+import com.yagay.suite.api.RuntimeOwnerGate;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -25,7 +26,11 @@ public class XposedEventReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null || !ACTION.equals(intent.getAction())) return;
+        if (context == null || intent == null || !ACTION.equals(intent.getAction())) return;
+        if (!RuntimeOwnerGate.shouldRun("ynotify", context.getPackageName())) {
+            DiagLog.i(context, "XposedReceiver", "standalone receiver passive; YSuite owns runtime");
+            return;
+        }
 
         String pkg = safe(intent.getStringExtra("package"));
         String kind = safe(intent.getStringExtra("kind"));
