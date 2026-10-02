@@ -3,7 +3,7 @@
     <application
         android:name="com.yagay.ysuite.standalone.StandaloneApplication"
         android:allowBackup="false"
-        android:label="${standaloneAppName}"
+        android:label="@string/standalone_app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.YUI">
         <meta-data
