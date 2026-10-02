@@ -27,4 +27,4 @@ if (localApi.isDirectory && localUi.isDirectory) {
 }
 
 rootProject.name = "YNFC"
-include(":app", ":feature")
+include(":feature")
