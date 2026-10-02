@@ -15,7 +15,7 @@ public final class StandaloneLauncherActivity extends Activity {
         Bundle metadata = ((StandaloneApplication) getApplication()).metadata();
         String entry = metadata.getString(StandaloneApplication.META_ENTRY_ACTIVITY, "");
         if (entry.isBlank()) {
-            Toast.makeText(this, "Feature entry activity is not configured", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.standalone_entry_not_configured, Toast.LENGTH_LONG).show();
             finish();
             return;
         }
