@@ -3,4 +3,5 @@
     <string name="yui_loading">加载中…</string>
     <string name="yui_search">搜索</string>
     <string name="yui_open">打开</string>
+    <string name="yui_status_pair">%1$s · %2$s</string>
 </resources>
