@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +34,7 @@ import com.yagay.YNFC.BuildConfig
 import com.yagay.YNFC.CardModel
 import com.yagay.YNFC.DiagnosticsCollector
 import com.yagay.YNFC.LogSource
+import com.yagay.YNFC.R
 import com.yagay.YNFC.RuntimeStatus
 import com.yagay.YNFC.RuntimeStatusViewModel
 import com.yagay.YNFC.RuntimeText
@@ -74,8 +76,9 @@ fun NfcAppScreen(
     var expandedUid by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
     val logListState = rememberLazyListState()
+    val applyUidText = stringResource(R.string.ynfc_apply_uid, "%s")
+    val restoreRfText = stringResource(R.string.ynfc_restore_stock_rf)
 
-    // Logs remain independent from runtime status observation and only poll while visible.
     LaunchedEffect(selectedSource, logsEnabled) {
         logLines.clear()
         if (!logsEnabled) return@LaunchedEffect
@@ -95,7 +98,7 @@ fun NfcAppScreen(
 
     YFeatureScaffold(
         title = "YNFC ${BuildConfig.VERSION_NAME}",
-        subtitle = "NFC 门禁卡与 HCE 状态",
+        subtitle = stringResource(R.string.ynfc_subtitle),
     ) { padding ->
         YFeatureList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
@@ -112,13 +115,13 @@ fun NfcAppScreen(
             }
             item {
                 YFeatureSectionHeader(
-                    title = "已保存卡片 (${cards.size})",
-                    subtitle = "点击卡片可查看 UID / SAK / ATQA，并启动或停止模拟。",
+                    title = stringResource(R.string.ynfc_saved_cards, cards.size),
+                    subtitle = stringResource(R.string.ynfc_saved_cards_desc),
                 )
             }
             if (cards.isEmpty()) {
                 item {
-                    YFeatureEmpty("暂无保存卡片。进入读卡模式后贴卡，确认信息无误再保存。")
+                    YFeatureEmpty(stringResource(R.string.ynfc_no_saved_cards))
                 }
             } else {
                 items(cards, key = { it.uid }) { card ->
@@ -131,11 +134,11 @@ fun NfcAppScreen(
                             expandedUid = if (expandedUid?.equals(card.uid, true) == true) null else card.uid
                         },
                         onSimulate = {
-                            operationMessage = "正在通过 NFC 进程应用 UID ${card.uid}..."
+                            operationMessage = applyUidText.replace("%s", card.uid)
                             onSimulate(card) { operationMessage = it }
                         },
                         onStop = {
-                            operationMessage = "正在恢复原厂 RF..."
+                            operationMessage = restoreRfText
                             onStopSimulation { operationMessage = it }
                         },
                         onDelete = {
@@ -147,8 +150,12 @@ fun NfcAppScreen(
             }
             item {
                 YFeatureCard(
-                    title = "日志显示",
-                    subtitle = if (logsEnabled) "已开启 · 正在抓取日志" else "已关闭 · 不抓取日志，减少性能影响",
+                    title = stringResource(R.string.ynfc_log_display),
+                    subtitle = if (logsEnabled) {
+                        stringResource(R.string.ynfc_log_enabled)
+                    } else {
+                        stringResource(R.string.ynfc_log_disabled)
+                    },
                     trailing = {
                         Switch(
                             checked = logsEnabled,
@@ -164,8 +171,8 @@ fun NfcAppScreen(
             if (logsEnabled) {
                 item {
                     YFeatureCard(
-                        title = "诊断日志",
-                        subtitle = "日志区域保留高对比度控制台配色，页面结构仍由 YUI 管理。",
+                        title = stringResource(R.string.ynfc_diagnostic_logs),
+                        subtitle = stringResource(R.string.ynfc_diagnostic_logs_desc),
                     ) {
                         ScrollableTabRow(selectedTabIndex = selectedSource.ordinal, edgePadding = 4.dp) {
                             LogSource.entries.forEach { source ->
@@ -203,7 +210,11 @@ fun NfcAppScreen(
                         }
                         YActionRow {
                             YPrimaryButton(
-                                text = if (diagnosticRunning) "保存中" else "导出日志",
+                                text = if (diagnosticRunning) {
+                                    stringResource(R.string.ynfc_saving)
+                                } else {
+                                    stringResource(R.string.ynfc_export_logs)
+                                },
                                 onClick = {
                                     if (!diagnosticRunning) {
                                         diagnosticRunning = true
@@ -214,7 +225,7 @@ fun NfcAppScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             YSecondaryButton(
-                                text = "清空日志",
+                                text = stringResource(R.string.ynfc_clear_logs),
                                 onClick = { AppLogger.clear(); logLines.clear() },
                                 modifier = Modifier.weight(1f),
                             )
