@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ynotify_pause_app">暂停记录此应用</string>
     <string name="ynotify_redact_app">只记录元数据，不保存正文</string>
-    <string name="ynotify_clear_app_history">清空此应用历史</string>
-    <string name="ynotify_event_detail">事件详情</string>
-    <string name="ynotify_correct_classification">修正分类</string>
     <string name="ynotify_title_label">标题</string>
     <string name="ynotify_full_content">完整内容</string>
-    <string name="ynotify_revision_history">通知更新历史</string>
-    <string name="ynotify_message_structure">消息结构</string>
-    <string name="ynotify_action_buttons">操作按钮</string>
-    <string name="ynotify_raw_extras">原始 Extras</string>
 </resources>
