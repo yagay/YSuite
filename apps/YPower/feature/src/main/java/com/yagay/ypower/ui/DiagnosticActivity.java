@@ -383,7 +383,7 @@ public class DiagnosticActivity extends AppCompatActivity {
     }
 
     private String levelLabel(DiagnosticLevel level) {
-        if (level == DiagnosticLevel.FAST) return getString(R.string.yp_level_fast);
+        if (level == DiagnosticLevel.QUICK) return getString(R.string.yp_level_fast);
         if (level == DiagnosticLevel.DEEP) return getString(R.string.yp_level_deep);
         return getString(R.string.yp_level_standard);
     }
