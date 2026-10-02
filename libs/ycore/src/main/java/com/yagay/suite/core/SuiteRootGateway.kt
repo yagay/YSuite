@@ -29,8 +29,8 @@ object SuiteRootGateway {
     ) {
         val success: Boolean get() = !timedOut && error == null && code == 0
 
-        fun failureMessage(defaultMessage: String = "Root 操作失败"): String = when {
-            timedOut -> "Root 操作超时"
+        fun failureMessage(defaultMessage: String = com.yagay.suite.api.YLocale.text(com.yagay.suite.core.R.string.ycore_dynamic_d74afaa590e9)): String = when {
+            timedOut -> com.yagay.suite.api.YLocale.text(com.yagay.suite.core.R.string.ycore_dynamic_dfca1061baa0)
             error != null -> error.message?.takeIf(String::isNotBlank) ?: error.javaClass.simpleName
             stderr.isNotBlank() -> stderr
             code != 0 -> "su exit=$code"

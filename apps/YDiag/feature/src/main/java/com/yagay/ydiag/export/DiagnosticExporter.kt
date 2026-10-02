@@ -83,9 +83,9 @@ class DiagnosticExporter(private val context: Context) {
         File(dir, "diagnosis.txt").writeText(buildString {
             appendLine(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_generated_f8256e2521e6))
             appendLine("================")
-            appendLine("目标: ${meta.targetPackages.joinToString()}")
-            appendLine("问题标记: ${meta.problemMarks.joinToString()}")
-            appendLine("异常: ${issues.size}")
+            appendLine(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_export_targets, meta.targetPackages.joinToString()))
+            appendLine(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_export_marks, meta.problemMarks.joinToString()))
+            appendLine(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_export_issues, issues.size))
             issues.take(50).forEach {
                 appendLine("[${it.severity}] ${it.category}: ${it.title}")
             }

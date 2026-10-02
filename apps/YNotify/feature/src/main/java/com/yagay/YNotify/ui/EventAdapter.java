@@ -75,8 +75,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
 
     private static String body(Context c, EventRecord r) {
         Set<String> out = new LinkedHashSet<>();
-        add(out, r.text);
-        add(out, r.fullText);
+        add(out, capturedText(c, r.text));
+        add(out, capturedText(c, r.fullText));
         if (r.subText != null && !r.subText.isBlank()) {
             add(out, c.getString(R.string.ynotify_body_subtitle, r.subText.trim()));
         }
@@ -84,6 +84,13 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
             add(out, c.getString(R.string.ynotify_body_summary, r.summaryText.trim()));
         }
         return String.join("\n", out);
+    }
+
+    private static String capturedText(Context c, String value) {
+        if (EventTypes.CUSTOM_TOAST_MARKER.equals(value)) {
+            return c.getString(R.string.ynotify_custom_toast);
+        }
+        return value;
     }
 
     private static void add(Set<String> out, String value) {

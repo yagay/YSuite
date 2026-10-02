@@ -34,12 +34,11 @@ public final class CorrelationEngine {
 
         if (report.lastExitTimestamp <= 0) {
             report.exitSummary = "";
-            report.attribution =
-                    "本次运行观察到检测行为，但没有记录到真实退出，因此不做原因归因。";
+            report.attribution = com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_corr_no_exit);
             return;
         }
 
-        report.exitSummary = "本次运行记录到真实退出/崩溃事件";
+        report.exitSummary = com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_corr_exit);
 
         List<DiagnosticFinding> candidates = new ArrayList<>();
         for (DiagnosticFinding finding : report.findings) {
@@ -57,9 +56,7 @@ public final class CorrelationEngine {
         );
 
         if (candidates.isEmpty()) {
-            report.attribution =
-                    "记录到了退出，但没有运行时规则同时满足分数与独立因果证据要求；"
-                            + "单纯时间接近、NOT_HIT/UNKNOWN、静态证据和派生 Flow 不作为退出原因。";
+            report.attribution = com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_corr_no_candidate);
             return;
         }
 
@@ -77,31 +74,23 @@ public final class CorrelationEngine {
             }
         }
 
-        StringBuilder attribution = new StringBuilder();
-        attribution.append("主要归因：")
-                .append(primary.title)
-                .append("（")
-                .append(primary.correlationScore)
-                .append("/100，")
-                .append(primary.representativeState)
-                .append("，")
-                .append(strength(primary.correlationScore))
-                .append("）");
+        String attribution = com.yagay.suite.api.YLocale.text(
+                com.yagay.ypower.R.string.ypower_corr_primary,
+                primary.title,
+                primary.correlationScore,
+                primary.representativeState,
+                strength(primary.correlationScore));
         if (primary.sameThreadAsFatal || primary.sharedFatalFrames > 0) {
-            attribution.append("，并与 Java Fatal 存在异常传播关联");
+            attribution += com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_corr_fatal_link);
         }
-
         if (secondary != null) {
-            attribution.append("；次要归因：")
-                    .append(secondary.title)
-                    .append("（")
-                    .append(secondary.correlationScore)
-                    .append("/100，")
-                    .append(secondary.representativeState)
-                    .append("）");
+            attribution += com.yagay.suite.api.YLocale.text(
+                    com.yagay.ypower.R.string.ypower_corr_secondary,
+                    secondary.title,
+                    secondary.correlationScore,
+                    secondary.representativeState);
         }
-
-        report.attribution = attribution.toString();
+        report.attribution = attribution;
     }
 
     private static boolean isSupportingEvidenceOnly(DiagnosticFinding finding) {
@@ -318,9 +307,9 @@ public final class CorrelationEngine {
     }
 
     private static String strength(int score) {
-        if (score >= 85) return "高可信";
-        if (score >= 70) return "较强相关";
-        if (score >= 60) return "中等相关";
-        return "可能相关";
+        if (score >= 85) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_strength_high);
+        if (score >= 70) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_strength_strong);
+        if (score >= 60) return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_strength_medium);
+        return com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_strength_possible);
     }
 }

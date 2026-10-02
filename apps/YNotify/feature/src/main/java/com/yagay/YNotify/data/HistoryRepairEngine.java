@@ -49,15 +49,20 @@ public final class HistoryRepairEngine {
 
         public String summary() {
             if (!succeeded()) return com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_76e6723dc54e) + error;
-            return com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_generated_ee918ab7c27d) + scanned + " 条 · 类型纠正 " + eventTypeChanged
-                    + " 条 · SystemUI " + systemUiClassified
-                    + " 条 · 通知子类型纠正 " + notificationKindChanged
-                    + " 条 · 横幅关联 " + mergedUi
-                    + " 条 · 跨应用横幅 " + crossPackageHeadsUp
-                    + " 条 · 重复通知合并 " + mergedNotifications + " 条"
-                    + (ambiguousUi > 0 ? " · 无充分证据 " + ambiguousUi + " 条" : "")
-                    + (recheckedMerged > 0 ? " · 重新检查旧合并 " + recheckedMerged + " 条" : "")
-                    + (protectedManual > 0 ? " · 保留手动分类 " + protectedManual + " 条" : "");
+            String value = com.yagay.suite.api.YLocale.text(
+                    com.yagay.YNotify.R.string.ynotify_repair_summary,
+                    scanned, eventTypeChanged, systemUiClassified, notificationKindChanged,
+                    mergedUi, crossPackageHeadsUp, mergedNotifications);
+            if (ambiguousUi > 0) {
+                value += com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_repair_ambiguous, ambiguousUi);
+            }
+            if (recheckedMerged > 0) {
+                value += com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_repair_rechecked, recheckedMerged);
+            }
+            if (protectedManual > 0) {
+                value += com.yagay.suite.api.YLocale.text(com.yagay.YNotify.R.string.ynotify_repair_manual, protectedManual);
+            }
+            return value;
         }
     }
 

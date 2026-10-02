@@ -275,7 +275,7 @@ public final class SystemTraceCollector {
             }
 
             if (matches.length() > 0) {
-                finding.evidence("simpleperf 调用图命中 " + module + ":\n"
+                finding.evidence(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_9337e427052a) + module + ":\n"
                         + matches.toString().trim());
             }
         }

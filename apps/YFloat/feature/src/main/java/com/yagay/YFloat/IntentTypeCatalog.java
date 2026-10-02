@@ -54,7 +54,7 @@ public final class IntentTypeCatalog {
     }
 
     private static final List<Spec> ALL = List.of(
-            new Spec(CustomMenuActionStore.TYPE_LAUNCH, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_7fe957b4e334), "应用主启动入口"),
+            new Spec(CustomMenuActionStore.TYPE_LAUNCH, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_7fe957b4e334), com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_b5ae3bff2e4d)),
             new Spec(CustomMenuActionStore.TYPE_SEND_TEXT, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f258fec45ef0), "ACTION_SEND · text/plain"),
             new Spec(CustomMenuActionStore.TYPE_PROCESS_TEXT, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bacfe3e73295), "ACTION_PROCESS_TEXT"),
             new Spec(CustomMenuActionStore.TYPE_VIEW_WEB, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_be4f13a31f24), "ACTION_VIEW · http/https"),

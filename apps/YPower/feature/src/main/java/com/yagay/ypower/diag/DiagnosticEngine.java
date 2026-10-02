@@ -265,11 +265,10 @@ public final class DiagnosticEngine {
 
         for (DiagnosticFinding finding : findings.values()) {
             finding.summary = finding.summary
-                    + "；本次运行 " + finding.totalCount + " 次"
-                    + "（HIT " + finding.hitCount
-                    + " / CHECKED " + finding.checkedCount
-                    + " / NOT_HIT " + finding.notHitCount
-                    + " / UNKNOWN " + finding.unknownCount + "）";
+                    + com.yagay.suite.api.YLocale.text(
+                    com.yagay.ypower.R.string.ypower_run_counts,
+                    finding.totalCount, finding.hitCount, finding.checkedCount,
+                    finding.notHitCount, finding.unknownCount);
             report.findings.add(finding);
         }
     }
@@ -451,7 +450,7 @@ public final class DiagnosticEngine {
                     .append(" tid=")
                     .append(event.tid);
         }
-        finding.evidence("组合链：\n" + evidence);
+        finding.evidence(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_f7166de0899c) + evidence);
 
         findings.put(flowRuleId + "|" + def.category, finding);
     }
@@ -485,7 +484,7 @@ public final class DiagnosticEngine {
             report.fatalExceptionStack = fatal.stack;
 
             report.exceptionPropagation.add(
-                    "Java uncaught："
+                    com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_8cac81e71091)
                             + (fatal.exceptionClass == null || fatal.exceptionClass.isBlank()
                             ? fatal.exception
                             : fatal.exceptionClass)
@@ -528,11 +527,11 @@ public final class DiagnosticEngine {
                         && event.throwableId.equals(fatal.throwableId);
 
                 if (sameThrowable) {
-                    item.append(" → Java uncaught（同一 Throwable，Δ=")
+                    item.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_ec3b95d9f815))
                             .append(delta)
                             .append("ms）");
                 } else if (delta >= 0 && delta <= 1500 && event.tid == fatal.tid) {
-                    item.append(" → Java uncaught（同TID，Δ=")
+                    item.append(com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_7e92b3c93037))
                             .append(delta)
                             .append("ms）");
                 }
@@ -581,10 +580,10 @@ public final class DiagnosticEngine {
                     mapping = closest.input
                             + " → " + event.input
                             + "（Δ=" + Math.abs(event.ts - closest.ts) + "ms"
-                            + (event.tid == closest.tid ? "，同TID" : "")
+                            + (event.tid == closest.tid ? com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_c4aff3a7ed3e) : "")
                             + "）";
                 } else {
-                    mapping = event.input + "（Native dlopen）";
+                    mapping = event.input + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_8ea16126b907);
                 }
 
                 if (!report.linkerMappings.contains(mapping)) {
@@ -719,33 +718,33 @@ public final class DiagnosticEngine {
     private static EventDescriptor describeByType(LogEventParser.TraceEvent event) {
         switch (event.type) {
             case "file":
-                return detected("file", "敏感文件 / proc 检测",
-                        "目标 App 实际访问了诊断规则命中的敏感路径");
+                return detected("file", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_5b871f7ab2c8),
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_cfa114dd40b5));
             case "package":
-                return detected("package", "包/安装环境查询",
-                        "目标 App 实际查询了安装包或安装来源");
+                return detected("package", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_a083e1bb2476),
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_df42e408587d));
             case "property":
-                return detected("environment", "系统属性检测",
-                        "目标 App 实际读取了环境相关系统属性");
+                return detected("environment", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_1c041f4bd355),
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_0c6d0a2b307a));
             case "exec":
-                return detected("command", "敏感命令检测",
-                        "目标 App 实际执行了诊断规则命中的命令");
+                return detected("command", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_b721dcc93c4f),
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_2a0f2dbd5506));
             case "debugger":
                 return detected("debugger", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_generated_e32e081fee63),
-                        "目标 App 实际查询了调试器状态");
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_1eec439ed13d));
             case "permission":
-                return detected("permission", "权限状态查询",
-                        "目标 App 实际查询了权限状态");
+                return detected("permission", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_c747c2cafaca),
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_a8a1701fd6cf));
             case "exit":
             case "native_exit":
-                return failed("exit", "应用主动退出调用",
-                        "目标 App 实际调用了主动退出 API");
+                return failed("exit", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_c6765a272472),
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_ace7de7b2dec));
             case "native_file":
-                return detected("native", "Native 敏感文件检测",
-                        "目标 App 的 native 代码实际访问了敏感文件/路径");
+                return detected("native", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_f3f6c8e49042),
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_c5cd6b4d42e2));
             case "native_debugger":
-                return detected("debugger", "Native 调试器检测",
-                        "目标 App 的 native 代码实际执行了调试器相关检查");
+                return detected("debugger", com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_6f308505f4bb),
+                        com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_56f14de6213e));
             default:
                 return null;
         }

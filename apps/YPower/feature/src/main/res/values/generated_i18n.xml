@@ -69,7 +69,7 @@
     <string name="ypower_generated_29f27b254c25" />
     <string name="ypower_generated_29fb4da4c442" />
     <string name="ypower_generated_2a2c7b0d968f" />
-    <string name="ypower_generated_2a68a9d90e93">The attribution evidence is insufficient, so no repair recommendation is generated.\n</string>
+    <string name="ypower_generated_2a68a9d90e93">The attribution evidence is insufficient, so no repair recommendation is generated.\\n</string>
     <string name="ypower_generated_2acb5d7f2044" />
     <string name="ypower_generated_2ad5e7e449a3" />
     <string name="ypower_generated_2bbf21117d07" />
@@ -302,7 +302,7 @@
     <string name="ypower_generated_a35a2dc3e518" />
     <string name="ypower_generated_a36071df830a" />
     <string name="ypower_generated_a4295ddc746b" />
-    <string name="ypower_generated_a559c1fe92d6">No displayable raw event was collected during this run.\n</string>
+    <string name="ypower_generated_a559c1fe92d6">No displayable raw event was collected during this run.\\n</string>
     <string name="ypower_generated_a5ab2a7bcca7" />
     <string name="ypower_generated_a651fa3241a3" />
     <string name="ypower_generated_a7be7dbb2c38" />

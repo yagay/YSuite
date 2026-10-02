@@ -69,21 +69,24 @@ public final class SupplementalReportProcessor {
             if (def == null) continue;
 
             finding.recommendations.clear();
-            String role = finding.attributionRank == 1 ? "主要归因" : "次要归因";
-            String why = "本项被标记为" + role
-                    + "，规则 ID=" + finding.ruleId
-                    + "，代表状态=" + finding.representativeState
-                    + "，关联分数=" + finding.correlationScore + "/100。"
-                    + (finding.closestDeltaMs == Long.MAX_VALUE
-                    ? ""
-                    : " 与退出最近相隔 " + finding.closestDeltaMs + " ms。")
-                    + (finding.sameThreadAsExit ? " 代表事件与退出发生在同一线程。" : "")
-                    + (finding.sharedExitFrames > 0
-                    ? " 与退出栈共享 " + finding.sharedExitFrames + " 个业务帧。"
-                    : "");
+            String role = finding.attributionRank == 1
+                    ? com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_supp_primary)
+                    : com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_supp_secondary);
+            String why = com.yagay.suite.api.YLocale.text(
+                    com.yagay.ypower.R.string.ypower_supp_why,
+                    role, finding.ruleId, finding.representativeState, finding.correlationScore);
+            if (finding.closestDeltaMs != Long.MAX_VALUE) {
+                why += com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_supp_delta, finding.closestDeltaMs);
+            }
+            if (finding.sameThreadAsExit) {
+                why += com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_supp_same_thread);
+            }
+            if (finding.sharedExitFrames > 0) {
+                why += com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_supp_shared_frames, finding.sharedExitFrames);
+            }
 
             finding.recommendations.add(new FixRecommendation(
-                    role + "：" + def.title,
+                    com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_supp_title, role, def.title),
                     def.whyDetected,
                     def.projectExplanation,
                     why,
@@ -106,11 +109,10 @@ public final class SupplementalReportProcessor {
 
     private static String countSuffix(DiagnosticFinding finding) {
         if (finding.totalCount <= 0) return "";
-        return "；本次运行 " + finding.totalCount + " 次"
-                + "（HIT " + finding.hitCount
-                + " / CHECKED " + finding.checkedCount
-                + " / NOT_HIT " + finding.notHitCount
-                + " / UNKNOWN " + finding.unknownCount + "）";
+        return com.yagay.suite.api.YLocale.text(
+                com.yagay.ypower.R.string.ypower_run_counts,
+                finding.totalCount, finding.hitCount, finding.checkedCount,
+                finding.notHitCount, finding.unknownCount);
     }
 
     private static void addFlow(

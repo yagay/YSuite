@@ -111,7 +111,7 @@ public final class DiagnosticLog {
                     while((n=reader.read(buffer))>=0){if(n>0)out.append(buffer,0,n);}
                 }
                 return out.toString();
-            }catch(Throwable t){return "读取日志失败: "+t;}
+            }catch(Throwable t){return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_9296e55d4183)+t;}
         }
     }
     public static void clear(Context c){Context x=c!=null?c.getApplicationContext():app;if(x==null)return;flush();synchronized(HOT_LAST){HOT_LAST.clear();}synchronized(LOCK){try{File f=file(x);if(f.exists())f.delete();}catch(Throwable ignored){}}}

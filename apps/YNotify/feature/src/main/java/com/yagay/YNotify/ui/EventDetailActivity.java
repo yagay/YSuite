@@ -219,7 +219,7 @@ public class EventDetailActivity extends AppCompatActivity {
             if (r.importance != 0) out.append("\n").append(getString(R.string.ynotify_revision_importance, r.importance));
             String body = r.fullText != null && !r.fullText.isBlank() ? r.fullText : r.text;
             if (r.title != null && !r.title.isBlank()) out.append("\n").append(r.title);
-            if (body != null && !body.isBlank()) out.append("\n").append(body);
+            if (body != null && !body.isBlank()) out.append("\n").append(n(body));
         }
         return out.toString();
     }
@@ -250,6 +250,9 @@ public class EventDetailActivity extends AppCompatActivity {
     }
 
     private String n(String value) {
+        if (EventTypes.CUSTOM_TOAST_MARKER.equals(value)) {
+            return getString(R.string.ynotify_custom_toast);
+        }
         return value == null || value.isBlank() ? getString(R.string.ynotify_not_available) : value;
     }
 

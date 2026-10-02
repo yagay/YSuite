@@ -220,11 +220,11 @@ public final class FloatActionMenu {
 
         TextView all = null;
         if (hasSelectAll) {
-            all = FloatingMenuUi.action(app, "全选", 58);
+            all = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_3e44b2a93338), 58);
             items.add(all);
         }
 
-        TextView share = FloatingMenuUi.action(app, "分享", 58);
+        TextView share = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_7a9243411482), 58);
         items.add(share);
 
         for (int i = 0; i < customLimit; i++) {
@@ -291,7 +291,7 @@ public final class FloatActionMenu {
     private static void buildMoreMenu(Context app, LinearLayout root, String text,
                                       Runnable selectAll) {
         root.setPadding(dp(app, 4), dp(app, 4), dp(app, 4), dp(app, 4));
-        TextView back = FloatingMenuUi.row(app, "‹   返回", null);
+        TextView back = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_f014f4d81cae), null);
         root.addView(back, new LinearLayout.LayoutParams(-1, dp(app, 46)));
         back.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MAIN));
 
@@ -307,7 +307,7 @@ public final class FloatActionMenu {
             custom.setOnClickListener(v -> launchCustom(app, item, text));
         }
 
-        TextView process = FloatingMenuUi.row(app, "打开 / 处理", null);
+        TextView process = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_60c2b0e40300), null);
         root.addView(process, new LinearLayout.LayoutParams(-1, dp(app, 46)));
         process.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_PROCESS));
     }
@@ -321,7 +321,7 @@ public final class FloatActionMenu {
         root.setPadding(dp(app, 4), dp(app, 4), dp(app, 4), dp(app, 4));
 
         TextView back = FloatingMenuUi.row(app,
-                mode == MODE_SHARE ? "‹   分享到" : "‹   打开 / 处理", null);
+                mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_dfcb6e479124) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_0983c71bfdc1), null);
         back.setTypeface(back.getTypeface(), android.graphics.Typeface.BOLD);
         root.addView(back, new LinearLayout.LayoutParams(-1, dp(app, 46)));
         back.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MAIN));
@@ -351,7 +351,7 @@ public final class FloatActionMenu {
         list.setOrientation(LinearLayout.VERTICAL);
         if (resolved.isEmpty()) {
             TextView none = FloatingMenuUi.secondaryRow(app,
-                    mode == MODE_SHARE ? "当前没有已启用的分享应用" : "当前没有已启用的处理应用");
+                    mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_2e9a9b8c88ad) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_89aaeb63f4fd));
             none.setGravity(Gravity.CENTER_VERTICAL);
             none.setPadding(dp(app, 16), 0, dp(app, 16), 0);
             list.addView(none, new LinearLayout.LayoutParams(-1, dp(app, 48)));
@@ -376,7 +376,7 @@ public final class FloatActionMenu {
         root.addView(scroll, new LinearLayout.LayoutParams(-1, dp(app, 50 * visibleRows)));
 
         TextView moreApps = FloatingMenuUi.row(app,
-                mode == MODE_SHARE ? "系统分享菜单…" : "更多处理应用…", null);
+                mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_ff5514843724) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_c34d1ed979ed), null);
         root.addView(moreApps, new LinearLayout.LayoutParams(-1, dp(app, 46)));
         moreApps.setOnClickListener(v -> {
             if (mode == MODE_SHARE) launchSystemShare(app, text);
@@ -421,7 +421,7 @@ public final class FloatActionMenu {
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 app.startActivity(target);
             } catch (Throwable t) {
-                Toast.makeText(app, "无法打开该应用", Toast.LENGTH_SHORT).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_2d75aa0cb9ee), Toast.LENGTH_SHORT).show();
                 DiagnosticLog.i(app, "FLOAT_ACTION_MENU", "explicit launch failed=" + t);
             }
         });
@@ -436,7 +436,7 @@ public final class FloatActionMenu {
                 app.startActivity(Intent.createChooser(share, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f258fec45ef0))
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (Throwable t) {
-                Toast.makeText(app, "无法打开分享菜单", Toast.LENGTH_SHORT).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_78f822f9cdce), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -451,7 +451,7 @@ public final class FloatActionMenu {
                 app.startActivity(Intent.createChooser(process, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bacfe3e73295))
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (Throwable t) {
-                Toast.makeText(app, "没有可用的文本处理应用", Toast.LENGTH_SHORT).show();
+                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_89499096e684), Toast.LENGTH_SHORT).show();
             }
         });
     }

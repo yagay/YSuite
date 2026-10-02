@@ -282,7 +282,7 @@ object PaddleOcrBridge {
                 val detail = OpenCVUtils.lastError()?.takeIf { it.isNotBlank() }
                     ?: "unknown native loader error"
                 DiagnosticLog.i(context, "PPOCRV6_BRIDGE", "opencv_init_failed detail=$detail")
-                throw IllegalStateException("OpenCV 初始化失败: $detail")
+                throw IllegalStateException(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_opencv_failed, detail))
             } else {
                 DiagnosticLog.i(context, "PPOCRV6_BRIDGE", "opencv_init_ok")
                 if (!OcrModelManager.isReady(context, model)) throw IllegalStateException("model_not_downloaded")

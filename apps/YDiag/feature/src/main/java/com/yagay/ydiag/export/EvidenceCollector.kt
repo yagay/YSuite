@@ -22,7 +22,7 @@ object EvidenceCollector {
         })
 
         if (!meta.rootAvailable) {
-            File(evidence, "root-unavailable.txt").writeText("Root was not available for this session.\n")
+            File(evidence, "root-unavailable.txt").writeText(com.yagay.suite.api.YLocale.text(com.yagay.ydiag.R.string.ydiag_root_unavailable))
             return
         }
 

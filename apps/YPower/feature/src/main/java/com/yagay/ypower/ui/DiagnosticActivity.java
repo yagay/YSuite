@@ -268,7 +268,9 @@ public class DiagnosticActivity extends AppCompatActivity {
         SpannableStringBuilder styled = new SpannableStringBuilder(text);
 
         if (mode == 0) {
-            Pattern linePattern = Pattern.compile("(?m)^• .*?检测状态=([^\\s\\n]+).*$");
+            String detectionLabel = getString(com.yagay.ypower.R.string.ypower_generated_81c4e4e7a4c8);
+            Pattern linePattern = Pattern.compile(
+                    "(?m)^\\s*" + Pattern.quote(detectionLabel) + "\\s*[:：]\\s*([^\\s\\n]+).*$");
             Matcher matcher = linePattern.matcher(text);
             while (matcher.find()) {
                 if (isFalseState(matcher.group(1))) continue;
@@ -278,7 +280,9 @@ public class DiagnosticActivity extends AppCompatActivity {
         }
 
         if (mode == 1 || mode == 2) {
-            Pattern statePattern = Pattern.compile("应用检测状态：([^\\s\\n]+)");
+            String appStateLabel = getString(com.yagay.ypower.R.string.ypower_generated_3057e103ffb7);
+            Pattern statePattern = Pattern.compile(
+                    Pattern.quote(appStateLabel) + "\\s*[:：]\\s*([^\\s\\n]+)");
             Matcher matcher = statePattern.matcher(text);
             while (matcher.find()) {
                 if (isFalseState(matcher.group(1))) continue;

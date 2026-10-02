@@ -391,7 +391,7 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
                 if (process.isPinned) {
                     Icon(Icons.Default.PushPin, contentDescription = stringResource(R.string.ytm_pinned), modifier = Modifier.size(15.dp))
                 }
-                if (process.isForeground) Text(" ${stringResource(R.string.ytm_foreground_short)}", style = MaterialTheme.typography.labelSmall)
+                if (process.isForeground) Text(" " + stringResource(R.string.ytm_foreground_short), style = MaterialTheme.typography.labelSmall)
             }
             Text(
                 stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
@@ -556,7 +556,7 @@ private fun MetricLine(label: String, value: String) {
 @Composable
 private fun CpuCoreRow(core: CpuCoreInfo) {
     Column(Modifier.fillMaxWidth()) {
-        Text("CPU ${core.core}", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.ytm_cpu_core_label, core.core), style = MaterialTheme.typography.labelMedium)
         Text(
             stringResource(R.string.ytm_frequency_order, formatKHz(core.minKHz), formatKHz(core.currentKHz), formatKHz(core.maxKHz)),
             style = MaterialTheme.typography.bodySmall,
@@ -737,7 +737,7 @@ private fun SettingsDialog(
                         FilterChip(
                             selected = state.refreshIntervalMs == value,
                             onClick = { onRefreshInterval(value) },
-                            label = { Text("${value} ms") },
+                            label = { Text(stringResource(R.string.ytm_milliseconds, value)) },
                         )
                     }
                 }

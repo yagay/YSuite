@@ -81,7 +81,7 @@ public final class StaticApiReferenceScanner {
                 finding.source = "DEX framework API scanner";
                 finding.result = "STATIC_ONLY";
                 finding.summary = def.whyDetected
-                        + "；仅表示 APK 中存在公开 API 引用，不表示本次运行已执行，也不参与归因。";
+                        + com.yagay.suite.api.YLocale.text(com.yagay.ypower.R.string.ypower_dynamic_8cf121f771d2);
                 for (String evidence : entry.getValue()) finding.evidence(evidence);
                 report.staticEvidence.add(finding);
                 report.raw.add("[static-api auxiliary] " + entry.getKey() + " "

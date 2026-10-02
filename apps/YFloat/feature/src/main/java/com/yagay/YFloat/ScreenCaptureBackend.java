@@ -123,13 +123,13 @@ final class ScreenCaptureBackend {
                                            Consumer<Throwable> fail) {
         LensAccessibilityService service = LensAccessibilityService.get();
         if (service == null) {
-            fail.accept(new IllegalStateException("需要开启 YFloat 无障碍服务才能使用安全窗口截图增强"));
+            fail.accept(new IllegalStateException(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_b5c4f0731cb6)));
             return;
         }
 
         LsposedStatusManager.armSecureCaptureAsync(armed -> {
             if (!armed) {
-                fail.accept(new SecureLeaseException("LSPosed 安全截图短时授权失败"));
+                fail.accept(new SecureLeaseException(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_17ad4b57a814)));
                 return;
             }
 
@@ -151,7 +151,7 @@ final class ScreenCaptureBackend {
         LensAccessibilityService service = LensAccessibilityService.get();
         if (service == null) {
             fail.accept(new IllegalStateException(
-                    "需要开启 YFloat 无障碍服务；Root 截图需同时开启增强模式、Root 功能和 Root 截图增强"));
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_8377e73ad184)));
             return;
         }
         service.capture(ok, fail);
@@ -162,7 +162,7 @@ final class ScreenCaptureBackend {
     }
 
     private static IllegalStateException combined(Throwable a, Throwable b) {
-        return new IllegalStateException("两个截图后端均失败；first="
+        return new IllegalStateException(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_45e6eaf90c6c)
                 + safeMessage(a) + "，second=" + safeMessage(b));
     }
 

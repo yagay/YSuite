@@ -493,7 +493,7 @@ private fun SettingsScreen(
                         },
                     )
                     Spacer(Modifier.width(12.dp))
-                    Text("${localLimit} MB", modifier = Modifier.width(90.dp))
+                    Text(stringResource(R.string.ydiag_size_mb, localLimit), modifier = Modifier.width(90.dp))
                     YSecondaryButton(
                         stringResource(R.string.ydiag_increase),
                         {

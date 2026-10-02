@@ -9,4 +9,5 @@ public final class EventTypes {
     public static final String POPUP = "popup";
     public static final String SYSTEM_UI = "system_ui";
     public static final String OTHER_UI = "other_ui";
+    public static final String CUSTOM_TOAST_MARKER = "__YNOTIFY_CUSTOM_TOAST__";
 }

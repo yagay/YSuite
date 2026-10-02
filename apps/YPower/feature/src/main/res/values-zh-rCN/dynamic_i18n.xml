@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="ypower_attr_base">本项被标记为%1$s。规则 ID 为 %2$s。代表状态为 %3$s。关联分数为 %4$d，满分 100。</string>
+    <string name="ypower_attr_checked_note"> CHECKED 只证明应用执行了检查，并不证明检查结果命中了风险状态。</string>
+    <string name="ypower_attr_counts"> 本次共记录 %1$d 次。HIT %2$d，CHECKED %3$d，NOT_HIT %4$d，UNKNOWN %5$d。</string>
+    <string name="ypower_attr_delta"> 离真实退出最近的一次同规则事件相隔 %1$d ms。</string>
+    <string name="ypower_attr_exception"> 代表调用异常：%1$s。</string>
+    <string name="ypower_attr_input"> 代表输入：%1$s。</string>
+    <string name="ypower_attr_result"> 代表返回结果：%1$s。</string>
+    <string name="ypower_attr_same_exit_thread"> 代表事件与退出发生在同一线程。</string>
+    <string name="ypower_attr_same_fatal_thread"> 该检测与 Java Fatal 发生在同一线程。</string>
+    <string name="ypower_attr_shared_exit"> 检测栈与退出栈有 %1$d 个共同业务调用帧。</string>
+    <string name="ypower_attr_shared_fatal"> 检测栈与 Java Fatal 栈有 %1$d 个共同业务调用帧，形成检测、异常和退出之间的中间证据。</string>
+    <string name="ypower_corr_exit">本次运行记录到真实退出/崩溃事件</string>
+    <string name="ypower_corr_fatal_link">，并与 Java Fatal 存在异常传播关联</string>
+    <string name="ypower_corr_no_candidate">记录到了退出，但没有运行时规则同时满足分数与独立因果证据要求；单纯时间接近、NOT_HIT/UNKNOWN、静态证据和派生 Flow 不作为退出原因。</string>
+    <string name="ypower_corr_no_exit">本次运行观察到检测行为，但没有记录到真实退出，因此不做原因归因。</string>
+    <string name="ypower_corr_primary">主要归因：%1$s（%2$d/100，%3$s，%4$s）</string>
+    <string name="ypower_corr_secondary">；次要归因：%1$s（%2$d/100，%3$s）</string>
+    <string name="ypower_dynamic_07d633b9c57c">适合做环境/退出诊断；默认只记录敏感检测行为，不修改检测结果。</string>
+    <string name="ypower_dynamic_0c6d0a2b307a">目标 App 实际读取了环境相关系统属性</string>
+    <string name="ypower_dynamic_1c041f4bd355">系统属性检测</string>
+    <string name="ypower_dynamic_1eec439ed13d">目标 App 实际查询了调试器状态</string>
+    <string name="ypower_dynamic_2a0f2dbd5506">目标 App 实际执行了诊断规则命中的命令</string>
+    <string name="ypower_dynamic_4f8d6e845461">适合分析后台、环境检测和主动退出链；默认只启用诊断型 Hook。</string>
+    <string name="ypower_dynamic_56f14de6213e">目标 App 的 native 代码实际执行了调试器相关检查</string>
+    <string name="ypower_dynamic_5b871f7ab2c8">敏感文件 / proc 检测</string>
+    <string name="ypower_dynamic_6f308505f4bb">Native 调试器检测</string>
+    <string name="ypower_dynamic_7e92b3c93037"> → Java uncaught（同TID，Δ=</string>
+    <string name="ypower_dynamic_8cac81e71091">Java uncaught：</string>
+    <string name="ypower_dynamic_8cf121f771d2">；仅表示 APK 中存在公开 API 引用，不表示本次运行已执行，也不参与归因。</string>
+    <string name="ypower_dynamic_8ea16126b907">（Native dlopen）</string>
+    <string name="ypower_dynamic_9337e427052a">simpleperf 调用图命中 </string>
+    <string name="ypower_dynamic_a083e1bb2476">包/安装环境查询</string>
+    <string name="ypower_dynamic_a8a1701fd6cf">目标 App 实际查询了权限状态</string>
+    <string name="ypower_dynamic_ace7de7b2dec">目标 App 实际调用了主动退出 API</string>
+    <string name="ypower_dynamic_b721dcc93c4f">敏感命令检测</string>
+    <string name="ypower_dynamic_c4aff3a7ed3e">，同TID</string>
+    <string name="ypower_dynamic_c5cd6b4d42e2">目标 App 的 native 代码实际访问了敏感文件/路径</string>
+    <string name="ypower_dynamic_c6765a272472">应用主动退出调用</string>
+    <string name="ypower_dynamic_c747c2cafaca">权限状态查询</string>
+    <string name="ypower_dynamic_cfa114dd40b5">目标 App 实际访问了诊断规则命中的敏感路径</string>
+    <string name="ypower_dynamic_df42e408587d">目标 App 实际查询了安装包或安装来源</string>
+    <string name="ypower_dynamic_ec3b95d9f815"> → Java uncaught（同一 Throwable，Δ=</string>
+    <string name="ypower_dynamic_f3f6c8e49042">Native 敏感文件检测</string>
+    <string name="ypower_dynamic_f7166de0899c">组合链：
+</string>
+    <string name="ypower_run_counts">；本次运行 %1$d 次（HIT %2$d / CHECKED %3$d / NOT_HIT %4$d / UNKNOWN %5$d）</string>
+    <string name="ypower_strength_high">高可信</string>
+    <string name="ypower_strength_medium">中等相关</string>
+    <string name="ypower_strength_possible">可能相关</string>
+    <string name="ypower_strength_strong">较强相关</string>
+    <string name="ypower_supp_delta"> 与退出最近相隔 %1$d ms。</string>
+    <string name="ypower_supp_primary">主要归因</string>
+    <string name="ypower_supp_same_thread"> 代表事件与退出发生在同一线程。</string>
+    <string name="ypower_supp_secondary">次要归因</string>
+    <string name="ypower_supp_shared_frames"> 与退出栈共享 %1$d 个业务帧。</string>
+    <string name="ypower_supp_title">%1$s：%2$s</string>
+    <string name="ypower_supp_why">本项被标记为%1$s，规则 ID=%2$s，代表状态=%3$s，关联分数=%4$d/100。</string>
+</resources>

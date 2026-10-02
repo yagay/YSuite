@@ -230,7 +230,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
 
     private void showCustomHandlersForType(IntentTypeCatalog.Spec spec) {
         LinearLayout root = page(spec.title,
-                spec.description + " · 只显示系统确认能处理这个 Intent 的应用入口。",
+                spec.description + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_27e11ac203f0),
                 this::showCustomIntentTypes);
         addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_69b17b1959f6));
 

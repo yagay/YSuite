@@ -53,12 +53,12 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
                 SecureCaptureProbePolicy.MARKER_GREEN,
                 SecureCaptureProbePolicy.MARKER_BLUE));
 
-        TextView title = AppUi.text(this, "LSPosed 安全窗口截图自检", 20, true);
+        TextView title = AppUi.text(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_5c13aa73bf0a), 20, true);
         title.setTextColor(Color.WHITE);
         root.addView(title, new LinearLayout.LayoutParams(-2, -2));
 
         status = AppUi.caption(this,
-                "这是 YFloat 自己的 FLAG_SECURE 测试窗口。正在验证 system_server Hook 是否能在短时 lease 内抓到这里的标记颜色…",
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_436814f4594d),
                 14);
         status.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
@@ -66,12 +66,12 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
         root.addView(status, statusLp);
 
         LinearLayout buttons = AppUi.buttonRow(this);
-        retry = AppUi.secondaryButton(this, "重新测试");
+        retry = AppUi.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_3c2358b2ec16));
         retry.setEnabled(false);
         retry.setOnClickListener(v -> runProbe());
         buttons.addView(retry, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton close = AppUi.secondaryButton(this, "返回");
+        MaterialButton close = AppUi.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_11d024154013));
         close.setOnClickListener(v -> finish());
         buttons.addView(close, new LinearLayout.LayoutParams(0, -2, 1f));
 
@@ -85,7 +85,7 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
         if (running) return;
         running = true;
         retry.setEnabled(false);
-        status.setText("正在刷新 LSPosed 框架、Remote Preferences 与 system_server 加载状态…");
+        status.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_cede0dc015d9));
 
         final int generation = ++refreshGeneration;
         cancelPendingStatusRefresh();
@@ -110,34 +110,34 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
         FloatSettings fs = new FloatSettings(this);
         LsposedStatusManager.Snapshot s = LsposedStatusManager.snapshot();
         if (!PrivilegeManager.canUseLsposedSecureScreenshot(fs)) {
-            showResult(false, "前置条件未满足。\n" + gateSummary(fs, s), null);
+            showResult(false, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_7290872c4b2e) + gateSummary(fs, s), null);
             return;
         }
         if (LensAccessibilityService.get() == null) {
-            showResult(false, "无障碍服务未连接，无法执行安全截图自检。\n" + gateSummary(fs, s), null);
+            showResult(false, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_b6f2dd9329a6) + gateSummary(fs, s), null);
             return;
         }
 
-        status.setText("前置条件已满足，正在建立短时 lease 并调用无障碍截图…");
+        status.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_b8c7c7cf1374));
         DiagnosticLog.i(this, "SECURE_CAPTURE_PROBE", "start " + gateSummary(fs, s));
 
         ScreenCaptureBackend.captureSecureAccessibility(getApplicationContext(), bitmap ->
                 runOnUiThread(() -> evaluate(bitmap)), error ->
                 runOnUiThread(() -> showResult(false,
-                        "截图调用失败：" + ScreenCaptureBackend.safeMessage(error), error)));
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_68e9ce66bfd7) + ScreenCaptureBackend.safeMessage(error), error)));
     }
 
     private String gateSummary(FloatSettings fs, LsposedStatusManager.Snapshot s) {
         String runningTargets = s.runningProcesses.isEmpty()
-                ? "无" : String.join(", ", s.runningProcesses);
-        return "本地：enhanced=" + fs.enhancedMode()
+                ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_72077749f794) : String.join(", ", s.runningProcesses);
+        return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_18ee4377025f) + fs.enhancedMode()
                 + " lsposed=" + fs.lsposedEnabled()
                 + " secureScreenshot=" + fs.lsposedSecureScreenshot()
-                + "\n框架：service=" + s.serviceConnected
+                + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_418c5e5de3a3) + s.serviceConnected
                 + " remoteConfig=" + s.remoteConfigReady
                 + " systemScope=" + s.systemScopeEnabled
                 + " systemLoaded=" + s.systemLoaded
-                + "\n远端：enhanced=" + s.remoteEnhancedMode
+                + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_589f129026cd) + s.remoteEnhancedMode
                 + " lsposed=" + s.remoteLsposedEnabled
                 + " secureScreenshot=" + s.remoteSecureScreenshotEnabled
                 + "\nloadedTargets=" + runningTargets
@@ -155,7 +155,7 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
 
     private void evaluate(Bitmap bitmap) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getWidth() <= 0 || bitmap.getHeight() <= 0) {
-            showResult(false, "截图返回空 Bitmap。", null);
+            showResult(false, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_2174c79259a2), null);
             return;
         }
 
@@ -184,13 +184,13 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
 
         if (success) {
             showResult(true,
-                    "通过：安全窗口内容已出现在截图 Bitmap 中。采样命中 " + matches + "/" + total
-                            + "，Bitmap=" + width + "×" + height + "。",
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_db07a5731fad) + matches + "/" + total
+                            + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_e23d94219f3c) + width + "×" + height + "。",
                     null);
         } else {
             showResult(false,
-                    "未通过：截图 API 有返回，但没有抓到 FLAG_SECURE 测试页的标记颜色。采样命中 "
-                            + matches + "/" + total + "。这通常表示 system_server Hook 点与当前 OxygenOS 版本不匹配，或安全层仍在更下游被过滤。",
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_b71f7fcefc49)
+                            + matches + "/" + total + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_6b96e533a646),
                     null);
         }
     }

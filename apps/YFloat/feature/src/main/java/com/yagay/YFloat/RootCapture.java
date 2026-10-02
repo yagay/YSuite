@@ -26,12 +26,12 @@ public final class RootCapture {
                         "screencap -p 2>/dev/null", ROOT_CAPTURE_TIMEOUT_SECONDS, MAX_CAPTURE_BYTES);
                 if (!command.success()) {
                     throw new IllegalStateException(
-                            command.failureMessage("Root 截图超时"), command.error);
+                            command.failureMessage(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_a6941ff829ca)), command.error);
                 }
                 byte[] data = command.stdout;
-                if (data.length < 1024) throw new IllegalStateException("Root 截图数据为空");
+                if (data.length < 1024) throw new IllegalStateException(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_dac2c06f81a6));
                 Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                if (bitmap == null) throw new IllegalStateException("无法解码 Root 截图");
+                if (bitmap == null) throw new IllegalStateException(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_a2c49ab067d1));
                 app.getMainExecutor().execute(() -> ok.accept(bitmap));
             } catch (Throwable t) {
                 app.getMainExecutor().execute(() -> fail.accept(t));

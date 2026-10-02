@@ -175,7 +175,7 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     fun apiVersion(): Int = runCatching { currentService?.apiVersion ?: 0 }.getOrDefault(0)
 
     fun statusLabel(): String {
-        val service = currentService ?: return "未连接"
+        val service = currentService ?: return com.yagay.suite.api.YLocale.text(com.yagay.suite.core.R.string.ycore_dynamic_f2f3e9803ccb)
         return runCatching {
             val name = service.frameworkName.ifBlank { "LSPosed" }
             val version = service.frameworkVersion
@@ -184,7 +184,7 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
                 if (version.isNotBlank()) append(' ').append(version)
                 append(" · API ").append(service.apiVersion)
             }
-        }.getOrElse { "已连接 · API ${apiVersion()}" }
+        }.getOrElse { com.yagay.suite.api.YLocale.text(R.string.ycore_xposed_connected_api, apiVersion()) }
     }
 
     /** Export a stable textual snapshot without exposing the process-global service object. */

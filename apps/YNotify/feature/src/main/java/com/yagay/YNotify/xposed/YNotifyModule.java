@@ -250,7 +250,7 @@ public final class YNotifyModule extends XposedModule {
                 Context context = contextFromObject(chain.getThisObject());
                 String pkg = packageArg(chain);
                 String text = toastTextArg(chain, pkg);
-                if (text == null || text.isBlank()) text = "自定义 Toast";
+                if (text == null || text.isBlank()) text = EventTypes.CUSTOM_TOAST_MARKER;
                 if (pkg != null && shouldEmitUi(pkg, EventTypes.TOAST, text, 750L)) {
                     emitUi(context, pkg, EventTypes.TOAST, text,
                             "com.android.server.notification.NotificationManagerService#enqueueToast");

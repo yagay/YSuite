@@ -151,7 +151,7 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
     private final CopyOnWriteArraySet<Listener> listeners = new CopyOnWriteArraySet<>();
     private volatile XposedService service;
     private volatile SharedPreferences localPreferences;
-    private volatile Snapshot snapshot = Snapshot.disconnected("等待 LSPosed 服务连接");
+    private volatile Snapshot snapshot = Snapshot.disconnected(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_e55b9875d7c0));
 
     private final SharedPreferences.OnSharedPreferenceChangeListener localPreferenceListener =
             (preferences, key) -> {
@@ -277,7 +277,7 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
     @Override
     public void onServiceDied(XposedService service) {
         if (this.service == service) this.service = null;
-        publish(Snapshot.disconnected("LSPosed 服务已断开"));
+        publish(Snapshot.disconnected(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_c82db85063c2)));
     }
 
     private void syncRuntimeConfig() {
@@ -299,16 +299,16 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
                         current, enhanced, lsposed, secureScreenshot, diagnostic, updatedAt);
                 if (remote == null) {
                     publishSnapshot(current, false, false, false, false, 0L, 0L,
-                            "Remote Preferences 写入失败或不可用");
+                            com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_490c9cedda7a));
                     return;
                 }
                 publishFromRemote(current, remote, "");
             } catch (UnsupportedOperationException unsupported) {
                 publishSnapshot(current, false, false, false, false, 0L, 0L,
-                        "当前框架不支持 Remote Preferences");
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_9b360604d584));
             } catch (Throwable t) {
                 publishSnapshot(current, false, false, false, false, 0L, 0L,
-                        "同步 LSPosed 配置失败：" + messageOf(t));
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_4e7c1cd567a8) + messageOf(t));
             }
         });
     }
@@ -383,10 +383,10 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
                 success = remote != null;
                 if (remote != null) publishFromRemote(current, remote, "");
                 else publishSnapshot(current, false, false, false, false, 0L, 0L,
-                        "安全截图短时授权写入失败");
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_20abc7350028));
             } catch (Throwable t) {
                 publishSnapshot(current, false, false, false, false, 0L, 0L,
-                        "安全截图短时授权失败：" + messageOf(t));
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_f966539feb80) + messageOf(t));
             }
             complete(callback, success);
         });
@@ -409,7 +409,7 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
     private void refreshFromService() {
         XposedService current = service;
         if (current == null) {
-            publish(Snapshot.disconnected("未连接到 LSPosed 服务"));
+            publish(Snapshot.disconnected(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_59ce96a2e4b4)));
             return;
         }
         IO.execute(() -> {
@@ -417,16 +417,16 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
                 SharedPreferences remote = current.getRemotePreferences(LsposedRuntimeConfig.GROUP);
                 if (remote == null) {
                     publishSnapshot(current, false, false, false, false, 0L, 0L,
-                            "框架没有提供 Remote Preferences");
+                            com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_91c6a1a7566e));
                     return;
                 }
                 publishFromRemote(current, remote, "");
             } catch (UnsupportedOperationException unsupported) {
                 publishSnapshot(current, false, false, false, false, 0L, 0L,
-                        "当前框架不支持 Remote Preferences");
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_9b360604d584));
             } catch (Throwable t) {
                 publishSnapshot(current, false, false, false, false, 0L, 0L,
-                        "读取 LSPosed 状态失败：" + messageOf(t));
+                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_389b6d27fa37) + messageOf(t));
             }
         });
     }
@@ -482,7 +482,7 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
                     remoteSecureScreenshotEnabled, remoteSecureCaptureArmedUntil,
                     remoteUpdatedAt, detail));
         } catch (Throwable t) {
-            publish(Snapshot.disconnected("读取 LSPosed 状态失败：" + messageOf(t)));
+            publish(Snapshot.disconnected(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_389b6d27fa37) + messageOf(t)));
         }
     }
 
