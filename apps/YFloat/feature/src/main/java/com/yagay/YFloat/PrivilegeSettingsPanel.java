@@ -244,7 +244,7 @@ public final class PrivilegeSettingsPanel {
             lsposedStatus.setText(R.string.yfloat_priv_reloading_hooks);
             boolean started = HookReloadManager.reloadChangedTargetsAsync(activity, result -> {
                 reloadHooks.setEnabled(true);
-                Toast.makeText(activity, result.userMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(activity, result.userMessage(activity), Toast.LENGTH_LONG).show();
                 LsposedStatusManager.refreshAsync();
                 refreshLsposed(activity, lsposedStatus);
             });
