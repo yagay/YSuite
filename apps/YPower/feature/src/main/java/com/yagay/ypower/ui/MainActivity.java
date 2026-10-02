@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatEditText;
 
+import com.yagay.ypower.R;
 import com.yagay.ypower.data.ProfileStore;
 import com.yagay.ypower.data.RecommendedAppRegistry;
 import com.yagay.ypower.root.RootShell;
@@ -51,34 +52,34 @@ public class MainActivity extends AppCompatActivity {
     private void buildUi() {
         YViewScreen screen = YViewLayout.install(
                 this,
-                "YPower",
-                "应用增强 · 运行时参数、检测与诊断");
+                getString(R.string.yp_title),
+                getString(R.string.yp_subtitle));
         LinearLayout root = screen.getContent();
 
         LinearLayout runtimeCard = YViewLayout.card(
                 root,
-                "运行环境",
-                "Root 和 LSPosed 状态由同一套 YSuite 运行时框架管理。");
-        status = YViewLayout.statusLine(this, "正在检测…");
+                getString(R.string.yp_runtime_title),
+                getString(R.string.yp_runtime_desc));
+        status = YViewLayout.statusLine(this, getString(R.string.yp_checking));
         runtimeCard.addView(status);
         refreshRuntimeStatus();
 
         LinearLayout appsCard = YViewLayout.card(
                 root,
-                "应用列表",
-                "已启用应用优先显示；点击应用或设置按钮进入详细配置。");
-        search = YViewLayout.searchField(this, "搜索应用或包名");
+                getString(R.string.yp_apps_title),
+                getString(R.string.yp_apps_desc));
+        search = YViewLayout.searchField(this, getString(R.string.yp_search_hint));
         appsCard.addView(search);
 
         LinearLayout actions = YViewLayout.actionRow(appsCard);
-        Button refresh = YViewLayout.primaryButton(this, "搜索 / 刷新");
+        Button refresh = YViewLayout.primaryButton(this, getString(R.string.yp_search_refresh));
         refresh.setOnClickListener(v -> {
             refreshRuntimeStatus();
             loadApps(search.getText().toString());
         });
         YViewLayout.addAction(actions, refresh);
 
-        Button recommended = YViewLayout.secondaryButton(this, "推荐应用");
+        Button recommended = YViewLayout.secondaryButton(this, getString(R.string.yp_recommended_apps));
         recommended.setOnClickListener(v -> startActivity(new Intent(this, RecommendedAppsActivity.class)));
         YViewLayout.addAction(actions, recommended);
 
@@ -93,8 +94,10 @@ public class MainActivity extends AppCompatActivity {
         boolean xposed = XposedBridgeManager.isReady();
         YViewLayout.setStatus(
                 status,
-                "Root：" + (root ? "已连接" : "未授权")
-                        + "    LSPosed：" + (xposed ? "已连接" : "未连接"),
+                getString(
+                        R.string.yp_runtime_status,
+                        root ? getString(R.string.yp_connected) : getString(R.string.yp_not_authorized),
+                        xposed ? getString(R.string.yp_connected) : getString(R.string.yp_not_connected)),
                 root && xposed ? YViewStatusTone.Good : YViewStatusTone.Warning);
     }
 
@@ -147,13 +150,13 @@ public class MainActivity extends AppCompatActivity {
         TextView text = new TextView(this);
         boolean recommended = RecommendedAppRegistry.find(packageName) != null;
         text.setText((recommended ? "★ " : "") + label + "\n" + packageName
-                + (recommended ? "\n推荐配置可用" : ""));
+                + (recommended ? "\n" + getString(R.string.yp_recommended_available) : ""));
         YView.styleBody(text);
         text.setTextSize(15f);
         text.setOnClickListener(v -> openDetails(packageName));
         row.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
 
-        Button detail = YViewLayout.secondaryButton(this, "设置");
+        Button detail = YViewLayout.secondaryButton(this, getString(R.string.yp_settings));
         detail.setOnClickListener(v -> openDetails(packageName));
         row.addView(detail);
         list.addView(row);
