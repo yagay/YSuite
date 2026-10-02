@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:name="com.yagay.ysuite.standalone.StandaloneApplication"
+        android:allowBackup="false"
+        android:label="${standaloneAppName}"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.YUI">
+        <meta-data
+            android:name="com.yagay.ysuite.standalone.FEATURE_ID"
+            android:value="${standaloneFeatureId}" />
+        <meta-data
+            android:name="com.yagay.ysuite.standalone.ENTRY_ACTIVITY"
+            android:value="${standaloneEntryActivity}" />
+
+        <activity
+            android:name="com.yagay.ysuite.standalone.StandaloneLauncherActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
