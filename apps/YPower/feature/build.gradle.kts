@@ -2,6 +2,8 @@ plugins {
     id("com.android.library")
 }
 
+val embeddedInSuite = rootProject.findProject(":suite") != null
+val hostPackage = if (embeddedInSuite) "com.yagay.YSuite" else "com.yagay.ypower"
 val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 val ciArm64Only = providers.gradleProperty("ciArm64Only").orNull == "true"
@@ -14,6 +16,7 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
+        buildConfigField("String", "HOST_PACKAGE", "\"$hostPackage\"")
         ndk {
             abiFilters.clear()
             abiFilters += if (ciArm64Only) listOf("arm64-v8a") else listOf("arm64-v8a", "armeabi-v7a")
