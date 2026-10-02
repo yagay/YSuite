@@ -148,7 +148,7 @@ public class EventDetailActivity extends AppCompatActivity {
         if (r.groupSummary) line(m, R.string.ynotify_meta_group_summary, getString(R.string.ynotify_yes));
         line(m, R.string.ynotify_meta_template, r.template);
         line(m, R.string.ynotify_meta_category, r.category);
-        line(m, R.string.ynotify_meta_notification_kind, r.notificationKind);
+        line(m, R.string.ynotify_meta_notification_kind, displayNotificationKind(r.notificationKind));
         if (r.importance != 0) line(m, R.string.ynotify_meta_ranking_importance, String.valueOf(r.importance));
         if (r.conversation) line(m, R.string.ynotify_meta_conversation, getString(R.string.ynotify_yes));
         if (r.rankingCanBubble) line(m, R.string.ynotify_meta_ranking_can_bubble, getString(R.string.ynotify_yes));
@@ -156,10 +156,11 @@ public class EventDetailActivity extends AppCompatActivity {
         if (r.rankingSuspended) line(m, R.string.ynotify_meta_suspended, getString(R.string.ynotify_yes));
         line(m, R.string.ynotify_meta_flags, r.flags == 0 ? null : "0x" + Integer.toHexString(r.flags));
         if (r.progressMax > 0 || r.progressIndeterminate) {
-            line(m, R.string.ynotify_meta_progress,
-                    r.progressIndeterminate
-                            ? getString(R.string.ynotify_progress_indeterminate)
-                            : r.progress + " " + getString(R.string.ynotify_meta_merged_into).toLowerCase() + " " + r.progressMax);
+            if (r.progressIndeterminate) {
+                line(m, R.string.ynotify_meta_progress, getString(R.string.ynotify_progress_indeterminate));
+            } else {
+                m.append(getString(R.string.ynotify_detail_progress_value, r.progress, r.progressMax)).append('\n');
+            }
         }
         if (r.ongoing) line(m, R.string.ynotify_meta_ongoing, getString(R.string.ynotify_yes));
         if (r.foregroundService) line(m, R.string.ynotify_meta_foreground_service, getString(R.string.ynotify_yes));
@@ -186,8 +187,26 @@ public class EventDetailActivity extends AppCompatActivity {
         if (EventTypes.DIALOG.equals(value)) return getString(R.string.ynotify_class_dialog);
         if (EventTypes.POPUP.equals(value)) return getString(R.string.ynotify_filter_popup);
         if (EventTypes.SNACKBAR.equals(value)) return getString(R.string.ynotify_filter_snackbar);
+        if (EventTypes.SYSTEM_UI.equals(value)) return getString(R.string.ynotify_type_system_ui);
         if (EventTypes.OTHER_UI.equals(value)) return getString(R.string.ynotify_class_other_ui);
         return value;
+    }
+
+    private String displayNotificationKind(String value) {
+        if (value == null || value.isBlank()) return value;
+        switch (value) {
+            case "call": return getString(R.string.ynotify_kind_call);
+            case "alarm": return getString(R.string.ynotify_kind_alarm);
+            case "media": return getString(R.string.ynotify_kind_media);
+            case "progress": return getString(R.string.ynotify_kind_progress);
+            case "foreground_service": return getString(R.string.ynotify_kind_foreground_service);
+            case "message": return getString(R.string.ynotify_kind_message);
+            case "system": return getString(R.string.ynotify_kind_system);
+            case "ongoing": return getString(R.string.ynotify_kind_ongoing);
+            case "silent": return getString(R.string.ynotify_kind_silent);
+            case "standard": return getString(R.string.ynotify_class_notification);
+            default: return value;
+        }
     }
 
     private String formatRevisions(List<NotificationRevision> revisions) {
