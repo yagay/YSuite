@@ -12,7 +12,6 @@ from generate_feature_catalog import ALLOWED_CAPABILITIES, load_features
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "config/features.toml"
-VERSION_CATALOG = ROOT / "gradle/libs.versions.toml"
 
 ID_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
@@ -55,107 +54,11 @@ def render_catalog_entry(
         f"project_dir = {q('apps/' + name + '/feature')}\n"
         f"entry_activity = {q(package_name + '.MainActivity')}\n"
         f"runtime = {q(package_name + '.' + name + 'SuiteRuntime')}\n"
+        f"standalone_package = {q(package_name)}\n"
+        "standalone_enabled = true\n"
         f"capabilities = [{caps}]\n"
         "lifecycle = \"managed\"\n"
     )
-
-
-def settings_gradle(name: str) -> str:
-    return f'''pluginManagement {{ repositories {{ google(); mavenCentral(); gradlePluginPortal() }} }}
-dependencyResolutionManagement {{
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {{ google(); mavenCentral() }}
-}}
-
-val suiteRoot = file("../..").canonicalFile
-val localApi = suiteRoot.resolve("libs/yapi")
-val localUi = suiteRoot.resolve("libs/yui")
-if (localApi.isDirectory && localUi.isDirectory) {{
-    include(":ysuite-api", ":ysuite-ui")
-    project(":ysuite-api").projectDir = localApi
-    project(":ysuite-ui").projectDir = localUi
-}} else {{
-    sourceControl {{
-        gitRepository(uri("https://github.com/yagay/YSuite.git")) {{
-            producesModule("com.github.yagay.YSuite:api")
-            producesModule("com.github.yagay.YSuite:ui")
-        }}
-    }}
-}}
-
-rootProject.name = "{name}"
-include(":app", ":feature")
-'''
-
-
-def root_build_gradle() -> str:
-    return '''plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.kotlin.compose) apply false
-}
-
-val localSuiteShared = rootProject.findProject(":ysuite-api") != null &&
-    rootProject.findProject(":ysuite-ui") != null
-
-if (localSuiteShared) {
-    subprojects {
-        configurations.configureEach {
-            resolutionStrategy.dependencySubstitution {
-                substitute(module("com.github.yagay.YSuite:api"))
-                    .using(project(":ysuite-api"))
-                substitute(module("com.github.yagay.YSuite:ui"))
-                    .using(project(":ysuite-ui"))
-            }
-        }
-    }
-}
-'''
-
-
-def app_build_gradle(package_name: str) -> str:
-    return f'''plugins {{ id("com.android.application") }}
-
-val ciArm64Only = providers.gradleProperty("ciArm64Only").orNull == "true"
-val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
-
-android {{
-    namespace = "{package_name}.standalone"
-    compileSdk {{
-        version = release(libs.versions.compileSdk.get().toInt()) {{
-            minorApiLevel = libs.versions.compileSdkMinor.get().toInt()
-        }}
-    }}
-    defaultConfig {{
-        applicationId = "{package_name}"
-        minSdk = libs.versions.minSdk.get().toInt()
-        targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
-        if (ciArm64Only) {{
-            ndk {{
-                abiFilters.clear()
-                abiFilters += "arm64-v8a"
-            }}
-        }}
-    }}
-    compileOptions {{
-        sourceCompatibility = sharedJavaVersion
-        targetCompatibility = sharedJavaVersion
-    }}
-    packaging.resources.merges += "META-INF/xposed/*"
-    sourceSets {{ getByName("main") {{ resources.srcDirs("src/main/resources") }} }}
-    buildTypes {{
-        release {{
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }}
-    }}
-}}
-
-dependencies {{ implementation(project(":feature")) }}
-'''
 
 
 def feature_build_gradle(package_name: str) -> str:
@@ -164,16 +67,11 @@ def feature_build_gradle(package_name: str) -> str:
     id("org.jetbrains.kotlin.plugin.compose")
 }}
 
-val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 
 android {{
     namespace = "{package_name}"
-    compileSdk {{
-        version = release(libs.versions.compileSdk.get().toInt()) {{
-            minorApiLevel = libs.versions.compileSdkMinor.get().toInt()
-        }}
-    }}
+    compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig {{ minSdk = libs.versions.minSdk.get().toInt() }}
     buildFeatures {{ compose = true }}
     compileOptions {{
@@ -189,33 +87,13 @@ android {{
 }}
 
 dependencies {{
-    implementation("com.github.yagay.YSuite:api") {{ version {{ branch = sharedSuiteBranch.get() }} }}
-    implementation("com.github.yagay.YSuite:ui") {{ version {{ branch = sharedSuiteBranch.get() }} }}
+    implementation(project(":api"))
+    implementation(project(":ui"))
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
 }}
-'''
-
-
-def app_manifest(package_name: str) -> str:
-    activity = package_name + ".MainActivity"
-    return f'''<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <application
-        android:allowBackup="false"
-        android:label="@string/app_name"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.YUI">
-        <activity
-            android:name="{activity}"
-            android:exported="true"
-            tools:replace="android:exported">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-</manifest>
 '''
 
 
@@ -299,7 +177,9 @@ def write(path: Path, content: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Create a minimal independently buildable YSuite feature scaffold.")
+    parser = argparse.ArgumentParser(
+        description="Create a pure YSuite Feature. Standalone APK packaging is provided by the shared host."
+    )
     parser.add_argument("--id", required=True)
     parser.add_argument("--name", required=True)
     parser.add_argument("--package", required=True, dest="package_name")
@@ -329,24 +209,18 @@ def main() -> None:
     if any(item["name"] == name for item in existing):
         fail(f"feature name already exists: {name}")
 
-    app_root = ROOT / "apps" / name
-    if app_root.exists():
-        fail(f"target already exists: {app_root.relative_to(ROOT)}")
+    feature_root = ROOT / "apps" / name / "feature"
+    if feature_root.exists():
+        fail(f"target already exists: {feature_root.relative_to(ROOT)}")
 
     entry = render_catalog_entry(feature_id, name, package_name, description, capabilities)
     source_root = Path(*package_name.split("."))
     planned = {
-        app_root / "settings.gradle.kts": settings_gradle(name),
-        app_root / "build.gradle.kts": root_build_gradle(),
-        app_root / "app/build.gradle.kts": app_build_gradle(package_name),
-        app_root / "app/proguard-rules.pro": "# Standalone app rules.\n",
-        app_root / "app/src/main/AndroidManifest.xml": app_manifest(package_name),
-        app_root / "app/src/main/res/values/strings.xml": f"<resources>\n    <string name=\"app_name\">{name}</string>\n</resources>\n",
-        app_root / "feature/build.gradle.kts": feature_build_gradle(package_name),
-        app_root / "feature/consumer-rules.pro": "# Feature consumer rules.\n",
-        app_root / "feature/src/main/AndroidManifest.xml": feature_manifest(package_name),
-        app_root / "feature/src/main/java" / source_root / "MainActivity.kt": main_activity(package_name, name, description),
-        app_root / "feature/src/main/java" / source_root / f"{name}SuiteRuntime.kt": runtime_source(package_name, name, feature_id),
+        feature_root / "build.gradle.kts": feature_build_gradle(package_name),
+        feature_root / "consumer-rules.pro": "# Feature consumer rules.\n",
+        feature_root / "src/main/AndroidManifest.xml": feature_manifest(package_name),
+        feature_root / "src/main/java" / source_root / "MainActivity.kt": main_activity(package_name, name, description),
+        feature_root / "src/main/java" / source_root / f"{name}SuiteRuntime.kt": runtime_source(package_name, name, feature_id),
     }
 
     if args.dry_run:
@@ -355,6 +229,7 @@ def main() -> None:
             print(f"  {path.relative_to(ROOT)}")
         print("\nCatalog entry:")
         print(entry.strip())
+        print(f"\nStandalone build: gradle buildFeatureDebug -PySuiteStandaloneFeature={feature_id}")
         return
 
     for path, content in planned.items():
@@ -364,10 +239,12 @@ def main() -> None:
     CATALOG.write_text(current_catalog + entry.lstrip("\n"), encoding="utf-8")
     print(f"new-feature: updated {CATALOG.relative_to(ROOT)}")
 
-    write(app_root / "gradle/libs.versions.toml", VERSION_CATALOG.read_text(encoding="utf-8"))
     subprocess.run([sys.executable, str(ROOT / "tools/generate_feature_catalog.py")], check=True)
-    subprocess.run([sys.executable, str(ROOT / "tools/sync_version_catalog.py")], check=True)
-    print("new-feature: scaffold complete. Add business code under feature/, verify, then build standalone.")
+    subprocess.run([sys.executable, str(ROOT / "tools/generate_standalone_catalog.py")], check=True)
+    print(
+        "new-feature: pure Feature scaffold complete. "
+        f"Build standalone with: gradle buildFeatureDebug -PySuiteStandaloneFeature={feature_id}"
+    )
 
 
 if __name__ == "__main__":
