@@ -9,6 +9,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.yagay.yparam.R;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,8 +49,12 @@ final class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     @Override public void onBindViewHolder(@NonNull Holder h, int position) {
         AppEntry e = items.get(position);
         h.icon.setImageDrawable(e.icon);
-        h.title.setText(e.name + (e.configured ? "  • 已修改" : ""));
-        h.subtitle.setText(e.packageName + (e.system ? "  · 系统应用" : ""));
+        h.title.setText(e.name + (e.configured
+                ? h.itemView.getContext().getString(R.string.yparam_modified_suffix)
+                : ""));
+        h.subtitle.setText(e.packageName + (e.system
+                ? h.itemView.getContext().getString(R.string.yparam_system_suffix)
+                : ""));
         h.itemView.setOnClickListener(v -> listener.onClick(e));
     }
     @Override public int getItemCount() { return items.size(); }
