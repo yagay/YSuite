@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
             HistoryRepairEngine.repairAsync(this, report -> {
                 if (isFinishing()) return;
                 b.btnHistoryRepair.setEnabled(true);
-                b.repairStatus.setText(report.summary(this));
+                b.repairStatus.setText(HistoryRepairText.summary(this, report));
             });
         });
     }
