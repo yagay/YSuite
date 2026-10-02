@@ -4,6 +4,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.yagay.suite.api.RuntimeOwnerGate;
+
 import io.github.libxposed.api.XposedModule;
 
 /**
@@ -29,6 +31,7 @@ public final class TaskManagerModule extends XposedModule {
 
     @Override
     public void onPackageLoaded(@NonNull PackageLoadedParam param) {
+        if (!RuntimeOwnerGate.shouldRun("ytaskmanager", getModuleApplicationInfo())) return;
         if ("android".equals(param.getPackageName())) {
             log(Log.INFO, TAG, "Android framework package loaded; system enhancement layer ready");
         }
@@ -36,6 +39,7 @@ public final class TaskManagerModule extends XposedModule {
 
     @Override
     public void onPackageReady(@NonNull PackageReadyParam param) {
+        if (!RuntimeOwnerGate.shouldRun("ytaskmanager", getModuleApplicationInfo())) return;
         // Reserved for phase 2:
         // - NetworkStatsService / netd related observation
         // - UID-level network accounting compatibility hooks
