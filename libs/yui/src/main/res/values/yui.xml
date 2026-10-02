@@ -3,6 +3,7 @@
     <string name="yui_loading">Loading…</string>
     <string name="yui_search">Search</string>
     <string name="yui_open">Open</string>
+    <string name="yui_status_pair">%1$s · %2$s</string>
 
     <dimen name="yui_screen_horizontal">16dp</dimen>
     <dimen name="yui_screen_vertical">12dp</dimen>
