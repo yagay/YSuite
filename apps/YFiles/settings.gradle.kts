@@ -19,4 +19,4 @@ if (localApi.isDirectory && localUi.isDirectory) {
     }
 }
 rootProject.name = "YFiles"
-include(":app", ":feature")
+include(":feature")
