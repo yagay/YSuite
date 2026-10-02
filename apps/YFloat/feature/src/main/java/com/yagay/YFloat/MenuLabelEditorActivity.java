@@ -28,12 +28,15 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
     }
 
     private void rebuild() {
-        LinearLayout root = AppUi.pageRoot(this, "菜单显示名称",
-                "名称只影响 YFloat 中的显示，不会修改系统应用名称或调用目标。" );
+        LinearLayout root = AppUi.pageRoot(this,
+                getString(R.string.yfloat_menu_labels_title),
+                getString(R.string.yfloat_menu_labels_desc));
 
         addCustomSection(root);
-        addTargetSection(root, TargetMenuStore.MODE_SHARE, "分享菜单");
-        addTargetSection(root, TargetMenuStore.MODE_PROCESS, "打开 / 处理菜单");
+        addTargetSection(root, TargetMenuStore.MODE_SHARE,
+                getString(R.string.yfloat_menu_share_title));
+        addTargetSection(root, TargetMenuStore.MODE_PROCESS,
+                getString(R.string.yfloat_menu_process_title));
 
         setContentView(AppUi.scrollPage(this, root));
     }
@@ -41,10 +44,10 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
     private void addCustomSection(LinearLayout root) {
         List<CustomMenuActionStore.Item> items = CustomMenuActionStore.load(this);
         AppUi.Section section = AppUi.section(this,
-                "文字操作菜单 · " + items.size() + " 项",
-                "自定义操作名称太长时，可以在这里改成更短的显示名称。" );
+                getString(R.string.yfloat_menu_text_actions_count, items.size()),
+                getString(R.string.yfloat_menu_text_actions_desc));
         if (items.isEmpty()) {
-            addEmpty(section.body, "还没有自定义文字操作");
+            addEmpty(section.body, getString(R.string.yfloat_menu_no_custom_actions));
         } else {
             for (CustomMenuActionStore.Item item : items) {
                 addRenameRow(section.body,
@@ -55,7 +58,9 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
                                 null,
                                 name -> {
                                     if (CustomMenuActionStore.rename(this, item.id, name)) {
-                                        Toast.makeText(this, "名称已修改", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(this,
+                                                R.string.yfloat_menu_name_changed,
+                                                Toast.LENGTH_SHORT).show();
                                         rebuild();
                                     }
                                 },
@@ -68,31 +73,35 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
     private void addTargetSection(LinearLayout root, String mode, String title) {
         List<TargetMenuStore.Item> system = discoverTargets(mode);
         AppUi.Section section = AppUi.section(this,
-                title + " · " + system.size() + " 项",
-                "可修改 YFloat 显示名称，也可以恢复 Android 当前返回的系统名称。" );
+                getString(R.string.yfloat_menu_target_count, title, system.size()),
+                getString(R.string.yfloat_menu_target_desc));
 
         if (system.isEmpty()) {
-            addEmpty(section.body, "系统当前没有返回可用目标");
+            addEmpty(section.body, getString(R.string.yfloat_menu_no_system_targets));
         } else {
             for (TargetMenuStore.Item item : system) {
                 String display = TargetMenuStore.displayLabel(
                         this, mode, item.key(), item.label);
                 String subtitle = display.equals(item.label)
                         ? item.packageName
-                        : "系统名称：" + item.label;
+                        : getString(R.string.yfloat_menu_system_name, item.label);
                 addRenameRow(section.body, display, subtitle,
                         () -> showRenameDialog(
                                 display,
                                 item.label,
                                 name -> {
                                     if (TargetMenuStore.rename(this, mode, item.key(), name)) {
-                                        Toast.makeText(this, "名称已修改", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(this,
+                                                R.string.yfloat_menu_name_changed,
+                                                Toast.LENGTH_SHORT).show();
                                         rebuild();
                                     }
                                 },
                                 () -> {
                                     if (TargetMenuStore.clearAlias(this, mode, item.key())) {
-                                        Toast.makeText(this, "已恢复系统名称", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(this,
+                                                R.string.yfloat_menu_system_name_restored,
+                                                Toast.LENGTH_SHORT).show();
                                         rebuild();
                                     }
                                 }));
@@ -161,7 +170,8 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
         }
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton edit = AppUi.compactButton(this, "修改");
+        MaterialButton edit = AppUi.compactButton(this,
+                getString(R.string.yfloat_menu_edit));
         edit.setOnClickListener(v -> {
             if (editAction != null) editAction.run();
         });
@@ -192,27 +202,31 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
                 AppUi.dp(this, 20), 0);
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
         if (systemLabel != null && !systemLabel.isBlank()) {
-            TextView system = AppUi.caption(this, "系统名称：" + systemLabel, 11);
+            TextView system = AppUi.caption(this,
+                    getString(R.string.yfloat_menu_system_name, systemLabel), 11);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = AppUi.dp(this, 6);
             box.addView(system, lp);
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
-                .setTitle("修改显示名称")
+                .setTitle(R.string.yfloat_menu_edit_name)
                 .setView(box)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("保存", (dialog, which) -> {
+                .setNegativeButton(R.string.yfloat_menu_cancel, null)
+                .setPositiveButton(R.string.yfloat_menu_save, (dialog, which) -> {
                     String name = input.getText() == null
                             ? "" : input.getText().toString().trim();
                     if (name.isEmpty()) {
-                        Toast.makeText(this, "名称不能为空", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this,
+                                R.string.yfloat_menu_name_required,
+                                Toast.LENGTH_SHORT).show();
                         return;
                     }
                     if (onSave != null) onSave.accept(name);
                 });
         if (onReset != null) {
-            builder.setNeutralButton("恢复系统名称", (dialog, which) -> onReset.run());
+            builder.setNeutralButton(R.string.yfloat_menu_restore_system_name,
+                    (dialog, which) -> onReset.run());
         }
         builder.show();
     }
