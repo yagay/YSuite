@@ -2,6 +2,8 @@ plugins {
     id("com.android.library")
 }
 
+val embeddedInSuite = rootProject.findProject(":suite") != null
+val hostPackage = if (embeddedInSuite) "com.yagay.YSuite" else "com.yagay.YMiniGuard"
 val standaloneVersionCode = 84L
 val runtimeVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
     .orNull?.toLongOrNull() ?: standaloneVersionCode
@@ -15,6 +17,7 @@ android {
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
         buildConfigField("long", "VERSION_CODE", "${runtimeVersionCode}L")
+        buildConfigField("String", "HOST_PACKAGE", "\"$hostPackage\"")
     }
 
     buildFeatures {
