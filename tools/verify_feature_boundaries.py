@@ -21,6 +21,22 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
+def gradle_namespace(gradle: str, feature_id: str) -> str:
+    match = re.search(r'\bnamespace\s*=\s*"([^"]+)"', gradle)
+    if not match:
+        raise SystemExit(f"[feature-boundary] ERROR: {feature_id}: Android namespace is required")
+    return match.group(1)
+
+
+def resolve_component_name(namespace: str, class_name: str) -> str:
+    class_name = class_name.strip()
+    if class_name.startswith("."):
+        return namespace + class_name
+    if "." not in class_name:
+        return namespace + "." + class_name
+    return class_name
+
+
 def main() -> int:
     features = load_features()
     errors: list[str] = []
@@ -49,6 +65,7 @@ def main() -> int:
         project_dir = ROOT / str(item["project_dir"])
         gradle = read(project_dir / "build.gradle.kts")
         manifest = read(project_dir / "src/main/AndroidManifest.xml")
+        namespace = gradle_namespace(gradle, feature_id)
 
         if 'id("com.android.application")' in gradle or "alias(libs.plugins.android.application)" in gradle:
             error(f"{feature_id}: Feature module must be an Android library, not an application", errors)
@@ -77,25 +94,20 @@ def main() -> int:
         if feature_resources.exists():
             error(f"{feature_id}: LSPosed module metadata belongs to host, not Feature", errors)
 
-        # Detect physical Android component collisions before manifest merge. Independent slots are allowed,
-        # but the same class cannot be owned by multiple Features.
+        # Detect physical Android component collisions before manifest merge. Relative names are resolved
+        # against each Feature namespace so .ui.MainActivity in two different namespaces is not a collision.
         for tag in ("activity", "service", "receiver", "provider"):
             for class_name in re.findall(
                 rf"<{tag}\b[^>]*android:name\s*=\s*\"([^\"]+)\"",
                 manifest,
                 flags=re.DOTALL,
             ):
-                component_owners[(tag, class_name)].append(feature_id)
+                resolved = resolve_component_name(namespace, class_name)
+                component_owners[(tag, resolved)].append(feature_id)
 
         # Authorities are globally unique inside one APK. ${applicationId} remains supported and safe.
         for authority in re.findall(r"android:authorities\s*=\s*\"([^\"]+)\"", manifest):
             authorities[authority].append(feature_id)
-
-        # A raw FileProvider class is a merge collision trap because manifest merger keys providers by class.
-        if 'android:name="androidx.core.content.FileProvider"' in manifest:
-            # One legacy declaration is tolerated temporarily, but duplicates would recreate the exact
-            # YDiag/YFiles failure this guard is intended to prevent.
-            pass
 
     for (kind, class_name), owners in component_owners.items():
         unique = sorted(set(owners))
