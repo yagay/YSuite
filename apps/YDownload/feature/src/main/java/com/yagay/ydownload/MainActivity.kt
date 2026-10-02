@@ -65,7 +65,10 @@ class MainActivity : YComposeActivity() {
                     }
                     YFeatureCard(title = task.fileName, subtitle = task.url, detail = task.error) {
                         YStatusRow(stringResource(R.string.status), status, if (task.state == DownloadState.FAILED) YStatusTone.Error else if (task.state == DownloadState.COMPLETED) YStatusTone.Good else YStatusTone.Neutral)
-                        if (task.total > 0) YStatusRow(stringResource(R.string.progress), "${((task.done * 100L) / task.total).coerceIn(0,100)}%")
+                        if (task.total > 0) {
+                            val percent = ((task.done * 100L) / task.total).coerceIn(0L, 100L).toInt()
+                            YStatusRow(stringResource(R.string.progress), stringResource(R.string.progress_percent, percent))
+                        }
                         YActionRow {
                             when (task.state) {
                                 DownloadState.RUNNING, DownloadState.QUEUED -> OutlinedButton({ DownloadService.pause(this@MainActivity, task.id) }) { Text(stringResource(R.string.pause)) }
