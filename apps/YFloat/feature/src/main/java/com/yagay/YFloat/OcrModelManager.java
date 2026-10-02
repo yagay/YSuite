@@ -92,6 +92,7 @@ public final class OcrModelManager {
         };
         return new File(c.getApplicationContext().getFilesDir(), "ocr_models/" + name);
     }
+
     public static File detFile(Context c, int model) { return new File(dir(c, model), "det/inference.onnx"); }
     public static File recFile(Context c, int model) { return new File(dir(c, model), "rec/inference.onnx"); }
     public static File ymlFile(Context c, int model) { return new File(dir(c, model), "rec/inference.yml"); }
@@ -151,6 +152,7 @@ public final class OcrModelManager {
     public static long installedBytes(Context c, int model) {
         try { return size(dir(c, model)); } catch (Throwable ignored) { return 0L; }
     }
+
     public static long estimatedBytes(int model) { return spec(model).estimatedTotal; }
     public static String displayName(int model) { return spec(model).name; }
 
@@ -158,7 +160,7 @@ public final class OcrModelManager {
         Context app = c.getApplicationContext();
         synchronized (DOWNLOADING) {
             if (DOWNLOADING.contains(model)) {
-                fail(cb, "模型正在下载");
+                fail(cb, app.getString(R.string.yfloat_ocr_model_already_downloading));
                 return;
             }
             DOWNLOADING.add(model);
@@ -167,23 +169,34 @@ public final class OcrModelManager {
             Spec sp = spec(model);
             try {
                 File root = dir(app, model);
-                if (!root.exists() && !root.mkdirs()) throw new IllegalStateException("无法创建模型目录");
+                if (!root.exists() && !root.mkdirs()) {
+                    throw new IllegalStateException(
+                            app.getString(R.string.yfloat_ocr_model_create_directory_failed));
+                }
                 File oldManifest = manifestFile(app, model);
                 if (oldManifest.exists() && !oldManifest.delete()) {
-                    throw new IllegalStateException("无法更新模型完整性清单");
+                    throw new IllegalStateException(
+                            app.getString(R.string.yfloat_ocr_model_update_manifest_failed));
                 }
 
                 long total = sp.estimatedTotal;
                 long[] doneBase = {0L};
-                downloadOne(sp.detUrl, detFile(app, model), sp.detMin, doneBase, total, "检测模型", cb);
+                downloadOne(app, sp.detUrl, detFile(app, model), sp.detMin, doneBase, total,
+                        app.getString(R.string.yfloat_ocr_stage_detection_model), cb);
                 doneBase[0] += detFile(app, model).length();
-                downloadOne(sp.recUrl, recFile(app, model), sp.recMin, doneBase, total, "识别模型", cb);
+                downloadOne(app, sp.recUrl, recFile(app, model), sp.recMin, doneBase, total,
+                        app.getString(R.string.yfloat_ocr_stage_recognition_model), cb);
                 doneBase[0] += recFile(app, model).length();
-                downloadOne(sp.ymlUrl, ymlFile(app, model), 4_000L, doneBase, total, "字符配置", cb);
-                if (!isReady(app, model)) throw new IllegalStateException("下载完成但模型大小校验失败");
+                downloadOne(app, sp.ymlUrl, ymlFile(app, model), 4_000L, doneBase, total,
+                        app.getString(R.string.yfloat_ocr_stage_character_config), cb);
+                if (!isReady(app, model)) {
+                    throw new IllegalStateException(
+                            app.getString(R.string.yfloat_ocr_model_size_validation_failed));
+                }
                 writeIntegrityManifest(app, model);
                 if (!verifyIntegrityFiles(app, model, false)) {
-                    throw new IllegalStateException("下载完成但 SHA-256 校验失败");
+                    throw new IllegalStateException(
+                            app.getString(R.string.yfloat_ocr_model_hash_validation_failed));
                 }
                 PaddleOcrBridge.releaseModel(model);
                 DiagnosticLog.i(app, "OCR_MODEL", "download success model=" + model
@@ -198,10 +211,13 @@ public final class OcrModelManager {
         });
     }
 
-    private static void downloadOne(String url, File out, long minBytes, long[] base,
+    private static void downloadOne(Context app, String url, File out, long minBytes, long[] base,
                                     long total, String stage, Callback cb) throws Exception {
         File parent = out.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) throw new IllegalStateException("无法创建 " + stage + " 目录");
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IllegalStateException(
+                    app.getString(R.string.yfloat_ocr_model_create_stage_directory_failed, stage));
+        }
         File part = new File(out.getAbsolutePath() + ".part");
         long existing = part.isFile() ? part.length() : 0L;
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
@@ -212,9 +228,13 @@ public final class OcrModelManager {
         if (existing > 0) conn.setRequestProperty("Range", "bytes=" + existing + "-");
         int code = conn.getResponseCode();
         boolean append = existing > 0 && code == HttpURLConnection.HTTP_PARTIAL;
-        if (code < 200 || code >= 300) throw new IllegalStateException(stage + " HTTP " + code);
+        if (code < 200 || code >= 300) {
+            throw new IllegalStateException(
+                    app.getString(R.string.yfloat_ocr_model_http_failed, stage, code));
+        }
         if (!append) existing = 0L;
-        try (InputStream in = conn.getInputStream(); FileOutputStream fos = new FileOutputStream(part, append)) {
+        try (InputStream in = conn.getInputStream();
+             FileOutputStream fos = new FileOutputStream(part, append)) {
             byte[] buf = new byte[256 * 1024];
             long current = existing;
             int lastPercent = -1;
@@ -223,7 +243,8 @@ public final class OcrModelManager {
                 if (n == 0) continue;
                 fos.write(buf, 0, n);
                 current += n;
-                int percent = (int)Math.min(99, ((base[0] + current) * 100L) / Math.max(1L, total));
+                int percent = (int)Math.min(99,
+                        ((base[0] + current) * 100L) / Math.max(1L, total));
                 if (percent != lastPercent) {
                     lastPercent = percent;
                     int p = percent;
@@ -231,20 +252,34 @@ public final class OcrModelManager {
                 }
             }
             fos.getFD().sync();
-        } finally { conn.disconnect(); }
-        if (part.length() < minBytes) throw new IllegalStateException(stage + " 文件过小: " + part.length());
-        if (out.exists() && !out.delete()) throw new IllegalStateException("无法替换旧模型");
-        if (!part.renameTo(out)) throw new IllegalStateException("无法保存 " + stage);
+        } finally {
+            conn.disconnect();
+        }
+        if (part.length() < minBytes) {
+            throw new IllegalStateException(
+                    app.getString(R.string.yfloat_ocr_model_file_too_small, stage, part.length()));
+        }
+        if (out.exists() && !out.delete()) {
+            throw new IllegalStateException(
+                    app.getString(R.string.yfloat_ocr_model_replace_old_failed));
+        }
+        if (!part.renameTo(out)) {
+            throw new IllegalStateException(
+                    app.getString(R.string.yfloat_ocr_model_save_stage_failed, stage));
+        }
     }
 
     private static void writeIntegrityManifest(Context c, int model) throws Exception {
         File root = dir(c, model);
-        if (!root.exists() && !root.mkdirs()) throw new IllegalStateException("无法创建模型目录");
+        if (!root.exists() && !root.mkdirs()) {
+            throw new IllegalStateException(
+                    c.getString(R.string.yfloat_ocr_model_create_directory_failed));
+        }
         Properties p = new Properties();
         p.setProperty("version", MANIFEST_VERSION);
-        putFileProperties(p, "det", detFile(c, model));
-        putFileProperties(p, "rec", recFile(c, model));
-        putFileProperties(p, "yml", ymlFile(c, model));
+        putFileProperties(c, p, "det", detFile(c, model));
+        putFileProperties(c, p, "rec", recFile(c, model));
+        putFileProperties(c, p, "yml", ymlFile(c, model));
 
         File out = manifestFile(c, model);
         File part = new File(out.getAbsolutePath() + ".part");
@@ -252,12 +287,22 @@ public final class OcrModelManager {
             p.store(fos, "YFloat OCR model integrity");
             fos.getFD().sync();
         }
-        if (out.exists() && !out.delete()) throw new IllegalStateException("无法替换完整性清单");
-        if (!part.renameTo(out)) throw new IllegalStateException("无法保存完整性清单");
+        if (out.exists() && !out.delete()) {
+            throw new IllegalStateException(
+                    c.getString(R.string.yfloat_ocr_model_replace_manifest_failed));
+        }
+        if (!part.renameTo(out)) {
+            throw new IllegalStateException(
+                    c.getString(R.string.yfloat_ocr_model_save_manifest_failed));
+        }
     }
 
-    private static void putFileProperties(Properties p, String key, File file) throws Exception {
-        if (file == null || !file.isFile()) throw new IllegalStateException(key + " 模型文件不存在");
+    private static void putFileProperties(Context c, Properties p, String key, File file)
+            throws Exception {
+        if (file == null || !file.isFile()) {
+            throw new IllegalStateException(
+                    c.getString(R.string.yfloat_ocr_model_file_missing, key));
+        }
         p.setProperty(key + ".length", Long.toString(file.length()));
         p.setProperty(key + ".sha256", sha256(file));
     }
@@ -276,12 +321,16 @@ public final class OcrModelManager {
             byte[] buf = new byte[1024 * 1024];
             int n;
             while ((n = in.read(buf)) >= 0) {
-                if (Thread.currentThread().isInterrupted()) throw new InterruptedException("model hash interrupted");
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("model hash interrupted");
+                }
                 if (n > 0) md.update(buf, 0, n);
             }
         }
         StringBuilder hex = new StringBuilder(64);
-        for (byte b : md.digest()) hex.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
+        for (byte b : md.digest()) {
+            hex.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
+        }
         return hex.toString();
     }
 
@@ -306,24 +355,33 @@ public final class OcrModelManager {
         if (f == null || !f.exists()) return;
         if (f.isDirectory()) {
             File[] children = f.listFiles();
-            if (children != null) for (File child : children) deleteRecursively(child);
+            if (children != null) {
+                for (File child : children) deleteRecursively(child);
+            }
         }
         try { f.delete(); } catch (Throwable ignored) {}
     }
+
     private static long size(File f) {
         if (f == null || !f.exists()) return 0L;
         if (f.isFile()) return f.length();
-        long n = 0; File[] children = f.listFiles();
-        if (children != null) for (File child : children) n += size(child);
+        long n = 0;
+        File[] children = f.listFiles();
+        if (children != null) {
+            for (File child : children) n += size(child);
+        }
         return n;
     }
+
     private static void fail(Callback cb, String msg) {
         if (cb != null) MAIN.post(() -> cb.onFailure(msg));
     }
+
     private static String safe(Throwable t) {
         if (t == null) return "unknown";
         String m = t.getMessage();
         return m == null || m.isBlank() ? t.getClass().getSimpleName() : m;
     }
+
     private OcrModelManager() {}
 }
