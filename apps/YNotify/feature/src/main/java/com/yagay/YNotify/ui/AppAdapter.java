@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.yagay.YNotify.R;
 import com.yagay.YNotify.data.AppSummary;
 import com.yagay.YNotify.databinding.ItemAppBinding;
 import com.yagay.YNotify.util.AppInfoUtil;
@@ -48,10 +49,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         AppSummary s = shown.get(position);
         Context c = h.itemView.getContext();
         h.b.appIcon.setImageDrawable(AppInfoUtil.icon(c, s.packageName));
-        h.b.appName.setText(s.appLabel);
+        h.b.appName.setText(s.appLabel == null || s.appLabel.isBlank()
+                ? c.getString(R.string.ynotify_unknown_app)
+                : s.appLabel);
         h.b.packageName.setText(s.packageName);
         h.b.count.setText(String.valueOf(s.eventCount));
-        h.b.lastTime.setText("最后记录：" + TimeFormat.full(s.lastTime));
+        h.b.lastTime.setText(c.getString(R.string.ynotify_last_record, TimeFormat.full(s.lastTime)));
         h.itemView.setOnClickListener(v -> {
             Intent i = new Intent(c, AppHistoryActivity.class);
             i.putExtra("package", s.packageName);
