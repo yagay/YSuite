@@ -81,7 +81,7 @@ class MainActivity : YComposeActivity() {
 
     private fun startReadMode() {
         if (getSimulationEnabled()) {
-            Toast.makeText(this, "请先停止模拟，再进入读卡模式", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.ynfc_stop_sim_before_read, Toast.LENGTH_SHORT).show()
             return
         }
         scannedCardState = null
@@ -98,13 +98,13 @@ class MainActivity : YComposeActivity() {
 
     private fun saveScannedCard(card: CardModel) {
         if (savedCardsState.any { it.uid.equals(card.uid, true) }) {
-            Toast.makeText(this, "该卡片已经保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.ynfc_card_already_saved, Toast.LENGTH_SHORT).show()
             return
         }
         savedCardsState = savedCardsState + card
         cardRepository.save(savedCardsState)
         AppLogger.i("CARD: SAVED uid=${card.uid} sak=${card.sak} atqa=${card.atqa}")
-        Toast.makeText(this, "卡片已保存", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.ynfc_card_saved, Toast.LENGTH_SHORT).show()
     }
 
     @Composable
@@ -167,9 +167,9 @@ class MainActivity : YComposeActivity() {
             runOnUiThread {
                 onDone()
                 result.onSuccess { fileName ->
-                    Toast.makeText(this, "日志已保存到 Download/$fileName", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, getString(R.string.ynfc_logs_saved, fileName), Toast.LENGTH_LONG).show()
                 }.onFailure { error ->
-                    Toast.makeText(this, "检测失败: ${error.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, getString(R.string.ynfc_diagnostic_failed, error.message ?: error.javaClass.simpleName), Toast.LENGTH_LONG).show()
                 }
             }
         }
