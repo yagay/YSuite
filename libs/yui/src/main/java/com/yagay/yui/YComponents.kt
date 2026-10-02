@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -154,9 +155,10 @@ fun YBottomActionBar(
 
 @Composable
 fun YLoadingState(
-    text: String = "加载中…",
+    text: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    val resolvedText = text ?: stringResource(R.string.yui_loading)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -165,7 +167,7 @@ fun YLoadingState(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         CircularProgressIndicator()
-        Text(text, style = MaterialTheme.typography.bodyMedium)
+        Text(resolvedText, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
