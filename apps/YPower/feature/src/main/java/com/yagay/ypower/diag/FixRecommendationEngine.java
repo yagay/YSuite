@@ -123,8 +123,4 @@ public final class FixRecommendationEngine {
     private static boolean isChinese() {
         return "zh".equalsIgnoreCase(Locale.getDefault().getLanguage());
     }
-
-    private static String tr(String english, String chinese) {
-        return isChinese() ? chinese : english;
-    }
 }
