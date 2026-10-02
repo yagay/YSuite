@@ -18,14 +18,16 @@ FORBIDDEN_SUPPRESSION = (
     "com.yagay.YFloat.GoogleCtsTraceReceiver",
 )
 
-# Modules with explicit owner-aware runtime behavior today. Add new behavioral LSPosed modules here
-# when they become active; the check intentionally makes ownership an architectural requirement.
+# One authoritative owner-aware behavior/config path per feature. Large hook implementations should
+# preferably consume one of these central policy paths instead of duplicating owner checks.
 OWNER_AWARE_FILES = {
+    "yentrycleaner": ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/xposed/RuntimeRuleSnapshot.kt",
     "ynfc": ROOT / "apps/YNFC/feature/src/main/java/com/yagay/YNFC/xposed/HookConfigStore.java",
     "yminiguard": ROOT / "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/GuardConfig.java",
     "yfloat": ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/hook/YFloatModule.java",
     "yparam": ROOT / "apps/YParam/feature/src/main/java/com/yagay/yparam/hook/YParamModule.java",
     "ynotify": ROOT / "apps/YNotify/feature/src/main/java/com/yagay/YNotify/collector/XposedEventReceiver.java",
+    "ypower": ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/model/AppProfile.java",
     "ydiag": ROOT / "apps/YDiag/feature/src/main/java/com/yagay/ydiag/xposed/YDiagModule.kt",
     "ytaskmanager": ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/xposed/TaskManagerModule.java",
 }
@@ -61,9 +63,15 @@ def main() -> None:
         if "RuntimeOwnerGate" not in source or feature_id not in source:
             fail(f"{feature_id} no longer checks RuntimeOwnerGate")
 
+    # YEntryCleaner component-state/discovery guards share a second centralized policy path.
+    entry_component_policy = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/xposed/RuntimeComponentPolicy.kt"
+    component_source = entry_component_policy.read_text(encoding="utf-8")
+    if "RuntimeOwnerGate" not in component_source or "yentrycleaner" not in component_source:
+        fail("YEntryCleaner component policy no longer honors runtime ownership")
+
     print(
         "runtime ownership OK: global owner transaction present, hook bridges preserved, "
-        f"{len(OWNER_AWARE_FILES)} runtime paths owner-aware"
+        f"{len(OWNER_AWARE_FILES)} feature runtime paths owner-aware"
     )
 
 
