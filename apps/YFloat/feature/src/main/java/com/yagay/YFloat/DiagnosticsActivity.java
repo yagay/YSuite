@@ -29,24 +29,24 @@ public final class DiagnosticsActivity extends AppCompatActivity {
         super.onCreate(state);
         fs = new FloatSettings(this);
 
-        LinearLayout root = AppUi.pageRoot(this, "诊断与调试",
-                "记录 YFloat 自身运行状态，并可直接保存到 Download/YFloat。" );
+        LinearLayout root = AppUi.pageRoot(this,
+                getString(R.string.yfloat_diag_page_title),
+                getString(R.string.yfloat_diag_page_desc));
 
-        AppUi.Section logging = AppUi.section(this, "YFloat 诊断日志",
-                "关闭时不会发送 Google 详细 Hook trace，也不会加载纯诊断 WindowManager Hook。"
-                        + " 开启后如需完整 Google Hook 诊断，请重启 Google App 或手机；"
-                        + " 导出通过 MediaStore 直接写入下载目录。" );
+        AppUi.Section logging = AppUi.section(this,
+                getString(R.string.yfloat_diag_log_title),
+                getString(R.string.yfloat_diag_log_desc));
         SwitchMaterial loggingSwitch = AppUi.switchRow(this,
-                "记录诊断日志",
-                "关闭时不会持续写入 YFloat 诊断日志",
+                getString(R.string.yfloat_diag_logging),
+                getString(R.string.yfloat_diag_logging_desc),
                 fs.diagnosticLogging(),
                 (button, checked) -> fs.setBoolean(FloatSettings.K_DIAGNOSTIC, checked));
         AppUi.addRow(logging.body, AppUi.switchContainer(loggingSwitch));
         addButtonPair(logging.body,
-                button("保存诊断日志", this::exportDiagnostic),
-                button("清空", () -> {
+                button(getString(R.string.yfloat_diag_save), this::exportDiagnostic),
+                button(getString(R.string.yfloat_diag_clear), () -> {
                     DiagnosticLog.clear(this);
-                    Toast.makeText(this, "诊断日志已清空", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, R.string.yfloat_diag_cleared, Toast.LENGTH_SHORT).show();
                 }));
         AppUi.addSection(root, logging);
 
@@ -125,7 +125,7 @@ public final class DiagnosticsActivity extends AppCompatActivity {
                     "saved uri=" + uri + " name=" + fileName + " bytes="
                             + text.getBytes(StandardCharsets.UTF_8).length);
             Toast.makeText(this,
-                    "已保存到 下载/YFloat/" + fileName,
+                    getString(R.string.yfloat_diag_saved, fileName),
                     Toast.LENGTH_LONG).show();
         } catch (Throwable t) {
             if (uri != null) {
@@ -134,7 +134,8 @@ public final class DiagnosticsActivity extends AppCompatActivity {
             String message = t.getMessage();
             if (message == null || message.isBlank()) message = t.getClass().getSimpleName();
             Toast.makeText(this,
-                    "保存失败: " + t.getClass().getSimpleName() + " · " + message,
+                    getString(R.string.yfloat_diag_save_failed,
+                            t.getClass().getSimpleName(), message),
                     Toast.LENGTH_LONG).show();
             DiagnosticLog.i(this, "DIAGNOSTIC_EXPORT",
                     "failed=" + t.getClass().getName() + ":" + message);
