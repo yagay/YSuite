@@ -57,6 +57,22 @@ def fix_ydiag_duplicates() -> None:
         )
 
 
+def fix_ypower_obsolete_translation_helper() -> None:
+    # The dynamic refactor removes the locale-branching attribution implementation. Make sure an
+    # obsolete tr(english, chinese) compatibility helper cannot keep a dangling isChinese() call.
+    path = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/diag/FixRecommendationEngine.java"
+
+    def transform(text: str) -> str:
+        return re.sub(
+            r'\n\s*private static String tr\(String english, String chinese\) \{\s*return isChinese\(\) \? chinese : english;\s*\}\s*',
+            '\n',
+            text,
+            flags=re.DOTALL,
+        )
+
+    patch_file(path, transform)
+
+
 def fix_yfloat_resource_escaping() -> None:
     # aapt treats an unescaped ASCII apostrophe in values XML as a string escape boundary.
     # Keep the sentence readable and locale-safe by using the typographic apostrophe instead.
@@ -160,6 +176,7 @@ def fix_ynotify_hook_boundary() -> None:
 
 def main() -> None:
     fix_ydiag_duplicates()
+    fix_ypower_obsolete_translation_helper()
     fix_yfloat_resource_escaping()
     fix_ycore_dynamic_status()
     fix_ynotify_hook_boundary()
