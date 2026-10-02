@@ -13,12 +13,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def app_names() -> list[str]:
-    names = {
-        Path(item["project_dir"]).parts[1]
+    return sorted(
+        item["name"]
         for item in load_features()
-        if len(Path(item["project_dir"]).parts) >= 3
-    }
-    return sorted(names)
+        if item.get("standalone_enabled", False)
+    )
+
+
+def feature_name_by_app_dir() -> dict[str, str]:
+    result: dict[str, str] = {}
+    for item in load_features():
+        if not item.get("standalone_enabled", False):
+            continue
+        parts = Path(item["project_dir"]).parts
+        if len(parts) >= 3 and parts[0] == "apps":
+            result[parts[1]] = item["name"]
+    return result
 
 
 def changed_files(base: str, head: str) -> list[str]:
@@ -32,17 +42,22 @@ def changed_files(base: str, head: str) -> list[str]:
 
 def select_apps(paths: list[str], all_apps: list[str]) -> list[str]:
     selected: set[str] = set()
+    app_dir_to_feature = feature_name_by_app_dir()
     global_prefixes = (
         "libs/yapi/",
         "libs/yui/",
+        "libs/ycore/",
         "gradle/",
+        "standalone/",
     )
     global_files = {
         "build.gradle.kts",
         "settings.gradle.kts",
         "config/features.toml",
         "config/generated/feature-modules.tsv",
+        "config/generated/standalone-features.tsv",
         "tools/generate_feature_catalog.py",
+        "tools/generate_standalone_catalog.py",
         "tools/sync_version_catalog.py",
         "tools/export_build_versions.py",
         "tools/plan_standalone_ci.py",
@@ -54,8 +69,10 @@ def select_apps(paths: list[str], all_apps: list[str]) -> list[str]:
             return all_apps
         if path.startswith("apps/"):
             parts = path.split("/")
-            if len(parts) >= 2 and parts[1] in all_apps:
-                selected.add(parts[1])
+            if len(parts) >= 2:
+                feature_name = app_dir_to_feature.get(parts[1])
+                if feature_name:
+                    selected.add(feature_name)
     return sorted(selected)
 
 
