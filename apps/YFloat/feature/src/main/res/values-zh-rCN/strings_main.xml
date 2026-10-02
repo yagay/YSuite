@@ -62,4 +62,10 @@
     <string name="yfloat_permission_settings">设置</string>
     <string name="yfloat_permission_enable_suite">开启 YSuite</string>
     <string name="yfloat_notification_already_authorized">通知权限已授予。</string>
+    <string name="yfloat_a11y_authorized_connected">已授权。已连接。</string>
+    <string name="yfloat_a11y_authorized_waiting">已授权。等待连接。</string>
+    <string name="yfloat_a11y_legacy_suite_enabled">旧版 YSuite 无障碍仍开启，请迁移到统一无障碍。</string>
+    <string name="yfloat_a11y_standalone_enabled_suite_disabled">独立版 YFloat 已开启。YSuite 统一无障碍未开启。</string>
+    <string name="yfloat_a11y_other_host_enabled">其他宿主的 YFloat 无障碍已开启。当前版本未开启。</string>
+    <string name="yfloat_a11y_same_host_other_enabled">同一宿主的其他无障碍服务已开启。当前服务未授权。</string>
 </resources>
