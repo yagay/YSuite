@@ -1,5 +1,7 @@
 package com.yagay.ydiag
 
+import com.yagay.suite.api.YLocale
+
 data class ModuleState(
     val connected: Boolean = false,
     val apiVersion: Int? = null,
@@ -11,5 +13,5 @@ data class ModuleState(
     val restartRequired: Set<String> = emptySet(),
     val systemScoped: Boolean = false,
     val systemLoaded: Boolean = false,
-    val message: String = "LSPosed 未连接",
+    val message: String = YLocale.text(R.string.ydiag_lsposed_not_connected),
 )
