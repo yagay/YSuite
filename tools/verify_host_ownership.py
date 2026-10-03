@@ -110,7 +110,7 @@ def main() -> int:
     yfloat_runtime = ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatSuiteRuntime.java"
     if yfloat_runtime.is_file():
         yfloat_text = yfloat_runtime.read_text(encoding="utf-8")
-        if "!SUITE_PACKAGE.equals(app.getPackageName())" not in yfloat_text:
+        if "!XposedHostBridge.isSuiteHost(app)" not in yfloat_text:
             fail("embedded YFloat must not own automatic target-process reload in YSuite mode")
 
     # Normal host pages use the canonical YFeature* design-system surface. Older YPlugin* APIs may
