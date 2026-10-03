@@ -1,14 +1,13 @@
 package com.yagay.YNFC
 
 import android.content.Context
-import com.yagay.suite.api.FeatureHost
-import com.yagay.suite.api.FeatureHostBinding
+import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.ManagedFeatureRuntime
 
 /** Thin runtime entry used by YSuite without changing standalone behavior. */
 object YNFCSuiteRuntime : ManagedFeatureRuntime {
     @Volatile private var appContext: Context? = null
-    private val hostBinding = FeatureHostBinding("YNFC")
+    private val services = FeatureServices.of("ynfc", "YNFC")
     @Volatile private var enabled = false
 
     @JvmStatic
@@ -17,14 +16,10 @@ object YNFCSuiteRuntime : ManagedFeatureRuntime {
         return this
     }
 
-    override fun attach(host: FeatureHost) {
-        hostBinding.attach(host)
-    }
-
     override fun enable() {
         if (enabled) return
         enabled = true
-        val context = appContext ?: hostBinding.hostOrNull()?.applicationContext ?: return
+        val context = appContext ?: services.hostOrNull()?.applicationContext ?: return
         AppLogger.attach(context)
         AppLogger.i("YSuite runtime attached")
     }
@@ -38,7 +33,6 @@ object YNFCSuiteRuntime : ManagedFeatureRuntime {
 
     override fun destroy() {
         disable()
-        hostBinding.clear()
         appContext = null
     }
 }
