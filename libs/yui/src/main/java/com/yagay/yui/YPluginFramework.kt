@@ -6,10 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
@@ -35,26 +32,16 @@ fun YPluginScaffold(
     bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    YScaffold(title = title, subtitle = subtitle, modifier = modifier, actions = actions, bottomBar = bottomBar) { padding ->
-        when (state) {
-            YPageState.Ready -> content(padding)
-            is YPageState.Loading -> Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) { YLoadingState(state.message) }
-            is YPageState.Empty -> Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) { YEmptyState(state.message) }
-            is YPageState.Error -> Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) { YErrorState(state.message) }
-        }
-    }
+    YPageScaffold(
+        title = title,
+        role = YPageRole.LIST,
+        modifier = modifier,
+        subtitle = subtitle,
+        state = state,
+        actions = actions,
+        bottomBar = bottomBar,
+        content = content,
+    )
 }
 
 @Composable
@@ -63,10 +50,9 @@ fun YPluginList(
     modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize().padding(padding),
-        contentPadding = PaddingValues(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ScreenVertical),
-        verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
+    YPageList(
+        padding = padding,
+        modifier = modifier,
         content = content,
     )
 }
