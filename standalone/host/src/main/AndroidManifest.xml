@@ -3,9 +3,9 @@
     <application
         android:name="com.yagay.ysuite.standalone.StandaloneApplication"
         android:allowBackup="${standaloneAllowBackup}"
-        android:description="${standaloneDescription}"
+        android:description="@string/standalone_app_description"
         android:icon="${standaloneIcon}"
-        android:label="${standaloneLabel}"
+        android:label="@string/standalone_app_name"
         android:localeConfig="${standaloneLocaleConfig}"
         android:roundIcon="${standaloneRoundIcon}"
         android:supportsRtl="true"
