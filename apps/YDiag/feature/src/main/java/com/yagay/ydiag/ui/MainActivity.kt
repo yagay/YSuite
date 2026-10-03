@@ -25,8 +25,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -65,6 +63,9 @@ import com.yagay.yui.YFeatureEmpty
 import com.yagay.yui.YFeatureScaffold
 import com.yagay.yui.YFeatureSectionHeader
 import com.yagay.yui.YFeatureStat
+import com.yagay.yui.YIcons
+import com.yagay.yui.YNavigationSpec
+import com.yagay.yui.YNavigationSuite
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YSecondaryButton
@@ -121,73 +122,68 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
         vm.clearExportMessage()
     }
 
-    YFeatureScaffold(
-        title = stringResource(R.string.ydiag_app_name),
-        subtitle = stringResource(R.string.ydiag_subtitle),
-        actions = {
-            YStatusPill(
-                "Root",
-                if (monitor.rootAvailable) stringResource(R.string.ydiag_available) else stringResource(R.string.ydiag_unavailable),
-                if (monitor.rootAvailable) YStatusTone.Good else YStatusTone.Error,
-            )
-            YStatusPill(
-                "LSPosed",
-                if (module.connected) stringResource(R.string.ydiag_connected) else stringResource(R.string.ydiag_disconnected),
-                if (module.connected) YStatusTone.Good else YStatusTone.Warning,
-            )
+    val navigation = listOf(
+        YNavigationSpec("monitor", stringResource(R.string.ydiag_tab_monitor), YIcons.Info),
+        YNavigationSpec("history", stringResource(R.string.ydiag_tab_history), YIcons.History),
+        YNavigationSpec("diagnostics", stringResource(R.string.ydiag_tab_diagnostics), YIcons.Warning),
+        YNavigationSpec("settings", stringResource(R.string.ydiag_tab_settings), YIcons.Settings),
+    )
+
+    YNavigationSuite(
+        selectedKey = navigation[tab].key,
+        items = navigation,
+        onSelected = { item ->
+            tab = navigation.indexOfFirst { it.key == item.key }.coerceAtLeast(0)
+            if (item.key == "history") vm.refreshHistory()
         },
-        snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
-            NavigationBar {
-                val labels = listOf(
-                    stringResource(R.string.ydiag_tab_monitor),
-                    stringResource(R.string.ydiag_tab_history),
-                    stringResource(R.string.ydiag_tab_diagnostics),
-                    stringResource(R.string.ydiag_tab_settings),
+    ) {
+        YFeatureScaffold(
+            title = stringResource(R.string.ydiag_app_name),
+            subtitle = stringResource(R.string.ydiag_subtitle),
+            actions = {
+                YStatusPill(
+                    "Root",
+                    if (monitor.rootAvailable) stringResource(R.string.ydiag_available) else stringResource(R.string.ydiag_unavailable),
+                    if (monitor.rootAvailable) YStatusTone.Good else YStatusTone.Error,
                 )
-                labels.forEachIndexed { index, label ->
-                    NavigationBarItem(
-                        selected = tab == index,
-                        onClick = {
-                            tab = index
-                            if (index == 1) vm.refreshHistory()
-                        },
-                        icon = {},
-                        label = { Text(label) },
+                YStatusPill(
+                    "LSPosed",
+                    if (module.connected) stringResource(R.string.ydiag_connected) else stringResource(R.string.ydiag_disconnected),
+                    if (module.connected) YStatusTone.Good else YStatusTone.Warning,
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbar) },
+        ) { padding ->
+            Box(Modifier.fillMaxSize().padding(padding)) {
+                when (tab) {
+                    0 -> MonitorScreen(
+                        monitor = monitor,
+                        module = module,
+                        selected = selected,
+                        appLabels = apps.associate { it.packageName to it.label },
+                        onSelectApps = { showPicker = true },
+                        onMark = vm::markProblem,
+                        onStop = vm::stopMonitoring,
+                        onExport = vm::exportLatest,
+                    )
+                    1 -> HistoryScreen(history = history, onExport = vm::export)
+                    2 -> DiagnosticConfigScreen(
+                        enabled = enabled,
+                        presetId = preset,
+                        onPreset = vm::applyPreset,
+                        onToggle = vm::toggleOption,
+                    )
+                    3 -> SettingsScreen(
+                        exportMode = vm.exportMode(),
+                        customTree = vm.customTree()?.toString(),
+                        maxSessionMb = vm.maxSessionMb(),
+                        activationMode = activationMode,
+                        onActivationMode = vm::setDeepActivationMode,
+                        onExportMode = vm::setExportMode,
+                        onChooseTree = { treeLauncher.launch(vm.customTree()) },
+                        onMaxSessionMb = vm::setMaxSessionMb,
                     )
                 }
-            }
-        },
-    ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            when (tab) {
-                0 -> MonitorScreen(
-                    monitor = monitor,
-                    module = module,
-                    selected = selected,
-                    appLabels = apps.associate { it.packageName to it.label },
-                    onSelectApps = { showPicker = true },
-                    onMark = vm::markProblem,
-                    onStop = vm::stopMonitoring,
-                    onExport = vm::exportLatest,
-                )
-                1 -> HistoryScreen(history = history, onExport = vm::export)
-                2 -> DiagnosticConfigScreen(
-                    enabled = enabled,
-                    presetId = preset,
-                    onPreset = vm::applyPreset,
-                    onToggle = vm::toggleOption,
-                )
-                3 -> SettingsScreen(
-                    exportMode = vm.exportMode(),
-                    customTree = vm.customTree()?.toString(),
-                    maxSessionMb = vm.maxSessionMb(),
-                    activationMode = activationMode,
-                    onActivationMode = vm::setDeepActivationMode,
-                    onExportMode = vm::setExportMode,
-                    onChooseTree = { treeLauncher.launch(vm.customTree()) },
-                    onMaxSessionMb = vm::setMaxSessionMb,
-                )
             }
         }
     }
