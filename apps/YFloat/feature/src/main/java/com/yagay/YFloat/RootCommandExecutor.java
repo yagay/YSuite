@@ -1,7 +1,6 @@
 package com.yagay.YFloat;
 
-import com.yagay.suite.api.FeatureHost;
-import com.yagay.suite.api.FeatureHostRegistry;
+import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.HostBinaryCommandResult;
 
 import java.io.ByteArrayOutputStream;
@@ -13,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** One bounded, timeout-safe implementation for every YFloat su command. */
 final class RootCommandExecutor {
-    private static final String PLUGIN_ID = "yfloat";
+    private static final FeatureServices SERVICES = FeatureServices.of("yfloat", "YFloat");
 
     static final class Result {
         final int exitCode;
@@ -59,9 +58,8 @@ final class RootCommandExecutor {
     private static Result run(String command, long timeoutSeconds,
                               int maxStdoutBytes, int maxStderrBytes,
                               boolean mergeError) {
-        FeatureHost host = FeatureHostRegistry.find(PLUGIN_ID);
-        if (host != null) {
-            return runThroughHost(host, command, timeoutSeconds, maxStdoutBytes, mergeError);
+        if (SERVICES.hostOrNull() != null) {
+            return runThroughHost(command, timeoutSeconds, maxStdoutBytes, mergeError);
         }
 
         Process process = null;
@@ -132,13 +130,12 @@ final class RootCommandExecutor {
         }
     }
 
-    private static Result runThroughHost(FeatureHost host,
-                                         String command,
+    private static Result runThroughHost(String command,
                                          long timeoutSeconds,
                                          int maxStdoutBytes,
                                          boolean mergeError) {
         try {
-            HostBinaryCommandResult raw = host.rootExecuteBinary(
+            HostBinaryCommandResult raw = SERVICES.rootBinary(
                     "root-command",
                     command == null ? "" : command,
                     timeoutSeconds,
@@ -155,7 +152,7 @@ final class RootCommandExecutor {
                     error,
                     raw.getTimedOut());
         } catch (Throwable t) {
-            // Host exists: never bypass YSuite by opening another local root process.
+            // Host exists: never bypass the managed host by opening another local root process.
             return new Result(-1, new byte[0], "", t, false);
         }
     }
