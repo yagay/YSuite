@@ -5,8 +5,8 @@ import android.os.Build;
 import android.os.SystemClock;
 
 import com.yagay.suite.api.FeatureServices;
+import com.yagay.suite.api.RotatingTextFile;
 
-import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,7 +18,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public final class DiagnosticLog {
-    private static final Object LOCK = new Object();
     private static final String FILE = "yfloat-fl-diagnostic.log";
     private static final long MAX_BYTES = 2L * 1024L * 1024L;
     private static final long HOT_LOG_INTERVAL_MS = 90L;
@@ -30,13 +29,20 @@ public final class DiagnosticLog {
         return t;
     });
     private static Context app;
+    private static volatile RotatingTextFile storage;
 
-    public static void init(Context c) { if (c != null) app = c.getApplicationContext(); }
+    public static void init(Context c) {
+        if (c == null) return;
+        app = c.getApplicationContext();
+        ensureStorage(app);
+    }
+
     public static boolean enabled(Context c) {
         Context x = c != null ? c.getApplicationContext() : app;
         return x != null && x.getSharedPreferences(FloatSettings.PREF, Context.MODE_PRIVATE)
                 .getBoolean(FloatSettings.K_DIAGNOSTIC, false);
     }
+
     public static void i(Context c, String tag, String msg) {
         Context x = c != null ? c.getApplicationContext() : app;
         if (x == null || !enabled(x)) return;
@@ -50,7 +56,9 @@ public final class DiagnosticLog {
                 HOT_LAST.put(hotKey, now);
             }
         }
-        final Context target=x; final String finalTag=tag==null?"":tag; final String finalMsg=msg==null?"":msg;
+        final Context target = x;
+        final String finalTag = tag == null ? "" : tag;
+        final String finalMsg = msg == null ? "" : msg;
         try { IO.execute(() -> write(target, now, finalTag, finalMsg)); } catch (Throwable ignored) {}
     }
 
@@ -62,50 +70,69 @@ public final class DiagnosticLog {
         SERVICES.info("[" + (tag == null ? "" : tag) + "] " + (msg == null ? "" : msg));
     }
 
-    private static void write(Context x,long now,String tag,String msg) {
-        synchronized (LOCK) {
-            try {
-                File f=file(x); if(f.length()>MAX_BYTES)rotate(f);
-                String ts=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS",Locale.US).format(new Date());
-                String line=ts+" +"+now+"ms ["+tag+"] "+msg+"\n";
-                try(FileOutputStream out=new FileOutputStream(f,true)){out.write(line.getBytes(java.nio.charset.StandardCharsets.UTF_8));}
-            } catch(Throwable ignored) {}
-        }
+    private static void write(Context x, long now, String tag, String msg) {
+        RotatingTextFile file = ensureStorage(x);
+        if (file == null) return;
+        String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+        file.appendLine(ts + " +" + now + "ms [" + tag + "] " + msg);
     }
-    private static String hotKey(String tag,String msg) {
-        if(tag==null)return null;
-        if("TOUCH".equals(tag))return "TOUCH";
-        if("FL_PROBE".equals(tag)&&(msg==null||!msg.startsWith("BEGIN")))return "FL_PROBE";
-        if("FL_PROBE_VIEW".equals(tag)&&msg!=null&&msg.startsWith("MOVE"))return "FL_PROBE_VIEW_MOVE";
-        if("FL_OP_HINT".equals(tag)&&msg!=null&&msg.startsWith("mode="))return "FL_OP_HINT_MOVE";
-        if("FL_DIRECT".equals(tag)&&msg!=null&&msg.startsWith("REARM"))return "FL_DIRECT_REARM";
+
+    private static String hotKey(String tag, String msg) {
+        if (tag == null) return null;
+        if ("TOUCH".equals(tag)) return "TOUCH";
+        if ("FL_PROBE".equals(tag) && (msg == null || !msg.startsWith("BEGIN"))) return "FL_PROBE";
+        if ("FL_PROBE_VIEW".equals(tag) && msg != null && msg.startsWith("MOVE")) return "FL_PROBE_VIEW_MOVE";
+        if ("FL_OP_HINT".equals(tag) && msg != null && msg.startsWith("mode=")) return "FL_OP_HINT_MOVE";
+        if ("FL_DIRECT".equals(tag) && msg != null && msg.startsWith("REARM")) return "FL_DIRECT_REARM";
         return null;
     }
+
     public static void sessionHeader(Context c) {
-        Context x=c!=null?c.getApplicationContext():app;if(x==null||!enabled(x))return;
-        i(x,"SESSION","YFloat="+BuildConfig.VERSION_NAME+" sdk="+Build.VERSION.SDK_INT+" device="+Build.MANUFACTURER+"/"+Build.MODEL+" fingerprint="+Build.FINGERPRINT);
+        Context x = c != null ? c.getApplicationContext() : app;
+        if (x == null || !enabled(x)) return;
+        i(x, "SESSION", "YFloat=" + BuildConfig.VERSION_NAME + " sdk=" + Build.VERSION.SDK_INT
+                + " device=" + Build.MANUFACTURER + "/" + Build.MODEL
+                + " fingerprint=" + Build.FINGERPRINT);
     }
-    private static void flush(){try{Future<?> f=IO.submit(()->{});f.get(2,TimeUnit.SECONDS);}catch(Throwable ignored){}}
-    public static String read(Context c){
-        Context x=c!=null?c.getApplicationContext():app;
-        if(x==null)return "";
+
+    private static void flush() {
+        try {
+            Future<?> f = IO.submit(() -> {});
+            f.get(2, TimeUnit.SECONDS);
+        } catch (Throwable ignored) {}
+    }
+
+    public static String read(Context c) {
+        Context x = c != null ? c.getApplicationContext() : app;
+        if (x == null) return "";
         flush();
-        synchronized(LOCK){
-            try{
-                File f=file(x);
-                if(!f.exists())return "";
-                StringBuilder out=new StringBuilder((int)Math.min(Integer.MAX_VALUE,Math.max(0L,f.length())));
-                char[] buffer=new char[8192];
-                try(Reader reader=new InputStreamReader(new FileInputStream(f),java.nio.charset.StandardCharsets.UTF_8)){
-                    int n;
-                    while((n=reader.read(buffer))>=0){if(n>0)out.append(buffer,0,n);}
-                }
-                return out.toString();
-            }catch(Throwable t){return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_9296e55d4183)+t;}
+        RotatingTextFile file = ensureStorage(x);
+        return file == null ? "" : file.read();
+    }
+
+    public static void clear(Context c) {
+        Context x = c != null ? c.getApplicationContext() : app;
+        if (x == null) return;
+        flush();
+        synchronized (HOT_LAST) { HOT_LAST.clear(); }
+        RotatingTextFile file = ensureStorage(x);
+        if (file != null) file.clear();
+    }
+
+    private static RotatingTextFile ensureStorage(Context context) {
+        if (context == null) return null;
+        RotatingTextFile current = storage;
+        if (current != null) return current;
+        synchronized (DiagnosticLog.class) {
+            current = storage;
+            if (current == null) {
+                current = new RotatingTextFile(
+                        context.getApplicationContext(), "", FILE, FILE + ".old", MAX_BYTES);
+                storage = current;
+            }
+            return current;
         }
     }
-    public static void clear(Context c){Context x=c!=null?c.getApplicationContext():app;if(x==null)return;flush();synchronized(HOT_LAST){HOT_LAST.clear();}synchronized(LOCK){try{File f=file(x);if(f.exists())f.delete();}catch(Throwable ignored){}}}
-    private static File file(Context c){return new File(c.getFilesDir(),FILE);}
-    private static void rotate(File f)throws IOException{File old=new File(f.getParentFile(),FILE+".old");if(old.exists())old.delete();if(!f.renameTo(old)){try(FileOutputStream o=new FileOutputStream(f,false)){}}}
-    private DiagnosticLog(){}
+
+    private DiagnosticLog() {}
 }
