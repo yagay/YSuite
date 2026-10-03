@@ -109,8 +109,13 @@ class DownloadService : Service() {
                         val response = connection!!.responseCode
 
                         if (response == HTTP_RANGE_NOT_SATISFIABLE && existing > 0L && initial.total > 0L && existing >= initial.total) {
+                            val sha256 = if (taskSettings.calculateSha256 || initial.expectedSha256 != null) {
+                                calculateSha256(destination, id)
+                            } else {
+                                null
+                            }
+                            if (!verifyExpectedSha256(id, initial, destination, sha256)) return@execute
                             finalizeDestination(destination)
-                            val sha256 = if (taskSettings.calculateSha256) calculateSha256(destination, id) else null
                             store.update(id) {
                                 it.copy(
                                     state = DownloadState.COMPLETED,
@@ -119,6 +124,7 @@ class DownloadService : Service() {
                                     total = initial.total,
                                     error = null,
                                     retryCount = 0,
+                                    requestHeaders = emptyMap(),
                                     sha256 = sha256,
                                     speedBytesPerSecond = 0L,
                                     etaMillis = -1L,
@@ -258,8 +264,13 @@ class DownloadService : Service() {
                                 }
                             }
                         }
+                        val sha256 = if (taskSettings.calculateSha256 || initial.expectedSha256 != null) {
+                            calculateSha256(destination, id)
+                        } else {
+                            null
+                        }
+                        if (!verifyExpectedSha256(id, initial, destination, sha256)) return@execute
                         finalizeDestination(destination)
-                        val sha256 = if (taskSettings.calculateSha256) calculateSha256(destination, id) else null
                         store.update(id) {
                             it.copy(
                                 state = DownloadState.COMPLETED,
@@ -268,6 +279,7 @@ class DownloadService : Service() {
                                 total = total,
                                 error = null,
                                 retryCount = 0,
+                                requestHeaders = emptyMap(),
                                 sha256 = sha256,
                                 speedBytesPerSecond = 0L,
                                 etaMillis = -1L,
@@ -339,6 +351,7 @@ class DownloadService : Service() {
         connectTimeout = 15_000
         readTimeout = 30_000
         setRequestProperty("User-Agent", settings.userAgent)
+        item.requestHeaders.forEach { (name, value) -> setRequestProperty(name, value) }
         if (existing > 0L) {
             setRequestProperty("Range", "bytes=$existing-")
             (item.etag ?: item.lastModified)?.let { validator ->
@@ -380,6 +393,7 @@ class DownloadService : Service() {
                 done = 0L,
                 total = -1L,
                 error = null,
+                requestHeaders = emptyMap(),
                 retryCount = 0,
                 etag = null,
                 lastModified = null,
@@ -479,6 +493,36 @@ class DownloadService : Service() {
     }.onFailure {
         YDownloadSuiteRuntime.log(HostLogLevel.WARN, "SHA-256 calculation failed id=$id", it)
     }.getOrNull()
+
+    private fun verifyExpectedSha256(
+        id: Long,
+        item: DownloadItem,
+        destination: Uri,
+        actualSha256: String?,
+    ): Boolean {
+        val expected = item.expectedSha256 ?: return true
+        if (actualSha256 != null && actualSha256.equals(expected, ignoreCase = true)) return true
+
+        runCatching { contentResolver.delete(destination, null, null) }
+        store.update(id) {
+            it.copy(
+                state = DownloadState.FAILED,
+                uri = null,
+                done = 0L,
+                total = -1L,
+                error = getString(R.string.sha256_mismatch),
+                retryCount = 0,
+                sha256 = actualSha256,
+                speedBytesPerSecond = 0L,
+                etaMillis = -1L,
+            )
+        }?.let(::notifyTask)
+        YDownloadSuiteRuntime.log(
+            HostLogLevel.WARN,
+            "SHA-256 mismatch id=$id expected=$expected actual=${actualSha256 ?: "unavailable"}",
+        )
+        return false
+    }
 
     private fun serviceNotification(): Notification = Notification.Builder(this, CHANNEL)
         .setSmallIcon(android.R.drawable.stat_sys_download)
