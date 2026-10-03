@@ -106,6 +106,8 @@ def main() -> None:
         "fun keyValueRow(",
         "fun switchRow(",
         "fun searchField(",
+        "fun listRow(",
+        "fun navigationRow(",
     ):
         require(view, marker, "View YUI framework")
 
@@ -126,7 +128,9 @@ def main() -> None:
     require(ypower, "YViewLayout.card(", "YPower main screen")
     require(yminiguard, "YViewLayout.install(", "YMiniGuard main screen")
     require(yminiguard, "YViewLayout.switchRow(", "YMiniGuard main screen")
+    require(yminiguard, "YViewLayout.navigationRow(", "YMiniGuard app-list navigation")
     require(yentry, "YFeatureCustomScaffold(", "YEntryCleaner main screen")
+    require(yentry, "YNavigationSuite(", "YEntryCleaner main navigation")
     require(yparam, "YViewLayout.installFixed(", "YParam main screen")
     require(yparam, "YViewLayout.searchField(", "YParam main screen")
     require(yparam, "YViewLayout.switchRow(", "YParam main screen")
@@ -141,20 +145,30 @@ def main() -> None:
     require(ytask, "YManagerScaffold(", "YTaskManager main screen")
     require(ytask, "YNavigationSuite(", "YTaskManager main navigation")
     require(ytask, "YSearchField(", "YTaskManager filter section")
-    require(ytask, "YStatusPill(", "YTaskManager status section")
+    require(ytask, "YStatusStrip(", "YTaskManager status section")
+    require(ytask, "YToggleFilterBar(", "YTaskManager type filters")
+    require(ytask, "YFilterBar(", "YTaskManager sort filter")
+    require(ytask, "YListItem(", "YTaskManager process rows")
+    require(ytask, "YPageList(", "YTaskManager resource/network pages")
     require(ytask, "YFeatureEmpty(", "YTaskManager empty states")
     require(ytask, "YStatusRow(", "YTaskManager resource metrics")
 
     require(ydiag, "YComposeActivity", "YDiag activity")
     require(ydiag, "YPageScaffold(", "YDiag main screen")
     require(ydiag, "YNavigationSuite(", "YDiag main navigation")
-    require(ydiag, "YFeatureSectionHeader(", "YDiag sections")
+    require(ydiag, "YPageList(", "YDiag page bodies")
+    require(ydiag, "YSectionHeader(", "YDiag sections")
+    require(ydiag, "YListItem(", "YDiag list rows")
+    require(ydiag, "YFilterBar(", "YDiag filters")
+    require(ydiag, "YCheckboxItem(", "YDiag app picker rows")
     require(ydiag, "YFeatureStat(", "YDiag monitor stats")
     require(ydiag, "YFeatureEmpty(", "YDiag empty states")
     require(ydiag, "YSearchField(", "YDiag app picker")
 
     if "Widget.YUI." not in ynotify or "TextAppearance.YUI." not in ynotify:
         fail("YNotify XML main layout must consume shared Widget.YUI and TextAppearance.YUI styles")
+    if "Widget.YUI.Card" not in ynotify:
+        fail("YNotify settings must use shared YUI cards")
     if "@dimen/yui_" not in ynotify:
         fail("YNotify XML main layout must consume shared YUI dimensions")
 
@@ -169,6 +183,7 @@ def main() -> None:
     require(yparam_detail, "YViewLayout.sectionHeader(", "YParam AppDetail")
     require(yparam_detail, "YViewLayout.setStatus(", "YParam AppDetail")
     require(ypower_detail, "YViewLayout.sectionHeader(", "YPower AppDetail")
+    require(ypower_detail, "YViewLayout.listRow(", "YPower AppDetail toggles")
     require(ypower_recommended, "YViewLayout.emptyState(", "YPower RecommendedApps")
     require(ypower_diag, "YViewLayout.install(", "YPower Diagnostic")
     require(ypower_diag, "YViewLayout.card(", "YPower Diagnostic")
