@@ -18,6 +18,10 @@ import com.yagay.suite.api.HostCapability
 import com.yagay.suite.api.HostCapabilityState
 import com.yagay.suite.api.HostLogLevel
 import com.yagay.yui.YActionRow
+import com.yagay.yui.YOverflowMenu
+import com.yagay.yui.YListItem
+import com.yagay.yui.YActionStyle
+import com.yagay.yui.YActionSpec
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YChoiceSetting
 import com.yagay.yui.YFeatureCard
@@ -424,88 +428,152 @@ class MainActivity : YComposeActivity() {
                     item { YFeatureCard(title = stringResource(R.string.empty_folder)) }
                 } else {
                     items(entries, key = { it.path }) { entry ->
-                        YFeatureCard(
-                            title = entry.name,
-                            subtitle = if (entry.isDirectory) stringResource(R.string.folder) else formatBytes(entry.size),
-                            detail = entry.path,
-                        ) {
-                            YActionRow {
-                                if (entry.isDirectory) {
-                                    YPrimaryActionButton(onClick = { path = entry.path; query = "" }, enabled = !operationBusy) {
-                                        Text(stringResource(R.string.yfiles_open))
-                                    }
-                                } else {
-                                    YPrimaryActionButton(onClick = { openFile(File(entry.path)) }, enabled = !operationBusy) {
-                                        Text(stringResource(R.string.yfiles_open))
-                                    }
-                                    YSecondaryActionButton(onClick = { shareFile(File(entry.path)) }, enabled = !operationBusy) {
-                                        Text(stringResource(R.string.share))
-                                    }
-                                }
-                                YSecondaryActionButton(onClick = {
-                                    pendingTransfer = PendingFileTransfer(entry, FileTransferMode.COPY)
-                                    error = null
-                                }, enabled = !operationBusy) { Text(stringResource(R.string.copy)) }
-                                YSecondaryActionButton(onClick = {
-                                    pendingTransfer = PendingFileTransfer(entry, FileTransferMode.MOVE)
-                                    error = null
-                                }, enabled = !operationBusy) { Text(stringResource(R.string.move)) }
+                        val shareLabel = stringResource(R.string.share)
+                        val copyLabel = stringResource(R.string.copy)
+                        val moveLabel = stringResource(R.string.move)
+                        val renameLabel = stringResource(R.string.rename)
+                        val duplicateLabel = stringResource(R.string.duplicate)
+                        val propertiesLabel = stringResource(R.string.properties)
+                        val deleteLabel = stringResource(R.string.delete)
+                        val compressLabel = stringResource(R.string.compress_zip)
+                        val extractLabel = stringResource(R.string.extract_zip)
+
+                        val menuActions = buildList {
+                            if (!entry.isDirectory) {
+                                add(
+                                    YActionSpec(
+                                        label = shareLabel,
+                                        enabled = !operationBusy,
+                                        onClick = { shareFile(File(entry.path)) },
+                                    ),
+                                )
                             }
-                            YActionRow {
-                                YSecondaryActionButton(onClick = {
-                                    renameTarget = entry
-                                    renameValue = entry.name
-                                }, enabled = !operationBusy) { Text(stringResource(R.string.rename)) }
-                                YSecondaryActionButton(onClick = {
-                                    operationBusy = true
-                                    lifecycleScope.launch {
-                                        val result = withContext(Dispatchers.IO) { repository.duplicate(entry) }
-                                        result.onSuccess { error = null; refresh++ }
-                                            .onFailure { error = it.message }
-                                        operationBusy = false
-                                    }
-                                }, enabled = !operationBusy) { Text(stringResource(R.string.duplicate)) }
-                                YSecondaryActionButton(onClick = {
-                                    operationBusy = true
-                                    lifecycleScope.launch {
-                                        val result = withContext(Dispatchers.IO) { repository.properties(entry) }
-                                        result.onSuccess { propertyDialog = it; error = null }
-                                            .onFailure { error = it.message }
-                                        operationBusy = false
-                                    }
-                                }, enabled = !operationBusy) { Text(stringResource(R.string.properties)) }
-                                YSecondaryActionButton(onClick = { deleteTarget = entry }, enabled = !operationBusy) {
-                                    Text(stringResource(R.string.delete))
-                                }
-                            }
-                            YActionRow {
-                                YSecondaryActionButton(onClick = {
-                                    operationBusy = true
-                                    lifecycleScope.launch {
-                                        val result = withContext(Dispatchers.IO) { repository.compressZip(entry) }
-                                        result.onSuccess { error = null; refresh++ }
-                                            .onFailure { error = it.message }
-                                        operationBusy = false
-                                    }
-                                }, enabled = !operationBusy) { Text(stringResource(R.string.compress_zip)) }
-                                if (!entry.isDirectory && entry.name.endsWith(".zip", ignoreCase = true)) {
-                                    YSecondaryActionButton(onClick = {
+                            add(
+                                YActionSpec(
+                                    label = copyLabel,
+                                    enabled = !operationBusy,
+                                    onClick = {
+                                        pendingTransfer = PendingFileTransfer(entry, FileTransferMode.COPY)
+                                        error = null
+                                    },
+                                ),
+                            )
+                            add(
+                                YActionSpec(
+                                    label = moveLabel,
+                                    enabled = !operationBusy,
+                                    onClick = {
+                                        pendingTransfer = PendingFileTransfer(entry, FileTransferMode.MOVE)
+                                        error = null
+                                    },
+                                ),
+                            )
+                            add(
+                                YActionSpec(
+                                    label = renameLabel,
+                                    enabled = !operationBusy,
+                                    onClick = {
+                                        renameTarget = entry
+                                        renameValue = entry.name
+                                    },
+                                ),
+                            )
+                            add(
+                                YActionSpec(
+                                    label = duplicateLabel,
+                                    enabled = !operationBusy,
+                                    onClick = {
                                         operationBusy = true
                                         lifecycleScope.launch {
-                                            val result = withContext(Dispatchers.IO) { repository.extractZip(entry) }
+                                            val result = withContext(Dispatchers.IO) { repository.duplicate(entry) }
                                             result.onSuccess { error = null; refresh++ }
                                                 .onFailure { error = it.message }
                                             operationBusy = false
                                         }
-                                    }, enabled = !operationBusy) { Text(stringResource(R.string.extract_zip)) }
-                                }
+                                    },
+                                ),
+                            )
+                            add(
+                                YActionSpec(
+                                    label = propertiesLabel,
+                                    enabled = !operationBusy,
+                                    onClick = {
+                                        operationBusy = true
+                                        lifecycleScope.launch {
+                                            val result = withContext(Dispatchers.IO) { repository.properties(entry) }
+                                            result.onSuccess { propertyDialog = it; error = null }
+                                                .onFailure { error = it.message }
+                                            operationBusy = false
+                                        }
+                                    },
+                                ),
+                            )
+                            add(
+                                YActionSpec(
+                                    label = compressLabel,
+                                    enabled = !operationBusy,
+                                    onClick = {
+                                        operationBusy = true
+                                        lifecycleScope.launch {
+                                            val result = withContext(Dispatchers.IO) { repository.compressZip(entry) }
+                                            result.onSuccess { error = null; refresh++ }
+                                                .onFailure { error = it.message }
+                                            operationBusy = false
+                                        }
+                                    },
+                                ),
+                            )
+                            if (!entry.isDirectory && entry.name.endsWith(".zip", ignoreCase = true)) {
+                                add(
+                                    YActionSpec(
+                                        label = extractLabel,
+                                        enabled = !operationBusy,
+                                        onClick = {
+                                            operationBusy = true
+                                            lifecycleScope.launch {
+                                                val result = withContext(Dispatchers.IO) { repository.extractZip(entry) }
+                                                result.onSuccess { error = null; refresh++ }
+                                                    .onFailure { error = it.message }
+                                                operationBusy = false
+                                            }
+                                        },
+                                    ),
+                                )
                             }
-                            YFilesEntryExtraActions(
-                                entry = entry,
-                                onChanged = { refresh++ },
-                                onError = { error = it },
+                            add(
+                                YActionSpec(
+                                    label = deleteLabel,
+                                    enabled = !operationBusy,
+                                    style = YActionStyle.DANGER,
+                                    onClick = { deleteTarget = entry },
+                                ),
                             )
                         }
+
+                        YListItem(
+                            title = entry.name,
+                            subtitle = if (entry.isDirectory) {
+                                stringResource(R.string.folder)
+                            } else {
+                                formatBytes(entry.size)
+                            },
+                            detail = entry.path.takeIf { recursiveSearch && query.isNotBlank() },
+                            enabled = !operationBusy,
+                            onClick = {
+                                if (entry.isDirectory) {
+                                    path = entry.path
+                                    query = ""
+                                } else {
+                                    openFile(File(entry.path))
+                                }
+                            },
+                            trailing = { YOverflowMenu(menuActions) },
+                        )
+                        YFilesEntryExtraActions(
+                            entry = entry,
+                            onChanged = { refresh++ },
+                            onError = { error = it },
+                        )
                     }
                 }
             }
