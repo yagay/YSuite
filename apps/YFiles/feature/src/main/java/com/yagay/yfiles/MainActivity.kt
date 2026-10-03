@@ -247,6 +247,8 @@ class MainActivity : YComposeActivity() {
                     }
                 }
 
+                item { YFilesHookScopeCard(this@MainActivity) }
+
                 item {
                     YFeatureCard(
                         title = stringResource(R.string.advanced_file_tools),
