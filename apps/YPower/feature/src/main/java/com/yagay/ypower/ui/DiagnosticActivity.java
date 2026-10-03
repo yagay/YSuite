@@ -27,6 +27,7 @@ import com.yagay.ypower.diag.RuntimeDiagnosticSession;
 import com.yagay.ypower.model.DiagnosticLevel;
 import com.yagay.ypower.model.DiagnosticReport;
 import com.yagay.ypower.xposed.XposedBridgeManager;
+import com.yagay.yui.YView;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewScreen;
 import com.yagay.yui.YViewStatusTone;
@@ -167,8 +168,9 @@ public class DiagnosticActivity extends AppCompatActivity {
         ScrollView scroll = new ScrollView(this);
         output = new TextView(this);
         output.setTextIsSelectable(true);
+        YView.styleBody(output);
         output.setText(getString(R.string.yp_usage_steps));
-        output.setPadding(0, dp(8), 0, dp(12));
+        output.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         scroll.addView(output);
         result.addView(scroll, new LinearLayout.LayoutParams(-1, dp(420)));
     }
