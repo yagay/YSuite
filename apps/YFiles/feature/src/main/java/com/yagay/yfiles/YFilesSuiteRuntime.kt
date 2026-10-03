@@ -3,8 +3,7 @@ package com.yagay.yfiles
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
-import com.yagay.suite.api.FeatureHost
-import com.yagay.suite.api.FeatureHostBinding
+import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.HostCapability
 import com.yagay.suite.api.HostCapabilityRequestResult
 import com.yagay.suite.api.HostCapabilityState
@@ -13,33 +12,30 @@ import com.yagay.suite.api.ManagedFeatureRuntime
 import java.io.File
 
 class YFilesSuiteRuntime private constructor(context: Context) : ManagedFeatureRuntime {
-    private val appContext = context.applicationContext
-    override fun attach(host: FeatureHost) { hostBinding.attach(host) }
-    override fun enable() { log(HostLogLevel.INFO, "yfiles runtime enabled") }
-    override fun disable() { log(HostLogLevel.INFO, "yfiles runtime disabled") }
-    override fun destroy() { hostBinding.clearIfOwnedBy(appContext) }
+    override fun enable() { services.info("yfiles runtime enabled") }
+    override fun disable() { services.info("yfiles runtime disabled") }
 
     companion object {
         @Volatile private var instance: YFilesSuiteRuntime? = null
-        private val hostBinding = FeatureHostBinding("YFiles")
+        private val services = FeatureServices.of("yfiles", "YFiles")
 
         @JvmStatic fun get(context: Context): YFilesSuiteRuntime = instance ?: synchronized(this) {
-            instance ?: YFilesSuiteRuntime(context).also { instance = it }
+            instance ?: YFilesSuiteRuntime(context.applicationContext).also { instance = it }
         }
 
         fun capabilityState(capability: HostCapability): HostCapabilityState =
-            hostBinding.capabilityState(capability)
+            services.capabilityState(capability)
 
         fun requestCapability(
             activity: Activity,
             capability: HostCapability,
         ): HostCapabilityRequestResult =
-            hostBinding.requestCapability(activity, capability)
+            services.requestCapability(activity, capability)
 
         fun rootAvailable(): Boolean =
             capabilityState(HostCapability.ROOT) == HostCapabilityState.GRANTED
 
-        fun sharedFileUri(file: File): Uri? = hostBinding.sharedFileUri(file)
+        fun sharedFileUri(file: File): Uri? = services.sharedFileUri(file)
 
         fun rootList(path: String): Result<List<String>> = rootCommand(
             operation = "list",
@@ -117,7 +113,7 @@ class YFilesSuiteRuntime private constructor(context: Context) : ManagedFeatureR
 
         fun rootStageFile(path: String): Result<File> = runCatching {
             require(!rootIsDirectory(path).getOrThrow()) { "Folders cannot be opened or shared directly" }
-            val current = hostBinding.requireHost("YSuite Root host is not attached")
+            val current = services.requireHost("Root host is not attached")
             val cacheDirectory = File(current.applicationContext.cacheDir, "root-share")
             require(cacheDirectory.mkdirs() || cacheDirectory.isDirectory) { "Unable to create share cache" }
             cacheDirectory.listFiles()?.forEach { file ->
@@ -139,14 +135,14 @@ class YFilesSuiteRuntime private constructor(context: Context) : ManagedFeatureR
         }
 
         fun log(level: HostLogLevel, message: String, error: Throwable? = null) {
-            hostBinding.log(level, message, error)
+            services.log(level, message, error)
         }
 
         private fun rootCommand(
             operation: String,
             command: String,
             timeoutSeconds: Long = 20L,
-        ): Result<String> = hostBinding.rootText(operation, command, timeoutSeconds)
+        ): Result<String> = services.rootText(operation, command, timeoutSeconds)
 
         private fun guardedCreateCommand(target: String, createCommand: String): String {
             val quoted = shellQuote(target)
