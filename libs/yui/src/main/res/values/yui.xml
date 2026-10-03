@@ -74,7 +74,13 @@
         <item name="boxCornerRadiusBottomEnd">22dp</item>
     </style>
 
+    <style name="TextAppearance.YUI.PageTitle" parent="TextAppearance.Material3.TitleLarge" />
     <style name="TextAppearance.YUI.SectionTitle" parent="TextAppearance.Material3.TitleMedium" />
+    <style name="TextAppearance.YUI.ItemTitle" parent="TextAppearance.Material3.BodyLarge" />
     <style name="TextAppearance.YUI.Body" parent="TextAppearance.Material3.BodyMedium" />
+    <style name="TextAppearance.YUI.Body.Strong" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textStyle">bold</item>
+    </style>
     <style name="TextAppearance.YUI.Caption" parent="TextAppearance.Material3.BodySmall" />
+    <style name="TextAppearance.YUI.Label" parent="TextAppearance.Material3.LabelLarge" />
 </resources>
