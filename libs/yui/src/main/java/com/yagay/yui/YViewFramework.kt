@@ -245,6 +245,41 @@ object YViewLayout {
     fun listIconSize(context: Context): Int = YView.dimen(context, R.dimen.yui_touch_target)
 
     @JvmStatic
+    @JvmOverloads
+    fun navigationRow(
+        parent: LinearLayout,
+        title: String,
+        description: String? = null,
+        listener: View.OnClickListener,
+    ): LinearLayout {
+        val row = listRow(parent.context).apply {
+            isClickable = true
+            isFocusable = true
+            setOnClickListener(listener)
+        }
+        val copy = LinearLayout(parent.context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        copy.addView(listTitle(parent.context).apply { text = title })
+        if (!description.isNullOrBlank()) {
+            copy.addView(listSubtitle(parent.context).apply { text = description })
+        }
+        row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(
+            TextView(parent.context).apply {
+                text = "›"
+                YView.styleSectionTitle(this)
+                setTextColor(YView.onSurfaceVariant(context))
+                gravity = Gravity.CENTER
+                minimumWidth = YView.touchTarget(context)
+            },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+        )
+        parent.addView(row, matchWrap())
+        return row
+    }
+
+    @JvmStatic
     fun searchField(context: Context, hint: String): AppCompatEditText = AppCompatEditText(context).apply {
         this.hint = hint
         isSingleLine = true
