@@ -27,7 +27,7 @@ fun YDownloadHookScopeCard(context: Context) {
         } else {
             Text(stringResource(R.string.hook_scope_detected_browsers))
             candidates.take(8).forEach { candidate ->
-                Text("• ${candidate.displayName}")
+                Text(stringResource(R.string.hook_scope_candidate_item, candidate.displayName))
             }
             if (candidates.size > 8) {
                 Text(stringResource(R.string.hook_scope_more_candidates, candidates.size - 8))
