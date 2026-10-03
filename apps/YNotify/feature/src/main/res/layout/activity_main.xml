@@ -5,8 +5,16 @@
     android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:title="@string/ynotify_app_name" app:titleCentered="false" />
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/yui_toolbar_height"
+        android:background="?attr/colorSurface"
+        android:title="@string/ynotify_app_name"
+        app:contentInsetStart="@dimen/yui_screen_horizontal"
+        app:contentInsetEnd="@dimen/yui_screen_horizontal"
+        app:elevation="0dp"
+        app:titleCentered="false"
+        app:titleTextAppearance="@style/TextAppearance.YUI.PageTitle" />
 
     <LinearLayout
         android:id="@+id/capture_status" android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -16,12 +24,12 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_notification_access" style="@style/Widget.YUI.Button.Tonal"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="@string/ynotify_notification_access" android:textSize="12sp" />
+            android:text="@string/ynotify_notification_access" />
         <Space android:layout_width="@dimen/yui_control_gap" android:layout_height="1dp" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_accessibility" style="@style/Widget.YUI.Button.Tonal"
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="@string/ynotify_ui_messages" android:textSize="12sp" />
+            android:text="@string/ynotify_ui_messages" />
     </LinearLayout>
 
     <com.google.android.material.textfield.TextInputLayout
@@ -63,55 +71,151 @@
         android:id="@+id/settings_panel" android:layout_width="match_parent" android:layout_height="0dp"
         android:layout_weight="1" android:visibility="gone" android:fillViewport="true">
         <LinearLayout
-            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="@dimen/yui_screen_horizontal"
             android:paddingVertical="@dimen/yui_screen_vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/ynotify_runtime_status" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
-            <TextView android:id="@+id/runtime_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="6dp" android:textIsSelectable="true"
-                android:textAppearance="@style/TextAppearance.YUI.Body" />
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="@string/ynotify_diagnostic_logs" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
-                android:text="@string/ynotify_diagnostic_logs_desc"
-                android:textAppearance="@style/TextAppearance.YUI.Body" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_export_diagnostics" style="@style/Widget.YUI.Button.Tonal"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_control_gap"
-                android:text="@string/ynotify_export_diagnostics" />
-            <TextView android:id="@+id/diagnostics_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" android:text="@string/ynotify_diagnostics_location"
-                android:textAppearance="@style/TextAppearance.YUI.Caption" />
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.YUI.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/yui_section_gap">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/yui_card_padding">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/ynotify_runtime_status"
+                        android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+                    <TextView
+                        android:id="@+id/runtime_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap"
+                        android:textIsSelectable="true"
+                        android:textAppearance="@style/TextAppearance.YUI.Body" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="@string/ynotify_history_repair" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
-                android:text="@string/ynotify_history_repair_desc"
-                android:textAppearance="@style/TextAppearance.YUI.Body" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_history_repair" style="@style/Widget.YUI.Button.Tonal"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_control_gap"
-                android:text="@string/ynotify_repair_history" />
-            <TextView android:id="@+id/repair_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" android:text="@string/ynotify_not_scanned"
-                android:textAppearance="@style/TextAppearance.YUI.Caption" />
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.YUI.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/yui_section_gap">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/yui_card_padding">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/ynotify_diagnostic_logs"
+                        android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap"
+                        android:text="@string/ynotify_diagnostic_logs_desc"
+                        android:textAppearance="@style/TextAppearance.YUI.Body" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_export_diagnostics"
+                        style="@style/Widget.YUI.Button.Tonal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap"
+                        android:text="@string/ynotify_export_diagnostics" />
+                    <TextView
+                        android:id="@+id/diagnostics_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap"
+                        android:text="@string/ynotify_diagnostics_location"
+                        android:textAppearance="@style/TextAppearance.YUI.Caption" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="@string/ynotify_retention" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
-            <RadioGroup android:id="@+id/retention_group" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <RadioButton android:id="@+id/retention_7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_days_7" />
-                <RadioButton android:id="@+id/retention_30" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_days_30" />
-                <RadioButton android:id="@+id/retention_90" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_days_90" />
-                <RadioButton android:id="@+id/retention_forever" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_forever" />
-            </RadioGroup>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_clear_all" style="@style/Widget.YUI.Button.Outlined"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
-                android:text="@string/ynotify_clear_all" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.YUI.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/yui_section_gap">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/yui_card_padding">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/ynotify_history_repair"
+                        android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap"
+                        android:text="@string/ynotify_history_repair_desc"
+                        android:textAppearance="@style/TextAppearance.YUI.Body" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_history_repair"
+                        style="@style/Widget.YUI.Button.Tonal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap"
+                        android:text="@string/ynotify_repair_history" />
+                    <TextView
+                        android:id="@+id/repair_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap"
+                        android:text="@string/ynotify_not_scanned"
+                        android:textAppearance="@style/TextAppearance.YUI.Caption" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.YUI.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/yui_section_gap">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/yui_card_padding">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/ynotify_retention"
+                        android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
+                    <RadioGroup
+                        android:id="@+id/retention_group"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap">
+                        <RadioButton android:id="@+id/retention_7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_days_7" />
+                        <RadioButton android:id="@+id/retention_30" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_days_30" />
+                        <RadioButton android:id="@+id/retention_90" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_days_90" />
+                        <RadioButton android:id="@+id/retention_forever" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_forever" />
+                    </RadioGroup>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_clear_all"
+                        style="@style/Widget.YUI.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/yui_control_gap"
+                        android:text="@string/ynotify_clear_all" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:text="@string/ynotify_scope_help"
                 android:textAppearance="@style/TextAppearance.YUI.Body" />
         </LinearLayout>
