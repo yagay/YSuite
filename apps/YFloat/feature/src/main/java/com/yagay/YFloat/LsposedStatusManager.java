@@ -6,6 +6,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 
+import com.yagay.suite.api.XposedHostBridge;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -134,8 +136,6 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
         }
     }
 
-    private static final String SUITE_PACKAGE = "com.yagay.YSuite";
-    private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
     private static final String PLUGIN_ID = "yfloat";
     private static final LsposedStatusManager INSTANCE = new LsposedStatusManager();
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
@@ -173,20 +173,13 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
             SharedPreferences preferences = app.getSharedPreferences(FloatSettings.PREF, Context.MODE_PRIVATE);
             INSTANCE.localPreferences = preferences;
             preferences.registerOnSharedPreferenceChangeListener(INSTANCE.localPreferenceListener);
-            if (SUITE_PACKAGE.equals(app.getPackageName())) {
-                boolean attached = false;
-                try {
-                    Class<?> broker = Class.forName(SUITE_BROKER, false, LsposedStatusManager.class.getClassLoader());
-                    java.lang.reflect.Method method = broker.getMethod("attachFromPlugin", String.class, Object.class);
-                    attached = Boolean.TRUE.equals(method.invoke(null, PLUGIN_ID, INSTANCE));
-                } catch (Throwable error) {
-                    DiagnosticLog.i(app, "LSPOSED_BROKER", "YSuite broker registration failed=" + error);
-                }
-                if (!attached) {
-                    DiagnosticLog.i(app, "LSPOSED_BROKER", "YSuite host detected but broker unavailable; standalone listener disabled");
-                }
-            } else {
+
+            XposedHostBridge.AttachResult result =
+                    XposedHostBridge.attachListener(app, PLUGIN_ID, INSTANCE);
+            if (result == XposedHostBridge.AttachResult.NOT_SUITE_HOST) {
                 XposedServiceHelper.registerListener(INSTANCE);
+            } else if (result == XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED) {
+                DiagnosticLog.critical(app, "LSPOSED_BROKER", "YSuite broker attach failed");
             }
         }
     }
