@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.YUI.Card"
     android:layout_width="match_parent" android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp" android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="@dimen/yui_screen_horizontal" android:layout_marginVertical="4dp"
     app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutlineVariant">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="12dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="@dimen/yui_control_gap">
         <ImageView android:id="@+id/app_icon" android:layout_width="42dp" android:layout_height="42dp" android:contentDescription="@string/ynotify_app_icon" />
-        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="@dimen/yui_control_gap" android:orientation="vertical">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                 <TextView android:id="@+id/app_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="2" android:ellipsize="end" android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
                 <TextView android:id="@+id/type" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingHorizontal="7dp" android:paddingVertical="2dp" android:textSize="11sp" />
