@@ -1,11 +1,13 @@
 package com.yagay.YMiniGuard;
 
+import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.FeatureHostRegistry;
+import com.yagay.suite.api.HostBinaryCommandResult;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 
 final class RootManager {
-    private static final String SUITE_ROOT_GATEWAY = "com.yagay.suite.core.SuiteRootGateway";
     private static final String PLUGIN_ID = "yminiguard";
 
     static final class RootStatus {
@@ -34,7 +36,7 @@ final class RootManager {
     }
 
     static String capture(String command, int maxChars) {
-        Class<?> host = hostGateway();
+        FeatureHost host = FeatureHostRegistry.find(PLUGIN_ID);
         if (host != null) return captureThroughHost(host, command, maxChars);
 
         java.lang.Process process = null;
@@ -71,40 +73,30 @@ final class RootManager {
         }
     }
 
-    private static Class<?> hostGateway() {
+    private static String captureThroughHost(FeatureHost host, String command, int maxChars) {
         try {
-            return Class.forName(SUITE_ROOT_GATEWAY, false, RootManager.class.getClassLoader());
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static String captureThroughHost(Class<?> gateway, String command, int maxChars) {
-        try {
-            Method method = gateway.getMethod(
-                    "executeFromPlugin",
-                    String.class,
-                    String.class,
-                    String.class,
-                    long.class);
-            Object raw = method.invoke(null, PLUGIN_ID, "root-manager", command, 20L);
-            if (raw == null) throw new IllegalStateException("YSuite root gateway returned null");
-            Class<?> type = raw.getClass();
-            int code = ((Number) type.getMethod("getCode").invoke(raw)).intValue();
-            String stdout = (String) type.getMethod("getStdout").invoke(raw);
-            String stderr = (String) type.getMethod("getStderr").invoke(raw);
-            boolean timedOut = Boolean.TRUE.equals(type.getMethod("getTimedOut").invoke(raw));
-            String body = (stdout == null ? "" : stdout);
-            if (stderr != null && !stderr.isBlank()) {
+            int maxBytes = Math.max(4096, Math.min(Integer.MAX_VALUE / 4, maxChars) * 4);
+            HostBinaryCommandResult result = host.rootExecuteBinary(
+                    "root-manager",
+                    command,
+                    20L,
+                    maxBytes,
+                    true);
+            String body = new String(result.getStdout(), StandardCharsets.UTF_8);
+            if (!result.getStderr().isBlank()) {
                 if (!body.isBlank()) body += "\n";
-                body += stderr;
+                body += result.getStderr();
+            }
+            if (result.getErrorMessage() != null && !result.getErrorMessage().isBlank()) {
+                if (!body.isBlank()) body += "\n";
+                body += "[" + result.getErrorMessage() + "]";
             }
             if (body.length() > maxChars) body = body.substring(0, maxChars);
-            if (timedOut) return "[timeout]\n" + body;
-            return "[exit=" + code + "]\n" + body;
+            if (result.getTimedOut()) return "[timeout]\n" + body;
+            return "[exit=" + result.getCode() + "]\n" + body;
         } catch (Throwable t) {
             // Host exists: never bypass YSuite with a second local su process.
-            return "[exception=" + t.getClass().getName() + "] YSuite root gateway: "
+            return "[exception=" + t.getClass().getName() + "] YSuite Root host: "
                     + t.getMessage() + "\n";
         }
     }
