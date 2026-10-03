@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.ResolveInfo
-import android.util.Log
 import com.yagay.YEntryCleaner.data.IntentCatalog
 import com.yagay.YEntryCleaner.data.PersistentComponentStore
 import com.yagay.YEntryCleaner.data.RuleRepository
@@ -15,8 +14,9 @@ import com.yagay.YEntryCleaner.domain.RuntimeProtocol
 import com.yagay.YEntryCleaner.domain.deriveFullySelectedPackages
 import com.yagay.YEntryCleaner.runtime.ServiceSession
 import com.yagay.YEntryCleaner.runtime.ServiceSessionRegistry
-import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.ManagedFeatureRuntime
+import com.yagay.suite.api.XposedHostBridge
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import kotlinx.coroutines.CancellationException
@@ -55,6 +55,7 @@ class YEntryCleanerRuntime private constructor(context: Context) :
     lateinit var rules: RuleRepository; private set
     lateinit var catalog: IntentCatalog; private set
 
+    private val services = FeatureServices.of(PLUGIN_ID, TAG)
     private val sessionRegistry = ServiceSessionRegistry()
     val serviceSession = MutableStateFlow<ServiceSession?>(null)
     /** Compatibility surface for existing UI code. New async work should capture [serviceSession]. */
@@ -66,7 +67,6 @@ class YEntryCleanerRuntime private constructor(context: Context) :
     private val syncMutex = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
     @Volatile private var enabled = true
-    @Volatile private var host: FeatureHost? = null
     private var pendingRecovery: ModuleConfig? = null
     private var corruptRecovery = false
     private var acknowledgedSessionGeneration = -1L
@@ -103,25 +103,13 @@ class YEntryCleanerRuntime private constructor(context: Context) :
     }
 
     private fun registerServiceListener() {
-        if (packageName == SUITE_PACKAGE) {
-            val attached = runCatching {
-                val broker = Class.forName(SUITE_BROKER, false, javaClass.classLoader)
-                val method = broker.getMethod("attachFromPlugin", String::class.java, Any::class.java)
-                method.invoke(null, PLUGIN_ID, this) as? Boolean == true
-            }.getOrElse {
-                Log.e(TAG, "YSuite LSPosed broker registration failed", it)
-                false
-            }
-            if (!attached) {
-                Log.e(TAG, "YSuite host detected but broker unavailable; standalone listener is disabled")
-            }
-            return
+        when (XposedHostBridge.attachListener(this, PLUGIN_ID, this)) {
+            XposedHostBridge.AttachResult.ATTACHED -> Unit
+            XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED ->
+                services.error("Managed host LSPosed broker attach failed")
+            XposedHostBridge.AttachResult.NOT_SUITE_HOST ->
+                XposedServiceHelper.registerListener(this)
         }
-        XposedServiceHelper.registerListener(this)
-    }
-
-    override fun attach(host: FeatureHost) {
-        this.host = host
     }
 
     override fun enable() {
@@ -147,7 +135,6 @@ class YEntryCleanerRuntime private constructor(context: Context) :
 
     override fun destroy() {
         disable()
-        host = null
     }
 
     override fun onServiceBind(service: XposedService) {
@@ -244,7 +231,7 @@ class YEntryCleanerRuntime private constructor(context: Context) :
                             rules.markInitialized()
                         } catch (failure: Exception) {
                             if (failure is CancellationException) throw failure
-                            Log.e(TAG, "Remote configuration recovery validation failed", failure)
+                            services.error("Remote configuration recovery validation failed", failure)
                             if (!isCurrent(session)) return@withLock false
                             pendingRecovery = null
                             corruptRecovery = true
@@ -391,7 +378,7 @@ class YEntryCleanerRuntime private constructor(context: Context) :
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (failure: Exception) {
-                    Log.e(TAG, "Runtime synchronization failed", failure)
+                    services.error("Runtime synchronization failed", failure)
                     if (attemptSession != null && !isCurrent(attemptSession)) {
                         false
                     } else {
@@ -539,8 +526,6 @@ class YEntryCleanerRuntime private constructor(context: Context) :
             }
 
         private const val TAG = "YEntryCleaner.Runtime"
-        private const val SUITE_PACKAGE = "com.yagay.YSuite"
-        private const val SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker"
         private const val PLUGIN_ID = "yentrycleaner"
     }
 }
