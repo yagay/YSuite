@@ -26,70 +26,89 @@ class YSuiteApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // YUI is initialized automatically by AndroidX Startup before Application.onCreate().
-        // Crash attribution itself is Direct-Boot safe. Everything else can depend on credential
-        // encrypted storage, so defer the normal host bootstrap until the user is unlocked.
-        SuiteCrashTracker.install(this)
-        if (!isUserUnlocked()) {
-            registerUnlockReceiver()
+        runCatching { SuiteCrashTracker.install(this) }
+            .onFailure { Log.e(TAG, "Crash tracker initialization failed safely", it) }
+
+        if (!isUserUnlockedSafely()) {
+            runCatching { registerUnlockReceiver() }
+                .onFailure { Log.e(TAG, "Unlock receiver registration failed safely", it) }
             Log.i(TAG, "User locked; deferring YSuite host initialization until ACTION_USER_UNLOCKED")
             return
         }
-        initializeUnlockedHost()
+
+        runCatching { initializeUnlockedHost() }
+            .onFailure { Log.e(TAG, "YSuite host bootstrap failed safely", it) }
     }
 
     @Synchronized
     private fun initializeUnlockedHost() {
-        if (initialized || !isUserUnlocked()) return
+        if (initialized || !isUserUnlockedSafely()) return
         initialized = true
+
         unlockReceiver?.let { receiver -> runCatching { unregisterReceiver(receiver) } }
         unlockReceiver = null
 
-        SuiteCrashTracker.markActiveFeature(this, null)
+        safeHostStep("crash-attribution") {
+            SuiteCrashTracker.markActiveFeature(this, null)
+        }
 
-        // Process-global capabilities always belong to the host and are established before any
-        // plugin runtime is initialized. Embedded plugins may only attach/consume these services.
-        SuiteXposedServiceBroker.takeOwnership(this)
-        RootManager.initialize(this)
-        // A package replacement can arrive while credential storage is locked or before the LSPosed
-        // service is ready. Resume the persisted host-owned reload request after bootstrap.
-        SuiteHookReloadCoordinator.resumePending(this)
+        // Each process-global subsystem is isolated. A missing/broken LSPosed service, Root backend,
+        // OEM package service or post-update reload path must never prevent the shell from opening.
+        safeHostStep("xposed-broker") {
+            SuiteXposedServiceBroker.takeOwnership(this)
+        }
+        safeHostStep("root-manager") {
+            RootManager.initialize(this)
+        }
+        safeHostStep("hook-reload") {
+            SuiteHookReloadCoordinator.resumePending(this)
+        }
 
-        val states = FeatureStateStore(this)
-        val included = FeatureRegistry.included()
-        val packageInfo = packageManager.getPackageInfo(packageName, 0)
-        val versionName = packageInfo.versionName ?: "unknown"
-        val versionCode = packageInfo.longVersionCode
+        val states = runCatching { FeatureStateStore(this) }
+            .getOrElse { error ->
+                Log.e(TAG, "Feature state store unavailable; skipping feature bootstrap", error)
+                return
+            }
+        val included = runCatching { FeatureRegistry.included() }
+            .getOrElse { error ->
+                Log.e(TAG, "Feature registry scan failed safely", error)
+                emptyList()
+            }
+        val packageInfo = runCatching { packageManager.getPackageInfo(packageName, 0) }.getOrNull()
+        val versionName = packageInfo?.versionName ?: "unknown"
+        val versionCode = packageInfo?.longVersionCode ?: -1L
 
-        SuiteLog.i(
-            this,
+        safeSuiteLog(
             SuiteContract.HOST_MODULE_ID,
             "YSuite host starting; version=$versionName($versionCode); contract=${SuiteContract.REVISION}; " +
                 "features=${included.size}; ids=${included.joinToString(",") { it.id }}",
         )
 
         included.forEach { feature ->
-            if (!states.isEnabled(feature)) {
-                SuiteLog.i(this, feature.id, "host disabled")
+            val enabled = runCatching { states.isEnabled(feature) }
+                .getOrElse { error ->
+                    safeSuiteError(feature.id, "host state read failed; feature skipped", error)
+                    return@forEach
+                }
+            if (!enabled) {
+                safeSuiteLog(feature.id, "host disabled")
                 return@forEach
             }
 
-            SuiteLog.i(
-                this,
+            safeSuiteLog(
                 feature.id,
                 "host runtime enable requested; class=${feature.runtimeInitializerClassName ?: "none"}",
             )
-            FeatureRuntimeManager.enable(this, feature)
+            runCatching { FeatureRuntimeManager.enable(this, feature) }
+                .getOrElse { Result.failure(it) }
                 .onSuccess {
-                    SuiteLog.i(
-                        this,
+                    safeSuiteLog(
                         feature.id,
                         "host runtime enabled; managed=${FeatureRuntimeManager.isManaged(feature.id)}; capabilities owned by YSuite",
                     )
                 }
                 .onFailure {
-                    SuiteLog.e(
-                        this,
+                    safeSuiteError(
                         feature.id,
                         "host runtime enable failed; class=${feature.runtimeInitializerClassName ?: "none"}",
                         it,
@@ -97,16 +116,16 @@ class YSuiteApp : Application() {
                 }
         }
 
-        SuiteLog.i(
-            this,
+        safeSuiteLog(
             SuiteContract.HOST_MODULE_ID,
             "YSuite host initialized; version=$versionName($versionCode); contract=${SuiteContract.REVISION}; " +
-                "features=${included.size}; xposedListeners=${SuiteXposedServiceBroker.listenerCount()}",
+                "features=${included.size}; xposedListeners=${runCatching { SuiteXposedServiceBroker.listenerCount() }.getOrDefault(0)}",
         )
     }
 
     override fun onTerminate() {
-        FeatureRuntimeManager.destroyAll(this)
+        runCatching { FeatureRuntimeManager.destroyAll(this) }
+            .onFailure { Log.e(TAG, "Feature runtime shutdown failed safely", it) }
         super.onTerminate()
     }
 
@@ -114,7 +133,10 @@ class YSuiteApp : Application() {
         if (unlockReceiver != null) return
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == Intent.ACTION_USER_UNLOCKED) initializeUnlockedHost()
+                if (intent?.action == Intent.ACTION_USER_UNLOCKED) {
+                    runCatching { initializeUnlockedHost() }
+                        .onFailure { Log.e(TAG, "Deferred host bootstrap failed safely", it) }
+                }
             }
         }
         unlockReceiver = receiver
@@ -127,8 +149,29 @@ class YSuiteApp : Application() {
         }
     }
 
-    private fun isUserUnlocked(): Boolean =
+    private fun isUserUnlockedSafely(): Boolean = runCatching {
         getSystemService(UserManager::class.java)?.isUserUnlocked != false
+    }.getOrElse {
+        Log.w(TAG, "Cannot resolve user-unlocked state; assuming unlocked", it)
+        true
+    }
+
+    private inline fun safeHostStep(name: String, block: () -> Unit) {
+        runCatching(block).onFailure { error ->
+            Log.e(TAG, "Host subsystem '$name' failed safely", error)
+            safeSuiteError(SuiteContract.HOST_MODULE_ID, "host subsystem failed: $name", error)
+        }
+    }
+
+    private fun safeSuiteLog(moduleId: String, message: String) {
+        runCatching { SuiteLog.i(this, moduleId, message) }
+            .onFailure { Log.w(TAG, "SuiteLog write failed: $message", it) }
+    }
+
+    private fun safeSuiteError(moduleId: String, message: String, error: Throwable) {
+        runCatching { SuiteLog.e(this, moduleId, message, error) }
+            .onFailure { Log.e(TAG, "$message (SuiteLog unavailable)", error) }
+    }
 
     private companion object {
         const val TAG = "YSuite.App"
