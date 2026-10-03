@@ -1,68 +1,41 @@
 package com.yagay.ypower;
 
 import android.content.Context;
-import android.util.Log;
 
-import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.ManagedFeatureRuntime;
+import com.yagay.suite.api.XposedHostBridge;
 import com.yagay.ypower.data.ProfileStore;
-import com.yagay.ypower.root.RootShell;
 import com.yagay.ypower.xposed.XposedBridgeManager;
-
-import java.lang.reflect.Method;
 
 import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
 
 /** Host-neutral runtime shared by standalone YPower and YSuite. */
 public final class YPowerRuntime implements XposedServiceHelper.OnServiceListener, ManagedFeatureRuntime {
-    private static final String YSUITE_PACKAGE = "com.yagay.YSuite";
-    private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
+    private static final String FEATURE_ID = "ypower";
+    private static final FeatureServices SERVICES = FeatureServices.of(FEATURE_ID, "YPower");
     private static volatile YPowerRuntime instance;
+
     private final Context context;
     private volatile boolean enabled = true;
-    private volatile FeatureHost host;
 
     private YPowerRuntime(Context context) {
         this.context = context.getApplicationContext();
-        boolean sharedHost = YSUITE_PACKAGE.equals(this.context.getPackageName()) || suiteBrokerPresent();
+        boolean sharedHost = XposedHostBridge.isSuiteHost(this.context);
         XposedBridgeManager.setSharedHost(sharedHost);
 
-        if (!attachToSuiteBroker()) {
+        XposedHostBridge.AttachResult result =
+                XposedHostBridge.attachListener(this.context, FEATURE_ID, this);
+        if (result == XposedHostBridge.AttachResult.NOT_SUITE_HOST) {
             try {
                 XposedServiceHelper.registerListener(this);
             } catch (Throwable t) {
-                Log.w("YPower", "LSPosed service registration unavailable", t);
+                SERVICES.warn("LSPosed service registration unavailable", t);
             }
+        } else if (result == XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED) {
+            SERVICES.error("YSuite LSPosed broker attach failed");
         }
-    }
-
-    private static boolean suiteBrokerPresent() {
-        try {
-            Class.forName(SUITE_BROKER, false, YPowerRuntime.class.getClassLoader());
-            return true;
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
-    private boolean attachToSuiteBroker() {
-        final Class<?> broker;
-        try {
-            broker = Class.forName(SUITE_BROKER, false, YPowerRuntime.class.getClassLoader());
-        } catch (ClassNotFoundException absent) {
-            return false;
-        } catch (Throwable error) {
-            Log.e("YPower", "YSuite broker lookup failed", error);
-            return true;
-        }
-        try {
-            Method attach = broker.getMethod("attachFromPlugin", String.class, Object.class);
-            attach.invoke(null, "ypower", this);
-        } catch (Throwable error) {
-            Log.e("YPower", "YSuite broker attach failed", error);
-        }
-        return true;
     }
 
     public static YPowerRuntime get(Context context) {
@@ -79,30 +52,21 @@ public final class YPowerRuntime implements XposedServiceHelper.OnServiceListene
     }
 
     @Override
-    public void attach(FeatureHost host) {
-        this.host = host;
-        RootShell.attachHost(host);
-    }
-
-    @Override
     public void enable() {
         enabled = true;
-        Log.i("YPower", "managed runtime enabled");
+        SERVICES.info("managed runtime enabled");
     }
 
     @Override
     public void disable() {
         enabled = false;
         XposedBridgeManager.setService(null);
-        Log.i("YPower", "managed runtime disabled; LSPosed service released");
+        SERVICES.info("managed runtime disabled; LSPosed service released");
     }
 
     @Override
     public void destroy() {
         disable();
-        FeatureHost previous = host;
-        host = null;
-        RootShell.detachHost(previous);
     }
 
     @Override
