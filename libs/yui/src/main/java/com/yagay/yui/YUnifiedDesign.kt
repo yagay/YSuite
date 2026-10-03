@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -329,6 +330,36 @@ fun YNotice(text: String, modifier: Modifier = Modifier, tone: YNoticeTone = YNo
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = container) {
         Text(text, Modifier.padding(horizontal = 14.dp, vertical = 11.dp), color = foreground)
     }
+}
+
+@Composable
+fun YPrimaryActionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = YDimens.ButtonHeight),
+        enabled = enabled,
+        content = content,
+    )
+}
+
+@Composable
+fun YSecondaryActionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = YDimens.ButtonHeight),
+        enabled = enabled,
+        content = content,
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
