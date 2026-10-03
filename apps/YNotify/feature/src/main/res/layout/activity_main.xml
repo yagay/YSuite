@@ -64,40 +64,42 @@
         android:layout_weight="1" android:visibility="gone" android:fillViewport="true">
         <LinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:padding="@dimen/yui_card_padding">
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/yui_screen_horizontal"
+            android:paddingVertical="@dimen/yui_screen_vertical">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="@string/ynotify_runtime_status" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
             <TextView android:id="@+id/runtime_status" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="6dp" android:textIsSelectable="true"
                 android:textAppearance="@style/TextAppearance.YUI.Body" />
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
                 android:text="@string/ynotify_diagnostic_logs" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
                 android:text="@string/ynotify_diagnostic_logs_desc"
                 android:textAppearance="@style/TextAppearance.YUI.Body" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_export_diagnostics" style="@style/Widget.YUI.Button.Tonal"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_control_gap"
                 android:text="@string/ynotify_export_diagnostics" />
             <TextView android:id="@+id/diagnostics_status" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="4dp" android:text="@string/ynotify_diagnostics_location"
                 android:textAppearance="@style/TextAppearance.YUI.Caption" />
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
                 android:text="@string/ynotify_history_repair" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
                 android:text="@string/ynotify_history_repair_desc"
                 android:textAppearance="@style/TextAppearance.YUI.Body" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_history_repair" style="@style/Widget.YUI.Button.Tonal"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_control_gap"
                 android:text="@string/ynotify_repair_history" />
             <TextView android:id="@+id/repair_status" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="4dp" android:text="@string/ynotify_not_scanned"
                 android:textAppearance="@style/TextAppearance.YUI.Caption" />
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
                 android:text="@string/ynotify_retention" android:textAppearance="@style/TextAppearance.YUI.SectionTitle" />
             <RadioGroup android:id="@+id/retention_group" android:layout_width="match_parent" android:layout_height="wrap_content">
                 <RadioButton android:id="@+id/retention_7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ynotify_days_7" />
@@ -107,9 +109,9 @@
             </RadioGroup>
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_clear_all" style="@style/Widget.YUI.Button.Outlined"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
                 android:text="@string/ynotify_clear_all" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp"
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/yui_section_gap"
                 android:text="@string/ynotify_scope_help"
                 android:textAppearance="@style/TextAppearance.YUI.Body" />
         </LinearLayout>
