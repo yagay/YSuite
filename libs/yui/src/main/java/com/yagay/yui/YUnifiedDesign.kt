@@ -75,6 +75,13 @@ data class YActionSpec(
 data class YTabSpec(val key: String, val label: String)
 
 @Immutable
+data class YFilterSpec(
+    val label: String,
+    val selected: Boolean,
+    val onClick: () -> Unit,
+)
+
+@Immutable
 data class YStatusSpec(
     val label: String,
     val value: String,
@@ -361,6 +368,22 @@ fun YFilterBar(options: List<String>, selectedIndex: Int, onSelected: (Int) -> U
     ) {
         options.forEachIndexed { index, label ->
             FilterChip(selected = selectedIndex == index, onClick = { onSelected(index) }, label = { Text(label) })
+        }
+    }
+}
+
+@Composable
+fun YToggleFilterBar(filters: List<YFilterSpec>, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        filters.forEach { filter ->
+            FilterChip(
+                selected = filter.selected,
+                onClick = filter.onClick,
+                label = { Text(filter.label) },
+            )
         }
     }
 }
