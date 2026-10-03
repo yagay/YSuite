@@ -13,7 +13,6 @@ import android.widget.TextView
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class YViewScreen internal constructor(
@@ -126,25 +125,17 @@ object YViewLayout {
     @JvmStatic
     @JvmOverloads
     fun card(parent: LinearLayout, title: String, subtitle: String? = null): LinearLayout {
-        val frame = MaterialCardView(parent.context).apply {
-            radius = YView.dimen(context, R.dimen.yui_card_radius).toFloat()
-            cardElevation = 0f
-            setCardBackgroundColor(YView.surfaceContainer(context))
-        }
-        val card = LinearLayout(parent.context).apply {
+        val section = LinearLayout(parent.context).apply {
             orientation = LinearLayout.VERTICAL
-            val p = YView.dimen(context, R.dimen.yui_card_padding)
-            setPadding(p, p, p, p)
         }
-        frame.addView(
-            card,
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+        parent.addView(
+            section,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
         )
-        val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = sectionGap(parent.context)
-        }
-        parent.addView(frame, lp)
-        card.addView(
+        section.addView(
             TextView(parent.context).apply {
                 text = title
                 YView.styleSectionTitle(this)
@@ -152,16 +143,26 @@ object YViewLayout {
             matchWrap(),
         )
         if (!subtitle.isNullOrBlank()) {
-            card.addView(
+            section.addView(
                 TextView(parent.context).apply {
                     text = subtitle
                     YView.styleCaption(this)
-                    setPadding(0, dp(context, 3), 0, controlGap(context))
+                    setPadding(0, Math.max(1, controlGap(context) / 4), 0, controlGap(context))
                 },
                 matchWrap(),
             )
         }
-        return card
+        parent.addView(
+            View(parent.context).apply { setBackgroundColor(YView.outline(context)) },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(parent.context, 1),
+            ).apply {
+                topMargin = controlGap(parent.context)
+                bottomMargin = sectionGap(parent.context)
+            },
+        )
+        return section
     }
 
     @JvmStatic
