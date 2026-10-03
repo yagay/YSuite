@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -28,6 +29,7 @@ import com.yagay.yui.YActionSpec
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YChoiceSetting
 import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YFilterBar
 import com.yagay.yui.YBrowserScaffold
 import com.yagay.yui.YPageList
 import com.yagay.yui.YPrimaryActionButton
@@ -107,6 +109,7 @@ class MainActivity : YComposeActivity() {
         var deleteTarget by remember { mutableStateOf<FileEntry?>(null) }
         var operationBusy by remember { mutableStateOf(false) }
         var checksumByPath by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+        var page by remember { mutableIntStateOf(0) }
 
         val allFilesState = remember(capabilityRevision) {
             YFilesSuiteRuntime.capabilityState(HostCapability.ALL_FILES)
@@ -152,8 +155,21 @@ class MainActivity : YComposeActivity() {
         ) { padding ->
             YPageList(padding) {
                 item {
-                    YFeatureCard(
-                        title = stringResource(R.string.documentsui_integration),
+                    YFilterBar(
+                        options = listOf(
+                            stringResource(R.string.location),
+                            stringResource(R.string.advanced_file_tools),
+                            stringResource(R.string.documentsui_integration),
+                        ),
+                        selectedIndex = page,
+                        onSelected = { page = it },
+                    )
+                }
+
+                if (page == 2) {
+                    item {
+                        YFeatureCard(
+                            title = stringResource(R.string.documentsui_integration),
                         subtitle = stringResource(R.string.documentsui_summary),
                     ) {
                         YStatusRow(
@@ -272,10 +288,12 @@ class MainActivity : YComposeActivity() {
                 }
 
                 item { YFilesHookScopeCard(this@MainActivity) }
+                }
 
-                item {
-                    YFeatureCard(
-                        title = stringResource(R.string.advanced_file_tools),
+                if (page == 1) {
+                    item {
+                        YFeatureCard(
+                            title = stringResource(R.string.advanced_file_tools),
                         subtitle = stringResource(R.string.advanced_file_tools_summary),
                     ) {
                         YStatusRow(
@@ -296,9 +314,25 @@ class MainActivity : YComposeActivity() {
                         Text(stringResource(R.string.advanced_file_tools_reference_note))
                     }
                 }
+                    if (!rootMode) {
+                        item {
+                            YFilesExtraToolsCard(
+                                path = path,
+                                onNavigate = { target ->
+                                    path = target
+                                    query = ""
+                                    page = 0
+                                },
+                                onChanged = { refresh++ },
+                                onError = { error = it },
+                            )
+                        }
+                    }
+                }
 
-                item {
-                    YFeatureCard(title = stringResource(R.string.location), subtitle = path) {
+                if (page == 0) {
+                    item {
+                        YFeatureCard(title = stringResource(R.string.location), subtitle = path) {
                         YSearchField(query, { query = it }, hint = stringResource(R.string.search_files))
                         YSettingSwitch(
                             title = stringResource(R.string.recursive_search),
@@ -393,20 +427,6 @@ class MainActivity : YComposeActivity() {
                                 Text(stringResource(R.string.new_file))
                             }
                         }
-                    }
-                }
-
-                if (!rootMode) {
-                    item {
-                        YFilesExtraToolsCard(
-                            path = path,
-                            onNavigate = { target ->
-                                path = target
-                                query = ""
-                            },
-                            onChanged = { refresh++ },
-                            onError = { error = it },
-                        )
                     }
                 }
 
@@ -632,6 +652,7 @@ class MainActivity : YComposeActivity() {
                             },
                         )
                     }
+                }
                 }
             }
         }
