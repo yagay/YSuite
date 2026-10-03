@@ -25,8 +25,8 @@ import com.yagay.suite.core.SuiteXposedServiceBroker
 import com.yagay.yui.YActionRow
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureList
-import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YDashboardScaffold
+import com.yagay.yui.YPageList
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSecondaryButton
 import com.yagay.yui.YSettingSwitch
@@ -124,11 +124,11 @@ class MainActivity : YComposeActivity() {
             }
         }
 
-        YFeatureScaffold(
+        YDashboardScaffold(
             title = stringResource(R.string.app_name),
             subtitle = stringResource(R.string.suite_subtitle),
         ) { scaffoldPadding ->
-            YFeatureList(padding = scaffoldPadding) {
+            YPageList(padding = scaffoldPadding) {
                 item {
                     RuntimeEnvironmentCard(
                         featureCount = features.size,
