@@ -4,21 +4,20 @@ import android.content.Context;
 
 import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.HostLogLevel;
+import com.yagay.suite.api.RotatingTextFile;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
 public final class DiagLog {
-    private static final Object LOCK = new Object();
     private static final long MAX_BYTES = 2L * 1024L * 1024L;
     private static final String DIR = "diagnostics";
     private static final String CURRENT = "notifylens.log";
     private static final String PREVIOUS = "notifylens.previous.log";
     private static final FeatureServices SERVICES = FeatureServices.of("ynotify", "YNotify");
+    private static volatile RotatingTextFile storage;
 
     private DiagLog() {}
 
@@ -35,17 +34,25 @@ public final class DiagLog {
     }
 
     public static File currentFile(Context context) {
-        return new File(dir(context), CURRENT);
+        return storage(context).currentFile();
     }
 
     public static File previousFile(Context context) {
-        return new File(dir(context), PREVIOUS);
+        return storage(context).previousFile();
     }
 
-    private static File dir(Context context) {
-        File dir = new File(context.getFilesDir(), DIR);
-        if (!dir.exists()) dir.mkdirs();
-        return dir;
+    private static RotatingTextFile storage(Context context) {
+        RotatingTextFile current = storage;
+        if (current != null) return current;
+        synchronized (DiagLog.class) {
+            current = storage;
+            if (current == null) {
+                current = new RotatingTextFile(
+                        context.getApplicationContext(), DIR, CURRENT, PREVIOUS, MAX_BYTES);
+                storage = current;
+            }
+            return current;
+        }
     }
 
     private static void write(Context context, String level, String tag, String message, Throwable error) {
@@ -63,21 +70,7 @@ public final class DiagLog {
                 ? HostLogLevel.ERROR
                 : "W".equals(level) ? HostLogLevel.WARN : HostLogLevel.INFO;
         SERVICES.log(hostLevel, "[" + safeTag + "] " + safeMessage, error);
-
-        byte[] bytes = (line + "\n").getBytes(StandardCharsets.UTF_8);
-        synchronized (LOCK) {
-            try {
-                File current = currentFile(context.getApplicationContext());
-                if (current.exists() && current.length() + bytes.length > MAX_BYTES) {
-                    File previous = previousFile(context.getApplicationContext());
-                    if (previous.exists()) previous.delete();
-                    current.renameTo(previous);
-                }
-                try (FileOutputStream out = new FileOutputStream(current, true)) {
-                    out.write(bytes);
-                }
-            } catch (Throwable ignored) {}
-        }
+        storage(context).appendLine(line);
     }
 
     private static String timestamp() {
