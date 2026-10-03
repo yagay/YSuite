@@ -10,5 +10,8 @@
 <string name="default_sort">默认排序</string><string name="sort_name">名称</string><string name="sort_modified">修改时间</string><string name="sort_size">大小</string><string name="sort_type">类型</string>
 <string name="default_picker_folder">首选起始目录</string><string name="system_default">系统默认</string><string name="custom_folder">自定义目录</string>
 <string name="system_pick_file">系统选文件</string><string name="system_pick_multiple">系统多选</string><string name="system_pick_folder">系统选文件夹</string><string name="system_create_file">系统新建文件</string><string name="set_default_folder">设置起始目录</string><string name="clear_default_folder">清除起始目录</string>
-<string name="advanced_file_tools">高级文件工具</string><string name="advanced_file_tools_summary">DocumentsUI 做不到的操作，才使用所有文件访问和 Root 浏览等补充工具。</string>
+<string name="advanced_file_tools">高级文件工具</string><string name="advanced_file_tools_summary">普通选择继续交给 DocumentsUI；需要复制、移动、重命名、属性和 Root 等更强能力时使用 YFiles。</string>
+<string name="advanced_file_tools_reference_note">高级模式参考成熟文件管理器的通用架构：文件操作与 UI 分离、保留系统选择器、跨文件系统移动失败时安全退化为复制成功后删除原文件。</string>
+<string name="copy">复制</string><string name="move">移动</string><string name="paste_here">粘贴到这里</string><string name="file_clipboard">待处理操作</string><string name="rename">重命名</string><string name="new_name">新名称</string><string name="properties">属性</string><string name="share">分享</string>
+<string name="size">大小</string><string name="modified">修改时间</string><string name="children">项目数</string><string name="permissions">权限</string><string name="hidden">隐藏</string><string name="close">关闭</string>
 </resources>
