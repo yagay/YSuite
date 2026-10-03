@@ -14,18 +14,15 @@ object FeatureHostRegistry {
 
     @JvmStatic
     fun attach(host: FeatureHost) {
-        val featureId = host.featureId.trim()
-        require(featureId.isNotEmpty()) { "FeatureHost.featureId must not be blank" }
-        hosts[featureId] = host
+        hosts[FeatureIds.normalize(host.featureId)] = host
     }
 
     @JvmStatic
-    fun find(featureId: String): FeatureHost? = hosts[featureId.trim()]
+    fun find(featureId: String): FeatureHost? = hosts[FeatureIds.normalize(featureId)]
 
     @JvmStatic
     fun detach(featureId: String, expectedHost: FeatureHost? = null) {
-        val normalized = featureId.trim()
-        if (normalized.isEmpty()) return
+        val normalized = FeatureIds.normalize(featureId)
         if (expectedHost == null) {
             hosts.remove(normalized)
         } else {
