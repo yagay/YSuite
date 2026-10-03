@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfiles_scope_picker_targets">检测到的系统文件选择器</string>
+    <string name="yfiles_scope_picker_explanation">文件选择器作用域用于 DocumentsUI 侧功能，例如默认排序。独立版 LSPosed 推荐列表也会包含已知的 AOSP/Google 文件选择器包名。</string>
+    <string name="yfiles_scope_optional_callers">可选 SAF 调用应用</string>
+    <string name="yfiles_scope_optional">可选</string>
+    <string name="yfiles_scope_caller_explanation">仅当需要增强某个应用发起的打开文件、GET_CONTENT、新建文件或文件夹选择请求时，才勾选该调用应用。</string>
+    <string name="yfiles_scope_more">还有 %1$d 个已安装候选</string>
+    <string name="yfiles_category_images">图片</string>
+    <string name="yfiles_category_video">视频</string>
+    <string name="yfiles_category_audio">音频</string>
+    <string name="yfiles_category_apps">应用 / 安装包</string>
+    <string name="yfiles_category_archives">压缩包</string>
+    <string name="yfiles_category_documents">文档</string>
+    <string name="yfiles_category_other">其他</string>
+    <string name="yfiles_category_value">%1$d 个文件 · %2$s</string>
+</resources>

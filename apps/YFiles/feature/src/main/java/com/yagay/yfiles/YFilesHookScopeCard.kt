@@ -11,12 +11,16 @@ import com.yagay.yui.YStatusTone
 
 @Composable
 fun YFilesHookScopeCard(context: Context) {
-    val targets = remember(context) { YFilesHookScopeAdvisor.documentsUiTargets(context) }
+    val targets = remember(context) { YFilesHookScopeAdvisor.recommendedTargets(context) }
+    val pickers = targets.filter { it.kind == YFilesHookScopeAdvisor.TargetKind.PICKER }
+    val callers = targets.filter { it.kind == YFilesHookScopeAdvisor.TargetKind.CALLER }
+
     YFeatureCard(
         title = stringResource(R.string.yfiles_hook_scope_title),
         subtitle = stringResource(R.string.yfiles_hook_scope_summary),
     ) {
-        targets.forEach { target ->
+        Text(stringResource(R.string.yfiles_scope_picker_targets))
+        pickers.forEach { target ->
             YStatusRow(
                 target.displayName,
                 if (target.installed) {
@@ -26,6 +30,22 @@ fun YFilesHookScopeCard(context: Context) {
                 },
                 if (target.installed) YStatusTone.Good else YStatusTone.Neutral,
             )
+        }
+        Text(stringResource(R.string.yfiles_scope_picker_explanation))
+
+        if (callers.isNotEmpty()) {
+            Text(stringResource(R.string.yfiles_scope_optional_callers))
+            callers.take(8).forEach { target ->
+                YStatusRow(
+                    target.displayName,
+                    stringResource(R.string.yfiles_scope_optional),
+                    YStatusTone.Neutral,
+                )
+            }
+            if (callers.size > 8) {
+                Text(stringResource(R.string.yfiles_scope_more, callers.size - 8))
+            }
+            Text(stringResource(R.string.yfiles_scope_caller_explanation))
         }
         Text(stringResource(R.string.yfiles_hook_scope_rule))
         Text(stringResource(R.string.yfiles_hook_scope_note))

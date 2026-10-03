@@ -31,6 +31,7 @@ class FileRepository(private val context: Context) {
         val needle = query.trim().lowercase()
         val entries = directory.listFiles().orEmpty()
             .asSequence()
+            .filterNot(::isManagedTrash)
             .filter { showHidden || !it.isHidden }
             .filter { needle.isBlank() || it.name.lowercase().contains(needle) }
             .map(File::toEntry)
@@ -57,6 +58,7 @@ class FileRepository(private val context: Context) {
         while (queue.isNotEmpty() && results.size < maxResults) {
             val directory = queue.removeFirst()
             directory.listFiles().orEmpty().forEach { child ->
+                if (isManagedTrash(child)) return@forEach
                 if (!showHidden && child.isHidden) return@forEach
                 if (child.name.lowercase().contains(needle)) {
                     results += child.toEntry()
@@ -71,6 +73,7 @@ class FileRepository(private val context: Context) {
     fun createFolder(parent: String, name: String): Result<FileEntry> = runCatching {
         val target = File(parent, sanitizeName(name))
         require(target.name.isNotBlank()) { "Folder name is empty" }
+        require(!isManagedTrash(target)) { "Reserved YFiles recycle-bin path" }
         require(!target.exists()) { "Already exists" }
         require(target.mkdirs()) { "Unable to create folder" }
         target.toEntry()
@@ -79,6 +82,7 @@ class FileRepository(private val context: Context) {
     fun createFile(parent: String, name: String): Result<FileEntry> = runCatching {
         val target = File(parent, sanitizeName(name))
         require(target.name.isNotBlank()) { "File name is empty" }
+        require(!isManagedTrash(target)) { "Reserved YFiles recycle-bin path" }
         require(!target.exists()) { "Already exists" }
         target.parentFile?.mkdirs()
         require(target.createNewFile()) { "Unable to create file" }
@@ -88,10 +92,12 @@ class FileRepository(private val context: Context) {
     fun rename(entry: FileEntry, newName: String): Result<FileEntry> = runCatching {
         val source = File(entry.path)
         require(source.exists()) { "Source no longer exists" }
+        require(!isManagedTrash(source)) { "Reserved YFiles recycle-bin path" }
         val clean = sanitizeName(newName)
         require(clean.isNotBlank()) { "Name is empty" }
         require(clean != "." && clean != "..") { "Invalid name" }
         val target = File(source.parentFile ?: error("Missing parent folder"), clean)
+        require(!isManagedTrash(target)) { "Reserved YFiles recycle-bin path" }
         require(source.absolutePath != target.absolutePath) { "Name is unchanged" }
         require(!target.exists()) { "Already exists" }
         Files.move(source.toPath(), target.toPath())
@@ -101,6 +107,7 @@ class FileRepository(private val context: Context) {
     fun duplicate(entry: FileEntry): Result<FileEntry> = runCatching {
         val source = File(entry.path)
         require(source.exists()) { "Source no longer exists" }
+        require(!isManagedTrash(source)) { "Reserved YFiles recycle-bin path" }
         val parent = source.parentFile ?: error("Missing parent folder")
         val target = uniqueTarget(parent, source.name)
         try {
@@ -115,6 +122,7 @@ class FileRepository(private val context: Context) {
     fun properties(entry: FileEntry): Result<FileProperties> = runCatching {
         val file = File(entry.path)
         require(file.exists()) { "File no longer exists" }
+        require(!isManagedTrash(file)) { "Reserved YFiles recycle-bin path" }
         FileProperties(
             name = file.name.ifBlank { file.absolutePath },
             path = file.absolutePath,
@@ -125,7 +133,7 @@ class FileRepository(private val context: Context) {
             writable = file.canWrite(),
             executable = file.canExecute(),
             hidden = file.isHidden,
-            childCount = if (file.isDirectory) file.listFiles()?.size else null,
+            childCount = if (file.isDirectory) file.listFiles()?.count { !isManagedTrash(it) } else null,
         )
     }
 
@@ -134,6 +142,7 @@ class FileRepository(private val context: Context) {
         val destination = File(destinationDirectory)
         require(source.exists()) { "Source no longer exists" }
         require(destination.isDirectory) { "Destination is not a directory" }
+        require(!isManagedTrash(source) && !isManagedTrash(destination)) { "Reserved YFiles recycle-bin path" }
 
         val canonicalSource = source.canonicalFile
         val canonicalDestination = destination.canonicalFile
@@ -160,6 +169,7 @@ class FileRepository(private val context: Context) {
     fun compressZip(entry: FileEntry): Result<FileEntry> = runCatching {
         val source = File(entry.path)
         require(source.exists()) { "Source no longer exists" }
+        require(!isManagedTrash(source)) { "Reserved YFiles recycle-bin path" }
         val parent = source.parentFile ?: error("Missing parent folder")
         val target = uniqueTarget(parent, source.name + ".zip")
         try {
@@ -176,6 +186,7 @@ class FileRepository(private val context: Context) {
     fun extractZip(entry: FileEntry): Result<FileEntry> = runCatching {
         val source = File(entry.path)
         require(source.isFile) { "Archive no longer exists" }
+        require(!isManagedTrash(source)) { "Reserved YFiles recycle-bin path" }
         require(source.extension.equals("zip", ignoreCase = true)) { "Only ZIP archives are supported" }
         val parent = source.parentFile ?: error("Missing parent folder")
         val baseName = source.nameWithoutExtension.ifBlank { "archive" }
@@ -210,15 +221,18 @@ class FileRepository(private val context: Context) {
 
     fun delete(entry: FileEntry): Result<Unit> = runCatching {
         val file = File(entry.path)
-        val success = if (file.isDirectory && !Files.isSymbolicLink(file.toPath())) {
-            file.deleteRecursively()
-        } else {
-            file.delete()
-        }
+        require(!isManagedTrash(file)) { "Reserved YFiles recycle-bin path" }
+        val success = if (file.isDirectory && !Files.isSymbolicLink(file.toPath())) file.deleteRecursively() else file.delete()
         require(success || !file.exists()) { "Unable to delete ${entry.name}" }
     }
 
     fun parent(path: String): String? = File(path).parentFile?.absolutePath
+
+    private fun isManagedTrash(file: File): Boolean {
+        val root = File(Environment.getExternalStorageDirectory(), ".YFilesTrash").absoluteFile.toPath().normalize()
+        val candidate = file.absoluteFile.toPath().normalize()
+        return candidate == root || candidate.startsWith(root)
+    }
 
     private fun moveWithFallback(source: File, target: File) {
         runCatching {
@@ -227,11 +241,7 @@ class FileRepository(private val context: Context) {
             Files.move(source.toPath(), target.toPath())
         }.recoverCatching {
             copyRecursively(source, target)
-            val deleted = if (source.isDirectory && !Files.isSymbolicLink(source.toPath())) {
-                source.deleteRecursively()
-            } else {
-                source.delete()
-            }
+            val deleted = if (source.isDirectory && !Files.isSymbolicLink(source.toPath())) source.deleteRecursively() else source.delete()
             require(deleted || !source.exists()) { "Copied but could not remove original" }
         }.getOrThrow()
     }
@@ -245,7 +255,9 @@ class FileRepository(private val context: Context) {
         }
         if (source.isDirectory) {
             require(target.mkdirs() || target.isDirectory) { "Unable to create ${target.name}" }
-            source.listFiles().orEmpty().forEach { child -> copyRecursively(child, File(target, child.name)) }
+            source.listFiles().orEmpty().filterNot(::isManagedTrash).forEach { child ->
+                copyRecursively(child, File(target, child.name))
+            }
             runCatching { target.setLastModified(source.lastModified()) }
             return
         }
@@ -255,7 +267,7 @@ class FileRepository(private val context: Context) {
     }
 
     private fun addToZip(source: File, rootParent: File, zip: ZipOutputStream) {
-        if (Files.isSymbolicLink(source.toPath())) return
+        if (Files.isSymbolicLink(source.toPath()) || isManagedTrash(source)) return
         val relative = rootParent.toPath().relativize(source.toPath()).toString().replace(File.separatorChar, '/')
         if (source.isDirectory) {
             val directoryName = relative.trimEnd('/') + "/"
@@ -277,7 +289,7 @@ class FileRepository(private val context: Context) {
         queue.add(root)
         while (queue.isNotEmpty()) {
             queue.removeFirst().listFiles().orEmpty().forEach { child ->
-                if (Files.isSymbolicLink(child.toPath())) return@forEach
+                if (isManagedTrash(child) || Files.isSymbolicLink(child.toPath())) return@forEach
                 if (child.isDirectory) queue.add(child) else total += child.length()
             }
         }

@@ -11,6 +11,8 @@ import android.os.Environment
 import android.os.SystemClock
 import android.webkit.MimeTypeMap
 import com.yagay.suite.api.HostLogLevel
+import java.io.FileInputStream
+import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
@@ -52,11 +54,6 @@ object SystemDownloadBridge {
         YDownloadSuiteRuntime.log(HostLogLevel.WARN, "system enqueue failed safely", it)
     }
 
-    /**
-     * Best-effort pause using DownloadProvider's app-owned `my_downloads` row. This deliberately
-     * avoids global provider tables and never requires replacing DownloadProvider. OEM/Mainline
-     * builds that reject the hidden control column simply return false and continue normally.
-     */
     fun pause(context: Context, systemId: Long): Boolean = setControl(context, systemId, CONTROL_PAUSED)
 
     fun resume(context: Context, systemId: Long): Boolean = setControl(context, systemId, CONTROL_RUN)
@@ -89,6 +86,7 @@ object SystemDownloadBridge {
         val ids = systemItems.mapNotNull { it.systemId }.toLongArray()
         if (ids.isEmpty()) return
         val manager = context.getSystemService(DownloadManager::class.java) ?: return
+        val calculateFingerprints = YDownloadEnhancedSettings.load(context).calculateSha256
         manager.query(DownloadManager.Query().setFilterById(*ids))?.use { cursor ->
             val idIndex = cursor.getColumnIndex(DownloadManager.COLUMN_ID)
             val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
@@ -105,7 +103,7 @@ object SystemDownloadBridge {
                 val done = long(cursor, doneIndex, item.done)
                 val total = long(cursor, totalIndex, item.total)
                 val localUri = string(cursor, uriIndex) ?: item.uri
-                val mappedState = when (status) {
+                val providerState = when (status) {
                     DownloadManager.STATUS_PENDING -> DownloadState.QUEUED
                     DownloadManager.STATUS_RUNNING -> DownloadState.RUNNING
                     DownloadManager.STATUS_PAUSED -> DownloadState.PAUSED
@@ -113,22 +111,67 @@ object SystemDownloadBridge {
                     DownloadManager.STATUS_FAILED -> DownloadState.FAILED
                     else -> item.state
                 }
-                val telemetry = telemetry(systemId, mappedState, done, total)
-                val error = if (status == DownloadManager.STATUS_FAILED) "DownloadManager reason=$reason" else null
+                val telemetry = telemetry(systemId, providerState, done, total)
+
+                var sha256 = item.sha256
+                if (providerState == DownloadState.COMPLETED &&
+                    (calculateFingerprints || item.expectedSha256 != null) &&
+                    shouldRefreshCompletedHash(item)
+                ) {
+                    sha256 = calculateSha256(manager, systemId)
+                }
+                val checksumMismatch = providerState == DownloadState.COMPLETED &&
+                    item.expectedSha256 != null &&
+                    (sha256 == null || !sha256.equals(item.expectedSha256, ignoreCase = true))
+                val state = if (checksumMismatch) DownloadState.FAILED else providerState
+                val error = when {
+                    checksumMismatch -> context.getString(R.string.sha256_mismatch)
+                    status == DownloadManager.STATUS_FAILED -> "DownloadManager reason=$reason"
+                    else -> null
+                }
+
                 store.update(item.id) {
                     it.copy(
-                        state = mappedState,
+                        state = state,
                         done = done,
                         total = total,
                         uri = localUri,
                         error = error,
+                        sha256 = sha256,
+                        requestHeaders = if (state == DownloadState.COMPLETED) emptyMap() else it.requestHeaders,
                         speedBytesPerSecond = telemetry.speedBytesPerSecond,
                         etaMillis = telemetry.etaMillis,
+                    )
+                }
+                if (checksumMismatch) {
+                    YDownloadSuiteRuntime.log(
+                        HostLogLevel.WARN,
+                        "system SHA-256 mismatch id=${item.id} expected=${item.expectedSha256} actual=${sha256 ?: "unavailable"}",
                     )
                 }
             }
         }
     }
+
+    private fun shouldRefreshCompletedHash(item: DownloadItem): Boolean =
+        item.sha256 == null || item.state == DownloadState.RUNNING || item.state == DownloadState.QUEUED || item.state == DownloadState.PAUSED
+
+    private fun calculateSha256(manager: DownloadManager, systemId: Long): String? = runCatching {
+        val digest = MessageDigest.getInstance("SHA-256")
+        manager.openDownloadedFile(systemId).use { descriptor ->
+            FileInputStream(descriptor.fileDescriptor).use { input ->
+                val buffer = ByteArray(HASH_BUFFER_SIZE)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    if (count > 0) digest.update(buffer, 0, count)
+                }
+            }
+        }
+        digest.digest().joinToString("") { "%02x".format(it) }
+    }.onFailure {
+        YDownloadSuiteRuntime.log(HostLogLevel.WARN, "system SHA-256 calculation failed id=$systemId", it)
+    }.getOrNull()
 
     private fun setControl(context: Context, systemId: Long, control: Int): Boolean = runCatching {
         val uri = ContentUris.withAppendedId(ownDownloads, systemId)
@@ -142,17 +185,11 @@ object SystemDownloadBridge {
         )
     }.getOrDefault(false)
 
-    private fun telemetry(
-        systemId: Long,
-        state: DownloadState,
-        done: Long,
-        total: Long,
-    ): DownloadTelemetry {
+    private fun telemetry(systemId: Long, state: DownloadState, done: Long, total: Long): DownloadTelemetry {
         if (state != DownloadState.RUNNING) {
             samples.remove(systemId)
             return DownloadTelemetry()
         }
-
         val now = SystemClock.elapsedRealtime()
         val previous = samples[systemId]
         var speed = previous?.speedBytesPerSecond ?: 0L
@@ -182,6 +219,7 @@ object SystemDownloadBridge {
     private const val COLUMN_CONTROL = "control"
     private const val CONTROL_RUN = 0
     private const val CONTROL_PAUSED = 1
+    private const val HASH_BUFFER_SIZE = 256 * 1024
 
     private data class TelemetrySample(
         val done: Long,

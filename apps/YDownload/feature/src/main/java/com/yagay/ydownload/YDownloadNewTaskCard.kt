@@ -43,6 +43,11 @@ fun YDownloadNewTaskCard(
         return DownloadRequestOptions.parseHeaders(customHeaders).getOrNull()
     }
 
+    fun parsedExpectedSha256(): String? {
+        if (!showAdvanced || expectedSha256.isBlank()) return null
+        return DownloadRequestOptions.normalizeSha256(expectedSha256).getOrNull()
+    }
+
     fun clearInput() {
         url = ""
         fileName = ""
@@ -93,12 +98,10 @@ fun YDownloadNewTaskCard(
                 onValueChange = { expectedSha256 = it.take(64); requestOptionsInvalid = false },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(stringResource(R.string.expected_sha256)) },
-                supportingText = { Text(stringResource(R.string.expected_sha256_summary)) },
+                supportingText = { Text(stringResource(R.string.expected_sha256_all_summary)) },
                 singleLine = true,
             )
-            if (requestOptionsInvalid) {
-                Text(stringResource(R.string.invalid_request_options))
-            }
+            if (requestOptionsInvalid) Text(stringResource(R.string.invalid_request_options))
         }
         YStatusRow(
             stringResource(R.string.default_engine),
@@ -115,24 +118,25 @@ fun YDownloadNewTaskCard(
                     requestOptionsInvalid = true
                     return@system
                 }
+                val expected = parsedExpectedSha256()
+                if (showAdvanced && expectedSha256.isNotBlank() && expected == null) {
+                    requestOptionsInvalid = true
+                    return@system
+                }
                 val task = createTask(
                     store = store,
                     rawUrl = url,
                     rawFileName = fileName,
                     backend = DownloadBackend.SYSTEM,
                     requestHeaders = headers,
-                    expectedSha256 = null,
+                    expectedSha256 = expected,
                 ) ?: return@system
                 scope.launch {
                     val result = withContext(Dispatchers.IO) { SystemDownloadBridge.enqueue(context, task) }
                     result.onSuccess { systemId ->
-                        store.update(task.id) {
-                            it.copy(systemId = systemId, state = DownloadState.QUEUED, error = null)
-                        }
+                        store.update(task.id) { it.copy(systemId = systemId, state = DownloadState.QUEUED, error = null) }
                     }.onFailure { error ->
-                        store.update(task.id) {
-                            it.copy(state = DownloadState.FAILED, error = error.message)
-                        }
+                        store.update(task.id) { it.copy(state = DownloadState.FAILED, error = error.message) }
                     }
                 }
                 clearInput()
@@ -142,16 +146,10 @@ fun YDownloadNewTaskCard(
                     requestOptionsInvalid = true
                     return@enhanced
                 }
-                val expected = if (showAdvanced) {
-                    DownloadRequestOptions.normalizeSha256(expectedSha256).getOrNull()
-                        ?: if (expectedSha256.isNotBlank()) {
-                            requestOptionsInvalid = true
-                            return@enhanced
-                        } else {
-                            null
-                        }
-                } else {
-                    null
+                val expected = parsedExpectedSha256()
+                if (showAdvanced && expectedSha256.isNotBlank() && expected == null) {
+                    requestOptionsInvalid = true
+                    return@enhanced
                 }
                 val task = createTask(
                     store = store,

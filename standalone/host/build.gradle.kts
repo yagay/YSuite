@@ -77,6 +77,14 @@ val selected = when {
     )
 }
 
+// Keep static LSPosed recommendations deliberately small. YFiles has a stable system-side target;
+// YDownload does not have one universal caller package, so it discovers useful installed candidates
+// at runtime instead of pre-scoping unrelated apps.
+val standaloneRecommendedScopes: List<String> = when (selected.id) {
+    "yfiles" -> listOf("com.android.documentsui", "com.google.android.documentsui")
+    else -> emptyList()
+}
+
 val ciArm64Only = providers.gradleProperty("ciArm64Only").orNull == "true"
 val generatedXposedResources = layout.buildDirectory.dir("generated/standalone-xposed")
 val generatedXposedResourcesDir = generatedXposedResources.get().asFile
@@ -101,6 +109,11 @@ val generateStandaloneXposedResources = tasks.register("generateStandaloneXposed
             autoHotReload=true
             """.trimIndent() + "\n",
         )
+        if (standaloneRecommendedScopes.isNotEmpty()) {
+            xposed.resolve("scope.list").writeText(
+                standaloneRecommendedScopes.distinct().joinToString(separator = "\n", postfix = "\n"),
+            )
+        }
     }
 }
 
@@ -115,9 +128,6 @@ android {
         versionCode = providers.gradleProperty("ySuiteStandaloneVersionCode").orNull?.toIntOrNull() ?: 1
         versionName = providers.gradleProperty("ySuiteStandaloneVersionName").orNull ?: "0.1.0"
 
-        // The catalog name/description are the authoritative standalone text metadata. Feature
-        // resources are reserved for real visual/behavioral assets such as icons, themes and locale
-        // declarations, avoiding duplicate app_name/module_description strings in every Feature.
         resValue("string", "standalone_app_name", selected.name)
         resValue("string", "standalone_app_description", selected.description)
         manifestPlaceholders["standaloneFeatureId"] = selected.id
@@ -127,8 +137,6 @@ android {
         manifestPlaceholders["standaloneIcon"] = selected.icon ?: "@null"
         manifestPlaceholders["standaloneRoundIcon"] = selected.roundIcon ?: "@null"
         manifestPlaceholders["standaloneTheme"] = selected.theme ?: "@style/Theme.YUI"
-        // android:localeConfig does not accept @null. Features without a dedicated locale list
-        // therefore inherit the generic standalone host's supported English/Chinese locale list.
         manifestPlaceholders["standaloneLocaleConfig"] =
             selected.localeConfig ?: "@xml/standalone_default_locales"
         manifestPlaceholders["standaloneAllowBackup"] = selected.allowBackup.toString()

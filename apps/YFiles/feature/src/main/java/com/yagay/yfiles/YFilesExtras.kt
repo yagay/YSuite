@@ -29,12 +29,21 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
+enum class YStorageCategory { IMAGES, VIDEO, AUDIO, APPS, ARCHIVES, DOCUMENTS, OTHER }
+
+data class YStorageCategoryUsage(
+    val category: YStorageCategory,
+    val bytes: Long,
+    val files: Long,
+)
+
 data class YDirectoryAnalysis(
     val totalBytes: Long,
     val fileCount: Long,
     val directoryCount: Long,
     val scannedEntries: Long,
     val truncated: Boolean,
+    val categories: List<YStorageCategoryUsage> = emptyList(),
 )
 
 data class YDuplicateGroup(
@@ -72,12 +81,13 @@ class YFilesExtrasStore(context: Context) {
         get() = File(Environment.getExternalStorageDirectory(), TRASH_DIRECTORY)
 
     fun favorites(): List<String> = prefs.getStringSet(KEY_FAVORITES, emptySet()).orEmpty()
-        .filter { File(it).exists() }
+        .filter { File(it).exists() && !isManagedTrash(File(it)) }
         .sortedWith(String.CASE_INSENSITIVE_ORDER)
 
     fun isFavorite(path: String): Boolean = prefs.getStringSet(KEY_FAVORITES, emptySet()).orEmpty().contains(path)
 
     fun toggleFavorite(path: String): Boolean {
+        require(!isManagedTrash(File(path))) { "Recycle bin is managed internally" }
         val current = prefs.getStringSet(KEY_FAVORITES, emptySet()).orEmpty().toMutableSet()
         val added = if (current.contains(path)) {
             current.remove(path)
@@ -96,7 +106,8 @@ class YFilesExtrasStore(context: Context) {
         buildList {
             for (index in 0 until array.length()) {
                 val value = array.optString(index).trim()
-                if (value.isNotBlank() && File(value).isDirectory && value !in this) add(value)
+                val file = File(value)
+                if (value.isNotBlank() && file.isDirectory && !isManagedTrash(file) && value !in this) add(value)
             }
         }.take(MAX_RECENT_LOCATIONS)
     }.getOrDefault(emptyList())
@@ -104,7 +115,7 @@ class YFilesExtrasStore(context: Context) {
     @Synchronized
     fun recordRecent(path: String) {
         val directory = File(path)
-        if (!directory.isDirectory) return
+        if (!directory.isDirectory || isManagedTrash(directory)) return
         val normalized = runCatching { directory.canonicalPath }.getOrElse { directory.absolutePath }
         val next = buildList {
             add(normalized)
@@ -118,7 +129,10 @@ class YFilesExtrasStore(context: Context) {
     fun analyze(path: String, maxEntries: Long = MAX_ANALYSIS_ENTRIES): Result<YDirectoryAnalysis> = runCatching {
         val root = File(path)
         require(root.isDirectory) { "Not a directory: $path" }
+        require(!isManagedTrash(root)) { "Recycle bin is managed internally" }
         val queue = ArrayDeque<File>()
+        val categoryBytes = mutableMapOf<YStorageCategory, Long>()
+        val categoryFiles = mutableMapOf<YStorageCategory, Long>()
         queue.add(root)
         var bytes = 0L
         var files = 0L
@@ -132,6 +146,7 @@ class YFilesExtrasStore(context: Context) {
                     truncated = true
                     return@forEach
                 }
+                if (isManagedTrash(child)) return@forEach
                 scanned++
                 if (Files.isSymbolicLink(child.toPath())) return@forEach
                 if (child.isDirectory) {
@@ -139,12 +154,24 @@ class YFilesExtrasStore(context: Context) {
                     queue.add(child)
                 } else {
                     files++
-                    bytes += child.length().coerceAtLeast(0L)
+                    val size = child.length().coerceAtLeast(0L)
+                    bytes += size
+                    val category = categoryFor(child)
+                    categoryBytes[category] = categoryBytes.getOrDefault(category, 0L) + size
+                    categoryFiles[category] = categoryFiles.getOrDefault(category, 0L) + 1L
                 }
             }
             if (truncated) break
         }
-        YDirectoryAnalysis(bytes, files, directories, scanned, truncated)
+        val categories = YStorageCategory.values().mapNotNull { category ->
+            val count = categoryFiles.getOrDefault(category, 0L)
+            if (count <= 0L) null else YStorageCategoryUsage(
+                category = category,
+                bytes = categoryBytes.getOrDefault(category, 0L),
+                files = count,
+            )
+        }.sortedByDescending(YStorageCategoryUsage::bytes)
+        YDirectoryAnalysis(bytes, files, directories, scanned, truncated, categories)
     }
 
     fun scanDuplicates(
@@ -154,6 +181,7 @@ class YFilesExtrasStore(context: Context) {
     ): Result<YDuplicateScan> = runCatching {
         val root = File(path)
         require(root.isDirectory) { "Not a directory: $path" }
+        require(!isManagedTrash(root)) { "Recycle bin is managed internally" }
         val queue = ArrayDeque<File>()
         queue.add(root)
         val bySize = linkedMapOf<Long, MutableList<File>>()
@@ -162,7 +190,7 @@ class YFilesExtrasStore(context: Context) {
         while (queue.isNotEmpty()) {
             val current = queue.removeFirst()
             current.listFiles().orEmpty().forEach { child ->
-                if (Files.isSymbolicLink(child.toPath())) return@forEach
+                if (isManagedTrash(child) || Files.isSymbolicLink(child.toPath())) return@forEach
                 if (child.isDirectory) {
                     queue.add(child)
                 } else if (child.isFile) {
@@ -180,15 +208,17 @@ class YFilesExtrasStore(context: Context) {
 
         val groups = mutableListOf<YDuplicateGroup>()
         bySize.asSequence()
-            .filter { (_, files) -> files.size > 1 }
+            .filter { (_, candidates) -> candidates.size > 1 }
             .forEach { (size, candidates) ->
                 val byHash = linkedMapOf<String, MutableList<String>>()
                 candidates.forEach { candidate ->
                     val hash = hashFile(candidate)
                     byHash.getOrPut(hash) { mutableListOf() }.add(candidate.absolutePath)
                 }
-                byHash.forEach { (hash, files) ->
-                    if (files.size > 1) groups += YDuplicateGroup(size, hash, files.sortedWith(String.CASE_INSENSITIVE_ORDER))
+                byHash.forEach { (hash, matches) ->
+                    if (matches.size > 1) {
+                        groups += YDuplicateGroup(size, hash, matches.sortedWith(String.CASE_INSENSITIVE_ORDER))
+                    }
                 }
             }
         YDuplicateScan(
@@ -202,6 +232,7 @@ class YFilesExtrasStore(context: Context) {
         require(!entry.isDirectory) { "Checksum is only available for files" }
         val file = File(entry.path)
         require(file.isFile) { "File no longer exists" }
+        require(!isManagedTrash(file)) { "Recycle bin is managed internally" }
         hashFile(file)
     }
 
@@ -209,10 +240,7 @@ class YFilesExtrasStore(context: Context) {
     fun moveToTrash(entry: FileEntry): Result<YTrashRecord> = runCatching {
         val source = File(entry.path)
         require(source.exists() || Files.isSymbolicLink(source.toPath())) { "Source no longer exists" }
-        require(source.canonicalPath != trashRoot.canonicalPath) { "Trash folder cannot be moved to trash" }
-        require(!source.canonicalPath.startsWith(trashRoot.canonicalPath + File.separator)) {
-            "Item is already in trash"
-        }
+        require(!isManagedTrash(source)) { "Item is already in trash" }
         require(trashRoot.mkdirs() || trashRoot.isDirectory) { "Unable to create trash folder" }
         val id = "${System.currentTimeMillis()}-${Integer.toHexString(source.absolutePath.hashCode())}"
         val target = uniqueTarget(trashRoot, "$id-${source.name.ifBlank { "item" }}")
@@ -229,25 +257,15 @@ class YFilesExtrasStore(context: Context) {
     }
 
     @Synchronized
-    fun trashRecords(): List<YTrashRecord> = runCatching {
-        val array = JSONArray(prefs.getString(KEY_TRASH, "[]"))
-        buildList {
-            for (index in 0 until array.length()) {
-                val item = array.optJSONObject(index) ?: continue
-                val trashPath = item.optString("trashPath")
-                if (trashPath.isBlank() || !File(trashPath).exists()) continue
-                add(
-                    YTrashRecord(
-                        id = item.optString("id"),
-                        name = item.optString("name"),
-                        originalPath = item.optString("originalPath"),
-                        trashPath = trashPath,
-                        deletedAt = item.optLong("deletedAt"),
-                    ),
-                )
-            }
-        }.sortedByDescending { it.deletedAt }
-    }.getOrDefault(emptyList())
+    fun trashRecords(): List<YTrashRecord> {
+        val loaded = loadTrashRecords()
+        val live = loaded.filter { record ->
+            val file = File(record.trashPath)
+            file.exists() || Files.isSymbolicLink(file.toPath())
+        }
+        if (live.size != loaded.size) saveTrash(live)
+        return live.sortedByDescending(YTrashRecord::deletedAt)
+    }
 
     @Synchronized
     fun restore(record: YTrashRecord): Result<File> = runCatching {
@@ -265,15 +283,56 @@ class YFilesExtrasStore(context: Context) {
     @Synchronized
     fun emptyTrash(): Result<Int> = runCatching {
         val records = trashRecords()
+        val remaining = mutableListOf<YTrashRecord>()
         var removed = 0
         records.forEach { record ->
             val file = File(record.trashPath)
-            val success = removeRecursivelySafe(file)
-            if (success || !file.exists()) removed++
+            val success = runCatching { removeRecursivelySafe(file) }.getOrDefault(false)
+            if (success || (!file.exists() && !Files.isSymbolicLink(file.toPath()))) {
+                removed++
+            } else {
+                remaining += record
+            }
         }
-        saveTrash(emptyList())
-        runCatching { if (trashRoot.listFiles().isNullOrEmpty()) trashRoot.delete() }
+        saveTrash(remaining)
+        if (remaining.isEmpty()) runCatching { if (trashRoot.listFiles().isNullOrEmpty()) trashRoot.delete() }
         removed
+    }
+
+    private fun loadTrashRecords(): List<YTrashRecord> = runCatching {
+        val array = JSONArray(prefs.getString(KEY_TRASH, "[]"))
+        buildList {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+                val trashPath = item.optString("trashPath")
+                if (trashPath.isBlank()) continue
+                add(
+                    YTrashRecord(
+                        id = item.optString("id"),
+                        name = item.optString("name"),
+                        originalPath = item.optString("originalPath"),
+                        trashPath = trashPath,
+                        deletedAt = item.optLong("deletedAt"),
+                    ),
+                )
+            }
+        }
+    }.getOrDefault(emptyList())
+
+    private fun isManagedTrash(file: File): Boolean {
+        val filePath = file.absoluteFile.toPath().normalize()
+        val rootPath = trashRoot.absoluteFile.toPath().normalize()
+        return filePath == rootPath || filePath.startsWith(rootPath)
+    }
+
+    private fun categoryFor(file: File): YStorageCategory = when (file.extension.lowercase()) {
+        "jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif", "avif", "svg" -> YStorageCategory.IMAGES
+        "mp4", "mkv", "webm", "avi", "mov", "m4v", "3gp", "ts", "m2ts" -> YStorageCategory.VIDEO
+        "mp3", "m4a", "aac", "flac", "ogg", "opus", "wav", "amr" -> YStorageCategory.AUDIO
+        "apk", "apks", "xapk", "apkm", "aab" -> YStorageCategory.APPS
+        "zip", "7z", "rar", "tar", "gz", "bz2", "xz", "zst", "tgz" -> YStorageCategory.ARCHIVES
+        "pdf", "txt", "md", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "epub", "csv", "json", "xml" -> YStorageCategory.DOCUMENTS
+        else -> YStorageCategory.OTHER
     }
 
     private fun hashFile(file: File): String {
@@ -395,11 +454,7 @@ fun YFilesExtraToolsCard(
         title = stringResource(R.string.navigation_safety_tools),
         subtitle = stringResource(R.string.navigation_safety_tools_summary),
     ) {
-        YFilesBatchToolbar(
-            path = path,
-            onChanged = onChanged,
-            onError = onError,
-        )
+        YFilesBatchToolbar(path = path, onChanged = onChanged, onError = onError)
         YStatusRow(
             stringResource(R.string.favorite_folder),
             if (isFavorite) stringResource(R.string.yfiles_yes) else stringResource(R.string.yfiles_no),
@@ -407,10 +462,7 @@ fun YFilesExtraToolsCard(
         )
         YActionRow {
             OutlinedButton(
-                onClick = {
-                    store.toggleFavorite(path)
-                    revision++
-                },
+                onClick = { store.toggleFavorite(path); revision++ },
                 enabled = !busy,
             ) {
                 Text(if (isFavorite) stringResource(R.string.remove_favorite) else stringResource(R.string.add_favorite))
@@ -420,8 +472,7 @@ fun YFilesExtraToolsCard(
                     busy = true
                     scope.launch {
                         val result = withContext(Dispatchers.IO) { store.analyze(path) }
-                        result.onSuccess { analysis = it; onError(null) }
-                            .onFailure { onError(it.message) }
+                        result.onSuccess { analysis = it; onError(null) }.onFailure { onError(it.message) }
                         busy = false
                     }
                 },
@@ -431,19 +482,17 @@ fun YFilesExtraToolsCard(
         if (favorites.isNotEmpty()) {
             Text(stringResource(R.string.favorite_folders, favorites.size))
             favorites.take(4).forEach { favorite ->
-                OutlinedButton(
-                    onClick = { onNavigate(favorite) },
-                    enabled = !busy,
-                ) { Text(File(favorite).name.ifBlank { favorite }) }
+                OutlinedButton(onClick = { onNavigate(favorite) }, enabled = !busy) {
+                    Text(File(favorite).name.ifBlank { favorite })
+                }
             }
         }
         if (recents.isNotEmpty()) {
             Text(stringResource(R.string.yfiles_recent_locations, recents.size))
             recents.take(4).forEach { recent ->
-                OutlinedButton(
-                    onClick = { onNavigate(recent) },
-                    enabled = !busy,
-                ) { Text(File(recent).name.ifBlank { recent }) }
+                OutlinedButton(onClick = { onNavigate(recent) }, enabled = !busy) {
+                    Text(File(recent).name.ifBlank { recent })
+                }
             }
         }
         analysis?.let { result ->
@@ -453,6 +502,13 @@ fun YFilesExtraToolsCard(
                 stringResource(R.string.analysis_items_value, result.fileCount, result.directoryCount),
                 if (result.truncated) YStatusTone.Warning else YStatusTone.Good,
             )
+            result.categories.forEach { usage ->
+                YStatusRow(
+                    storageCategoryLabel(usage.category),
+                    stringResource(R.string.yfiles_category_value, usage.files, formatExtraBytes(usage.bytes)),
+                    YStatusTone.Neutral,
+                )
+            }
             if (result.truncated) Text(stringResource(R.string.analysis_truncated, result.scannedEntries))
         }
         OutlinedButton(
@@ -460,8 +516,7 @@ fun YFilesExtraToolsCard(
                 busy = true
                 scope.launch {
                     val result = withContext(Dispatchers.IO) { store.scanDuplicates(path) }
-                    result.onSuccess { duplicateScan = it; onError(null) }
-                        .onFailure { onError(it.message) }
+                    result.onSuccess { duplicateScan = it; onError(null) }.onFailure { onError(it.message) }
                     busy = false
                 }
             },
@@ -498,11 +553,7 @@ fun YFilesExtraToolsCard(
                         busy = true
                         scope.launch {
                             val result = withContext(Dispatchers.IO) { store.restore(record) }
-                            result.onSuccess {
-                                revision++
-                                onChanged()
-                                onError(null)
-                            }.onFailure { onError(it.message) }
+                            result.onSuccess { revision++; onChanged(); onError(null) }.onFailure { onError(it.message) }
                             busy = false
                         }
                     },
@@ -516,11 +567,7 @@ fun YFilesExtraToolsCard(
                     busy = true
                     scope.launch {
                         val result = withContext(Dispatchers.IO) { store.emptyTrash() }
-                        result.onSuccess {
-                            revision++
-                            onChanged()
-                            onError(null)
-                        }.onFailure { onError(it.message) }
+                        result.onSuccess { revision++; onChanged(); onError(null) }.onFailure { onError(it.message) }
                         busy = false
                     }
                 },
@@ -528,6 +575,17 @@ fun YFilesExtraToolsCard(
             ) { Text(stringResource(R.string.empty_recycle_bin)) }
         }
     }
+}
+
+@Composable
+private fun storageCategoryLabel(category: YStorageCategory): String = when (category) {
+    YStorageCategory.IMAGES -> stringResource(R.string.yfiles_category_images)
+    YStorageCategory.VIDEO -> stringResource(R.string.yfiles_category_video)
+    YStorageCategory.AUDIO -> stringResource(R.string.yfiles_category_audio)
+    YStorageCategory.APPS -> stringResource(R.string.yfiles_category_apps)
+    YStorageCategory.ARCHIVES -> stringResource(R.string.yfiles_category_archives)
+    YStorageCategory.DOCUMENTS -> stringResource(R.string.yfiles_category_documents)
+    YStorageCategory.OTHER -> stringResource(R.string.yfiles_category_other)
 }
 
 @Composable
@@ -542,9 +600,7 @@ fun YFilesEntryExtraActions(
     var busy by remember(entry.path) { mutableStateOf(false) }
     var checksum by remember(entry.path) { mutableStateOf<String?>(null) }
 
-    YActionRow {
-        YFilesSelectionToggle(entry)
-    }
+    YActionRow { YFilesSelectionToggle(entry) }
     YActionRow {
         if (!entry.isDirectory) {
             OutlinedButton(
@@ -552,8 +608,7 @@ fun YFilesEntryExtraActions(
                     busy = true
                     scope.launch {
                         val result = withContext(Dispatchers.IO) { store.sha256(entry) }
-                        result.onSuccess { checksum = it; onError(null) }
-                            .onFailure { onError(it.message) }
+                        result.onSuccess { checksum = it; onError(null) }.onFailure { onError(it.message) }
                         busy = false
                     }
                 },
@@ -565,10 +620,7 @@ fun YFilesEntryExtraActions(
                 busy = true
                 scope.launch {
                     val result = withContext(Dispatchers.IO) { store.moveToTrash(entry) }
-                    result.onSuccess {
-                        onChanged()
-                        onError(null)
-                    }.onFailure { onError(it.message) }
+                    result.onSuccess { onChanged(); onError(null) }.onFailure { onError(it.message) }
                     busy = false
                 }
             },

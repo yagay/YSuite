@@ -24,7 +24,7 @@ import com.yagay.yui.YStatusTone
 
 @Composable
 fun YDownloadHookScopeCard(context: Context) {
-    val candidates = remember(context) { YDownloadHookScopeAdvisor.browserCandidates(context) }
+    val candidates = remember(context) { YDownloadHookScopeAdvisor.recommendedCandidates(context) }
     var settings by remember(context) { mutableStateOf(YDownloadEnhancedSettings.load(context)) }
     var userAgentDraft by remember(context) { mutableStateOf(settings.userAgent) }
 
@@ -40,16 +40,30 @@ fun YDownloadHookScopeCard(context: Context) {
             )
             Text(stringResource(R.string.ydownload_hook_scope_rule))
             if (candidates.isEmpty()) {
-                Text(stringResource(R.string.hook_scope_no_browser_candidates))
+                Text(stringResource(R.string.ydownload_scope_no_candidates))
             } else {
-                Text(stringResource(R.string.hook_scope_detected_browsers))
-                candidates.take(8).forEach { candidate ->
-                    Text(stringResource(R.string.hook_scope_candidate_item, candidate.displayName))
+                Text(stringResource(R.string.ydownload_scope_detected_candidates))
+                candidates.take(12).forEach { candidate ->
+                    val reason = when (candidate.signal) {
+                        YDownloadHookScopeAdvisor.Signal.DOWNLOAD_RECEIVER -> stringResource(R.string.ydownload_scope_download_listener)
+                        YDownloadHookScopeAdvisor.Signal.BROWSER -> stringResource(R.string.ydownload_scope_browser)
+                        YDownloadHookScopeAdvisor.Signal.COMMON_CALLER -> stringResource(R.string.ydownload_scope_common_caller)
+                    }
+                    YStatusRow(
+                        candidate.displayName,
+                        reason,
+                        if (candidate.signal == YDownloadHookScopeAdvisor.Signal.DOWNLOAD_RECEIVER) {
+                            YStatusTone.Good
+                        } else {
+                            YStatusTone.Neutral
+                        },
+                    )
                 }
-                if (candidates.size > 8) {
-                    Text(stringResource(R.string.hook_scope_more_candidates, candidates.size - 8))
+                if (candidates.size > 12) {
+                    Text(stringResource(R.string.hook_scope_more_candidates, candidates.size - 12))
                 }
             }
+            Text(stringResource(R.string.ydownload_scope_signal_note))
             Text(stringResource(R.string.ydownload_hook_scope_note))
         }
 
@@ -67,9 +81,7 @@ fun YDownloadHookScopeCard(context: Context) {
             YActionRow {
                 Button(
                     onClick = {
-                        settings = YDownloadEnhancedSettings.update(context) {
-                            copy(userAgent = userAgentDraft)
-                        }
+                        settings = YDownloadEnhancedSettings.update(context) { copy(userAgent = userAgentDraft) }
                         userAgentDraft = settings.userAgent
                     },
                 ) { Text(stringResource(R.string.apply_user_agent)) }
@@ -85,28 +97,20 @@ fun YDownloadHookScopeCard(context: Context) {
 
             YStatusRow(
                 stringResource(R.string.speed_limit),
-                if (settings.speedLimitKib == 0) {
-                    stringResource(R.string.unlimited)
-                } else {
-                    stringResource(R.string.speed_limit_value, settings.speedLimitKib)
-                },
+                if (settings.speedLimitKib == 0) stringResource(R.string.unlimited)
+                else stringResource(R.string.speed_limit_value, settings.speedLimitKib),
                 YStatusTone.Neutral,
             )
             YActionRow {
                 listOf(0, 512, 1024, 2048).forEach { limit ->
                     OutlinedButton(
                         onClick = {
-                            settings = YDownloadEnhancedSettings.update(context) {
-                                copy(speedLimitKib = limit)
-                            }
+                            settings = YDownloadEnhancedSettings.update(context) { copy(speedLimitKib = limit) }
                         },
                     ) {
                         Text(
-                            if (limit == 0) {
-                                stringResource(R.string.unlimited)
-                            } else {
-                                stringResource(R.string.speed_limit_value, limit)
-                            },
+                            if (limit == 0) stringResource(R.string.unlimited)
+                            else stringResource(R.string.speed_limit_value, limit),
                         )
                     }
                 }
@@ -115,9 +119,7 @@ fun YDownloadHookScopeCard(context: Context) {
                 listOf(4096, 8192, 16384).forEach { limit ->
                     OutlinedButton(
                         onClick = {
-                            settings = YDownloadEnhancedSettings.update(context) {
-                                copy(speedLimitKib = limit)
-                            }
+                            settings = YDownloadEnhancedSettings.update(context) { copy(speedLimitKib = limit) }
                         },
                     ) { Text(stringResource(R.string.speed_limit_value, limit)) }
                 }
@@ -127,9 +129,7 @@ fun YDownloadHookScopeCard(context: Context) {
                 subtitle = stringResource(R.string.calculate_sha256_summary),
                 checked = settings.calculateSha256,
                 onCheckedChange = { enabled ->
-                    settings = YDownloadEnhancedSettings.update(context) {
-                        copy(calculateSha256 = enabled)
-                    }
+                    settings = YDownloadEnhancedSettings.update(context) { copy(calculateSha256 = enabled) }
                 },
             )
         }

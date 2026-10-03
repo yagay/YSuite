@@ -5,6 +5,31 @@
     <queries>
         <package android:name="com.android.documentsui" />
         <package android:name="com.google.android.documentsui" />
+        <package android:name="com.android.settings" />
+        <package android:name="com.android.chrome" />
+        <package android:name="com.google.android.apps.chrome" />
+        <package android:name="com.google.android.gm" />
+        <package android:name="org.mozilla.firefox" />
+        <package android:name="org.telegram.messenger" />
+        <package android:name="com.whatsapp" />
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+            <category android:name="android.intent.category.OPENABLE" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.CREATE_DOCUMENT" />
+            <category android:name="android.intent.category.OPENABLE" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <category android:name="android.intent.category.OPENABLE" />
+            <data android:mimeType="*/*" />
+        </intent>
     </queries>
 
     <application>

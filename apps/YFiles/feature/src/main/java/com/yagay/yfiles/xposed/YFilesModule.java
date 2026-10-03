@@ -12,16 +12,11 @@ import androidx.annotation.NonNull;
 import com.yagay.suite.api.RuntimeOwnerGate;
 import io.github.libxposed.api.XposedModule;
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Patch-first SAF integration. DocumentsUI remains the real picker and URI-grant owner.
- *
- * Every callback is fail-open: an LSPosed service/prefs/OEM reflection failure must never break the
- * caller or DocumentsUI. When anything is unavailable we immediately continue Android's original
- * implementation without applying the optional patch.
- */
+/** Patch-first SAF integration. DocumentsUI remains the real picker and URI-grant owner. */
 public final class YFilesModule extends XposedModule {
     private static final String TAG = "YFilesXposed";
     private static final String PREFS = "yfiles_patch";
@@ -47,7 +42,7 @@ public final class YFilesModule extends XposedModule {
             String pkg = param.getPackageName();
             if (pkg == null || pkg.startsWith("com.yagay.yfiles")) return;
 
-            if (DOCUMENTS_UI_AOSP.equals(pkg) || DOCUMENTS_UI_GOOGLE.equals(pkg)) {
+            if (looksLikeDocumentsUi(pkg) || hasDocumentsUiSortModel(param.getClassLoader())) {
                 installed.computeIfAbsent(pkg, ignored -> {
                     installDocumentsUiSortPatch(param.getClassLoader(), pkg);
                     return Boolean.TRUE;
@@ -62,6 +57,21 @@ public final class YFilesModule extends XposedModule {
             });
         } catch (Throwable t) {
             log(Log.WARN, TAG, "Package-ready patch skipped safely", t);
+        }
+    }
+
+    private boolean looksLikeDocumentsUi(String packageName) {
+        if (DOCUMENTS_UI_AOSP.equals(packageName) || DOCUMENTS_UI_GOOGLE.equals(packageName)) return true;
+        String normalized = packageName.toLowerCase(Locale.ROOT);
+        return normalized.contains("documentsui") || normalized.endsWith(".documentsui");
+    }
+
+    private boolean hasDocumentsUiSortModel(ClassLoader classLoader) {
+        try {
+            Class.forName("com.android.documentsui.sorting.SortModel", false, classLoader);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
         }
     }
 
@@ -136,19 +146,21 @@ public final class YFilesModule extends XposedModule {
         SharedPreferences prefs = remotePreferencesOrNull();
         if (prefs == null || !prefs.getBoolean("enabled", true)) return;
         String action = intent.getAction();
-        boolean open = Intent.ACTION_OPEN_DOCUMENT.equals(action) || Intent.ACTION_GET_CONTENT.equals(action);
+        boolean openDocument = Intent.ACTION_OPEN_DOCUMENT.equals(action);
+        boolean getContent = Intent.ACTION_GET_CONTENT.equals(action);
         boolean tree = Intent.ACTION_OPEN_DOCUMENT_TREE.equals(action);
         boolean create = Intent.ACTION_CREATE_DOCUMENT.equals(action);
-        if (!open && !tree && !create) return;
+        if (!openDocument && !getContent && !tree && !create) return;
 
         if (prefs.getBoolean("local_only", false)) {
             intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
         }
-        if (open && prefs.getBoolean("allow_multiple", false)) {
+        if ((openDocument || getContent) && prefs.getBoolean("allow_multiple", false)) {
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         }
         String initialUri = prefs.getString("initial_uri", null);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && initialUri != null && !initialUri.isBlank()) {
+        if ((openDocument || tree || create) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                && initialUri != null && !initialUri.isBlank()) {
             try {
                 intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse(initialUri));
             } catch (Throwable t) {
@@ -174,9 +186,7 @@ public final class YFilesModule extends XposedModule {
         }
     }
 
-    @Override public boolean onHotReloading(@NonNull HotReloadingParam param) {
-        return true;
-    }
+    @Override public boolean onHotReloading(@NonNull HotReloadingParam param) { return true; }
 
     @Override public void onHotReloaded(@NonNull HotReloadedParam param) {
         try {
