@@ -32,8 +32,8 @@ def q(value: str) -> str:
 
 def load_features() -> list[dict]:
     data = tomllib.loads(CATALOG.read_text(encoding="utf-8"))
-    if data.get("schema") != 4:
-        fail("config/features.toml must use schema = 4")
+    if data.get("schema") != 5:
+        fail("config/features.toml must use schema = 5")
     features = data.get("feature") or []
     if not features:
         fail("catalog has no [[feature]] entries")

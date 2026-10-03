@@ -31,6 +31,11 @@ android {
         versionCode = suiteHostVersionCode
         versionName = "0.2.10"
 
+        // Feature manifests may tighten standalone-only hardware requirements through placeholders.
+        // The combined YSuite must remain installable on devices that do not expose every optional
+        // hardware capability used by an individual Feature.
+        manifestPlaceholders["standaloneNfcRequired"] = "false"
+
         // YSuite is currently distributed for modern ARM64 Android devices. Keeping the ABI list
         // at the application boundary prevents transitive OCR/OpenCV/ONNX AARs from re-introducing
         // x86/x86_64/armeabi-v7a native binaries into the final APK. Override with

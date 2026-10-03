@@ -9,7 +9,25 @@ data class StandaloneFeature(
     val packageName: String,
     val entryActivity: String,
     val hooks: List<String>,
+    val description: String,
+    val label: String?,
+    val descriptionResource: String?,
+    val icon: String?,
+    val roundIcon: String?,
+    val theme: String?,
+    val localeConfig: String?,
+    val allowBackup: Boolean,
+    val usesCleartextTraffic: Boolean,
+    val nfcRequired: Boolean,
 )
+
+fun decodeOptional(value: String): String? = value.takeUnless { it == "-" || it.isBlank() }
+
+fun parseCatalogBoolean(value: String, field: String, featureId: String): Boolean = when (value) {
+    "true" -> true
+    "false" -> false
+    else -> error("Invalid $field for $featureId: $value")
+}
 
 fun loadStandaloneFeatures(): List<StandaloneFeature> {
     val catalog = rootProject.file("config/generated/standalone-features.tsv")
@@ -18,18 +36,28 @@ fun loadStandaloneFeatures(): List<StandaloneFeature> {
     }
     return catalog.readLines()
         .asSequence()
-        .map(String::trimEnd)
         .filter { it.isNotBlank() && !it.startsWith("#") }
         .map { line ->
             val parts = line.split('\t')
-            require(parts.size >= 6) { "Invalid standalone feature row: $line" }
+            require(parts.size == 16) { "Invalid standalone feature row (${parts.size} columns): $line" }
+            val featureId = parts[0]
             StandaloneFeature(
-                id = parts[0],
+                id = featureId,
                 name = parts[1],
                 gradleModule = parts[2],
                 packageName = parts[3],
                 entryActivity = parts[4],
-                hooks = parts[5].split(';').map(String::trim).filter(String::isNotEmpty),
+                hooks = decodeOptional(parts[5])?.split(';')?.map(String::trim)?.filter(String::isNotEmpty).orEmpty(),
+                description = parts[6],
+                label = decodeOptional(parts[7]),
+                descriptionResource = decodeOptional(parts[8]),
+                icon = decodeOptional(parts[9]),
+                roundIcon = decodeOptional(parts[10]),
+                theme = decodeOptional(parts[11]),
+                localeConfig = decodeOptional(parts[12]),
+                allowBackup = parseCatalogBoolean(parts[13], "allow_backup", featureId),
+                usesCleartextTraffic = parseCatalogBoolean(parts[14], "uses_cleartext_traffic", featureId),
+                nfcRequired = parseCatalogBoolean(parts[15], "nfc_required", featureId),
             )
         }
         .toList()
@@ -88,8 +116,18 @@ android {
         versionName = providers.gradleProperty("ySuiteStandaloneVersionName").orNull ?: "0.1.0"
 
         resValue("string", "standalone_app_name", selected.name)
+        resValue("string", "standalone_app_description", selected.description)
         manifestPlaceholders["standaloneFeatureId"] = selected.id
         manifestPlaceholders["standaloneEntryActivity"] = selected.entryActivity
+        manifestPlaceholders["standaloneLabel"] = selected.label ?: "@string/standalone_app_name"
+        manifestPlaceholders["standaloneDescription"] = selected.descriptionResource ?: "@string/standalone_app_description"
+        manifestPlaceholders["standaloneIcon"] = selected.icon ?: "@null"
+        manifestPlaceholders["standaloneRoundIcon"] = selected.roundIcon ?: "@null"
+        manifestPlaceholders["standaloneTheme"] = selected.theme ?: "@style/Theme.YUI"
+        manifestPlaceholders["standaloneLocaleConfig"] = selected.localeConfig ?: "@null"
+        manifestPlaceholders["standaloneAllowBackup"] = selected.allowBackup.toString()
+        manifestPlaceholders["standaloneUsesCleartextTraffic"] = selected.usesCleartextTraffic.toString()
+        manifestPlaceholders["standaloneNfcRequired"] = selected.nfcRequired.toString()
 
         if (ciArm64Only) {
             ndk {
@@ -120,8 +158,6 @@ android {
         }
     }
 
-    // Host-level native packaging policy shared with the full YSuite application.
-    // Some Features (currently YPower) receive bytehook from both CMake/JNI and an AAR.
     packaging {
         jniLibs.pickFirsts += setOf("**/libbytehook.so")
     }

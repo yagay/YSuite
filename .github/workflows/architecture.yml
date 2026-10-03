@@ -26,6 +26,9 @@ jobs:
           python3 tools/generate_feature_catalog.py --check
           python3 tools/generate_standalone_catalog.py --check
 
+      - name: Verify standalone metadata and resource references
+        run: python3 tools/verify_standalone_metadata.py
+
       - name: Verify mirrored version catalogs are current
         run: python3 tools/sync_version_catalog.py --check
 

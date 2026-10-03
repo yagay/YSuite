@@ -9,6 +9,7 @@ from generate_feature_catalog import load_features
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "config/generated/standalone-features.tsv"
+EMPTY = "-"
 
 
 def clean(value: object, field: str, feature_id: str) -> str:
@@ -18,16 +19,27 @@ def clean(value: object, field: str, feature_id: str) -> str:
     return text
 
 
+def optional(value: object, field: str, feature_id: str) -> str:
+    return clean(value, field, feature_id) or EMPTY
+
+
+def boolean(value: object, field: str, feature_id: str, default: bool = False) -> str:
+    raw = value if value is not None else default
+    if type(raw) is not bool:
+        raise SystemExit(f"standalone-catalog: {feature_id}: {field} must be boolean")
+    return "true" if raw else "false"
+
+
 def render() -> str:
     lines = [
         "# Generated from config/features.toml by tools/generate_standalone_catalog.py.",
-        "# feature_id<TAB>name<TAB>gradle_module<TAB>package<TAB>entry_activity<TAB>xposed_hooks",
+        "# feature_id<TAB>name<TAB>gradle_module<TAB>package<TAB>entry_activity<TAB>xposed_hooks<TAB>description<TAB>label<TAB>description_resource<TAB>icon<TAB>round_icon<TAB>theme<TAB>locale_config<TAB>allow_backup<TAB>uses_cleartext_traffic<TAB>nfc_required",
     ]
     for item in load_features():
         if not item.get("standalone_enabled", False):
             continue
         feature_id = clean(item["id"], "id", str(item.get("id", "?")))
-        hooks = ";".join(clean(h["class"], "hook class", feature_id) for h in item.get("hooks") or [])
+        hooks = ";".join(clean(h["class"], "hook class", feature_id) for h in item.get("hooks") or []) or EMPTY
         lines.append(
             "\t".join(
                 [
@@ -37,6 +49,16 @@ def render() -> str:
                     clean(item["standalone_package"], "standalone_package", feature_id),
                     clean(item["entry_activity"], "entry_activity", feature_id),
                     hooks,
+                    clean(item["description"], "description", feature_id),
+                    optional(item.get("standalone_label"), "standalone_label", feature_id),
+                    optional(item.get("standalone_description_resource"), "standalone_description_resource", feature_id),
+                    optional(item.get("standalone_icon"), "standalone_icon", feature_id),
+                    optional(item.get("standalone_round_icon"), "standalone_round_icon", feature_id),
+                    optional(item.get("standalone_theme"), "standalone_theme", feature_id),
+                    optional(item.get("standalone_locale_config"), "standalone_locale_config", feature_id),
+                    boolean(item.get("standalone_allow_backup"), "standalone_allow_backup", feature_id),
+                    boolean(item.get("standalone_uses_cleartext_traffic"), "standalone_uses_cleartext_traffic", feature_id),
+                    boolean(item.get("standalone_nfc_required"), "standalone_nfc_required", feature_id),
                 ]
             )
         )
