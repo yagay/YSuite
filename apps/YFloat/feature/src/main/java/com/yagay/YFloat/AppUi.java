@@ -50,8 +50,8 @@ final class AppUi {
 
     static Section section(Context c, String title, String subtitle) {
         MaterialCardView card = new MaterialCardView(c);
-        card.setCardBackgroundColor(surface(c));
-        card.setRadius(YView.cardRadius(c));
+        card.setCardBackgroundColor(Color.TRANSPARENT);
+        card.setRadius(0f);
         card.setStrokeWidth(0);
         card.setCardElevation(0);
         card.setUseCompatPadding(false);
@@ -87,9 +87,12 @@ final class AppUi {
     }
 
     static void addSection(LinearLayout root, Section section) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = YView.sectionGap(root.getContext());
-        root.addView(section.card, lp);
+        root.addView(section.card, new LinearLayout.LayoutParams(-1, -2));
+        View divider = divider(root.getContext());
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(-1, Math.max(1, dp(root.getContext(), 1)));
+        dividerParams.topMargin = YView.controlGap(root.getContext());
+        dividerParams.bottomMargin = YView.sectionGap(root.getContext());
+        root.addView(divider, dividerParams);
     }
 
     static void addRow(LinearLayout parent, View row) { parent.addView(row, new LinearLayout.LayoutParams(-1, -2)); }
