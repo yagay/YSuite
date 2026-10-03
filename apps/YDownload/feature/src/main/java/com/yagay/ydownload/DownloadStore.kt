@@ -20,6 +20,10 @@ data class DownloadItem(
     val error: String? = null,
     val backend: DownloadBackend = DownloadBackend.SYSTEM,
     val systemId: Long? = null,
+    // Runtime-only telemetry. It is deliberately not persisted so stale speed/ETA values are never
+    // restored after a process restart.
+    val speedBytesPerSecond: Long = 0L,
+    val etaMillis: Long = -1L,
 )
 
 class DownloadStore private constructor(context: Context) {
