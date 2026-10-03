@@ -3,13 +3,14 @@ package com.yagay.ypower.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.checkbox.MaterialCheckBox;
 
 import com.yagay.ypower.R;
 import com.yagay.ypower.data.ProfileStore;
@@ -56,7 +57,7 @@ public class AppDetailActivity extends AppCompatActivity {
                 XposedBridgeManager.isReady() ? YViewStatusTone.Good : YViewStatusTone.Warning
         ));
 
-        CheckBox enabled = addCheck(root, getString(R.string.yp_enable_enhancements), profile.enabled);
+        MaterialCheckBox enabled = addCheck(root, getString(R.string.yp_enable_enhancements), profile.enabled);
         enabled.setOnCheckedChangeListener((v, checked) -> {
             profile.enabled = checked;
             ProfileStore.get(this).setEnabled(packageName, checked);
@@ -107,34 +108,34 @@ public class AppDetailActivity extends AppCompatActivity {
                 root,
                 getString(R.string.yp_no_target_hook),
                 getString(R.string.yp_no_target_hook_desc));
-        CheckBox doze = addCheck(root, getString(R.string.yp_doze_whitelist), profile.dozeWhitelist);
-        CheckBox bg = addCheck(root, getString(R.string.yp_background_appops), profile.backgroundOps);
-        CheckBox standby = addCheck(root, getString(R.string.yp_standby_active), profile.standbyActive);
-        CheckBox data = addCheck(root, getString(R.string.yp_background_data), profile.backgroundData);
-        CheckBox grant = addCheck(root, getString(R.string.yp_auto_grant), profile.autoGrantDangerous);
+        MaterialCheckBox doze = addCheck(root, getString(R.string.yp_doze_whitelist), profile.dozeWhitelist);
+        MaterialCheckBox bg = addCheck(root, getString(R.string.yp_background_appops), profile.backgroundOps);
+        MaterialCheckBox standby = addCheck(root, getString(R.string.yp_standby_active), profile.standbyActive);
+        MaterialCheckBox data = addCheck(root, getString(R.string.yp_background_data), profile.backgroundData);
+        MaterialCheckBox grant = addCheck(root, getString(R.string.yp_auto_grant), profile.autoGrantDangerous);
 
         YViewLayout.sectionHeader(
                 root,
                 getString(R.string.yp_target_compat),
                 getString(R.string.yp_target_compat_desc));
-        CheckBox system = addCheck(root, getString(R.string.yp_simulate_system), profile.simulateSystemApp);
-        CheckBox perm = addCheck(root, getString(R.string.yp_simulate_permissions), profile.simulatePermissions);
+        MaterialCheckBox system = addCheck(root, getString(R.string.yp_simulate_system), profile.simulateSystemApp);
+        MaterialCheckBox perm = addCheck(root, getString(R.string.yp_simulate_permissions), profile.simulatePermissions);
 
         YViewLayout.sectionHeader(
                 root,
                 getString(R.string.yp_trace_title),
                 getString(R.string.yp_trace_desc));
-        CheckBox packageScan = addCheck(root, getString(R.string.yp_trace_packages), profile.tracePackageScan);
-        CheckBox files = addCheck(root, getString(R.string.yp_trace_files), profile.traceFiles);
-        CheckBox commands = addCheck(root, getString(R.string.yp_trace_commands), profile.traceCommands);
-        CheckBox properties = addCheck(root, getString(R.string.yp_trace_properties), profile.traceProperties);
-        CheckBox permissions = addCheck(root, getString(R.string.yp_trace_permissions), profile.tracePermissions);
-        CheckBox debugger = addCheck(root, getString(R.string.yp_trace_debugger), profile.traceDebugger);
-        CheckBox exceptions = addCheck(root, getString(R.string.yp_trace_exceptions), profile.traceExceptions);
-        CheckBox securityApis = addCheck(root, getString(R.string.yp_trace_security), profile.traceSecurityApis);
-        CheckBox nativeTrace = addCheck(root, getString(R.string.yp_trace_native), profile.traceNative);
-        CheckBox syscallTrace = addCheck(root, getString(R.string.yp_trace_syscalls), profile.traceSyscalls);
-        CheckBox stacks = addCheck(root, getString(R.string.yp_trace_stacks), profile.traceStacks);
+        MaterialCheckBox packageScan = addCheck(root, getString(R.string.yp_trace_packages), profile.tracePackageScan);
+        MaterialCheckBox files = addCheck(root, getString(R.string.yp_trace_files), profile.traceFiles);
+        MaterialCheckBox commands = addCheck(root, getString(R.string.yp_trace_commands), profile.traceCommands);
+        MaterialCheckBox properties = addCheck(root, getString(R.string.yp_trace_properties), profile.traceProperties);
+        MaterialCheckBox permissions = addCheck(root, getString(R.string.yp_trace_permissions), profile.tracePermissions);
+        MaterialCheckBox debugger = addCheck(root, getString(R.string.yp_trace_debugger), profile.traceDebugger);
+        MaterialCheckBox exceptions = addCheck(root, getString(R.string.yp_trace_exceptions), profile.traceExceptions);
+        MaterialCheckBox securityApis = addCheck(root, getString(R.string.yp_trace_security), profile.traceSecurityApis);
+        MaterialCheckBox nativeTrace = addCheck(root, getString(R.string.yp_trace_native), profile.traceNative);
+        MaterialCheckBox syscallTrace = addCheck(root, getString(R.string.yp_trace_syscalls), profile.traceSyscalls);
+        MaterialCheckBox stacks = addCheck(root, getString(R.string.yp_trace_stacks), profile.traceStacks);
 
         TextView note = YViewLayout.statusLine(
                 this,
@@ -186,16 +187,17 @@ public class AppDetailActivity extends AppCompatActivity {
         if (profile.enabled) XposedBridgeManager.requestScope(packageName);
     }
 
-    private CheckBox addCheck(LinearLayout root, String text, boolean checked) {
-        CheckBox box = new CheckBox(this);
-        box.setText(text);
-        box.setChecked(checked);
-        box.setPadding(0, dp(6), 0, dp(6));
-        root.addView(box);
-        return box;
-    }
+    private MaterialCheckBox addCheck(LinearLayout root, String text, boolean checked) {
+        LinearLayout row = YViewLayout.listRow(this);
+        TextView title = YViewLayout.listTitle(this);
+        title.setText(text);
+        row.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
 
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
+        MaterialCheckBox box = new MaterialCheckBox(this);
+        box.setChecked(checked);
+        row.addView(box);
+        row.setOnClickListener(v -> box.setChecked(!box.isChecked()));
+        root.addView(row);
+        return box;
     }
 }
