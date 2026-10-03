@@ -2,9 +2,9 @@ package com.yagay.ydiag
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.ManagedFeatureRuntime
+import com.yagay.suite.api.XposedHostBridge
 import com.yagay.suite.api.YLocale
 import com.yagay.ydiag.data.Preferences
 import com.yagay.ydiag.root.RootShell
@@ -30,6 +30,7 @@ class YDiagRuntime private constructor(context: Context) :
     ManagedFeatureRuntime {
 
     private val appContext = context.applicationContext
+    private val services = FeatureServices.of(PLUGIN_ID, TAG)
     private var runtimeJob = SupervisorJob()
     @Volatile private var appScope = CoroutineScope(runtimeJob + Dispatchers.IO)
     private val preferences by lazy { Preferences(appContext) }
@@ -49,10 +50,6 @@ class YDiagRuntime private constructor(context: Context) :
         registerServiceListener()
     }
 
-    override fun attach(host: FeatureHost) {
-        RootShell.attachHost(host)
-    }
-
     @Synchronized
     override fun enable() {
         if (!runtimeJob.isActive) {
@@ -63,7 +60,7 @@ class YDiagRuntime private constructor(context: Context) :
         if (xposedService == null) {
             _moduleState.value = ModuleState(message = YLocale.text(R.string.ydiag_lsposed_not_connected))
         }
-        Log.i(TAG, "managed runtime enabled")
+        services.info("managed runtime enabled")
     }
 
     @Synchronized
@@ -79,7 +76,7 @@ class YDiagRuntime private constructor(context: Context) :
                 ?.putStringSet(KEY_OPTIONS, emptySet())
                 ?.putLong(KEY_REVISION, System.currentTimeMillis())
                 ?.commit()
-        }.onFailure { Log.w(TAG, "Unable to clear remote tracking state during disable", it) }
+        }.onFailure { services.warn("Unable to clear remote tracking state during disable", it) }
 
         runtimeJob.cancel()
         xposedService = null
@@ -90,35 +87,25 @@ class YDiagRuntime private constructor(context: Context) :
 
         runCatching {
             appContext.stopService(Intent(appContext, MonitorService::class.java))
-        }.onFailure { Log.w(TAG, "Unable to stop MonitorService during disable", it) }
+        }.onFailure { services.warn("Unable to stop MonitorService during disable", it) }
 
         _moduleState.value = ModuleState(message = YLocale.text(R.string.ydiag_disabled_by_suite))
-        Log.i(TAG, "managed runtime disabled; jobs and monitor service stopped")
+        services.info("managed runtime disabled; jobs and monitor service stopped")
     }
 
     override fun destroy() {
         disable()
-        RootShell.detachHost()
     }
 
     private fun registerServiceListener() {
-        if (appContext.packageName == SUITE_PACKAGE) {
-            val attached = runCatching {
-                val broker = Class.forName(SUITE_BROKER, false, javaClass.classLoader)
-                val method = broker.getMethod("attachFromPlugin", String::class.java, Any::class.java)
-                method.invoke(null, PLUGIN_ID, this) as? Boolean == true
-            }.getOrElse {
-                Log.e(TAG, "YSuite LSPosed broker registration failed", it)
-                false
-            }
-            if (!attached) {
-                Log.e(TAG, "YSuite host detected but broker unavailable; standalone listener is disabled")
-            }
-            return
+        when (XposedHostBridge.attachListener(appContext, PLUGIN_ID, this)) {
+            XposedHostBridge.AttachResult.ATTACHED -> Unit
+            XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED ->
+                services.error("YSuite host detected but LSPosed broker attach failed")
+            XposedHostBridge.AttachResult.NOT_SUITE_HOST ->
+                runCatching { XposedServiceHelper.registerListener(this) }
+                    .onFailure { services.warn("LSPosed service registration unavailable", it) }
         }
-
-        runCatching { XposedServiceHelper.registerListener(this) }
-            .onFailure { Log.w(TAG, "LSPosed service registration unavailable", it) }
     }
 
     override fun onServiceBind(service: XposedService) {
@@ -186,7 +173,7 @@ class YDiagRuntime private constructor(context: Context) :
                     refreshModuleState()
                 }
             }.onFailure {
-                Log.e(TAG, "Deep tracking sync failed", it)
+                services.error("Deep tracking sync failed", it)
                 _moduleState.value = _moduleState.value.copy(
                     message = YLocale.text(R.string.ydiag_lsposed_sync_failed, it.javaClass.simpleName)
                 )
@@ -221,8 +208,8 @@ class YDiagRuntime private constructor(context: Context) :
 
         _moduleState.value = moduleSnapshot(service, pending = request)
 
-        if (appContext.packageName == SUITE_PACKAGE) {
-            val accepted = requestScopeThroughHost(request)
+        if (XposedHostBridge.isSuiteHost(appContext)) {
+            val accepted = XposedHostBridge.requestScope(PLUGIN_ID, request)
             if (!accepted) {
                 synchronized(requestedScope) { requestedScope.removeAll(request) }
                 _moduleState.value = _moduleState.value.copy(
@@ -267,23 +254,12 @@ class YDiagRuntime private constructor(context: Context) :
         }.onFailure {
             synchronized(requestedScope) { requestedScope.removeAll(request.toSet()) }
             if (!enabled) return@onFailure
-            Log.e(TAG, "Scope request failed", it)
+            services.error("Scope request failed", it)
             _moduleState.value = _moduleState.value.copy(
                 pendingScope = request,
                 message = YLocale.text(R.string.ydiag_scope_request_failed, it.javaClass.simpleName),
             )
         }
-    }
-
-    private fun requestScopeThroughHost(request: Set<String>): Boolean = runCatching {
-        val broker = Class.forName(SUITE_BROKER, false, javaClass.classLoader)
-        val method = broker.methods.firstOrNull {
-            it.name == "requestScopeFromPlugin" && it.parameterTypes.size == 2
-        } ?: error("YSuite scope broker method missing")
-        method.invoke(null, PLUGIN_ID, request.toTypedArray()) as? Boolean == true
-    }.getOrElse {
-        Log.e(TAG, "YSuite scope request failed", it)
-        false
     }
 
     private suspend fun ensureTargetsLoaded(
@@ -315,7 +291,7 @@ class YDiagRuntime private constructor(context: Context) :
             if (!enabled) return
             val launchIntent = appContext.packageManager.getLaunchIntentForPackage(packageName)
             if (launchIntent == null) {
-                Log.i(TAG, "No launch intent for $packageName; manual reopen required")
+                services.info("No launch intent for $packageName; manual reopen required")
                 continue
             }
 
@@ -344,7 +320,7 @@ class YDiagRuntime private constructor(context: Context) :
                     )
                 )
             }.onFailure {
-                Log.w(TAG, "Unable to relaunch $packageName", it)
+                services.warn("Unable to relaunch $packageName", it)
             }
 
             delay(1600)
@@ -423,8 +399,6 @@ class YDiagRuntime private constructor(context: Context) :
         private val PACKAGE_NAME = Regex("[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)+")
         private const val ACTIVATION_COOLDOWN_MS = 15_000L
         private const val TAG = "YDiag.Runtime"
-        private const val SUITE_PACKAGE = "com.yagay.YSuite"
-        private const val SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker"
         private const val PLUGIN_ID = "ydiag"
 
         @Volatile private var instance: YDiagRuntime? = null
