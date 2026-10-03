@@ -2,18 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <application>
-        <activity android:name="com.yagay.yfiles.MainActivity" android:exported="true" android:theme="@style/Theme.YUI">
-            <intent-filter>
-                <action android:name="com.yagay.yfiles.action.OPEN_PATH" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-        <provider
-            android:name="com.yagay.yfiles.YFilesFileProvider"
-            android:authorities="${applicationId}.yfiles.files"
+        <activity
+            android:name="com.yagay.yfiles.MainActivity"
             android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/yfiles_file_paths" />
-        </provider>
+            android:theme="@style/Theme.YUI" />
     </application>
 </manifest>
