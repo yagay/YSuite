@@ -17,6 +17,7 @@ GENERATED_REPLACED_COMPONENTS = ROOT / "config/generated/host-replaced-component
 
 ALLOWED_CAPABILITIES = {
     "ROOT", "LSPOSED", "ACCESSIBILITY", "NOTIFICATION_LISTENER", "OVERLAY", "NOTIFICATIONS",
+    "ALL_FILES", "FILE_SHARE", "NFC",
 }
 ALLOWED_COMPONENT_TYPES = {"activity", "service", "receiver", "provider"}
 
