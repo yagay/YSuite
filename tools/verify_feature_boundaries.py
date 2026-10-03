@@ -71,9 +71,18 @@ def main() -> int:
         if marker not in standalone_gradle:
             error(f"standalone composer missing marker: {marker}", errors)
 
+    suite_manifest = read(ROOT / "suite/YSuite/src/main/AndroidManifest.xml")
+    standalone_manifest = read(ROOT / "standalone/host/src/main/AndroidManifest.xml")
+    for owner, manifest in (("YSuite", suite_manifest), ("standalone", standalone_manifest)):
+        if 'android:name="androidx.core.content.FileProvider"' not in manifest:
+            error(f"{owner}: host-owned FileProvider is missing", errors)
+        if 'android:authorities="${applicationId}.files"' not in manifest:
+            error(f"{owner}: host FileProvider must own ${{applicationId}}.files", errors)
+
     module_to_feature = {str(item["gradle_module"]): str(item["id"]) for item in features}
     component_owners: dict[tuple[str, str], list[str]] = defaultdict(list)
     authorities: dict[str, list[str]] = defaultdict(list)
+    raw_file_provider_owners: list[str] = []
 
     for item in features:
         feature_id = str(item["id"])
@@ -91,7 +100,6 @@ def main() -> int:
         if any(marker in gradle for marker in application_plugin_markers):
             error(f"{feature_id}: Feature module must be an Android library, not an application", errors)
 
-        # Features may depend on shared host/api/ui/core libraries, but never directly on another Feature.
         for module, owner in module_to_feature.items():
             if owner == feature_id:
                 continue
@@ -109,17 +117,16 @@ def main() -> int:
                     errors,
                 )
 
-        # A Feature must never become a second Application owner when embedded.
         if re.search(r"<application\b[^>]*\bandroid:name\s*=", manifest, re.DOTALL):
             error(f"{feature_id}: Feature manifest must not declare android:name on <application>", errors)
 
-        # Feature libraries must not package their own LSPosed module metadata. Standalone host or YSuite owns it.
         feature_resources = project_dir / "src/main/resources/META-INF/xposed"
         if feature_resources.exists():
             error(f"{feature_id}: LSPosed module metadata belongs to host, not Feature", errors)
 
-        # Detect physical Android component collisions before manifest merge. Relative names are resolved
-        # against each Feature namespace so .ui.MainActivity in two different namespaces is not a collision.
+        if 'android:name="androidx.core.content.FileProvider"' in manifest:
+            raw_file_provider_owners.append(feature_id)
+
         for tag in ("activity", "service", "receiver", "provider"):
             for class_name in re.findall(
                 rf"<{tag}\b[^>]*android:name\s*=\s*\"([^\"]+)\"",
@@ -129,9 +136,15 @@ def main() -> int:
                 resolved = resolve_component_name(namespace, class_name)
                 component_owners[(tag, resolved)].append(feature_id)
 
-        # Authorities are globally unique inside one APK. ${applicationId} remains supported and safe.
         for authority in re.findall(r"android:authorities\s*=\s*\"([^\"]+)\"", manifest):
             authorities[authority].append(feature_id)
+
+    if raw_file_provider_owners:
+        error(
+            "Feature manifests must not declare raw androidx.core.content.FileProvider; "
+            f"use FeatureHost.sharedFileUri()/host-owned provider: {sorted(raw_file_provider_owners)}",
+            errors,
+        )
 
     for (kind, class_name), owners in component_owners.items():
         unique = sorted(set(owners))
@@ -146,18 +159,6 @@ def main() -> int:
         if len(unique) > 1:
             error(f"duplicate provider authority: {authority} owners={unique}", errors)
 
-    raw_file_provider_owners = []
-    for item in features:
-        manifest = read(ROOT / str(item["project_dir"]) / "src/main/AndroidManifest.xml")
-        if 'android:name="androidx.core.content.FileProvider"' in manifest:
-            raw_file_provider_owners.append(str(item["id"]))
-    if len(raw_file_provider_owners) > 1:
-        error(
-            "multiple Features declare raw androidx.core.content.FileProvider; "
-            f"use a dedicated subclass or host-owned provider: {sorted(raw_file_provider_owners)}",
-            errors,
-        )
-
     if errors:
         for message in errors:
             print(f"[feature-boundary] ERROR: {message}", file=sys.stderr)
@@ -165,7 +166,7 @@ def main() -> int:
 
     print(f"[feature-boundary] Feature library boundary: OK ({len(features)} features)")
     print("[feature-boundary] Feature-to-Feature hard dependencies: none")
-    print("[feature-boundary] Application/LSPosed host ownership: OK")
+    print("[feature-boundary] Application/LSPosed/FileProvider host ownership: OK")
     print("[feature-boundary] Android component classes/authorities: collision-free")
     print("[feature-boundary] generic standalone composer: OK")
     return 0
