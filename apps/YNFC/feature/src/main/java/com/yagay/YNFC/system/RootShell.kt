@@ -5,14 +5,14 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.widget.Toast
+import com.yagay.suite.api.FeatureServices
 import java.util.concurrent.TimeUnit
 
 class RootShell(context: Context) {
     companion object {
         private const val ROOT_OK_CACHE_MS = 60_000L
         private const val ROOT_FAILURE_CACHE_MS = 5_000L
-        private const val SUITE_ROOT_GATEWAY = "com.yagay.suite.core.SuiteRootGateway"
-        private const val PLUGIN_ID = "ynfc"
+        private val services = FeatureServices.of("ynfc", "YNFC")
     }
 
     private val appContext = context.applicationContext
@@ -21,9 +21,8 @@ class RootShell(context: Context) {
     @Volatile private var lastRootToastAt: Long = 0L
 
     fun run(command: String, timeoutSeconds: Long = 20, maxChars: Int = 1_000_000, showToast: Boolean = true): String {
-        val host = hostGateway()
-        if (host != null) {
-            val result = hostRun(host, command, timeoutSeconds)
+        if (services.hostOrNull() != null) {
+            val result = hostRun(command, timeoutSeconds)
             if (!result.success && showToast && result.code == -1) notifyRootUnavailable()
             val output = buildString {
                 append(result.stdout.take(maxChars))
@@ -89,9 +88,8 @@ class RootShell(context: Context) {
             }
         }
 
-        val host = hostGateway()
-        val ok = if (host != null) {
-            val result = hostRun(host, "id -u", 4)
+        val ok = if (services.hostOrNull() != null) {
+            val result = hostRun("id -u", 4)
             result.success && result.stdout.lineSequence().any { it.trim() == "0" }
         } else {
             try {
@@ -110,34 +108,22 @@ class RootShell(context: Context) {
         return ok
     }
 
-    private fun hostGateway(): Class<*>? = runCatching {
-        Class.forName(SUITE_ROOT_GATEWAY, false, javaClass.classLoader)
-    }.getOrNull()
-
-    private fun hostRun(gateway: Class<*>, command: String, timeoutSeconds: Long): HostRootResult =
+    private fun hostRun(command: String, timeoutSeconds: Long): HostRootResult =
         runCatching {
-            val method = gateway.getMethod(
-                "executeFromPlugin",
-                String::class.java,
-                String::class.java,
-                String::class.java,
-                java.lang.Long.TYPE,
-            )
-            val raw = method.invoke(null, PLUGIN_ID, "root-shell", command, timeoutSeconds)
-                ?: error("YSuite root gateway returned null")
-            val type = raw.javaClass
+            val raw = services.requireHost("Managed Root host is not attached")
+                .rootExecute("root-shell", command, timeoutSeconds)
             HostRootResult(
-                code = (type.getMethod("getCode").invoke(raw) as Number).toInt(),
-                stdout = type.getMethod("getStdout").invoke(raw) as? String ?: "",
-                stderr = type.getMethod("getStderr").invoke(raw) as? String ?: "",
-                timedOut = type.getMethod("getTimedOut").invoke(raw) as? Boolean ?: false,
-                success = type.getMethod("getSuccess").invoke(raw) as? Boolean ?: false,
+                code = raw.code,
+                stdout = raw.stdout,
+                stderr = raw.stderr.ifBlank { raw.errorMessage.orEmpty() },
+                timedOut = raw.timedOut,
+                success = raw.success,
             )
         }.getOrElse { error ->
             HostRootResult(
                 code = -1,
                 stdout = "",
-                stderr = "YSuite root gateway error: ${error.javaClass.simpleName}: ${error.message}",
+                stderr = "Managed root error: ${error.javaClass.simpleName}: ${error.message}",
                 timedOut = false,
                 success = false,
             )
