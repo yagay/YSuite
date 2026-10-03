@@ -2,6 +2,7 @@
 <string name="ydownload_title">YDownload</string><string name="ydownload_subtitle">在不替换 DownloadProvider 的前提下增强 Android 系统下载</string>
 <string name="new_download">新建下载</string><string name="new_download_summary">保留系统 DownloadManager 作为兼容路径；需要更强的暂停/续传、并发和重试控制时使用 YDownload 增强引擎。</string>
 <string name="url">下载链接</string><string name="file_name_optional">文件名（可选）</string><string name="start">开始</string>
+<string name="advanced_request_options">高级请求选项</string><string name="advanced_request_options_summary">为单个任务加入 HTTP Headers；增强下载还可以在文件发布前校验预期 SHA-256。</string><string name="custom_headers">自定义 HTTP Headers</string><string name="custom_headers_summary">每行填写一个“名称: 值”。Range、If-Range、Host、Content-Length 和 Connection 由 YDownload 保留管理。</string><string name="expected_sha256">预期 SHA-256</string><string name="expected_sha256_summary">可选，仅增强引擎使用。校验不一致时会拒绝并删除下载文件。</string><string name="invalid_request_options">请检查自定义 Headers 或 SHA-256 值。</string><string name="sha256_mismatch">SHA-256 校验失败</string>
 <string name="system_download">系统下载</string><string name="enhanced_download">增强下载</string>
 <string name="system_patch">系统下载补丁</string><string name="system_patch_summary">保留 Android DownloadProvider 作为真正下载所有者，只在 DownloadManager 请求外围增加安全策略。</string>
 <string name="system_integration">系统集成</string><string name="system_integration_summary">完整保留 Android DownloadProvider，并将它作为默认兼容路径。</string>
