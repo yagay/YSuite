@@ -22,8 +22,8 @@ import com.yagay.suite.api.HostLogLevel
 import com.yagay.yui.YActionRow
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureList
-import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YBrowserScaffold
+import com.yagay.yui.YPageList
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusRow
@@ -136,11 +136,11 @@ class MainActivity : YComposeActivity() {
             }
         }
 
-        YFeatureScaffold(
+        YBrowserScaffold(
             title = stringResource(R.string.yfiles_title),
             subtitle = stringResource(R.string.yfiles_subtitle),
         ) { padding ->
-            YFeatureList(padding) {
+            YPageList(padding) {
                 item {
                     YFeatureCard(
                         title = stringResource(R.string.documentsui_integration),
