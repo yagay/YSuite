@@ -231,6 +231,37 @@ object YViewLayout {
     }
 
     @JvmStatic
+    @JvmOverloads
+    fun listRow(context: Context, insetHorizontal: Boolean = false): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        minimumHeight = YView.dimen(context, R.dimen.yui_touch_target)
+        val horizontal = if (insetHorizontal) screenH(context) else 0
+        val vertical = (controlGap(context) / 2).coerceAtLeast(1)
+        setPadding(horizontal, vertical, horizontal, vertical)
+    }
+
+    @JvmStatic
+    fun listTitle(context: Context): TextView = TextView(context).apply {
+        textSize = 15f
+        maxLines = 1
+        setTextColor(YView.onSurface(context))
+    }
+
+    @JvmStatic
+    fun listSubtitle(context: Context): TextView = TextView(context).apply {
+        textSize = 12.5f
+        maxLines = 2
+        setTextColor(YView.onSurfaceVariant(context))
+    }
+
+    @JvmStatic
+    fun listGap(context: Context): Int = controlGap(context)
+
+    @JvmStatic
+    fun listIconSize(context: Context): Int = YView.dimen(context, R.dimen.yui_touch_target)
+
+    @JvmStatic
     fun searchField(context: Context, hint: String): AppCompatEditText = AppCompatEditText(context).apply {
         this.hint = hint
         isSingleLine = true
