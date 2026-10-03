@@ -45,3 +45,7 @@ YSuite keeps its own palette, semantics and component vocabulary. Dynamic color 
 ## Maintenance rule
 
 If a visual or layout behavior is reusable by more than one feature, change YUI instead of adding another feature-local implementation. CI verifies this boundary.
+
+## CI contract
+
+A change under `libs/yui/` is treated as a shared dependency change, so standalone CI rebuilds every enabled feature. Architecture checks also reject feature-owned normal-screen Material navigation and feature-local UI systems.
