@@ -419,6 +419,20 @@ class MainActivity : YComposeActivity() {
                     }
                 }
 
+                if (!rootMode) {
+                    item {
+                        YFilesExtraToolsCard(
+                            path = path,
+                            onNavigate = { target ->
+                                path = target
+                                query = ""
+                            },
+                            onChanged = { refresh++ },
+                            onError = { error = it },
+                        )
+                    }
+                }
+
                 error?.let { item { YFeatureCard(title = stringResource(R.string.error), detail = it) } }
 
                 if (rootMode) {
@@ -518,6 +532,11 @@ class MainActivity : YComposeActivity() {
                                     }, enabled = !operationBusy) { Text(stringResource(R.string.extract_zip)) }
                                 }
                             }
+                            YFilesEntryExtraActions(
+                                entry = entry,
+                                onChanged = { refresh++ },
+                                onError = { error = it },
+                            )
                         }
                     }
                 }
@@ -604,8 +623,7 @@ class MainActivity : YComposeActivity() {
                 },
                 dismissButton = {
                     OutlinedButton(onClick = { newFileDialog = false }, enabled = !operationBusy) {
-                        Text(stringResource(R.string.yfiles_cancel))
-                    }
+                        Text(stringResource(R.string.yfiles_cancel)) }
                 },
             )
         }
@@ -643,8 +661,7 @@ class MainActivity : YComposeActivity() {
                 },
                 dismissButton = {
                     OutlinedButton(onClick = { renameTarget = null }, enabled = !operationBusy) {
-                        Text(stringResource(R.string.yfiles_cancel))
-                    }
+                        Text(stringResource(R.string.yfiles_cancel)) }
                 },
             )
         }
@@ -673,8 +690,7 @@ class MainActivity : YComposeActivity() {
                 },
                 dismissButton = {
                     OutlinedButton(onClick = { deleteTarget = null }, enabled = !operationBusy) {
-                        Text(stringResource(R.string.yfiles_cancel))
-                    }
+                        Text(stringResource(R.string.yfiles_cancel)) }
                 },
             )
         }
