@@ -1,8 +1,11 @@
 package com.yagay.YFloat;
 
+import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.FeatureHostRegistry;
+import com.yagay.suite.api.HostBinaryCommandResult;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -10,7 +13,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** One bounded, timeout-safe implementation for every YFloat su command. */
 final class RootCommandExecutor {
-    private static final String SUITE_ROOT_GATEWAY = "com.yagay.suite.core.SuiteRootGateway";
     private static final String PLUGIN_ID = "yfloat";
 
     static final class Result {
@@ -57,7 +59,7 @@ final class RootCommandExecutor {
     private static Result run(String command, long timeoutSeconds,
                               int maxStdoutBytes, int maxStderrBytes,
                               boolean mergeError) {
-        Class<?> host = hostGateway();
+        FeatureHost host = FeatureHostRegistry.find(PLUGIN_ID);
         if (host != null) {
             return runThroughHost(host, command, timeoutSeconds, maxStdoutBytes, mergeError);
         }
@@ -130,49 +132,30 @@ final class RootCommandExecutor {
         }
     }
 
-    private static Class<?> hostGateway() {
-        try {
-            return Class.forName(SUITE_ROOT_GATEWAY, false, RootCommandExecutor.class.getClassLoader());
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static Result runThroughHost(Class<?> gateway,
+    private static Result runThroughHost(FeatureHost host,
                                          String command,
                                          long timeoutSeconds,
                                          int maxStdoutBytes,
                                          boolean mergeError) {
         try {
-            Method method = gateway.getMethod(
-                    "executeBinaryFromPlugin",
-                    String.class,
-                    String.class,
-                    String.class,
-                    long.class,
-                    int.class,
-                    boolean.class);
-            Object raw = method.invoke(
-                    null,
-                    PLUGIN_ID,
+            HostBinaryCommandResult raw = host.rootExecuteBinary(
                     "root-command",
                     command == null ? "" : command,
                     timeoutSeconds,
                     maxStdoutBytes,
                     mergeError);
-            if (raw == null) throw new IllegalStateException("YSuite root gateway returned null");
-            Class<?> type = raw.getClass();
-            int code = ((Number) type.getMethod("getCode").invoke(raw)).intValue();
-            byte[] stdout = (byte[]) type.getMethod("getStdout").invoke(raw);
-            String stderr = (String) type.getMethod("getStderr").invoke(raw);
-            boolean timedOut = Boolean.TRUE.equals(type.getMethod("getTimedOut").invoke(raw));
-            String errorMessage = (String) type.getMethod("getErrorMessage").invoke(raw);
+            String errorMessage = raw.getErrorMessage();
             Throwable error = errorMessage == null || errorMessage.isBlank()
                     ? null
                     : new IllegalStateException(errorMessage);
-            return new Result(code, stdout, stderr, error, timedOut);
+            return new Result(
+                    raw.getCode(),
+                    raw.getStdout(),
+                    raw.getStderr(),
+                    error,
+                    raw.getTimedOut());
         } catch (Throwable t) {
-            // Host class exists: never bypass YSuite by opening another local root process.
+            // Host exists: never bypass YSuite by opening another local root process.
             return new Result(-1, new byte[0], "", t, false);
         }
     }
