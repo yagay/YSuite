@@ -2,11 +2,10 @@ package com.yagay.YEntryCleaner.data
 
 import android.util.Log
 import com.yagay.YEntryCleaner.domain.normalizeBrowserHost
+import com.yagay.suite.api.FeatureServices
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
 
 /**
  * Read-only discovery of installed Android App Links.
@@ -111,44 +110,21 @@ class BrowserLinkDiscovery {
         maxOutputBytes: Int = MAX_OUTPUT_BYTES,
         timeoutSeconds: Long = COMMAND_TIMEOUT_SECONDS
     ): String {
-        val process = ProcessBuilder("su", "-c", command)
-            .redirectErrorStream(true)
-            .start()
-        val buffer = ByteArrayOutputStream()
-        val reader = Thread({
-            process.inputStream.use { input ->
-                val chunk = ByteArray(8192)
-                var total = 0
-                while (true) {
-                    val count = input.read(chunk)
-                    if (count < 0) break
-                    if (total < maxOutputBytes) {
-                        val accepted = minOf(count, maxOutputBytes - total)
-                        buffer.write(chunk, 0, accepted)
-                        total += accepted
-                    }
-                }
-            }
-        }, "yentrycleaner-app-links").apply {
-            isDaemon = true
-            start()
+        val result = SERVICES.rootBinary(
+            operation = "browser_link_discovery",
+            command = command,
+            timeoutSeconds = timeoutSeconds,
+            maxStdoutBytes = maxOutputBytes,
+            mergeError = true
+        )
+        if (result.timedOut) throw IllegalStateException("app_link_discovery_timeout")
+        if (!result.success) {
+            val detail = result.errorMessage?.takeIf { it.isNotBlank() }
+                ?: result.stderr.takeIf { it.isNotBlank() }
+                ?: "exit=${result.code}"
+            throw IllegalStateException("app_link_discovery_denied: $detail")
         }
-
-        try {
-            val finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS)
-            if (!finished) {
-                process.destroyForcibly()
-                throw IllegalStateException("app_link_discovery_timeout")
-            }
-            reader.join(1500)
-            if (process.exitValue() != 0) throw IllegalStateException("app_link_discovery_denied")
-            return buffer.toString(StandardCharsets.UTF_8.name())
-        } finally {
-            process.destroy()
-            runCatching { process.inputStream.close() }
-            runCatching { process.outputStream.close() }
-            runCatching { process.errorStream.close() }
-        }
+        return String(result.stdout, StandardCharsets.UTF_8)
     }
 
     private companion object {
@@ -162,6 +138,7 @@ class BrowserLinkDiscovery {
         const val MAX_PACKAGES = 160
         const val PACKAGE_MARKER = "@@YENTRYCLEANER_PACKAGE@@"
         val PACKAGE_NAME = Regex("""[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+""")
+        val SERVICES = FeatureServices.of("yentrycleaner", TAG)
     }
 }
 
