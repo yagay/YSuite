@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ydownload_queue_title">Queue &amp; history tools</string>
+    <string name="ydownload_queue_summary">Batch-add URLs, deduplicate the queue, import/export portable queue JSON and inspect host/network distribution.</string>
+    <string name="ydownload_queue_total">Total tasks</string>
+    <string name="ydownload_queue_active">Queued / running</string>
+    <string name="ydownload_queue_failed">Failed</string>
+    <string name="ydownload_queue_network">Current network</string>
+    <string name="ydownload_queue_wifi">Wi-Fi</string>
+    <string name="ydownload_queue_cellular">Cellular</string>
+    <string name="ydownload_queue_ethernet">Ethernet</string>
+    <string name="ydownload_queue_vpn">VPN</string>
+    <string name="ydownload_queue_unknown_network">Unknown / offline</string>
+    <string name="ydownload_queue_metered">metered</string>
+    <string name="ydownload_queue_unmetered">unmetered</string>
+    <string name="ydownload_queue_bulk_urls">URLs, one per line</string>
+    <string name="ydownload_queue_bulk_urls_hint">Optional filename: https://example/file | custom-name.zip</string>
+    <string name="ydownload_queue_use_enhanced">Use enhanced engine for this batch</string>
+    <string name="ydownload_queue_skip_duplicates">Skip URLs already in the active queue</string>
+    <string name="ydownload_queue_add_all">Add all</string>
+    <string name="ydownload_queue_paste">Paste</string>
+    <string name="ydownload_queue_dedupe">Deduplicate</string>
+    <string name="ydownload_queue_clear_failed_cancelled">Clear failed / cancelled</string>
+    <string name="ydownload_queue_copy_urls">Copy URLs</string>
+    <string name="ydownload_queue_export_json">Export JSON</string>
+    <string name="ydownload_queue_import_json">Import JSON</string>
+    <string name="ydownload_queue_added">Added %1$d downloads</string>
+    <string name="ydownload_queue_deduped">Duplicate queue entries were removed.</string>
+    <string name="ydownload_queue_cleaned">Failed and cancelled history was cleared.</string>
+    <string name="ydownload_probe_title">HTTP preflight</string>
+    <string name="ydownload_probe_summary">Inspect redirects, size, MIME type, range support and validators before downloading.</string>
+    <string name="ydownload_probe_run">Inspect</string>
+    <string name="ydownload_probe_http">HTTP</string>
+    <string name="ydownload_probe_size">Content size</string>
+    <string name="ydownload_probe_ranges">Resume support</string>
+    <string name="ydownload_probe_type">MIME type</string>
+    <string name="ydownload_probe_unknown">Unknown</string>
+    <string name="ydownload_queue_yes">Yes</string>
+    <string name="ydownload_queue_no">No</string>
+</resources>

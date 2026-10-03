@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfiles_power_cleanup_title">Storage cleanup</string>
+    <string name="yfiles_power_cleanup_summary">Find large, old, hidden, APK, stale download, screenshot, recording and empty-folder candidates without deleting anything automatically.</string>
+    <string name="yfiles_power_scan_storage">Scan shared storage</string>
+    <string name="yfiles_power_scanned">Scanned entries</string>
+    <string name="yfiles_power_count_size">%1$d items · %2$s</string>
+    <string name="yfiles_power_scan_truncated">The scan hit its safety limit. Results are partial.</string>
+    <string name="yfiles_power_large_files">Large files</string>
+    <string name="yfiles_power_old_files">Old files</string>
+    <string name="yfiles_power_hidden_files">Hidden files</string>
+    <string name="yfiles_power_empty_dirs">Empty folders</string>
+    <string name="yfiles_power_apk_files">APK / package files</string>
+    <string name="yfiles_power_old_downloads">Old downloads</string>
+    <string name="yfiles_power_screenshots">Screenshots</string>
+    <string name="yfiles_power_recordings">Recordings</string>
+    <string name="yfiles_power_lab_title">File lab</string>
+    <string name="yfiles_power_lab_summary">Preview, inspect, hash, encrypt, decrypt, install APKs and use Linux-aware file tools.</string>
+    <string name="yfiles_power_path">File path</string>
+    <string name="yfiles_power_text_preview">Text</string>
+    <string name="yfiles_power_hex_preview">HEX</string>
+    <string name="yfiles_power_checksums">Checksums</string>
+    <string name="yfiles_power_linux_info">Linux info</string>
+    <string name="yfiles_power_copy_path">Copy path</string>
+    <string name="yfiles_power_apk_info">APK info</string>
+    <string name="yfiles_power_apk_version">Version %1$s (%2$d)</string>
+    <string name="yfiles_power_install_apk">Install APK</string>
+    <string name="yfiles_power_chmod_mode">Permission mode (octal)</string>
+    <string name="yfiles_power_link_path">New symbolic-link path</string>
+    <string name="yfiles_power_apply_chmod">Apply chmod</string>
+    <string name="yfiles_power_create_symlink">Create symlink</string>
+    <string name="yfiles_power_password">Encryption password</string>
+    <string name="yfiles_power_encrypt">Encrypt</string>
+    <string name="yfiles_power_decrypt">Decrypt</string>
+    <string name="yfiles_power_output">Output: %1$s</string>
+</resources>
