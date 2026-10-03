@@ -6,10 +6,9 @@ import android.content.SharedPreferences;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.util.DiagLog;
 import com.yagay.YNotify.util.HookAuth;
-import com.yagay.suite.api.FeatureHost;
 import com.yagay.suite.api.ManagedFeatureRuntime;
+import com.yagay.suite.api.XposedHostBridge;
 
-import java.lang.reflect.Method;
 import java.util.List;
 
 import io.github.libxposed.service.XposedService;
@@ -24,7 +23,7 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
     public static final String KEY_HOOK_VERSION = "hook_version";
     public static final String KEY_HOOK_PACKAGE = "hook_package";
     public static final String KEY_HOOK_PROCESS = "hook_process";
-    private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
+    private static final String FEATURE_ID = "ynotify";
 
     private enum FrameworkState {
         DISCONNECTED,
@@ -48,36 +47,20 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
 
     private final Context context;
     private volatile boolean enabled = true;
-    private volatile FeatureHost host;
 
     private YNotifyRuntime(Context context) {
         this.context = context.getApplicationContext();
         ListenerStateStore.markProcessStarted(this.context);
         HookAuth.ensureLocalSecret(this.context);
-        if (!attachToSuiteBroker()) XposedServiceHelper.registerListener(this);
-        DiagLog.i(this.context, "YNotifyRuntime", "runtime created; waiting for LSPosed API 102 service");
-    }
 
-    private boolean attachToSuiteBroker() {
-        final Class<?> broker;
-        try {
-            broker = Class.forName(SUITE_BROKER, false, YNotifyRuntime.class.getClassLoader());
-        } catch (ClassNotFoundException absent) {
-            return false;
-        } catch (Throwable error) {
-            DiagLog.e(context, "LSPosed", "YSuite broker lookup failed", error);
-            return true;
+        XposedHostBridge.AttachResult attach =
+                XposedHostBridge.attachListener(this.context, FEATURE_ID, this);
+        if (attach == XposedHostBridge.AttachResult.NOT_SUITE_HOST) {
+            XposedServiceHelper.registerListener(this);
+        } else if (attach == XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED) {
+            DiagLog.e(this.context, "LSPosed", "YSuite broker attach failed", null);
         }
-        try {
-            Method attach = broker.getMethod("attachFromPlugin", String.class, Object.class);
-            Object result = attach.invoke(null, "ynotify", this);
-            if (!Boolean.TRUE.equals(result)) {
-                DiagLog.w(context, "LSPosed", "YSuite broker rejected YNotify listener");
-            }
-        } catch (Throwable error) {
-            DiagLog.e(context, "LSPosed", "YSuite broker attach failed", error);
-        }
-        return true;
+        DiagLog.i(this.context, "YNotifyRuntime", "runtime created; waiting for LSPosed API 102 service");
     }
 
     public static YNotifyRuntime get(Context context) {
@@ -91,11 +74,6 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
             }
             return local;
         }
-    }
-
-    @Override
-    public void attach(FeatureHost host) {
-        this.host = host;
     }
 
     @Override
@@ -119,7 +97,6 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
     @Override
     public void destroy() {
         disable();
-        host = null;
     }
 
     @Override
