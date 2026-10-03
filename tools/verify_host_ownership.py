@@ -113,13 +113,13 @@ def main() -> int:
         if "!XposedHostBridge.isSuiteHost(app)" not in yfloat_text:
             fail("embedded YFloat must not own automatic target-process reload in YSuite mode")
 
-    # Normal host pages use the canonical YFeature* design-system surface. Older YPlugin* APIs may
-    # remain for source compatibility in feature code, but should no longer be required by the host.
-    ui_framework = ROOT / "libs/yui/src/main/java/com/yagay/yui/YFeatureFramework.kt"
+    # Normal host pages use the canonical role-based YUI surface. Legacy YFeature*/YPlugin* APIs
+    # remain source-compatible for older feature code but are not the host architecture contract.
+    ui_framework = ROOT / "libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt"
     host_ui = (ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt").read_text(encoding="utf-8")
     if not ui_framework.is_file():
         fail("shared YUI feature framework is missing")
-    for primitive in ("YFeatureScaffold", "YFeatureList", "YFeatureCard", "YActionRow"):
+    for primitive in ("YDashboardScaffold", "YPageList", "YFeatureCard", "YActionRow"):
         if primitive not in host_ui:
             fail(f"YSuite host UI must use shared YUI primitive: {primitive}")
 
@@ -142,7 +142,7 @@ def main() -> int:
     print("[host-ownership] sole Accessibility/Notification/Boot/IPC/Provider ownership: OK")
     print("[host-ownership] host-owned package-replaced Hook hot reload: OK")
     print("[host-ownership] legacy reclaim/capture paths absent: OK")
-    print("[host-ownership] shared YFeature UI shell/theme ownership: OK")
+    print("[host-ownership] shared role-based YUI shell/theme ownership: OK")
     return 0
 
 
