@@ -82,6 +82,18 @@ internal class SuiteFeatureHost(
         )
     }
 
+    override fun rootStart(operation: String, command: String): Process? {
+        if (!supports(HostCapability.ROOT)) return null
+        // startFromPlugin is also used by reflection-era plugins and resolves the host Context from
+        // RootManager. Ensure the typed FeatureHost path initializes that shared owner first.
+        RootManager.initialize(applicationContext)
+        return SuiteRootGateway.startFromPlugin(
+            pluginId = featureId,
+            operation = operation,
+            command = command,
+        )
+    }
+
     override fun reloadPackage(
         packageName: String,
         timeoutSeconds: Long,
