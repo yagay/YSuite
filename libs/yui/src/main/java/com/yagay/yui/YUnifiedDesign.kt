@@ -5,6 +5,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -118,13 +119,14 @@ fun YPageList(
 ) {
     val role = LocalYPageRole.current
     val compactRows = compact || role.prefersCompactRows()
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        val horizontal = yPageHorizontalPadding(maxWidth)
         LazyColumn(
             modifier = Modifier.widthIn(max = role.maxContentWidth()).fillMaxSize(),
             contentPadding = PaddingValues(
-                start = YDimens.ScreenHorizontal,
+                start = horizontal,
                 top = padding.calculateTopPadding() + YDimens.ScreenVertical,
-                end = YDimens.ScreenHorizontal,
+                end = horizontal,
                 bottom = padding.calculateBottomPadding() + YDimens.ScreenVertical,
             ),
             verticalArrangement = Arrangement.spacedBy(
