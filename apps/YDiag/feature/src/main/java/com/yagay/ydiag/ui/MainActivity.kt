@@ -60,7 +60,8 @@ import com.yagay.yui.YActionRow
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFeatureEmpty
-import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YPageRole
+import com.yagay.yui.YPageScaffold
 import com.yagay.yui.YFeatureSectionHeader
 import com.yagay.yui.YFeatureStat
 import com.yagay.yui.YIcons
@@ -137,8 +138,14 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
             if (item.key == "history") vm.refreshHistory()
         },
     ) {
-        YFeatureScaffold(
+        YPageScaffold(
             title = stringResource(R.string.ydiag_app_name),
+            role = when (tab) {
+                0 -> YPageRole.DASHBOARD
+                1 -> YPageRole.TIMELINE
+                2 -> YPageRole.SETTINGS
+                else -> YPageRole.SETTINGS
+            },
             subtitle = stringResource(R.string.ydiag_subtitle),
             actions = {
                 YStatusPill(
