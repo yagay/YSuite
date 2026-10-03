@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="yui_primary">#B7C4FF</color>
+    <color name="yui_on_primary">#002A78</color>
+    <color name="yui_primary_container">#17398F</color>
+    <color name="yui_on_primary_container">#DDE2FF</color>
+    <color name="yui_secondary">#C1C6DD</color>
+    <color name="yui_on_secondary">#2A3042</color>
+    <color name="yui_surface">#121318</color>
+    <color name="yui_on_surface">#E4E1E9</color>
+    <color name="yui_surface_variant">#46464F</color>
+    <color name="yui_on_surface_variant">#C7C5D0</color>
+    <color name="yui_outline">#91909A</color>
+    <color name="yui_error">#FFB4AB</color>
+</resources>
