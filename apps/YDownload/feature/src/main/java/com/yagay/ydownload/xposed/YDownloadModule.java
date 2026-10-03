@@ -6,18 +6,17 @@ import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import com.yagay.suite.api.RuntimeOwnerGate;
+import io.github.libxposed.api.XposedModule;
 import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import io.github.libxposed.api.XposedModule;
 
 /**
  * Patch-first DownloadManager integration.
  *
  * The hook never replaces DownloadProvider, never swallows enqueue(), and never fabricates download
- * IDs. It only adds stricter user-selected constraints and then proceeds through Android's original
- * implementation. A setting that is left at its permissive/default value does not loosen the
- * caller's own DownloadManager.Request policy.
+ * IDs. All hook callbacks are fail-open: if LSPosed state, remote preferences, OEM reflection or a
+ * patch API is unavailable, Android's original DownloadManager call is executed unchanged.
  */
 public final class YDownloadModule extends XposedModule {
     private static final String TAG = "YDownloadXposed";
@@ -32,35 +31,54 @@ public final class YDownloadModule extends XposedModule {
     private final ConcurrentHashMap<String, Boolean> installed = new ConcurrentHashMap<>();
 
     @Override public void onModuleLoaded(@NonNull ModuleLoadedParam param) {
-        log(Log.INFO, TAG, "Loaded in " + param.getProcessName());
+        try {
+            log(Log.INFO, TAG, "Loaded in " + param.getProcessName());
+        } catch (Throwable ignored) { }
     }
 
     @Override public void onPackageReady(@NonNull PackageReadyParam param) {
-        if (!param.isFirstPackage()) return;
-        if (!RuntimeOwnerGate.shouldRun("ydownload", getModuleApplicationInfo())) return;
-        final String pkg = param.getPackageName();
-        if (pkg == null || HARD_EXCLUDED.contains(pkg) || pkg.startsWith("com.yagay.ydownload")) return;
-        installed.computeIfAbsent(pkg, ignored -> {
-            installDownloadManagerPatch(pkg);
-            return Boolean.TRUE;
-        });
+        try {
+            if (!param.isFirstPackage()) return;
+            if (!RuntimeOwnerGate.shouldRun("ydownload", getModuleApplicationInfo())) return;
+            final String pkg = param.getPackageName();
+            if (pkg == null || HARD_EXCLUDED.contains(pkg) || pkg.startsWith("com.yagay.ydownload")) return;
+            installed.computeIfAbsent(pkg, ignored -> {
+                installDownloadManagerPatch(pkg);
+                return Boolean.TRUE;
+            });
+        } catch (Throwable t) {
+            logSafely(Log.WARN, "Package-ready patch skipped safely", t);
+        }
     }
 
     private void installDownloadManagerPatch(String packageName) {
         try {
             Method enqueue = DownloadManager.class.getDeclaredMethod("enqueue", DownloadManager.Request.class);
             hook(enqueue).intercept(chain -> {
-                SharedPreferences prefs = getRemotePreferences(PREFS);
-                if (!prefs.getBoolean("enabled", true)) return chain.proceed();
-                Object arg = chain.getArg(0);
-                if (arg instanceof DownloadManager.Request request) {
-                    applyRequestPatch(request, prefs);
+                try {
+                    SharedPreferences prefs = remotePreferencesOrNull();
+                    if (prefs == null || !prefs.getBoolean("enabled", true)) return chain.proceed();
+                    Object arg = chain.getArg(0);
+                    if (arg instanceof DownloadManager.Request request) {
+                        applyRequestPatch(request, prefs);
+                    }
+                } catch (Throwable t) {
+                    logSafely(Log.WARN, "Download callback failed; using original request", t);
                 }
                 return chain.proceed();
             });
-            log(Log.INFO, TAG, "DownloadManager patch ready for " + packageName);
+            logSafely(Log.INFO, "DownloadManager patch ready for " + packageName, null);
         } catch (Throwable t) {
-            log(Log.WARN, TAG, "DownloadManager patch unavailable for " + packageName, t);
+            logSafely(Log.WARN, "DownloadManager patch unavailable for " + packageName, t);
+        }
+    }
+
+    private SharedPreferences remotePreferencesOrNull() {
+        try {
+            return getRemotePreferences(PREFS);
+        } catch (Throwable t) {
+            logSafely(Log.WARN, "Remote preferences unavailable; patch skipped", t);
+            return null;
         }
     }
 
@@ -85,14 +103,32 @@ public final class YDownloadModule extends XposedModule {
                 }
             }
         } catch (Throwable t) {
-            log(Log.WARN, TAG, "Request patch partially skipped", t);
+            logSafely(Log.WARN, "Request patch partially skipped", t);
         }
     }
 
-    @Override public boolean onHotReloading(@NonNull HotReloadingParam param) { return true; }
+    private void logSafely(int priority, String message, Throwable error) {
+        try {
+            if (error == null) log(priority, TAG, message);
+            else log(priority, TAG, message, error);
+        } catch (Throwable ignored) { }
+    }
+
+    @Override public boolean onHotReloading(@NonNull HotReloadingParam param) {
+        return true;
+    }
 
     @Override public void onHotReloaded(@NonNull HotReloadedParam param) {
-        param.getOldHookHandles().forEach(HookHandle::unhook);
-        installed.clear();
+        try {
+            param.getOldHookHandles().forEach(handle -> {
+                try { handle.unhook(); } catch (Throwable t) {
+                    logSafely(Log.WARN, "Old YDownload hook could not be removed", t);
+                }
+            });
+        } catch (Throwable t) {
+            logSafely(Log.WARN, "YDownload hot-reload cleanup failed safely", t);
+        } finally {
+            installed.clear();
+        }
     }
 }
