@@ -22,6 +22,7 @@ import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YPageList
 import com.yagay.yui.YComposeActivity
+import com.yagay.yui.YChoiceSetting
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusRow
 import com.yagay.yui.YStatusTone
@@ -149,31 +150,33 @@ class MainActivity : YComposeActivity() {
             title = stringResource(R.string.enhanced_engine_settings),
             subtitle = stringResource(R.string.enhanced_engine_settings_summary),
         ) {
-            YStatusRow(
-                stringResource(R.string.default_engine),
-                if (settings.defaultBackend == DownloadBackend.SYSTEM) {
-                    stringResource(R.string.android_download_manager)
-                } else {
-                    stringResource(R.string.enhanced_engine)
+            YChoiceSetting(
+                title = stringResource(R.string.default_engine),
+                options = listOf(
+                    stringResource(R.string.system_download),
+                    stringResource(R.string.enhanced_download),
+                ),
+                selectedIndex = if (settings.defaultBackend == DownloadBackend.SYSTEM) 0 else 1,
+                onSelected = { index ->
+                    onChanged(
+                        YDownloadEnhancedSettings.update(this@MainActivity) {
+                            copy(defaultBackend = if (index == 0) DownloadBackend.SYSTEM else DownloadBackend.ENHANCED)
+                        },
+                    )
                 },
-                YStatusTone.Neutral,
             )
-            YActionRow {
-                YSecondaryActionButton(onClick = {
-                    onChanged(YDownloadEnhancedSettings.update(this@MainActivity) { copy(defaultBackend = DownloadBackend.SYSTEM) })
-                }) { Text(stringResource(R.string.system_download)) }
-                YSecondaryActionButton(onClick = {
-                    onChanged(YDownloadEnhancedSettings.update(this@MainActivity) { copy(defaultBackend = DownloadBackend.ENHANCED) })
-                }) { Text(stringResource(R.string.enhanced_download)) }
-            }
-            YStatusRow(stringResource(R.string.concurrent_downloads), settings.maxConcurrent.toString(), YStatusTone.Neutral)
-            YActionRow {
-                (1..4).forEach { count ->
-                    YSecondaryActionButton(onClick = {
-                        onChanged(YDownloadEnhancedSettings.update(this@MainActivity) { copy(maxConcurrent = count) })
-                    }) { Text(count.toString()) }
-                }
-            }
+            YChoiceSetting(
+                title = stringResource(R.string.concurrent_downloads),
+                options = (1..4).map(Int::toString),
+                selectedIndex = (settings.maxConcurrent - 1).coerceIn(0, 3),
+                onSelected = { index ->
+                    onChanged(
+                        YDownloadEnhancedSettings.update(this@MainActivity) {
+                            copy(maxConcurrent = index + 1)
+                        },
+                    )
+                },
+            )
             YSettingSwitch(
                 title = stringResource(R.string.auto_retry),
                 subtitle = stringResource(R.string.auto_retry_summary),
@@ -183,14 +186,18 @@ class MainActivity : YComposeActivity() {
                 },
             )
             if (settings.autoRetry) {
-                YStatusRow(stringResource(R.string.max_retries), settings.maxRetries.toString(), YStatusTone.Neutral)
-                YActionRow {
-                    (0..3).forEach { retries ->
-                        YSecondaryActionButton(onClick = {
-                            onChanged(YDownloadEnhancedSettings.update(this@MainActivity) { copy(maxRetries = retries) })
-                        }) { Text(retries.toString()) }
-                    }
-                }
+                YChoiceSetting(
+                    title = stringResource(R.string.max_retries),
+                    options = (0..3).map(Int::toString),
+                    selectedIndex = settings.maxRetries.coerceIn(0, 3),
+                    onSelected = { retries ->
+                        onChanged(
+                            YDownloadEnhancedSettings.update(this@MainActivity) {
+                                copy(maxRetries = retries)
+                            },
+                        )
+                    },
+                )
             }
             Text(stringResource(R.string.enhanced_engine_reference_note))
         }
