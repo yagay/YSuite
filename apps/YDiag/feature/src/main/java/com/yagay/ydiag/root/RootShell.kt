@@ -1,22 +1,13 @@
 package com.yagay.ydiag.root
 
-import com.yagay.suite.api.FeatureHost
-import com.yagay.suite.api.FeatureHostBinding
+import com.yagay.suite.api.FeatureServices
 import java.util.concurrent.TimeUnit
 
 data class ShellResult(val code: Int, val stdout: String, val stderr: String)
 
 object RootShell {
     private const val MAX_CAPTURE_CHARS = 24 * 1024 * 1024
-    private val hostBinding = FeatureHostBinding("YDiag")
-
-    fun attachHost(host: FeatureHost) {
-        hostBinding.attach(host)
-    }
-
-    fun detachHost() {
-        hostBinding.clear()
-    }
+    private val services = FeatureServices.of("ydiag", "YDiag")
 
     fun isAvailable(): Boolean = runCatching {
         val result = exec("id", 4)
@@ -24,7 +15,7 @@ object RootShell {
     }.getOrDefault(false)
 
     fun exec(command: String, timeoutSeconds: Long = 15): ShellResult {
-        val host = hostBinding.hostOrNull()
+        val host = services.hostOrNull()
         if (host != null) {
             return try {
                 val result = host.rootExecute("root-shell", command, timeoutSeconds)
@@ -37,7 +28,7 @@ object RootShell {
                 ShellResult(
                     code = -1,
                     stdout = "",
-                    stderr = "YSuite root host error: ${error.javaClass.simpleName}: ${error.message}",
+                    stderr = "Host Root error: ${error.javaClass.simpleName}: ${error.message}",
                 )
             }
         }
@@ -72,10 +63,10 @@ object RootShell {
     }
 
     fun start(command: String): Process {
-        val host = hostBinding.hostOrNull()
+        val host = services.hostOrNull()
         if (host != null) {
             return host.rootStart("root-stream", command)
-                ?: throw IllegalStateException("YSuite host does not provide Root streaming")
+                ?: throw IllegalStateException("Host does not provide Root streaming")
         }
         return ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
     }
