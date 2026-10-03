@@ -262,6 +262,10 @@ class MainActivity : YComposeActivity() {
                     }
                 }
 
+                if (items.isNotEmpty()) {
+                    item { YDownloadBatchControls(items, store) }
+                }
+
                 if (items.isEmpty()) {
                     item {
                         YFeatureCard(
