@@ -12,6 +12,9 @@ HOST_MANIFEST = ROOT / "standalone/host/src/main/AndroidManifest.xml"
 HOST_BUILD = ROOT / "standalone/host/build.gradle.kts"
 SUITE_BUILD = ROOT / "suite/YSuite/build.gradle.kts"
 RESOURCE_RE = re.compile(r"^@(?P<kind>[a-z_]+)/(?P<name>[A-Za-z0-9_.]+)$")
+TYPED_BOOLEAN_PLACEHOLDER_RE = re.compile(
+    r'android:(required|enabled|exported|grantUriPermissions|multiprocess|directBootAware)\s*=\s*"\$\{[^}]+\}"'
+)
 RESOURCE_FIELDS = {
     "standalone_icon": {"drawable", "mipmap"},
     "standalone_round_icon": {"drawable", "mipmap"},
@@ -69,6 +72,8 @@ def verify_resource(feature: dict, field: str, value: str) -> None:
 def main() -> None:
     features = load_features()
     standalone = [item for item in features if item.get("standalone_enabled", False)]
+    feature_manifests: dict[str, str] = {}
+
     for item in features:
         feature_id = item["id"]
         metadata_keys = [key for key in (*RESOURCE_FIELDS.keys(), *BOOLEAN_FIELDS) if key in item]
@@ -81,11 +86,18 @@ def main() -> None:
         for field in BOOLEAN_FIELDS:
             if field in item and type(item[field]) is not bool:
                 fail(f"{feature_id}: {field} must be boolean")
-        if item.get("standalone_nfc_required", False):
-            manifest = ROOT / item["project_dir"] / "src/main/AndroidManifest.xml"
+
+        manifest = ROOT / item["project_dir"] / "src/main/AndroidManifest.xml"
+        if manifest.is_file():
             text = manifest.read_text(encoding="utf-8")
-            if "android.hardware.nfc" not in text or "${standaloneNfcRequired}" not in text:
-                fail(f"{feature_id}: NFC requirement must be bridged through standaloneNfcRequired")
+            feature_manifests[feature_id] = text
+            typed_placeholders = sorted(set(TYPED_BOOLEAN_PLACEHOLDER_RE.findall(text)))
+            if typed_placeholders:
+                fields = ", ".join(f"android:{name}" for name in typed_placeholders)
+                fail(
+                    f"{feature_id}: Feature manifest uses placeholders for typed boolean attributes "
+                    f"({fields}); resolve final typed values in the app host instead"
+                )
 
     host_manifest = HOST_MANIFEST.read_text(encoding="utf-8")
     for token in (
@@ -98,6 +110,20 @@ def main() -> None:
         fail("standalone host label must use generated catalog string")
     if 'android:description="@string/standalone_app_description"' not in host_manifest:
         fail("standalone host description must use generated catalog string")
+    if 'android:name="android.hardware.nfc"' not in host_manifest:
+        fail("standalone host manifest must own the NFC hardware feature declaration")
+    if 'android:required="${standaloneNfcRequired}"' not in host_manifest:
+        fail("standalone host manifest must map the final NFC hardware requirement")
+    if 'tools:replace="android:required"' not in host_manifest:
+        fail("standalone host NFC declaration must explicitly override the Feature default")
+
+    ynfc_text = feature_manifests.get("ynfc", "")
+    if 'android:name="android.hardware.nfc"' not in ynfc_text:
+        fail("ynfc: Feature manifest must declare the NFC hardware capability")
+    if 'android:required="false"' not in ynfc_text:
+        fail("ynfc: Feature manifest must keep NFC optional; final requirement belongs to the app host")
+    if "${standaloneNfcRequired}" in ynfc_text:
+        fail("ynfc: typed standaloneNfcRequired placeholder must not appear in the Feature manifest")
 
     host_build = HOST_BUILD.read_text(encoding="utf-8")
     if 'resValue("string", "standalone_app_name", selected.name)' not in host_build:
@@ -106,8 +132,12 @@ def main() -> None:
         fail("standalone description must be generated from catalog description")
     if 'manifestPlaceholders["standaloneNfcRequired"] = selected.nfcRequired.toString()' not in host_build:
         fail("standalone host must map standalone_nfc_required")
-    if 'manifestPlaceholders["standaloneNfcRequired"] = "false"' not in SUITE_BUILD.read_text(encoding="utf-8"):
-        fail("YSuite host must keep standaloneNfcRequired=false")
+
+    suite_build = SUITE_BUILD.read_text(encoding="utf-8")
+    if 'manifestPlaceholders["standaloneNfcRequired"]' in suite_build:
+        fail("YSuite host must not carry standalone-only NFC placeholders")
+    if 'create("compact")' in suite_build and 'isDebuggable = false' not in suite_build:
+        fail("YSuite compact build must be non-debuggable so minification and optimization are effective")
 
     print(f"standalone-metadata: OK standalone={len(standalone)} asset-fields={len(RESOURCE_FIELDS)}")
 
