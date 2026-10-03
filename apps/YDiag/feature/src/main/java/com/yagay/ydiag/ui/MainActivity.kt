@@ -6,10 +6,10 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,10 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -57,6 +54,12 @@ import com.yagay.ydiag.model.Recommendation
 import com.yagay.ydiag.model.Severity
 import com.yagay.ydiag.service.MonitorState
 import com.yagay.yui.YActionRow
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YSectionHeader
+import com.yagay.yui.YPageList
+import com.yagay.yui.YListItem
+import com.yagay.yui.YFilterBar
+import com.yagay.yui.YCheckboxItem
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFeatureEmpty
@@ -220,10 +223,8 @@ private fun MonitorScreen(
     onStop: () -> Unit,
     onExport: () -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    YPageList(
+        padding = PaddingValues(0.dp),
     ) {
         item {
             YFeatureCard(
@@ -275,7 +276,7 @@ private fun MonitorScreen(
         }
 
         item {
-            YFeatureSectionHeader(
+            YSectionHeader(
                 title = stringResource(R.string.ydiag_discovered_problems),
                 subtitle = stringResource(R.string.ydiag_discovered_problems_desc),
             )
@@ -290,7 +291,7 @@ private fun MonitorScreen(
             }
         } else {
             items(monitor.recentIssues.take(12), key = { it.id }) { issue ->
-                YFeatureCard(
+                YListItem(
                     title = issue.title,
                     subtitle = stringResource(
                         R.string.ydiag_issue_subtitle,
@@ -302,19 +303,13 @@ private fun MonitorScreen(
             }
         }
 
-        item { YFeatureSectionHeader(stringResource(R.string.ydiag_timeline)) }
+        item { YSectionHeader(stringResource(R.string.ydiag_timeline)) }
         items(monitor.recentEvents.take(18), key = { it.id }) { event ->
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Text(formatTime(event.timestamp), style = MaterialTheme.typography.labelSmall)
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(event.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(stringResource(R.string.ydiag_event_source, event.source, event.category), style = MaterialTheme.typography.labelSmall)
-                }
-            }
+            YListItem(
+                title = event.title,
+                subtitle = stringResource(R.string.ydiag_event_source, event.source, event.category),
+                detail = formatTime(event.timestamp),
+            )
         }
 
         item {
@@ -328,20 +323,18 @@ private fun MonitorScreen(
 
 @Composable
 private fun HistoryScreen(history: List<HistoryItem>, onExport: (HistoryItem) -> Unit) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+    YPageList(
+        padding = PaddingValues(0.dp),
     ) {
         item {
-            YFeatureSectionHeader(
+            YSectionHeader(
                 title = stringResource(R.string.ydiag_history_sessions),
                 subtitle = stringResource(R.string.ydiag_history_desc),
             )
         }
         if (history.isEmpty()) item { YFeatureEmpty(stringResource(R.string.ydiag_no_history)) }
         items(history, key = { it.meta.id }) { item ->
-            YFeatureCard(
+            YListItem(
                 title = item.meta.targetPackages.joinToString().ifBlank { stringResource(R.string.ydiag_unknown_target) },
                 subtitle = formatDate(item.meta.startedAt),
                 detail = stringResource(R.string.ydiag_history_detail, item.meta.enabledOptions.size, item.meta.problemMarks.size),
@@ -364,37 +357,29 @@ private fun DiagnosticConfigScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            YFeatureSectionHeader(
+            YSectionHeader(
                 title = stringResource(R.string.ydiag_config_title),
                 subtitle = stringResource(R.string.ydiag_config_desc),
             )
         }
         item {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                DiagnosticCatalog.presets.forEach { preset ->
-                    FilterChip(
-                        selected = presetId == preset.id,
-                        onClick = { onPreset(preset.id) },
-                        label = { Text(preset.title) },
-                    )
-                }
-                FilterChip(
-                    selected = presetId == "custom",
-                    onClick = { },
-                    label = { Text(stringResource(R.string.ydiag_custom)) },
-                )
-            }
+            val presets = DiagnosticCatalog.presets
+            val labels = presets.map { it.title } + stringResource(R.string.ydiag_custom)
+            val selectedIndex = presets.indexOfFirst { it.id == presetId }
+                .takeIf { it >= 0 } ?: presets.size
+            YFilterBar(
+                options = labels,
+                selectedIndex = selectedIndex,
+                onSelected = { index -> presets.getOrNull(index)?.let { onPreset(it.id) } },
+            )
         }
 
         DiagnosticCategory.entries.forEach { category ->
             val options = DiagnosticCatalog.options.filter { it.category == category }
             if (options.isNotEmpty()) {
-                item { YFeatureSectionHeader(categoryTitle(category), Modifier.padding(top = 8.dp)) }
+                item { YSectionHeader(categoryTitle(category), Modifier.padding(top = 8.dp)) }
                 items(options, key = { it.id }) { option ->
-                    YFeatureCard(
+                    YListItem(
                         title = option.title,
                         subtitle = stringResource(
                             R.string.ydiag_option_meta,
@@ -402,6 +387,7 @@ private fun DiagnosticConfigScreen(
                             loadText(option.load),
                         ),
                         detail = option.description,
+                        onClick = { onToggle(option.id) },
                         trailing = {
                             Switch(
                                 checked = option.id in enabled,
@@ -433,7 +419,7 @@ private fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            YFeatureSectionHeader(
+            YSectionHeader(
                 title = stringResource(R.string.ydiag_hook_method_title),
                 subtitle = stringResource(R.string.ydiag_hook_method_desc),
             )
@@ -457,7 +443,7 @@ private fun SettingsScreen(
                 ) { onActivationMode(Preferences.ACTIVATION_ROOT_ONLY) }
             }
         }
-        item { YFeatureSectionHeader(stringResource(R.string.ydiag_export_location)) }
+        item { YSectionHeader(stringResource(R.string.ydiag_export_location)) }
         item {
             YFeatureCard(title = stringResource(R.string.ydiag_package_directory)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -509,7 +495,7 @@ private fun SettingsScreen(
         }
         item {
             HorizontalDivider()
-            YFeatureSectionHeader(stringResource(R.string.ydiag_privacy))
+            YSectionHeader(stringResource(R.string.ydiag_privacy))
             Text(stringResource(R.string.ydiag_privacy_desc), style = MaterialTheme.typography.bodyMedium)
         }
     }
@@ -573,38 +559,26 @@ private fun AppPickerDialog(
             Column {
                 YSearchField(value = search, onValueChange = onSearch, hint = stringResource(R.string.ydiag_search_apps))
                 Spacer(Modifier.height(8.dp))
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    AppFilter.entries.forEach { value ->
-                        FilterChip(
-                            selected = filter == value,
-                            onClick = { onFilter(value) },
-                            label = { Text(filterLabel(value)) },
-                        )
-                    }
-                }
+                YFilterBar(
+                    options = AppFilter.entries.map { filterLabel(it) },
+                    selectedIndex = AppFilter.entries.indexOf(filter).coerceAtLeast(0),
+                    onSelected = { index -> AppFilter.entries.getOrNull(index)?.let(onFilter) },
+                )
                 Spacer(Modifier.height(8.dp))
                 if (visible.isEmpty()) {
                     YFeatureEmpty(stringResource(R.string.ydiag_no_filtered_apps))
                 } else {
                     LazyColumn(Modifier.height(480.dp)) {
                         items(visible, key = { it.packageName }) { app ->
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Checkbox(
-                                    checked = app.packageName in selected,
-                                    onCheckedChange = { onToggle(app.packageName) },
-                                )
-                                Column(Modifier.weight(1f)) {
-                                    Text(app.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(app.packageName, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                                if (app.system) Text(stringResource(R.string.ydiag_system_app), style = MaterialTheme.typography.labelSmall)
-                            }
+                            YCheckboxItem(
+                                title = app.label,
+                                subtitle = buildString {
+                                    append(app.packageName)
+                                    if (app.system) append(" · ").append(stringResource(R.string.ydiag_system_app))
+                                },
+                                checked = app.packageName in selected,
+                                onCheckedChange = { onToggle(app.packageName) },
+                            )
                         }
                     }
                 }
