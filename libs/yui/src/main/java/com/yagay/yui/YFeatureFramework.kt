@@ -121,7 +121,11 @@ fun YFeatureSectionHeader(
     subtitle: String? = null,
 ) = YSectionHeader(title = title, modifier = modifier, subtitle = subtitle)
 
-/** Legacy card API kept for existing modules; new modules should prefer sections and list items. */
+/**
+ * Legacy card API kept for existing modules, but the visual surface is role-aware:
+ * dashboards keep strong cards; ordinary settings/lists use flatter sections so dense tools
+ * do not become a wall of nested cards.
+ */
 @Composable
 fun YFeatureCard(
     title: String,
@@ -131,7 +135,10 @@ fun YFeatureCard(
     trailing: @Composable RowScope.() -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
-    YCard(modifier = modifier.fillMaxWidth()) {
+    val role = LocalYPageRole.current
+
+    @Composable
+    fun sectionBody() {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth < YDimens.CompactBreakpoint) {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -155,6 +162,22 @@ fun YFeatureCard(
             }
         }
         content()
+    }
+
+    if (role == YPageRole.DASHBOARD) {
+        YCard(modifier = modifier.fillMaxWidth()) {
+            sectionBody()
+        }
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(
+                if (role.prefersCompactRows()) 8.dp else YDimens.ControlGap,
+            ),
+        ) {
+            sectionBody()
+            YDivider()
+        }
     }
 }
 
