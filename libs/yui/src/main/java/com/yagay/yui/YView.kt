@@ -15,6 +15,7 @@ import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.TextViewCompat
 import com.google.android.material.color.MaterialColors
 
 /** Shared View-system renderer for Java/legacy YSuite modules. */
@@ -54,15 +55,41 @@ object YView {
         view.setBackgroundColor(color(view.context, com.google.android.material.R.attr.colorSurface, Color.WHITE))
     }
 
-    @JvmStatic fun styleTitle(view: TextView) {
-        view.textSize = 21f
+    @JvmStatic fun styleTitle(view: TextView) = stylePageTitle(view)
+
+    @JvmStatic fun stylePageTitle(view: TextView) {
+        TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_PageTitle)
         view.setTextColor(onSurface(view.context))
-        view.setTypeface(view.typeface, android.graphics.Typeface.BOLD)
+    }
+
+    @JvmStatic fun styleSectionTitle(view: TextView) {
+        TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_SectionTitle)
+        view.setTextColor(onSurface(view.context))
+    }
+
+    @JvmStatic fun styleItemTitle(view: TextView) {
+        TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_ItemTitle)
+        view.setTextColor(onSurface(view.context))
     }
 
     @JvmStatic fun styleBody(view: TextView) {
-        view.textSize = 14f
+        TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_Body)
         view.setTextColor(onSurfaceVariant(view.context))
+    }
+
+    @JvmStatic fun styleStrongBody(view: TextView) {
+        TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_Body_Strong)
+        view.setTextColor(onSurface(view.context))
+    }
+
+    @JvmStatic fun styleCaption(view: TextView) {
+        TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_Caption)
+        view.setTextColor(onSurfaceVariant(view.context))
+    }
+
+    @JvmStatic fun styleLabel(view: TextView) {
+        TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_Label)
+        view.setTextColor(onSurface(view.context))
     }
 
     @JvmStatic fun stylePrimaryButton(button: Button) {
