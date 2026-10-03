@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?><resources>
-<string name="ydownload_title">YDownload</string><string name="ydownload_subtitle">使用 YSuite 统一 UI 与运行环境的下载管理器</string>
-<string name="new_download">新建下载</string><string name="new_download_summary">支持 HTTP/HTTPS、暂停继续、历史与前台下载</string>
+<string name="ydownload_title">YDownload</string><string name="ydownload_subtitle">在不替换 DownloadProvider 的前提下增强 Android 系统下载</string>
+<string name="new_download">新建下载</string><string name="new_download_summary">默认使用系统 DownloadManager；YDownload 断点续传引擎作为明确选择的增强/兜底模式保留。</string>
 <string name="url">下载链接</string><string name="file_name_optional">文件名（可选）</string><string name="start">开始</string>
-<string name="system_integration">系统集成</string><string name="system_integration_summary">安全模式保留 Android DownloadProvider，由 YDownload 使用自己的下载引擎。</string>
-<string name="download_provider">DownloadProvider</string><string name="preserved">保留兼容</string><string name="engine">下载引擎</string><string name="native_engine">YDownload 原生 HTTP 引擎</string>
+<string name="system_download">系统下载</string><string name="enhanced_download">增强下载</string>
+<string name="system_patch">系统下载补丁</string><string name="system_patch_summary">保留 Android DownloadProvider 作为真正下载所有者，只在 DownloadManager 请求外围增加安全策略。</string>
+<string name="system_integration">系统集成</string><string name="system_integration_summary">完整保留 Android DownloadProvider，并将它作为默认兼容路径。</string>
+<string name="download_provider">DownloadProvider</string><string name="preserved">完整保留</string><string name="default_engine">默认引擎</string><string name="android_download_manager">Android DownloadManager</string><string name="engine">引擎</string><string name="native_engine">YDownload 原生 HTTP 引擎</string><string name="enhanced_engine">YDownload 增强引擎</string>
+<string name="enable_system_patch">启用 DownloadManager 补丁</string><string name="enable_system_patch_summary">对 LSPosed 作用域内应用的 DownloadManager 请求应用以下策略，但原系统调用仍然继续执行。</string>
+<string name="allow_metered">允许计费网络</string><string name="allow_roaming">允许漫游网络</string><string name="require_charging">仅充电时下载</string><string name="require_idle">仅设备空闲时下载</string><string name="force_completion_notification">保留下载完成通知</string>
 <string name="no_downloads">没有下载任务</string><string name="no_downloads_summary">在上方添加 HTTP 或 HTTPS 链接。</string>
-<string name="status">状态</string><string name="progress">进度</string><string name="progress_percent">%1$d%%</string><string name="queued">等待中</string><string name="running">下载中</string><string name="paused">已暂停</string><string name="completed">已完成</string><string name="failed">失败</string><string name="cancelled">已取消</string>
-<string name="pause">暂停</string><string name="resume">继续 / 重试</string><string name="cancel">取消</string><string name="open">打开</string><string name="remove">移除</string>
+<string name="status">状态</string><string name="progress">进度</string><string name="progress_percent">%1$d%%</string><string name="queued">等待中</string><string name="running">下载中</string><string name="paused">系统已暂停</string><string name="completed">已完成</string><string name="failed">失败</string><string name="cancelled">已取消</string>
+<string name="pause">暂停</string><string name="resume">继续 / 重试</string><string name="retry">重试</string><string name="cancel">取消</string><string name="open">打开</string><string name="remove">移除</string>
 <string name="download_channel">下载任务</string><string name="download_service">YDownload</string><string name="download_running">正在下载…</string>
 </resources>
