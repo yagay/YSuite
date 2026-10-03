@@ -21,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -40,17 +41,20 @@ fun YFeatureScaffold(
     bottomBar: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
+    role: YPageRole = YPageRole.LIST,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    YScaffold(
-        title = title,
-        modifier = modifier,
-        subtitle = subtitle,
-        actions = actions,
-        bottomBar = bottomBar,
-        snackbarHost = snackbarHost,
-        floatingActionButton = floatingActionButton,
-    ) { padding -> YFeatureStateContent(padding, state, content) }
+    CompositionLocalProvider(LocalYPageRole provides role) {
+        YScaffold(
+            title = title,
+            modifier = modifier,
+            subtitle = subtitle,
+            actions = actions,
+            bottomBar = bottomBar,
+            snackbarHost = snackbarHost,
+            floatingActionButton = floatingActionButton,
+        ) { padding -> YFeatureStateContent(padding, state, content) }
+    }
 }
 
 @Composable
@@ -61,17 +65,20 @@ fun YFeatureCustomScaffold(
     bottomBar: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
+    role: YPageRole = YPageRole.LIST,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
-        modifier = modifier,
-        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
-        topBar = topBar,
-        bottomBar = bottomBar,
-        snackbarHost = snackbarHost,
-        floatingActionButton = floatingActionButton,
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { padding -> YFeatureStateContent(padding, state, content) }
+    CompositionLocalProvider(LocalYPageRole provides role) {
+        Scaffold(
+            modifier = modifier,
+            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+            topBar = topBar,
+            bottomBar = bottomBar,
+            snackbarHost = snackbarHost,
+            floatingActionButton = floatingActionButton,
+            containerColor = MaterialTheme.colorScheme.background,
+        ) { padding -> YFeatureStateContent(padding, state, content) }
+    }
 }
 
 @Composable
@@ -105,7 +112,7 @@ fun YFeatureList(
     padding: PaddingValues,
     modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
-) = YPluginList(padding = padding, modifier = modifier, content = content)
+) = YPageList(padding = padding, modifier = modifier, content = content)
 
 @Composable
 fun YFeatureSectionHeader(
@@ -114,7 +121,7 @@ fun YFeatureSectionHeader(
     subtitle: String? = null,
 ) = YSectionHeader(title = title, modifier = modifier, subtitle = subtitle)
 
-/** Legacy card API kept for all existing modules; compact screens now stack trailing controls. */
+/** Legacy card API kept for existing modules; new modules should prefer sections and list items. */
 @Composable
 fun YFeatureCard(
     title: String,
@@ -170,18 +177,29 @@ fun YFeatureEmpty(message: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun yStatusForeground(tone: YStatusTone) = when (tone) {
+    YStatusTone.Neutral -> MaterialTheme.colorScheme.onSurface
+    YStatusTone.Good -> ySemanticColors().success
+    YStatusTone.Warning -> ySemanticColors().warning
+    YStatusTone.Error -> MaterialTheme.colorScheme.error
+}
+
+@Composable
+private fun yStatusContainer(tone: YStatusTone) = when (tone) {
+    YStatusTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant
+    YStatusTone.Good -> ySemanticColors().successContainer
+    YStatusTone.Warning -> ySemanticColors().warningContainer
+    YStatusTone.Error -> MaterialTheme.colorScheme.errorContainer
+}
+
+@Composable
 fun YFeatureStat(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
     tone: YStatusTone = YStatusTone.Neutral,
 ) {
-    val color = when (tone) {
-        YStatusTone.Neutral -> MaterialTheme.colorScheme.onSurface
-        YStatusTone.Good -> MaterialTheme.colorScheme.primary
-        YStatusTone.Warning -> MaterialTheme.colorScheme.tertiary
-        YStatusTone.Error -> MaterialTheme.colorScheme.error
-    }
+    val color = yStatusForeground(tone)
     YCard(modifier) {
         Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -195,16 +213,11 @@ fun YStatusPill(
     tone: YStatusTone = YStatusTone.Neutral,
     modifier: Modifier = Modifier,
 ) {
-    val foreground = when (tone) {
-        YStatusTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
-        YStatusTone.Good -> MaterialTheme.colorScheme.primary
-        YStatusTone.Warning -> MaterialTheme.colorScheme.tertiary
-        YStatusTone.Error -> MaterialTheme.colorScheme.error
-    }
+    val foreground = yStatusForeground(tone)
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+        color = yStatusContainer(tone).copy(alpha = if (tone == YStatusTone.Neutral) 0.72f else 1f),
     ) {
         val text = if (label.isBlank()) value else stringResource(R.string.yui_status_pair, label, value)
         Text(
@@ -225,12 +238,7 @@ fun YStatusRow(
     tone: YStatusTone = YStatusTone.Neutral,
     modifier: Modifier = Modifier,
 ) {
-    val valueColor = when (tone) {
-        YStatusTone.Neutral -> MaterialTheme.colorScheme.onSurface
-        YStatusTone.Good -> MaterialTheme.colorScheme.primary
-        YStatusTone.Warning -> MaterialTheme.colorScheme.tertiary
-        YStatusTone.Error -> MaterialTheme.colorScheme.error
-    }
+    val valueColor = yStatusForeground(tone)
     BoxWithConstraints(modifier.fillMaxWidth()) {
         if (maxWidth < YDimens.CompactBreakpoint) {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {

@@ -38,4 +38,5 @@ dependencies {
     api(libs.google.material)
 
     implementation(libs.androidx.startup)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 }

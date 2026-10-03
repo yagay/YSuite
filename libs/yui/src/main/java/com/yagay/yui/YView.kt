@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.annotation.DimenRes
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -65,7 +66,7 @@ object YView {
     }
 
     @JvmStatic fun stylePrimaryButton(button: Button) {
-        button.minHeight = dp(button.context, 48)
+        button.minHeight = dimen(button.context, R.dimen.yui_button_height)
         button.isAllCaps = false
     }
 
@@ -73,15 +74,19 @@ object YView {
 
     @JvmStatic fun cardBackground(context: Context): GradientDrawable = GradientDrawable().apply {
         setColor(surfaceContainer(context))
-        cornerRadius = dp(context, 18).toFloat()
+        cornerRadius = dimen(context, R.dimen.yui_card_radius).toFloat()
     }
 
     @JvmStatic fun styleCard(view: ViewGroup) {
         view.background = cardBackground(view.context)
-        val p = dp(view.context, 16)
+        val p = dimen(view.context, R.dimen.yui_card_padding)
         view.setPadding(p, p, p, p)
     }
 
+    @JvmStatic fun dimen(context: Context, @DimenRes resource: Int): Int =
+        context.resources.getDimensionPixelSize(resource)
+
+    /** Compatibility helper for task-specific overlays; normal-screen geometry must use generated dimen resources. */
     @JvmStatic fun dp(context: Context, value: Int): Int =
         (value * context.resources.displayMetrics.density).toInt()
 
@@ -94,9 +99,19 @@ object YView {
     @JvmStatic fun outline(context: Context): Int = color(context, com.google.android.material.R.attr.colorOutlineVariant, 0xFFD0D5DD.toInt())
     @JvmStatic fun accent(context: Context): Int = color(context, androidx.appcompat.R.attr.colorPrimary, 0xFF6750A4.toInt())
 
+    @JvmStatic fun success(context: Context): Int = if (isDark(context)) 0xFF9BDAA8.toInt() else 0xFF146C2E.toInt()
+    @JvmStatic fun successContainer(context: Context): Int = if (isDark(context)) 0xFF005321.toInt() else 0xFFB7F2C4.toInt()
+    @JvmStatic fun warning(context: Context): Int = if (isDark(context)) 0xFFFFB95F.toInt() else 0xFF8A4D00.toInt()
+    @JvmStatic fun warningContainer(context: Context): Int = if (isDark(context)) 0xFF693900.toInt() else 0xFFFFDDB8.toInt()
+    @JvmStatic fun info(context: Context): Int = if (isDark(context)) 0xFFA7C8FF.toInt() else 0xFF285F9E.toInt()
+
+    private fun isDark(context: Context): Boolean {
+        val mask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return mask == Configuration.UI_MODE_NIGHT_YES
+    }
+
     private fun applyBarAppearance(activity: Activity) {
-        val mask = activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val dark = mask == Configuration.UI_MODE_NIGHT_YES
+        val dark = isDark(activity)
         WindowCompat.getInsetsController(activity.window, activity.window.decorView).apply {
             isAppearanceLightStatusBars = !dark
             isAppearanceLightNavigationBars = !dark

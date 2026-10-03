@@ -4,16 +4,21 @@
     <string name="yui_search">Search</string>
     <string name="yui_open">Open</string>
     <string name="yui_status_pair">%1$s · %2$s</string>
-
-    <!-- YUI 2.0: XML/View and Compose intentionally share the same geometry. -->
-    <dimen name="yui_screen_horizontal">18dp</dimen>
-    <dimen name="yui_screen_vertical">14dp</dimen>
-    <dimen name="yui_section_gap">16dp</dimen>
-    <dimen name="yui_card_padding">16dp</dimen>
-    <dimen name="yui_card_radius">18dp</dimen>
-    <dimen name="yui_control_gap">10dp</dimen>
-    <dimen name="yui_button_height">44dp</dimen>
-    <dimen name="yui_toolbar_height">56dp</dimen>
+    <string name="yui_page_counter">%1$d/%2$d</string>
+    <string name="yui_placeholder">…</string>
+    <string name="yui_catalog_title">YUI component catalog</string>
+    <string name="yui_catalog_subtitle">Shared YSuite design-system preview</string>
+    <string name="yui_catalog_actions">Actions</string>
+    <string name="yui_catalog_states">States</string>
+    <string name="yui_catalog_forms">Forms</string>
+    <string name="yui_catalog_primary">Primary</string>
+    <string name="yui_catalog_secondary">Secondary</string>
+    <string name="yui_catalog_success">Success</string>
+    <string name="yui_catalog_warning">Warning</string>
+    <string name="yui_catalog_error">Error</string>
+    <string name="yui_catalog_field">Field</string>
+    <string name="yui_catalog_option_a">Option A</string>
+    <string name="yui_catalog_option_b">Option B</string>
 
     <style name="Theme.YUI" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:fontFamily">sans</item>

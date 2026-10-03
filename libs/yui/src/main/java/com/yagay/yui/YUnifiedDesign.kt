@@ -1,7 +1,6 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -16,13 +15,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material3.Button
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -45,7 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
- * YUI 2.0 describes interaction roles, not feature names. All normal YSuite screens compose these
+ * YUI describes interaction roles, not feature names. All normal YSuite screens compose these
  * primitives instead of inventing feature-local cards, spacing, themes or navigation chrome.
  */
 enum class YPageRole {
@@ -82,11 +80,11 @@ data class YStatusSpec(
     val tone: YStatusTone = YStatusTone.Neutral,
 )
 
-/** Canonical normal-screen shell for current and future YSuite features. */
+/** Canonical normal-screen shell. Role now controls shared density/content-width behavior. */
 @Composable
 fun YPageScaffold(
     title: String,
-    @Suppress("UNUSED_PARAMETER") role: YPageRole,
+    role: YPageRole,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     state: YPageState = YPageState.Ready,
@@ -105,11 +103,12 @@ fun YPageScaffold(
         bottomBar = bottomBar,
         snackbarHost = snackbarHost,
         floatingActionButton = floatingActionButton,
+        role = role,
         content = content,
     )
 }
 
-/** Standard body for settings, managers, browsers, dashboards and ordinary lists. */
+/** Role-aware body for settings, managers, browsers, dashboards and ordinary lists. */
 @Composable
 fun YPageList(
     padding: PaddingValues,
@@ -117,17 +116,23 @@ fun YPageList(
     compact: Boolean = false,
     content: LazyListScope.() -> Unit,
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = YDimens.ScreenHorizontal,
-            top = padding.calculateTopPadding() + YDimens.ScreenVertical,
-            end = YDimens.ScreenHorizontal,
-            bottom = padding.calculateBottomPadding() + YDimens.ScreenVertical,
-        ),
-        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else YDimens.SectionGap),
-        content = content,
-    )
+    val role = LocalYPageRole.current
+    val compactRows = compact || role.prefersCompactRows()
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        LazyColumn(
+            modifier = Modifier.widthIn(max = role.maxContentWidth()).fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = YDimens.ScreenHorizontal,
+                top = padding.calculateTopPadding() + YDimens.ScreenVertical,
+                end = YDimens.ScreenHorizontal,
+                bottom = padding.calculateBottomPadding() + YDimens.ScreenVertical,
+            ),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compactRows) role.sectionSpacing().coerceAtMost(8.dp) else role.sectionSpacing(),
+            ),
+            content = content,
+        )
+    }
 }
 
 @Composable
@@ -212,7 +217,7 @@ fun YNavigationItem(
     onClick = onClick,
     trailing = {
         Icon(
-            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+            imageVector = YIcons.Forward,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -268,22 +273,16 @@ fun YStatusItem(
     trailing = { YStatusPill(label = "", value = value, tone = tone) },
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun YStatusStrip(statuses: List<YStatusSpec>, modifier: Modifier = Modifier) {
-    YActionGroup(
-        modifier = modifier,
-        actions = statuses.map { status ->
-            YActionSpec(
-                label = if (status.label.isBlank()) status.value else "${status.label} · ${status.value}",
-                enabled = false,
-                style = when (status.tone) {
-                    YStatusTone.Error -> YActionStyle.DANGER
-                    else -> YActionStyle.SECONDARY
-                },
-                onClick = {},
-            )
-        },
-    )
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        statuses.forEach { status -> YStatusPill(status.label, status.value, status.tone) }
+    }
 }
 
 @Composable
@@ -305,16 +304,17 @@ fun YProgressItem(
 
 @Composable
 fun YNotice(text: String, modifier: Modifier = Modifier, tone: YNoticeTone = YNoticeTone.NEUTRAL) {
+    val semantic = ySemanticColors()
     val container = when (tone) {
         YNoticeTone.NEUTRAL -> MaterialTheme.colorScheme.surfaceVariant
-        YNoticeTone.POSITIVE -> MaterialTheme.colorScheme.primaryContainer
-        YNoticeTone.WARNING -> MaterialTheme.colorScheme.tertiaryContainer
+        YNoticeTone.POSITIVE -> semantic.successContainer
+        YNoticeTone.WARNING -> semantic.warningContainer
         YNoticeTone.ERROR -> MaterialTheme.colorScheme.errorContainer
     }
     val foreground = when (tone) {
         YNoticeTone.NEUTRAL -> MaterialTheme.colorScheme.onSurfaceVariant
-        YNoticeTone.POSITIVE -> MaterialTheme.colorScheme.onPrimaryContainer
-        YNoticeTone.WARNING -> MaterialTheme.colorScheme.onTertiaryContainer
+        YNoticeTone.POSITIVE -> semantic.onSuccessContainer
+        YNoticeTone.WARNING -> semantic.onWarningContainer
         YNoticeTone.ERROR -> MaterialTheme.colorScheme.onErrorContainer
     }
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = container) {
@@ -332,13 +332,13 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
     ) {
         actions.forEach { action ->
             when (action.style) {
-                YActionStyle.PRIMARY -> Button(onClick = action.onClick, enabled = action.enabled) {
-                    Text(action.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                YActionStyle.SECONDARY -> OutlinedButton(onClick = action.onClick, enabled = action.enabled) {
-                    Text(action.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                YActionStyle.DANGER -> OutlinedButton(onClick = action.onClick, enabled = action.enabled) {
+                YActionStyle.PRIMARY -> YPrimaryButton(action.label, action.onClick, enabled = action.enabled)
+                YActionStyle.SECONDARY -> YSecondaryButton(action.label, action.onClick, enabled = action.enabled)
+                YActionStyle.DANGER -> OutlinedButton(
+                    onClick = action.onClick,
+                    enabled = action.enabled,
+                    modifier = Modifier.heightIn(min = YDimens.ButtonHeight),
+                ) {
                     Text(
                         action.label,
                         color = if (action.enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -395,17 +395,19 @@ fun YLogPanel(lines: List<String>, modifier: Modifier = Modifier, maxHeightDp: I
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.inverseSurface,
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            items(lines) { line ->
-                Text(
-                    line,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.inverseOnSurface,
-                    fontFamily = FontFamily.Monospace,
-                )
+        SelectionContainer {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                items(lines) { line ->
+                    Text(
+                        line,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
             }
         }
     }

@@ -210,8 +210,8 @@ final class AppUi {
     static MaterialButton compactButton(Context c, String value) {
         MaterialButton b = secondaryButton(c, value);
         b.setTextSize(13);
-        b.setMinHeight(dp(c, 40));
-        b.setMinimumHeight(dp(c, 40));
+        b.setMinHeight(dp(c, 48));
+        b.setMinimumHeight(dp(c, 48));
         b.setMinimumWidth(0);
         b.setPadding(dp(c, 10), 0, dp(c, 10), 0);
         return b;
@@ -254,7 +254,7 @@ final class AppUi {
     static int textPrimary(Context c) { return YView.onSurface(c); }
     static int textSecondary(Context c) { return YView.onSurfaceVariant(c); }
     static int outline(Context c) { return YView.outline(c); }
-    static int success(Context c) { return YView.color(c, com.google.android.material.R.attr.colorPrimary, YView.accent(c)); }
+    static int success(Context c) { return YView.color(c, androidx.appcompat.R.attr.colorPrimary, YView.accent(c)); }
     static int warning(Context c) { return YView.color(c, com.google.android.material.R.attr.colorTertiary, YView.accent(c)); }
     static int successSurface(Context c) { return YView.color(c, com.google.android.material.R.attr.colorPrimaryContainer, surfaceAlt(c)); }
     static int warningSurface(Context c) { return YView.color(c, com.google.android.material.R.attr.colorTertiaryContainer, surfaceAlt(c)); }

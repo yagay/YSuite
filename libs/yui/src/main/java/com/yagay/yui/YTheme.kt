@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -36,27 +35,14 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-/** Shared YUI 2.0 design tokens. Feature modules must not define their own spacing system. */
-object YDimens {
-    val ScreenHorizontal: Dp = 18.dp
-    val ScreenVertical: Dp = 14.dp
-    val SectionGap: Dp = 16.dp
-    val CardPadding: Dp = 16.dp
-    val ControlGap: Dp = 10.dp
-    val ToolbarHeight: Dp = 56.dp
-    val ButtonHeight: Dp = 44.dp
-    val CardRadius: Dp = 18.dp
-    val CompactBreakpoint: Dp = 420.dp
-}
 
 private val YShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
@@ -93,8 +79,12 @@ fun YTheme(
         colorScheme = scheme,
         typography = YTypography,
         shapes = YShapes,
-        content = content,
-    )
+    ) {
+        CompositionLocalProvider(
+            LocalYSemanticColors provides if (darkTheme) YSemanticPalette.Dark else YSemanticPalette.Light,
+            content = content,
+        )
+    }
 }
 
 /** Adaptive YSuite top bar used by every Compose feature. */
@@ -220,7 +210,7 @@ fun YPrimaryButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(YDimens.ButtonHeight),
+        modifier = modifier.heightIn(min = YDimens.ButtonHeight),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
     ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
@@ -235,7 +225,7 @@ fun YSecondaryButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(YDimens.ButtonHeight),
+        modifier = modifier.heightIn(min = YDimens.ButtonHeight),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = ButtonDefaults.outlinedButtonColors(),

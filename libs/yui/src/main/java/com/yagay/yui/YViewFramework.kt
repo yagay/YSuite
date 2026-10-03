@@ -21,13 +21,8 @@ class YViewScreen internal constructor(
 
 enum class YViewStatusTone { Neutral, Good, Warning, Error }
 
-/** Java/View compatibility renderer backed by the same YUI 2.0 design language as Compose. */
+/** Java/View compatibility renderer backed by the generated YUI geometry resources. */
 object YViewLayout {
-    private const val SCREEN_H = 18
-    private const val SCREEN_V = 14
-    private const val SECTION_GAP = 16
-    private const val CONTROL_GAP = 10
-
     @JvmStatic
     @JvmOverloads
     fun install(activity: Activity, title: String, subtitle: String? = null): YViewScreen {
@@ -49,7 +44,7 @@ object YViewLayout {
     fun fixedScreen(context: Context, title: String, subtitle: String? = null): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(context, SCREEN_H), dp(context, SCREEN_V), dp(context, SCREEN_H), 0)
+            setPadding(screenH(context), screenV(context), screenH(context), 0)
             YView.applyRoot(this)
             header(this, title, subtitle)
         }
@@ -64,12 +59,7 @@ object YViewLayout {
         }
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(
-                dp(context, SCREEN_H),
-                dp(context, SCREEN_V),
-                dp(context, SCREEN_H),
-                dp(context, 28),
-            )
+            setPadding(screenH(context), screenV(context), screenH(context), dp(context, 28))
         }
         scroll.addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         header(root, title, subtitle)
@@ -92,12 +82,12 @@ object YViewLayout {
                     text = subtitle
                     textSize = 13f
                     setTextColor(YView.onSurfaceVariant(context))
-                    setPadding(0, dp(context, 3), 0, dp(context, SECTION_GAP))
+                    setPadding(0, dp(context, 3), 0, sectionGap(context))
                 },
                 matchWrap(),
             )
         } else {
-            heading.setPadding(0, 0, 0, dp(parent.context, SECTION_GAP))
+            heading.setPadding(0, 0, 0, sectionGap(parent.context))
         }
     }
 
@@ -109,7 +99,7 @@ object YViewLayout {
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(YView.onSurface(context))
-            setPadding(0, dp(context, SECTION_GAP), 0, dp(context, 4))
+            setPadding(0, sectionGap(context), 0, dp(context, 4))
         }
         parent.addView(heading, matchWrap())
         if (!subtitle.isNullOrBlank()) {
@@ -118,7 +108,7 @@ object YViewLayout {
                     text = subtitle
                     textSize = 12.5f
                     setTextColor(YView.onSurfaceVariant(context))
-                    setPadding(0, 0, 0, dp(context, CONTROL_GAP))
+                    setPadding(0, 0, 0, controlGap(context))
                 },
                 matchWrap(),
             )
@@ -134,7 +124,7 @@ object YViewLayout {
             YView.styleCard(this)
         }
         val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(parent.context, SECTION_GAP)
+            bottomMargin = sectionGap(parent.context)
         }
         parent.addView(card, lp)
         card.addView(
@@ -152,7 +142,7 @@ object YViewLayout {
                     text = subtitle
                     textSize = 12.5f
                     setTextColor(YView.onSurfaceVariant(context))
-                    setPadding(0, dp(context, 3), 0, dp(context, CONTROL_GAP))
+                    setPadding(0, dp(context, 3), 0, controlGap(context))
                 },
                 matchWrap(),
             )
@@ -231,7 +221,7 @@ object YViewLayout {
     fun searchField(context: Context, hint: String): AppCompatEditText = AppCompatEditText(context).apply {
         this.hint = hint
         isSingleLine = true
-        minHeight = dp(context, 48)
+        minHeight = YView.dimen(context, R.dimen.yui_touch_target)
         setPadding(dp(context, 12), 0, dp(context, 12), 0)
         setTextColor(YView.onSurface(context))
         setHintTextColor(YView.onSurfaceVariant(context))
@@ -262,7 +252,7 @@ object YViewLayout {
     @JvmOverloads
     fun addAction(row: LinearLayout, button: View, weight: Float = 1f) {
         val lp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, weight)
-        if (row.childCount > 0) lp.marginStart = dp(row.context, CONTROL_GAP)
+        if (row.childCount > 0) lp.marginStart = controlGap(row.context)
         row.addView(button, lp)
     }
 
@@ -277,6 +267,7 @@ object YViewLayout {
         val row = LinearLayout(parent.context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = YView.dimen(context, R.dimen.yui_touch_target)
             setPadding(0, dp(context, 7), 0, dp(context, 7))
         }
         val texts = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
@@ -290,7 +281,7 @@ object YViewLayout {
                 text = description
                 textSize = 12.5f
                 setTextColor(YView.onSurfaceVariant(context))
-                setPadding(0, dp(context, 3), dp(context, CONTROL_GAP), 0)
+                setPadding(0, dp(context, 3), controlGap(context), 0)
             })
         }
         row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -304,8 +295,7 @@ object YViewLayout {
     }
 
     @JvmStatic
-    @JvmOverloads
-    fun dividerSpace(parent: LinearLayout, spaceDp: Int = CONTROL_GAP) {
+    fun dividerSpace(parent: LinearLayout, spaceDp: Int = 10) {
         parent.addView(View(parent.context), LinearLayout.LayoutParams(1, YView.dp(parent.context, spaceDp)))
     }
 
@@ -313,7 +303,7 @@ object YViewLayout {
         view.setTextColor(
             when (tone) {
                 YViewStatusTone.Neutral -> YView.onSurfaceVariant(view.context)
-                YViewStatusTone.Good -> YView.color(view.context, android.R.attr.colorAccent, 0xFF16794A.toInt())
+                YViewStatusTone.Good -> YView.color(view.context, androidx.appcompat.R.attr.colorPrimary, 0xFF16794A.toInt())
                 YViewStatusTone.Warning -> YView.color(view.context, com.google.android.material.R.attr.colorTertiary, 0xFF9A6700.toInt())
                 YViewStatusTone.Error -> YView.color(view.context, android.R.attr.colorError, 0xFFB3261E.toInt())
             },
@@ -325,5 +315,9 @@ object YViewLayout {
         ViewGroup.LayoutParams.WRAP_CONTENT,
     )
 
+    private fun screenH(context: Context): Int = YView.dimen(context, R.dimen.yui_screen_horizontal)
+    private fun screenV(context: Context): Int = YView.dimen(context, R.dimen.yui_screen_vertical)
+    private fun sectionGap(context: Context): Int = YView.dimen(context, R.dimen.yui_section_gap)
+    private fun controlGap(context: Context): Int = YView.dimen(context, R.dimen.yui_control_gap)
     private fun dp(context: Context, value: Int): Int = YView.dp(context, value)
 }
