@@ -148,7 +148,7 @@ internal object GeneratedFeatureCatalog {
             runtimeInitializerClassName = "com.yagay.YFloat.YFloatSuiteRuntime",
             standalonePackageName = "com.yagay.YFloat",
             standaloneEnabled = true,
-            sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED, SuiteCapability.ACCESSIBILITY, SuiteCapability.OVERLAY, SuiteCapability.NOTIFICATIONS),
+            sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED, SuiteCapability.ACCESSIBILITY, SuiteCapability.OVERLAY, SuiteCapability.NOTIFICATIONS, SuiteCapability.FILE_SHARE),
             accessibilityBridgeClassName = null,
             notificationListenerBridgeClassName = null,
             bootReceiverClassName = "com.yagay.YFloat.FloatServiceBootReceiver",
