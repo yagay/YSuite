@@ -419,41 +419,141 @@ fun YLogPanel(lines: List<String>, modifier: Modifier = Modifier, maxHeightDp: I
 fun YDivider(modifier: Modifier = Modifier) = HorizontalDivider(modifier, color = MaterialTheme.colorScheme.outlineVariant)
 
 @Composable
-fun YSettingsScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.SETTINGS, subtitle = subtitle, state = state, actions = actions, content = content)
+fun YSettingsScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.SETTINGS, subtitle = subtitle, state = state, actions = actions,
+    snackbarHost = snackbarHost, content = content,
+)
 
 @Composable
-fun YListScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, bottomBar: @Composable () -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.LIST, subtitle = subtitle, state = state, actions = actions, bottomBar = bottomBar, content = content)
+fun YListScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.LIST, subtitle = subtitle, state = state, actions = actions,
+    bottomBar = bottomBar, snackbarHost = snackbarHost, content = content,
+)
 
 @Composable
-fun YManagerScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, bottomBar: @Composable () -> Unit = {}, floatingActionButton: @Composable () -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.MANAGER, subtitle = subtitle, state = state, actions = actions, bottomBar = bottomBar, floatingActionButton = floatingActionButton, content = content)
+fun YManagerScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.MANAGER, subtitle = subtitle, state = state, actions = actions,
+    bottomBar = bottomBar, snackbarHost = snackbarHost,
+    floatingActionButton = floatingActionButton, content = content,
+)
 
 @Composable
-fun YBrowserScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, bottomBar: @Composable () -> Unit = {}, floatingActionButton: @Composable () -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.BROWSER, subtitle = subtitle, state = state, actions = actions, bottomBar = bottomBar, floatingActionButton = floatingActionButton, content = content)
+fun YBrowserScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.BROWSER, subtitle = subtitle, state = state, actions = actions,
+    bottomBar = bottomBar, snackbarHost = snackbarHost,
+    floatingActionButton = floatingActionButton, content = content,
+)
 
 @Composable
-fun YDashboardScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, bottomBar: @Composable () -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.DASHBOARD, subtitle = subtitle, state = state, actions = actions, bottomBar = bottomBar, content = content)
+fun YDashboardScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.DASHBOARD, subtitle = subtitle, state = state, actions = actions,
+    bottomBar = bottomBar, snackbarHost = snackbarHost, content = content,
+)
 
 @Composable
-fun YDetailScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.DETAIL, subtitle = subtitle, state = state, actions = actions, content = content)
+fun YDetailScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.DETAIL, subtitle = subtitle, state = state, actions = actions,
+    snackbarHost = snackbarHost, content = content,
+)
 
 @Composable
-fun YTimelineScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.TIMELINE, subtitle = subtitle, state = state, actions = actions, content = content)
+fun YTimelineScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.TIMELINE, subtitle = subtitle, state = state, actions = actions,
+    snackbarHost = snackbarHost, content = content,
+)
 
 @Composable
-fun YLogScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.LOG, subtitle = subtitle, state = state, actions = actions, content = content)
+fun YLogScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.LOG, subtitle = subtitle, state = state, actions = actions,
+    snackbarHost = snackbarHost, content = content,
+)
 
 @Composable
-fun YEditorScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, bottomBar: @Composable () -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.EDITOR, subtitle = subtitle, state = state, actions = actions, bottomBar = bottomBar, content = content)
+fun YEditorScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.EDITOR, subtitle = subtitle, state = state, actions = actions,
+    bottomBar = bottomBar, snackbarHost = snackbarHost, content = content,
+)
 
 @Composable
-fun YWizardScaffold(title: String, subtitle: String? = null, state: YPageState = YPageState.Ready, actions: @Composable RowScope.() -> Unit = {}, bottomBar: @Composable () -> Unit = {}, content: @Composable (PaddingValues) -> Unit) =
-    YPageScaffold(title, YPageRole.WIZARD, subtitle = subtitle, state = state, actions = actions, bottomBar = bottomBar, content = content)
+fun YWizardScaffold(
+    title: String,
+    subtitle: String? = null,
+    state: YPageState = YPageState.Ready,
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) = YPageScaffold(
+    title, YPageRole.WIZARD, subtitle = subtitle, state = state, actions = actions,
+    bottomBar = bottomBar, snackbarHost = snackbarHost, content = content,
+)
