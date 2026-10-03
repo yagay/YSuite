@@ -18,6 +18,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.material.checkbox.MaterialCheckBox;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewStatusTone;
