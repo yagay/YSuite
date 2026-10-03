@@ -67,7 +67,8 @@ public final class MainActivity extends Activity {
         addSwitch(card, getString(R.string.ymg_hot_reload), getString(R.string.ymg_hot_reload_desc),
                 ConfigKeys.ENGINE_AUTO_RELOAD);
 
-        Button reload = button(R.string.ymg_reload_now);
+        LinearLayout actions = YViewLayout.actionRow(card);
+        Button reload = YViewLayout.primaryButton(this, getString(R.string.ymg_reload_now));
         reload.setOnClickListener(v -> {
             if (!GuardApp.isHotReloadAvailable()) {
                 Toast.makeText(this, R.string.ymg_hot_reload_unavailable, Toast.LENGTH_LONG).show();
@@ -83,11 +84,11 @@ public final class MainActivity extends Activity {
                 engineStatus.postDelayed(this::refreshStatus, 2500L);
             }
         });
-        card.addView(reload);
+        YViewLayout.addAction(actions, reload);
 
-        Button refresh = button(R.string.ymg_recheck);
+        Button refresh = YViewLayout.secondaryButton(this, getString(R.string.ymg_recheck));
         refresh.setOnClickListener(v -> refreshStatus());
-        card.addView(refresh);
+        YViewLayout.addAction(actions, refresh);
     }
 
     private void addAppListsCard(LinearLayout parent) {
@@ -96,41 +97,35 @@ public final class MainActivity extends Activity {
                 getString(R.string.ymg_app_lists_title),
                 getString(R.string.ymg_app_lists_desc));
 
-        Button foreground = button(R.string.ymg_foreground_apps);
-        foreground.setOnClickListener(v -> {
-            Intent intent = new Intent(this, TargetAppsActivity.class);
-            intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_FOREGROUND);
-            startActivity(intent);
-        });
-        card.addView(foreground);
-        card.addView(YViewLayout.detailBlock(
-                this,
+        YViewLayout.navigationRow(
+                card,
                 getString(R.string.ymg_foreground_title),
-                getString(R.string.ymg_foreground_desc)));
+                getString(R.string.ymg_foreground_desc),
+                v -> {
+                    Intent intent = new Intent(this, TargetAppsActivity.class);
+                    intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_FOREGROUND);
+                    startActivity(intent);
+                });
 
-        Button background = button(R.string.ymg_background_apps);
-        background.setOnClickListener(v -> {
-            Intent intent = new Intent(this, TargetAppsActivity.class);
-            intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_BACKGROUND_PLAYBACK);
-            startActivity(intent);
-        });
-        card.addView(background);
-        card.addView(YViewLayout.detailBlock(
-                this,
+        YViewLayout.navigationRow(
+                card,
                 getString(R.string.ymg_background_title),
-                getString(R.string.ymg_background_desc)));
+                getString(R.string.ymg_background_desc),
+                v -> {
+                    Intent intent = new Intent(this, TargetAppsActivity.class);
+                    intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_BACKGROUND_PLAYBACK);
+                    startActivity(intent);
+                });
 
-        Button support = button(R.string.ymg_force_support_apps);
-        support.setOnClickListener(v -> {
-            Intent intent = new Intent(this, TargetAppsActivity.class);
-            intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_FORCE_SUPPORT);
-            startActivity(intent);
-        });
-        card.addView(support);
-        card.addView(YViewLayout.detailBlock(
-                this,
+        YViewLayout.navigationRow(
+                card,
                 getString(R.string.ymg_support_title),
-                getString(R.string.ymg_support_desc)));
+                getString(R.string.ymg_support_desc),
+                v -> {
+                    Intent intent = new Intent(this, TargetAppsActivity.class);
+                    intent.putExtra(TargetAppsActivity.EXTRA_MODE, TargetAppsActivity.MODE_FORCE_SUPPORT);
+                    startActivity(intent);
+                });
     }
 
     private void addForegroundCard(LinearLayout parent) {
@@ -156,25 +151,27 @@ public final class MainActivity extends Activity {
         diagnosticsStatus = YViewLayout.statusLine(this, getString(R.string.ymg_diag_checking));
         card.addView(diagnosticsStatus);
 
-        Button start = button(R.string.ymg_diag_start);
+        LinearLayout actions = YViewLayout.actionRow(card);
+
+        Button start = YViewLayout.primaryButton(this, getString(R.string.ymg_diag_start));
         start.setOnClickListener(v -> {
             DiagnosticsManager.startSession();
             refreshDiagnosticsStatus();
             Toast.makeText(this, R.string.ymg_diag_started, Toast.LENGTH_SHORT).show();
         });
-        card.addView(start);
+        YViewLayout.addAction(actions, start);
 
-        Button stop = button(R.string.ymg_diag_stop);
+        Button stop = YViewLayout.secondaryButton(this, getString(R.string.ymg_diag_stop));
         stop.setOnClickListener(v -> {
             DiagnosticsManager.stopSession();
             refreshDiagnosticsStatus();
             Toast.makeText(this, R.string.ymg_diag_stopped, Toast.LENGTH_SHORT).show();
         });
-        card.addView(stop);
+        YViewLayout.addAction(actions, stop);
 
-        diagnosticsExport = button(R.string.ymg_diag_export);
+        diagnosticsExport = YViewLayout.secondaryButton(this, getString(R.string.ymg_diag_export));
         diagnosticsExport.setOnClickListener(v -> exportDiagnostics());
-        card.addView(diagnosticsExport);
+        YViewLayout.addAction(actions, diagnosticsExport);
     }
 
     private void exportDiagnostics() {
@@ -287,7 +284,4 @@ public final class MainActivity extends Activity {
                 (button, checked) -> GuardApp.putBoolean(key, checked));
     }
 
-    private Button button(int textRes) {
-        return YViewLayout.primaryButton(this, getString(textRes));
-    }
 }
