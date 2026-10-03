@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?><resources>
 <string name="ydownload_title">YDownload</string><string name="ydownload_subtitle">Patch and extend Android downloads without replacing DownloadProvider</string>
-<string name="new_download">New download</string><string name="new_download_summary">System DownloadManager is the default; the resumable YDownload engine remains available as an explicit fallback.</string>
+<string name="new_download">New download</string><string name="new_download_summary">Keep the system DownloadManager as the compatibility path and use YDownload Enhanced when you need stronger pause/resume, concurrency and retry control.</string>
 <string name="url">URL</string><string name="file_name_optional">File name (optional)</string><string name="start">Start</string>
 <string name="system_download">System download</string><string name="enhanced_download">Enhanced download</string>
 <string name="system_patch">System download patch</string><string name="system_patch_summary">Keep Android DownloadProvider as the owner and apply safe request policies around DownloadManager.</string>
@@ -8,6 +8,9 @@
 <string name="download_provider">DownloadProvider</string><string name="preserved">Preserved</string><string name="default_engine">Default engine</string><string name="android_download_manager">Android DownloadManager</string><string name="engine">Engine</string><string name="native_engine">YDownload native HTTP engine</string><string name="enhanced_engine">YDownload enhanced engine</string>
 <string name="enable_system_patch">Enable DownloadManager patch</string><string name="enable_system_patch_summary">Apply these policies to DownloadManager requests in LSPosed-scoped apps while keeping the original system call.</string>
 <string name="allow_metered">Allow metered networks</string><string name="allow_roaming">Allow roaming</string><string name="require_charging">Require charging</string><string name="require_idle">Require device idle</string><string name="force_completion_notification">Keep completion notification</string>
+<string name="enhanced_engine_settings">Enhanced engine</string><string name="enhanced_engine_settings_summary">Independent YDownload engine for features the system downloader does not reliably expose.</string>
+<string name="concurrent_downloads">Concurrent downloads</string><string name="auto_retry">Automatic retry</string><string name="auto_retry_summary">Retry transient failures with short exponential backoff while keeping already downloaded bytes for resume.</string><string name="max_retries">Maximum retries</string><string name="retry_count">Retries used</string>
+<string name="enhanced_engine_reference_note">Design follows proven download-manager patterns such as bounded concurrency, resumable transfers, persistent state, speed/ETA and controlled retry while keeping the implementation independent.</string>
 <string name="no_downloads">No downloads</string><string name="no_downloads_summary">Add an HTTP or HTTPS link above.</string>
 <string name="status">Status</string><string name="progress">Progress</string><string name="progress_percent">%1$d%%</string><string name="queued">Queued</string><string name="running">Running</string><string name="paused">Paused</string><string name="completed">Completed</string><string name="failed">Failed</string><string name="cancelled">Cancelled</string>
 <string name="ydownload_speed">Speed</string><string name="ydownload_eta">ETA</string>
