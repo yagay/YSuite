@@ -2,7 +2,6 @@ package com.yagay.yui
 
 import android.app.Activity
 import android.content.Context
-import android.graphics.Typeface
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -74,17 +73,14 @@ object YViewLayout {
     fun header(parent: LinearLayout, title: String, subtitle: String? = null) {
         val heading = TextView(parent.context).apply {
             text = title
-            textSize = 21f
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(YView.onSurface(context))
+            YView.stylePageTitle(this)
         }
         parent.addView(heading, matchWrap())
         if (!subtitle.isNullOrBlank()) {
             parent.addView(
                 TextView(parent.context).apply {
                     text = subtitle
-                    textSize = 13f
-                    setTextColor(YView.onSurfaceVariant(context))
+                    YView.styleBody(this)
                     setPadding(0, dp(context, 3), 0, sectionGap(context))
                 },
                 matchWrap(),
@@ -99,9 +95,7 @@ object YViewLayout {
     fun sectionHeader(parent: LinearLayout, title: String, subtitle: String? = null): TextView {
         val heading = TextView(parent.context).apply {
             text = title
-            textSize = 16f
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(YView.onSurface(context))
+            YView.styleSectionTitle(this)
             setPadding(0, sectionGap(context), 0, dp(context, 4))
         }
         parent.addView(heading, matchWrap())
@@ -109,8 +103,7 @@ object YViewLayout {
             parent.addView(
                 TextView(parent.context).apply {
                     text = subtitle
-                    textSize = 12.5f
-                    setTextColor(YView.onSurfaceVariant(context))
+                    YView.styleCaption(this)
                     setPadding(0, 0, 0, controlGap(context))
                 },
                 matchWrap(),
@@ -143,9 +136,7 @@ object YViewLayout {
         card.addView(
             TextView(parent.context).apply {
                 text = title
-                textSize = 16f
-                setTypeface(typeface, Typeface.BOLD)
-                setTextColor(YView.onSurface(context))
+                YView.styleSectionTitle(this)
             },
             matchWrap(),
         )
@@ -153,8 +144,7 @@ object YViewLayout {
             card.addView(
                 TextView(parent.context).apply {
                     text = subtitle
-                    textSize = 12.5f
-                    setTextColor(YView.onSurfaceVariant(context))
+                    YView.styleCaption(this)
                     setPadding(0, dp(context, 3), 0, controlGap(context))
                 },
                 matchWrap(),
@@ -168,7 +158,7 @@ object YViewLayout {
     fun statusLine(context: Context, text: String, tone: YViewStatusTone = YViewStatusTone.Neutral): TextView =
         TextView(context).apply {
             this.text = text
-            textSize = 14f
+            YView.styleBody(this)
             setPadding(0, dp(context, 5), 0, dp(context, 5))
             setStatusTone(this, tone)
         }
@@ -183,9 +173,8 @@ object YViewLayout {
     @JvmStatic
     fun emptyState(context: Context, message: String): TextView = TextView(context).apply {
         text = message
-        textSize = 13f
+        YView.styleBody(this)
         gravity = Gravity.CENTER
-        setTextColor(YView.onSurfaceVariant(context))
         setPadding(0, dp(context, 22), 0, dp(context, 22))
     }
 
@@ -197,15 +186,14 @@ object YViewLayout {
         addView(
             TextView(context).apply {
                 text = label
-                textSize = 13f
-                setTextColor(YView.onSurfaceVariant(context))
+                YView.styleCaption(this)
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.36f),
         )
         addView(
             TextView(context).apply {
                 text = value
-                textSize = 13f
+                YView.styleBody(this)
                 setTextColor(YView.onSurface(context))
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.64f),
@@ -218,14 +206,11 @@ object YViewLayout {
         setPadding(0, dp(context, 7), 0, dp(context, 7))
         addView(TextView(context).apply {
             text = title
-            textSize = 14f
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(YView.onSurface(context))
+            YView.styleStrongBody(this)
         })
         addView(TextView(context).apply {
             text = description
-            textSize = 12.5f
-            setTextColor(YView.onSurfaceVariant(context))
+            YView.styleCaption(this)
             setPadding(0, dp(context, 3), 0, 0)
         })
     }
@@ -243,16 +228,14 @@ object YViewLayout {
 
     @JvmStatic
     fun listTitle(context: Context): TextView = TextView(context).apply {
-        textSize = 15f
+        YView.styleItemTitle(this)
         maxLines = 1
-        setTextColor(YView.onSurface(context))
     }
 
     @JvmStatic
     fun listSubtitle(context: Context): TextView = TextView(context).apply {
-        textSize = 12.5f
+        YView.styleCaption(this)
         maxLines = 2
-        setTextColor(YView.onSurfaceVariant(context))
     }
 
     @JvmStatic
@@ -320,14 +303,12 @@ object YViewLayout {
         val texts = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
         texts.addView(TextView(parent.context).apply {
             text = title
-            textSize = 15f
-            setTextColor(YView.onSurface(context))
+            YView.styleItemTitle(this)
         })
         if (!description.isNullOrBlank()) {
             texts.addView(TextView(parent.context).apply {
                 text = description
-                textSize = 12.5f
-                setTextColor(YView.onSurfaceVariant(context))
+                YView.styleCaption(this)
                 setPadding(0, dp(context, 3), controlGap(context), 0)
             })
         }
