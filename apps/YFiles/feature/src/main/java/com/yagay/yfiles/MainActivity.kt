@@ -157,9 +157,9 @@ class MainActivity : YComposeActivity() {
                 item {
                     YFilterBar(
                         options = listOf(
-                            stringResource(R.string.location),
-                            stringResource(R.string.advanced_file_tools),
-                            stringResource(R.string.documentsui_integration),
+                            stringResource(R.string.yfiles_tab_files),
+                            stringResource(R.string.yfiles_tab_tools),
+                            stringResource(R.string.yfiles_tab_settings),
                         ),
                         selectedIndex = page,
                         onSelected = { page = it },
