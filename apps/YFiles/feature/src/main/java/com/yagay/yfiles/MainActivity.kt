@@ -19,6 +19,7 @@ import com.yagay.suite.api.HostCapabilityState
 import com.yagay.suite.api.HostLogLevel
 import com.yagay.yui.YActionRow
 import com.yagay.yui.YComposeActivity
+import com.yagay.yui.YChoiceSetting
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YBrowserScaffold
 import com.yagay.yui.YPageList
@@ -174,43 +175,31 @@ class MainActivity : YComposeActivity() {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) { copy(allowMultiple = it) }
                             },
                         )
-                        val sortLabel = when (patchSettings.defaultSort) {
-                            YFilesPatchSettings.SORT_NAME -> stringResource(R.string.sort_name)
-                            YFilesPatchSettings.SORT_DATE -> stringResource(R.string.sort_modified)
-                            YFilesPatchSettings.SORT_SIZE -> stringResource(R.string.sort_size)
-                            YFilesPatchSettings.SORT_TYPE -> stringResource(R.string.sort_type)
-                            else -> stringResource(R.string.system_default)
-                        }
-                        YStatusRow(stringResource(R.string.default_sort), sortLabel, YStatusTone.Neutral)
-                        YActionRow {
-                            YSecondaryActionButton(onClick = {
-                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
-                                    copy(defaultSort = YFilesPatchSettings.SORT_SYSTEM)
+                        val pickerSortValues = listOf(
+                            YFilesPatchSettings.SORT_SYSTEM,
+                            YFilesPatchSettings.SORT_NAME,
+                            YFilesPatchSettings.SORT_DATE,
+                            YFilesPatchSettings.SORT_SIZE,
+                            YFilesPatchSettings.SORT_TYPE,
+                        )
+                        YChoiceSetting(
+                            title = stringResource(R.string.default_sort),
+                            options = listOf(
+                                stringResource(R.string.system_default),
+                                stringResource(R.string.sort_name),
+                                stringResource(R.string.sort_modified),
+                                stringResource(R.string.sort_size),
+                                stringResource(R.string.sort_type),
+                            ),
+                            selectedIndex = pickerSortValues.indexOf(patchSettings.defaultSort).coerceAtLeast(0),
+                            onSelected = { index ->
+                                pickerSortValues.getOrNull(index)?.let { selected ->
+                                    patchSettings = YFilesPatchSettings.update(this@MainActivity) {
+                                        copy(defaultSort = selected)
+                                    }
                                 }
-                            }) { Text(stringResource(R.string.system_default)) }
-                            YSecondaryActionButton(onClick = {
-                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
-                                    copy(defaultSort = YFilesPatchSettings.SORT_NAME)
-                                }
-                            }) { Text(stringResource(R.string.sort_name)) }
-                            YSecondaryActionButton(onClick = {
-                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
-                                    copy(defaultSort = YFilesPatchSettings.SORT_DATE)
-                                }
-                            }) { Text(stringResource(R.string.sort_modified)) }
-                        }
-                        YActionRow {
-                            YSecondaryActionButton(onClick = {
-                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
-                                    copy(defaultSort = YFilesPatchSettings.SORT_SIZE)
-                                }
-                            }) { Text(stringResource(R.string.sort_size)) }
-                            YSecondaryActionButton(onClick = {
-                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
-                                    copy(defaultSort = YFilesPatchSettings.SORT_TYPE)
-                                }
-                            }) { Text(stringResource(R.string.sort_type)) }
-                        }
+                            },
+                        )
                         YStatusRow(
                             stringResource(R.string.default_picker_folder),
                             if (patchSettings.initialUri.isNullOrBlank()) {
@@ -323,46 +312,25 @@ class MainActivity : YComposeActivity() {
                             enabled = rootGranted,
                         )
                         if (!rootMode) {
-                            val localSortLabel = when (sortMode) {
-                                FileSortMode.NAME -> stringResource(R.string.sort_name)
-                                FileSortMode.MODIFIED -> stringResource(R.string.sort_modified)
-                                FileSortMode.SIZE -> stringResource(R.string.sort_size)
-                                FileSortMode.TYPE -> stringResource(R.string.sort_type)
-                            }
-                            YStatusRow(
-                                stringResource(R.string.local_sort),
-                                localSortLabel + " · " + if (sortDescending) {
-                                    stringResource(R.string.descending)
-                                } else {
-                                    stringResource(R.string.ascending)
+                            val sortModes = FileSortMode.entries
+                            YChoiceSetting(
+                                title = stringResource(R.string.local_sort),
+                                options = listOf(
+                                    stringResource(R.string.sort_name),
+                                    stringResource(R.string.sort_modified),
+                                    stringResource(R.string.sort_size),
+                                    stringResource(R.string.sort_type),
+                                ),
+                                selectedIndex = sortModes.indexOf(sortMode).coerceAtLeast(0),
+                                onSelected = { index ->
+                                    sortModes.getOrNull(index)?.let { sortMode = it }
                                 },
-                                YStatusTone.Neutral,
                             )
-                            YActionRow {
-                                YSecondaryActionButton(onClick = { sortMode = FileSortMode.NAME }) {
-                                    Text(stringResource(R.string.sort_name))
-                                }
-                                YSecondaryActionButton(onClick = { sortMode = FileSortMode.MODIFIED }) {
-                                    Text(stringResource(R.string.sort_modified))
-                                }
-                                YSecondaryActionButton(onClick = { sortMode = FileSortMode.SIZE }) {
-                                    Text(stringResource(R.string.sort_size))
-                                }
-                            }
-                            YActionRow {
-                                YSecondaryActionButton(onClick = { sortMode = FileSortMode.TYPE }) {
-                                    Text(stringResource(R.string.sort_type))
-                                }
-                                YSecondaryActionButton(onClick = { sortDescending = !sortDescending }) {
-                                    Text(
-                                        if (sortDescending) {
-                                            stringResource(R.string.descending)
-                                        } else {
-                                            stringResource(R.string.ascending)
-                                        },
-                                    )
-                                }
-                            }
+                            YSettingSwitch(
+                                title = stringResource(R.string.descending),
+                                checked = sortDescending,
+                                onCheckedChange = { sortDescending = it },
+                            )
                         }
                         pendingTransfer?.let { transfer ->
                             val transferLabel = if (transfer.mode == FileTransferMode.COPY) {
