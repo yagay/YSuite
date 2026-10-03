@@ -1,6 +1,7 @@
 package com.yagay.YNFC
 
 import android.content.Context
+import com.yagay.suite.api.FeatureServices
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -8,23 +9,19 @@ import java.util.Locale
 object AppLogger {
     private val lines = ArrayDeque<String>()
     private val format = SimpleDateFormat("HH:mm:ss.SSS", Locale.ROOT)
-    @Volatile private var appContext: Context? = null
+    private val services = FeatureServices.of("ynfc", "YNFC")
 
-    fun attach(context: Context) {
-        appContext = context.applicationContext
-    }
+    /** Kept for compatibility; host discovery and log routing are centralized. */
+    fun attach(context: Context) = Unit
 
-    fun detach() {
-        appContext = null
-    }
+    fun detach() = Unit
 
     @Synchronized
     fun i(message: String) {
         val line = "[${format.format(Date())}] APP: $message"
         lines.addLast(line)
         while (lines.size > 1000) lines.removeFirst()
-        android.util.Log.i("YNFC", message)
-        mirrorToYSuite("I", message, null)
+        services.info(message)
     }
 
     @Synchronized
@@ -33,32 +30,7 @@ object AppLogger {
         val line = "[${format.format(Date())}] APP: $detail"
         lines.addLast(line)
         while (lines.size > 1000) lines.removeFirst()
-        android.util.Log.e("YNFC", message, error)
-        mirrorToYSuite("E", message, error)
-    }
-
-    private fun mirrorToYSuite(level: String, message: String, error: Throwable?) {
-        val context = appContext ?: return
-        runCatching {
-            val clazz = Class.forName("com.yagay.suite.core.SuiteLog")
-            val instance = clazz.getField("INSTANCE").get(null)
-            if (level == "E") {
-                clazz.getMethod(
-                    "e",
-                    Context::class.java,
-                    String::class.java,
-                    String::class.java,
-                    Throwable::class.java
-                ).invoke(instance, context, "ynfc", message, error)
-            } else {
-                clazz.getMethod(
-                    "i",
-                    Context::class.java,
-                    String::class.java,
-                    String::class.java
-                ).invoke(instance, context, "ynfc", message)
-            }
-        }
+        services.error(message, error)
     }
 
     @Synchronized
