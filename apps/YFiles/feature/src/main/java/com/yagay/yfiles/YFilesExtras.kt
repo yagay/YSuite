@@ -395,6 +395,11 @@ fun YFilesExtraToolsCard(
         title = stringResource(R.string.navigation_safety_tools),
         subtitle = stringResource(R.string.navigation_safety_tools_summary),
     ) {
+        YFilesBatchToolbar(
+            path = path,
+            onChanged = onChanged,
+            onError = onError,
+        )
         YStatusRow(
             stringResource(R.string.favorite_folder),
             if (isFavorite) stringResource(R.string.yfiles_yes) else stringResource(R.string.yfiles_no),
@@ -537,6 +542,9 @@ fun YFilesEntryExtraActions(
     var busy by remember(entry.path) { mutableStateOf(false) }
     var checksum by remember(entry.path) { mutableStateOf<String?>(null) }
 
+    YActionRow {
+        YFilesSelectionToggle(entry)
+    }
     YActionRow {
         if (!entry.isDirectory) {
             OutlinedButton(
