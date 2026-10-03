@@ -1,5 +1,6 @@
 package com.yagay.yfiles
 
+import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
@@ -32,10 +33,38 @@ import java.io.File
 
 class MainActivity : YComposeActivity() {
     private var capabilityRevision by mutableStateOf(0)
+    private var pickerRevision by mutableStateOf(0)
 
     override fun onResume() {
         super.onResume()
         capabilityRevision++
+    }
+
+    @Deprecated("Legacy activity result API is intentionally used for broad standalone compatibility")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != Activity.RESULT_OK) return
+        val uri = data?.data
+        when (requestCode) {
+            SystemPickerBridge.REQUEST_DEFAULT_TREE -> {
+                SystemPickerBridge.rememberReturnedUri(this, uri, data.flags)
+                YFilesPatchSettings.setInitialUri(this, uri)
+                pickerRevision++
+            }
+            SystemPickerBridge.REQUEST_TREE,
+            SystemPickerBridge.REQUEST_OPEN,
+            SystemPickerBridge.REQUEST_CREATE -> {
+                SystemPickerBridge.rememberReturnedUri(this, uri, data.flags)
+            }
+            SystemPickerBridge.REQUEST_OPEN_MULTIPLE -> {
+                uri?.let { SystemPickerBridge.rememberReturnedUri(this, it, data.flags) }
+                data.clipData?.let { clips ->
+                    for (i in 0 until clips.itemCount) {
+                        SystemPickerBridge.rememberReturnedUri(this, clips.getItemAt(i).uri, data.flags)
+                    }
+                }
+            }
+        }
     }
 
     @Composable
@@ -51,6 +80,7 @@ class MainActivity : YComposeActivity() {
         var refresh by remember { mutableStateOf(0) }
         var rootMode by remember { mutableStateOf(false) }
         var rootNames by remember { mutableStateOf<List<String>>(emptyList()) }
+        var patchSettings by remember(pickerRevision) { mutableStateOf(YFilesPatchSettings.load(this)) }
 
         val allFilesState = remember(capabilityRevision) {
             YFilesSuiteRuntime.capabilityState(HostCapability.ALL_FILES)
@@ -76,6 +106,124 @@ class MainActivity : YComposeActivity() {
         ) { padding ->
             YFeatureList(padding) {
                 item {
+                    YFeatureCard(
+                        title = stringResource(R.string.documentsui_integration),
+                        subtitle = stringResource(R.string.documentsui_summary),
+                    ) {
+                        YStatusRow(
+                            stringResource(R.string.documentsui),
+                            stringResource(R.string.yfiles_preserved),
+                            YStatusTone.Good,
+                        )
+                        YSettingSwitch(
+                            title = stringResource(R.string.enable_picker_patch),
+                            subtitle = stringResource(R.string.enable_picker_patch_summary),
+                            checked = patchSettings.enabled,
+                            onCheckedChange = {
+                                patchSettings = YFilesPatchSettings.update(this@MainActivity) { copy(enabled = it) }
+                            },
+                        )
+                        YSettingSwitch(
+                            title = stringResource(R.string.local_files_only),
+                            checked = patchSettings.localOnly,
+                            onCheckedChange = {
+                                patchSettings = YFilesPatchSettings.update(this@MainActivity) { copy(localOnly = it) }
+                            },
+                        )
+                        YSettingSwitch(
+                            title = stringResource(R.string.allow_multiple_picker),
+                            subtitle = stringResource(R.string.allow_multiple_picker_summary),
+                            checked = patchSettings.allowMultiple,
+                            onCheckedChange = {
+                                patchSettings = YFilesPatchSettings.update(this@MainActivity) { copy(allowMultiple = it) }
+                            },
+                        )
+                        YStatusRow(
+                            stringResource(R.string.default_picker_folder),
+                            if (patchSettings.initialUri.isNullOrBlank()) {
+                                stringResource(R.string.system_default)
+                            } else {
+                                stringResource(R.string.custom_folder)
+                            },
+                            if (patchSettings.initialUri.isNullOrBlank()) YStatusTone.Neutral else YStatusTone.Good,
+                        )
+                        patchSettings.initialUri?.let { Text(it) }
+                        YActionRow {
+                            Button(onClick = {
+                                @Suppress("DEPRECATION")
+                                startActivityForResult(
+                                    SystemPickerBridge.openDocument(this@MainActivity),
+                                    SystemPickerBridge.REQUEST_OPEN,
+                                )
+                            }) { Text(stringResource(R.string.system_pick_file)) }
+                            OutlinedButton(onClick = {
+                                @Suppress("DEPRECATION")
+                                startActivityForResult(
+                                    SystemPickerBridge.openDocument(this@MainActivity, multiple = true),
+                                    SystemPickerBridge.REQUEST_OPEN_MULTIPLE,
+                                )
+                            }) { Text(stringResource(R.string.system_pick_multiple)) }
+                        }
+                        YActionRow {
+                            OutlinedButton(onClick = {
+                                @Suppress("DEPRECATION")
+                                startActivityForResult(
+                                    SystemPickerBridge.openTree(this@MainActivity),
+                                    SystemPickerBridge.REQUEST_TREE,
+                                )
+                            }) { Text(stringResource(R.string.system_pick_folder)) }
+                            OutlinedButton(onClick = {
+                                @Suppress("DEPRECATION")
+                                startActivityForResult(
+                                    SystemPickerBridge.createDocument(this@MainActivity),
+                                    SystemPickerBridge.REQUEST_CREATE,
+                                )
+                            }) { Text(stringResource(R.string.system_create_file)) }
+                        }
+                        YActionRow {
+                            OutlinedButton(onClick = {
+                                @Suppress("DEPRECATION")
+                                startActivityForResult(
+                                    SystemPickerBridge.openTree(this@MainActivity),
+                                    SystemPickerBridge.REQUEST_DEFAULT_TREE,
+                                )
+                            }) { Text(stringResource(R.string.set_default_folder)) }
+                            OutlinedButton(
+                                onClick = {
+                                    patchSettings = YFilesPatchSettings.setInitialUri(this@MainActivity, null)
+                                    pickerRevision++
+                                },
+                                enabled = !patchSettings.initialUri.isNullOrBlank(),
+                            ) { Text(stringResource(R.string.clear_default_folder)) }
+                        }
+                        Text(stringResource(R.string.documentsui_note))
+                    }
+                }
+
+                item {
+                    YFeatureCard(
+                        title = stringResource(R.string.advanced_file_tools),
+                        subtitle = stringResource(R.string.advanced_file_tools_summary),
+                    ) {
+                        YStatusRow(
+                            stringResource(R.string.all_files_access),
+                            if (allFilesGranted) stringResource(R.string.granted) else stringResource(R.string.not_granted),
+                            if (allFilesGranted) YStatusTone.Good else YStatusTone.Warning,
+                        )
+                        YStatusRow(
+                            stringResource(R.string.root_access),
+                            if (rootGranted) stringResource(R.string.available) else stringResource(R.string.unavailable),
+                            if (rootGranted) YStatusTone.Good else YStatusTone.Neutral,
+                        )
+                        if (!allFilesGranted) {
+                            OutlinedButton(onClick = {
+                                YFilesSuiteRuntime.requestCapability(this@MainActivity, HostCapability.ALL_FILES)
+                            }) { Text(stringResource(R.string.open_settings)) }
+                        }
+                    }
+                }
+
+                item {
                     YFeatureCard(title = stringResource(R.string.location), subtitle = path) {
                         YSearchField(query, { query = it }, hint = stringResource(R.string.search_files))
                         YSettingSwitch(
@@ -97,27 +245,9 @@ class MainActivity : YComposeActivity() {
                                 enabled = repository.parent(path) != null,
                             ) { Text(stringResource(R.string.parent)) }
                             OutlinedButton(onClick = { refresh++ }) { Text(stringResource(R.string.refresh)) }
-                            Button(onClick = { newFolderDialog = true }, enabled = !rootMode) { Text(stringResource(R.string.new_folder)) }
-                        }
-                    }
-                }
-
-                item {
-                    YFeatureCard(title = stringResource(R.string.access_status), subtitle = stringResource(R.string.access_status_summary)) {
-                        YStatusRow(
-                            stringResource(R.string.all_files_access),
-                            if (allFilesGranted) stringResource(R.string.granted) else stringResource(R.string.not_granted),
-                            if (allFilesGranted) YStatusTone.Good else YStatusTone.Warning,
-                        )
-                        YStatusRow(
-                            stringResource(R.string.root_access),
-                            if (rootGranted) stringResource(R.string.available) else stringResource(R.string.unavailable),
-                            if (rootGranted) YStatusTone.Good else YStatusTone.Neutral,
-                        )
-                        if (!allFilesGranted) {
-                            OutlinedButton(onClick = {
-                                YFilesSuiteRuntime.requestCapability(this@MainActivity, HostCapability.ALL_FILES)
-                            }) { Text(stringResource(R.string.open_settings)) }
+                            Button(onClick = { newFolderDialog = true }, enabled = !rootMode) {
+                                Text(stringResource(R.string.new_folder))
+                            }
                         }
                     }
                 }
@@ -139,9 +269,13 @@ class MainActivity : YComposeActivity() {
                         ) {
                             YActionRow {
                                 if (entry.isDirectory) {
-                                    Button(onClick = { path = entry.path; query = "" }) { Text(stringResource(R.string.yfiles_open)) }
+                                    Button(onClick = { path = entry.path; query = "" }) {
+                                        Text(stringResource(R.string.yfiles_open))
+                                    }
                                 } else {
-                                    Button(onClick = { openFile(File(entry.path)) }) { Text(stringResource(R.string.yfiles_open)) }
+                                    Button(onClick = { openFile(File(entry.path)) }) {
+                                        Text(stringResource(R.string.yfiles_open))
+                                    }
                                 }
                                 OutlinedButton(onClick = {
                                     repository.delete(entry).onFailure { error = it.message }
@@ -149,16 +283,6 @@ class MainActivity : YComposeActivity() {
                                 }) { Text(stringResource(R.string.delete)) }
                             }
                         }
-                    }
-                }
-
-                item {
-                    YFeatureCard(
-                        title = stringResource(R.string.documentsui_integration),
-                        subtitle = stringResource(R.string.documentsui_summary),
-                    ) {
-                        YStatusRow(stringResource(R.string.documentsui), stringResource(R.string.yfiles_preserved), YStatusTone.Good)
-                        Text(stringResource(R.string.documentsui_note))
                     }
                 }
             }
@@ -184,7 +308,9 @@ class MainActivity : YComposeActivity() {
                     }) { Text(stringResource(R.string.create)) }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { newFolderDialog = false }) { Text(stringResource(R.string.yfiles_cancel)) }
+                    OutlinedButton(onClick = { newFolderDialog = false }) {
+                        Text(stringResource(R.string.yfiles_cancel))
+                    }
                 },
             )
         }
@@ -209,7 +335,10 @@ class MainActivity : YComposeActivity() {
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
         var size = value.toDouble()
         var unit = 0
-        while (size >= 1024.0 && unit < units.lastIndex) { size /= 1024.0; unit++ }
+        while (size >= 1024.0 && unit < units.lastIndex) {
+            size /= 1024.0
+            unit++
+        }
         return if (unit == 0) "$value B" else "%.1f %s".format(size, units[unit])
     }
 }
