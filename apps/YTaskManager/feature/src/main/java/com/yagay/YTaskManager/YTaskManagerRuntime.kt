@@ -2,6 +2,7 @@ package com.yagay.YTaskManager
 
 import android.content.Context
 import com.yagay.YTaskManager.model.FrameworkState
+import com.yagay.suite.api.XposedHostBridge
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,11 +28,15 @@ class YTaskManagerRuntime private constructor(context: Context) : XposedServiceH
     private var enabled: Boolean = true
 
     init {
-        if (!attachToSuiteBroker()) {
-            XposedServiceHelper.registerListener(this)
-            AppLogger.i("Standalone LSPosed runtime listener registered for ${appContext.packageName}")
-        } else {
-            AppLogger.i("LSPosed runtime attached to YSuite broker")
+        when (XposedHostBridge.attachListener(appContext, FEATURE_ID, this)) {
+            XposedHostBridge.AttachResult.NOT_SUITE_HOST -> {
+                XposedServiceHelper.registerListener(this)
+                AppLogger.i("Standalone LSPosed runtime listener registered for ${appContext.packageName}")
+            }
+            XposedHostBridge.AttachResult.ATTACHED ->
+                AppLogger.i("LSPosed runtime attached to managed host broker")
+            XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED ->
+                AppLogger.e("Managed host LSPosed broker attach failed")
         }
     }
 
@@ -46,31 +51,6 @@ class YTaskManagerRuntime private constructor(context: Context) : XposedServiceH
             AppLogger.i("Managed runtime disabled; LSPosed service released")
         } else {
             AppLogger.i("Managed runtime enabled; waiting for LSPosed replay")
-        }
-    }
-
-    private fun attachToSuiteBroker(): Boolean {
-        val broker = try {
-            Class.forName(
-                "com.yagay.suite.core.SuiteXposedServiceBroker",
-                false,
-                javaClass.classLoader,
-            )
-        } catch (_: ClassNotFoundException) {
-            return false
-        } catch (error: Throwable) {
-            AppLogger.e("YSuite broker lookup failed", error)
-            return true
-        }
-
-        return try {
-            broker.getMethod("attachFromPlugin", String::class.java, Any::class.java)
-                .invoke(null, "ytaskmanager", this)
-            true
-        } catch (error: Throwable) {
-            AppLogger.e("YSuite broker attach failed", error)
-            // Host exists: never replace its process-global listener.
-            true
         }
     }
 
@@ -109,6 +89,7 @@ class YTaskManagerRuntime private constructor(context: Context) : XposedServiceH
     }
 
     companion object {
+        private const val FEATURE_ID = "ytaskmanager"
         @Volatile private var instance: YTaskManagerRuntime? = null
 
         @JvmStatic
