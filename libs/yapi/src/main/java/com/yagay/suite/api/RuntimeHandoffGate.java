@@ -30,7 +30,7 @@ public final class RuntimeHandoffGate {
 
     /** Called only by code running as an embedded YSuite logical plugin. */
     public static void markSuiteActive(String featureId, String targetProcess) {
-        Context context = currentContext();
+        Context context = AndroidRuntimeContext.current();
         if (context == null) return;
         Bundle extras = extras(featureId, targetProcess);
         try {
@@ -44,7 +44,7 @@ public final class RuntimeHandoffGate {
      * Any uncertainty means false, keeping the standalone hook active as the safe fallback.
      */
     public static boolean isSuiteActiveHere(String featureId, String targetProcess) {
-        Context context = currentContext();
+        Context context = AndroidRuntimeContext.current();
         if (context == null) return false;
         Bundle extras = extras(featureId, targetProcess);
         try {
@@ -63,40 +63,9 @@ public final class RuntimeHandoffGate {
 
     private static Bundle extras(String featureId, String targetProcess) {
         Bundle extras = new Bundle();
-        extras.putString(EXTRA_FEATURE, sanitize(featureId));
+        extras.putString(EXTRA_FEATURE, FeatureIds.normalize(featureId));
         extras.putString(EXTRA_TARGET, targetProcess == null ? "" : targetProcess);
         extras.putInt("pid", Process.myPid());
         return extras;
-    }
-
-    private static String sanitize(String value) {
-        if (value == null) return "unknown";
-        String cleaned = value.trim().toLowerCase(java.util.Locale.ROOT)
-                .replaceAll("[^a-z0-9_]", "_");
-        return cleaned.isEmpty() ? "unknown" : cleaned;
-    }
-
-    private static Context currentContext() {
-        try {
-            Class<?> activityThread = Class.forName("android.app.ActivityThread");
-            java.lang.reflect.Method currentApplication = activityThread.getDeclaredMethod("currentApplication");
-            currentApplication.setAccessible(true);
-            Object app = currentApplication.invoke(null);
-            if (app instanceof android.app.Application) {
-                return ((android.app.Application) app).getApplicationContext();
-            }
-
-            java.lang.reflect.Method currentThread = activityThread.getDeclaredMethod("currentActivityThread");
-            currentThread.setAccessible(true);
-            Object thread = currentThread.invoke(null);
-            if (thread != null) {
-                java.lang.reflect.Method getSystemContext = activityThread.getDeclaredMethod("getSystemContext");
-                getSystemContext.setAccessible(true);
-                Object system = getSystemContext.invoke(thread);
-                if (system instanceof Context) return (Context) system;
-            }
-        } catch (Throwable ignored) {
-        }
-        return null;
     }
 }
