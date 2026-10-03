@@ -5,6 +5,7 @@ import android.content.Context;
 import android.net.Uri;
 
 import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.FeatureHostRegistry;
 import com.yagay.suite.api.ManagedFeatureRuntime;
 
 import java.io.File;
@@ -12,6 +13,7 @@ import java.io.File;
 /** One app-side initializer shared by standalone YFloat and YSuite. */
 public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
     private static final String SUITE_PACKAGE = "com.yagay.YSuite";
+    private static final String PLUGIN_ID = "yfloat";
     private static final YFloatSuiteRuntime INSTANCE = new YFloatSuiteRuntime();
     private static boolean initialized;
     private static YFloatApp callbacks;
@@ -22,7 +24,6 @@ public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
                 if (app != null) HookReloadManager.autoReloadChangedTargets(app, snapshot);
             };
 
-    private volatile FeatureHost host;
     private volatile boolean enabled = true;
 
     private YFloatSuiteRuntime() { }
@@ -69,13 +70,8 @@ public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
     }
 
     public static Uri sharedFileUri(File file) {
-        FeatureHost current = INSTANCE.host;
-        return current == null ? null : current.sharedFileUri(file);
-    }
-
-    @Override
-    public void attach(FeatureHost host) {
-        this.host = host;
+        FeatureHost host = FeatureHostRegistry.find(PLUGIN_ID);
+        return host == null ? null : host.sharedFileUri(file);
     }
 
     @Override
@@ -107,6 +103,5 @@ public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
     @Override
     public synchronized void destroy() {
         disable();
-        host = null;
     }
 }
