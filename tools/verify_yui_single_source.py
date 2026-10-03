@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -140,7 +141,8 @@ def main() -> None:
     yfloat = read(YFLOAT_APP_UI)
     if "YViewLayout.fixedScreen" not in yfloat or "YView." not in yfloat:
         fail("YFloat AppUi must remain a thin shared-YUI compatibility adapter")
-    if "com.google.android.material.R.attr.colorPrimary" in yfloat:
+    # Exact attr match only. colorPrimaryContainer is valid and must not be rejected.
+    if re.search(r"com\.google\.android\.material\.R\.attr\.colorPrimary\b(?!Container)", yfloat):
         fail("YFloat compatibility adapter must not reference the unavailable Material colorPrimary attr")
     if "setMinHeight(dp(c, 40))" in yfloat or "setMinimumHeight(dp(c, 40))" in yfloat:
         fail("YFloat compatibility actions must preserve the 48dp YUI touch target")
