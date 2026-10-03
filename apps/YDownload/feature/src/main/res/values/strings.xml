@@ -9,7 +9,11 @@
 <string name="enable_system_patch">Enable DownloadManager patch</string><string name="enable_system_patch_summary">Apply these policies to DownloadManager requests in LSPosed-scoped apps while keeping the original system call.</string>
 <string name="allow_metered">Allow metered networks</string><string name="allow_roaming">Allow roaming</string><string name="require_charging">Require charging</string><string name="require_idle">Require device idle</string><string name="force_completion_notification">Keep completion notification</string>
 <string name="no_downloads">No downloads</string><string name="no_downloads_summary">Add an HTTP or HTTPS link above.</string>
-<string name="status">Status</string><string name="progress">Progress</string><string name="progress_percent">%1$d%%</string><string name="queued">Queued</string><string name="running">Running</string><string name="paused">Paused by system</string><string name="completed">Completed</string><string name="failed">Failed</string><string name="cancelled">Cancelled</string>
-<string name="pause">Pause</string><string name="resume">Resume / retry</string><string name="retry">Retry</string><string name="cancel">Cancel</string><string name="open">Open</string><string name="remove">Remove</string>
+<string name="status">Status</string><string name="progress">Progress</string><string name="progress_percent">%1$d%%</string><string name="queued">Queued</string><string name="running">Running</string><string name="paused">Paused</string><string name="completed">Completed</string><string name="failed">Failed</string><string name="cancelled">Cancelled</string>
+<string name="ydownload_speed">Speed</string><string name="ydownload_eta">ETA</string>
+<string name="ydownload_speed_bps">%1$d B/s</string><string name="ydownload_speed_kbps">%1$.1f KB/s</string><string name="ydownload_speed_mbps">%1$.1f MB/s</string><string name="ydownload_speed_gbps">%1$.1f GB/s</string>
+<string name="ydownload_eta_seconds">%1$d s</string><string name="ydownload_eta_minutes">%1$d min %2$d s</string><string name="ydownload_eta_hours">%1$d h %2$d min</string>
+<string name="ydownload_system_control_unsupported">This system DownloadProvider does not expose manual pause/resume for this task.</string>
+<string name="pause">Pause</string><string name="resume">Resume</string><string name="retry">Retry</string><string name="cancel">Cancel</string><string name="open">Open</string><string name="remove">Remove</string>
 <string name="download_channel">Downloads</string><string name="download_service">YDownload</string><string name="download_running">Downloading…</string>
 </resources>
