@@ -35,7 +35,6 @@ class YDiagRuntime private constructor(context: Context) :
     private val preferences by lazy { Preferences(appContext) }
 
     @Volatile private var enabled = true
-    @Volatile private var host: FeatureHost? = null
     @Volatile private var xposedService: XposedService? = null
     @Volatile private var trackedTargets: Set<String> = emptySet()
 
@@ -51,7 +50,7 @@ class YDiagRuntime private constructor(context: Context) :
     }
 
     override fun attach(host: FeatureHost) {
-        this.host = host
+        RootShell.attachHost(host)
     }
 
     @Synchronized
@@ -99,7 +98,7 @@ class YDiagRuntime private constructor(context: Context) :
 
     override fun destroy() {
         disable()
-        host = null
+        RootShell.detachHost()
     }
 
     private fun registerServiceListener() {
