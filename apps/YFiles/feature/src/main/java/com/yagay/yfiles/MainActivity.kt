@@ -1,9 +1,6 @@
 package com.yagay.yfiles
 
 import android.content.Intent
-import android.net.Uri
-import android.os.Environment
-import android.provider.Settings
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -17,7 +14,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.FileProvider
+import com.yagay.suite.api.HostCapability
+import com.yagay.suite.api.HostCapabilityState
+import com.yagay.suite.api.HostLogLevel
 import com.yagay.yui.YActionRow
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCard
@@ -32,6 +31,13 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainActivity : YComposeActivity() {
+    private var capabilityRevision by mutableStateOf(0)
+
+    override fun onResume() {
+        super.onResume()
+        capabilityRevision++
+    }
+
     @Composable
     override fun YContent() {
         val repository = remember { FileRepository(this) }
@@ -45,6 +51,12 @@ class MainActivity : YComposeActivity() {
         var refresh by remember { mutableStateOf(0) }
         var rootMode by remember { mutableStateOf(false) }
         var rootNames by remember { mutableStateOf<List<String>>(emptyList()) }
+
+        val allFilesState = remember(capabilityRevision) {
+            YFilesSuiteRuntime.capabilityState(HostCapability.ALL_FILES)
+        }
+        val rootGranted = remember(capabilityRevision) { YFilesSuiteRuntime.rootAvailable() }
+        val allFilesGranted = allFilesState == HostCapabilityState.GRANTED
 
         LaunchedEffect(path, query, showHidden, refresh, rootMode) {
             if (rootMode) {
@@ -77,7 +89,7 @@ class MainActivity : YComposeActivity() {
                             checked = rootMode,
                             onCheckedChange = { rootMode = it },
                             subtitle = stringResource(R.string.root_mode_summary),
-                            enabled = YFilesSuiteRuntime.rootAvailable(),
+                            enabled = rootGranted,
                         )
                         YActionRow {
                             OutlinedButton(
@@ -94,19 +106,17 @@ class MainActivity : YComposeActivity() {
                     YFeatureCard(title = stringResource(R.string.access_status), subtitle = stringResource(R.string.access_status_summary)) {
                         YStatusRow(
                             stringResource(R.string.all_files_access),
-                            if (Environment.isExternalStorageManager()) stringResource(R.string.granted) else stringResource(R.string.not_granted),
-                            if (Environment.isExternalStorageManager()) YStatusTone.Good else YStatusTone.Warning,
+                            if (allFilesGranted) stringResource(R.string.granted) else stringResource(R.string.not_granted),
+                            if (allFilesGranted) YStatusTone.Good else YStatusTone.Warning,
                         )
                         YStatusRow(
                             stringResource(R.string.root_access),
-                            if (YFilesSuiteRuntime.rootAvailable()) stringResource(R.string.available) else stringResource(R.string.unavailable),
-                            if (YFilesSuiteRuntime.rootAvailable()) YStatusTone.Good else YStatusTone.Neutral,
+                            if (rootGranted) stringResource(R.string.available) else stringResource(R.string.unavailable),
+                            if (rootGranted) YStatusTone.Good else YStatusTone.Neutral,
                         )
-                        if (!Environment.isExternalStorageManager()) {
+                        if (!allFilesGranted) {
                             OutlinedButton(onClick = {
-                                runCatching {
-                                    startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")))
-                                }
+                                YFilesSuiteRuntime.requestCapability(this@MainActivity, HostCapability.ALL_FILES)
                             }) { Text(stringResource(R.string.open_settings)) }
                         }
                     }
@@ -182,14 +192,16 @@ class MainActivity : YComposeActivity() {
 
     private fun openFile(file: File) {
         runCatching {
-            val uri = FileProvider.getUriForFile(this, "$packageName.yfiles.files", file)
+            val uri = requireNotNull(YFilesSuiteRuntime.sharedFileUri(file)) {
+                "Host file-share capability is unavailable"
+            }
             startActivity(
                 Intent(Intent.ACTION_VIEW)
                     .setDataAndType(uri, contentResolver.getType(uri) ?: "*/*")
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
             )
         }.onFailure {
-            YFilesSuiteRuntime.log(com.yagay.suite.api.HostLogLevel.WARN, "open file failed: ${file.absolutePath}", it)
+            YFilesSuiteRuntime.log(HostLogLevel.WARN, "open file failed: ${file.absolutePath}", it)
         }
     }
 
