@@ -95,30 +95,11 @@ final class AppUi {
     static void addRow(LinearLayout parent, View row) { parent.addView(row, new LinearLayout.LayoutParams(-1, -2)); }
 
     static View navRow(Context c, String title, String subtitle, Runnable action) {
-        LinearLayout row = baseRow(c, subtitle == null || subtitle.isBlank());
-        row.setClickable(true);
-        row.setFocusable(true);
-        row.setBackground(rowBackground(c));
-        LinearLayout copy = new LinearLayout(c);
-        copy.setOrientation(LinearLayout.VERTICAL);
-        copy.setGravity(Gravity.CENTER_VERTICAL);
-        TextView heading = new TextView(c);
-        heading.setText(title == null ? "" : title);
-        YView.styleItemTitle(heading);
-        copy.addView(heading, new LinearLayout.LayoutParams(-1, -2));
-        if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = caption(c, subtitle, 12.5f);
-            sub.setPadding(0, Math.max(1, YView.controlGap(c) / 4), YView.controlGap(c), 0);
-            copy.addView(sub, new LinearLayout.LayoutParams(-1, -2));
-        }
-        row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
-        TextView arrow = new TextView(c);
-        arrow.setText("›");
-        YView.styleSectionTitle(arrow);
-        arrow.setTextColor(textSecondary(c));
-        row.addView(arrow, new LinearLayout.LayoutParams(-2, -2));
-        row.setOnClickListener(v -> { if (action != null) action.run(); });
-        return row;
+        return YViewLayout.navigationRow(
+                c,
+                title,
+                subtitle,
+                v -> { if (action != null) action.run(); });
     }
 
     static SwitchMaterial switchRow(Context c, String title, String subtitle, boolean checked,
