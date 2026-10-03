@@ -34,6 +34,17 @@
             </intent-filter>
         </activity>
 
+        <!-- One host-owned file-share surface for every embedded feature. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/suite_file_paths" />
+        </provider>
+
         <!-- Standalone feature APKs keep their own Android special/system components. Inside YSuite
              they are replaced by host components so every platform capability has one owner. -->
         <service android:name="com.yagay.YFloat.LensAccessibilityService" tools:node="remove" />
