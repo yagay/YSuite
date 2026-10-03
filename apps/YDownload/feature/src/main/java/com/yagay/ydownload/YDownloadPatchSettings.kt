@@ -2,14 +2,18 @@ package com.yagay.ydownload
 
 import android.content.Context
 
-/** Settings consumed by both the YDownload UI and LSPosed DownloadManager patch. */
+/**
+ * Settings consumed by both the YDownload UI and LSPosed DownloadManager patch.
+ * Defaults are deliberately non-invasive: enabling the patch alone does not loosen or tighten
+ * the caller's existing DownloadManager policy until the user changes a setting.
+ */
 data class YDownloadPatchSettings(
     val enabled: Boolean = true,
     val allowMetered: Boolean = true,
-    val allowRoaming: Boolean = false,
+    val allowRoaming: Boolean = true,
     val requireCharging: Boolean = false,
     val requireDeviceIdle: Boolean = false,
-    val forceCompletionNotification: Boolean = true,
+    val forceCompletionNotification: Boolean = false,
 ) {
     companion object {
         const val PREFS = "ydownload_patch"
@@ -25,10 +29,10 @@ data class YDownloadPatchSettings(
             return YDownloadPatchSettings(
                 enabled = prefs.getBoolean(KEY_ENABLED, true),
                 allowMetered = prefs.getBoolean(KEY_ALLOW_METERED, true),
-                allowRoaming = prefs.getBoolean(KEY_ALLOW_ROAMING, false),
+                allowRoaming = prefs.getBoolean(KEY_ALLOW_ROAMING, true),
                 requireCharging = prefs.getBoolean(KEY_REQUIRE_CHARGING, false),
                 requireDeviceIdle = prefs.getBoolean(KEY_REQUIRE_IDLE, false),
-                forceCompletionNotification = prefs.getBoolean(KEY_FORCE_COMPLETION_NOTIFICATION, true),
+                forceCompletionNotification = prefs.getBoolean(KEY_FORCE_COMPLETION_NOTIFICATION, false),
             )
         }
 
