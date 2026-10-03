@@ -213,6 +213,20 @@ class MainActivity : YComposeActivity() {
                             val percent = ((task.done * 100L) / task.total).coerceIn(0L, 100L).toInt()
                             YStatusRow(stringResource(R.string.progress), stringResource(R.string.progress_percent, percent))
                         }
+                        if (task.speedBytesPerSecond > 0L) {
+                            YStatusRow(
+                                stringResource(R.string.ydownload_speed),
+                                formatSpeed(task.speedBytesPerSecond),
+                                YStatusTone.Neutral,
+                            )
+                        }
+                        if (task.etaMillis >= 0L && task.state == DownloadState.RUNNING) {
+                            YStatusRow(
+                                stringResource(R.string.ydownload_eta),
+                                formatEta(task.etaMillis),
+                                YStatusTone.Neutral,
+                            )
+                        }
                         if (task.backend == DownloadBackend.SYSTEM) {
                             SystemTaskActions(task, store)
                         } else {
@@ -227,16 +241,31 @@ class MainActivity : YComposeActivity() {
     @Composable
     private fun SystemTaskActions(task: DownloadItem, store: DownloadStore) {
         YActionRow {
-            if (task.state == DownloadState.COMPLETED) {
-                Button(onClick = { openSystemTask(task) }) { Text(stringResource(R.string.open)) }
-            }
-            if (task.state == DownloadState.FAILED || task.state == DownloadState.PAUSED) {
-                Button(onClick = { retrySystemTask(task, store) }) { Text(stringResource(R.string.retry)) }
+            when (task.state) {
+                DownloadState.RUNNING, DownloadState.QUEUED -> OutlinedButton(
+                    onClick = { controlSystemTask(task, store, pause = true) },
+                ) { Text(stringResource(R.string.pause)) }
+                DownloadState.PAUSED -> Button(
+                    onClick = { controlSystemTask(task, store, pause = false) },
+                ) { Text(stringResource(R.string.resume)) }
+                DownloadState.FAILED -> Button(
+                    onClick = { retrySystemTask(task, store) },
+                ) { Text(stringResource(R.string.retry)) }
+                DownloadState.COMPLETED -> Button(
+                    onClick = { openSystemTask(task) },
+                ) { Text(stringResource(R.string.open)) }
+                DownloadState.CANCELLED -> Unit
             }
             if (task.state !in setOf(DownloadState.COMPLETED, DownloadState.CANCELLED)) {
                 OutlinedButton(onClick = {
                     task.systemId?.let { SystemDownloadBridge.remove(this@MainActivity, it) }
-                    store.update(task.id) { it.copy(state = DownloadState.CANCELLED) }
+                    store.update(task.id) {
+                        it.copy(
+                            state = DownloadState.CANCELLED,
+                            speedBytesPerSecond = 0L,
+                            etaMillis = -1L,
+                        )
+                    }
                 }) { Text(stringResource(R.string.cancel)) }
             } else {
                 OutlinedButton(onClick = { store.remove(task.id) }) { Text(stringResource(R.string.remove)) }
@@ -269,13 +298,56 @@ class MainActivity : YComposeActivity() {
         }
     }
 
+    private fun controlSystemTask(task: DownloadItem, store: DownloadStore, pause: Boolean) {
+        val systemId = task.systemId ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val supported = if (pause) {
+                SystemDownloadBridge.pause(this@MainActivity, systemId)
+            } else {
+                SystemDownloadBridge.resume(this@MainActivity, systemId)
+            }
+            if (supported) {
+                store.update(task.id) {
+                    it.copy(
+                        state = if (pause) DownloadState.PAUSED else DownloadState.QUEUED,
+                        error = null,
+                        speedBytesPerSecond = 0L,
+                        etaMillis = -1L,
+                    )
+                }
+            } else {
+                store.update(task.id) {
+                    it.copy(error = getString(R.string.ydownload_system_control_unsupported))
+                }
+            }
+        }
+    }
+
     private fun retrySystemTask(task: DownloadItem, store: DownloadStore) {
         lifecycleScope.launch(Dispatchers.IO) {
             task.systemId?.let { SystemDownloadBridge.remove(this@MainActivity, it) }
-            store.update(task.id) { it.copy(systemId = null, state = DownloadState.QUEUED, error = null, done = 0L, total = -1L) }
+            store.update(task.id) {
+                it.copy(
+                    systemId = null,
+                    state = DownloadState.QUEUED,
+                    error = null,
+                    done = 0L,
+                    total = -1L,
+                    speedBytesPerSecond = 0L,
+                    etaMillis = -1L,
+                )
+            }
             SystemDownloadBridge.enqueue(this@MainActivity, task.copy(systemId = null, state = DownloadState.QUEUED))
-                .onSuccess { systemId -> store.update(task.id) { it.copy(systemId = systemId, state = DownloadState.QUEUED, error = null) } }
-                .onFailure { error -> store.update(task.id) { it.copy(state = DownloadState.FAILED, error = error.message) } }
+                .onSuccess { systemId ->
+                    store.update(task.id) {
+                        it.copy(systemId = systemId, state = DownloadState.QUEUED, error = null)
+                    }
+                }
+                .onFailure { error ->
+                    store.update(task.id) {
+                        it.copy(state = DownloadState.FAILED, error = error.message)
+                    }
+                }
         }
     }
 
@@ -302,5 +374,26 @@ class MainActivity : YComposeActivity() {
             ?: "download-${System.currentTimeMillis()}"
         val safeName = derived.replace(Regex("[\\\\/:*?\"<>|]"), "_")
         return store.add(normalized, safeName, backend)
+    }
+
+    @Composable
+    private fun formatSpeed(bytesPerSecond: Long): String {
+        val value = bytesPerSecond.toDouble()
+        return when {
+            bytesPerSecond < 1024L -> stringResource(R.string.ydownload_speed_bps, bytesPerSecond)
+            bytesPerSecond < 1024L * 1024L -> stringResource(R.string.ydownload_speed_kbps, value / 1024.0)
+            bytesPerSecond < 1024L * 1024L * 1024L -> stringResource(R.string.ydownload_speed_mbps, value / (1024.0 * 1024.0))
+            else -> stringResource(R.string.ydownload_speed_gbps, value / (1024.0 * 1024.0 * 1024.0))
+        }
+    }
+
+    @Composable
+    private fun formatEta(etaMillis: Long): String {
+        val seconds = (etaMillis / 1000L).coerceAtLeast(0L)
+        return when {
+            seconds < 60L -> stringResource(R.string.ydownload_eta_seconds, seconds)
+            seconds < 3600L -> stringResource(R.string.ydownload_eta_minutes, seconds / 60L, seconds % 60L)
+            else -> stringResource(R.string.ydownload_eta_hours, seconds / 3600L, (seconds % 3600L) / 60L)
+        }
     }
 }
