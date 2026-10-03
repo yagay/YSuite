@@ -1,6 +1,7 @@
 package com.yagay.ydownload
 
 import android.content.Context
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
@@ -22,6 +23,10 @@ data class DownloadItem(
     val systemId: Long? = null,
     /** Number of automatic retries already consumed by the enhanced engine. */
     val retryCount: Int = 0,
+    /** HTTP validator used by the enhanced engine for safe If-Range resume. */
+    val etag: String? = null,
+    /** Fallback HTTP validator used when a server does not provide ETag. */
+    val lastModified: String? = null,
     // Runtime-only telemetry. It is deliberately not persisted so stale speed/ETA values are never
     // restored after a process restart.
     val speedBytesPerSecond: Long = 0L,
@@ -34,7 +39,9 @@ class DownloadStore private constructor(context: Context) {
     val items = _items.asStateFlow()
 
     @Synchronized fun add(url: String, fileName: String, backend: DownloadBackend = DownloadBackend.SYSTEM): DownloadItem {
-        val item = DownloadItem(System.currentTimeMillis(), url, fileName, backend = backend)
+        val now = System.currentTimeMillis()
+        val id = nextId.updateAndGet { previous -> maxOf(previous + 1L, now) }
+        val item = DownloadItem(id, url, fileName, backend = backend)
         save(listOf(item) + _items.value)
         return item
     }
@@ -64,6 +71,8 @@ class DownloadStore private constructor(context: Context) {
                 put("backend", item.backend.name)
                 put("systemId", item.systemId)
                 put("retryCount", item.retryCount)
+                put("etag", item.etag)
+                put("lastModified", item.lastModified)
             })
         }
         prefs.edit().putString("items", arr.toString()).apply()
@@ -92,6 +101,8 @@ class DownloadStore private constructor(context: Context) {
                         backend = backend,
                         systemId = if (o.has("systemId") && !o.isNull("systemId")) o.optLong("systemId") else null,
                         retryCount = o.optInt("retryCount", 0).coerceAtLeast(0),
+                        etag = o.optString("etag").takeIf { it.isNotBlank() && it != "null" },
+                        lastModified = o.optString("lastModified").takeIf { it.isNotBlank() && it != "null" },
                     ),
                 )
             }
@@ -106,6 +117,7 @@ class DownloadStore private constructor(context: Context) {
 
     companion object {
         @Volatile private var instance: DownloadStore? = null
+        private val nextId = AtomicLong(System.currentTimeMillis())
         fun get(context: Context): DownloadStore = instance ?: synchronized(this) {
             instance ?: DownloadStore(context).also { instance = it }
         }

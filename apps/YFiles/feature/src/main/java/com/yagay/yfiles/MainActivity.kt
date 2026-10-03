@@ -28,12 +28,12 @@ import com.yagay.yui.YSearchField
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusRow
 import com.yagay.yui.YStatusTone
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : YComposeActivity() {
     private var capabilityRevision by mutableStateOf(0)
@@ -78,10 +78,15 @@ class MainActivity : YComposeActivity() {
         var path by remember { mutableStateOf(intent?.getStringExtra("path") ?: repository.initialPath()) }
         var query by remember { mutableStateOf("") }
         var showHidden by remember { mutableStateOf(false) }
+        var recursiveSearch by remember { mutableStateOf(false) }
+        var sortMode by remember { mutableStateOf(FileSortMode.NAME) }
+        var sortDescending by remember { mutableStateOf(false) }
         var entries by remember { mutableStateOf<List<FileEntry>>(emptyList()) }
         var error by remember { mutableStateOf<String?>(null) }
         var newFolderDialog by remember { mutableStateOf(false) }
         var newFolderName by remember { mutableStateOf("") }
+        var newFileDialog by remember { mutableStateOf(false) }
+        var newFileName by remember { mutableStateOf("") }
         var refresh by remember { mutableStateOf(0) }
         var rootMode by remember { mutableStateOf(false) }
         var rootNames by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -90,6 +95,7 @@ class MainActivity : YComposeActivity() {
         var renameTarget by remember { mutableStateOf<FileEntry?>(null) }
         var renameValue by remember { mutableStateOf("") }
         var propertyDialog by remember { mutableStateOf<FileProperties?>(null) }
+        var deleteTarget by remember { mutableStateOf<FileEntry?>(null) }
         var operationBusy by remember { mutableStateOf(false) }
 
         val allFilesState = remember(capabilityRevision) {
@@ -98,13 +104,33 @@ class MainActivity : YComposeActivity() {
         val rootGranted = remember(capabilityRevision) { YFilesSuiteRuntime.rootAvailable() }
         val allFilesGranted = allFilesState == HostCapabilityState.GRANTED
 
-        LaunchedEffect(path, query, showHidden, refresh, rootMode) {
+        LaunchedEffect(
+            path,
+            query,
+            showHidden,
+            recursiveSearch,
+            sortMode,
+            sortDescending,
+            refresh,
+            rootMode,
+        ) {
             if (rootMode) {
                 val result = withContext(Dispatchers.IO) { YFilesSuiteRuntime.rootList(path) }
-                result.onSuccess { names -> rootNames = names; error = null }
-                    .onFailure { error = it.message }
+                result.onSuccess { names ->
+                    val needle = query.trim().lowercase()
+                    rootNames = names
+                        .filter { needle.isBlank() || it.lowercase().contains(needle) }
+                        .let { if (sortDescending) it.sortedDescending() else it.sorted() }
+                    error = null
+                }.onFailure { error = it.message }
             } else {
-                val result = withContext(Dispatchers.IO) { repository.list(path, showHidden, query) }
+                val result = withContext(Dispatchers.IO) {
+                    if (recursiveSearch && query.isNotBlank()) {
+                        repository.searchRecursive(path, showHidden, query, sortMode, sortDescending)
+                    } else {
+                        repository.list(path, showHidden, query, sortMode, sortDescending)
+                    }
+                }
                 result.onSuccess { entries = it; error = null }
                     .onFailure { error = it.message }
             }
@@ -277,6 +303,13 @@ class MainActivity : YComposeActivity() {
                     YFeatureCard(title = stringResource(R.string.location), subtitle = path) {
                         YSearchField(query, { query = it }, hint = stringResource(R.string.search_files))
                         YSettingSwitch(
+                            title = stringResource(R.string.recursive_search),
+                            subtitle = stringResource(R.string.recursive_search_summary),
+                            checked = recursiveSearch,
+                            onCheckedChange = { recursiveSearch = it },
+                            enabled = !rootMode,
+                        )
+                        YSettingSwitch(
                             title = stringResource(R.string.show_hidden),
                             checked = showHidden,
                             onCheckedChange = { showHidden = it },
@@ -289,6 +322,48 @@ class MainActivity : YComposeActivity() {
                             subtitle = stringResource(R.string.root_mode_summary),
                             enabled = rootGranted,
                         )
+                        if (!rootMode) {
+                            val localSortLabel = when (sortMode) {
+                                FileSortMode.NAME -> stringResource(R.string.sort_name)
+                                FileSortMode.MODIFIED -> stringResource(R.string.sort_modified)
+                                FileSortMode.SIZE -> stringResource(R.string.sort_size)
+                                FileSortMode.TYPE -> stringResource(R.string.sort_type)
+                            }
+                            YStatusRow(
+                                stringResource(R.string.local_sort),
+                                localSortLabel + " · " + if (sortDescending) {
+                                    stringResource(R.string.descending)
+                                } else {
+                                    stringResource(R.string.ascending)
+                                },
+                                YStatusTone.Neutral,
+                            )
+                            YActionRow {
+                                OutlinedButton(onClick = { sortMode = FileSortMode.NAME }) {
+                                    Text(stringResource(R.string.sort_name))
+                                }
+                                OutlinedButton(onClick = { sortMode = FileSortMode.MODIFIED }) {
+                                    Text(stringResource(R.string.sort_modified))
+                                }
+                                OutlinedButton(onClick = { sortMode = FileSortMode.SIZE }) {
+                                    Text(stringResource(R.string.sort_size))
+                                }
+                            }
+                            YActionRow {
+                                OutlinedButton(onClick = { sortMode = FileSortMode.TYPE }) {
+                                    Text(stringResource(R.string.sort_type))
+                                }
+                                OutlinedButton(onClick = { sortDescending = !sortDescending }) {
+                                    Text(
+                                        if (sortDescending) {
+                                            stringResource(R.string.descending)
+                                        } else {
+                                            stringResource(R.string.ascending)
+                                        },
+                                    )
+                                }
+                            }
+                        }
                         pendingTransfer?.let { transfer ->
                             val transferLabel = if (transfer.mode == FileTransferMode.COPY) {
                                 stringResource(R.string.copy)
@@ -326,14 +401,19 @@ class MainActivity : YComposeActivity() {
                         }
                         YActionRow {
                             OutlinedButton(
-                                onClick = { repository.parent(path)?.let { path = it } },
+                                onClick = { repository.parent(path)?.let { path = it; query = "" } },
                                 enabled = repository.parent(path) != null && !operationBusy,
                             ) { Text(stringResource(R.string.parent)) }
                             OutlinedButton(onClick = { refresh++ }, enabled = !operationBusy) {
                                 Text(stringResource(R.string.refresh))
                             }
+                        }
+                        YActionRow {
                             Button(onClick = { newFolderDialog = true }, enabled = !rootMode && !operationBusy) {
                                 Text(stringResource(R.string.new_folder))
+                            }
+                            OutlinedButton(onClick = { newFileDialog = true }, enabled = !rootMode && !operationBusy) {
+                                Text(stringResource(R.string.new_file))
                             }
                         }
                     }
@@ -384,22 +464,46 @@ class MainActivity : YComposeActivity() {
                                 OutlinedButton(onClick = {
                                     operationBusy = true
                                     lifecycleScope.launch {
+                                        val result = withContext(Dispatchers.IO) { repository.duplicate(entry) }
+                                        result.onSuccess { error = null; refresh++ }
+                                            .onFailure { error = it.message }
+                                        operationBusy = false
+                                    }
+                                }, enabled = !operationBusy) { Text(stringResource(R.string.duplicate)) }
+                                OutlinedButton(onClick = {
+                                    operationBusy = true
+                                    lifecycleScope.launch {
                                         val result = withContext(Dispatchers.IO) { repository.properties(entry) }
                                         result.onSuccess { propertyDialog = it; error = null }
                                             .onFailure { error = it.message }
                                         operationBusy = false
                                     }
                                 }, enabled = !operationBusy) { Text(stringResource(R.string.properties)) }
+                                OutlinedButton(onClick = { deleteTarget = entry }, enabled = !operationBusy) {
+                                    Text(stringResource(R.string.delete))
+                                }
+                            }
+                            YActionRow {
                                 OutlinedButton(onClick = {
                                     operationBusy = true
                                     lifecycleScope.launch {
-                                        val result = withContext(Dispatchers.IO) { repository.delete(entry) }
-                                        result.onFailure { error = it.message }
-                                        if (result.isSuccess) error = null
-                                        refresh++
+                                        val result = withContext(Dispatchers.IO) { repository.compressZip(entry) }
+                                        result.onSuccess { error = null; refresh++ }
+                                            .onFailure { error = it.message }
                                         operationBusy = false
                                     }
-                                }, enabled = !operationBusy) { Text(stringResource(R.string.delete)) }
+                                }, enabled = !operationBusy) { Text(stringResource(R.string.compress_zip)) }
+                                if (!entry.isDirectory && entry.name.endsWith(".zip", ignoreCase = true)) {
+                                    OutlinedButton(onClick = {
+                                        operationBusy = true
+                                        lifecycleScope.launch {
+                                            val result = withContext(Dispatchers.IO) { repository.extractZip(entry) }
+                                            result.onSuccess { error = null; refresh++ }
+                                                .onFailure { error = it.message }
+                                            operationBusy = false
+                                        }
+                                    }, enabled = !operationBusy) { Text(stringResource(R.string.extract_zip)) }
+                                }
                             }
                         }
                     }
@@ -428,6 +532,33 @@ class MainActivity : YComposeActivity() {
                 },
                 dismissButton = {
                     OutlinedButton(onClick = { newFolderDialog = false }) {
+                        Text(stringResource(R.string.yfiles_cancel))
+                    }
+                },
+            )
+        }
+
+        if (newFileDialog) {
+            AlertDialog(
+                onDismissRequest = { newFileDialog = false },
+                title = { Text(stringResource(R.string.new_file)) },
+                text = {
+                    OutlinedTextField(
+                        value = newFileName,
+                        onValueChange = { newFileName = it },
+                        label = { Text(stringResource(R.string.file_name)) },
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        repository.createFile(path, newFileName).onFailure { error = it.message }
+                        newFileName = ""
+                        newFileDialog = false
+                        refresh++
+                    }) { Text(stringResource(R.string.create)) }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { newFileDialog = false }) {
                         Text(stringResource(R.string.yfiles_cancel))
                     }
                 },
@@ -467,6 +598,36 @@ class MainActivity : YComposeActivity() {
                 },
                 dismissButton = {
                     OutlinedButton(onClick = { renameTarget = null }, enabled = !operationBusy) {
+                        Text(stringResource(R.string.yfiles_cancel))
+                    }
+                },
+            )
+        }
+
+        deleteTarget?.let { entry ->
+            AlertDialog(
+                onDismissRequest = { deleteTarget = null },
+                title = { Text(stringResource(R.string.confirm_delete)) },
+                text = { Text(stringResource(R.string.confirm_delete_summary, entry.name)) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            operationBusy = true
+                            lifecycleScope.launch {
+                                val result = withContext(Dispatchers.IO) { repository.delete(entry) }
+                                result.onSuccess {
+                                    deleteTarget = null
+                                    error = null
+                                    refresh++
+                                }.onFailure { error = it.message }
+                                operationBusy = false
+                            }
+                        },
+                        enabled = !operationBusy,
+                    ) { Text(stringResource(R.string.delete)) }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { deleteTarget = null }, enabled = !operationBusy) {
                         Text(stringResource(R.string.yfiles_cancel))
                     }
                 },

@@ -26,6 +26,8 @@ data class FileProperties(
 
 enum class FileTransferMode { COPY, MOVE }
 
+enum class FileSortMode { NAME, MODIFIED, SIZE, TYPE }
+
 data class PendingFileTransfer(
     val source: FileEntry,
     val mode: FileTransferMode,
