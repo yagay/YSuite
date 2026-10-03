@@ -12,8 +12,6 @@ HOST_MANIFEST = ROOT / "standalone/host/src/main/AndroidManifest.xml"
 HOST_BUILD = ROOT / "standalone/host/build.gradle.kts"
 SUITE_BUILD = ROOT / "suite/YSuite/build.gradle.kts"
 RESOURCE_RE = re.compile(r"^@(?P<kind>[a-z_]+)/(?P<name>[A-Za-z0-9_.]+)$")
-# App label and description are generated directly from catalog name/description. Only resources
-# that carry real visual/platform metadata need to exist in the Feature/Host resource graph.
 RESOURCE_FIELDS = {
     "standalone_icon": {"drawable", "mipmap"},
     "standalone_round_icon": {"drawable", "mipmap"},
@@ -91,17 +89,21 @@ def main() -> None:
 
     host_manifest = HOST_MANIFEST.read_text(encoding="utf-8")
     for token in (
-        "standaloneAllowBackup", "standaloneDescription", "standaloneIcon", "standaloneLabel",
-        "standaloneLocaleConfig", "standaloneRoundIcon", "standaloneTheme", "standaloneUsesCleartextTraffic",
+        "standaloneAllowBackup", "standaloneIcon", "standaloneLocaleConfig",
+        "standaloneRoundIcon", "standaloneTheme", "standaloneUsesCleartextTraffic",
     ):
         if f"${{{token}}}" not in host_manifest:
             fail(f"standalone host manifest is missing placeholder {token}")
+    if 'android:label="@string/standalone_app_name"' not in host_manifest:
+        fail("standalone host label must use generated catalog string")
+    if 'android:description="@string/standalone_app_description"' not in host_manifest:
+        fail("standalone host description must use generated catalog string")
 
     host_build = HOST_BUILD.read_text(encoding="utf-8")
-    if 'manifestPlaceholders["standaloneLabel"] = "@string/standalone_app_name"' not in host_build:
-        fail("standalone label must come from catalog name")
-    if 'manifestPlaceholders["standaloneDescription"] = "@string/standalone_app_description"' not in host_build:
-        fail("standalone description must come from catalog description")
+    if 'resValue("string", "standalone_app_name", selected.name)' not in host_build:
+        fail("standalone name must be generated from catalog name")
+    if 'resValue("string", "standalone_app_description", selected.description)' not in host_build:
+        fail("standalone description must be generated from catalog description")
     if 'manifestPlaceholders["standaloneNfcRequired"] = selected.nfcRequired.toString()' not in host_build:
         fail("standalone host must map standalone_nfc_required")
     if 'manifestPlaceholders["standaloneNfcRequired"] = "false"' not in SUITE_BUILD.read_text(encoding="utf-8"):
