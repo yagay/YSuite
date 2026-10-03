@@ -12,6 +12,8 @@ XML = ROOT / "libs/yui/src/main/res/values/yui_tokens.xml"
 
 TOKENS = [
     ("screen_horizontal", "ScreenHorizontal"),
+    ("screen_horizontal_medium", "ScreenHorizontalMedium"),
+    ("screen_horizontal_expanded", "ScreenHorizontalExpanded"),
     ("screen_vertical", "ScreenVertical"),
     ("section_gap", "SectionGap"),
     ("card_padding", "CardPadding"),
