@@ -3,7 +3,6 @@ package com.yagay.YMiniGuard;
 import android.app.Activity;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -12,7 +11,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -233,9 +231,6 @@ public final class TargetAppsActivity extends Activity {
         root.addView(close);
     }
 
-    private int dp(float value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
-    }
 
     private final class AppAdapter extends BaseAdapter {
         @Override public int getCount() { return filteredApps.size(); }
@@ -266,29 +261,21 @@ public final class TargetAppsActivity extends Activity {
         }
 
         private RowHolder createRow() {
-            LinearLayout row = new LinearLayout(TargetAppsActivity.this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(0, dp(6), 0, dp(6));
+            LinearLayout row = YViewLayout.listRow(TargetAppsActivity.this);
 
             LinearLayout texts = new LinearLayout(TargetAppsActivity.this);
             texts.setOrientation(LinearLayout.VERTICAL);
 
-            TextView title = new TextView(TargetAppsActivity.this);
-            YView.styleBody(title);
-            title.setTextSize(15);
-            title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            TextView title = YViewLayout.listTitle(TargetAppsActivity.this);
             texts.addView(title);
 
-            TextView subtitle = new TextView(TargetAppsActivity.this);
-            YView.styleBody(subtitle);
-            subtitle.setTextSize(12);
+            TextView subtitle = YViewLayout.listSubtitle(TargetAppsActivity.this);
             texts.addView(subtitle);
 
             row.addView(texts, new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-            CheckBox check = new CheckBox(TargetAppsActivity.this);
+            MaterialCheckBox check = new MaterialCheckBox(TargetAppsActivity.this);
             row.addView(check);
 
             RowHolder holder = new RowHolder(row, title, subtitle, check);
@@ -301,9 +288,9 @@ public final class TargetAppsActivity extends Activity {
         final LinearLayout root;
         final TextView title;
         final TextView subtitle;
-        final CheckBox check;
+        final MaterialCheckBox check;
 
-        RowHolder(LinearLayout root, TextView title, TextView subtitle, CheckBox check) {
+        RowHolder(LinearLayout root, TextView title, TextView subtitle, MaterialCheckBox check) {
             this.root = root;
             this.title = title;
             this.subtitle = subtitle;
