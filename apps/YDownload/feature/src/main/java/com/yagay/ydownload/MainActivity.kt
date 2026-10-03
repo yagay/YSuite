@@ -3,8 +3,6 @@ package com.yagay.ydownload
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,6 +18,8 @@ import com.yagay.yui.YActionRow
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFilterBar
 import com.yagay.yui.YManagerScaffold
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YPageList
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YSettingSwitch
@@ -159,17 +159,17 @@ class MainActivity : YComposeActivity() {
                 YStatusTone.Neutral,
             )
             YActionRow {
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     onChanged(YDownloadEnhancedSettings.update(this@MainActivity) { copy(defaultBackend = DownloadBackend.SYSTEM) })
                 }) { Text(stringResource(R.string.system_download)) }
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     onChanged(YDownloadEnhancedSettings.update(this@MainActivity) { copy(defaultBackend = DownloadBackend.ENHANCED) })
                 }) { Text(stringResource(R.string.enhanced_download)) }
             }
             YStatusRow(stringResource(R.string.concurrent_downloads), settings.maxConcurrent.toString(), YStatusTone.Neutral)
             YActionRow {
                 (1..4).forEach { count ->
-                    OutlinedButton(onClick = {
+                    YSecondaryActionButton(onClick = {
                         onChanged(YDownloadEnhancedSettings.update(this@MainActivity) { copy(maxConcurrent = count) })
                     }) { Text(count.toString()) }
                 }
@@ -186,7 +186,7 @@ class MainActivity : YComposeActivity() {
                 YStatusRow(stringResource(R.string.max_retries), settings.maxRetries.toString(), YStatusTone.Neutral)
                 YActionRow {
                     (0..3).forEach { retries ->
-                        OutlinedButton(onClick = {
+                        YSecondaryActionButton(onClick = {
                             onChanged(YDownloadEnhancedSettings.update(this@MainActivity) { copy(maxRetries = retries) })
                         }) { Text(retries.toString()) }
                     }
@@ -250,22 +250,22 @@ class MainActivity : YComposeActivity() {
     private fun SystemTaskActions(task: DownloadItem, store: DownloadStore) {
         YActionRow {
             when (task.state) {
-                DownloadState.RUNNING, DownloadState.QUEUED -> OutlinedButton(
+                DownloadState.RUNNING, DownloadState.QUEUED -> YSecondaryActionButton(
                     onClick = { controlSystemTask(task, store, pause = true) },
                 ) { Text(stringResource(R.string.pause)) }
-                DownloadState.PAUSED -> Button(
+                DownloadState.PAUSED -> YPrimaryActionButton(
                     onClick = { controlSystemTask(task, store, pause = false) },
                 ) { Text(stringResource(R.string.resume)) }
-                DownloadState.FAILED -> Button(
+                DownloadState.FAILED -> YPrimaryActionButton(
                     onClick = { retrySystemTask(task, store) },
                 ) { Text(stringResource(R.string.retry)) }
-                DownloadState.COMPLETED -> Button(
+                DownloadState.COMPLETED -> YPrimaryActionButton(
                     onClick = { openSystemTask(task) },
                 ) { Text(stringResource(R.string.open)) }
                 DownloadState.CANCELLED -> Unit
             }
             if (task.state !in setOf(DownloadState.COMPLETED, DownloadState.CANCELLED)) {
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     task.systemId?.let { SystemDownloadBridge.remove(this@MainActivity, it) }
                     store.update(task.id) {
                         it.copy(
@@ -277,7 +277,7 @@ class MainActivity : YComposeActivity() {
                     }
                 }) { Text(stringResource(R.string.cancel)) }
             } else {
-                OutlinedButton(onClick = { store.remove(task.id) }) { Text(stringResource(R.string.remove)) }
+                YSecondaryActionButton(onClick = { store.remove(task.id) }) { Text(stringResource(R.string.remove)) }
             }
         }
     }
@@ -286,27 +286,27 @@ class MainActivity : YComposeActivity() {
     private fun EnhancedTaskActions(task: DownloadItem, store: DownloadStore) {
         YActionRow {
             when (task.state) {
-                DownloadState.RUNNING, DownloadState.QUEUED -> OutlinedButton(
+                DownloadState.RUNNING, DownloadState.QUEUED -> YSecondaryActionButton(
                     { DownloadService.pause(this@MainActivity, task.id) },
                 ) { Text(stringResource(R.string.pause)) }
-                DownloadState.PAUSED -> Button(
+                DownloadState.PAUSED -> YPrimaryActionButton(
                     { DownloadService.start(this@MainActivity, task.id) },
                 ) { Text(stringResource(R.string.resume)) }
-                DownloadState.FAILED -> Button(
+                DownloadState.FAILED -> YPrimaryActionButton(
                     {
                         store.update(task.id) { it.copy(retryCount = 0, error = null, state = DownloadState.QUEUED) }
                         DownloadService.start(this@MainActivity, task.id)
                     },
                 ) { Text(stringResource(R.string.retry)) }
-                DownloadState.COMPLETED -> Button(
+                DownloadState.COMPLETED -> YPrimaryActionButton(
                     { task.uri?.let { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)) } },
                 ) { Text(stringResource(R.string.open)) }
                 DownloadState.CANCELLED -> Unit
             }
             if (task.state !in setOf(DownloadState.COMPLETED, DownloadState.CANCELLED)) {
-                OutlinedButton({ DownloadService.cancel(this@MainActivity, task.id) }) { Text(stringResource(R.string.cancel)) }
+                YSecondaryActionButton({ DownloadService.cancel(this@MainActivity, task.id) }) { Text(stringResource(R.string.cancel)) }
             } else {
-                OutlinedButton({ store.remove(task.id) }) { Text(stringResource(R.string.remove)) }
+                YSecondaryActionButton({ store.remove(task.id) }) { Text(stringResource(R.string.remove)) }
             }
         }
     }
