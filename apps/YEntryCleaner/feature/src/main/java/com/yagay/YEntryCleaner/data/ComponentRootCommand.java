@@ -1,8 +1,7 @@
 package com.yagay.YEntryCleaner.data;
 
 import com.yagay.YEntryCleaner.ui.DiagnosticBuffer;
-import com.yagay.suite.api.FeatureHost;
-import com.yagay.suite.api.FeatureHostRegistry;
+import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.HostBinaryCommandResult;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
@@ -10,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** One explicit user action per invocation; bounded output/time, no persistent root daemon. */
 public final class ComponentRootCommand {
-    private static final String PLUGIN_ID = "yentrycleaner";
+    private static final FeatureServices SERVICES = FeatureServices.of("yentrycleaner", "YEntryCleaner");
 
     private ComponentRootCommand() {}
 
@@ -62,14 +61,13 @@ public final class ComponentRootCommand {
     }
 
     public static Result run(String script) throws Exception {
-        FeatureHost host = FeatureHostRegistry.find(PLUGIN_ID);
-        if (host != null) return runThroughHost(host, script);
+        if (SERVICES.hostOrNull() != null) return runThroughHost(script);
         return capture(new ProcessBuilder("su", "-c", script), 25);
     }
 
-    private static Result runThroughHost(FeatureHost host, String script) {
+    private static Result runThroughHost(String script) {
         try {
-            HostBinaryCommandResult raw = host.rootExecuteBinary(
+            HostBinaryCommandResult raw = SERVICES.rootBinary(
                     "component-root",
                     script == null ? "" : script,
                     25L,
@@ -87,7 +85,7 @@ public final class ComponentRootCommand {
             return new Result(raw.getCode(), raw.getTimedOut(), text.toString());
         } catch (Throwable error) {
             // The host is present, therefore a failed host request must not open a second su entry.
-            throw new IllegalStateException("YSuite Root host failed", error);
+            throw new IllegalStateException("Managed Root host failed", error);
         }
     }
 
