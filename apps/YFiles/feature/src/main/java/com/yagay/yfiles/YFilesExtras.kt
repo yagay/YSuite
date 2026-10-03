@@ -6,6 +6,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,26 @@ data class YDirectoryAnalysis(
     val scannedEntries: Long,
     val truncated: Boolean,
 )
+
+data class YDuplicateGroup(
+    val sizeBytes: Long,
+    val sha256: String,
+    val files: List<String>,
+) {
+    val wastedBytes: Long
+        get() = sizeBytes * (files.size - 1L).coerceAtLeast(0L)
+}
+
+data class YDuplicateScan(
+    val groups: List<YDuplicateGroup>,
+    val scannedFiles: Long,
+    val truncated: Boolean,
+) {
+    val duplicateFiles: Int
+        get() = groups.sumOf { (it.files.size - 1).coerceAtLeast(0) }
+    val wastedBytes: Long
+        get() = groups.sumOf(YDuplicateGroup::wastedBytes)
+}
 
 data class YTrashRecord(
     val id: String,
@@ -69,6 +90,31 @@ class YFilesExtrasStore(context: Context) {
         return added
     }
 
+    @Synchronized
+    fun recentPaths(): List<String> = runCatching {
+        val array = JSONArray(prefs.getString(KEY_RECENT, "[]"))
+        buildList {
+            for (index in 0 until array.length()) {
+                val value = array.optString(index).trim()
+                if (value.isNotBlank() && File(value).isDirectory && value !in this) add(value)
+            }
+        }.take(MAX_RECENT_LOCATIONS)
+    }.getOrDefault(emptyList())
+
+    @Synchronized
+    fun recordRecent(path: String) {
+        val directory = File(path)
+        if (!directory.isDirectory) return
+        val normalized = runCatching { directory.canonicalPath }.getOrElse { directory.absolutePath }
+        val next = buildList {
+            add(normalized)
+            recentPaths().filterNot { it == normalized }.forEach(::add)
+        }.take(MAX_RECENT_LOCATIONS)
+        val array = JSONArray()
+        next.forEach(array::put)
+        prefs.edit().putString(KEY_RECENT, array.toString()).apply()
+    }
+
     fun analyze(path: String, maxEntries: Long = MAX_ANALYSIS_ENTRIES): Result<YDirectoryAnalysis> = runCatching {
         val root = File(path)
         require(root.isDirectory) { "Not a directory: $path" }
@@ -101,20 +147,62 @@ class YFilesExtrasStore(context: Context) {
         YDirectoryAnalysis(bytes, files, directories, scanned, truncated)
     }
 
+    fun scanDuplicates(
+        path: String,
+        maxFiles: Long = MAX_DUPLICATE_SCAN_FILES,
+        maxGroups: Int = MAX_DUPLICATE_GROUPS,
+    ): Result<YDuplicateScan> = runCatching {
+        val root = File(path)
+        require(root.isDirectory) { "Not a directory: $path" }
+        val queue = ArrayDeque<File>()
+        queue.add(root)
+        val bySize = linkedMapOf<Long, MutableList<File>>()
+        var scannedFiles = 0L
+        var truncated = false
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            current.listFiles().orEmpty().forEach { child ->
+                if (Files.isSymbolicLink(child.toPath())) return@forEach
+                if (child.isDirectory) {
+                    queue.add(child)
+                } else if (child.isFile) {
+                    if (scannedFiles >= maxFiles) {
+                        truncated = true
+                        return@forEach
+                    }
+                    scannedFiles++
+                    val size = child.length().coerceAtLeast(0L)
+                    if (size > 0L) bySize.getOrPut(size) { mutableListOf() }.add(child)
+                }
+            }
+            if (truncated) break
+        }
+
+        val groups = mutableListOf<YDuplicateGroup>()
+        bySize.asSequence()
+            .filter { (_, files) -> files.size > 1 }
+            .forEach { (size, candidates) ->
+                val byHash = linkedMapOf<String, MutableList<String>>()
+                candidates.forEach { candidate ->
+                    val hash = hashFile(candidate)
+                    byHash.getOrPut(hash) { mutableListOf() }.add(candidate.absolutePath)
+                }
+                byHash.forEach { (hash, files) ->
+                    if (files.size > 1) groups += YDuplicateGroup(size, hash, files.sortedWith(String.CASE_INSENSITIVE_ORDER))
+                }
+            }
+        YDuplicateScan(
+            groups = groups.sortedByDescending(YDuplicateGroup::wastedBytes).take(maxGroups),
+            scannedFiles = scannedFiles,
+            truncated = truncated,
+        )
+    }
+
     fun sha256(entry: FileEntry): Result<String> = runCatching {
         require(!entry.isDirectory) { "Checksum is only available for files" }
         val file = File(entry.path)
         require(file.isFile) { "File no longer exists" }
-        val digest = MessageDigest.getInstance("SHA-256")
-        FileInputStream(file).use { input ->
-            val buffer = ByteArray(HASH_BUFFER_SIZE)
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                if (count > 0) digest.update(buffer, 0, count)
-            }
-        }
-        digest.digest().joinToString("") { "%02x".format(it) }
+        hashFile(file)
     }
 
     @Synchronized
@@ -188,6 +276,19 @@ class YFilesExtrasStore(context: Context) {
         removed
     }
 
+    private fun hashFile(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        FileInputStream(file).use { input ->
+            val buffer = ByteArray(HASH_BUFFER_SIZE)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                if (count > 0) digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
     private fun saveTrash(records: List<YTrashRecord>) {
         val array = JSONArray()
         records.forEach { record ->
@@ -254,10 +355,14 @@ class YFilesExtrasStore(context: Context) {
     companion object {
         private const val PREFS = "yfiles_extras"
         private const val KEY_FAVORITES = "favorites"
+        private const val KEY_RECENT = "recent_locations"
         private const val KEY_TRASH = "trash"
         private const val TRASH_DIRECTORY = ".YFilesTrash"
         private const val HASH_BUFFER_SIZE = 256 * 1024
         private const val MAX_ANALYSIS_ENTRIES = 100_000L
+        private const val MAX_RECENT_LOCATIONS = 12
+        private const val MAX_DUPLICATE_SCAN_FILES = 50_000L
+        private const val MAX_DUPLICATE_GROUPS = 100
     }
 }
 
@@ -274,7 +379,15 @@ fun YFilesExtraToolsCard(
     var revision by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var analysis by remember(path) { mutableStateOf<YDirectoryAnalysis?>(null) }
+    var duplicateScan by remember(path) { mutableStateOf<YDuplicateScan?>(null) }
+
+    LaunchedEffect(path) {
+        withContext(Dispatchers.IO) { store.recordRecent(path) }
+        revision++
+    }
+
     val favorites = remember(revision, path) { store.favorites() }
+    val recents = remember(revision, path) { store.recentPaths().filterNot { it == path } }
     val trash = remember(revision) { store.trashRecords() }
     val isFavorite = remember(revision, path) { store.isFavorite(path) }
 
@@ -319,6 +432,15 @@ fun YFilesExtraToolsCard(
                 ) { Text(File(favorite).name.ifBlank { favorite }) }
             }
         }
+        if (recents.isNotEmpty()) {
+            Text(stringResource(R.string.yfiles_recent_locations, recents.size))
+            recents.take(4).forEach { recent ->
+                OutlinedButton(
+                    onClick = { onNavigate(recent) },
+                    enabled = !busy,
+                ) { Text(File(recent).name.ifBlank { recent }) }
+            }
+        }
         analysis?.let { result ->
             YStatusRow(stringResource(R.string.analysis_size), formatExtraBytes(result.totalBytes), YStatusTone.Neutral)
             YStatusRow(
@@ -327,6 +449,36 @@ fun YFilesExtraToolsCard(
                 if (result.truncated) YStatusTone.Warning else YStatusTone.Good,
             )
             if (result.truncated) Text(stringResource(R.string.analysis_truncated, result.scannedEntries))
+        }
+        OutlinedButton(
+            onClick = {
+                busy = true
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) { store.scanDuplicates(path) }
+                    result.onSuccess { duplicateScan = it; onError(null) }
+                        .onFailure { onError(it.message) }
+                    busy = false
+                }
+            },
+            enabled = !busy,
+        ) { Text(stringResource(R.string.yfiles_find_duplicates)) }
+        duplicateScan?.let { scan ->
+            YStatusRow(
+                stringResource(R.string.yfiles_duplicate_summary),
+                stringResource(R.string.yfiles_duplicate_summary_value, scan.duplicateFiles, formatExtraBytes(scan.wastedBytes)),
+                if (scan.groups.isEmpty()) YStatusTone.Good else YStatusTone.Warning,
+            )
+            if (scan.truncated) Text(stringResource(R.string.yfiles_duplicate_truncated, scan.scannedFiles))
+            scan.groups.take(3).forEach { group ->
+                val first = group.files.first()
+                YActionRow {
+                    Text(stringResource(R.string.yfiles_duplicate_group, group.files.size, formatExtraBytes(group.sizeBytes)))
+                    OutlinedButton(
+                        onClick = { File(first).parentFile?.absolutePath?.let(onNavigate) },
+                        enabled = !busy,
+                    ) { Text(stringResource(R.string.yfiles_show_location)) }
+                }
+            }
         }
         YStatusRow(
             stringResource(R.string.recycle_bin),
@@ -416,15 +568,4 @@ fun YFilesEntryExtraActions(
         ) { Text(stringResource(R.string.move_to_recycle_bin)) }
     }
     checksum?.let { Text(stringResource(R.string.sha256_value, it)) }
-}
-
-private fun formatExtraBytes(value: Long): String {
-    val units = arrayOf("B", "KB", "MB", "GB", "TB")
-    var size = value.toDouble()
-    var unit = 0
-    while (size >= 1024.0 && unit < units.lastIndex) {
-        size /= 1024.0
-        unit++
-    }
-    return if (unit == 0) "$value B" else "%.1f %s".format(size, units[unit])
 }
