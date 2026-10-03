@@ -1,14 +1,15 @@
 package com.yagay.YEntryCleaner.data;
 
 import com.yagay.YEntryCleaner.ui.DiagnosticBuffer;
-import java.lang.reflect.Method;
+import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.FeatureHostRegistry;
+import com.yagay.suite.api.HostBinaryCommandResult;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** One explicit user action per invocation; bounded output/time, no persistent root daemon. */
 public final class ComponentRootCommand {
-    private static final String SUITE_ROOT_GATEWAY = "com.yagay.suite.core.SuiteRootGateway";
     private static final String PLUGIN_ID = "yentrycleaner";
 
     private ComponentRootCommand() {}
@@ -61,57 +62,32 @@ public final class ComponentRootCommand {
     }
 
     public static Result run(String script) throws Exception {
-        Class<?> host = hostGateway();
+        FeatureHost host = FeatureHostRegistry.find(PLUGIN_ID);
         if (host != null) return runThroughHost(host, script);
         return capture(new ProcessBuilder("su", "-c", script), 25);
     }
 
-    private static Class<?> hostGateway() {
+    private static Result runThroughHost(FeatureHost host, String script) {
         try {
-            return Class.forName(SUITE_ROOT_GATEWAY, false, ComponentRootCommand.class.getClassLoader());
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static Result runThroughHost(Class<?> gateway, String script) throws Exception {
-        try {
-            Method method = gateway.getMethod(
-                    "executeBinaryFromPlugin",
-                    String.class,
-                    String.class,
-                    String.class,
-                    long.class,
-                    int.class,
-                    boolean.class);
-            Object raw = method.invoke(
-                    null,
-                    PLUGIN_ID,
+            HostBinaryCommandResult raw = host.rootExecuteBinary(
                     "component-root",
                     script == null ? "" : script,
                     25L,
                     16 * 1024,
                     true);
-            if (raw == null) throw new IllegalStateException("YSuite root gateway returned null");
-            Class<?> type = raw.getClass();
-            int code = ((Number) type.getMethod("getCode").invoke(raw)).intValue();
-            byte[] stdout = (byte[]) type.getMethod("getStdout").invoke(raw);
-            String stderr = (String) type.getMethod("getStderr").invoke(raw);
-            boolean timedOut = Boolean.TRUE.equals(type.getMethod("getTimedOut").invoke(raw));
-            String errorMessage = (String) type.getMethod("getErrorMessage").invoke(raw);
-            StringBuilder text = new StringBuilder(new String(stdout, StandardCharsets.UTF_8));
-            if (stderr != null && !stderr.isBlank()) {
+            StringBuilder text = new StringBuilder(new String(raw.getStdout(), StandardCharsets.UTF_8));
+            if (!raw.getStderr().isBlank()) {
                 if (text.length() > 0 && text.charAt(text.length() - 1) != '\n') text.append('\n');
-                text.append(stderr);
+                text.append(raw.getStderr());
             }
-            if (errorMessage != null && !errorMessage.isBlank()) {
+            if (raw.getErrorMessage() != null && !raw.getErrorMessage().isBlank()) {
                 if (text.length() > 0 && text.charAt(text.length() - 1) != '\n') text.append('\n');
-                text.append('[').append(errorMessage).append(']');
+                text.append('[').append(raw.getErrorMessage()).append(']');
             }
-            return new Result(code, timedOut, text.toString());
+            return new Result(raw.getCode(), raw.getTimedOut(), text.toString());
         } catch (Throwable error) {
             // The host is present, therefore a failed host request must not open a second su entry.
-            throw new IllegalStateException("YSuite root gateway failed", error);
+            throw new IllegalStateException("YSuite Root host failed", error);
         }
     }
 
