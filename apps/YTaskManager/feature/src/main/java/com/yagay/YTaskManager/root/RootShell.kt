@@ -1,6 +1,7 @@
 package com.yagay.YTaskManager.root
 
 import com.yagay.YTaskManager.AppLogger
+import com.yagay.suite.api.FeatureServices
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
@@ -17,7 +18,6 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.util.UUID
 import java.util.concurrent.TimeoutException
-import kotlin.math.ceil
 
 data class ShellResult(
     val code: Int,
@@ -26,8 +26,7 @@ data class ShellResult(
 
 class RootShell {
     companion object {
-        private const val SUITE_ROOT_GATEWAY = "com.yagay.suite.core.SuiteRootGateway"
-        private const val PLUGIN_ID = "ytaskmanager"
+        private val services = FeatureServices.of("ytaskmanager", "YTaskManager")
     }
 
     private val mutex = Mutex()
@@ -54,7 +53,7 @@ class RootShell {
             }
         val granted = result.getOrDefault(false)
         // A denied/non-root standalone su process must never be kept as the cached shell. KernelSU
-        // grants can change while the app is open. In YSuite mode there is no plugin-owned shell.
+        // grants can change while the app is open. In managed-host mode there is no feature shell.
         if (!granted) mutex.withLock { reset() }
         return granted
     }
@@ -62,10 +61,9 @@ class RootShell {
     suspend fun execute(command: String, timeoutMs: Long = 8_000): ShellResult =
         mutex.withLock {
             withContext(Dispatchers.IO) {
-                val host = hostGateway()
-                if (host != null) {
+                if (services.hostOrNull() != null) {
                     check(!closed) { "Root shell already closed" }
-                    return@withContext executeThroughHost(host, command, timeoutMs)
+                    return@withContext executeThroughHost(command, timeoutMs)
                 }
 
                 try {
@@ -119,35 +117,20 @@ class RootShell {
             }
         }
 
-    private fun hostGateway(): Class<*>? = runCatching {
-        Class.forName(SUITE_ROOT_GATEWAY, false, javaClass.classLoader)
-    }.getOrNull()
-
-    private fun executeThroughHost(host: Class<*>, command: String, timeoutMs: Long): ShellResult =
+    private fun executeThroughHost(command: String, timeoutMs: Long): ShellResult =
         try {
-            val method = host.getMethod(
-                "executeFromPlugin",
-                String::class.java,
-                String::class.java,
-                String::class.java,
-                java.lang.Long.TYPE,
-            )
-            val timeoutSeconds = ceil(timeoutMs.coerceAtLeast(1L) / 1000.0).toLong().coerceAtLeast(1L)
-            val raw = method.invoke(null, PLUGIN_ID, "root-shell", command, timeoutSeconds)
-                ?: error("YSuite root gateway returned null")
-            val type = raw.javaClass
-            val code = (type.getMethod("getCode").invoke(raw) as Number).toInt()
-            val stdout = type.getMethod("getStdout").invoke(raw) as? String ?: ""
-            val stderr = type.getMethod("getStderr").invoke(raw) as? String ?: ""
-            val timedOut = type.getMethod("getTimedOut").invoke(raw) as? Boolean ?: false
-            if (timedOut) throw TimeoutException("YSuite root command timed out after ${timeoutMs}ms")
-            if (stderr.isNotBlank()) AppLogger.i("YSuite root stderr: ${stderr.take(240)}")
-            ShellResult(code, stdout.trim())
+            val timeoutSeconds = ((timeoutMs.coerceAtLeast(1L) + 999L) / 1000L).coerceAtLeast(1L)
+            val host = services.requireHost("Managed Root host is not attached")
+            val raw = host.rootExecute("root-shell", command, timeoutSeconds)
+            if (raw.timedOut) throw TimeoutException("Managed root command timed out after ${timeoutMs}ms")
+            if (!raw.errorMessage.isNullOrBlank()) throw IllegalStateException(raw.errorMessage)
+            if (raw.stderr.isNotBlank()) AppLogger.i("Managed root stderr: ${raw.stderr.take(240)}")
+            ShellResult(raw.code, raw.stdout.trim())
         } catch (e: TimeoutException) {
             throw e
         } catch (t: Throwable) {
-            // Host exists: never bypass YSuite by opening a second local su process.
-            throw IllegalStateException("YSuite root gateway failed", t)
+            // A managed host exists: never bypass it by opening a second local su process.
+            throw IllegalStateException("Managed root execution failed", t)
         }
 
     private fun ensureShell() {
