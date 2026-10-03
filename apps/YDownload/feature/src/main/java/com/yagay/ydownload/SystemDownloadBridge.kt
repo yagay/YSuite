@@ -38,6 +38,7 @@ object SystemDownloadBridge {
             )
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, item.fileName)
 
+        item.requestHeaders.forEach { (name, value) -> request.addRequestHeader(name, value) }
         guessMimeType(item.fileName)?.let(request::setMimeType)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             request.setRequiresCharging(settings.requireCharging)
@@ -158,38 +159,29 @@ object SystemDownloadBridge {
         if (previous != null) {
             val elapsed = now - previous.elapsedRealtimeMs
             val delta = done - previous.done
-            if (elapsed >= 400L && delta >= 0L) {
-                val instant = (delta * 1000L / elapsed.coerceAtLeast(1L)).coerceAtLeast(0L)
-                speed = if (previous.speedBytesPerSecond > 0L) {
-                    ((previous.speedBytesPerSecond * 2L) + instant) / 3L
-                } else {
-                    instant
-                }
+            if (elapsed > 0L && delta >= 0L) {
+                val instant = delta * 1000L / elapsed
+                speed = if (speed > 0L) (speed * 2L + instant) / 3L else instant
             }
         }
         samples[systemId] = TelemetrySample(done, now, speed)
-        val eta = if (speed > 0L && total > done && total > 0L) {
-            ((total - done) * 1000L / speed).coerceAtLeast(0L)
-        } else {
-            -1L
-        }
+        val eta = if (speed > 0L && total > done && total > 0L) (total - done) * 1000L / speed else -1L
         return DownloadTelemetry(speed, eta)
     }
 
-    private fun int(cursor: Cursor, index: Int, fallback: Int): Int =
-        if (index >= 0 && !cursor.isNull(index)) cursor.getInt(index) else fallback
-
-    private fun long(cursor: Cursor, index: Int, fallback: Long): Long =
-        if (index >= 0 && !cursor.isNull(index)) cursor.getLong(index) else fallback
-
-    private fun string(cursor: Cursor, index: Int): String? =
-        if (index >= 0 && !cursor.isNull(index)) cursor.getString(index) else null
+    private fun int(cursor: Cursor, index: Int, fallback: Int): Int = if (index >= 0) cursor.getInt(index) else fallback
+    private fun long(cursor: Cursor, index: Int, fallback: Long): Long = if (index >= 0) cursor.getLong(index) else fallback
+    private fun string(cursor: Cursor, index: Int): String? = if (index >= 0) cursor.getString(index) else null
 
     private fun guessMimeType(fileName: String): String? {
         val extension = fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
         if (extension.isBlank()) return null
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
     }
+
+    private const val COLUMN_CONTROL = "control"
+    private const val CONTROL_RUN = 0
+    private const val CONTROL_PAUSED = 1
 
     private data class TelemetrySample(
         val done: Long,
@@ -201,8 +193,4 @@ object SystemDownloadBridge {
         val speedBytesPerSecond: Long = 0L,
         val etaMillis: Long = -1L,
     )
-
-    private const val COLUMN_CONTROL = "control"
-    private const val CONTROL_RUN = 0
-    private const val CONTROL_PAUSED = 1
 }
