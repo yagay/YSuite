@@ -3,8 +3,8 @@ package com.yagay.yfiles
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.FeatureHostBinding
 import com.yagay.suite.api.HostCapability
 import com.yagay.suite.api.HostCapabilityRequestResult
 import com.yagay.suite.api.HostCapabilityState
@@ -14,32 +14,32 @@ import java.io.File
 
 class YFilesSuiteRuntime private constructor(context: Context) : ManagedFeatureRuntime {
     private val appContext = context.applicationContext
-    override fun attach(host: FeatureHost) { Companion.host = host }
+    override fun attach(host: FeatureHost) { hostBinding.attach(host) }
     override fun enable() { log(HostLogLevel.INFO, "yfiles runtime enabled") }
     override fun disable() { log(HostLogLevel.INFO, "yfiles runtime disabled") }
-    override fun destroy() { if (host?.applicationContext === appContext) host = null }
+    override fun destroy() { hostBinding.clearIfOwnedBy(appContext) }
 
     companion object {
         @Volatile private var instance: YFilesSuiteRuntime? = null
-        @Volatile private var host: FeatureHost? = null
+        private val hostBinding = FeatureHostBinding("YFiles")
 
         @JvmStatic fun get(context: Context): YFilesSuiteRuntime = instance ?: synchronized(this) {
             instance ?: YFilesSuiteRuntime(context).also { instance = it }
         }
 
         fun capabilityState(capability: HostCapability): HostCapabilityState =
-            host?.capabilityState(capability) ?: HostCapabilityState.NOT_DECLARED
+            hostBinding.capabilityState(capability)
 
         fun requestCapability(
             activity: Activity,
             capability: HostCapability,
         ): HostCapabilityRequestResult =
-            host?.requestCapability(activity, capability) ?: HostCapabilityRequestResult.NOT_DECLARED
+            hostBinding.requestCapability(activity, capability)
 
         fun rootAvailable(): Boolean =
             capabilityState(HostCapability.ROOT) == HostCapabilityState.GRANTED
 
-        fun sharedFileUri(file: File): Uri? = host?.sharedFileUri(file)
+        fun sharedFileUri(file: File): Uri? = hostBinding.sharedFileUri(file)
 
         fun rootList(path: String): Result<List<String>> = rootCommand(
             operation = "list",
@@ -117,7 +117,7 @@ class YFilesSuiteRuntime private constructor(context: Context) : ManagedFeatureR
 
         fun rootStageFile(path: String): Result<File> = runCatching {
             require(!rootIsDirectory(path).getOrThrow()) { "Folders cannot be opened or shared directly" }
-            val current = host ?: error("YSuite Root host is not attached")
+            val current = hostBinding.requireHost("YSuite Root host is not attached")
             val cacheDirectory = File(current.applicationContext.cacheDir, "root-share")
             require(cacheDirectory.mkdirs() || cacheDirectory.isDirectory) { "Unable to create share cache" }
             cacheDirectory.listFiles()?.forEach { file ->
@@ -139,31 +139,14 @@ class YFilesSuiteRuntime private constructor(context: Context) : ManagedFeatureR
         }
 
         fun log(level: HostLogLevel, message: String, error: Throwable? = null) {
-            host?.log(level, message, error) ?: when (level) {
-                HostLogLevel.DEBUG -> Log.d("YFiles", message, error)
-                HostLogLevel.INFO -> Log.i("YFiles", message, error)
-                HostLogLevel.WARN -> Log.w("YFiles", message, error)
-                HostLogLevel.ERROR -> Log.e("YFiles", message, error)
-            }
+            hostBinding.log(level, message, error)
         }
 
         private fun rootCommand(
             operation: String,
             command: String,
             timeoutSeconds: Long = 20L,
-        ): Result<String> {
-            val current = host ?: return Result.failure(IllegalStateException("YSuite Root host is not attached"))
-            val result = current.rootExecute(operation, command, timeoutSeconds)
-            return if (result.success) {
-                Result.success(result.stdout)
-            } else {
-                Result.failure(
-                    IllegalStateException(
-                        result.errorMessage ?: result.stderr.ifBlank { "Root operation failed: $operation" },
-                    ),
-                )
-            }
-        }
+        ): Result<String> = hostBinding.rootText(operation, command, timeoutSeconds)
 
         private fun guardedCreateCommand(target: String, createCommand: String): String {
             val quoted = shellQuote(target)
