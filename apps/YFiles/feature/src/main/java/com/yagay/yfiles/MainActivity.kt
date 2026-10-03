@@ -409,10 +409,10 @@ class MainActivity : YComposeActivity() {
                             }
                         }
                         YActionRow {
-                            Button(onClick = { newFolderDialog = true }, enabled = !rootMode && !operationBusy) {
+                            Button(onClick = { newFolderDialog = true }, enabled = !operationBusy) {
                                 Text(stringResource(R.string.new_folder))
                             }
-                            OutlinedButton(onClick = { newFileDialog = true }, enabled = !rootMode && !operationBusy) {
+                            OutlinedButton(onClick = { newFileDialog = true }, enabled = !operationBusy) {
                                 Text(stringResource(R.string.new_file))
                             }
                         }
@@ -422,8 +422,21 @@ class MainActivity : YComposeActivity() {
                 error?.let { item { YFeatureCard(title = stringResource(R.string.error), detail = it) } }
 
                 if (rootMode) {
-                    items(rootNames, key = { it }) { name ->
-                        YFeatureCard(title = name, subtitle = stringResource(R.string.root_entry))
+                    if (rootNames.isEmpty()) {
+                        item { YFeatureCard(title = stringResource(R.string.empty_folder)) }
+                    } else {
+                        items(rootNames, key = { it }) { name ->
+                            YFilesRootEntryCard(
+                                parentPath = path,
+                                name = name,
+                                onNavigate = { target ->
+                                    path = target
+                                    query = ""
+                                },
+                                onChanged = { refresh++ },
+                                onError = { error = it },
+                            )
+                        }
                     }
                 } else if (entries.isEmpty()) {
                     item { YFeatureCard(title = stringResource(R.string.empty_folder)) }
@@ -513,7 +526,7 @@ class MainActivity : YComposeActivity() {
 
         if (newFolderDialog) {
             AlertDialog(
-                onDismissRequest = { newFolderDialog = false },
+                onDismissRequest = { if (!operationBusy) newFolderDialog = false },
                 title = { Text(stringResource(R.string.new_folder)) },
                 text = {
                     OutlinedTextField(
@@ -523,15 +536,31 @@ class MainActivity : YComposeActivity() {
                     )
                 },
                 confirmButton = {
-                    Button(onClick = {
-                        repository.createFolder(path, newFolderName).onFailure { error = it.message }
-                        newFolderName = ""
-                        newFolderDialog = false
-                        refresh++
-                    }) { Text(stringResource(R.string.create)) }
+                    Button(
+                        onClick = {
+                            operationBusy = true
+                            lifecycleScope.launch {
+                                val result = withContext(Dispatchers.IO) {
+                                    if (rootMode) {
+                                        YFilesSuiteRuntime.rootCreateFolder(path, newFolderName)
+                                    } else {
+                                        repository.createFolder(path, newFolderName).map { Unit }
+                                    }
+                                }
+                                result.onSuccess {
+                                    newFolderName = ""
+                                    newFolderDialog = false
+                                    error = null
+                                    refresh++
+                                }.onFailure { error = it.message }
+                                operationBusy = false
+                            }
+                        },
+                        enabled = newFolderName.isNotBlank() && !operationBusy,
+                    ) { Text(stringResource(R.string.create)) }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { newFolderDialog = false }) {
+                    OutlinedButton(onClick = { newFolderDialog = false }, enabled = !operationBusy) {
                         Text(stringResource(R.string.yfiles_cancel))
                     }
                 },
@@ -540,7 +569,7 @@ class MainActivity : YComposeActivity() {
 
         if (newFileDialog) {
             AlertDialog(
-                onDismissRequest = { newFileDialog = false },
+                onDismissRequest = { if (!operationBusy) newFileDialog = false },
                 title = { Text(stringResource(R.string.new_file)) },
                 text = {
                     OutlinedTextField(
@@ -550,15 +579,31 @@ class MainActivity : YComposeActivity() {
                     )
                 },
                 confirmButton = {
-                    Button(onClick = {
-                        repository.createFile(path, newFileName).onFailure { error = it.message }
-                        newFileName = ""
-                        newFileDialog = false
-                        refresh++
-                    }) { Text(stringResource(R.string.create)) }
+                    Button(
+                        onClick = {
+                            operationBusy = true
+                            lifecycleScope.launch {
+                                val result = withContext(Dispatchers.IO) {
+                                    if (rootMode) {
+                                        YFilesSuiteRuntime.rootCreateFile(path, newFileName)
+                                    } else {
+                                        repository.createFile(path, newFileName).map { Unit }
+                                    }
+                                }
+                                result.onSuccess {
+                                    newFileName = ""
+                                    newFileDialog = false
+                                    error = null
+                                    refresh++
+                                }.onFailure { error = it.message }
+                                operationBusy = false
+                            }
+                        },
+                        enabled = newFileName.isNotBlank() && !operationBusy,
+                    ) { Text(stringResource(R.string.create)) }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { newFileDialog = false }) {
+                    OutlinedButton(onClick = { newFileDialog = false }, enabled = !operationBusy) {
                         Text(stringResource(R.string.yfiles_cancel))
                     }
                 },
