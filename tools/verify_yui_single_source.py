@@ -58,17 +58,17 @@ REQUIRED_INTERACTION_MARKERS = (
 )
 
 MODULE_UI = {
-    "YDiag": (Path("apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity.kt"), ("com.yagay.yui", "YNavigationSuite")),
+    "YDiag": (Path("apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity.kt"), ("YPageScaffold", "YNavigationSuite")),
     "YDownload": (Path("apps/YDownload/feature/src/main/java/com/yagay/ydownload/MainActivity.kt"), ("YManagerScaffold",)),
     "YEntryCleaner": (Path("apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainActivity.kt"), ("com.yagay.yui",)),
-    "YFiles": (Path("apps/YFiles/feature/src/main/java/com/yagay/yfiles/MainActivity.kt"), ("com.yagay.yui",)),
+    "YFiles": (Path("apps/YFiles/feature/src/main/java/com/yagay/yfiles/MainActivity.kt"), ("YBrowserScaffold", "YPageList")),
     "YFloat": (Path("apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppUi.java"), ("com.yagay.yui", "YViewLayout")),
     "YMiniGuard": (Path("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java"), ("YViewLayout",)),
-    "YNFC": (Path("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt"), ("com.yagay.yui",)),
+    "YNFC": (Path("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt"), ("YManagerScaffold", "YPageList")),
     "YNotify": (Path("apps/YNotify/feature/src/main/res/layout/activity_main.xml"), ("Widget.YUI.", "TextAppearance.YUI.")),
     "YParam": (Path("apps/YParam/feature/src/main/java/com/yagay/yparam/ui/MainActivity.java"), ("YViewLayout",)),
     "YPower": (Path("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java"), ("YViewLayout",)),
-    "YTaskManager": (Path("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt"), ("com.yagay.yui", "YNavigationSuite")),
+    "YTaskManager": (Path("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt"), ("YManagerScaffold", "YNavigationSuite")),
 }
 
 
