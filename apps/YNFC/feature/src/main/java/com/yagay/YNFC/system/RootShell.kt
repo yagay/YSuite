@@ -6,7 +6,6 @@ import android.os.Looper
 import android.os.SystemClock
 import android.widget.Toast
 import com.yagay.suite.api.FeatureServices
-import java.util.concurrent.TimeUnit
 
 class RootShell(context: Context) {
     companion object {
@@ -21,54 +20,18 @@ class RootShell(context: Context) {
     @Volatile private var lastRootToastAt: Long = 0L
 
     fun run(command: String, timeoutSeconds: Long = 20, maxChars: Int = 1_000_000, showToast: Boolean = true): String {
-        if (services.hostOrNull() != null) {
-            val result = hostRun(command, timeoutSeconds)
-            if (!result.success && showToast && result.code == -1) notifyRootUnavailable()
-            val output = buildString {
-                append(result.stdout.take(maxChars))
-                if (result.stderr.isNotBlank() && length < maxChars) {
-                    if (isNotEmpty() && last() != '\n') append('\n')
-                    append(result.stderr.take(maxChars - length))
-                }
-                if (length < maxChars) {
-                    if (isNotEmpty() && last() != '\n') append('\n')
-                    appendLine(if (result.timedOut) "[timeout=${timeoutSeconds}s]" else "[exit=${result.code}]")
-                }
+        val result = hostRun(command, timeoutSeconds)
+        if (!result.success && showToast && result.code == -1) notifyRootUnavailable()
+        return buildString {
+            append(result.stdout.take(maxChars))
+            if (result.stderr.isNotBlank() && length < maxChars) {
+                if (isNotEmpty() && last() != '\n') append('\n')
+                append(result.stderr.take(maxChars - length))
             }
-            return output
-        }
-
-        if (!ensureRootAccess(showToast)) return "ROOT_UNAVAILABLE"
-        return try {
-            val process = ProcessBuilder("su", "-c", command).redirectErrorStream(true).start()
-            val output = StringBuffer()
-            val reader = Thread({
-                runCatching {
-                    process.inputStream.bufferedReader().useLines { lines ->
-                        lines.forEach { line ->
-                            if (output.length < maxChars) {
-                                val remaining = maxChars - output.length
-                                val piece = if (line.length + 1 <= remaining) line + "\n" else line.take(remaining)
-                                output.append(piece)
-                            }
-                        }
-                    }
-                }
-            }, "YNFC-RootReader").apply { isDaemon = true; start() }
-
-            val finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS)
-            if (!finished) {
-                process.destroyForcibly()
-                process.waitFor(2, TimeUnit.SECONDS)
+            if (length < maxChars) {
+                if (isNotEmpty() && last() != '\n') append('\n')
+                appendLine(if (result.timedOut) "[timeout=${timeoutSeconds}s]" else "[exit=${result.code}]")
             }
-            reader.join(1500)
-            if (!finished) output.appendLine("[timeout=${timeoutSeconds}s]")
-            else output.appendLine("[exit=${process.exitValue()}]")
-            output.toString()
-        } catch (t: Throwable) {
-            invalidateRootCache()
-            if (showToast) notifyRootUnavailable()
-            "ERROR ${t.javaClass.simpleName}: ${t.message}"
         }
     }
 
@@ -88,20 +51,8 @@ class RootShell(context: Context) {
             }
         }
 
-        val ok = if (services.hostOrNull() != null) {
-            val result = hostRun("id -u", 4)
-            result.success && result.stdout.lineSequence().any { it.trim() == "0" }
-        } else {
-            try {
-                val process = ProcessBuilder("su", "-c", "id -u").redirectErrorStream(true).start()
-                val finished = process.waitFor(4, TimeUnit.SECONDS)
-                val output = if (finished) process.inputStream.bufferedReader().readText().trim() else ""
-                if (!finished) process.destroyForcibly()
-                finished && process.exitValue() == 0 && output.lineSequence().any { it.trim() == "0" }
-            } catch (_: Throwable) {
-                false
-            }
-        }
+        val result = hostRun("id -u", 4)
+        val ok = result.success && result.stdout.lineSequence().any { it.trim() == "0" }
         rootAvailableCache = ok
         rootCacheCheckedAt = now
         if (!ok && showToast) notifyRootUnavailable()
