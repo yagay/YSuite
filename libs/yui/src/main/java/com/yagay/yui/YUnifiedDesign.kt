@@ -24,9 +24,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -37,7 +40,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -177,7 +185,7 @@ fun YListItem(
         modifier = interactionModifier.fillMaxWidth(),
         colors = ListItemDefaults.colors(
             containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
-            else MaterialTheme.colorScheme.surface,
+            else Color.Transparent,
             disabledHeadlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
             disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
             disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
@@ -329,6 +337,79 @@ fun YNotice(text: String, modifier: Modifier = Modifier, tone: YNoticeTone = YNo
     }
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = container) {
         Text(text, Modifier.padding(horizontal = 14.dp, vertical = 11.dp), color = foreground)
+    }
+}
+
+@Composable
+fun YChoiceSetting(
+    title: String,
+    options: List<String>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+        )
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        YFilterBar(
+            options = options,
+            selectedIndex = selectedIndex.coerceIn(0, (options.size - 1).coerceAtLeast(0)),
+            onSelected = onSelected,
+        )
+    }
+}
+
+@Composable
+fun YOverflowMenu(
+    actions: List<YActionSpec>,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier) {
+        IconButton(
+            onClick = { expanded = true },
+            enabled = actions.any { it.enabled },
+        ) {
+            Icon(YIcons.More, contentDescription = null)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            actions.forEach { action ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            action.label,
+                            color = if (action.style == YActionStyle.DANGER && action.enabled) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    },
+                    enabled = action.enabled,
+                    onClick = {
+                        expanded = false
+                        action.onClick()
+                    },
+                )
+            }
+        }
     }
 }
 
