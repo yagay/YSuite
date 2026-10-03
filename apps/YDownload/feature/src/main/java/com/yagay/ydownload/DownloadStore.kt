@@ -27,6 +27,8 @@ data class DownloadItem(
     val etag: String? = null,
     /** Fallback HTTP validator used when a server does not provide ETag. */
     val lastModified: String? = null,
+    /** Optional integrity fingerprint calculated after an enhanced download completes. */
+    val sha256: String? = null,
     // Runtime-only telemetry. It is deliberately not persisted so stale speed/ETA values are never
     // restored after a process restart.
     val speedBytesPerSecond: Long = 0L,
@@ -73,6 +75,7 @@ class DownloadStore private constructor(context: Context) {
                 put("retryCount", item.retryCount)
                 put("etag", item.etag)
                 put("lastModified", item.lastModified)
+                put("sha256", item.sha256)
             })
         }
         prefs.edit().putString("items", arr.toString()).apply()
@@ -103,6 +106,7 @@ class DownloadStore private constructor(context: Context) {
                         retryCount = o.optInt("retryCount", 0).coerceAtLeast(0),
                         etag = o.optString("etag").takeIf { it.isNotBlank() && it != "null" },
                         lastModified = o.optString("lastModified").takeIf { it.isNotBlank() && it != "null" },
+                        sha256 = o.optString("sha256").takeIf { it.isNotBlank() && it != "null" },
                     ),
                 )
             }
