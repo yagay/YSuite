@@ -3,12 +3,11 @@ package com.yagay.YTaskManager.ui
 import android.graphics.drawable.Drawable
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,8 +28,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +66,13 @@ import com.yagay.YTaskManager.model.ProcessSort
 import com.yagay.YTaskManager.model.TaskManagerUiState
 import com.yagay.yui.YDimens
 import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YToggleFilterBar
+import com.yagay.yui.YStatusStrip
+import com.yagay.yui.YStatusSpec
+import com.yagay.yui.YPageList
+import com.yagay.yui.YListItem
+import com.yagay.yui.YFilterSpec
+import com.yagay.yui.YFilterBar
 import com.yagay.yui.YFeatureEmpty
 import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YIcons
@@ -243,23 +247,21 @@ private fun ProcessPage(
 
 @Composable
 private fun StatusSection(state: TaskManagerUiState) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-    ) {
-        YStatusPill(
-            label = "Root",
-            value = if (state.root.granted) stringResource(R.string.ytm_ok) else stringResource(R.string.ytm_root_unavailable),
-            tone = if (state.root.granted) YStatusTone.Good else YStatusTone.Error,
-        )
-        YStatusPill(
-            label = "LSPosed",
-            value = if (state.framework.detected) stringResource(R.string.ytm_detected) else stringResource(R.string.ytm_not_detected),
-            tone = if (state.framework.detected) YStatusTone.Good else YStatusTone.Warning,
-        )
-    }
+    YStatusStrip(
+        statuses = listOf(
+            YStatusSpec(
+                label = "Root",
+                value = if (state.root.granted) stringResource(R.string.ytm_ok) else stringResource(R.string.ytm_root_unavailable),
+                tone = if (state.root.granted) YStatusTone.Good else YStatusTone.Error,
+            ),
+            YStatusSpec(
+                label = "LSPosed",
+                value = if (state.framework.detected) stringResource(R.string.ytm_detected) else stringResource(R.string.ytm_not_detected),
+                tone = if (state.framework.detected) YStatusTone.Good else YStatusTone.Warning,
+            ),
+        ),
+        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 4.dp),
+    )
 }
 
 @Composable
@@ -289,20 +291,18 @@ private fun FilterSection(
                 }
             } else null,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(selected = state.showUserApps, onClick = { onUser(!state.showUserApps) }, label = { Text(stringResource(R.string.ytm_user)) })
-            FilterChip(selected = state.showSystemApps, onClick = { onSystem(!state.showSystemApps) }, label = { Text(stringResource(R.string.ytm_system)) })
-            FilterChip(selected = state.showLinuxProcesses, onClick = { onLinux(!state.showLinuxProcesses) }, label = { Text(stringResource(R.string.ytm_linux)) })
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            ProcessSort.entries.forEach { item ->
-                FilterChip(
-                    selected = state.sort == item,
-                    onClick = { onSort(item) },
-                    label = { Text(sortLabel(item)) },
-                )
-            }
-        }
+        YToggleFilterBar(
+            filters = listOf(
+                YFilterSpec(stringResource(R.string.ytm_user), state.showUserApps) { onUser(!state.showUserApps) },
+                YFilterSpec(stringResource(R.string.ytm_system), state.showSystemApps) { onSystem(!state.showSystemApps) },
+                YFilterSpec(stringResource(R.string.ytm_linux), state.showLinuxProcesses) { onLinux(!state.showLinuxProcesses) },
+            ),
+        )
+        YFilterBar(
+            options = ProcessSort.entries.map { sortLabel(it) },
+            selectedIndex = ProcessSort.entries.indexOf(state.sort).coerceAtLeast(0),
+            onSelected = { index -> ProcessSort.entries.getOrNull(index)?.let(onSort) },
+        )
     }
 }
 
@@ -360,54 +360,39 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
     LazyColumn(Modifier.fillMaxSize()) {
         items(filtered, key = { it.pid }) { process ->
             ProcessRow(process, onClick)
-            HorizontalDivider()
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = { onClick(process) })
-            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppIcon(process.icon)
-        Spacer(Modifier.size(10.dp))
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    process.displayName,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (process.isPinned) {
-                    Icon(Icons.Default.PushPin, contentDescription = stringResource(R.string.ytm_pinned), modifier = Modifier.size(15.dp))
-                }
-                if (process.isForeground) Text(" " + stringResource(R.string.ytm_foreground_short), style = MaterialTheme.typography.labelSmall)
-            }
-            Text(
-                stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                stringResource(R.string.ytm_download_upload, formatSpeed(process.rxBytesPerSecond), formatSpeed(process.txBytesPerSecond)),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent))
-            Text(formatBytes(process.rssKb * 1024L), style = MaterialTheme.typography.bodySmall)
-        }
+    val title = buildString {
+        append(process.displayName)
+        if (process.isForeground) append(" · ").append(stringResource(R.string.ytm_foreground_short))
     }
+    YListItem(
+        title = title,
+        subtitle = stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
+        detail = stringResource(R.string.ytm_download_upload, formatSpeed(process.rxBytesPerSecond), formatSpeed(process.txBytesPerSecond)),
+        leading = { AppIcon(process.icon) },
+        trailing = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (process.isPinned) {
+                    Icon(
+                        Icons.Default.PushPin,
+                        contentDescription = stringResource(R.string.ytm_pinned),
+                        modifier = Modifier.size(15.dp),
+                    )
+                    Spacer(Modifier.size(6.dp))
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent))
+                    Text(formatBytes(process.rssKb * 1024L), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        onClick = { onClick(process) },
+    )
 }
 
 @Composable
@@ -416,9 +401,8 @@ private fun ResourcePage(state: TaskManagerUiState) {
     val g = state.gpu
     val unknown = stringResource(R.string.ytm_unknown)
     val noData = stringResource(R.string.ytm_no_data)
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
+    YPageList(
+        padding = PaddingValues(0.dp),
     ) {
         item {
             SectionCard("CPU") {
@@ -483,24 +467,22 @@ private fun ResourcePage(state: TaskManagerUiState) {
 @Composable
 private fun NetworkPage(state: TaskManagerUiState) {
     val network = state.network
-    Column(Modifier.fillMaxSize()) {
-        YFeatureCard(
-            title = stringResource(R.string.ytm_realtime_speed),
-            subtitle = stringResource(R.string.ytm_realtime_speed_desc),
-            detail = stringResource(R.string.ytm_backend_detail, network.backend),
-            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
-        )
-        if (network.entries.isEmpty()) {
-            YFeatureEmpty(
-                stringResource(R.string.ytm_no_traffic),
-                Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
+    YPageList(
+        padding = PaddingValues(0.dp),
+        compact = true,
+    ) {
+        item {
+            YFeatureCard(
+                title = stringResource(R.string.ytm_realtime_speed),
+                subtitle = stringResource(R.string.ytm_realtime_speed_desc),
+                detail = stringResource(R.string.ytm_backend_detail, network.backend),
             )
+        }
+        if (network.entries.isEmpty()) {
+            item { YFeatureEmpty(stringResource(R.string.ytm_no_traffic)) }
         } else {
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(network.entries, key = { it.uid }) { entry ->
-                    NetworkRow(entry)
-                    HorizontalDivider()
-                }
+            items(network.entries, key = { it.uid }) { entry ->
+                NetworkRow(entry)
             }
         }
     }
