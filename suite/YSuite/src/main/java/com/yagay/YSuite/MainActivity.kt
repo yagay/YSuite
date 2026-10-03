@@ -523,4 +523,7 @@ private fun localizedCapabilityName(capability: SuiteCapability): String = when 
     SuiteCapability.OVERLAY -> stringResource(R.string.capability_overlay)
     SuiteCapability.NOTIFICATIONS -> stringResource(R.string.capability_notifications)
     SuiteCapability.NOTIFICATION_LISTENER -> stringResource(R.string.capability_notification_listener)
+    SuiteCapability.ALL_FILES -> stringResource(R.string.capability_all_files)
+    SuiteCapability.FILE_SHARE -> stringResource(R.string.capability_file_share)
+    SuiteCapability.NFC -> stringResource(R.string.capability_nfc)
 }
