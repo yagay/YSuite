@@ -2,8 +2,10 @@ package com.yagay.yfiles
 
 import android.app.Activity
 import android.content.Intent
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
 import com.yagay.suite.api.HostCapability
@@ -80,6 +83,7 @@ class MainActivity : YComposeActivity() {
     @Composable
     override fun YContent() {
         val repository = remember { FileRepository(this) }
+        val extrasStore = remember { YFilesExtrasStore(this) }
         var path by remember { mutableStateOf(intent?.getStringExtra("path") ?: repository.initialPath()) }
         var query by remember { mutableStateOf("") }
         var showHidden by remember { mutableStateOf(false) }
@@ -102,6 +106,7 @@ class MainActivity : YComposeActivity() {
         var propertyDialog by remember { mutableStateOf<FileProperties?>(null) }
         var deleteTarget by remember { mutableStateOf<FileEntry?>(null) }
         var operationBusy by remember { mutableStateOf(false) }
+        var checksumByPath by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
         val allFilesState = remember(capabilityRevision) {
             YFilesSuiteRuntime.capabilityState(HostCapability.ALL_FILES)
@@ -437,6 +442,8 @@ class MainActivity : YComposeActivity() {
                         val deleteLabel = stringResource(R.string.delete)
                         val compressLabel = stringResource(R.string.compress_zip)
                         val extractLabel = stringResource(R.string.extract_zip)
+                        val shaLabel = stringResource(R.string.sha256)
+                        val recycleLabel = stringResource(R.string.move_to_recycle_bin)
 
                         val menuActions = buildList {
                             if (!entry.isDirectory) {
@@ -540,6 +547,44 @@ class MainActivity : YComposeActivity() {
                                     ),
                                 )
                             }
+                            if (!entry.isDirectory) {
+                                add(
+                                    YActionSpec(
+                                        label = shaLabel,
+                                        enabled = !operationBusy,
+                                        onClick = {
+                                            operationBusy = true
+                                            lifecycleScope.launch {
+                                                val result = withContext(Dispatchers.IO) { extrasStore.sha256(entry) }
+                                                result.onSuccess { checksum ->
+                                                    checksumByPath = checksumByPath + (entry.path to checksum)
+                                                    error = null
+                                                }.onFailure { error = it.message }
+                                                operationBusy = false
+                                            }
+                                        },
+                                    ),
+                                )
+                            }
+                            add(
+                                YActionSpec(
+                                    label = recycleLabel,
+                                    enabled = !operationBusy,
+                                    style = YActionStyle.DANGER,
+                                    onClick = {
+                                        operationBusy = true
+                                        lifecycleScope.launch {
+                                            val result = withContext(Dispatchers.IO) { extrasStore.moveToTrash(entry) }
+                                            result.onSuccess {
+                                                checksumByPath = checksumByPath - entry.path
+                                                error = null
+                                                refresh++
+                                            }.onFailure { error = it.message }
+                                            operationBusy = false
+                                        }
+                                    },
+                                ),
+                            )
                             add(
                                 YActionSpec(
                                     label = deleteLabel,
@@ -550,6 +595,14 @@ class MainActivity : YComposeActivity() {
                             )
                         }
 
+                        val checksum = checksumByPath[entry.path]
+                        val entryDetail = when {
+                            checksum != null -> stringResource(R.string.sha256_value, checksum)
+                            recursiveSearch && query.isNotBlank() -> entry.path
+                            else -> null
+                        }
+                        val selectedForBatch = YFilesBatchSelectionState.selected.containsKey(entry.path)
+
                         YListItem(
                             title = entry.name,
                             subtitle = if (entry.isDirectory) {
@@ -557,7 +610,7 @@ class MainActivity : YComposeActivity() {
                             } else {
                                 formatBytes(entry.size)
                             },
-                            detail = entry.path.takeIf { recursiveSearch && query.isNotBlank() },
+                            detail = entryDetail,
                             enabled = !operationBusy,
                             onClick = {
                                 if (entry.isDirectory) {
@@ -567,12 +620,16 @@ class MainActivity : YComposeActivity() {
                                     openFile(File(entry.path))
                                 }
                             },
-                            trailing = { YOverflowMenu(menuActions) },
-                        )
-                        YFilesEntryExtraActions(
-                            entry = entry,
-                            onChanged = { refresh++ },
-                            onError = { error = it },
+                            trailing = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = selectedForBatch,
+                                        onCheckedChange = { YFilesBatchSelectionState.toggle(entry) },
+                                        enabled = !operationBusy,
+                                    )
+                                    YOverflowMenu(menuActions)
+                                }
+                            },
                         )
                     }
                 }
