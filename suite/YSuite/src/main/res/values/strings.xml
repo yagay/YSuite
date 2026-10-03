@@ -17,6 +17,9 @@
     <string name="capability_overlay">Display over other apps</string>
     <string name="capability_notifications">Notifications</string>
     <string name="capability_notification_listener">Notification access</string>
+    <string name="capability_all_files">All files access</string>
+    <string name="capability_file_share">File sharing</string>
+    <string name="capability_nfc">NFC</string>
     <string name="shared_capabilities">Shared capabilities: %1$s</string>
     <string name="standalone_app">Standalone APK</string>
     <string name="standalone_package">Package: %1$s</string>
