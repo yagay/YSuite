@@ -33,6 +33,20 @@ interface FeatureHost {
         timeoutSeconds: Long = 15L,
     ): HostCommandResult
 
+    /** Bounded binary Root execution for collectors/helpers that must cap captured output. */
+    fun rootExecuteBinary(
+        operation: String,
+        command: String,
+        timeoutSeconds: Long = 15L,
+        maxStdoutBytes: Int = 1024 * 1024,
+        mergeError: Boolean = false,
+    ): HostBinaryCommandResult = HostBinaryCommandResult(
+        code = -1,
+        stdout = ByteArray(0),
+        stderr = "Host does not provide binary Root execution",
+        errorMessage = "Binary Root execution not supported",
+    )
+
     /**
      * Start a long-lived Root process owned by the host.
      *
@@ -113,6 +127,16 @@ enum class HostLogLevel {
 data class HostCommandResult(
     val code: Int,
     val stdout: String,
+    val stderr: String,
+    val timedOut: Boolean = false,
+    val errorMessage: String? = null,
+) {
+    val success: Boolean get() = !timedOut && errorMessage == null && code == 0
+}
+
+data class HostBinaryCommandResult(
+    val code: Int,
+    val stdout: ByteArray,
     val stderr: String,
     val timedOut: Boolean = false,
     val errorMessage: String? = null,
