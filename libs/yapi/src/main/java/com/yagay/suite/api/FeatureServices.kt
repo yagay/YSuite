@@ -21,12 +21,14 @@ class FeatureServices @JvmOverloads constructor(
 
     fun hostOrNull(): FeatureHost? = FeatureHostRegistry.find(featureId)
 
+    @JvmOverloads
     fun requireHost(message: String = "Feature host is not attached: $featureId"): FeatureHost =
         hostOrNull() ?: throw IllegalStateException(message)
 
     fun capabilityState(capability: HostCapability): HostCapabilityState =
         hostOrNull()?.capabilityState(capability) ?: HostCapabilityState.NOT_DECLARED
 
+    @JvmOverloads
     fun requestCapability(
         activity: Activity,
         capability: HostCapability,
@@ -35,6 +37,7 @@ class FeatureServices @JvmOverloads constructor(
         hostOrNull()?.requestCapability(activity, capability, requestCode)
             ?: HostCapabilityRequestResult.NOT_DECLARED
 
+    @JvmOverloads
     fun rootText(
         operation: String,
         command: String,
@@ -45,6 +48,7 @@ class FeatureServices @JvmOverloads constructor(
         return host.rootExecute(operation, command, timeoutSeconds).toTextResult(operation)
     }
 
+    @JvmOverloads
     fun rootBinary(
         operation: String,
         command: String,
@@ -71,6 +75,7 @@ class FeatureServices @JvmOverloads constructor(
     fun rootStart(operation: String, command: String): Process? =
         hostOrNull()?.rootStart(operation, command)
 
+    @JvmOverloads
     fun reloadPackage(packageName: String, timeoutSeconds: Long = 12L): HostProcessReloadResult =
         hostOrNull()?.reloadPackage(packageName, timeoutSeconds)
             ?: HostProcessReloadResult(
@@ -84,6 +89,7 @@ class FeatureServices @JvmOverloads constructor(
 
     fun sharedFileUri(file: File): Uri? = hostOrNull()?.sharedFileUri(file)
 
+    @JvmOverloads
     fun settingBoolean(key: String, defaultValue: Boolean = false): Boolean =
         hostOrNull()?.settingBoolean(key, defaultValue) ?: defaultValue
 
@@ -91,6 +97,7 @@ class FeatureServices @JvmOverloads constructor(
         hostOrNull()?.putSettingBoolean(key, value)
     }
 
+    @JvmOverloads
     fun settingString(key: String, defaultValue: String? = null): String? =
         hostOrNull()?.settingString(key, defaultValue) ?: defaultValue
 
@@ -98,6 +105,7 @@ class FeatureServices @JvmOverloads constructor(
         hostOrNull()?.putSettingString(key, value)
     }
 
+    @JvmOverloads
     fun settingInt(key: String, defaultValue: Int = 0): Int =
         hostOrNull()?.settingInt(key, defaultValue) ?: defaultValue
 
@@ -105,6 +113,7 @@ class FeatureServices @JvmOverloads constructor(
         hostOrNull()?.putSettingInt(key, value)
     }
 
+    @JvmOverloads
     fun settingLong(key: String, defaultValue: Long = 0L): Long =
         hostOrNull()?.settingLong(key, defaultValue) ?: defaultValue
 
@@ -112,6 +121,7 @@ class FeatureServices @JvmOverloads constructor(
         hostOrNull()?.putSettingLong(key, value)
     }
 
+    @JvmOverloads
     fun settingStringSet(key: String, defaultValue: Set<String> = emptySet()): Set<String> =
         hostOrNull()?.settingStringSet(key, defaultValue) ?: defaultValue
 
@@ -123,6 +133,7 @@ class FeatureServices @JvmOverloads constructor(
         hostOrNull()?.removeSetting(key)
     }
 
+    @JvmOverloads
     fun log(level: HostLogLevel, message: String, error: Throwable? = null) {
         val host = hostOrNull()
         if (host != null) {
@@ -139,7 +150,11 @@ class FeatureServices @JvmOverloads constructor(
 
     fun debug(message: String) = log(HostLogLevel.DEBUG, message)
     fun info(message: String) = log(HostLogLevel.INFO, message)
+
+    @JvmOverloads
     fun warn(message: String, error: Throwable? = null) = log(HostLogLevel.WARN, message, error)
+
+    @JvmOverloads
     fun error(message: String, error: Throwable? = null) = log(HostLogLevel.ERROR, message, error)
 
     companion object {
