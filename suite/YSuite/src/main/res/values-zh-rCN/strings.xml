@@ -17,6 +17,9 @@
     <string name="capability_overlay">悬浮窗</string>
     <string name="capability_notifications">通知</string>
     <string name="capability_notification_listener">通知监听</string>
+    <string name="capability_all_files">所有文件访问</string>
+    <string name="capability_file_share">文件分享</string>
+    <string name="capability_nfc">NFC</string>
     <string name="shared_capabilities">共享能力：%1$s</string>
     <string name="standalone_app">独立 APK</string>
     <string name="standalone_package">包名：%1$s</string>
