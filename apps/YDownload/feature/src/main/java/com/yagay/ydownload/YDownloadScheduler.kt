@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,6 +40,8 @@ data class YDownloadTaskMeta(
     val tag: String = "",
     val priority: YDownloadPriority = YDownloadPriority.NORMAL,
     val networkRule: YDownloadNetworkRule = YDownloadNetworkRule.ANY,
+    /** Internal marker: true only when the scheduler, not the user, paused this task. */
+    val schedulerPaused: Boolean = false,
 ) {
     fun normalized(): YDownloadTaskMeta = copy(
         group = group.trim().take(64),
@@ -56,8 +57,7 @@ data class YDownloadScheduleResult(
 )
 
 class YDownloadTaskMetaStore(context: Context) {
-    private val appContext = context.applicationContext
-    private val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun defaults(): YDownloadTaskMeta = YDownloadTaskMeta(
         group = prefs.getString(KEY_DEFAULT_GROUP, "").orEmpty(),
@@ -70,10 +70,11 @@ class YDownloadTaskMetaStore(context: Context) {
             prefs.getString(KEY_DEFAULT_NETWORK, YDownloadNetworkRule.ANY.name),
             YDownloadNetworkRule.ANY,
         ),
+        schedulerPaused = false,
     ).normalized()
 
     fun updateDefaults(block: (YDownloadTaskMeta) -> YDownloadTaskMeta): YDownloadTaskMeta {
-        val next = block(defaults()).normalized()
+        val next = block(defaults()).copy(schedulerPaused = false).normalized()
         prefs.edit()
             .putString(KEY_DEFAULT_GROUP, next.group)
             .putString(KEY_DEFAULT_TAG, next.tag)
@@ -98,6 +99,7 @@ class YDownloadTaskMetaStore(context: Context) {
                 tag = json.optString("tag"),
                 priority = enumValue(json.optString("priority"), YDownloadPriority.NORMAL),
                 networkRule = enumValue(json.optString("networkRule"), YDownloadNetworkRule.ANY),
+                schedulerPaused = json.optBoolean("schedulerPaused", false),
             ).normalized()
         }.getOrElse { defaults() }
     }
@@ -109,6 +111,7 @@ class YDownloadTaskMetaStore(context: Context) {
             put("tag", value.tag)
             put("priority", value.priority.name)
             put("networkRule", value.networkRule.name)
+            put("schedulerPaused", value.schedulerPaused)
         }
         prefs.edit().putString(taskKey(id), json.toString()).apply()
     }
@@ -150,35 +153,51 @@ object YDownloadScheduler {
         val appContext = context.applicationContext
         val metaStore = YDownloadTaskMetaStore(appContext)
         val items = store.items.value
-        metaStore.cleanup(items.mapTo(mutableSetOf(), DownloadItem::id))
+        metaStore.cleanup(items.mapTo(mutableSetOf()) { it.id })
         val managed = items.filter {
             it.backend == DownloadBackend.ENHANCED &&
                 it.state in setOf(DownloadState.RUNNING, DownloadState.QUEUED, DownloadState.PAUSED)
         }
         val network = currentNetwork(appContext)
-        val eligible = managed.filter { task -> network.allows(metaStore.get(task.id).networkRule) }
-            .sortedWith(
-                compareBy<DownloadItem> { priorityRank(metaStore.get(it.id).priority) }
-                    .thenBy(DownloadItem::id),
-            )
+        val eligible = managed.filter { task ->
+            val meta = metaStore.get(task.id)
+            network.allows(meta.networkRule) &&
+                (task.state != DownloadState.PAUSED || meta.schedulerPaused)
+        }.sortedWith(
+            compareBy<DownloadItem> { priorityRank(metaStore.get(it.id).priority) }
+                .thenBy { it.id },
+        )
         val concurrency = YDownloadEnhancedSettings.load(appContext).maxConcurrent.coerceAtLeast(1)
-        val targetIds = eligible.take(concurrency).mapTo(mutableSetOf(), DownloadItem::id)
+        val targets = eligible.take(concurrency)
+        val targetIds = targets.mapTo(mutableSetOf()) { it.id }
 
         var paused = 0
         managed.filter {
             it.id !in targetIds && it.state in setOf(DownloadState.RUNNING, DownloadState.QUEUED)
         }.forEach { task ->
+            val meta = metaStore.get(task.id)
+            if (!meta.schedulerPaused) metaStore.put(task.id, meta.copy(schedulerPaused = true))
             DownloadService.pause(appContext, task.id)
             paused++
         }
 
         var started = 0
-        eligible.take(concurrency).filter { it.state != DownloadState.RUNNING }.forEach { task ->
-            if (task.state == DownloadState.PAUSED) {
-                store.update(task.id) { it.copy(state = DownloadState.QUEUED, error = null) }
+        targets.forEach { task ->
+            val meta = metaStore.get(task.id)
+            when {
+                task.state == DownloadState.RUNNING -> {
+                    if (meta.schedulerPaused) metaStore.put(task.id, meta.copy(schedulerPaused = false))
+                }
+                task.state == DownloadState.QUEUED ||
+                    (task.state == DownloadState.PAUSED && meta.schedulerPaused) -> {
+                    if (meta.schedulerPaused) metaStore.put(task.id, meta.copy(schedulerPaused = false))
+                    if (task.state == DownloadState.PAUSED) {
+                        store.update(task.id) { it.copy(state = DownloadState.QUEUED, error = null) }
+                    }
+                    DownloadService.start(appContext, task.id)
+                    started++
+                }
             }
-            DownloadService.start(appContext, task.id)
-            started++
         }
 
         YDownloadScheduleResult(
@@ -196,9 +215,15 @@ object YDownloadScheduler {
         val targets = store.items.value.filter {
             it.backend == DownloadBackend.ENHANCED &&
                 metaStore.get(it.id).group == normalized &&
-                it.state in setOf(DownloadState.RUNNING, DownloadState.QUEUED)
+                it.state in setOf(DownloadState.RUNNING, DownloadState.QUEUED, DownloadState.PAUSED)
         }
-        targets.forEach { DownloadService.pause(context, it.id) }
+        targets.forEach { task ->
+            val meta = metaStore.get(task.id)
+            if (meta.schedulerPaused) metaStore.put(task.id, meta.copy(schedulerPaused = false))
+            if (task.state in setOf(DownloadState.RUNNING, DownloadState.QUEUED)) {
+                DownloadService.pause(context, task.id)
+            }
+        }
         return targets.size
     }
 
@@ -210,7 +235,11 @@ object YDownloadScheduler {
                 it.backend == DownloadBackend.ENHANCED &&
                     metaStore.get(it.id).group == normalized &&
                     it.state == DownloadState.PAUSED
-            }.forEach { task -> store.update(task.id) { it.copy(state = DownloadState.QUEUED, error = null) } }
+            }.forEach { task ->
+                val meta = metaStore.get(task.id)
+                metaStore.put(task.id, meta.copy(schedulerPaused = false))
+                store.update(task.id) { it.copy(state = DownloadState.QUEUED, error = null) }
+            }
         }
         return rebalance(context, store)
     }
@@ -221,9 +250,11 @@ object YDownloadScheduler {
         val network = manager.activeNetwork ?: return NetworkState(false, manager.isActiveNetworkMetered, false)
         val caps = manager.getNetworkCapabilities(network)
             ?: return NetworkState(false, manager.isActiveNetworkMetered, false)
-        val connected = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        val wifi = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-        return NetworkState(connected, manager.isActiveNetworkMetered, wifi)
+        return NetworkState(
+            connected = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
+            metered = manager.isActiveNetworkMetered,
+            wifi = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI),
+        )
     }
 
     private fun priorityRank(priority: YDownloadPriority): Int = when (priority) {
@@ -258,7 +289,7 @@ fun YDownloadSchedulerCard(context: Context) {
     var selectedNetwork by remember { mutableStateOf(YDownloadNetworkRule.ANY) }
     var selectedGroupAction by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
-    var revision by remember { mutableIntStateOf(0) }
+    var revision by remember { mutableStateOf(0) }
 
     val enhanced = remember(items, revision) { items.filter { it.backend == DownloadBackend.ENHANCED } }
     val groups = remember(enhanced, revision) {
@@ -376,11 +407,17 @@ fun YDownloadSchedulerCard(context: Context) {
                         revision++
                     }) { Text(stringResource(R.string.ydownload_scheduler_resume_group, group)) }
                 }
-                YStatusRow(group, count.toString(), if (selectedGroupAction == group) YStatusTone.Good else YStatusTone.Neutral)
+                YStatusRow(
+                    group,
+                    count.toString(),
+                    if (selectedGroupAction == group) YStatusTone.Good else YStatusTone.Neutral,
+                )
             }
         }
 
-        val editable = enhanced.filter { it.state !in setOf(DownloadState.COMPLETED, DownloadState.CANCELLED) }.take(10)
+        val editable = enhanced.filter {
+            it.state !in setOf(DownloadState.COMPLETED, DownloadState.CANCELLED)
+        }.take(10)
         if (editable.isNotEmpty()) {
             Text(stringResource(R.string.ydownload_scheduler_task_metadata))
             editable.forEach { task ->
@@ -391,9 +428,7 @@ fun YDownloadSchedulerCard(context: Context) {
                     tagDraft = meta.tag
                     selectedPriority = meta.priority
                     selectedNetwork = meta.networkRule
-                }) {
-                    Text(task.fileName)
-                }
+                }) { Text(task.fileName) }
             }
         }
 
@@ -417,15 +452,20 @@ fun YDownloadSchedulerCard(context: Context) {
                 )
                 YActionRow {
                     YDownloadPriority.values().forEach { priority ->
-                        OutlinedButton(onClick = { selectedPriority = priority }) { Text(priorityLabel(priority)) }
+                        OutlinedButton(onClick = { selectedPriority = priority }) {
+                            Text(priorityLabel(priority))
+                        }
                     }
                 }
                 YActionRow {
                     YDownloadNetworkRule.values().forEach { rule ->
-                        OutlinedButton(onClick = { selectedNetwork = rule }) { Text(networkRuleLabel(rule)) }
+                        OutlinedButton(onClick = { selectedNetwork = rule }) {
+                            Text(networkRuleLabel(rule))
+                        }
                     }
                 }
                 Button(onClick = {
+                    val currentMeta = metaStore.get(id)
                     metaStore.put(
                         id,
                         YDownloadTaskMeta(
@@ -433,6 +473,7 @@ fun YDownloadSchedulerCard(context: Context) {
                             tag = tagDraft,
                             priority = selectedPriority,
                             networkRule = selectedNetwork,
+                            schedulerPaused = currentMeta.schedulerPaused,
                         ),
                     )
                     revision++
