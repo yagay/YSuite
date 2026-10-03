@@ -3,12 +3,11 @@ package com.yagay.YMiniGuard;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.UserManager;
-import android.util.Log;
 
-import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.ManagedFeatureRuntime;
+import com.yagay.suite.api.XposedHostBridge;
 
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -19,8 +18,8 @@ import io.github.libxposed.service.XposedServiceHelper;
 
 /** Host-neutral runtime shared by standalone YMiniGuard and YSuite. */
 public final class GuardRuntime implements XposedServiceHelper.OnServiceListener, ManagedFeatureRuntime {
-    private static final String TAG = "YMiniGuard";
-    private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
+    private static final String FEATURE_ID = "yminiguard";
+    private static final FeatureServices SERVICES = FeatureServices.of(FEATURE_ID, "YMiniGuard");
 
     private static final String[] BOOLEAN_KEYS = {
             ConfigKeys.MASTER_ENABLED,
@@ -47,16 +46,18 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
 
     private final Context context;
     private volatile boolean enabled = true;
-    private volatile FeatureHost host;
 
     private GuardRuntime(Context context) {
         Context app = context.getApplicationContext();
         this.context = app != null ? app : context;
-        boolean suiteHost = attachToSuiteBroker();
-        if (!suiteHost) {
+        XposedHostBridge.AttachResult result =
+                XposedHostBridge.attachListener(this.context, FEATURE_ID, this);
+        if (result == XposedHostBridge.AttachResult.NOT_SUITE_HOST) {
             // Standalone still owns its local LSPosed service listener, but crash handling is never
             // process-global Feature infrastructure. Host diagnostics remains the single owner.
             XposedServiceHelper.registerListener(this);
+        } else if (result == XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED) {
+            SERVICES.error("Managed host LSPosed broker attach failed");
         }
     }
 
@@ -74,14 +75,9 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     }
 
     @Override
-    public void attach(FeatureHost host) {
-        this.host = host;
-    }
-
-    @Override
     public void enable() {
         enabled = true;
-        Log.i(TAG, "managed runtime enabled");
+        SERVICES.info("managed runtime enabled");
     }
 
     @Override
@@ -89,36 +85,12 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
         enabled = false;
         service = null;
         frameworkName = "";
-        Log.i(TAG, "managed runtime disabled; LSPosed service released");
+        SERVICES.info("managed runtime disabled; LSPosed service released");
     }
 
     @Override
     public void destroy() {
         disable();
-        host = null;
-    }
-
-    private boolean attachToSuiteBroker() {
-        final Class<?> broker;
-        try {
-            broker = Class.forName(SUITE_BROKER, false, GuardRuntime.class.getClassLoader());
-        } catch (ClassNotFoundException absent) {
-            return false;
-        } catch (Throwable error) {
-            Log.e(TAG, "YSuite broker lookup failed", error);
-            return true;
-        }
-
-        try {
-            Method attach = broker.getMethod("attachFromPlugin", String.class, Object.class);
-            Object result = attach.invoke(null, "yminiguard", this);
-            if (!Boolean.TRUE.equals(result)) {
-                Log.e(TAG, "YSuite broker rejected YMiniGuard listener");
-            }
-        } catch (Throwable error) {
-            Log.e(TAG, "YSuite broker attach failed", error);
-        }
-        return true;
     }
 
     @Override
@@ -132,14 +104,14 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
         }
 
         if (isUserUnlocked()) syncAll();
-        Log.i(TAG, "LSPosed service connected: " + frameworkName);
+        SERVICES.info("LSPosed service connected: " + frameworkName);
     }
 
     @Override
     public void onServiceDied(XposedService dead) {
         if (service == dead) service = null;
         frameworkName = "";
-        Log.w(TAG, "LSPosed service disconnected");
+        SERVICES.warn("LSPosed service disconnected");
     }
 
     static boolean isXposedServiceConnected() {
@@ -168,7 +140,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
             List<String> scope = current.getScope();
             return scope == null ? Collections.emptyList() : scope;
         } catch (Throwable t) {
-            Log.w(TAG, "Failed to read LSPosed scope", t);
+            SERVICES.warn("Failed to read LSPosed scope", t);
             return Collections.emptyList();
         }
     }
@@ -298,7 +270,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
             editor.putLong(ConfigKeys.MODULE_VERSION, BuildConfig.VERSION_CODE);
             return editor.commit();
         } catch (Throwable t) {
-            Log.e(TAG, "Failed to sync remote preferences", t);
+            SERVICES.error("Failed to sync remote preferences", t);
             return false;
         }
     }
