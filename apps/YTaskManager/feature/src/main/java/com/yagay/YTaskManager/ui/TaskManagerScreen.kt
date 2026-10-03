@@ -71,6 +71,9 @@ import com.yagay.yui.YDimens
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFeatureEmpty
 import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YIcons
+import com.yagay.yui.YNavigationSpec
+import com.yagay.yui.YNavigationSuite
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusPill
@@ -99,39 +102,60 @@ fun TaskManagerApp(viewModel: MainViewModel) {
         }
     }
 
-    YFeatureScaffold(
-        title = stringResource(R.string.ytm_app_name),
-        subtitle = when (page) {
-            HomePage.PROCESSES -> stringResource(R.string.ytm_process_summary, state.processCount, state.threadCount)
-            HomePage.RESOURCES -> stringResource(R.string.ytm_resource_summary)
-            HomePage.NETWORK -> stringResource(R.string.ytm_network_summary)
+    val navigation = listOf(
+        YNavigationSpec("processes", stringResource(R.string.ytm_processes), YIcons.List),
+        YNavigationSpec("resources", stringResource(R.string.ytm_resources), YIcons.Memory),
+        YNavigationSpec("network", stringResource(R.string.ytm_network), YIcons.Network),
+    )
+
+    YNavigationSuite(
+        selectedKey = when (page) {
+            HomePage.PROCESSES -> "processes"
+            HomePage.RESOURCES -> "resources"
+            HomePage.NETWORK -> "network"
         },
-        actions = {
-            IconButton(onClick = viewModel::refresh) {
-                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.ytm_refresh))
-            }
-            IconButton(onClick = { showSettings = true }) {
-                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ytm_settings))
+        items = navigation,
+        onSelected = { item ->
+            page = when (item.key) {
+                "resources" -> HomePage.RESOURCES
+                "network" -> HomePage.NETWORK
+                else -> HomePage.PROCESSES
             }
         },
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
-        ) {
-            PageSelector(page) { page = it }
-            when (page) {
-                HomePage.PROCESSES -> ProcessPage(
-                    state = state,
-                    viewModel = viewModel,
-                    onSelect = { process ->
-                        viewModel.loadProcessDetails(process) { selected = it }
-                    },
-                )
-                HomePage.RESOURCES -> ResourcePage(state)
-                HomePage.NETWORK -> NetworkPage(state)
+    ) {
+        YFeatureScaffold(
+            title = stringResource(R.string.ytm_app_name),
+            subtitle = when (page) {
+                HomePage.PROCESSES -> stringResource(R.string.ytm_process_summary, state.processCount, state.threadCount)
+                HomePage.RESOURCES -> stringResource(R.string.ytm_resource_summary)
+                HomePage.NETWORK -> stringResource(R.string.ytm_network_summary)
+            },
+            actions = {
+                IconButton(onClick = viewModel::refresh) {
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.ytm_refresh))
+                }
+                IconButton(onClick = { showSettings = true }) {
+                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ytm_settings))
+                }
+            },
+            snackbarHost = { SnackbarHost(snackbar) },
+        ) { padding ->
+            Box(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+            ) {
+                when (page) {
+                    HomePage.PROCESSES -> ProcessPage(
+                        state = state,
+                        viewModel = viewModel,
+                        onSelect = { process ->
+                            viewModel.loadProcessDetails(process) { selected = it }
+                        },
+                    )
+                    HomePage.RESOURCES -> ResourcePage(state)
+                    HomePage.NETWORK -> NetworkPage(state)
+                }
             }
         }
     }
@@ -188,32 +212,6 @@ fun TaskManagerApp(viewModel: MainViewModel) {
             onRefreshInterval = viewModel::setRefreshInterval,
             onConfirmKill = viewModel::setConfirmKill,
         )
-    }
-}
-
-@Composable
-private fun PageSelector(page: HomePage, onPage: (HomePage) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        HomePage.entries.forEach { item ->
-            FilterChip(
-                selected = page == item,
-                onClick = { onPage(item) },
-                label = {
-                    Text(
-                        when (item) {
-                            HomePage.PROCESSES -> stringResource(R.string.ytm_processes)
-                            HomePage.RESOURCES -> stringResource(R.string.ytm_resources)
-                            HomePage.NETWORK -> stringResource(R.string.ytm_network)
-                        },
-                    )
-                },
-            )
-        }
     }
 }
 
