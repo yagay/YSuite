@@ -9,13 +9,13 @@
         <ImageView android:id="@+id/app_icon" android:layout_width="42dp" android:layout_height="42dp" android:contentDescription="@string/ynotify_app_icon" />
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="@dimen/yui_control_gap" android:orientation="vertical">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                <TextView android:id="@+id/app_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="2" android:ellipsize="end" android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+                <TextView android:id="@+id/app_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:maxLines="2" android:ellipsize="end" android:textAppearance="@style/TextAppearance.YUI.ItemTitle" />
                 <TextView android:id="@+id/type" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingHorizontal="7dp" android:paddingVertical="2dp" android:textSize="11sp" />
             </LinearLayout>
-            <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textStyle="bold" android:textIsSelectable="true" />
-            <TextView android:id="@+id/text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textIsSelectable="true" />
-            <TextView android:id="@+id/details" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:textSize="12sp" android:alpha="0.78" android:textIsSelectable="true" />
-            <TextView android:id="@+id/time" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:textSize="11sp" android:alpha="0.65" />
+            <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textAppearance="@style/TextAppearance.YUI.Body.Strong" android:textIsSelectable="true" />
+            <TextView android:id="@+id/text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textAppearance="@style/TextAppearance.YUI.Body" android:textIsSelectable="true" />
+            <TextView android:id="@+id/details" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:textAppearance="@style/TextAppearance.YUI.Caption" android:textIsSelectable="true" />
+            <TextView android:id="@+id/time" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:textAppearance="@style/TextAppearance.YUI.Caption" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
