@@ -2,7 +2,6 @@ package com.yagay.yparam;
 
 import android.content.Context;
 
-import com.yagay.suite.api.FeatureHost;
 import com.yagay.suite.api.ManagedFeatureRuntime;
 
 /** Shared YSuite/standalone runtime entry. */
@@ -10,7 +9,6 @@ public final class YParamSuiteRuntime implements ManagedFeatureRuntime {
     private static volatile YParamSuiteRuntime instance;
 
     private final Context context;
-    private volatile FeatureHost host;
     private volatile boolean enabled;
 
     private YParamSuiteRuntime(Context context) {
@@ -31,11 +29,6 @@ public final class YParamSuiteRuntime implements ManagedFeatureRuntime {
     }
 
     @Override
-    public void attach(FeatureHost host) {
-        this.host = host;
-    }
-
-    @Override
     public synchronized void enable() {
         if (enabled) return;
         enabled = true;
@@ -52,6 +45,5 @@ public final class YParamSuiteRuntime implements ManagedFeatureRuntime {
     @Override
     public synchronized void destroy() {
         disable();
-        host = null;
     }
 }
