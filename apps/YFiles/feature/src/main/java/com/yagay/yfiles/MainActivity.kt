@@ -138,6 +138,43 @@ class MainActivity : YComposeActivity() {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) { copy(allowMultiple = it) }
                             },
                         )
+                        val sortLabel = when (patchSettings.defaultSort) {
+                            YFilesPatchSettings.SORT_NAME -> stringResource(R.string.sort_name)
+                            YFilesPatchSettings.SORT_DATE -> stringResource(R.string.sort_modified)
+                            YFilesPatchSettings.SORT_SIZE -> stringResource(R.string.sort_size)
+                            YFilesPatchSettings.SORT_TYPE -> stringResource(R.string.sort_type)
+                            else -> stringResource(R.string.system_default)
+                        }
+                        YStatusRow(stringResource(R.string.default_sort), sortLabel, YStatusTone.Neutral)
+                        YActionRow {
+                            OutlinedButton(onClick = {
+                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
+                                    copy(defaultSort = YFilesPatchSettings.SORT_SYSTEM)
+                                }
+                            }) { Text(stringResource(R.string.system_default)) }
+                            OutlinedButton(onClick = {
+                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
+                                    copy(defaultSort = YFilesPatchSettings.SORT_NAME)
+                                }
+                            }) { Text(stringResource(R.string.sort_name)) }
+                            OutlinedButton(onClick = {
+                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
+                                    copy(defaultSort = YFilesPatchSettings.SORT_DATE)
+                                }
+                            }) { Text(stringResource(R.string.sort_modified)) }
+                        }
+                        YActionRow {
+                            OutlinedButton(onClick = {
+                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
+                                    copy(defaultSort = YFilesPatchSettings.SORT_SIZE)
+                                }
+                            }) { Text(stringResource(R.string.sort_size)) }
+                            OutlinedButton(onClick = {
+                                patchSettings = YFilesPatchSettings.update(this@MainActivity) {
+                                    copy(defaultSort = YFilesPatchSettings.SORT_TYPE)
+                                }
+                            }) { Text(stringResource(R.string.sort_type)) }
+                        }
                         YStatusRow(
                             stringResource(R.string.default_picker_folder),
                             if (patchSettings.initialUri.isNullOrBlank()) {
