@@ -4,7 +4,9 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import java.lang.reflect.Method;
+import com.yagay.suite.api.FeatureServices;
+import com.yagay.suite.api.XposedHostBridge;
+
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -12,7 +14,8 @@ import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
 
 public final class YParamApp extends Application implements XposedServiceHelper.OnServiceListener {
-    private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
+    private static final String FEATURE_ID = "yparam";
+    private static final FeatureServices SERVICES = FeatureServices.of(FEATURE_ID, "YParam");
 
     public interface ServiceObserver { void onServiceChanged(); }
     private static volatile XposedService service;
@@ -27,27 +30,15 @@ public final class YParamApp extends Application implements XposedServiceHelper.
     public static synchronized Object initialize(Context context) {
         if (listener == null) {
             listener = context instanceof YParamApp ? (YParamApp) context : new YParamApp();
-            if (!attachToSuiteBroker(listener)) XposedServiceHelper.registerListener(listener);
+            XposedHostBridge.AttachResult result =
+                    XposedHostBridge.attachListener(context, FEATURE_ID, listener);
+            if (result == XposedHostBridge.AttachResult.NOT_SUITE_HOST) {
+                XposedServiceHelper.registerListener(listener);
+            } else if (result == XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED) {
+                SERVICES.error("Managed host LSPosed broker attach failed");
+            }
         }
         return listener;
-    }
-
-    private static boolean attachToSuiteBroker(YParamApp target) {
-        final Class<?> broker;
-        try {
-            broker = Class.forName(SUITE_BROKER, false, YParamApp.class.getClassLoader());
-        } catch (ClassNotFoundException absent) {
-            return false;
-        } catch (Throwable ignored) {
-            return true;
-        }
-        try {
-            Method attach = broker.getMethod("attachFromPlugin", String.class, Object.class);
-            attach.invoke(null, "yparam", target);
-        } catch (Throwable ignored) {
-            // Host exists: never replace YSuite's process-global listener.
-        }
-        return true;
     }
 
     @Override public void onServiceBind(XposedService s) {
