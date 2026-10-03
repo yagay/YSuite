@@ -7,7 +7,7 @@ import com.yagay.suite.api.FeatureServices
 object AppLogger {
     private val services = FeatureServices.of("ytaskmanager", "YTaskManager")
 
-    /** Kept for source compatibility; host discovery is now centralized in FeatureHostRegistry. */
+    /** Kept for source compatibility; host discovery is now centralized by shared infrastructure. */
     fun attach(context: Context) = Unit
 
     fun i(message: String) {
