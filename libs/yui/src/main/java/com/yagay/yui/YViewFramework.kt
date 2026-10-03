@@ -247,26 +247,26 @@ object YViewLayout {
     @JvmStatic
     @JvmOverloads
     fun navigationRow(
-        parent: LinearLayout,
+        context: Context,
         title: String,
         description: String? = null,
         listener: View.OnClickListener,
     ): LinearLayout {
-        val row = listRow(parent.context).apply {
+        val row = listRow(context).apply {
             isClickable = true
             isFocusable = true
             setOnClickListener(listener)
         }
-        val copy = LinearLayout(parent.context).apply {
+        val copy = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
         }
-        copy.addView(listTitle(parent.context).apply { text = title })
+        copy.addView(listTitle(context).apply { text = title })
         if (!description.isNullOrBlank()) {
-            copy.addView(listSubtitle(parent.context).apply { text = description })
+            copy.addView(listSubtitle(context).apply { text = description })
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(
-            TextView(parent.context).apply {
+            TextView(context).apply {
                 text = "›"
                 YView.styleSectionTitle(this)
                 setTextColor(YView.onSurfaceVariant(context))
@@ -275,8 +275,18 @@ object YViewLayout {
             },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
-        parent.addView(row, matchWrap())
         return row
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun navigationRow(
+        parent: LinearLayout,
+        title: String,
+        description: String? = null,
+        listener: View.OnClickListener,
+    ): LinearLayout = navigationRow(parent.context, title, description, listener).also {
+        parent.addView(it, matchWrap())
     }
 
     @JvmStatic
