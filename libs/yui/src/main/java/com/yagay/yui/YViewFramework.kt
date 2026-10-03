@@ -76,18 +76,29 @@ object YViewLayout {
             YView.stylePageTitle(this)
         }
         parent.addView(heading, matchWrap())
+
         if (!subtitle.isNullOrBlank()) {
             parent.addView(
                 TextView(parent.context).apply {
                     text = subtitle
-                    YView.styleBody(this)
-                    setPadding(0, dp(context, 3), 0, sectionGap(context))
+                    YView.styleCaption(this)
+                    setPadding(0, Math.max(1, controlGap(context) / 4), 0, controlGap(context))
                 },
                 matchWrap(),
             )
         } else {
-            heading.setPadding(0, 0, 0, sectionGap(parent.context))
+            heading.setPadding(0, 0, 0, controlGap(parent.context))
         }
+
+        parent.addView(
+            View(parent.context).apply { setBackgroundColor(YView.outline(context)) },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(parent.context, 1),
+            ).apply {
+                bottomMargin = sectionGap(parent.context)
+            },
+        )
     }
 
     @JvmStatic
