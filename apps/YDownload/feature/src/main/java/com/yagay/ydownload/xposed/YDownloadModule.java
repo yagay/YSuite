@@ -15,7 +15,9 @@ import io.github.libxposed.api.XposedModule;
  * Patch-first DownloadManager integration.
  *
  * The hook never replaces DownloadProvider, never swallows enqueue(), and never fabricates download
- * IDs. It only enriches Request policy and then proceeds through Android's original implementation.
+ * IDs. It only adds stricter user-selected constraints and then proceeds through Android's original
+ * implementation. A setting that is left at its permissive/default value does not loosen the
+ * caller's own DownloadManager.Request policy.
  */
 public final class YDownloadModule extends XposedModule {
     private static final String TAG = "YDownloadXposed";
@@ -64,14 +66,23 @@ public final class YDownloadModule extends XposedModule {
 
     private void applyRequestPatch(DownloadManager.Request request, SharedPreferences prefs) {
         try {
-            request.setAllowedOverMetered(prefs.getBoolean("allow_metered", true));
-            request.setAllowedOverRoaming(prefs.getBoolean("allow_roaming", false));
-            if (prefs.getBoolean("force_completion_notification", true)) {
+            // Only tighten policy. Leaving a toggle permissive preserves whatever the caller set.
+            if (!prefs.getBoolean("allow_metered", true)) {
+                request.setAllowedOverMetered(false);
+            }
+            if (!prefs.getBoolean("allow_roaming", true)) {
+                request.setAllowedOverRoaming(false);
+            }
+            if (prefs.getBoolean("force_completion_notification", false)) {
                 request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                request.setRequiresCharging(prefs.getBoolean("require_charging", false));
-                request.setRequiresDeviceIdle(prefs.getBoolean("require_device_idle", false));
+                if (prefs.getBoolean("require_charging", false)) {
+                    request.setRequiresCharging(true);
+                }
+                if (prefs.getBoolean("require_device_idle", false)) {
+                    request.setRequiresDeviceIdle(true);
+                }
             }
         } catch (Throwable t) {
             log(Log.WARN, TAG, "Request patch partially skipped", t);
