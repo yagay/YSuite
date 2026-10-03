@@ -10,6 +10,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.os.IBinder
+import android.os.SystemClock
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
 import com.yagay.suite.api.HostLogLevel
@@ -58,7 +59,9 @@ class DownloadService : Service() {
             var connection: HttpURLConnection? = null
             try {
                 val initial = store.get(id) ?: return@execute
-                store.update(id) { it.copy(state = DownloadState.RUNNING, error = null) }
+                store.update(id) {
+                    it.copy(state = DownloadState.RUNNING, error = null, speedBytesPerSecond = 0L, etaMillis = -1L)
+                }
                 var uri = initial.uri?.let(Uri::parse)
                 if (uri == null) uri = createDestination(initial.fileName)
                 if (uri == null) throw IllegalStateException("Unable to create destination")
@@ -87,40 +90,112 @@ class DownloadService : Service() {
                         val length = connection!!.contentLengthLong
                         val total = if (length >= 0L) existing + length else initial.total
                         var done = existing
+                        var lastTelemetryDone = done
+                        var lastTelemetryTime = SystemClock.elapsedRealtime()
 
-                        store.update(id) { it.copy(uri = destination.toString(), done = done, total = total, state = DownloadState.RUNNING) }
+                        store.update(id) {
+                            it.copy(
+                                uri = destination.toString(),
+                                done = done,
+                                total = total,
+                                state = DownloadState.RUNNING,
+                                speedBytesPerSecond = 0L,
+                                etaMillis = -1L,
+                            )
+                        }
                         BufferedInputStream(connection!!.inputStream, BUFFER_SIZE).use { input ->
                             val buffer = ByteArray(BUFFER_SIZE)
                             var lastUpdate = 0L
                             while (true) {
                                 if (cancels[id]?.get() == true) {
                                     contentResolver.delete(destination, null, null)
-                                    store.update(id) { it.copy(state = DownloadState.CANCELLED, uri = null, done = 0L, total = -1L) }
+                                    store.update(id) {
+                                        it.copy(
+                                            state = DownloadState.CANCELLED,
+                                            uri = null,
+                                            done = 0L,
+                                            total = -1L,
+                                            speedBytesPerSecond = 0L,
+                                            etaMillis = -1L,
+                                        )
+                                    }
                                     return@execute
                                 }
                                 if (pauses[id]?.get() == true) {
-                                    store.update(id) { it.copy(state = DownloadState.PAUSED, uri = destination.toString(), done = done, total = total) }
+                                    store.update(id) {
+                                        it.copy(
+                                            state = DownloadState.PAUSED,
+                                            uri = destination.toString(),
+                                            done = done,
+                                            total = total,
+                                            speedBytesPerSecond = 0L,
+                                            etaMillis = -1L,
+                                        )
+                                    }
                                     return@execute
                                 }
                                 val count = input.read(buffer)
                                 if (count < 0) break
                                 channel.write(java.nio.ByteBuffer.wrap(buffer, 0, count))
                                 done += count
-                                val now = System.currentTimeMillis()
+                                val now = SystemClock.elapsedRealtime()
                                 if (now - lastUpdate >= 400L) {
-                                    store.update(id) { it.copy(state = DownloadState.RUNNING, uri = destination.toString(), done = done, total = total) }
-                                    getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(store.get(id)))
+                                    val elapsed = (now - lastTelemetryTime).coerceAtLeast(1L)
+                                    val speed = ((done - lastTelemetryDone).coerceAtLeast(0L) * 1000L / elapsed)
+                                    val eta = if (speed > 0L && total > done && total > 0L) {
+                                        (total - done) * 1000L / speed
+                                    } else {
+                                        -1L
+                                    }
+                                    store.update(id) {
+                                        it.copy(
+                                            state = DownloadState.RUNNING,
+                                            uri = destination.toString(),
+                                            done = done,
+                                            total = total,
+                                            speedBytesPerSecond = speed,
+                                            etaMillis = eta,
+                                        )
+                                    }
+                                    getSystemService(NotificationManager::class.java).notify(
+                                        NOTIFICATION_ID,
+                                        notification(store.get(id)),
+                                    )
                                     lastUpdate = now
+                                    lastTelemetryTime = now
+                                    lastTelemetryDone = done
                                 }
                             }
                         }
-                        contentResolver.update(destination, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
-                        store.update(id) { it.copy(state = DownloadState.COMPLETED, uri = destination.toString(), done = done, total = total, error = null) }
+                        contentResolver.update(
+                            destination,
+                            ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
+                            null,
+                            null,
+                        )
+                        store.update(id) {
+                            it.copy(
+                                state = DownloadState.COMPLETED,
+                                uri = destination.toString(),
+                                done = done,
+                                total = total,
+                                error = null,
+                                speedBytesPerSecond = 0L,
+                                etaMillis = -1L,
+                            )
+                        }
                         YDownloadSuiteRuntime.log(HostLogLevel.INFO, "download completed id=$id")
                     }
                 } ?: throw IllegalStateException("Unable to open destination")
             } catch (t: Throwable) {
-                store.update(id) { it.copy(state = DownloadState.FAILED, error = t.message ?: t.javaClass.simpleName) }
+                store.update(id) {
+                    it.copy(
+                        state = DownloadState.FAILED,
+                        error = t.message ?: t.javaClass.simpleName,
+                        speedBytesPerSecond = 0L,
+                        etaMillis = -1L,
+                    )
+                }
                 YDownloadSuiteRuntime.log(HostLogLevel.ERROR, "download failed id=$id", t)
             } finally {
                 connection?.disconnect()
@@ -137,7 +212,11 @@ class DownloadService : Service() {
             pauses.getOrPut(id) { AtomicBoolean() }.set(true)
         } else {
             store.update(id) { current ->
-                if (current.state == DownloadState.QUEUED || current.state == DownloadState.RUNNING) current.copy(state = DownloadState.PAUSED) else current
+                if (current.state == DownloadState.QUEUED || current.state == DownloadState.RUNNING) {
+                    current.copy(state = DownloadState.PAUSED, speedBytesPerSecond = 0L, etaMillis = -1L)
+                } else {
+                    current
+                }
             }
         }
     }
@@ -149,7 +228,17 @@ class DownloadService : Service() {
         }
         val current = store.get(id) ?: return
         current.uri?.let { runCatching { contentResolver.delete(Uri.parse(it), null, null) } }
-        store.update(id) { it.copy(state = DownloadState.CANCELLED, uri = null, done = 0L, total = -1L, error = null) }
+        store.update(id) {
+            it.copy(
+                state = DownloadState.CANCELLED,
+                uri = null,
+                done = 0L,
+                total = -1L,
+                error = null,
+                speedBytesPerSecond = 0L,
+                etaMillis = -1L,
+            )
+        }
     }
 
     @Synchronized
@@ -170,10 +259,15 @@ class DownloadService : Service() {
     )
 
     private fun notification(item: DownloadItem?): Notification {
-        val text = if ((item?.total ?: -1L) > 0L) {
+        val progress = if ((item?.total ?: -1L) > 0L) {
             "${((item!!.done * 100L) / item.total).coerceIn(0L, 100L)}%"
         } else {
             getString(R.string.download_running)
+        }
+        val text = if ((item?.speedBytesPerSecond ?: 0L) > 0L) {
+            "$progress · ${formatSpeed(item!!.speedBytesPerSecond)}"
+        } else {
+            progress
         }
         return Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_sys_download)
@@ -182,6 +276,17 @@ class DownloadService : Service() {
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .build()
+    }
+
+    private fun formatSpeed(bytesPerSecond: Long): String {
+        val units = arrayOf("B/s", "KB/s", "MB/s", "GB/s")
+        var value = bytesPerSecond.toDouble()
+        var index = 0
+        while (value >= 1024.0 && index < units.lastIndex) {
+            value /= 1024.0
+            index++
+        }
+        return if (index == 0) "${bytesPerSecond} B/s" else "%.1f %s".format(value, units[index])
     }
 
     override fun onDestroy() {
