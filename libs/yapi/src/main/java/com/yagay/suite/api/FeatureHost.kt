@@ -33,6 +33,17 @@ interface FeatureHost {
         timeoutSeconds: Long = 15L,
     ): HostCommandResult
 
+    /**
+     * Start a long-lived Root process owned by the host.
+     *
+     * Returning null means the host cannot provide streaming Root. Feature code must not silently
+     * start a second `su` process when a host is attached, because that bypasses lifecycle cleanup.
+     */
+    fun rootStart(
+        operation: String,
+        command: String,
+    ): Process? = null
+
     fun reloadPackage(
         packageName: String,
         timeoutSeconds: Long = 12L,
