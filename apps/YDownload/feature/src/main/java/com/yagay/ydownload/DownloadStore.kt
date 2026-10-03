@@ -7,6 +7,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 enum class DownloadState { QUEUED, RUNNING, PAUSED, COMPLETED, FAILED, CANCELLED }
+enum class DownloadBackend { SYSTEM, ENHANCED }
 
 data class DownloadItem(
     val id: Long,
@@ -17,6 +18,8 @@ data class DownloadItem(
     val total: Long = -1L,
     val state: DownloadState = DownloadState.QUEUED,
     val error: String? = null,
+    val backend: DownloadBackend = DownloadBackend.SYSTEM,
+    val systemId: Long? = null,
 )
 
 class DownloadStore private constructor(context: Context) {
@@ -24,8 +27,8 @@ class DownloadStore private constructor(context: Context) {
     private val _items = MutableStateFlow(load())
     val items = _items.asStateFlow()
 
-    @Synchronized fun add(url: String, fileName: String): DownloadItem {
-        val item = DownloadItem(System.currentTimeMillis(), url, fileName)
+    @Synchronized fun add(url: String, fileName: String, backend: DownloadBackend = DownloadBackend.SYSTEM): DownloadItem {
+        val item = DownloadItem(System.currentTimeMillis(), url, fileName, backend = backend)
         save(listOf(item) + _items.value)
         return item
     }
@@ -44,8 +47,16 @@ class DownloadStore private constructor(context: Context) {
         val arr = JSONArray()
         items.forEach { item ->
             arr.put(JSONObject().apply {
-                put("id", item.id); put("url", item.url); put("fileName", item.fileName); put("uri", item.uri)
-                put("done", item.done); put("total", item.total); put("state", item.state.name); put("error", item.error)
+                put("id", item.id)
+                put("url", item.url)
+                put("fileName", item.fileName)
+                put("uri", item.uri)
+                put("done", item.done)
+                put("total", item.total)
+                put("state", item.state.name)
+                put("error", item.error)
+                put("backend", item.backend.name)
+                put("systemId", item.systemId)
             })
         }
         prefs.edit().putString("items", arr.toString()).apply()
@@ -57,15 +68,32 @@ class DownloadStore private constructor(context: Context) {
         buildList {
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
-                add(DownloadItem(
-                    id = o.getLong("id"), url = o.getString("url"), fileName = o.getString("fileName"),
-                    uri = o.optString("uri").takeIf { it.isNotBlank() && it != "null" },
-                    done = o.optLong("done", 0L), total = o.optLong("total", -1L),
-                    state = runCatching { DownloadState.valueOf(o.optString("state")) }.getOrDefault(DownloadState.PAUSED),
-                    error = o.optString("error").takeIf { it.isNotBlank() && it != "null" },
-                ))
+                val backend = runCatching {
+                    DownloadBackend.valueOf(o.optString("backend", DownloadBackend.ENHANCED.name))
+                }.getOrDefault(DownloadBackend.ENHANCED)
+                add(
+                    DownloadItem(
+                        id = o.getLong("id"),
+                        url = o.getString("url"),
+                        fileName = o.getString("fileName"),
+                        uri = o.optString("uri").takeIf { it.isNotBlank() && it != "null" },
+                        done = o.optLong("done", 0L),
+                        total = o.optLong("total", -1L),
+                        state = runCatching { DownloadState.valueOf(o.optString("state")) }
+                            .getOrDefault(DownloadState.PAUSED),
+                        error = o.optString("error").takeIf { it.isNotBlank() && it != "null" },
+                        backend = backend,
+                        systemId = if (o.has("systemId") && !o.isNull("systemId")) o.optLong("systemId") else null,
+                    ),
+                )
             }
-        }.map { if (it.state == DownloadState.RUNNING) it.copy(state = DownloadState.PAUSED) else it }
+        }.map {
+            if (it.backend == DownloadBackend.ENHANCED && it.state == DownloadState.RUNNING) {
+                it.copy(state = DownloadState.PAUSED)
+            } else {
+                it
+            }
+        }
     }.getOrDefault(emptyList())
 
     companion object {
