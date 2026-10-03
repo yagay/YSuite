@@ -1,7 +1,9 @@
 package com.yagay.YNotify.util;
 
 import android.content.Context;
-import android.util.Log;
+
+import com.yagay.suite.api.FeatureServices;
+import com.yagay.suite.api.HostLogLevel;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -16,6 +18,7 @@ public final class DiagLog {
     private static final String DIR = "diagnostics";
     private static final String CURRENT = "notifylens.log";
     private static final String PREVIOUS = "notifylens.previous.log";
+    private static final FeatureServices SERVICES = FeatureServices.of("ynotify", "YNotify");
 
     private DiagLog() {}
 
@@ -55,7 +58,12 @@ public final class DiagLog {
             line += " | " + error.getClass().getName();
             if (error.getMessage() != null) line += ": " + error.getMessage().replace('\n', ' ');
         }
-        Log.println("E".equals(level) ? Log.ERROR : "W".equals(level) ? Log.WARN : Log.INFO, safeTag, safeMessage);
+
+        HostLogLevel hostLevel = "E".equals(level)
+                ? HostLogLevel.ERROR
+                : "W".equals(level) ? HostLogLevel.WARN : HostLogLevel.INFO;
+        SERVICES.log(hostLevel, "[" + safeTag + "] " + safeMessage, error);
+
         byte[] bytes = (line + "\n").getBytes(StandardCharsets.UTF_8);
         synchronized (LOCK) {
             try {
