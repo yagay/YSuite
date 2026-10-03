@@ -4,8 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +22,8 @@ import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YBrowserScaffold
 import com.yagay.yui.YPageList
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusRow
@@ -183,29 +183,29 @@ class MainActivity : YComposeActivity() {
                         }
                         YStatusRow(stringResource(R.string.default_sort), sortLabel, YStatusTone.Neutral)
                         YActionRow {
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) {
                                     copy(defaultSort = YFilesPatchSettings.SORT_SYSTEM)
                                 }
                             }) { Text(stringResource(R.string.system_default)) }
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) {
                                     copy(defaultSort = YFilesPatchSettings.SORT_NAME)
                                 }
                             }) { Text(stringResource(R.string.sort_name)) }
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) {
                                     copy(defaultSort = YFilesPatchSettings.SORT_DATE)
                                 }
                             }) { Text(stringResource(R.string.sort_modified)) }
                         }
                         YActionRow {
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) {
                                     copy(defaultSort = YFilesPatchSettings.SORT_SIZE)
                                 }
                             }) { Text(stringResource(R.string.sort_size)) }
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) {
                                     copy(defaultSort = YFilesPatchSettings.SORT_TYPE)
                                 }
@@ -222,14 +222,14 @@ class MainActivity : YComposeActivity() {
                         )
                         patchSettings.initialUri?.let { Text(it) }
                         YActionRow {
-                            Button(onClick = {
+                            YPrimaryActionButton(onClick = {
                                 @Suppress("DEPRECATION")
                                 startActivityForResult(
                                     SystemPickerBridge.openDocument(this@MainActivity),
                                     SystemPickerBridge.REQUEST_OPEN,
                                 )
                             }) { Text(stringResource(R.string.system_pick_file)) }
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 @Suppress("DEPRECATION")
                                 startActivityForResult(
                                     SystemPickerBridge.openDocument(this@MainActivity, multiple = true),
@@ -238,14 +238,14 @@ class MainActivity : YComposeActivity() {
                             }) { Text(stringResource(R.string.system_pick_multiple)) }
                         }
                         YActionRow {
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 @Suppress("DEPRECATION")
                                 startActivityForResult(
                                     SystemPickerBridge.openTree(this@MainActivity),
                                     SystemPickerBridge.REQUEST_TREE,
                                 )
                             }) { Text(stringResource(R.string.system_pick_folder)) }
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 @Suppress("DEPRECATION")
                                 startActivityForResult(
                                     SystemPickerBridge.createDocument(this@MainActivity),
@@ -254,14 +254,14 @@ class MainActivity : YComposeActivity() {
                             }) { Text(stringResource(R.string.system_create_file)) }
                         }
                         YActionRow {
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 @Suppress("DEPRECATION")
                                 startActivityForResult(
                                     SystemPickerBridge.openTree(this@MainActivity),
                                     SystemPickerBridge.REQUEST_DEFAULT_TREE,
                                 )
                             }) { Text(stringResource(R.string.set_default_folder)) }
-                            OutlinedButton(
+                            YSecondaryActionButton(
                                 onClick = {
                                     patchSettings = YFilesPatchSettings.setInitialUri(this@MainActivity, null)
                                     pickerRevision++
@@ -291,7 +291,7 @@ class MainActivity : YComposeActivity() {
                             if (rootGranted) YStatusTone.Good else YStatusTone.Neutral,
                         )
                         if (!allFilesGranted) {
-                            OutlinedButton(onClick = {
+                            YSecondaryActionButton(onClick = {
                                 YFilesSuiteRuntime.requestCapability(this@MainActivity, HostCapability.ALL_FILES)
                             }) { Text(stringResource(R.string.open_settings)) }
                         }
@@ -339,21 +339,21 @@ class MainActivity : YComposeActivity() {
                                 YStatusTone.Neutral,
                             )
                             YActionRow {
-                                OutlinedButton(onClick = { sortMode = FileSortMode.NAME }) {
+                                YSecondaryActionButton(onClick = { sortMode = FileSortMode.NAME }) {
                                     Text(stringResource(R.string.sort_name))
                                 }
-                                OutlinedButton(onClick = { sortMode = FileSortMode.MODIFIED }) {
+                                YSecondaryActionButton(onClick = { sortMode = FileSortMode.MODIFIED }) {
                                     Text(stringResource(R.string.sort_modified))
                                 }
-                                OutlinedButton(onClick = { sortMode = FileSortMode.SIZE }) {
+                                YSecondaryActionButton(onClick = { sortMode = FileSortMode.SIZE }) {
                                     Text(stringResource(R.string.sort_size))
                                 }
                             }
                             YActionRow {
-                                OutlinedButton(onClick = { sortMode = FileSortMode.TYPE }) {
+                                YSecondaryActionButton(onClick = { sortMode = FileSortMode.TYPE }) {
                                     Text(stringResource(R.string.sort_type))
                                 }
-                                OutlinedButton(onClick = { sortDescending = !sortDescending }) {
+                                YSecondaryActionButton(onClick = { sortDescending = !sortDescending }) {
                                     Text(
                                         if (sortDescending) {
                                             stringResource(R.string.descending)
@@ -376,7 +376,7 @@ class MainActivity : YComposeActivity() {
                                 YStatusTone.Warning,
                             )
                             YActionRow {
-                                Button(
+                                YPrimaryActionButton(
                                     onClick = {
                                         operationBusy = true
                                         lifecycleScope.launch {
@@ -393,26 +393,26 @@ class MainActivity : YComposeActivity() {
                                     },
                                     enabled = !rootMode && !operationBusy,
                                 ) { Text(stringResource(R.string.paste_here)) }
-                                OutlinedButton(
+                                YSecondaryActionButton(
                                     onClick = { pendingTransfer = null },
                                     enabled = !operationBusy,
                                 ) { Text(stringResource(R.string.yfiles_cancel)) }
                             }
                         }
                         YActionRow {
-                            OutlinedButton(
+                            YSecondaryActionButton(
                                 onClick = { repository.parent(path)?.let { path = it; query = "" } },
                                 enabled = repository.parent(path) != null && !operationBusy,
                             ) { Text(stringResource(R.string.parent)) }
-                            OutlinedButton(onClick = { refresh++ }, enabled = !operationBusy) {
+                            YSecondaryActionButton(onClick = { refresh++ }, enabled = !operationBusy) {
                                 Text(stringResource(R.string.refresh))
                             }
                         }
                         YActionRow {
-                            Button(onClick = { newFolderDialog = true }, enabled = !operationBusy) {
+                            YPrimaryActionButton(onClick = { newFolderDialog = true }, enabled = !operationBusy) {
                                 Text(stringResource(R.string.new_folder))
                             }
-                            OutlinedButton(onClick = { newFileDialog = true }, enabled = !operationBusy) {
+                            YSecondaryActionButton(onClick = { newFileDialog = true }, enabled = !operationBusy) {
                                 Text(stringResource(R.string.new_file))
                             }
                         }
@@ -463,32 +463,32 @@ class MainActivity : YComposeActivity() {
                         ) {
                             YActionRow {
                                 if (entry.isDirectory) {
-                                    Button(onClick = { path = entry.path; query = "" }, enabled = !operationBusy) {
+                                    YPrimaryActionButton(onClick = { path = entry.path; query = "" }, enabled = !operationBusy) {
                                         Text(stringResource(R.string.yfiles_open))
                                     }
                                 } else {
-                                    Button(onClick = { openFile(File(entry.path)) }, enabled = !operationBusy) {
+                                    YPrimaryActionButton(onClick = { openFile(File(entry.path)) }, enabled = !operationBusy) {
                                         Text(stringResource(R.string.yfiles_open))
                                     }
-                                    OutlinedButton(onClick = { shareFile(File(entry.path)) }, enabled = !operationBusy) {
+                                    YSecondaryActionButton(onClick = { shareFile(File(entry.path)) }, enabled = !operationBusy) {
                                         Text(stringResource(R.string.share))
                                     }
                                 }
-                                OutlinedButton(onClick = {
+                                YSecondaryActionButton(onClick = {
                                     pendingTransfer = PendingFileTransfer(entry, FileTransferMode.COPY)
                                     error = null
                                 }, enabled = !operationBusy) { Text(stringResource(R.string.copy)) }
-                                OutlinedButton(onClick = {
+                                YSecondaryActionButton(onClick = {
                                     pendingTransfer = PendingFileTransfer(entry, FileTransferMode.MOVE)
                                     error = null
                                 }, enabled = !operationBusy) { Text(stringResource(R.string.move)) }
                             }
                             YActionRow {
-                                OutlinedButton(onClick = {
+                                YSecondaryActionButton(onClick = {
                                     renameTarget = entry
                                     renameValue = entry.name
                                 }, enabled = !operationBusy) { Text(stringResource(R.string.rename)) }
-                                OutlinedButton(onClick = {
+                                YSecondaryActionButton(onClick = {
                                     operationBusy = true
                                     lifecycleScope.launch {
                                         val result = withContext(Dispatchers.IO) { repository.duplicate(entry) }
@@ -497,7 +497,7 @@ class MainActivity : YComposeActivity() {
                                         operationBusy = false
                                     }
                                 }, enabled = !operationBusy) { Text(stringResource(R.string.duplicate)) }
-                                OutlinedButton(onClick = {
+                                YSecondaryActionButton(onClick = {
                                     operationBusy = true
                                     lifecycleScope.launch {
                                         val result = withContext(Dispatchers.IO) { repository.properties(entry) }
@@ -506,12 +506,12 @@ class MainActivity : YComposeActivity() {
                                         operationBusy = false
                                     }
                                 }, enabled = !operationBusy) { Text(stringResource(R.string.properties)) }
-                                OutlinedButton(onClick = { deleteTarget = entry }, enabled = !operationBusy) {
+                                YSecondaryActionButton(onClick = { deleteTarget = entry }, enabled = !operationBusy) {
                                     Text(stringResource(R.string.delete))
                                 }
                             }
                             YActionRow {
-                                OutlinedButton(onClick = {
+                                YSecondaryActionButton(onClick = {
                                     operationBusy = true
                                     lifecycleScope.launch {
                                         val result = withContext(Dispatchers.IO) { repository.compressZip(entry) }
@@ -521,7 +521,7 @@ class MainActivity : YComposeActivity() {
                                     }
                                 }, enabled = !operationBusy) { Text(stringResource(R.string.compress_zip)) }
                                 if (!entry.isDirectory && entry.name.endsWith(".zip", ignoreCase = true)) {
-                                    OutlinedButton(onClick = {
+                                    YSecondaryActionButton(onClick = {
                                         operationBusy = true
                                         lifecycleScope.launch {
                                             val result = withContext(Dispatchers.IO) { repository.extractZip(entry) }
@@ -555,7 +555,7 @@ class MainActivity : YComposeActivity() {
                     )
                 },
                 confirmButton = {
-                    Button(
+                    YPrimaryActionButton(
                         onClick = {
                             operationBusy = true
                             lifecycleScope.launch {
@@ -579,7 +579,7 @@ class MainActivity : YComposeActivity() {
                     ) { Text(stringResource(R.string.create)) }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { newFolderDialog = false }, enabled = !operationBusy) {
+                    YSecondaryActionButton(onClick = { newFolderDialog = false }, enabled = !operationBusy) {
                         Text(stringResource(R.string.yfiles_cancel))
                     }
                 },
@@ -598,7 +598,7 @@ class MainActivity : YComposeActivity() {
                     )
                 },
                 confirmButton = {
-                    Button(
+                    YPrimaryActionButton(
                         onClick = {
                             operationBusy = true
                             lifecycleScope.launch {
@@ -622,7 +622,7 @@ class MainActivity : YComposeActivity() {
                     ) { Text(stringResource(R.string.create)) }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { newFileDialog = false }, enabled = !operationBusy) {
+                    YSecondaryActionButton(onClick = { newFileDialog = false }, enabled = !operationBusy) {
                         Text(stringResource(R.string.yfiles_cancel)) }
                 },
             )
@@ -641,7 +641,7 @@ class MainActivity : YComposeActivity() {
                     )
                 },
                 confirmButton = {
-                    Button(
+                    YPrimaryActionButton(
                         onClick = {
                             operationBusy = true
                             lifecycleScope.launch {
@@ -660,7 +660,7 @@ class MainActivity : YComposeActivity() {
                     ) { Text(stringResource(R.string.rename)) }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { renameTarget = null }, enabled = !operationBusy) {
+                    YSecondaryActionButton(onClick = { renameTarget = null }, enabled = !operationBusy) {
                         Text(stringResource(R.string.yfiles_cancel)) }
                 },
             )
@@ -672,7 +672,7 @@ class MainActivity : YComposeActivity() {
                 title = { Text(stringResource(R.string.confirm_delete)) },
                 text = { Text(stringResource(R.string.confirm_delete_summary, entry.name)) },
                 confirmButton = {
-                    Button(
+                    YPrimaryActionButton(
                         onClick = {
                             operationBusy = true
                             lifecycleScope.launch {
@@ -689,7 +689,7 @@ class MainActivity : YComposeActivity() {
                     ) { Text(stringResource(R.string.delete)) }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { deleteTarget = null }, enabled = !operationBusy) {
+                    YSecondaryActionButton(onClick = { deleteTarget = null }, enabled = !operationBusy) {
                         Text(stringResource(R.string.yfiles_cancel)) }
                 },
             )
@@ -722,7 +722,7 @@ class MainActivity : YComposeActivity() {
                     )
                 },
                 confirmButton = {
-                    Button(onClick = { propertyDialog = null }) { Text(stringResource(R.string.close)) }
+                    YPrimaryActionButton(onClick = { propertyDialog = null }) { Text(stringResource(R.string.close)) }
                 },
             )
         }
