@@ -112,7 +112,9 @@ final class AppUi {
             copy.addView(sub, new LinearLayout.LayoutParams(-1, -2));
         }
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
-        TextView arrow = text(c, "›", 24, false);
+        TextView arrow = new TextView(c);
+        arrow.setText("›");
+        YView.styleSectionTitle(arrow);
         arrow.setTextColor(textSecondary(c));
         row.addView(arrow, new LinearLayout.LayoutParams(-2, -2));
         row.setOnClickListener(v -> { if (action != null) action.run(); });
@@ -185,9 +187,8 @@ final class AppUi {
     static TextView text(Context c, String value, float sp, boolean bold) {
         TextView tv = new TextView(c);
         tv.setText(value == null ? "" : value);
-        tv.setTextSize(sp);
-        tv.setTextColor(textPrimary(c));
-        if (bold) tv.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        if (bold) YView.styleStrongBody(tv);
+        else YView.styleBody(tv);
         return tv;
     }
 
@@ -203,7 +204,8 @@ final class AppUi {
         TextView tv = text(c, value, 12, true);
         tv.setTextColor(positive ? success(c) : warning(c));
         tv.setGravity(Gravity.CENTER);
-        tv.setPadding(dp(c, 10), dp(c, 5), dp(c, 10), dp(c, 5));
+        tv.setPadding(YView.controlGap(c), Math.max(1, YView.controlGap(c) / 2),
+                YView.controlGap(c), Math.max(1, YView.controlGap(c) / 2));
         tv.setBackground(rounded(c, positive ? successSurface(c) : warningSurface(c), 999));
         return tv;
     }
@@ -222,7 +224,6 @@ final class AppUi {
 
     static MaterialButton compactButton(Context c, String value) {
         MaterialButton b = secondaryButton(c, value);
-        b.setTextSize(13);
         b.setMinHeight(YView.buttonHeight(c));
         b.setMinimumHeight(YView.buttonHeight(c));
         b.setMinimumWidth(0);
