@@ -1,6 +1,8 @@
 package com.yagay.suite.core
 
 import android.content.Context
+import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.FeatureHostRegistry
 import com.yagay.suite.api.ManagedFeatureRuntime
 
 /**
@@ -13,6 +15,7 @@ import com.yagay.suite.api.ManagedFeatureRuntime
 object FeatureRuntimeManager {
     private data class RuntimeRecord(
         var runtime: ManagedFeatureRuntime? = null,
+        var host: FeatureHost? = null,
         var attached: Boolean = false,
         var enabled: Boolean = false,
     )
@@ -36,8 +39,17 @@ object FeatureRuntimeManager {
 
         if (runtime != null) {
             if (!record.attached) {
-                runtime.attach(SuiteFeatureHost(app, feature))
-                record.attached = true
+                val host = SuiteFeatureHost(app, feature)
+                FeatureHostRegistry.attach(host)
+                record.host = host
+                try {
+                    runtime.attach(host)
+                    record.attached = true
+                } catch (error: Throwable) {
+                    FeatureHostRegistry.detach(feature.id, host)
+                    record.host = null
+                    throw error
+                }
             }
             runtime.enable()
         }
@@ -66,6 +78,8 @@ object FeatureRuntimeManager {
             }.onFailure {
                 SuiteLog.e(app, featureId, "managed runtime destroy failed", it)
             }
+            record.host?.let { FeatureHostRegistry.detach(featureId, it) }
+            record.host = null
         }
         records.clear()
     }
