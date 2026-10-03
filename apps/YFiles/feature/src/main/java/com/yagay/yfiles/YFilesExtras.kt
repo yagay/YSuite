@@ -415,7 +415,7 @@ fun YFilesEntryExtraActions(
             enabled = !busy,
         ) { Text(stringResource(R.string.move_to_recycle_bin)) }
     }
-    checksum?.let { Text("SHA-256: $it") }
+    checksum?.let { Text(stringResource(R.string.sha256_value, it)) }
 }
 
 private fun formatExtraBytes(value: Long): String {
