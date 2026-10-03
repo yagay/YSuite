@@ -77,6 +77,12 @@ object YView {
         cornerRadius = dimen(context, R.dimen.yui_card_radius).toFloat()
     }
 
+    @JvmStatic fun fieldBackground(context: Context): GradientDrawable = GradientDrawable().apply {
+        setColor(surfaceContainer(context))
+        cornerRadius = dp(context, 22).toFloat()
+        setStroke(dp(context, 1), outline(context))
+    }
+
     @JvmStatic fun styleCard(view: ViewGroup) {
         view.background = cardBackground(view.context)
         val p = dimen(view.context, R.dimen.yui_card_padding)
@@ -97,7 +103,7 @@ object YView {
     @JvmStatic fun onSurface(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurface, Color.BLACK)
     @JvmStatic fun onSurfaceVariant(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF656A73.toInt())
     @JvmStatic fun outline(context: Context): Int = color(context, com.google.android.material.R.attr.colorOutlineVariant, 0xFFD0D5DD.toInt())
-    @JvmStatic fun accent(context: Context): Int = color(context, androidx.appcompat.R.attr.colorPrimary, 0xFF6750A4.toInt())
+    @JvmStatic fun accent(context: Context): Int = color(context, androidx.appcompat.R.attr.colorPrimary, 0xFF3451B2.toInt())
 
     @JvmStatic fun success(context: Context): Int = if (isDark(context)) 0xFF9BDAA8.toInt() else 0xFF146C2E.toInt()
     @JvmStatic fun successContainer(context: Context): Int = if (isDark(context)) 0xFF005321.toInt() else 0xFFB7F2C4.toInt()
