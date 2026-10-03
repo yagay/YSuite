@@ -143,8 +143,6 @@ public final class YFilesModule extends XposedModule {
 
     @Override public boolean onHotReloading(@NonNull HotReloadingParam param) { return true; }
 
-    @Override public void onHotReloaded(@NonNull HotReloadingParam param) { }
-
     @Override public void onHotReloaded(@NonNull HotReloadedParam param) {
         param.getOldHookHandles().forEach(HookHandle::unhook);
         installed.clear();
