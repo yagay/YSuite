@@ -153,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         copy.addView(title);
 
         TextView subtitle = YViewLayout.listSubtitle(this);
-        subtitle.setText(packageName + (recommended ? " · " + getString(R.string.yp_recommended_available) : ""));
+        subtitle.setText(packageName + (recommended ? "\n" + getString(R.string.yp_recommended_available) : ""));
         copy.addView(subtitle);
 
         LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(0, -2, 1f);
