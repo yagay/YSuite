@@ -10,8 +10,6 @@ import android.net.Uri;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.core.content.FileProvider;
-
 import java.io.File;
 import java.io.FileOutputStream;
 
@@ -19,10 +17,6 @@ import java.io.FileOutputStream;
 public final class ImageShareUtils {
     private static final String DIR = "shared_images";
 
-    /**
-     * A normal tap on the popup image opens the reusable YFloat image action menu so
-     * Activity-backed result windows and TYPE_APPLICATION_OVERLAY fallbacks behave the same way.
-     */
     public static void attachClickMenu(Context c, ImageView view, Bitmap image) {
         if (c == null || view == null || image == null || image.isRecycled()) return;
         view.setLongClickable(false);
@@ -34,17 +28,14 @@ public final class ImageShareUtils {
         });
     }
 
-    /** Compatibility alias for older callers; interaction is now tap-to-open. */
     public static void attachLongPressMenu(Context c, ImageView view, Bitmap image) {
         attachClickMenu(c, view, image);
     }
 
-    /** Compatibility alias for older callers; interaction is now tap-to-open. */
     public static void attachLongPressShare(Context c, ImageView view, Bitmap image) {
         attachClickMenu(c, view, image);
     }
 
-    /** Put the exact popup bitmap on Android's clipboard as an image content URI. */
     public static boolean copyToClipboard(Context c, Bitmap image) {
         if (c == null || image == null || image.isRecycled()) return false;
         Context app = c.getApplicationContext();
@@ -90,7 +81,6 @@ public final class ImageShareUtils {
         }
     }
 
-    /** Open the current popup bitmap with any installed app that accepts image/png. */
     public static void openWith(Context c, Bitmap image) {
         if (c == null || image == null || image.isRecycled()) return;
         Context app = c.getApplicationContext();
@@ -112,10 +102,6 @@ public final class ImageShareUtils {
         }
     }
 
-    /**
-     * Clipboard, Share and Open-With must expose the exact same temporary image/URI semantics.
-     * Keeping this in one helper also guarantees the FileProvider path stays consistent.
-     */
     private static SharedImage prepareSharedImage(Context app, Bitmap image) throws Exception {
         File dir = new File(app.getCacheDir(), DIR);
         if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Cannot create share cache");
@@ -129,8 +115,8 @@ public final class ImageShareUtils {
             out.flush();
         }
 
-        Uri uri = FileProvider.getUriForFile(app,
-                app.getPackageName() + ".fileprovider", outFile);
+        Uri uri = YFloatSuiteRuntime.sharedFileUri(outFile);
+        if (uri == null) throw new IllegalStateException("Host file-share capability is unavailable");
         return new SharedImage(outFile, uri);
     }
 
