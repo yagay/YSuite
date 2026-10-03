@@ -48,6 +48,12 @@ interface FeatureHost {
     fun putSettingBoolean(key: String, value: Boolean) {}
     fun settingString(key: String, defaultValue: String? = null): String? = defaultValue
     fun putSettingString(key: String, value: String?) {}
+    fun settingInt(key: String, defaultValue: Int = 0): Int = defaultValue
+    fun putSettingInt(key: String, value: Int) {}
+    fun settingLong(key: String, defaultValue: Long = 0L): Long = defaultValue
+    fun putSettingLong(key: String, value: Long) {}
+    fun settingStringSet(key: String, defaultValue: Set<String> = emptySet()): Set<String> = defaultValue
+    fun putSettingStringSet(key: String, value: Set<String>) {}
     fun removeSetting(key: String) {}
 
     fun log(
