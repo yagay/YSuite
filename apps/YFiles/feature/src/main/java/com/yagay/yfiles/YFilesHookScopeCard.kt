@@ -13,7 +13,7 @@ import com.yagay.yui.YStatusTone
 fun YFilesHookScopeCard(context: Context) {
     val targets = remember(context) { YFilesHookScopeAdvisor.documentsUiTargets(context) }
     YFeatureCard(
-        title = stringResource(R.string.hook_scope_title),
+        title = stringResource(R.string.yfiles_hook_scope_title),
         subtitle = stringResource(R.string.yfiles_hook_scope_summary),
     ) {
         targets.forEach { target ->
