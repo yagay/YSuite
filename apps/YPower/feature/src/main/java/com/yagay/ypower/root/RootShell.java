@@ -1,6 +1,7 @@
 package com.yagay.ypower.root;
 
 import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.FeatureHostBinding;
 import com.yagay.suite.api.HostCapability;
 import com.yagay.suite.api.HostCapabilityState;
 import com.yagay.suite.api.HostCommandResult;
@@ -12,26 +13,24 @@ import java.util.List;
 
 /** Root facade owned by YPower business code; the actual shell is always owned by FeatureHost. */
 public final class RootShell {
-    private static volatile FeatureHost host;
+    private static final FeatureHostBinding HOST = new FeatureHostBinding("YPower");
 
     private RootShell() {}
 
     public static void attachHost(FeatureHost featureHost) {
-        host = featureHost;
+        HOST.attach(featureHost);
     }
 
     public static void detachHost(FeatureHost featureHost) {
-        if (host == featureHost) host = null;
+        if (HOST.hostOrNull() == featureHost) HOST.clear();
     }
 
     public static boolean isRootAvailable() {
-        FeatureHost current = host;
-        return current != null
-                && current.capabilityState(HostCapability.ROOT) == HostCapabilityState.GRANTED;
+        return HOST.capabilityState(HostCapability.ROOT) == HostCapabilityState.GRANTED;
     }
 
     public static CommandResult exec(String... commands) {
-        FeatureHost current = host;
+        FeatureHost current = HOST.hostOrNull();
         if (current == null) {
             return failure("Host Root capability is not attached");
         }
