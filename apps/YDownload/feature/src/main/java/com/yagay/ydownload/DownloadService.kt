@@ -23,7 +23,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DownloadService : Service() {
-    private val executor = Executors.newFixedThreadPool(2)
+    private lateinit var executor: java.util.concurrent.ExecutorService
     private val active = ConcurrentHashMap.newKeySet<Long>()
     private val pauses = ConcurrentHashMap<Long, AtomicBoolean>()
     private val cancels = ConcurrentHashMap<Long, AtomicBoolean>()
@@ -32,6 +32,8 @@ class DownloadService : Service() {
     override fun onCreate() {
         super.onCreate()
         store = DownloadStore.get(this)
+        val concurrency = YDownloadEnhancedSettings.load(this).maxConcurrent
+        executor = Executors.newFixedThreadPool(concurrency)
         getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL, getString(R.string.download_channel), NotificationManager.IMPORTANCE_LOW)
         )
@@ -57,6 +59,8 @@ class DownloadService : Service() {
         cancels.getOrPut(id) { AtomicBoolean() }.set(false)
         executor.execute {
             var connection: HttpURLConnection? = null
+            var retryRequested = false
+            var retryDelayMs = 0L
             try {
                 val initial = store.get(id) ?: return@execute
                 store.update(id) {
@@ -74,7 +78,7 @@ class DownloadService : Service() {
                             instanceFollowRedirects = true
                             connectTimeout = 15_000
                             readTimeout = 30_000
-                            setRequestProperty("User-Agent", "YDownload/0.1")
+                            setRequestProperty("User-Agent", "YDownload/0.2")
                             if (existing > 0L) setRequestProperty("Range", "bytes=$existing-")
                             connect()
                         }
@@ -188,21 +192,55 @@ class DownloadService : Service() {
                     }
                 } ?: throw IllegalStateException("Unable to open destination")
             } catch (t: Throwable) {
-                store.update(id) {
-                    it.copy(
-                        state = DownloadState.FAILED,
-                        error = t.message ?: t.javaClass.simpleName,
-                        speedBytesPerSecond = 0L,
-                        etaMillis = -1L,
+                val current = store.get(id)
+                val settings = YDownloadEnhancedSettings.load(this)
+                val canRetry = current != null &&
+                    current.backend == DownloadBackend.ENHANCED &&
+                    settings.autoRetry &&
+                    current.retryCount < settings.maxRetries &&
+                    pauses[id]?.get() != true &&
+                    cancels[id]?.get() != true
+
+                if (canRetry) {
+                    val nextRetry = current!!.retryCount + 1
+                    retryRequested = true
+                    retryDelayMs = (500L * (1L shl (nextRetry - 1).coerceIn(0, 4))).coerceAtMost(5_000L)
+                    store.update(id) {
+                        it.copy(
+                            state = DownloadState.QUEUED,
+                            retryCount = nextRetry,
+                            error = t.message ?: t.javaClass.simpleName,
+                            speedBytesPerSecond = 0L,
+                            etaMillis = -1L,
+                        )
+                    }
+                    YDownloadSuiteRuntime.log(
+                        HostLogLevel.WARN,
+                        "download retry scheduled id=$id attempt=$nextRetry/${settings.maxRetries}",
+                        t,
                     )
+                } else {
+                    store.update(id) {
+                        it.copy(
+                            state = DownloadState.FAILED,
+                            error = t.message ?: t.javaClass.simpleName,
+                            speedBytesPerSecond = 0L,
+                            etaMillis = -1L,
+                        )
+                    }
+                    YDownloadSuiteRuntime.log(HostLogLevel.ERROR, "download failed id=$id", t)
                 }
-                YDownloadSuiteRuntime.log(HostLogLevel.ERROR, "download failed id=$id", t)
             } finally {
                 connection?.disconnect()
                 active.remove(id)
                 pauses.remove(id)
                 cancels.remove(id)
-                stopIfIdle()
+                if (retryRequested) {
+                    if (retryDelayMs > 0L) SystemClock.sleep(retryDelayMs)
+                    startDownload(id)
+                } else {
+                    stopIfIdle()
+                }
             }
         }
     }
@@ -290,7 +328,7 @@ class DownloadService : Service() {
     }
 
     override fun onDestroy() {
-        executor.shutdownNow()
+        if (::executor.isInitialized) executor.shutdownNow()
         super.onDestroy()
     }
 
