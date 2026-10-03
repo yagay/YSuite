@@ -30,8 +30,9 @@ import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YChoiceSetting
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFilterBar
-import com.yagay.yui.YBrowserScaffold
 import com.yagay.yui.YPageList
+import com.yagay.yui.YPageRole
+import com.yagay.yui.YPageScaffold
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YSearchField
@@ -149,9 +150,14 @@ class MainActivity : YComposeActivity() {
             }
         }
 
-        YBrowserScaffold(
+        YPageScaffold(
             title = stringResource(R.string.yfiles_title),
             subtitle = stringResource(R.string.yfiles_subtitle),
+            role = when (page) {
+                0 -> YPageRole.BROWSER
+                1 -> YPageRole.MANAGER
+                else -> YPageRole.SETTINGS
+            },
         ) { padding ->
             YPageList(padding) {
                 item {
