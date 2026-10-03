@@ -15,7 +15,7 @@ import com.yagay.YNotify.util.ServiceGrantStatus
 import com.yagay.YSuite.accessibility.SuiteAccessibilityService
 import com.yagay.YSuite.notification.SuiteNotificationListenerService
 
-/** Host-level permission snapshot used by the YSuite shell and future shared capability users. */
+/** Host-level permission snapshot used by the YSuite shell and shared capability users. */
 object SuitePermissionState {
     private const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
         "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"
@@ -34,28 +34,48 @@ object SuitePermissionState {
         val otherNotificationListenerHostEnabled: Boolean,
     )
 
+    /**
+     * Status inspection is UI-only and must never be able to crash the YSuite shell. OEM settings
+     * providers, stale legacy components and feature-local state stores are all treated as optional.
+     */
     fun snapshot(context: Context): Snapshot {
-        val accessibility = AccessibilityState.snapshot(context)
-        val legacy = ServiceGrantStatus.legacySuiteAccessibilityEnabled(context)
-        val otherHost = ServiceGrantStatus.otherHostAccessibilityEnabled(context) ||
-            accessibility.otherYFloatEnabled
+        val accessibility = runCatching { AccessibilityState.snapshot(context) }.getOrNull()
+        val legacyAccessibility = runCatching {
+            ServiceGrantStatus.legacySuiteAccessibilityEnabled(context)
+        }.getOrDefault(false)
+        val otherAccessibilityHost = runCatching {
+            ServiceGrantStatus.otherHostAccessibilityEnabled(context)
+        }.getOrDefault(false) || (accessibility?.otherYFloatEnabled == true)
+
+        val notificationListenerGranted = runCatching {
+            ServiceGrantStatus.notificationListenerEnabled(context)
+        }.getOrDefault(false)
+        val notificationListenerConnected = runCatching {
+            SuiteNotificationListenerService.isConnected()
+        }.getOrDefault(false) || runCatching {
+            ListenerStateStore.isConnected(context)
+        }.getOrDefault(false)
+
         return Snapshot(
-            accessibilityEnabled = accessibility.hostEnabled,
-            accessibilityConnected = SuiteAccessibilityService.isConnected(),
-            accessibilityLabel = accessibility.statusLabel(context),
-            legacyAccessibilityEnabled = legacy || accessibility.sameHostOtherAccessibilityEnabled,
-            otherAccessibilityHostEnabled = otherHost,
-            overlayGranted = Settings.canDrawOverlays(context),
-            notificationsGranted = Build.VERSION.SDK_INT < 33 ||
+            accessibilityEnabled = accessibility?.hostEnabled == true,
+            accessibilityConnected = runCatching { SuiteAccessibilityService.isConnected() }.getOrDefault(false),
+            accessibilityLabel = runCatching { accessibility?.statusLabel(context).orEmpty() }.getOrDefault(""),
+            legacyAccessibilityEnabled = legacyAccessibility ||
+                (accessibility?.sameHostOtherAccessibilityEnabled == true),
+            otherAccessibilityHostEnabled = otherAccessibilityHost,
+            overlayGranted = runCatching { Settings.canDrawOverlays(context) }.getOrDefault(false),
+            notificationsGranted = Build.VERSION.SDK_INT < 33 || runCatching {
                 context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
-                PackageManager.PERMISSION_GRANTED,
-            notificationListenerGranted = ServiceGrantStatus.notificationListenerEnabled(context),
-            notificationListenerConnected = SuiteNotificationListenerService.isConnected() ||
-                ListenerStateStore.isConnected(context),
-            legacyNotificationListenerEnabled =
-                ServiceGrantStatus.legacySuiteNotificationListenerEnabled(context),
-            otherNotificationListenerHostEnabled =
-                ServiceGrantStatus.otherHostNotificationListenerEnabled(context),
+                    PackageManager.PERMISSION_GRANTED
+            }.getOrDefault(false),
+            notificationListenerGranted = notificationListenerGranted,
+            notificationListenerConnected = notificationListenerConnected,
+            legacyNotificationListenerEnabled = runCatching {
+                ServiceGrantStatus.legacySuiteNotificationListenerEnabled(context)
+            }.getOrDefault(false),
+            otherNotificationListenerHostEnabled = runCatching {
+                ServiceGrantStatus.otherHostNotificationListenerEnabled(context)
+            }.getOrDefault(false),
         )
     }
 
@@ -81,14 +101,17 @@ object SuitePermissionState {
     }
 
     fun openNotificationListenerSettings(context: Context): Boolean {
-        val component = ServiceGrantStatus.notificationListenerComponent(context)
-        val detail = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
-            .putExtra(
-                Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
-                component.flattenToString(),
-            )
-        if (context !is Activity) detail.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (runCatching { context.startActivity(detail) }.isSuccess) return true
+        val component = runCatching { ServiceGrantStatus.notificationListenerComponent(context) }
+            .getOrNull()
+        if (component != null) {
+            val detail = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+                .putExtra(
+                    Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
+                    component.flattenToString(),
+                )
+            if (context !is Activity) detail.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (runCatching { context.startActivity(detail) }.isSuccess) return true
+        }
 
         val generic = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
         if (context !is Activity) generic.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
