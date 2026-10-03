@@ -1,46 +1,20 @@
 package com.yagay.YTaskManager
 
 import android.content.Context
+import com.yagay.suite.api.FeatureServices
 
-/** Lightweight logger that works standalone and mirrors into YSuite when embedded. */
+/** Lightweight logger shared by standalone and YSuite through the common feature services facade. */
 object AppLogger {
-    @Volatile private var appContext: Context? = null
+    private val services = FeatureServices.of("ytaskmanager", "YTaskManager")
 
-    fun attach(context: Context) {
-        appContext = context.applicationContext
-    }
+    /** Kept for source compatibility; host discovery is now centralized in FeatureHostRegistry. */
+    fun attach(context: Context) = Unit
 
     fun i(message: String) {
-        android.util.Log.i("YTaskManager", message)
-        mirrorToYSuite("I", message, null)
+        services.info(message)
     }
 
     fun e(message: String, error: Throwable? = null) {
-        android.util.Log.e("YTaskManager", message, error)
-        mirrorToYSuite("E", message, error)
-    }
-
-    private fun mirrorToYSuite(level: String, message: String, error: Throwable?) {
-        val context = appContext ?: return
-        runCatching {
-            val clazz = Class.forName("com.yagay.suite.core.SuiteLog")
-            val instance = clazz.getField("INSTANCE").get(null)
-            if (level == "E") {
-                clazz.getMethod(
-                    "e",
-                    Context::class.java,
-                    String::class.java,
-                    String::class.java,
-                    Throwable::class.java,
-                ).invoke(instance, context, "ytaskmanager", message, error)
-            } else {
-                clazz.getMethod(
-                    "i",
-                    Context::class.java,
-                    String::class.java,
-                    String::class.java,
-                ).invoke(instance, context, "ytaskmanager", message)
-            }
-        }
+        services.error(message, error)
     }
 }
