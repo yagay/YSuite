@@ -58,7 +58,7 @@ REQUIRED_INTERACTION_MARKERS = (
 )
 
 MODULE_UI = {
-    "YDiag": (Path("apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity.kt"), ("com.yagay.yui",)),
+    "YDiag": (Path("apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity.kt"), ("com.yagay.yui", "YNavigationSuite")),
     "YDownload": (Path("apps/YDownload/feature/src/main/java/com/yagay/ydownload/MainActivity.kt"), ("YManagerScaffold",)),
     "YEntryCleaner": (Path("apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainActivity.kt"), ("com.yagay.yui",)),
     "YFiles": (Path("apps/YFiles/feature/src/main/java/com/yagay/yfiles/MainActivity.kt"), ("com.yagay.yui",)),
@@ -68,7 +68,7 @@ MODULE_UI = {
     "YNotify": (Path("apps/YNotify/feature/src/main/res/layout/activity_main.xml"), ("Widget.YUI.", "TextAppearance.YUI.")),
     "YParam": (Path("apps/YParam/feature/src/main/java/com/yagay/yparam/ui/MainActivity.java"), ("YViewLayout",)),
     "YPower": (Path("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java"), ("YViewLayout",)),
-    "YTaskManager": (Path("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt"), ("com.yagay.yui",)),
+    "YTaskManager": (Path("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt"), ("com.yagay.yui", "YNavigationSuite")),
 }
 
 
@@ -106,7 +106,7 @@ def main() -> None:
         fail("YPageRole must actively drive shared layout behavior")
 
     generated = read(GENERATED_TOKENS)
-    for marker in ("ButtonHeight = 48.dp", "TouchTarget = 48.dp", "ExpandedBreakpoint = 840.dp"):
+    for marker in ("ButtonHeight = 48.dp", "TouchTarget = 48.dp", "ExpandedBreakpoint = 840.dp", "ScreenHorizontalMedium = 24.dp", "ScreenHorizontalExpanded = 32.dp"):
         if marker not in generated:
             fail(f"generated YUI tokens missing accessibility/adaptive marker {marker!r}")
 
@@ -137,6 +137,19 @@ def main() -> None:
         for marker in markers:
             if marker not in source:
                 fail(f"{module} normal screen must consume shared YUI marker {marker!r}")
+
+    raw_navigation: list[str] = []
+    for path in APPS.glob("*/feature/src/main/**/*"):
+        if not path.is_file() or path.suffix not in {".kt", ".java"}:
+            continue
+        source = path.read_text(encoding="utf-8", errors="replace")
+        if "NavigationBar(" in source or "NavigationRail(" in source:
+            raw_navigation.append(str(path.relative_to(ROOT)))
+    if raw_navigation:
+        fail(
+            "feature-owned top-level Material navigation is forbidden; use YNavigationSuite: "
+            + ", ".join(sorted(raw_navigation))
+        )
 
     yfloat = read(YFLOAT_APP_UI)
     if "YViewLayout.fixedScreen" not in yfloat or "YView." not in yfloat:
