@@ -119,7 +119,8 @@ def main() -> None:
     ):
         require(resources, marker, "XML YUI framework")
 
-    require(ysuite, "YFeatureScaffold(", "YSuite main screen")
+    require(ysuite, "YDashboardScaffold(", "YSuite main screen")
+    require(ysuite, "YPageList(", "YSuite main screen")
     require(ysuite, "YFeatureCard(", "YSuite main screen")
     require(ypower, "YViewLayout.install(", "YPower main screen")
     require(ypower, "YViewLayout.card(", "YPower main screen")
@@ -131,20 +132,22 @@ def main() -> None:
     require(yparam, "YViewLayout.switchRow(", "YParam main screen")
     require(yparam, "YViewLayout.setStatus(", "YParam main screen")
 
-    require(ynfc_screen, "YFeatureScaffold(", "YNFC main screen")
-    require(ynfc_screen, "YFeatureList(", "YNFC main screen")
+    require(ynfc_screen, "YManagerScaffold(", "YNFC main screen")
+    require(ynfc_screen, "YPageList(", "YNFC main screen")
     require(ynfc_screen, "YFeatureEmpty(", "YNFC main screen")
     require(ynfc_components, "YFeatureCard(", "YNFC content components")
     require(ynfc_components, "YStatusRow(", "YNFC content components")
 
-    require(ytask, "YFeatureScaffold(", "YTaskManager main screen")
+    require(ytask, "YManagerScaffold(", "YTaskManager main screen")
+    require(ytask, "YNavigationSuite(", "YTaskManager main navigation")
     require(ytask, "YSearchField(", "YTaskManager filter section")
     require(ytask, "YStatusPill(", "YTaskManager status section")
     require(ytask, "YFeatureEmpty(", "YTaskManager empty states")
     require(ytask, "YStatusRow(", "YTaskManager resource metrics")
 
     require(ydiag, "YComposeActivity", "YDiag activity")
-    require(ydiag, "YFeatureScaffold(", "YDiag main screen")
+    require(ydiag, "YPageScaffold(", "YDiag main screen")
+    require(ydiag, "YNavigationSuite(", "YDiag main navigation")
     require(ydiag, "YFeatureSectionHeader(", "YDiag sections")
     require(ydiag, "YFeatureStat(", "YDiag monitor stats")
     require(ydiag, "YFeatureEmpty(", "YDiag empty states")
