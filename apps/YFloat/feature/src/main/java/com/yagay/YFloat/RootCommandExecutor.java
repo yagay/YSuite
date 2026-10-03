@@ -3,14 +3,9 @@ package com.yagay.YFloat;
 import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.HostBinaryCommandResult;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
-/** One bounded, timeout-safe implementation for every YFloat su command. */
+/** One bounded, host-owned implementation for every YFloat Root command. */
 final class RootCommandExecutor {
     private static final FeatureServices SERVICES = FeatureServices.of("yfloat", "YFloat");
 
@@ -43,98 +38,31 @@ final class RootCommandExecutor {
                         ? error.getClass().getSimpleName() : message;
             }
             if (!stderr.isBlank()) return stderr.trim();
-            return "su exit=" + exitCode;
+            return "root exit=" + exitCode;
         }
     }
 
     static Result runText(String command, long timeoutSeconds, int maxOutputBytes) {
-        return run(command, timeoutSeconds, Math.max(1024, maxOutputBytes), 16 * 1024, true);
+        return run(command, timeoutSeconds, Math.max(1024, maxOutputBytes), true);
     }
 
     static Result runBinary(String command, long timeoutSeconds, int maxOutputBytes) {
-        return run(command, timeoutSeconds, Math.max(1024, maxOutputBytes), 16 * 1024, false);
+        return run(command, timeoutSeconds, Math.max(1024, maxOutputBytes), false);
     }
 
-    private static Result run(String command, long timeoutSeconds,
-                              int maxStdoutBytes, int maxStderrBytes,
+    private static Result run(String command,
+                              long timeoutSeconds,
+                              int maxStdoutBytes,
                               boolean mergeError) {
-        if (SERVICES.hostOrNull() != null) {
-            return runThroughHost(command, timeoutSeconds, maxStdoutBytes, mergeError);
-        }
-
-        Process process = null;
-        Thread stdoutReader = null;
-        Thread stderrReader = null;
         try {
-            ProcessBuilder builder = new ProcessBuilder("su", "-c", command == null ? "" : command);
-            builder.redirectErrorStream(mergeError);
-            process = builder.start();
-            Process active = process;
-
-            ByteArrayOutputStream stdout = new ByteArrayOutputStream(
-                    Math.min(maxStdoutBytes, 2 * 1024 * 1024));
-            ByteArrayOutputStream stderr = new ByteArrayOutputStream(
-                    Math.min(maxStderrBytes, 16 * 1024));
-            AtomicReference<Throwable> readFailure = new AtomicReference<>();
-            AtomicBoolean stdoutOverflow = new AtomicBoolean(false);
-            AtomicBoolean stderrOverflow = new AtomicBoolean(false);
-
-            stdoutReader = readerThread("YFloat-root-stdout", active.getInputStream(),
-                    stdout, maxStdoutBytes, readFailure, stdoutOverflow);
-            stdoutReader.start();
-            if (!mergeError) {
-                stderrReader = readerThread("YFloat-root-stderr", active.getErrorStream(),
-                        stderr, maxStderrBytes, readFailure, stderrOverflow);
-                stderrReader.start();
+            if (SERVICES.hostOrNull() == null) {
+                return new Result(
+                        -1,
+                        new byte[0],
+                        "Managed Root host is not attached",
+                        new IllegalStateException("Managed Root host is not attached"),
+                        false);
             }
-
-            boolean finished = active.waitFor(Math.max(1L, timeoutSeconds), TimeUnit.SECONDS);
-            if (!finished) {
-                active.destroy();
-                if (active.isAlive()) active.destroyForcibly();
-                joinQuietly(stdoutReader, 400L);
-                joinQuietly(stderrReader, 400L);
-                return new Result(-1, stdout.toByteArray(),
-                        new String(stderr.toByteArray(), StandardCharsets.UTF_8),
-                        null, true);
-            }
-
-            joinQuietly(stdoutReader, 1500L);
-            joinQuietly(stderrReader, 1500L);
-            Throwable streamError = readFailure.get();
-            if (streamError != null) {
-                return new Result(active.exitValue(), stdout.toByteArray(),
-                        new String(stderr.toByteArray(), StandardCharsets.UTF_8),
-                        streamError, false);
-            }
-            if (stdoutOverflow.get() || stderrOverflow.get()) {
-                return new Result(active.exitValue(), stdout.toByteArray(),
-                        new String(stderr.toByteArray(), StandardCharsets.UTF_8),
-                        new IllegalStateException("Root command output exceeds limit"), false);
-            }
-            return new Result(active.exitValue(), stdout.toByteArray(),
-                    new String(stderr.toByteArray(), StandardCharsets.UTF_8),
-                    null, false);
-        } catch (Throwable t) {
-            return new Result(-1, new byte[0], "", t, false);
-        } finally {
-            if (process != null) {
-                if (process.isAlive()) {
-                    try { process.destroyForcibly(); } catch (Throwable ignored) { }
-                } else {
-                    try { process.destroy(); } catch (Throwable ignored) { }
-                }
-            }
-            interruptQuietly(stdoutReader);
-            interruptQuietly(stderrReader);
-        }
-    }
-
-    private static Result runThroughHost(String command,
-                                         long timeoutSeconds,
-                                         int maxStdoutBytes,
-                                         boolean mergeError) {
-        try {
             HostBinaryCommandResult raw = SERVICES.rootBinary(
                     "root-command",
                     command == null ? "" : command,
@@ -152,55 +80,7 @@ final class RootCommandExecutor {
                     error,
                     raw.getTimedOut());
         } catch (Throwable t) {
-            // Host exists: never bypass the managed host by opening another local root process.
             return new Result(-1, new byte[0], "", t, false);
-        }
-    }
-
-    private static Thread readerThread(String name, InputStream input,
-                                       ByteArrayOutputStream output, int maxBytes,
-                                       AtomicReference<Throwable> failure,
-                                       AtomicBoolean overflow) {
-        Thread thread = new Thread(() -> {
-            try (InputStream in = input) {
-                byte[] buffer = new byte[64 * 1024];
-                int stored = 0;
-                int n;
-                while ((n = in.read(buffer)) >= 0) {
-                    if (n == 0) continue;
-                    int remaining = Math.max(0, maxBytes - stored);
-                    int keep = Math.min(remaining, n);
-                    if (keep > 0) {
-                        output.write(buffer, 0, keep);
-                        stored += keep;
-                    }
-                    if (keep < n) overflow.set(true);
-                    // Always continue draining so the child process cannot block on a full pipe.
-                }
-            } catch (Throwable t) {
-                failure.compareAndSet(null, t);
-            }
-        }, name);
-        thread.setDaemon(true);
-        return thread;
-    }
-
-    private static void joinQuietly(Thread thread, long ms) {
-        if (thread == null) return;
-        try {
-            thread.join(ms);
-            if (thread.isAlive()) {
-                thread.interrupt();
-                throw new IllegalStateException("Root command stream read timeout");
-            }
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    private static void interruptQuietly(Thread thread) {
-        if (thread != null && thread.isAlive()) {
-            try { thread.interrupt(); } catch (Throwable ignored) { }
         }
     }
 
