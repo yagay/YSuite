@@ -1,13 +1,13 @@
 {
-  "screen_horizontal": 18,
-  "screen_vertical": 14,
-  "section_gap": 16,
+  "screen_horizontal": 16,
+  "screen_vertical": 16,
+  "section_gap": 18,
   "card_padding": 16,
-  "control_gap": 10,
+  "control_gap": 12,
   "toolbar_height": 56,
   "button_height": 48,
   "touch_target": 48,
-  "card_radius": 18,
+  "card_radius": 20,
   "compact_breakpoint": 420,
   "medium_breakpoint": 600,
   "expanded_breakpoint": 840,
@@ -15,5 +15,7 @@
   "form_max_width": 840,
   "list_detail_list_width": 360,
   "navigation_rail_width": 80,
-  "pane_gap": 12
+  "pane_gap": 16,
+  "screen_horizontal_medium": 24,
+  "screen_horizontal_expanded": 32
 }
