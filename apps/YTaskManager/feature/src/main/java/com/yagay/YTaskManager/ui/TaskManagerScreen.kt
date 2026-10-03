@@ -366,10 +366,12 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
 
 @Composable
 private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
-    val title = buildString {
-        append(process.displayName)
-        if (process.isForeground) append(" · ").append(stringResource(R.string.ytm_foreground_short))
+    val foregroundSuffix = if (process.isForeground) {
+        " · " + stringResource(R.string.ytm_foreground_short)
+    } else {
+        ""
     }
+    val title = process.displayName + foregroundSuffix
     YListItem(
         title = title,
         subtitle = stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
