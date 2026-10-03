@@ -20,6 +20,8 @@ data class DownloadItem(
     val error: String? = null,
     val backend: DownloadBackend = DownloadBackend.SYSTEM,
     val systemId: Long? = null,
+    /** Number of automatic retries already consumed by the enhanced engine. */
+    val retryCount: Int = 0,
     // Runtime-only telemetry. It is deliberately not persisted so stale speed/ETA values are never
     // restored after a process restart.
     val speedBytesPerSecond: Long = 0L,
@@ -61,6 +63,7 @@ class DownloadStore private constructor(context: Context) {
                 put("error", item.error)
                 put("backend", item.backend.name)
                 put("systemId", item.systemId)
+                put("retryCount", item.retryCount)
             })
         }
         prefs.edit().putString("items", arr.toString()).apply()
@@ -88,6 +91,7 @@ class DownloadStore private constructor(context: Context) {
                         error = o.optString("error").takeIf { it.isNotBlank() && it != "null" },
                         backend = backend,
                         systemId = if (o.has("systemId") && !o.isNull("systemId")) o.optLong("systemId") else null,
+                        retryCount = o.optInt("retryCount", 0).coerceAtLeast(0),
                     ),
                 )
             }
