@@ -21,6 +21,7 @@ import java.io.BufferedInputStream
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLDecoder
 import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -145,7 +146,21 @@ class DownloadService : Service() {
 
                         val responseEtag = connection!!.getHeaderField("ETag")?.takeIf(String::isNotBlank)
                         val responseLastModified = connection!!.getHeaderField("Last-Modified")?.takeIf(String::isNotBlank)
-                        updateDestinationMime(destination, connection!!.contentType, initial.fileName)
+                        val responseFileName = if (initial.autoFileName) {
+                            contentDispositionFileName(connection!!.getHeaderField("Content-Disposition"))
+                        } else {
+                            null
+                        }
+                        val effectiveFileName = responseFileName ?: initial.fileName
+                        if (responseFileName != null && responseFileName != initial.fileName) {
+                            updateDestinationDisplayName(destination, responseFileName)
+                            store.update(id) { it.copy(fileName = responseFileName) }
+                            YDownloadSuiteRuntime.log(
+                                HostLogLevel.INFO,
+                                "download filename refined id=$id name=$responseFileName",
+                            )
+                        }
+                        updateDestinationMime(destination, connection!!.contentType, effectiveFileName)
 
                         val length = connection!!.contentLengthLong
                         val rangeTotal = parseContentRange(connection!!.getHeaderField("Content-Range"))?.second
@@ -418,6 +433,19 @@ class DownloadService : Service() {
         }
     }
 
+    private fun updateDestinationDisplayName(destination: Uri, fileName: String) {
+        runCatching {
+            contentResolver.update(
+                destination,
+                ContentValues().apply { put(MediaStore.MediaColumns.DISPLAY_NAME, sanitizeFileName(fileName)) },
+                null,
+                null,
+            )
+        }.onFailure {
+            YDownloadSuiteRuntime.log(HostLogLevel.WARN, "Unable to refine destination name", it)
+        }
+    }
+
     private fun updateDestinationMime(destination: Uri, contentType: String?, fileName: String) {
         val mime = contentType
             ?.substringBefore(';')
@@ -492,6 +520,18 @@ class DownloadService : Service() {
             .setOngoing(!terminal && item.state != DownloadState.PAUSED)
             .setAutoCancel(terminal || item.state == DownloadState.PAUSED)
 
+        if (item.state == DownloadState.RUNNING) {
+            if (item.total > 0L) {
+                val percent = ((item.done * 100L) / item.total).coerceIn(0L, 100L).toInt()
+                builder.setProgress(100, percent, false)
+            } else {
+                builder.setProgress(0, 0, true)
+            }
+        }
+        if (completed) {
+            item.uri?.let { uri -> builder.setContentIntent(openPendingIntent(item, Uri.parse(uri))) }
+        }
+
         when (item.state) {
             DownloadState.RUNNING, DownloadState.QUEUED -> {
                 builder.addAction(
@@ -522,6 +562,18 @@ class DownloadService : Service() {
         return builder.build()
     }
 
+    private fun openPendingIntent(item: DownloadItem, uri: Uri): PendingIntent {
+        val intent = Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uri, guessMimeType(item.fileName) ?: "*/*")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        return PendingIntent.getActivity(
+            this,
+            taskNotificationId(item.id) + 5,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     private fun actionPendingIntent(action: String, id: Long, salt: Int): PendingIntent {
         val requestCode = (taskNotificationId(id) * 10) + salt
         val intent = Intent(this, DownloadService::class.java)
@@ -546,6 +598,27 @@ class DownloadService : Service() {
         val start = rangePart.substringBefore('-').trim().toLongOrNull()
         val total = totalPart.trim().takeUnless { it == "*" }?.toLongOrNull()
         return start to total
+    }
+
+    private fun contentDispositionFileName(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+        val encoded = Regex("(?i)filename\\*\\s*=\\s*UTF-8''([^;]+)")
+            .find(value)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim()
+        val decoded = encoded?.let {
+            runCatching { URLDecoder.decode(it, Charsets.UTF_8.name()) }.getOrNull()
+        }
+        val plain = Regex("(?i)filename\\s*=\\s*(?:\"([^\"]+)\"|([^;]+))")
+            .find(value)
+            ?.let { match -> match.groupValues[1].ifBlank { match.groupValues[2] } }
+            ?.trim()
+        return (decoded ?: plain)
+            ?.substringAfterLast('/')
+            ?.substringAfterLast('\\')
+            ?.let(::sanitizeFileName)
+            ?.takeIf { it.isNotBlank() }
     }
 
     private fun sanitizeFileName(raw: String): String {
