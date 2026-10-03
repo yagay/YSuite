@@ -18,6 +18,9 @@ import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.DisplayMode
 import com.yagay.yui.YActionRow
 import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YDimens
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusRow
 import com.yagay.yui.YStatusTone
@@ -58,8 +61,8 @@ internal fun UnifiedDashboardTabContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ScreenVertical),
+        verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap)
     ) {
         RuntimePanel(state, vm)
 
@@ -70,7 +73,7 @@ internal fun UnifiedDashboardTabContent(
                 Box {
                     TextButton(onClick = { modeMenu = true }) {
                         Text(stringResource(R.string.dashboard_switch))
-                        Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.size(20.dp))
                     }
                     DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
                         DisplayMode.entries.forEach { mode ->
@@ -127,17 +130,17 @@ internal fun UnifiedDashboardTabContent(
                 label = stringResource(R.string.capability_ordering),
                 value = state.runtime.orderingHits.toString()
             )
-            OutlinedButton(onClick = vm::refreshModuleStatus, modifier = Modifier.fillMaxWidth()) {
+            YSecondaryActionButton(onClick = vm::refreshModuleStatus, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.dashboard_refresh_runtime))
             }
         }
 
         YFeatureCard(title = stringResource(R.string.dashboard_data_backup)) {
             YActionRow {
-                Button(onClick = onRestore, modifier = Modifier.weight(1f)) {
+                YPrimaryActionButton(onClick = onRestore, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.dashboard_restore_json))
                 }
-                OutlinedButton(onClick = onExport, modifier = Modifier.weight(1f)) {
+                YSecondaryActionButton(onClick = onExport, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.dashboard_export_json))
                 }
             }
@@ -157,7 +160,7 @@ internal fun UnifiedDashboardTabContent(
                 label = stringResource(R.string.dashboard_app_visibility),
                 value = state.hiddenFromApps.size.toString()
             )
-            Button(onClick = { showAppScopePicker = true }, modifier = Modifier.fillMaxWidth()) {
+            YPrimaryActionButton(onClick = { showAppScopePicker = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.dashboard_manage_app_visibility, state.hiddenFromApps.size))
             }
         }
@@ -174,7 +177,7 @@ internal fun UnifiedDashboardTabContent(
                     tone = YStatusTone.Error
                 )
             }
-            OutlinedButton(
+            YSecondaryActionButton(
                 onClick = onInspectFile,
                 enabled = !checkingFile,
                 modifier = Modifier.fillMaxWidth()
@@ -200,14 +203,14 @@ internal fun UnifiedDashboardTabContent(
                     tone = YStatusTone.Warning
                 )
             }
-            Button(
+            YPrimaryActionButton(
                 onClick = onCollectDiagnostics,
                 enabled = !collectingDiagnostics,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (collectingDiagnostics) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(YDimens.ControlGap))
                 }
                 Text(stringResource(if (collectingDiagnostics) R.string.dashboard_collecting else R.string.dashboard_export_diagnostics))
             }
@@ -215,7 +218,7 @@ internal fun UnifiedDashboardTabContent(
 
         Text(
             stringResource(R.string.app_version_format, stringResource(R.string.app_name), BuildConfig.VERSION_NAME),
-            modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 16.dp),
+            modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = YDimens.SectionGap),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
