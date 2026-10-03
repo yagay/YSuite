@@ -27,6 +27,7 @@ import com.yagay.yparam.R;
 import com.yagay.yparam.YParamApp;
 import com.yagay.yparam.data.AppConfig;
 import com.yagay.yparam.data.ConfigRepository;
+import com.yagay.yui.YView;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewScreen;
 import com.yagay.yui.YViewStatusTone;
@@ -182,7 +183,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     private void addField(String key, String label, String defaultValue, String current, String hint) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(6), 0, dp(8));
+        box.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         box.addView(text(label, 15, true));
         box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
         LinearLayout row = horizontal();
@@ -206,7 +207,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     private Spinner addChoiceField(String key, String label, String defaultValue, String current, String hint, String[] presets) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(6), 0, dp(8));
+        box.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         box.addView(text(label, 15, true));
         box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
 
@@ -263,7 +264,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     private Spinner addSpinner(String label, String defaultValue, String[] options, int selected) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(6), 0, dp(8));
+        box.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         box.addView(text(label, 15, true));
         box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
         Spinner s = new Spinner(this);
@@ -469,7 +470,13 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     private static int locationIndex(String s) { return "fixed".equals(s) ? 1 : "random".equals(s) ? 2 : 0; }
 
     private void section(int resId) { YViewLayout.sectionHeader(root, getString(resId)); }
-    private TextView text(String s, int sp, boolean bold) { TextView v = new TextView(this); v.setText(s); v.setTextSize(sp); if (bold) v.setTypeface(v.getTypeface(), android.graphics.Typeface.BOLD); return v; }
+    private TextView text(String s, int sp, boolean bold) {
+        TextView v = new TextView(this);
+        v.setText(s);
+        if (bold) YView.styleItemTitle(v);
+        else YView.styleCaption(v);
+        return v;
+    }
     private Button button(int resId) { return YViewLayout.secondaryButton(this, getString(resId)); }
     private LinearLayout horizontal() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.HORIZONTAL); l.setGravity(Gravity.CENTER_VERTICAL); return l; }
     private LinearLayout.LayoutParams weight() { return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); }
