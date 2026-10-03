@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfiles_maintenance_title">Maintenance &amp; editing</string>
+    <string name="yfiles_maintenance_summary">Edit small text files, clean duplicates and empty trees, bulk rename, split/join files, and compare file contents.</string>
+    <string name="yfiles_maintenance_path">File or directory path</string>
+    <string name="yfiles_maintenance_text_editor">UTF-8 text editor</string>
+    <string name="yfiles_maintenance_load_text">Load text</string>
+    <string name="yfiles_maintenance_save_text">Save text</string>
+    <string name="yfiles_maintenance_utf8_content">UTF-8 content</string>
+    <string name="yfiles_maintenance_saved">Text saved atomically</string>
+    <string name="yfiles_maintenance_cleanup">Recoverable cleanup</string>
+    <string name="yfiles_maintenance_keep_newest">Keep newest duplicate</string>
+    <string name="yfiles_maintenance_keep_newest_summary">When disabled, keep the oldest file in each duplicate group.</string>
+    <string name="yfiles_maintenance_clean_duplicates">Trash duplicate copies</string>
+    <string name="yfiles_maintenance_scan_empty">Scan empty trees</string>
+    <string name="yfiles_maintenance_empty_found">Empty directory trees</string>
+    <string name="yfiles_maintenance_trash_empty">Move empty trees to recycle bin</string>
+    <string name="yfiles_maintenance_cleanup_result">Completed %1$d · failed %2$d</string>
+    <string name="yfiles_maintenance_bulk_rename">Bulk rename</string>
+    <string name="yfiles_maintenance_find">Find</string>
+    <string name="yfiles_maintenance_replace">Replace with</string>
+    <string name="yfiles_maintenance_regex">Use regular expression</string>
+    <string name="yfiles_maintenance_preview_rename">Preview rename</string>
+    <string name="yfiles_maintenance_execute_rename">Execute rename</string>
+    <string name="yfiles_maintenance_renamed">Renamed %1$d item(s)</string>
+    <string name="yfiles_maintenance_rename_preview">%1$s → %2$s</string>
+    <string name="yfiles_maintenance_more">+%1$d more</string>
+    <string name="yfiles_maintenance_split_join">Split / join large files</string>
+    <string name="yfiles_maintenance_part_size">Part size (MiB)</string>
+    <string name="yfiles_maintenance_split">Split</string>
+    <string name="yfiles_maintenance_join">Join from .part001</string>
+    <string name="yfiles_maintenance_parts_created">Created %1$d part(s)</string>
+    <string name="yfiles_maintenance_joined">Joined file: %1$s</string>
+    <string name="yfiles_maintenance_compare">Content comparison</string>
+    <string name="yfiles_maintenance_second_path">Second file path</string>
+    <string name="yfiles_maintenance_compare_now">Compare now</string>
+    <string name="yfiles_maintenance_compare_result">Comparison</string>
+    <string name="yfiles_maintenance_identical">Identical</string>
+    <string name="yfiles_maintenance_different">Different</string>
+    <string name="yfiles_maintenance_left_size">First file size</string>
+    <string name="yfiles_maintenance_right_size">Second file size</string>
+    <string name="yfiles_maintenance_hash_pair">First SHA-256: %1$s\nSecond SHA-256: %2$s</string>
+    <string name="yfiles_maintenance_note">Duplicate and empty-tree cleanup uses the existing YFiles recycle bin. Bulk rename uses a two-stage temporary rename to reduce collision risk.</string>
+</resources>

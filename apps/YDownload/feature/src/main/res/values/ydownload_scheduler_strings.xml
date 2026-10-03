@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ydownload_scheduler_title">Priority scheduler</string>
+    <string name="ydownload_scheduler_summary">Fetch-style priority, groups, tags and network constraints for enhanced downloads.</string>
+    <string name="ydownload_scheduler_auto">Auto rebalance while this screen is active</string>
+    <string name="ydownload_scheduler_auto_summary">Every few seconds, pause lower-priority or network-blocked tasks and run the highest eligible tasks up to the concurrency limit.</string>
+    <string name="ydownload_scheduler_default_group">Default group for unmanaged tasks</string>
+    <string name="ydownload_scheduler_default_tag">Default tag for unmanaged tasks</string>
+    <string name="ydownload_scheduler_save_defaults">Save defaults</string>
+    <string name="ydownload_scheduler_rebalance">Rebalance now</string>
+    <string name="ydownload_scheduler_default_priority">Default priority</string>
+    <string name="ydownload_scheduler_default_network">Default network</string>
+    <string name="ydownload_scheduler_priority_high">High</string>
+    <string name="ydownload_scheduler_priority_normal">Normal</string>
+    <string name="ydownload_scheduler_priority_low">Low</string>
+    <string name="ydownload_scheduler_network_any">Any network</string>
+    <string name="ydownload_scheduler_network_unmetered">Unmetered</string>
+    <string name="ydownload_scheduler_network_wifi">Wi-Fi only</string>
+    <string name="ydownload_scheduler_groups">Groups</string>
+    <string name="ydownload_scheduler_pause_group">Pause %1$s</string>
+    <string name="ydownload_scheduler_resume_group">Resume %1$s</string>
+    <string name="ydownload_scheduler_group_paused">%1$s: paused %2$d task(s)</string>
+    <string name="ydownload_scheduler_group_resumed">%1$s: started %2$d task(s)</string>
+    <string name="ydownload_scheduler_task_metadata">Task metadata</string>
+    <string name="ydownload_scheduler_editing">Editing: %1$s</string>
+    <string name="ydownload_scheduler_group">Group</string>
+    <string name="ydownload_scheduler_tag">Tag</string>
+    <string name="ydownload_scheduler_apply_task">Apply task settings</string>
+    <string name="ydownload_scheduler_result">Started %1$d · paused %2$d · network blocked %3$d</string>
+    <string name="ydownload_scheduler_note">The scheduler manages the enhanced engine. Android DownloadManager keeps using its own system network and queue policy.</string>
+</resources>

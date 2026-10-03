@@ -135,5 +135,6 @@ fun YDownloadHookScopeCard(context: Context) {
         }
 
         YDownloadQueueToolsCard(context)
+        YDownloadSchedulerCard(context)
     }
 }

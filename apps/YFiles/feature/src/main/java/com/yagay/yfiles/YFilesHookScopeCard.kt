@@ -55,5 +55,6 @@ fun YFilesHookScopeCard(context: Context) {
             Text(stringResource(R.string.yfiles_hook_scope_note))
         }
         YFilesPowerToolsCard(context)
+        YFilesMaintenanceToolsCard(context)
     }
 }

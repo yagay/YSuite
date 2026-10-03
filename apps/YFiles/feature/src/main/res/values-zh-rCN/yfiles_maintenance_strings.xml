@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfiles_maintenance_title">维护与编辑</string>
+    <string name="yfiles_maintenance_summary">编辑小型文本文件、清理重复文件和空目录树、批量重命名、文件分卷/合并以及内容一致性比较。</string>
+    <string name="yfiles_maintenance_path">文件或目录路径</string>
+    <string name="yfiles_maintenance_text_editor">UTF-8 文本编辑器</string>
+    <string name="yfiles_maintenance_load_text">加载文本</string>
+    <string name="yfiles_maintenance_save_text">保存文本</string>
+    <string name="yfiles_maintenance_utf8_content">UTF-8 内容</string>
+    <string name="yfiles_maintenance_saved">文本已原子保存</string>
+    <string name="yfiles_maintenance_cleanup">可恢复清理</string>
+    <string name="yfiles_maintenance_keep_newest">重复文件保留最新</string>
+    <string name="yfiles_maintenance_keep_newest_summary">关闭后，每组重复文件保留最旧的一个。</string>
+    <string name="yfiles_maintenance_clean_duplicates">重复副本移到回收站</string>
+    <string name="yfiles_maintenance_scan_empty">扫描空目录树</string>
+    <string name="yfiles_maintenance_empty_found">空目录树</string>
+    <string name="yfiles_maintenance_trash_empty">空目录树移到回收站</string>
+    <string name="yfiles_maintenance_cleanup_result">已完成 %1$d · 失败 %2$d</string>
+    <string name="yfiles_maintenance_bulk_rename">批量重命名</string>
+    <string name="yfiles_maintenance_find">查找</string>
+    <string name="yfiles_maintenance_replace">替换为</string>
+    <string name="yfiles_maintenance_regex">使用正则表达式</string>
+    <string name="yfiles_maintenance_preview_rename">预览重命名</string>
+    <string name="yfiles_maintenance_execute_rename">执行重命名</string>
+    <string name="yfiles_maintenance_renamed">已重命名 %1$d 项</string>
+    <string name="yfiles_maintenance_rename_preview">%1$s → %2$s</string>
+    <string name="yfiles_maintenance_more">另有 %1$d 项</string>
+    <string name="yfiles_maintenance_split_join">大文件分卷 / 合并</string>
+    <string name="yfiles_maintenance_part_size">每卷大小（MiB）</string>
+    <string name="yfiles_maintenance_split">分卷</string>
+    <string name="yfiles_maintenance_join">从 .part001 合并</string>
+    <string name="yfiles_maintenance_parts_created">已生成 %1$d 个分卷</string>
+    <string name="yfiles_maintenance_joined">已合并文件：%1$s</string>
+    <string name="yfiles_maintenance_compare">内容比较</string>
+    <string name="yfiles_maintenance_second_path">第二个文件路径</string>
+    <string name="yfiles_maintenance_compare_now">立即比较</string>
+    <string name="yfiles_maintenance_compare_result">比较结果</string>
+    <string name="yfiles_maintenance_identical">完全一致</string>
+    <string name="yfiles_maintenance_different">不同</string>
+    <string name="yfiles_maintenance_left_size">第一个文件大小</string>
+    <string name="yfiles_maintenance_right_size">第二个文件大小</string>
+    <string name="yfiles_maintenance_hash_pair">第一个 SHA-256：%1$s\n第二个 SHA-256：%2$s</string>
+    <string name="yfiles_maintenance_note">重复文件和空目录树清理继续使用 YFiles 现有回收站；批量重命名采用两阶段临时名称，尽量避免名称碰撞。</string>
+</resources>
