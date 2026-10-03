@@ -65,7 +65,7 @@ object YView {
     }
 
     @JvmStatic fun stylePrimaryButton(button: Button) {
-        button.minHeight = dp(button.context, 44)
+        button.minHeight = dp(button.context, 48)
         button.isAllCaps = false
     }
 
@@ -92,7 +92,7 @@ object YView {
     @JvmStatic fun onSurface(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurface, Color.BLACK)
     @JvmStatic fun onSurfaceVariant(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF656A73.toInt())
     @JvmStatic fun outline(context: Context): Int = color(context, com.google.android.material.R.attr.colorOutlineVariant, 0xFFD0D5DD.toInt())
-    @JvmStatic fun accent(context: Context): Int = color(context, com.google.android.material.R.attr.colorPrimary, 0xFF6750A4.toInt())
+    @JvmStatic fun accent(context: Context): Int = color(context, androidx.appcompat.R.attr.colorPrimary, 0xFF6750A4.toInt())
 
     private fun applyBarAppearance(activity: Activity) {
         val mask = activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
