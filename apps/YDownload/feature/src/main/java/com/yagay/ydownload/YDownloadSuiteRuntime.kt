@@ -1,28 +1,24 @@
 package com.yagay.ydownload
 
 import android.content.Context
-import com.yagay.suite.api.FeatureHost
-import com.yagay.suite.api.FeatureHostBinding
+import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.HostLogLevel
 import com.yagay.suite.api.ManagedFeatureRuntime
 
 class YDownloadSuiteRuntime private constructor(context: Context) : ManagedFeatureRuntime {
-    private val appContext = context.applicationContext
-    override fun attach(host: FeatureHost) { hostBinding.attach(host) }
-    override fun enable() { log(HostLogLevel.INFO, "ydownload runtime enabled") }
-    override fun disable() { log(HostLogLevel.INFO, "ydownload runtime disabled") }
-    override fun destroy() { hostBinding.clearIfOwnedBy(appContext) }
+    override fun enable() { services.info("ydownload runtime enabled") }
+    override fun disable() { services.info("ydownload runtime disabled") }
 
     companion object {
         @Volatile private var instance: YDownloadSuiteRuntime? = null
-        private val hostBinding = FeatureHostBinding("YDownload")
+        private val services = FeatureServices.of("ydownload", "YDownload")
 
         @JvmStatic fun get(context: Context): YDownloadSuiteRuntime = instance ?: synchronized(this) {
-            instance ?: YDownloadSuiteRuntime(context).also { instance = it }
+            instance ?: YDownloadSuiteRuntime(context.applicationContext).also { instance = it }
         }
 
         fun log(level: HostLogLevel, message: String, error: Throwable? = null) {
-            hostBinding.log(level, message, error)
+            services.log(level, message, error)
         }
     }
 }
