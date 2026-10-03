@@ -10,6 +10,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.slider.Slider;
+import com.yagay.yui.YView;
 
 /** App appearance plus text-toolbar density and menu-management settings. */
 public final class AppearanceSettingsActivity extends AppCompatActivity {
@@ -31,7 +32,7 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
         AppUi.addSection(root, textMenu);
 
         TextView note = AppUi.caption(this, getString(R.string.yfloat_text_menu_note), 12);
-        note.setPadding(AppUi.dp(this, 4), 0, AppUi.dp(this, 4), AppUi.dp(this, 4));
+        note.setPadding(Math.max(1, YView.controlGap(this) / 3), 0, Math.max(1, YView.controlGap(this) / 3), Math.max(1, YView.controlGap(this) / 3));
         root.addView(note);
 
         AppUi.Section menus = AppUi.section(this,
@@ -68,7 +69,7 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
         copy.setOrientation(LinearLayout.VERTICAL);
         copy.addView(AppUi.text(this, getString(R.string.yfloat_theme_mode), 14, false));
         TextView sub = AppUi.caption(this, getString(R.string.yfloat_theme_mode_desc), 12);
-        sub.setPadding(0, AppUi.dp(this, 2), AppUi.dp(this, 8), 0);
+        sub.setPadding(0, Math.max(1, YView.controlGap(this) / 4), YView.controlGap(this), 0);
         copy.addView(sub);
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
 
@@ -89,7 +90,7 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
         });
-        row.addView(spinner, new LinearLayout.LayoutParams(AppUi.dp(this, 128), AppUi.dp(this, 48)));
+        row.addView(spinner, new LinearLayout.LayoutParams(-2, YView.touchTarget(this)));
         block.addView(row);
         AppUi.addRow(parent, block);
     }
@@ -128,11 +129,11 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
             }
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.topMargin = AppUi.dp(this, 4);
+        lp.topMargin = Math.max(1, YView.controlGap(this) / 3);
         block.addView(slider, lp);
 
         TextView hint = AppUi.caption(this, getString(R.string.yfloat_main_menu_count_hint), 12);
-        hint.setPadding(0, AppUi.dp(this, 2), 0, 0);
+        hint.setPadding(0, Math.max(1, YView.controlGap(this) / 4), 0, 0);
         block.addView(hint);
 
         AppUi.addRow(parent, block);
