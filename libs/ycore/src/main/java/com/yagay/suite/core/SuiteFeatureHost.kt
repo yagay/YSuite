@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.FeatureSettings
 import com.yagay.suite.api.HostCapability
 import com.yagay.suite.api.HostCapabilityRequestResult
 import com.yagay.suite.api.HostCapabilityState
@@ -22,8 +23,8 @@ internal class SuiteFeatureHost(
     override val hostPackageName: String get() = applicationContext.packageName
     override val featureId: String get() = feature.id
 
-    private val featurePreferences by lazy {
-        applicationContext.getSharedPreferences("ysuite.feature.$featureId", Context.MODE_PRIVATE)
+    private val featureSettings by lazy {
+        FeatureSettings.named(applicationContext, "ysuite.feature.$featureId")
     }
 
     override fun supports(capability: HostCapability): Boolean = when (capability) {
@@ -123,23 +124,43 @@ internal class SuiteFeatureHost(
     }
 
     override fun settingBoolean(key: String, defaultValue: Boolean): Boolean =
-        featurePreferences.getBoolean(requireSettingKey(key), defaultValue)
+        featureSettings.boolean(requireSettingKey(key), defaultValue)
 
     override fun putSettingBoolean(key: String, value: Boolean) {
-        featurePreferences.edit().putBoolean(requireSettingKey(key), value).apply()
+        featureSettings.putBoolean(requireSettingKey(key), value)
     }
 
     override fun settingString(key: String, defaultValue: String?): String? =
-        featurePreferences.getString(requireSettingKey(key), defaultValue)
+        featureSettings.string(requireSettingKey(key), defaultValue)
 
     override fun putSettingString(key: String, value: String?) {
-        val editor = featurePreferences.edit()
-        if (value == null) editor.remove(requireSettingKey(key)) else editor.putString(requireSettingKey(key), value)
-        editor.apply()
+        val settingKey = requireSettingKey(key)
+        if (value == null) featureSettings.remove(settingKey) else featureSettings.putString(settingKey, value)
+    }
+
+    override fun settingInt(key: String, defaultValue: Int): Int =
+        featureSettings.int(requireSettingKey(key), defaultValue)
+
+    override fun putSettingInt(key: String, value: Int) {
+        featureSettings.putInt(requireSettingKey(key), value)
+    }
+
+    override fun settingLong(key: String, defaultValue: Long): Long =
+        featureSettings.long(requireSettingKey(key), defaultValue)
+
+    override fun putSettingLong(key: String, value: Long) {
+        featureSettings.putLong(requireSettingKey(key), value)
+    }
+
+    override fun settingStringSet(key: String, defaultValue: Set<String>): Set<String> =
+        featureSettings.stringSet(requireSettingKey(key), defaultValue)
+
+    override fun putSettingStringSet(key: String, value: Set<String>) {
+        featureSettings.putStringSet(requireSettingKey(key), value)
     }
 
     override fun removeSetting(key: String) {
-        featurePreferences.edit().remove(requireSettingKey(key)).apply()
+        featureSettings.remove(requireSettingKey(key))
     }
 
     override fun log(level: HostLogLevel, message: String, error: Throwable?) {
