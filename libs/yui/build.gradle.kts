@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("io.github.takahirom.roborazzi")
 }
 
 group = "com.github.yagay.YSuite"
@@ -17,6 +18,16 @@ android {
     compileOptions {
         sourceCompatibility = sharedJavaVersion
         targetCompatibility = sharedJavaVersion
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+            all {
+                it.systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
+            }
+        }
     }
 }
 
@@ -38,5 +49,15 @@ dependencies {
     api(libs.google.material)
 
     implementation(libs.androidx.startup)
+
+    debugImplementation(composeBom)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    testImplementation(composeBom)
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.75.0")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.75.0")
 }

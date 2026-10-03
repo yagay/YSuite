@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
+    id("io.github.takahirom.roborazzi") version "1.75.0" apply false
 }
 
 // Standalone feature repositories resolve shared YSuite modules directly from YSuite through

@@ -1,0 +1,70 @@
+name: YUI Screenshot Baseline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "build.gradle.kts"
+      - "libs/yui/**"
+      - ".github/workflows/yui-screenshot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+
+      - name: Read shared build versions
+        id: versions
+        run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.versions.outputs.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ steps.versions.outputs.gradle }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "cmdline-tools;23.0"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/23.0/bin/sdkmanager"
+          "$SDKMANAGER" --channel=3 \
+            "platforms;android-${{ steps.versions.outputs.android_platform }}" \
+            "build-tools;${{ steps.versions.outputs.build_tools }}" \
+            "platform-tools"
+
+      # Bootstrap task: generate the first committed visual baselines. This workflow is switched to
+      # verifyRoborazziDebug once those baseline PNGs are committed.
+      - name: Record YUI screenshot baselines
+        run: gradle --no-daemon --stacktrace :ui:recordRoborazziDebug
+
+      - name: Upload YUI screenshot baselines
+        uses: actions/upload-artifact@v4
+        with:
+          name: YUI-screenshot-baselines
+          path: libs/yui/src/test/screenshots/*.png
+          if-no-files-found: error
+          retention-days: 7
