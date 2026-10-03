@@ -3,7 +3,7 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import java.lang.reflect.Method;
+import com.yagay.suite.api.XposedHostBridge;
 
 import io.github.libxposed.service.XposedService;
 import io.github.libxposed.service.XposedServiceHelper;
@@ -13,9 +13,7 @@ import io.github.libxposed.service.XposedServiceHelper;
  * Standalone YFloat does not need this listener; hook-side transport defaults to its own package.
  */
 final class YFloatHostIdentity implements XposedServiceHelper.OnServiceListener {
-    private static final String SUITE_PACKAGE = "com.yagay.YSuite";
-    private static final String SUITE_BROKER = "com.yagay.suite.core.SuiteXposedServiceBroker";
-    private static final String PLUGIN_ID = "yfloat.host";
+    private static final String LISTENER_ID = "yfloat.host";
 
     private static volatile YFloatHostIdentity instance;
     private final String hostPackage;
@@ -25,18 +23,16 @@ final class YFloatHostIdentity implements XposedServiceHelper.OnServiceListener 
     }
 
     static void initialize(Context context) {
-        if (context == null || !SUITE_PACKAGE.equals(context.getPackageName()) || instance != null) return;
+        if (context == null || !XposedHostBridge.isSuiteHost(context) || instance != null) return;
         synchronized (YFloatHostIdentity.class) {
             if (instance != null) return;
             YFloatHostIdentity listener = new YFloatHostIdentity(context.getApplicationContext());
-            try {
-                Class<?> broker = Class.forName(SUITE_BROKER, false, YFloatHostIdentity.class.getClassLoader());
-                Method attach = broker.getMethod("attachFromPlugin", String.class, Object.class);
-                if (Boolean.TRUE.equals(attach.invoke(null, PLUGIN_ID, listener))) {
-                    instance = listener;
-                }
-            } catch (Throwable error) {
-                DiagnosticLog.i(context, "HOST_IDENTITY", "YSuite host identity attach failed=" + error);
+            XposedHostBridge.AttachResult result =
+                    XposedHostBridge.attachListener(context, LISTENER_ID, listener);
+            if (result == XposedHostBridge.AttachResult.ATTACHED) {
+                instance = listener;
+            } else {
+                DiagnosticLog.critical(context, "HOST_IDENTITY", "Managed host identity listener attach failed");
             }
         }
     }
