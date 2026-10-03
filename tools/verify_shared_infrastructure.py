@@ -13,6 +13,8 @@ FORBIDDEN = {
     "com.yagay.suite.core.SuiteXposedServiceBroker": "LSPosed host routing must go through XposedHostBridge",
     "FeatureHostBinding": "Feature runtimes must not own Host lifecycle; Core owns it",
     "FeatureHostRegistry": "feature code should resolve shared infrastructure through FeatureServices",
+    'ProcessBuilder("su"': "Root process ownership belongs to the shared Core Root host",
+    'Runtime.getRuntime().exec("su': "Root process ownership belongs to the shared Core Root host",
 }
 
 ALLOWED_SUFFIXES = {".kt", ".java"}
@@ -40,7 +42,7 @@ def main() -> int:
         print("\nKeep module-specific business code in apps/*/feature, but route shared infrastructure through yapi.")
         return 1
 
-    print("Shared infrastructure boundary OK: feature code uses public yapi facades.")
+    print("Shared infrastructure boundary OK: feature code uses public yapi facades and Core-owned Root.")
     return 0
 
 
