@@ -54,6 +54,9 @@ jobs:
       - name: Verify Feature/Host boundaries and standalone composer
         run: python3 tools/verify_feature_boundaries.py
 
+      - name: Verify shared infrastructure facade
+        run: python3 tools/verify_shared_infrastructure.py
+
       - name: Verify unified feature state gating
         run: python3 tools/verify_feature_state_gating.py
 
