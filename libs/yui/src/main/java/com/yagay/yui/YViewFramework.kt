@@ -13,6 +13,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SwitchCompat
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.materialswitch.MaterialSwitch
 
 class YViewScreen internal constructor(
     val view: ScrollView,
@@ -119,14 +122,24 @@ object YViewLayout {
     @JvmStatic
     @JvmOverloads
     fun card(parent: LinearLayout, title: String, subtitle: String? = null): LinearLayout {
+        val frame = MaterialCardView(parent.context).apply {
+            radius = YView.dimen(context, R.dimen.yui_card_radius).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(YView.surfaceContainer(context))
+        }
         val card = LinearLayout(parent.context).apply {
             orientation = LinearLayout.VERTICAL
-            YView.styleCard(this)
+            val p = YView.dimen(context, R.dimen.yui_card_padding)
+            setPadding(p, p, p, p)
         }
+        frame.addView(
+            card,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+        )
         val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             bottomMargin = sectionGap(parent.context)
         }
-        parent.addView(card, lp)
+        parent.addView(frame, lp)
         card.addView(
             TextView(parent.context).apply {
                 text = title
@@ -222,20 +235,23 @@ object YViewLayout {
         this.hint = hint
         isSingleLine = true
         minHeight = YView.dimen(context, R.dimen.yui_touch_target)
-        setPadding(dp(context, 12), 0, dp(context, 12), 0)
+        setPadding(dp(context, 14), 0, dp(context, 14), 0)
         setTextColor(YView.onSurface(context))
         setHintTextColor(YView.onSurfaceVariant(context))
+        background = YView.fieldBackground(context)
     }
 
-    @JvmStatic fun primaryButton(context: Context, text: String): Button = Button(context).apply {
-        this.text = text
-        YView.stylePrimaryButton(this)
-    }
+    @JvmStatic fun primaryButton(context: Context, text: String): Button =
+        MaterialButton(context).apply {
+            this.text = text
+            YView.stylePrimaryButton(this)
+        }
 
-    @JvmStatic fun secondaryButton(context: Context, text: String): Button = Button(context).apply {
-        this.text = text
-        YView.styleSecondaryButton(this)
-    }
+    @JvmStatic fun secondaryButton(context: Context, text: String): Button =
+        MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            this.text = text
+            YView.styleSecondaryButton(this)
+        }
 
     @JvmStatic
     fun actionRow(parent: LinearLayout): LinearLayout {
@@ -285,7 +301,7 @@ object YViewLayout {
             })
         }
         row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        val toggle = SwitchCompat(parent.context).apply {
+        val toggle = MaterialSwitch(parent.context).apply {
             isChecked = checked
             setOnCheckedChangeListener(listener)
         }
