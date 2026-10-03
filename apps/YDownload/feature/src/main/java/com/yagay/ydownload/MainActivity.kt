@@ -17,10 +17,11 @@ import androidx.lifecycle.lifecycleScope
 import com.yagay.yui.YActionRow
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFilterBar
-import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YPageList
+import com.yagay.yui.YPageRole
+import com.yagay.yui.YPageScaffold
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YChoiceSetting
 import com.yagay.yui.YSettingSwitch
@@ -47,9 +48,10 @@ class MainActivity : YComposeActivity() {
             }
         }
 
-        YManagerScaffold(
+        YPageScaffold(
             title = stringResource(R.string.ydownload_title),
             subtitle = stringResource(R.string.ydownload_subtitle),
+            role = if (page == 0) YPageRole.MANAGER else YPageRole.SETTINGS,
         ) { padding ->
             YPageList(padding) {
                 item {
