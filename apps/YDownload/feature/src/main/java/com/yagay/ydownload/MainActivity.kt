@@ -82,7 +82,7 @@ class MainActivity : YComposeActivity() {
                             YStatusTone.Neutral,
                         )
                         YActionRow {
-                            val systemClick = {
+                            val systemClick: () -> Unit = {
                                 createTask(store, url, fileName, DownloadBackend.SYSTEM)?.let { task ->
                                     lifecycleScope.launch(Dispatchers.IO) {
                                         SystemDownloadBridge.enqueue(this@MainActivity, task)
@@ -101,7 +101,7 @@ class MainActivity : YComposeActivity() {
                                     fileName = ""
                                 }
                             }
-                            val enhancedClick = {
+                            val enhancedClick: () -> Unit = {
                                 createTask(store, url, fileName, DownloadBackend.ENHANCED)?.let { task ->
                                     DownloadService.start(this@MainActivity, task.id)
                                     url = ""
@@ -189,6 +189,8 @@ class MainActivity : YComposeActivity() {
                         )
                     }
                 }
+
+                item { YDownloadHookScopeCard(this@MainActivity) }
 
                 item {
                     YFeatureCard(
