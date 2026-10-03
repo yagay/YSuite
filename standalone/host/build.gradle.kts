@@ -127,7 +127,10 @@ android {
         manifestPlaceholders["standaloneIcon"] = selected.icon ?: "@null"
         manifestPlaceholders["standaloneRoundIcon"] = selected.roundIcon ?: "@null"
         manifestPlaceholders["standaloneTheme"] = selected.theme ?: "@style/Theme.YUI"
-        manifestPlaceholders["standaloneLocaleConfig"] = selected.localeConfig ?: "@null"
+        // android:localeConfig does not accept @null. Features without a dedicated locale list
+        // therefore inherit the generic standalone host's supported English/Chinese locale list.
+        manifestPlaceholders["standaloneLocaleConfig"] =
+            selected.localeConfig ?: "@xml/standalone_default_locales"
         manifestPlaceholders["standaloneAllowBackup"] = selected.allowBackup.toString()
         manifestPlaceholders["standaloneUsesCleartextTraffic"] = selected.usesCleartextTraffic.toString()
         manifestPlaceholders["standaloneNfcRequired"] = selected.nfcRequired.toString()
