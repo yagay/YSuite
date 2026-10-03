@@ -2,12 +2,13 @@ package com.yagay.YTaskManager
 
 import android.content.Context
 import com.yagay.suite.api.FeatureHost
+import com.yagay.suite.api.FeatureHostBinding
 import com.yagay.suite.api.ManagedFeatureRuntime
 
 /** Managed runtime adapter shared by YSuite while preserving standalone behavior. */
 object YTaskManagerSuiteRuntime : ManagedFeatureRuntime {
     @Volatile private var delegate: YTaskManagerRuntime? = null
-    @Volatile private var host: FeatureHost? = null
+    private val hostBinding = FeatureHostBinding("YTaskManager")
 
     @JvmStatic
     fun get(context: Context): Any {
@@ -19,7 +20,7 @@ object YTaskManagerSuiteRuntime : ManagedFeatureRuntime {
     }
 
     override fun attach(host: FeatureHost) {
-        this.host = host
+        hostBinding.attach(host)
     }
 
     override fun enable() {
@@ -33,6 +34,6 @@ object YTaskManagerSuiteRuntime : ManagedFeatureRuntime {
     override fun destroy() {
         disable()
         delegate = null
-        host = null
+        hostBinding.clear()
     }
 }
