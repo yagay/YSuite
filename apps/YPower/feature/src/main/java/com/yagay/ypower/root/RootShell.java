@@ -1,87 +1,63 @@
 package com.yagay.ypower.root;
 
-import com.topjohnwu.superuser.Shell;
+import com.yagay.suite.api.FeatureHost;
+import com.yagay.suite.api.HostCapability;
+import com.yagay.suite.api.HostCapabilityState;
+import com.yagay.suite.api.HostCommandResult;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/** Root facade owned by YPower business code; the actual shell is always owned by FeatureHost. */
 public final class RootShell {
-    private static final String SUITE_ROOT_GATEWAY = "com.yagay.suite.core.SuiteRootGateway";
-    private static final String PLUGIN_ID = "ypower";
+    private static volatile FeatureHost host;
 
     private RootShell() {}
 
-    public static boolean isRootAvailable() {
-        Class<?> host = hostGateway();
-        if (host != null) {
-            CommandResult result = execThroughHost(host, new String[]{"id -u"});
-            return result.ok() && result.out.stream().anyMatch(line -> "0".equals(line.trim()));
-        }
+    public static void attachHost(FeatureHost featureHost) {
+        host = featureHost;
+    }
 
-        try {
-            Shell shell = Shell.getShell();
-            boolean granted = shell.isRoot();
-            // libsu caches its process-wide main shell. Do not keep a denied/non-root shell,
-            // otherwise granting YPower standalone in KernelSU later can remain invisible here.
-            if (!granted) {
-                try { shell.close(); } catch (Throwable ignored) {}
-            }
-            return granted;
-        } catch (Throwable ignored) {
-            return false;
-        }
+    public static void detachHost(FeatureHost featureHost) {
+        if (host == featureHost) host = null;
+    }
+
+    public static boolean isRootAvailable() {
+        FeatureHost current = host;
+        return current != null
+                && current.capabilityState(HostCapability.ROOT) == HostCapabilityState.GRANTED;
     }
 
     public static CommandResult exec(String... commands) {
-        Class<?> host = hostGateway();
-        if (host != null) return execThroughHost(host, commands);
-
-        try {
-            Shell.Result r = Shell.cmd(commands).exec();
-            return new CommandResult(r.getCode(), new ArrayList<>(r.getOut()), new ArrayList<>(r.getErr()));
-        } catch (Throwable t) {
-            List<String> err = new ArrayList<>();
-            err.add(t.toString());
-            return new CommandResult(-1, new ArrayList<>(), err);
+        FeatureHost current = host;
+        if (current == null) {
+            return failure("Host Root capability is not attached");
         }
-    }
-
-    private static Class<?> hostGateway() {
-        try {
-            return Class.forName(SUITE_ROOT_GATEWAY, false, RootShell.class.getClassLoader());
-        } catch (Throwable ignored) {
-            return null;
+        if (!current.supports(HostCapability.ROOT)) {
+            return failure("ROOT capability is not declared for YPower");
         }
-    }
 
-    private static CommandResult execThroughHost(Class<?> gateway, String[] commands) {
         try {
-            Method method = gateway.getMethod(
-                    "executeFromPlugin",
-                    String.class,
-                    String.class,
-                    String.class,
-                    long.class);
             String command = String.join("\n", commands == null ? new String[0] : commands);
-            Object raw = method.invoke(null, PLUGIN_ID, "root-shell", command, 20L);
-            if (raw == null) throw new IllegalStateException("YSuite root gateway returned null");
-            Class<?> type = raw.getClass();
-            int code = ((Number) type.getMethod("getCode").invoke(raw)).intValue();
-            String stdout = (String) type.getMethod("getStdout").invoke(raw);
-            String stderr = (String) type.getMethod("getStderr").invoke(raw);
-            List<String> out = splitLines(stdout);
-            List<String> err = splitLines(stderr);
-            return new CommandResult(code, out, err);
-        } catch (Throwable t) {
-            // Host class exists: never bypass YSuite by silently opening a second root shell.
+            HostCommandResult result = current.rootExecute("root-shell", command, 20L);
             return new CommandResult(
-                    -1,
-                    new ArrayList<>(),
-                    new ArrayList<>(Collections.singletonList("YSuite root gateway error: " + t)));
+                    result.getCode(),
+                    splitLines(result.getStdout()),
+                    splitLines(result.getStderr().isBlank()
+                            ? (result.getErrorMessage() == null ? "" : result.getErrorMessage())
+                            : result.getStderr()));
+        } catch (Throwable error) {
+            return failure("Host Root execution failed: " + error);
         }
+    }
+
+    private static CommandResult failure(String message) {
+        return new CommandResult(
+                -1,
+                new ArrayList<>(),
+                new ArrayList<>(Collections.singletonList(message)));
     }
 
     private static List<String> splitLines(String value) {
