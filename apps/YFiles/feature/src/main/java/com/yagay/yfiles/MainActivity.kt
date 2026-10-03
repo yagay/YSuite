@@ -45,22 +45,23 @@ class MainActivity : YComposeActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode != Activity.RESULT_OK) return
         val uri = data?.data
+        val grantFlags = data?.flags ?: 0
         when (requestCode) {
             SystemPickerBridge.REQUEST_DEFAULT_TREE -> {
-                SystemPickerBridge.rememberReturnedUri(this, uri, data.flags)
+                SystemPickerBridge.rememberReturnedUri(this, uri, grantFlags)
                 YFilesPatchSettings.setInitialUri(this, uri)
                 pickerRevision++
             }
             SystemPickerBridge.REQUEST_TREE,
             SystemPickerBridge.REQUEST_OPEN,
             SystemPickerBridge.REQUEST_CREATE -> {
-                SystemPickerBridge.rememberReturnedUri(this, uri, data.flags)
+                SystemPickerBridge.rememberReturnedUri(this, uri, grantFlags)
             }
             SystemPickerBridge.REQUEST_OPEN_MULTIPLE -> {
-                uri?.let { SystemPickerBridge.rememberReturnedUri(this, it, data.flags) }
-                data.clipData?.let { clips ->
+                uri?.let { SystemPickerBridge.rememberReturnedUri(this, it, grantFlags) }
+                data?.clipData?.let { clips ->
                     for (i in 0 until clips.itemCount) {
-                        SystemPickerBridge.rememberReturnedUri(this, clips.getItemAt(i).uri, data.flags)
+                        SystemPickerBridge.rememberReturnedUri(this, clips.getItemAt(i).uri, grantFlags)
                     }
                 }
             }
