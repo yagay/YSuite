@@ -143,7 +143,13 @@ def main() -> None:
         if not path.is_file() or path.suffix not in {".kt", ".java"}:
             continue
         source = path.read_text(encoding="utf-8", errors="replace")
-        if "NavigationBar(" in source or "NavigationRail(" in source:
+        owns_material_nav = (
+            ("import androidx.compose.material3.NavigationBar" in source and "NavigationBar(" in source)
+            or ("import androidx.compose.material3.NavigationRail" in source and "NavigationRail(" in source)
+            or "androidx.compose.material3.NavigationBar(" in source
+            or "androidx.compose.material3.NavigationRail(" in source
+        )
+        if owns_material_nav:
             raw_navigation.append(str(path.relative_to(ROOT)))
     if raw_navigation:
         fail(
