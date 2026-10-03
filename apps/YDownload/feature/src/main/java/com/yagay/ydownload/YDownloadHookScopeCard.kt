@@ -13,7 +13,7 @@ import com.yagay.yui.YStatusTone
 fun YDownloadHookScopeCard(context: Context) {
     val candidates = remember(context) { YDownloadHookScopeAdvisor.browserCandidates(context) }
     YFeatureCard(
-        title = stringResource(R.string.hook_scope_title),
+        title = stringResource(R.string.ydownload_hook_scope_title),
         subtitle = stringResource(R.string.ydownload_hook_scope_summary),
     ) {
         YStatusRow(
