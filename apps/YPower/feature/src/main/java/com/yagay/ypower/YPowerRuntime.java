@@ -3,10 +3,10 @@ package com.yagay.ypower;
 import android.content.Context;
 import android.util.Log;
 
-import com.topjohnwu.superuser.Shell;
 import com.yagay.suite.api.FeatureHost;
 import com.yagay.suite.api.ManagedFeatureRuntime;
 import com.yagay.ypower.data.ProfileStore;
+import com.yagay.ypower.root.RootShell;
 import com.yagay.ypower.xposed.XposedBridgeManager;
 
 import java.lang.reflect.Method;
@@ -27,14 +27,6 @@ public final class YPowerRuntime implements XposedServiceHelper.OnServiceListene
         this.context = context.getApplicationContext();
         boolean sharedHost = YSUITE_PACKAGE.equals(this.context.getPackageName()) || suiteBrokerPresent();
         XposedBridgeManager.setSharedHost(sharedHost);
-
-        if (!sharedHost) {
-            Shell.enableVerboseLogging = false;
-            Shell.setDefaultBuilder(Shell.Builder.create()
-                    .setContext(this.context)
-                    .setFlags(Shell.FLAG_MOUNT_MASTER)
-                    .setTimeout(15));
-        }
 
         if (!attachToSuiteBroker()) {
             try {
@@ -89,6 +81,7 @@ public final class YPowerRuntime implements XposedServiceHelper.OnServiceListene
     @Override
     public void attach(FeatureHost host) {
         this.host = host;
+        RootShell.attachHost(host);
     }
 
     @Override
@@ -107,7 +100,9 @@ public final class YPowerRuntime implements XposedServiceHelper.OnServiceListene
     @Override
     public void destroy() {
         disable();
+        FeatureHost previous = host;
         host = null;
+        RootShell.detachHost(previous);
     }
 
     @Override
