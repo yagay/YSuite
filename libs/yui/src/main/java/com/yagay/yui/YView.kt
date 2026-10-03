@@ -119,6 +119,15 @@ object YView {
     @JvmStatic fun dimen(context: Context, @DimenRes resource: Int): Int =
         context.resources.getDimensionPixelSize(resource)
 
+    @JvmStatic fun screenHorizontal(context: Context): Int = dimen(context, R.dimen.yui_screen_horizontal)
+    @JvmStatic fun screenVertical(context: Context): Int = dimen(context, R.dimen.yui_screen_vertical)
+    @JvmStatic fun sectionGap(context: Context): Int = dimen(context, R.dimen.yui_section_gap)
+    @JvmStatic fun controlGap(context: Context): Int = dimen(context, R.dimen.yui_control_gap)
+    @JvmStatic fun cardRadius(context: Context): Int = dimen(context, R.dimen.yui_card_radius)
+    @JvmStatic fun cardPadding(context: Context): Int = dimen(context, R.dimen.yui_card_padding)
+    @JvmStatic fun touchTarget(context: Context): Int = dimen(context, R.dimen.yui_touch_target)
+    @JvmStatic fun buttonHeight(context: Context): Int = dimen(context, R.dimen.yui_button_height)
+
     /** Compatibility helper for task-specific overlays; normal-screen geometry must use generated dimen resources. */
     @JvmStatic fun dp(context: Context, value: Int): Int =
         (value * context.resources.displayMetrics.density).toInt()
