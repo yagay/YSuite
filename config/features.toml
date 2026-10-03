@@ -132,7 +132,7 @@ standalone_label = "@string/app_name"
 standalone_description_resource = "@string/module_description"
 standalone_theme = "@style/Theme.YNFC"
 standalone_nfc_required = true
-capabilities = ["ROOT", "LSPOSED"]
+capabilities = ["ROOT", "LSPOSED", "NFC"]
 lifecycle = "managed"
 replaced_components = [
   { type = "provider", class = "com.yagay.YNFC.ConfigProvider" },
@@ -235,6 +235,6 @@ standalone_package = "com.yagay.yfiles"
 standalone_enabled = true
 standalone_label = "@string/app_name"
 standalone_theme = "@style/Theme.YUI"
-capabilities = ["ROOT", "LSPOSED"]
+capabilities = ["ROOT", "LSPOSED", "ALL_FILES", "FILE_SHARE"]
 lifecycle = "managed"
 hooks = [{ id = "yfiles/main", class = "com.yagay.yfiles.xposed.YFilesModule" }]
