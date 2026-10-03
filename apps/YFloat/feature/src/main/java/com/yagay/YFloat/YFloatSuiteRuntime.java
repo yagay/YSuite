@@ -2,9 +2,12 @@ package com.yagay.YFloat;
 
 import android.app.Application;
 import android.content.Context;
+import android.net.Uri;
 
 import com.yagay.suite.api.FeatureHost;
 import com.yagay.suite.api.ManagedFeatureRuntime;
+
+import java.io.File;
 
 /** One app-side initializer shared by standalone YFloat and YSuite. */
 public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
@@ -41,8 +44,6 @@ public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
         HookReloadManager.initialize(app);
         try { RemovedFeatureMigration.run(app); }
         catch (Throwable t) { DiagnosticLog.i(app, "APP_MIGRATION", "AI/dictionary cleanup failed=" + t); }
-        // In the combined APK, publish YSuite as the physical IPC/provider host before hooked
-        // processes start sending YFloat events. Standalone builds simply skip this extra listener.
         YFloatHostIdentity.initialize(app);
         LsposedStatusManager.initialize(app);
         registerHotReloadListenerIfStandalone();
@@ -53,9 +54,6 @@ public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
     private static void registerHotReloadListenerIfStandalone() {
         Context app = appContext;
         if (app == null) return;
-        // Standalone YFloat still owns its own target-process hot reload. Embedded YFloat is a pure
-        // plugin: YSuite detects stale module generations after package replacement and performs the
-        // process reload centrally through SuiteProcessManager.
         if (!SUITE_PACKAGE.equals(app.getPackageName())) {
             LsposedStatusManager.addListener(HOOK_LISTENER, true);
         } else {
@@ -68,6 +66,11 @@ public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
         if (!(app instanceof Application) || callbacks != null) return;
         callbacks = app instanceof YFloatApp ? (YFloatApp) app : new YFloatApp();
         ((Application) app).registerActivityLifecycleCallbacks(callbacks);
+    }
+
+    public static Uri sharedFileUri(File file) {
+        FeatureHost current = INSTANCE.host;
+        return current == null ? null : current.sharedFileUri(file);
     }
 
     @Override
