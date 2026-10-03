@@ -41,8 +41,8 @@ import com.yagay.YNFC.RuntimeText
 import com.yagay.yui.YActionRow
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFeatureEmpty
-import com.yagay.yui.YFeatureList
-import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YManagerScaffold
+import com.yagay.yui.YPageList
 import com.yagay.yui.YFeatureSectionHeader
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSecondaryButton
@@ -96,11 +96,11 @@ fun NfcAppScreen(
         }
     }
 
-    YFeatureScaffold(
+    YManagerScaffold(
         title = stringResource(R.string.ynfc_title_version, BuildConfig.VERSION_NAME),
         subtitle = stringResource(R.string.ynfc_subtitle),
     ) { padding ->
-        YFeatureList(padding = padding) {
+        YPageList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
             item {
                 ReadCardPanel(
