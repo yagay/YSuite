@@ -19,6 +19,8 @@ import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.data.NotifyDatabase;
+import com.yagay.suite.api.FeatureServices;
+import com.yagay.suite.api.HostBinaryCommandResult;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -42,6 +44,7 @@ public final class DiagnosticsExporter {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final int COMMAND_LIMIT = 6 * 1024 * 1024;
     private static final long COMMAND_TIMEOUT_MS = 15_000L;
+    private static final FeatureServices SERVICES = FeatureServices.of("ynotify", "YNotify.Diagnostics");
 
     private DiagnosticsExporter() {}
 
@@ -329,14 +332,37 @@ public final class DiagnosticsExporter {
     }
 
     private static CommandResult runCommand(boolean root, String command, long timeoutMs, int maxBytes) {
+        if (root) {
+            try {
+                long timeoutSeconds = Math.max(1L, (timeoutMs + 999L) / 1000L);
+                HostBinaryCommandResult result = SERVICES.rootBinary(
+                        "diagnostics",
+                        command,
+                        timeoutSeconds,
+                        maxBytes,
+                        true);
+                String output = new String(result.getStdout(), StandardCharsets.UTF_8);
+                if (!result.getStderr().isEmpty()) {
+                    output += "\n" + result.getStderr();
+                }
+                if (result.getTimedOut()) {
+                    output += "\n<command timed out after " + timeoutMs + " ms>\n";
+                }
+                if (result.getErrorMessage() != null && !result.getErrorMessage().isEmpty()) {
+                    output += "\n<root error: " + result.getErrorMessage() + ">\n";
+                }
+                return new CommandResult(command, result.getCode(), output);
+            } catch (Throwable t) {
+                return new CommandResult(command, -998, t.getClass().getName() + ": " + t.getMessage());
+            }
+        }
+
         java.lang.Process process = null;
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         final boolean[] truncated = {false};
         final Throwable[] readError = {null};
         try {
-            ProcessBuilder builder = root
-                    ? new ProcessBuilder("su", "-c", command)
-                    : new ProcessBuilder("sh", "-c", command);
+            ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
             builder.redirectErrorStream(true);
             process = builder.start();
             java.lang.Process finalProcess = process;
@@ -358,7 +384,7 @@ public final class DiagnosticsExporter {
                 } catch (Throwable t) {
                     readError[0] = t;
                 }
-            }, "NotifyLens-command-reader");
+            }, "YNotify-command-reader");
             reader.start();
             boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
             if (!finished) {
