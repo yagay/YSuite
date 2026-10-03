@@ -23,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -37,6 +38,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -45,11 +47,47 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val YShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(14.dp),
     medium = RoundedCornerShape(YDimens.CardRadius),
-    large = RoundedCornerShape(22.dp),
+    large = RoundedCornerShape(24.dp),
     extraLarge = RoundedCornerShape(28.dp),
+)
+
+private val YLightColors = lightColorScheme(
+    primary = Color(0xFF3451B2),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFDDE2FF),
+    onPrimaryContainer = Color(0xFF00174F),
+    secondary = Color(0xFF585E71),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFDDE1F9),
+    onSecondaryContainer = Color(0xFF151B2C),
+    background = Color(0xFFFBF8FF),
+    onBackground = Color(0xFF1B1B1F),
+    surface = Color(0xFFFBF8FF),
+    onSurface = Color(0xFF1B1B1F),
+    surfaceVariant = Color(0xFFE3E2E9),
+    onSurfaceVariant = Color(0xFF46464F),
+    outline = Color(0xFF777680),
+)
+
+private val YDarkColors = darkColorScheme(
+    primary = Color(0xFFB7C4FF),
+    onPrimary = Color(0xFF002A78),
+    primaryContainer = Color(0xFF17398F),
+    onPrimaryContainer = Color(0xFFDDE2FF),
+    secondary = Color(0xFFC1C6DD),
+    onSecondary = Color(0xFF2A3042),
+    secondaryContainer = Color(0xFF404659),
+    onSecondaryContainer = Color(0xFFDDE1F9),
+    background = Color(0xFF121318),
+    onBackground = Color(0xFFE4E1E9),
+    surface = Color(0xFF121318),
+    onSurface = Color(0xFFE4E1E9),
+    surfaceVariant = Color(0xFF46464F),
+    onSurfaceVariant = Color(0xFFC7C5D0),
+    outline = Color(0xFF91909A),
 )
 
 private val YTypography = Typography(
@@ -72,8 +110,8 @@ fun YTheme(
     val scheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= 31 && darkTheme -> dynamicDarkColorScheme(context)
         dynamicColor && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
-        darkTheme -> darkColorScheme()
-        else -> lightColorScheme()
+        darkTheme -> YDarkColors
+        else -> YLightColors
     }
     MaterialTheme(
         colorScheme = scheme,
@@ -97,43 +135,48 @@ fun YTopBar(
     Surface(
         modifier = Modifier.fillMaxWidth().statusBarsPadding(),
         tonalElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surface,
     ) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val compact = maxWidth < YDimens.CompactBreakpoint
-            if (compact) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(
-                        start = YDimens.ScreenHorizontal,
-                        top = 8.dp,
-                        end = YDimens.ScreenHorizontal,
-                        bottom = 8.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    YTopBarCopy(title, subtitle)
+        Column(Modifier.fillMaxWidth()) {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val compact = maxWidth < YDimens.CompactBreakpoint
+                val horizontal = yPageHorizontalPadding(maxWidth)
+                if (compact) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(
+                            start = horizontal,
+                            top = 8.dp,
+                            end = horizontal,
+                            bottom = 8.dp,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        YTopBarCopy(title, subtitle)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                            verticalAlignment = Alignment.CenterVertically,
+                            content = actions,
+                        )
+                    }
+                } else {
                     Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = YDimens.ToolbarHeight)
+                            .padding(horizontal = horizontal, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        content = actions,
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = YDimens.ToolbarHeight)
-                        .padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                ) {
-                    Column(Modifier.weight(1f)) { YTopBarCopy(title, subtitle) }
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                        verticalAlignment = Alignment.CenterVertically,
-                        content = actions,
-                    )
+                    ) {
+                        Column(Modifier.weight(1f)) { YTopBarCopy(title, subtitle) }
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                            verticalAlignment = Alignment.CenterVertically,
+                            content = actions,
+                        )
+                    }
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
         }
     }
 }
@@ -191,7 +234,7 @@ fun YCard(
         modifier = modifier,
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
         Column(
