@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import com.yagay.suite.api.FeatureHost
 import com.yagay.suite.api.FeatureSettings
+import com.yagay.suite.api.HostBinaryCommandResult
 import com.yagay.suite.api.HostCapability
 import com.yagay.suite.api.HostCapabilityRequestResult
 import com.yagay.suite.api.HostCapabilityState
@@ -79,6 +80,39 @@ internal class SuiteFeatureHost(
             stderr = result.stderr,
             timedOut = result.timedOut,
             errorMessage = result.error?.message,
+        )
+    }
+
+    override fun rootExecuteBinary(
+        operation: String,
+        command: String,
+        timeoutSeconds: Long,
+        maxStdoutBytes: Int,
+        mergeError: Boolean,
+    ): HostBinaryCommandResult {
+        if (!supports(HostCapability.ROOT)) {
+            return HostBinaryCommandResult(
+                code = -1,
+                stdout = ByteArray(0),
+                stderr = "Feature $featureId did not declare ROOT capability",
+                errorMessage = "ROOT capability not declared",
+            )
+        }
+        RootManager.initialize(applicationContext)
+        val result = SuiteRootGateway.executeBinaryFromPlugin(
+            pluginId = featureId,
+            operation = operation,
+            command = command,
+            timeoutSeconds = timeoutSeconds,
+            maxStdoutBytes = maxStdoutBytes,
+            mergeError = mergeError,
+        )
+        return HostBinaryCommandResult(
+            code = result.code,
+            stdout = result.stdout,
+            stderr = result.stderr,
+            timedOut = result.timedOut,
+            errorMessage = result.errorMessage,
         )
     }
 
