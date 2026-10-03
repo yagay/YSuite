@@ -10,18 +10,17 @@ import android.provider.DocumentsContract;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import com.yagay.suite.api.RuntimeOwnerGate;
+import io.github.libxposed.api.XposedModule;
 import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import io.github.libxposed.api.XposedModule;
 
 /**
  * Patch-first SAF integration. DocumentsUI remains the real picker and URI-grant owner.
  *
- * Two deliberately small patches are used:
- * 1) enrich caller-side SAF Intents before the original Android call continues;
- * 2) optionally override DocumentsUI's default SortModel dimension. This follows the AOSP/
- *    LineageOS call path and does not replace sorting, providers, URI grants or picker activities.
+ * Every callback is fail-open: an LSPosed service/prefs/OEM reflection failure must never break the
+ * caller or DocumentsUI. When anything is unavailable we immediately continue Android's original
+ * implementation without applying the optional patch.
  */
 public final class YFilesModule extends XposedModule {
     private static final String TAG = "YFilesXposed";
@@ -38,28 +37,32 @@ public final class YFilesModule extends XposedModule {
     private final ConcurrentHashMap<String, Boolean> installed = new ConcurrentHashMap<>();
 
     @Override public void onModuleLoaded(@NonNull ModuleLoadedParam param) {
-        log(Log.INFO, TAG, "Loaded in " + param.getProcessName());
+        runSafely("module-loaded", () -> log(Log.INFO, TAG, "Loaded in " + param.getProcessName()));
     }
 
     @Override public void onPackageReady(@NonNull PackageReadyParam param) {
-        if (!param.isFirstPackage()) return;
-        if (!RuntimeOwnerGate.shouldRun("yfiles", getModuleApplicationInfo())) return;
-        String pkg = param.getPackageName();
-        if (pkg == null || pkg.startsWith("com.yagay.yfiles")) return;
+        try {
+            if (!param.isFirstPackage()) return;
+            if (!RuntimeOwnerGate.shouldRun("yfiles", getModuleApplicationInfo())) return;
+            String pkg = param.getPackageName();
+            if (pkg == null || pkg.startsWith("com.yagay.yfiles")) return;
 
-        if (DOCUMENTS_UI_AOSP.equals(pkg) || DOCUMENTS_UI_GOOGLE.equals(pkg)) {
+            if (DOCUMENTS_UI_AOSP.equals(pkg) || DOCUMENTS_UI_GOOGLE.equals(pkg)) {
+                installed.computeIfAbsent(pkg, ignored -> {
+                    installDocumentsUiSortPatch(param.getClassLoader(), pkg);
+                    return Boolean.TRUE;
+                });
+                return;
+            }
+
+            if (HARD_EXCLUDED.contains(pkg)) return;
             installed.computeIfAbsent(pkg, ignored -> {
-                installDocumentsUiSortPatch(param.getClassLoader(), pkg);
+                installPickerIntentPatch(pkg);
                 return Boolean.TRUE;
             });
-            return;
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Package-ready patch skipped safely", t);
         }
-
-        if (HARD_EXCLUDED.contains(pkg)) return;
-        installed.computeIfAbsent(pkg, ignored -> {
-            installPickerIntentPatch(pkg);
-            return Boolean.TRUE;
-        });
     }
 
     private void installPickerIntentPatch(String packageName) {
@@ -80,38 +83,48 @@ public final class YFilesModule extends XposedModule {
             int sortType = sortModel.getField("SORT_DIMENSION_ID_FILE_TYPE").getInt(null);
 
             hook(setDefaultDimension).intercept(chain -> {
-                SharedPreferences prefs = getRemotePreferences(PREFS);
-                if (!prefs.getBoolean("enabled", true)) return chain.proceed();
-                String selected = prefs.getString("default_sort", "system");
-                int target = switch (selected == null ? "system" : selected) {
-                    case "name" -> sortName;
-                    case "date" -> sortDate;
-                    case "size" -> sortSize;
-                    case "type" -> sortType;
-                    default -> 0;
-                };
-                if (target == 0) return chain.proceed();
-                return chain.proceed(new Object[]{target});
+                try {
+                    SharedPreferences prefs = remotePreferencesOrNull();
+                    if (prefs == null || !prefs.getBoolean("enabled", true)) return chain.proceed();
+                    String selected = prefs.getString("default_sort", "system");
+                    int target = switch (selected == null ? "system" : selected) {
+                        case "name" -> sortName;
+                        case "date" -> sortDate;
+                        case "size" -> sortSize;
+                        case "type" -> sortType;
+                        default -> 0;
+                    };
+                    if (target != 0) return chain.proceed(new Object[]{target});
+                } catch (Throwable t) {
+                    log(Log.WARN, TAG, "DocumentsUI sort callback failed; using system behavior", t);
+                }
+                return chain.proceed();
             });
             log(Log.INFO, TAG, "DocumentsUI default-sort patch ready for " + packageName);
         } catch (Throwable t) {
-            // DocumentsUI is a Mainline/OEM component and may change. Missing classes/methods are
-            // intentionally non-fatal: the original picker remains fully functional.
             log(Log.WARN, TAG, "DocumentsUI sort patch unavailable for " + packageName, t);
         }
     }
 
     private Method method(Class<?> owner, String name, Class<?>... types) {
-        try { return owner.getDeclaredMethod(name, types); }
-        catch (Throwable t) { return null; }
+        try {
+            return owner.getDeclaredMethod(name, types);
+        } catch (Throwable t) {
+            log(Log.DEBUG, TAG, "Method unavailable: " + owner.getName() + "#" + name, t);
+            return null;
+        }
     }
 
     private void safeIntentHook(String name, Method method) {
         if (method == null) return;
         try {
             hook(method).intercept(chain -> {
-                Object arg = chain.getArg(0);
-                if (arg instanceof Intent intent) patchIntent(intent);
+                try {
+                    Object arg = chain.getArg(0);
+                    if (arg instanceof Intent intent) patchIntent(intent);
+                } catch (Throwable t) {
+                    log(Log.WARN, TAG, "Picker callback failed; using original intent: " + name, t);
+                }
                 return chain.proceed();
             });
         } catch (Throwable t) {
@@ -120,8 +133,8 @@ public final class YFilesModule extends XposedModule {
     }
 
     private void patchIntent(Intent intent) {
-        SharedPreferences prefs = getRemotePreferences(PREFS);
-        if (!prefs.getBoolean("enabled", true)) return;
+        SharedPreferences prefs = remotePreferencesOrNull();
+        if (prefs == null || !prefs.getBoolean("enabled", true)) return;
         String action = intent.getAction();
         boolean open = Intent.ACTION_OPEN_DOCUMENT.equals(action) || Intent.ACTION_GET_CONTENT.equals(action);
         boolean tree = Intent.ACTION_OPEN_DOCUMENT_TREE.equals(action);
@@ -136,15 +149,46 @@ public final class YFilesModule extends XposedModule {
         }
         String initialUri = prefs.getString("initial_uri", null);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && initialUri != null && !initialUri.isBlank()) {
-            try { intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse(initialUri)); }
-            catch (Throwable t) { log(Log.WARN, TAG, "Invalid initial URI", t); }
+            try {
+                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse(initialUri));
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "Invalid initial URI; keeping system default", t);
+            }
         }
     }
 
-    @Override public boolean onHotReloading(@NonNull HotReloadingParam param) { return true; }
+    private SharedPreferences remotePreferencesOrNull() {
+        try {
+            return getRemotePreferences(PREFS);
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "Remote preferences unavailable; patch skipped", t);
+            return null;
+        }
+    }
+
+    private void runSafely(String operation, Runnable action) {
+        try {
+            action.run();
+        } catch (Throwable t) {
+            try { log(Log.WARN, TAG, operation + " failed safely", t); } catch (Throwable ignored) { }
+        }
+    }
+
+    @Override public boolean onHotReloading(@NonNull HotReloadingParam param) {
+        return true;
+    }
 
     @Override public void onHotReloaded(@NonNull HotReloadedParam param) {
-        param.getOldHookHandles().forEach(HookHandle::unhook);
-        installed.clear();
+        try {
+            param.getOldHookHandles().forEach(handle -> {
+                try { handle.unhook(); } catch (Throwable t) {
+                    log(Log.WARN, TAG, "Old YFiles hook could not be removed", t);
+                }
+            });
+        } catch (Throwable t) {
+            log(Log.WARN, TAG, "YFiles hot-reload cleanup failed safely", t);
+        } finally {
+            installed.clear();
+        }
     }
 }
