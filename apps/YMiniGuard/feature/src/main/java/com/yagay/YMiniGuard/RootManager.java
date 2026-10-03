@@ -2,8 +2,6 @@ package com.yagay.YMiniGuard;
 
 import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.HostBinaryCommandResult;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 final class RootManager {
@@ -35,44 +33,10 @@ final class RootManager {
     }
 
     static String capture(String command, int maxChars) {
-        if (SERVICES.hostOrNull() != null) return captureThroughHost(command, maxChars);
-
-        java.lang.Process process = null;
-        StringBuilder out = new StringBuilder();
-
         try {
-            process = new ProcessBuilder("su", "-c", command)
-                    .redirectErrorStream(true)
-                    .start();
-
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (out.length() < maxChars) {
-                        int remain = maxChars - out.length();
-                        String append = line.length() > remain
-                                ? line.substring(0, remain)
-                                : line;
-                        out.append(append).append('\n');
-                    }
-                }
+            if (SERVICES.hostOrNull() == null) {
+                return "[exception=java.lang.IllegalStateException] Managed Root host is not attached\n";
             }
-
-            int exit = process.waitFor();
-            String body = out.toString();
-            if (body.length() > maxChars) body = body.substring(0, maxChars);
-            return "[exit=" + exit + "]\n" + body;
-        } catch (Throwable t) {
-            return "[exception=" + t.getClass().getName() + "] "
-                    + t.getMessage() + "\n" + out;
-        } finally {
-            if (process != null) process.destroy();
-        }
-    }
-
-    private static String captureThroughHost(String command, int maxChars) {
-        try {
             int maxBytes = Math.max(4096, Math.min(Integer.MAX_VALUE / 4, maxChars) * 4);
             HostBinaryCommandResult result = SERVICES.rootBinary(
                     "root-manager",
@@ -93,8 +57,7 @@ final class RootManager {
             if (result.getTimedOut()) return "[timeout]\n" + body;
             return "[exit=" + result.getCode() + "]\n" + body;
         } catch (Throwable t) {
-            // Host exists: never bypass the managed host with a second local su process.
-            return "[exception=" + t.getClass().getName() + "] Host Root: "
+            return "[exception=" + t.getClass().getName() + "] Managed Root: "
                     + t.getMessage() + "\n";
         }
     }
