@@ -1,6 +1,7 @@
 package com.yagay.ydownload
 
 import android.content.Context
+import com.yagay.suite.api.FeatureSettings
 
 /**
  * Settings that belong only to YDownload's own enhanced engine.
@@ -14,7 +15,7 @@ data class YDownloadEnhancedSettings(
     val autoRetry: Boolean = true,
     val maxRetries: Int = 2,
     val userAgent: String = DEFAULT_USER_AGENT,
-    /** Global enhanced-engine bandwidth cap in KiB/s. 0 means unlimited. */
+    /** Default per-task enhanced-engine bandwidth cap in KiB/s. 0 means unlimited. */
     val speedLimitKib: Int = 0,
     val calculateSha256: Boolean = false,
 ) {
@@ -37,22 +38,24 @@ data class YDownloadEnhancedSettings(
         private const val KEY_SPEED_LIMIT_KIB = "speed_limit_kib"
         private const val KEY_CALCULATE_SHA256 = "calculate_sha256"
 
+        private fun settings(context: Context): FeatureSettings = FeatureSettings.named(context, PREFS)
+
         fun load(context: Context): YDownloadEnhancedSettings {
-            val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val prefs = settings(context)
             val backend = runCatching {
                 DownloadBackend.valueOf(
-                    prefs.getString(KEY_DEFAULT_BACKEND, DownloadBackend.SYSTEM.name)
+                    prefs.string(KEY_DEFAULT_BACKEND, DownloadBackend.SYSTEM.name)
                         ?: DownloadBackend.SYSTEM.name,
                 )
             }.getOrDefault(DownloadBackend.SYSTEM)
             return YDownloadEnhancedSettings(
                 defaultBackend = backend,
-                maxConcurrent = prefs.getInt(KEY_MAX_CONCURRENT, 2),
-                autoRetry = prefs.getBoolean(KEY_AUTO_RETRY, true),
-                maxRetries = prefs.getInt(KEY_MAX_RETRIES, 2),
-                userAgent = prefs.getString(KEY_USER_AGENT, DEFAULT_USER_AGENT) ?: DEFAULT_USER_AGENT,
-                speedLimitKib = prefs.getInt(KEY_SPEED_LIMIT_KIB, 0),
-                calculateSha256 = prefs.getBoolean(KEY_CALCULATE_SHA256, false),
+                maxConcurrent = prefs.int(KEY_MAX_CONCURRENT, 2),
+                autoRetry = prefs.boolean(KEY_AUTO_RETRY, true),
+                maxRetries = prefs.int(KEY_MAX_RETRIES, 2),
+                userAgent = prefs.string(KEY_USER_AGENT, DEFAULT_USER_AGENT) ?: DEFAULT_USER_AGENT,
+                speedLimitKib = prefs.int(KEY_SPEED_LIMIT_KIB, 0),
+                calculateSha256 = prefs.boolean(KEY_CALCULATE_SHA256, false),
             ).normalized()
         }
 
@@ -61,16 +64,15 @@ data class YDownloadEnhancedSettings(
             block: YDownloadEnhancedSettings.() -> YDownloadEnhancedSettings,
         ): YDownloadEnhancedSettings {
             val next = load(context).block().normalized()
-            context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY_DEFAULT_BACKEND, next.defaultBackend.name)
-                .putInt(KEY_MAX_CONCURRENT, next.maxConcurrent)
-                .putBoolean(KEY_AUTO_RETRY, next.autoRetry)
-                .putInt(KEY_MAX_RETRIES, next.maxRetries)
-                .putString(KEY_USER_AGENT, next.userAgent)
-                .putInt(KEY_SPEED_LIMIT_KIB, next.speedLimitKib)
-                .putBoolean(KEY_CALCULATE_SHA256, next.calculateSha256)
-                .apply()
+            settings(context).edit {
+                putString(KEY_DEFAULT_BACKEND, next.defaultBackend.name)
+                putInt(KEY_MAX_CONCURRENT, next.maxConcurrent)
+                putBoolean(KEY_AUTO_RETRY, next.autoRetry)
+                putInt(KEY_MAX_RETRIES, next.maxRetries)
+                putString(KEY_USER_AGENT, next.userAgent)
+                putInt(KEY_SPEED_LIMIT_KIB, next.speedLimitKib)
+                putBoolean(KEY_CALCULATE_SHA256, next.calculateSha256)
+            }
             return next
         }
     }
