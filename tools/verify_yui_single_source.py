@@ -59,9 +59,15 @@ REQUIRED_INTERACTION_MARKERS = (
 
 MODULE_UI = {
     "YDiag": (Path("apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity.kt"), ("YPageScaffold", "YNavigationSuite")),
-    "YDownload": (Path("apps/YDownload/feature/src/main/java/com/yagay/ydownload/MainActivity.kt"), ("YManagerScaffold",)),
+    "YDownload": (
+        Path("apps/YDownload/feature/src/main/java/com/yagay/ydownload/MainActivity.kt"),
+        ("YPageScaffold", "YPageRole.MANAGER", "YPageRole.SETTINGS"),
+    ),
     "YEntryCleaner": (Path("apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainActivity.kt"), ("com.yagay.yui",)),
-    "YFiles": (Path("apps/YFiles/feature/src/main/java/com/yagay/yfiles/MainActivity.kt"), ("YBrowserScaffold", "YPageList")),
+    "YFiles": (
+        Path("apps/YFiles/feature/src/main/java/com/yagay/yfiles/MainActivity.kt"),
+        ("YPageScaffold", "YPageRole.BROWSER", "YPageRole.MANAGER", "YPageRole.SETTINGS", "YPageList"),
+    ),
     "YFloat": (Path("apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppUi.java"), ("com.yagay.yui", "YViewLayout")),
     "YMiniGuard": (Path("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java"), ("YViewLayout",)),
     "YNFC": (Path("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt"), ("YManagerScaffold", "YPageList")),
