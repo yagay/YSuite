@@ -153,7 +153,7 @@ fun YDownloadBatchControls(
             ) { Text(stringResource(R.string.clear_finished)) }
         }
         if (hashedItems.isNotEmpty()) {
-            Text(stringResource(R.string.sha256))
+            Text(stringResource(R.string.ydownload_sha256))
             hashedItems.take(3).forEach { task ->
                 YStatusRow(task.fileName, task.sha256.orEmpty(), YStatusTone.Good)
             }
