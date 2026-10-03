@@ -26,6 +26,7 @@ fun YDownloadBatchControls(
     val pausedCount = items.count { it.state == DownloadState.PAUSED }
     val failedCount = items.count { it.state == DownloadState.FAILED }
     val finishedCount = items.count { it.state == DownloadState.COMPLETED || it.state == DownloadState.CANCELLED }
+    val hashedItems = items.filter { !it.sha256.isNullOrBlank() }
 
     YFeatureCard(
         title = stringResource(R.string.batch_controls),
@@ -150,6 +151,12 @@ fun YDownloadBatchControls(
                 },
                 enabled = finishedCount > 0,
             ) { Text(stringResource(R.string.clear_finished)) }
+        }
+        if (hashedItems.isNotEmpty()) {
+            Text(stringResource(R.string.sha256))
+            hashedItems.take(3).forEach { task ->
+                YStatusRow(task.fileName, task.sha256.orEmpty(), YStatusTone.Good)
+            }
         }
     }
 }
