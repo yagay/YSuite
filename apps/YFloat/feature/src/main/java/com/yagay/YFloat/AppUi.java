@@ -18,59 +18,34 @@ import android.widget.TextView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.yagay.yui.YView;
+import com.yagay.yui.YViewLayout;
 
-/** Shared visual language for YFloat configuration screens. */
+/**
+ * Transitional Java/View adapter for YFloat normal settings screens.
+ *
+ * Layout geometry, window colors and ordinary controls come from shared YUI. YFloat keeps this
+ * class only to avoid rewriting every Java call site at once; specialized floating OCR/result
+ * overlays are intentionally outside this normal-screen adapter.
+ */
 final class AppUi {
     static final class Section {
         final MaterialCardView card;
         final LinearLayout body;
-        Section(MaterialCardView card, LinearLayout body) {
-            this.card = card;
-            this.body = body;
-        }
+        Section(MaterialCardView card, LinearLayout body) { this.card = card; this.body = body; }
     }
 
     static LinearLayout pageRoot(Context c, String title, String subtitle) {
-        LinearLayout root = new LinearLayout(c);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(c, 16), dp(c, 12), dp(c, 16), dp(c, 28));
-        root.setBackgroundColor(background(c));
-
-        LinearLayout header = new LinearLayout(c);
-        header.setOrientation(LinearLayout.HORIZONTAL);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-
-        if (c instanceof Activity activity && !(activity instanceof MainActivity)) {
-            TextView back = text(c, c.getString(R.string.yfloat_back), 14, true);
-            back.setGravity(Gravity.CENTER);
-            back.setClickable(true);
-            back.setFocusable(true);
-            back.setBackground(rowBackground(c));
-            back.setContentDescription(c.getString(R.string.yfloat_back));
-            back.setOnClickListener(v -> activity.finish());
-            header.addView(back, new LinearLayout.LayoutParams(dp(c, 64), dp(c, 44)));
-        }
-
-        TextView titleView = text(c, title, 24, true);
-        titleView.setGravity(Gravity.CENTER_VERTICAL);
-        header.addView(titleView, new LinearLayout.LayoutParams(0, -2, 1f));
-        root.addView(header, new LinearLayout.LayoutParams(-1, -2));
-
-        if (subtitle != null && !subtitle.isBlank()) {
-            TextView subtitleView = caption(c, subtitle, 13);
-            subtitleView.setPadding(0, dp(c, 2), 0, dp(c, 14));
-            root.addView(subtitleView, new LinearLayout.LayoutParams(-1, -2));
-        } else {
-            header.setPadding(0, 0, 0, dp(c, 12));
-        }
+        LinearLayout root = YViewLayout.fixedScreen(c, title, subtitle);
+        root.setPadding(dp(c, 18), dp(c, 14), dp(c, 18), dp(c, 28));
         return root;
     }
 
     static ScrollView scrollPage(Context c, View content) {
         ScrollView scroll = new ScrollView(c);
         scroll.setFillViewport(true);
-        scroll.setBackgroundColor(background(c));
         scroll.setClipToPadding(false);
+        scroll.setBackgroundColor(background(c));
         scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
         return scroll;
     }
@@ -79,8 +54,7 @@ final class AppUi {
         MaterialCardView card = new MaterialCardView(c);
         card.setCardBackgroundColor(surface(c));
         card.setRadius(dp(c, 18));
-        card.setStrokeWidth(dp(c, 1));
-        card.setStrokeColor(outline(c));
+        card.setStrokeWidth(0);
         card.setCardElevation(0);
         card.setUseCompatPadding(false);
 
@@ -91,102 +65,86 @@ final class AppUi {
         if ((title != null && !title.isBlank()) || (subtitle != null && !subtitle.isBlank())) {
             LinearLayout header = new LinearLayout(c);
             header.setOrientation(LinearLayout.VERTICAL);
-            header.setPadding(dp(c, 14), dp(c, 12), dp(c, 14), dp(c, 10));
-            if (title != null && !title.isBlank()) {
-                TextView heading = text(c, title, 14, true);
-                heading.setTextColor(accent(c));
-                header.addView(heading, new LinearLayout.LayoutParams(-1, -2));
-            }
+            header.setPadding(dp(c, 16), dp(c, 14), dp(c, 16), dp(c, 10));
+            if (title != null && !title.isBlank()) header.addView(text(c, title, 16, true), new LinearLayout.LayoutParams(-1, -2));
             if (subtitle != null && !subtitle.isBlank()) {
-                TextView sub = caption(c, subtitle, 12);
-                sub.setPadding(0, dp(c, 2), 0, 0);
+                TextView sub = caption(c, subtitle, 12.5f);
+                sub.setPadding(0, dp(c, 3), 0, 0);
                 header.addView(sub, new LinearLayout.LayoutParams(-1, -2));
             }
             holder.addView(header, new LinearLayout.LayoutParams(-1, -2));
-            holder.addView(divider(c), new LinearLayout.LayoutParams(-1, dp(c, 1)));
         }
 
         LinearLayout body = new LinearLayout(c);
         body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(dp(c, 2), 0, dp(c, 2), dp(c, 4));
         holder.addView(body, new LinearLayout.LayoutParams(-1, -2));
         return new Section(card, body);
     }
 
     static void addSection(LinearLayout root, Section section) {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = dp(root.getContext(), 12);
+        lp.bottomMargin = dp(root.getContext(), 16);
         root.addView(section.card, lp);
     }
 
-    static void addRow(LinearLayout parent, View row) {
-        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
-    }
+    static void addRow(LinearLayout parent, View row) { parent.addView(row, new LinearLayout.LayoutParams(-1, -2)); }
 
     static View navRow(Context c, String title, String subtitle, Runnable action) {
-        boolean compact = subtitle == null || subtitle.isBlank();
-        LinearLayout row = baseRow(c, compact);
+        LinearLayout row = baseRow(c, subtitle == null || subtitle.isBlank());
         row.setClickable(true);
         row.setFocusable(true);
         row.setBackground(rowBackground(c));
-
         LinearLayout copy = new LinearLayout(c);
         copy.setOrientation(LinearLayout.VERTICAL);
         copy.setGravity(Gravity.CENTER_VERTICAL);
         copy.addView(text(c, title, 15, false), new LinearLayout.LayoutParams(-1, -2));
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = caption(c, subtitle, 12);
-            sub.setPadding(0, dp(c, 2), dp(c, 8), 0);
+            TextView sub = caption(c, subtitle, 12.5f);
+            sub.setPadding(0, dp(c, 3), dp(c, 10), 0);
             copy.addView(sub, new LinearLayout.LayoutParams(-1, -2));
         }
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView arrow = text(c, "›", 24, false);
+        arrow.setTextColor(textSecondary(c));
+        row.addView(arrow, new LinearLayout.LayoutParams(-2, -2));
         row.setOnClickListener(v -> { if (action != null) action.run(); });
         return row;
     }
 
-    static SwitchMaterial switchRow(Context c, String title, String subtitle,
-                                    boolean checked,
+    static SwitchMaterial switchRow(Context c, String title, String subtitle, boolean checked,
                                     android.widget.CompoundButton.OnCheckedChangeListener listener) {
-        boolean compact = subtitle == null || subtitle.isBlank();
-        LinearLayout row = baseRow(c, compact);
+        LinearLayout row = baseRow(c, subtitle == null || subtitle.isBlank());
         row.setBackground(rowBackground(c));
-
         LinearLayout copy = new LinearLayout(c);
         copy.setOrientation(LinearLayout.VERTICAL);
         copy.setGravity(Gravity.CENTER_VERTICAL);
         copy.addView(text(c, title, 15, false), new LinearLayout.LayoutParams(-1, -2));
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = caption(c, subtitle, 12);
-            sub.setPadding(0, dp(c, 2), dp(c, 8), 0);
+            TextView sub = caption(c, subtitle, 12.5f);
+            sub.setPadding(0, dp(c, 3), dp(c, 10), 0);
             copy.addView(sub, new LinearLayout.LayoutParams(-1, -2));
         }
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
-
         SwitchMaterial toggle = new SwitchMaterial(c);
         toggle.setUseMaterialThemeColors(true);
         toggle.setChecked(checked);
         toggle.setMinHeight(0);
         toggle.setMinimumHeight(0);
         if (listener != null) toggle.setOnCheckedChangeListener(listener);
-        row.addView(toggle, new LinearLayout.LayoutParams(-2,
-                compact ? dp(c, 40) : LinearLayout.LayoutParams.WRAP_CONTENT));
+        row.addView(toggle, new LinearLayout.LayoutParams(-2, LinearLayout.LayoutParams.WRAP_CONTENT));
         return toggle;
     }
 
-    static LinearLayout switchContainer(SwitchMaterial toggle) {
-        return (LinearLayout) toggle.getParent();
-    }
-
-    static LinearLayout baseRow(Context c) {
-        return baseRow(c, false);
-    }
+    static LinearLayout switchContainer(SwitchMaterial toggle) { return (LinearLayout) toggle.getParent(); }
+    static LinearLayout baseRow(Context c) { return baseRow(c, false); }
 
     private static LinearLayout baseRow(Context c, boolean compact) {
         LinearLayout row = new LinearLayout(c);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        int verticalPadding = compact ? 0 : 10;
-        row.setPadding(dp(c, 14), dp(c, verticalPadding), dp(c, 10), dp(c, verticalPadding));
-        row.setMinimumHeight(dp(c, compact ? 44 : 56));
+        row.setPadding(dp(c, 14), compact ? 0 : dp(c, 8), dp(c, 10), compact ? 0 : dp(c, 8));
+        row.setMinimumHeight(dp(c, compact ? 48 : 56));
         return row;
     }
 
@@ -200,7 +158,7 @@ final class AppUi {
     static LinearLayout sliderBlock(Context c) {
         LinearLayout block = new LinearLayout(c);
         block.setOrientation(LinearLayout.VERTICAL);
-        block.setPadding(dp(c, 14), dp(c, 5), dp(c, 14), dp(c, 2));
+        block.setPadding(dp(c, 14), dp(c, 6), dp(c, 14), dp(c, 4));
         return block;
     }
 
@@ -244,8 +202,7 @@ final class AppUi {
     }
 
     static MaterialButton secondaryButton(Context c, String value) {
-        MaterialButton b = new MaterialButton(c, null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        MaterialButton b = new MaterialButton(c, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
         styleButton(c, b, value);
         return b;
     }
@@ -253,8 +210,8 @@ final class AppUi {
     static MaterialButton compactButton(Context c, String value) {
         MaterialButton b = secondaryButton(c, value);
         b.setTextSize(13);
-        b.setMinHeight(dp(c, 38));
-        b.setMinimumHeight(dp(c, 38));
+        b.setMinHeight(dp(c, 40));
+        b.setMinimumHeight(dp(c, 40));
         b.setMinimumWidth(0);
         b.setPadding(dp(c, 10), 0, dp(c, 10), 0);
         return b;
@@ -264,9 +221,9 @@ final class AppUi {
         b.setText(value);
         b.setAllCaps(false);
         b.setTextSize(14);
-        b.setMinHeight(dp(c, 44));
-        b.setMinimumHeight(dp(c, 44));
-        b.setCornerRadius(dp(c, 13));
+        b.setMinHeight(dp(c, 48));
+        b.setMinimumHeight(dp(c, 48));
+        b.setCornerRadius(dp(c, 12));
     }
 
     static void styleInput(Context c, EditText input) {
@@ -274,21 +231,14 @@ final class AppUi {
         input.setHintTextColor(textSecondary(c));
         input.setTextSize(14);
         input.setPadding(dp(c, 12), dp(c, 10), dp(c, 12), dp(c, 10));
-        input.setBackground(rounded(c, surfaceAlt(c), 12));
+        input.setBackground(rounded(c, surfaceAlt(c), 14));
     }
 
     static android.graphics.drawable.Drawable rowBackground(Context c) {
-        return new RippleDrawable(
-                ColorStateList.valueOf(ripple(c)),
-                new ColorDrawable(Color.TRANSPARENT),
-                null);
+        return new RippleDrawable(ColorStateList.valueOf(ripple(c)), new ColorDrawable(Color.TRANSPARENT), null);
     }
 
-    static View divider(Context c) {
-        View divider = new View(c);
-        divider.setBackgroundColor(outline(c));
-        return divider;
-    }
+    static View divider(Context c) { View divider = new View(c); divider.setBackgroundColor(outline(c)); return divider; }
 
     static android.graphics.drawable.Drawable rounded(Context c, int color, int radiusDp) {
         GradientDrawable d = new GradientDrawable();
@@ -298,24 +248,20 @@ final class AppUi {
         return d;
     }
 
-    static int background(Context c) { return UiTokens.background(c); }
-    static int surface(Context c) { return UiTokens.surface(c); }
-    static int surfaceAlt(Context c) { return UiTokens.surfaceAlt(c); }
-    static int textPrimary(Context c) { return UiTokens.textPrimary(c); }
-    static int textSecondary(Context c) { return UiTokens.textSecondary(c); }
-    static int outline(Context c) { return UiTokens.outline(c); }
-    static int success(Context c) { return UiTokens.success(c); }
-    static int warning(Context c) { return UiTokens.warning(c); }
-    static int successSurface(Context c) { return UiTokens.successSurface(c); }
-    static int warningSurface(Context c) { return UiTokens.warningSurface(c); }
-    static int accent(Context c) { return UiTokens.accent(c); }
-    static int ripple(Context c) { return UiTokens.ripple(c); }
-
+    static int background(Context c) { return YView.background(c); }
+    static int surface(Context c) { return YView.surfaceContainer(c); }
+    static int surfaceAlt(Context c) { return YView.color(c, com.google.android.material.R.attr.colorSurfaceContainerHigh, surface(c)); }
+    static int textPrimary(Context c) { return YView.onSurface(c); }
+    static int textSecondary(Context c) { return YView.onSurfaceVariant(c); }
+    static int outline(Context c) { return YView.outline(c); }
+    static int success(Context c) { return YView.color(c, com.google.android.material.R.attr.colorPrimary, YView.accent(c)); }
+    static int warning(Context c) { return YView.color(c, com.google.android.material.R.attr.colorTertiary, YView.accent(c)); }
+    static int successSurface(Context c) { return YView.color(c, com.google.android.material.R.attr.colorPrimaryContainer, surfaceAlt(c)); }
+    static int warningSurface(Context c) { return YView.color(c, com.google.android.material.R.attr.colorTertiaryContainer, surfaceAlt(c)); }
+    static int accent(Context c) { return YView.accent(c); }
+    static int ripple(Context c) { return YView.color(c, android.R.attr.colorControlHighlight, 0x12000000); }
     static boolean dark(Context c) { return UiTokens.dark(c); }
-
-    static int dp(Context c, int value) {
-        return UiTokens.dp(c, value);
-    }
+    static int dp(Context c, int value) { return YView.dp(c, value); }
 
     private AppUi() {}
 }

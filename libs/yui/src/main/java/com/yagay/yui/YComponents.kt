@@ -1,6 +1,7 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -47,10 +47,7 @@ fun YSection(
     subtitle: String? = null,
     content: @Composable () -> Unit,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-    ) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
         YSectionTitle(title, subtitle)
         content()
     }
@@ -63,20 +60,11 @@ fun YStatusCard(
     modifier: Modifier = Modifier,
     detail: String? = null,
 ) {
-    Card(modifier = modifier) {
-        Column(
-            modifier = Modifier.padding(YDimens.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(title, style = MaterialTheme.typography.labelLarge)
-            if (!detail.isNullOrBlank()) {
-                Text(
-                    detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+    YCard(modifier = modifier) {
+        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(title, style = MaterialTheme.typography.labelLarge)
+        if (!detail.isNullOrBlank()) {
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -88,24 +76,38 @@ fun YSettingRow(
     subtitle: String? = null,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        if (maxWidth < YDimens.CompactBreakpoint) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                YSettingCopy(title, subtitle)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = trailing,
                 )
             }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+            ) {
+                Column(Modifier.weight(1f)) { YSettingCopy(title, subtitle) }
+                trailing()
+            }
         }
-        trailing()
+    }
+}
+
+@Composable
+private fun YSettingCopy(title: String, subtitle: String?) {
+    Text(title, style = MaterialTheme.typography.bodyLarge)
+    if (!subtitle.isNullOrBlank()) {
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -118,35 +120,21 @@ fun YSwitchRow(
     subtitle: String? = null,
     enabled: Boolean = true,
 ) {
-    YSettingRow(
-        title = title,
-        subtitle = subtitle,
-        modifier = modifier,
-    ) {
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            enabled = enabled,
-        )
+    YSettingRow(title = title, subtitle = subtitle, modifier = modifier) {
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 
-/** Shared bottom action row for edge-to-edge screens and full-screen dialogs. */
 @Composable
 fun YBottomActionBar(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shadowElevation = 2.dp,
-    ) {
+    Surface(modifier = modifier.fillMaxWidth(), tonalElevation = 2.dp, shadowElevation = 1.dp) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = YDimens.ScreenHorizontal),
-            horizontalArrangement = Arrangement.End,
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding()
+                .padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
@@ -154,15 +142,10 @@ fun YBottomActionBar(
 }
 
 @Composable
-fun YLoadingState(
-    text: String? = null,
-    modifier: Modifier = Modifier,
-) {
+fun YLoadingState(text: String? = null, modifier: Modifier = Modifier) {
     val resolvedText = text ?: stringResource(R.string.yui_loading)
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
+        modifier = modifier.fillMaxWidth().padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -172,16 +155,6 @@ fun YLoadingState(
 }
 
 @Composable
-fun YErrorState(
-    message: String,
-    modifier: Modifier = Modifier,
-) {
-    Card(modifier.fillMaxWidth()) {
-        Text(
-            text = message,
-            modifier = Modifier.padding(YDimens.CardPadding),
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
+fun YErrorState(message: String, modifier: Modifier = Modifier) {
+    YNotice(text = message, modifier = modifier, tone = YNoticeTone.ERROR)
 }

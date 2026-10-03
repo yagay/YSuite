@@ -16,11 +16,11 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.color.MaterialColors
 
+/** Shared View-system renderer for Java/legacy YSuite modules. */
 object YView {
     @JvmStatic
     fun applyComposeWindow(activity: Activity) {
         val window = activity.window
-        val decor = window.decorView
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
@@ -49,53 +49,50 @@ object YView {
         ViewCompat.requestApplyInsets(content)
     }
 
-    @JvmStatic
-    fun applyRoot(view: View) {
+    @JvmStatic fun applyRoot(view: View) {
         view.setBackgroundColor(color(view.context, com.google.android.material.R.attr.colorSurface, Color.WHITE))
     }
 
-    @JvmStatic
-    fun styleTitle(view: TextView) {
-        view.setTextSize(20f)
-        view.setTextColor(color(view.context, com.google.android.material.R.attr.colorOnSurface, Color.BLACK))
+    @JvmStatic fun styleTitle(view: TextView) {
+        view.textSize = 21f
+        view.setTextColor(onSurface(view.context))
         view.setTypeface(view.typeface, android.graphics.Typeface.BOLD)
     }
 
-    @JvmStatic
-    fun styleBody(view: TextView) {
-        view.setTextSize(14f)
-        view.setTextColor(color(view.context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF5F6368.toInt()))
+    @JvmStatic fun styleBody(view: TextView) {
+        view.textSize = 14f
+        view.setTextColor(onSurfaceVariant(view.context))
     }
 
-    @JvmStatic
-    fun stylePrimaryButton(button: Button) {
-        button.minHeight = dp(button.context, 48)
+    @JvmStatic fun stylePrimaryButton(button: Button) {
+        button.minHeight = dp(button.context, 44)
         button.isAllCaps = false
     }
 
-    @JvmStatic
-    fun styleSecondaryButton(button: Button) = stylePrimaryButton(button)
+    @JvmStatic fun styleSecondaryButton(button: Button) = stylePrimaryButton(button)
 
-    @JvmStatic
-    fun cardBackground(context: Context): GradientDrawable = GradientDrawable().apply {
-        setColor(color(context, com.google.android.material.R.attr.colorSurfaceContainer, 0xFFF5F6F8.toInt()))
-        cornerRadius = dp(context, 16).toFloat()
+    @JvmStatic fun cardBackground(context: Context): GradientDrawable = GradientDrawable().apply {
+        setColor(surfaceContainer(context))
+        cornerRadius = dp(context, 18).toFloat()
     }
 
-    @JvmStatic
-    fun styleCard(view: ViewGroup) {
+    @JvmStatic fun styleCard(view: ViewGroup) {
         view.background = cardBackground(view.context)
         val p = dp(view.context, 16)
         view.setPadding(p, p, p, p)
     }
 
-    @JvmStatic
-    fun dp(context: Context, value: Int): Int =
+    @JvmStatic fun dp(context: Context, value: Int): Int =
         (value * context.resources.displayMetrics.density).toInt()
 
-    @JvmStatic
-    fun color(context: Context, attr: Int, fallback: Int): Int =
-        MaterialColors.getColor(context, attr, fallback)
+    @JvmStatic fun color(context: Context, attr: Int, fallback: Int): Int = MaterialColors.getColor(context, attr, fallback)
+    @JvmStatic fun background(context: Context): Int = color(context, com.google.android.material.R.attr.colorSurface, Color.WHITE)
+    @JvmStatic fun surface(context: Context): Int = color(context, com.google.android.material.R.attr.colorSurfaceContainer, 0xFFF5F6F8.toInt())
+    @JvmStatic fun surfaceContainer(context: Context): Int = surface(context)
+    @JvmStatic fun onSurface(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurface, Color.BLACK)
+    @JvmStatic fun onSurfaceVariant(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF656A73.toInt())
+    @JvmStatic fun outline(context: Context): Int = color(context, com.google.android.material.R.attr.colorOutlineVariant, 0xFFD0D5DD.toInt())
+    @JvmStatic fun accent(context: Context): Int = color(context, com.google.android.material.R.attr.colorPrimary, 0xFF6750A4.toInt())
 
     private fun applyBarAppearance(activity: Activity) {
         val mask = activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK

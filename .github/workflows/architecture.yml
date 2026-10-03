@@ -60,6 +60,9 @@ jobs:
       - name: Verify unified UI framework
         run: python3 tools/verify_ui_framework.py
 
+      - name: Verify YUI single source for current and future features
+        run: python3 tools/verify_yui_single_source.py
+
       - name: Verify YEntryCleaner unified UI
         run: python3 tools/verify_yentry_unified_ui.py
 

@@ -1,6 +1,7 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,13 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-/** Preferred YSuite feature UI surface shared by Compose screens. */
-enum class YStatusTone {
-    Neutral,
-    Good,
-    Warning,
-    Error,
-}
+enum class YStatusTone { Neutral, Good, Warning, Error }
 
 @Composable
 fun YFeatureScaffold(
@@ -55,9 +50,7 @@ fun YFeatureScaffold(
         bottomBar = bottomBar,
         snackbarHost = snackbarHost,
         floatingActionButton = floatingActionButton,
-    ) { padding ->
-        YFeatureStateContent(padding = padding, state = state, content = content)
-    }
+    ) { padding -> YFeatureStateContent(padding, state, content) }
 }
 
 @Composable
@@ -72,16 +65,13 @@ fun YFeatureCustomScaffold(
 ) {
     Scaffold(
         modifier = modifier,
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-        ),
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
         topBar = topBar,
         bottomBar = bottomBar,
         snackbarHost = snackbarHost,
         floatingActionButton = floatingActionButton,
-    ) { padding ->
-        YFeatureStateContent(padding = padding, state = state, content = content)
-    }
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding -> YFeatureStateContent(padding, state, content) }
 }
 
 @Composable
@@ -115,24 +105,16 @@ fun YFeatureList(
     padding: PaddingValues,
     modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
-) {
-    YPluginList(padding = padding, modifier = modifier, content = content)
-}
+) = YPluginList(padding = padding, modifier = modifier, content = content)
 
 @Composable
 fun YFeatureSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        if (!subtitle.isNullOrBlank()) {
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
+) = YSectionHeader(title = title, modifier = modifier, subtitle = subtitle)
 
+/** Legacy card API kept for all existing modules; compact screens now stack trailing controls. */
 @Composable
 fun YFeatureCard(
     title: String,
@@ -143,29 +125,48 @@ fun YFeatureCard(
     content: @Composable () -> Unit = {},
 ) {
     YCard(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                if (!subtitle.isNullOrBlank()) {
-                    Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth < YDimens.CompactBreakpoint) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    YFeatureCardCopy(title, subtitle, detail)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                        content = trailing,
+                    )
                 }
-                if (!detail.isNullOrBlank()) {
-                    Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                ) {
+                    Column(Modifier.weight(1f)) { YFeatureCardCopy(title, subtitle, detail) }
+                    trailing()
                 }
             }
-            trailing()
         }
         content()
     }
 }
 
 @Composable
+private fun YFeatureCardCopy(title: String, subtitle: String?, detail: String?) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        if (!subtitle.isNullOrBlank()) {
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (!detail.isNullOrBlank()) {
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
 fun YFeatureEmpty(message: String, modifier: Modifier = Modifier) {
-    YCard(modifier = modifier.fillMaxWidth()) { YEmptyState(message) }
+    YNotice(text = message, modifier = modifier, tone = YNoticeTone.NEUTRAL)
 }
 
 @Composable
@@ -175,14 +176,14 @@ fun YFeatureStat(
     modifier: Modifier = Modifier,
     tone: YStatusTone = YStatusTone.Neutral,
 ) {
-    val valueColor = when (tone) {
+    val color = when (tone) {
         YStatusTone.Neutral -> MaterialTheme.colorScheme.onSurface
         YStatusTone.Good -> MaterialTheme.colorScheme.primary
         YStatusTone.Warning -> MaterialTheme.colorScheme.tertiary
         YStatusTone.Error -> MaterialTheme.colorScheme.error
     }
-    YCard(modifier = modifier) {
-        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = valueColor)
+    YCard(modifier) {
+        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -200,10 +201,15 @@ fun YStatusPill(
         YStatusTone.Warning -> MaterialTheme.colorScheme.tertiary
         YStatusTone.Error -> MaterialTheme.colorScheme.error
     }
-    Surface(modifier = modifier, shape = MaterialTheme.shapes.small, tonalElevation = 1.dp) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+    ) {
+        val text = if (label.isBlank()) value else stringResource(R.string.yui_status_pair, label, value)
         Text(
-            text = stringResource(R.string.yui_status_pair, label, value),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            text = text,
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelLarge,
             color = foreground,
             maxLines = 1,
@@ -225,23 +231,22 @@ fun YStatusRow(
         YStatusTone.Warning -> MaterialTheme.colorScheme.tertiary
         YStatusTone.Error -> MaterialTheme.colorScheme.error
     }
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.weight(0.38f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = value,
-            modifier = Modifier.weight(0.62f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = valueColor,
-        )
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        if (maxWidth < YDimens.CompactBreakpoint) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, style = MaterialTheme.typography.bodyMedium, color = valueColor)
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(label, Modifier.weight(0.36f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, Modifier.weight(0.64f), style = MaterialTheme.typography.bodyMedium, color = valueColor)
+            }
+        }
     }
 }
 
@@ -253,11 +258,7 @@ fun YSettingSwitch(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     enabled: Boolean = true,
-) {
-    YSettingRow(title = title, subtitle = subtitle, modifier = modifier) {
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
-    }
-}
+) = YSwitchItem(title, checked, onCheckedChange, modifier, subtitle, enabled)
 
 @Composable
 fun YSearchField(
@@ -279,7 +280,7 @@ fun YSearchField(
         label = { Text(resolvedHint) },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.extraLarge,
     )
 }
 
@@ -292,8 +293,11 @@ fun YNavigationRow(
     actionLabel: String? = null,
     enabled: Boolean = true,
 ) {
-    val resolvedActionLabel = actionLabel ?: stringResource(R.string.yui_open)
-    YSettingRow(title = title, subtitle = subtitle, modifier = modifier) {
-        YSecondaryButton(text = resolvedActionLabel, onClick = onClick, enabled = enabled)
+    if (actionLabel == null) {
+        YNavigationItem(title = title, subtitle = subtitle, modifier = modifier, enabled = enabled, onClick = onClick)
+    } else {
+        YSettingRow(title = title, subtitle = subtitle, modifier = modifier) {
+            YSecondaryButton(text = actionLabel, onClick = onClick, enabled = enabled)
+        }
     }
 }

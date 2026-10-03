@@ -27,6 +27,11 @@ def q(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def xml_escape(value: str) -> str:
+    return (value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            .replace('"', "&quot;").replace("'", "&apos;"))
+
+
 def parse_capabilities(raw: str) -> list[str]:
     if not raw.strip():
         return []
@@ -37,13 +42,7 @@ def parse_capabilities(raw: str) -> list[str]:
     return list(dict.fromkeys(values))
 
 
-def render_catalog_entry(
-    feature_id: str,
-    name: str,
-    package_name: str,
-    description: str,
-    capabilities: list[str],
-) -> str:
+def render_catalog_entry(feature_id: str, name: str, package_name: str, description: str, capabilities: list[str]) -> str:
     caps = ", ".join(q(cap) for cap in capabilities)
     return (
         "\n[[feature]]\n"
@@ -89,10 +88,6 @@ android {{
 dependencies {{
     implementation(project(":api"))
     implementation(project(":ui"))
-    val composeBom = platform(libs.androidx.compose.bom)
-    implementation(composeBom)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material3)
 }}
 '''
 
@@ -107,32 +102,43 @@ def feature_manifest(package_name: str) -> str:
 '''
 
 
-def main_activity(package_name: str, name: str, description: str) -> str:
+def feature_strings(name: str, description: str) -> str:
+    return f'''<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_name">{xml_escape(name)}</string>
+    <string name="feature_description">{xml_escape(description)}</string>
+    <string name="feature_ready">Feature ready</string>
+</resources>
+'''
+
+
+def main_activity(package_name: str) -> str:
     return f'''package {package_name}
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import com.yagay.yui.YComposeActivity
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureList
-import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YListItem
+import com.yagay.yui.YPageList
+import com.yagay.yui.YPageRole
+import com.yagay.yui.YPageScaffold
+import com.yagay.yui.YSectionHeader
 
 class MainActivity : YComposeActivity() {{
     @Composable
     override fun YContent() {{
-        YFeatureScaffold(
-            title = {q(name)},
-            subtitle = {q(description)},
+        YPageScaffold(
+            title = stringResource(R.string.feature_name),
+            subtitle = stringResource(R.string.feature_description),
+            role = YPageRole.SETTINGS,
         ) {{ padding ->
-            YFeatureList(padding) {{
+            YPageList(padding) {{
+                item {{ YSectionHeader(stringResource(R.string.feature_name)) }}
                 item {{
-                    YFeatureCard(
-                        title = {q(name)},
-                        subtitle = {q(description)},
-                        detail = "Feature scaffold ready",
-                    ) {{
-                        Text("在 feature 模块中继续实现业务功能。")
-                    }}
+                    YListItem(
+                        title = stringResource(R.string.feature_ready),
+                        subtitle = stringResource(R.string.feature_description),
+                    )
                 }}
             }}
         }}
@@ -177,9 +183,7 @@ def write(path: Path, content: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Create a pure YSuite Feature. Standalone APK packaging is provided by the shared host."
-    )
+    parser = argparse.ArgumentParser(description="Create a pure YSuite Feature using the shared YUI design system.")
     parser.add_argument("--id", required=True)
     parser.add_argument("--name", required=True)
     parser.add_argument("--package", required=True, dest="package_name")
@@ -219,8 +223,9 @@ def main() -> None:
         feature_root / "build.gradle.kts": feature_build_gradle(package_name),
         feature_root / "consumer-rules.pro": "# Feature consumer rules.\n",
         feature_root / "src/main/AndroidManifest.xml": feature_manifest(package_name),
-        feature_root / "src/main/java" / source_root / "MainActivity.kt": main_activity(package_name, name, description),
+        feature_root / "src/main/java" / source_root / "MainActivity.kt": main_activity(package_name),
         feature_root / "src/main/java" / source_root / f"{name}SuiteRuntime.kt": runtime_source(package_name, name, feature_id),
+        feature_root / "src/main/res/values/strings.xml": feature_strings(name, description),
     }
 
     if args.dry_run:
@@ -242,7 +247,7 @@ def main() -> None:
     subprocess.run([sys.executable, str(ROOT / "tools/generate_feature_catalog.py")], check=True)
     subprocess.run([sys.executable, str(ROOT / "tools/generate_standalone_catalog.py")], check=True)
     print(
-        "new-feature: pure Feature scaffold complete. "
+        "new-feature: pure Feature scaffold complete with shared YUI. "
         f"Build standalone with: gradle buildFeatureDebug -PySuiteStandaloneFeature={feature_id}"
     )
 
