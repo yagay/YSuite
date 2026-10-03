@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.SystemClock
 import android.webkit.MimeTypeMap
+import com.yagay.suite.api.HostLogLevel
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
@@ -46,6 +47,8 @@ object SystemDownloadBridge {
         val manager = context.getSystemService(DownloadManager::class.java)
             ?: error("DownloadManager unavailable")
         manager.enqueue(request)
+    }.onFailure {
+        YDownloadSuiteRuntime.log(HostLogLevel.WARN, "system enqueue failed safely", it)
     }
 
     /**
@@ -57,16 +60,29 @@ object SystemDownloadBridge {
 
     fun resume(context: Context, systemId: Long): Boolean = setControl(context, systemId, CONTROL_RUN)
 
-    fun remove(context: Context, systemId: Long): Boolean {
+    fun remove(context: Context, systemId: Long): Boolean = runCatching {
         samples.remove(systemId)
-        val manager = context.getSystemService(DownloadManager::class.java) ?: return false
-        return manager.remove(systemId) > 0
+        val manager = context.getSystemService(DownloadManager::class.java) ?: return@runCatching false
+        manager.remove(systemId) > 0
+    }.onFailure {
+        YDownloadSuiteRuntime.log(HostLogLevel.WARN, "system remove failed safely id=$systemId", it)
+    }.getOrDefault(false)
+
+    fun openUri(context: Context, systemId: Long): Uri? = runCatching {
+        context.getSystemService(DownloadManager::class.java)?.getUriForDownloadedFile(systemId)
+    }.onFailure {
+        YDownloadSuiteRuntime.log(HostLogLevel.WARN, "system open URI failed safely id=$systemId", it)
+    }.getOrNull()
+
+    /** Polling is UI telemetry only. Provider/OEM errors must never cancel the Compose effect. */
+    fun sync(context: Context, store: DownloadStore) {
+        runCatching { syncInternal(context, store) }
+            .onFailure {
+                YDownloadSuiteRuntime.log(HostLogLevel.WARN, "system download sync failed safely", it)
+            }
     }
 
-    fun openUri(context: Context, systemId: Long): Uri? =
-        context.getSystemService(DownloadManager::class.java)?.getUriForDownloadedFile(systemId)
-
-    fun sync(context: Context, store: DownloadStore) {
+    private fun syncInternal(context: Context, store: DownloadStore) {
         val systemItems = store.items.value.filter { it.backend == DownloadBackend.SYSTEM && it.systemId != null }
         if (systemItems.isEmpty()) return
         val ids = systemItems.mapNotNull { it.systemId }.toLongArray()
@@ -119,7 +135,7 @@ object SystemDownloadBridge {
         context.contentResolver.update(uri, values, null, null) > 0
     }.onFailure {
         YDownloadSuiteRuntime.log(
-            com.yagay.suite.api.HostLogLevel.WARN,
+            HostLogLevel.WARN,
             "system DownloadProvider control unsupported id=$systemId control=$control",
             it,
         )
