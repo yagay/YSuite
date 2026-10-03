@@ -115,12 +115,15 @@ android {
         versionCode = providers.gradleProperty("ySuiteStandaloneVersionCode").orNull?.toIntOrNull() ?: 1
         versionName = providers.gradleProperty("ySuiteStandaloneVersionName").orNull ?: "0.1.0"
 
+        // The catalog name/description are the authoritative standalone text metadata. Feature
+        // resources are reserved for real visual/behavioral assets such as icons, themes and locale
+        // declarations, avoiding duplicate app_name/module_description strings in every Feature.
         resValue("string", "standalone_app_name", selected.name)
         resValue("string", "standalone_app_description", selected.description)
         manifestPlaceholders["standaloneFeatureId"] = selected.id
         manifestPlaceholders["standaloneEntryActivity"] = selected.entryActivity
-        manifestPlaceholders["standaloneLabel"] = selected.label ?: "@string/standalone_app_name"
-        manifestPlaceholders["standaloneDescription"] = selected.descriptionResource ?: "@string/standalone_app_description"
+        manifestPlaceholders["standaloneLabel"] = "@string/standalone_app_name"
+        manifestPlaceholders["standaloneDescription"] = "@string/standalone_app_description"
         manifestPlaceholders["standaloneIcon"] = selected.icon ?: "@null"
         manifestPlaceholders["standaloneRoundIcon"] = selected.roundIcon ?: "@null"
         manifestPlaceholders["standaloneTheme"] = selected.theme ?: "@style/Theme.YUI"
