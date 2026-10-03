@@ -28,6 +28,8 @@ import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.data.readBackupText
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCustomScaffold
+import com.yagay.yui.YNavigationSpec
+import com.yagay.yui.YNavigationSuite
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -128,49 +130,54 @@ class MainActivity : YComposeActivity() {
             uri?.let(vm::inspectFile)
         }
 
-        YFeatureCustomScaffold(
-            topBar = {
-                MainToolbar(
-                    state.query,
-                    searchExpanded,
-                    vm::setQuery,
-                    { searchExpanded = true },
-                    closeSearch,
-                    { if (state.destination == Destination.TILES) vm.refreshComponents() else vm.refresh(forceCatalog = true) },
-                    { restore.launch(arrayOf("application/json", "text/plain")) },
-                    { export.launch("YEntryCleaner-backup.json") }
-                )
+        val navigation = Destination.entries.map { destination ->
+            YNavigationSpec(
+                key = destination.name,
+                label = stringResource(destination.labelRes()),
+                icon = destination.icon,
+                selectedIcon = destination.icon,
+            )
+        }
+
+        YNavigationSuite(
+            selectedKey = state.destination.name,
+            items = navigation,
+            onSelected = { item ->
+                Destination.entries.firstOrNull { it.name == item.key }?.let(vm::setDestination)
             },
-            bottomBar = {
-                NavigationBar {
-                    Destination.entries.forEach { dest ->
-                        NavigationBarItem(
-                            selected = state.destination == dest,
-                            onClick = { vm.setDestination(dest) },
-                            icon = { Icon(dest.icon, null) },
-                            label = { Text(stringResource(dest.labelRes())) }
+        ) {
+            YFeatureCustomScaffold(
+                topBar = {
+                    MainToolbar(
+                        state.query,
+                        searchExpanded,
+                        vm::setQuery,
+                        { searchExpanded = true },
+                        closeSearch,
+                        { if (state.destination == Destination.TILES) vm.refreshComponents() else vm.refresh(forceCatalog = true) },
+                        { restore.launch(arrayOf("application/json", "text/plain")) },
+                        { export.launch("YEntryCleaner-backup.json") }
+                    )
+                },
+            ) { padding ->
+                Box(Modifier.padding(padding).fillMaxSize()) {
+                    when (state.destination) {
+                        Destination.RULES -> RulesTab(state, vm)
+                        Destination.PRIORITY -> PriorityTab(state, vm)
+                        Destination.TILES -> RootComponentsScreen(state, vm)
+                        Destination.DASHBOARD -> UnifiedDashboardTabContent(
+                            state,
+                            vm,
+                            { restore.launch(arrayOf("application/json", "text/plain")) },
+                            { export.launch("YEntryCleaner-backup.json") },
+                            collectingDiagnostics,
+                            {
+                                val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+                                diagnosticExport.launch("YEntryCleaner-diagnostic-$stamp.zip")
+                            },
+                            { fileCheck.launch(arrayOf("*/*")) }
                         )
                     }
-                }
-            }
-        ) { padding ->
-            Box(Modifier.padding(padding).fillMaxSize()) {
-                when (state.destination) {
-                    Destination.RULES -> RulesTab(state, vm)
-                    Destination.PRIORITY -> PriorityTab(state, vm)
-                    Destination.TILES -> RootComponentsScreen(state, vm)
-                    Destination.DASHBOARD -> UnifiedDashboardTabContent(
-                        state,
-                        vm,
-                        { restore.launch(arrayOf("application/json", "text/plain")) },
-                        { export.launch("YEntryCleaner-backup.json") },
-                        collectingDiagnostics,
-                        {
-                            val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
-                            diagnosticExport.launch("YEntryCleaner-diagnostic-$stamp.zip")
-                        },
-                        { fileCheck.launch(arrayOf("*/*")) }
-                    )
                 }
             }
         }
