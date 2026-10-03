@@ -70,7 +70,7 @@ import com.yagay.YTaskManager.model.TaskManagerUiState
 import com.yagay.yui.YDimens
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFeatureEmpty
-import com.yagay.yui.YFeatureScaffold
+import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YIcons
 import com.yagay.yui.YNavigationSpec
 import com.yagay.yui.YNavigationSuite
@@ -123,7 +123,7 @@ fun TaskManagerApp(viewModel: MainViewModel) {
             }
         },
     ) {
-        YFeatureScaffold(
+        YManagerScaffold(
             title = stringResource(R.string.ytm_app_name),
             subtitle = when (page) {
                 HomePage.PROCESSES -> stringResource(R.string.ytm_process_summary, state.processCount, state.threadCount)
