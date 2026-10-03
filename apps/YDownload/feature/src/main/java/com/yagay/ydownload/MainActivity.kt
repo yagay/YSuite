@@ -39,6 +39,7 @@ class MainActivity : YComposeActivity() {
         var url by remember { mutableStateOf("") }
         var fileName by remember { mutableStateOf("") }
         var patchSettings by remember { mutableStateOf(YDownloadPatchSettings.load(this)) }
+        var enhancedSettings by remember { mutableStateOf(YDownloadEnhancedSettings.load(this)) }
 
         LaunchedEffect(Unit) {
             while (true) {
@@ -71,39 +72,57 @@ class MainActivity : YComposeActivity() {
                             label = { Text(stringResource(R.string.file_name_optional)) },
                             singleLine = true,
                         )
+                        YStatusRow(
+                            stringResource(R.string.default_engine),
+                            if (enhancedSettings.defaultBackend == DownloadBackend.SYSTEM) {
+                                stringResource(R.string.android_download_manager)
+                            } else {
+                                stringResource(R.string.enhanced_engine)
+                            },
+                            YStatusTone.Neutral,
+                        )
                         YActionRow {
-                            Button(
-                                onClick = {
-                                    createTask(store, url, fileName, DownloadBackend.SYSTEM)?.let { task ->
-                                        lifecycleScope.launch(Dispatchers.IO) {
-                                            SystemDownloadBridge.enqueue(this@MainActivity, task)
-                                                .onSuccess { systemId ->
-                                                    store.update(task.id) {
-                                                        it.copy(systemId = systemId, state = DownloadState.QUEUED, error = null)
-                                                    }
+                            val systemClick = {
+                                createTask(store, url, fileName, DownloadBackend.SYSTEM)?.let { task ->
+                                    lifecycleScope.launch(Dispatchers.IO) {
+                                        SystemDownloadBridge.enqueue(this@MainActivity, task)
+                                            .onSuccess { systemId ->
+                                                store.update(task.id) {
+                                                    it.copy(systemId = systemId, state = DownloadState.QUEUED, error = null)
                                                 }
-                                                .onFailure { error ->
-                                                    store.update(task.id) {
-                                                        it.copy(state = DownloadState.FAILED, error = error.message)
-                                                    }
+                                            }
+                                            .onFailure { error ->
+                                                store.update(task.id) {
+                                                    it.copy(state = DownloadState.FAILED, error = error.message)
                                                 }
-                                        }
-                                        url = ""
-                                        fileName = ""
+                                            }
                                     }
-                                },
-                                enabled = url.isNotBlank(),
-                            ) { Text(stringResource(R.string.system_download)) }
-                            OutlinedButton(
-                                onClick = {
-                                    createTask(store, url, fileName, DownloadBackend.ENHANCED)?.let { task ->
-                                        DownloadService.start(this@MainActivity, task.id)
-                                        url = ""
-                                        fileName = ""
-                                    }
-                                },
-                                enabled = url.isNotBlank(),
-                            ) { Text(stringResource(R.string.enhanced_download)) }
+                                    url = ""
+                                    fileName = ""
+                                }
+                            }
+                            val enhancedClick = {
+                                createTask(store, url, fileName, DownloadBackend.ENHANCED)?.let { task ->
+                                    DownloadService.start(this@MainActivity, task.id)
+                                    url = ""
+                                    fileName = ""
+                                }
+                            }
+                            if (enhancedSettings.defaultBackend == DownloadBackend.SYSTEM) {
+                                Button(onClick = systemClick, enabled = url.isNotBlank()) {
+                                    Text(stringResource(R.string.system_download))
+                                }
+                                OutlinedButton(onClick = enhancedClick, enabled = url.isNotBlank()) {
+                                    Text(stringResource(R.string.enhanced_download))
+                                }
+                            } else {
+                                Button(onClick = enhancedClick, enabled = url.isNotBlank()) {
+                                    Text(stringResource(R.string.enhanced_download))
+                                }
+                                OutlinedButton(onClick = systemClick, enabled = url.isNotBlank()) {
+                                    Text(stringResource(R.string.system_download))
+                                }
+                            }
                         }
                     }
                 }
@@ -171,6 +190,76 @@ class MainActivity : YComposeActivity() {
                     }
                 }
 
+                item {
+                    YFeatureCard(
+                        title = stringResource(R.string.enhanced_engine_settings),
+                        subtitle = stringResource(R.string.enhanced_engine_settings_summary),
+                    ) {
+                        YStatusRow(
+                            stringResource(R.string.default_engine),
+                            if (enhancedSettings.defaultBackend == DownloadBackend.SYSTEM) {
+                                stringResource(R.string.android_download_manager)
+                            } else {
+                                stringResource(R.string.enhanced_engine)
+                            },
+                            YStatusTone.Neutral,
+                        )
+                        YActionRow {
+                            OutlinedButton(onClick = {
+                                enhancedSettings = YDownloadEnhancedSettings.update(this@MainActivity) {
+                                    copy(defaultBackend = DownloadBackend.SYSTEM)
+                                }
+                            }) { Text(stringResource(R.string.system_download)) }
+                            OutlinedButton(onClick = {
+                                enhancedSettings = YDownloadEnhancedSettings.update(this@MainActivity) {
+                                    copy(defaultBackend = DownloadBackend.ENHANCED)
+                                }
+                            }) { Text(stringResource(R.string.enhanced_download)) }
+                        }
+                        YStatusRow(
+                            stringResource(R.string.concurrent_downloads),
+                            enhancedSettings.maxConcurrent.toString(),
+                            YStatusTone.Neutral,
+                        )
+                        YActionRow {
+                            (1..4).forEach { count ->
+                                OutlinedButton(onClick = {
+                                    enhancedSettings = YDownloadEnhancedSettings.update(this@MainActivity) {
+                                        copy(maxConcurrent = count)
+                                    }
+                                }) { Text(count.toString()) }
+                            }
+                        }
+                        YSettingSwitch(
+                            title = stringResource(R.string.auto_retry),
+                            subtitle = stringResource(R.string.auto_retry_summary),
+                            checked = enhancedSettings.autoRetry,
+                            onCheckedChange = {
+                                enhancedSettings = YDownloadEnhancedSettings.update(this@MainActivity) {
+                                    copy(autoRetry = it)
+                                }
+                            },
+                        )
+                        if (enhancedSettings.autoRetry) {
+                            YStatusRow(
+                                stringResource(R.string.max_retries),
+                                enhancedSettings.maxRetries.toString(),
+                                YStatusTone.Neutral,
+                            )
+                            YActionRow {
+                                (0..3).forEach { retries ->
+                                    OutlinedButton(onClick = {
+                                        enhancedSettings = YDownloadEnhancedSettings.update(this@MainActivity) {
+                                            copy(maxRetries = retries)
+                                        }
+                                    }) { Text(retries.toString()) }
+                                }
+                            }
+                        }
+                        Text(stringResource(R.string.enhanced_engine_reference_note))
+                    }
+                }
+
                 if (items.isEmpty()) {
                     item {
                         YFeatureCard(
@@ -209,6 +298,13 @@ class MainActivity : YComposeActivity() {
                                 else -> YStatusTone.Neutral
                             },
                         )
+                        if (task.backend == DownloadBackend.ENHANCED && task.retryCount > 0) {
+                            YStatusRow(
+                                stringResource(R.string.retry_count),
+                                task.retryCount.toString(),
+                                YStatusTone.Warning,
+                            )
+                        }
                         if (task.total > 0) {
                             val percent = ((task.done * 100L) / task.total).coerceIn(0L, 100L).toInt()
                             YStatusRow(stringResource(R.string.progress), stringResource(R.string.progress_percent, percent))
@@ -280,9 +376,15 @@ class MainActivity : YComposeActivity() {
                 DownloadState.RUNNING, DownloadState.QUEUED -> OutlinedButton(
                     { DownloadService.pause(this@MainActivity, task.id) },
                 ) { Text(stringResource(R.string.pause)) }
-                DownloadState.PAUSED, DownloadState.FAILED -> Button(
+                DownloadState.PAUSED -> Button(
                     { DownloadService.start(this@MainActivity, task.id) },
                 ) { Text(stringResource(R.string.resume)) }
+                DownloadState.FAILED -> Button(
+                    {
+                        store.update(task.id) { it.copy(retryCount = 0, error = null, state = DownloadState.QUEUED) }
+                        DownloadService.start(this@MainActivity, task.id)
+                    },
+                ) { Text(stringResource(R.string.retry)) }
                 DownloadState.COMPLETED -> Button(
                     { task.uri?.let { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)) } },
                 ) { Text(stringResource(R.string.open)) }
