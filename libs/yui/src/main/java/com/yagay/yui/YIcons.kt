@@ -10,6 +10,10 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.List
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Save
@@ -28,6 +32,10 @@ object YIcons {
     val Edit = Icons.Rounded.Edit
     val Folder = Icons.Rounded.Folder
     val Info = Icons.Rounded.Info
+    val History = Icons.Rounded.History
+    val List = Icons.Rounded.List
+    val Memory = Icons.Rounded.Memory
+    val Network = Icons.Rounded.Wifi
     val More = Icons.Rounded.MoreVert
     val Refresh = Icons.Rounded.Refresh
     val Save = Icons.Rounded.Save
