@@ -1,10 +1,7 @@
 package com.yagay.suite.api;
 
-import android.app.Application;
 import android.content.Context;
 import android.provider.Settings;
-
-import java.lang.reflect.Method;
 
 /**
  * Cross-process ownership gate for reusable LSPosed feature code.
@@ -22,7 +19,7 @@ public final class RuntimeOwnerGate {
     private RuntimeOwnerGate() {}
 
     public static String settingsKey(String featureId) {
-        return KEY_PREFIX + sanitizeFeatureId(featureId);
+        return KEY_PREFIX + FeatureIds.normalize(featureId);
     }
 
     /**
@@ -41,7 +38,7 @@ public final class RuntimeOwnerGate {
     }
 
     public static String readOwner(String featureId) {
-        Context context = currentContext();
+        Context context = AndroidRuntimeContext.current();
         if (context == null) return "";
         try {
             String value = Settings.Global.getString(
@@ -51,34 +48,5 @@ public final class RuntimeOwnerGate {
         } catch (Throwable ignored) {
             return "";
         }
-    }
-
-    private static Context currentContext() {
-        try {
-            Class<?> activityThread = Class.forName("android.app.ActivityThread");
-            Method currentApplication = activityThread.getDeclaredMethod("currentApplication");
-            currentApplication.setAccessible(true);
-            Object app = currentApplication.invoke(null);
-            if (app instanceof Application) return ((Application) app).getApplicationContext();
-
-            Method currentThread = activityThread.getDeclaredMethod("currentActivityThread");
-            currentThread.setAccessible(true);
-            Object thread = currentThread.invoke(null);
-            if (thread != null) {
-                Method getSystemContext = activityThread.getDeclaredMethod("getSystemContext");
-                getSystemContext.setAccessible(true);
-                Object system = getSystemContext.invoke(thread);
-                if (system instanceof Context) return (Context) system;
-            }
-        } catch (Throwable ignored) {
-        }
-        return null;
-    }
-
-    private static String sanitizeFeatureId(String value) {
-        if (value == null) return "unknown";
-        String cleaned = value.trim().toLowerCase(java.util.Locale.ROOT)
-                .replaceAll("[^a-z0-9_]", "_");
-        return cleaned.isEmpty() ? "unknown" : cleaned;
     }
 }
