@@ -30,6 +30,7 @@ import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCustomScaffold
 import com.yagay.yui.YNavigationSpec
 import com.yagay.yui.YNavigationSuite
+import com.yagay.yui.YPageRole
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -147,6 +148,7 @@ class MainActivity : YComposeActivity() {
             },
         ) {
             YFeatureCustomScaffold(
+                role = if (state.destination == Destination.DASHBOARD) YPageRole.DASHBOARD else YPageRole.MANAGER,
                 topBar = {
                     MainToolbar(
                         state.query,
