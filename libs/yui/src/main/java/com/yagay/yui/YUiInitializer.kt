@@ -17,6 +17,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.startup.Initializer
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.DynamicColors
 import java.util.WeakHashMap
 
 class YUiInitializer : Initializer<Unit> {
@@ -43,6 +44,7 @@ object YUiRuntime {
     fun install(application: Application) {
         if (installed) return
         installed = true
+        DynamicColors.applyToActivitiesIfAvailable(application)
         application.registerActivityLifecycleCallbacks(
             object : Application.ActivityLifecycleCallbacks {
                 override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = schedule(activity)
@@ -125,7 +127,10 @@ object YUiRuntime {
 
     private fun normalizeTree(view: View) {
         when (view) {
-            is MaterialCardView -> view.radius = YView.dp(view.context, 16).toFloat()
+            is MaterialCardView -> {
+                view.radius = YView.dimen(view.context, R.dimen.yui_card_radius).toFloat()
+                view.setCardBackgroundColor(YView.surfaceContainer(view.context))
+            }
             is Button -> YView.stylePrimaryButton(view)
         }
         if (view is ViewGroup) {
