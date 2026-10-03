@@ -21,6 +21,7 @@ import java.io.BufferedInputStream
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -72,6 +73,7 @@ class DownloadService : Service() {
             var retryDelayMs = 0L
             try {
                 val initial = store.get(id) ?: return@execute
+                val taskSettings = YDownloadEnhancedSettings.load(this)
                 if (cancels[id]?.get() == true) {
                     markCancelled(id, initial.uri?.let(Uri::parse))
                     return@execute
@@ -85,7 +87,13 @@ class DownloadService : Service() {
                 }
 
                 store.update(id) {
-                    it.copy(state = DownloadState.RUNNING, error = null, speedBytesPerSecond = 0L, etaMillis = -1L)
+                    it.copy(
+                        state = DownloadState.RUNNING,
+                        error = null,
+                        sha256 = null,
+                        speedBytesPerSecond = 0L,
+                        etaMillis = -1L,
+                    )
                 }?.let(::notifyTask)
 
                 var uri = initial.uri?.let(Uri::parse)
@@ -96,11 +104,12 @@ class DownloadService : Service() {
                 contentResolver.openFileDescriptor(destination, "rw")?.use { descriptor ->
                     FileOutputStream(descriptor.fileDescriptor).channel.use { channel ->
                         var existing = minOf(initial.done.coerceAtLeast(0L), channel.size())
-                        connection = openConnection(initial, existing)
-                        var response = connection!!.responseCode
+                        connection = openConnection(initial, existing, taskSettings)
+                        val response = connection!!.responseCode
 
                         if (response == HTTP_RANGE_NOT_SATISFIABLE && existing > 0L && initial.total > 0L && existing >= initial.total) {
                             finalizeDestination(destination)
+                            val sha256 = if (taskSettings.calculateSha256) calculateSha256(destination, id) else null
                             store.update(id) {
                                 it.copy(
                                     state = DownloadState.COMPLETED,
@@ -109,6 +118,7 @@ class DownloadService : Service() {
                                     total = initial.total,
                                     error = null,
                                     retryCount = 0,
+                                    sha256 = sha256,
                                     speedBytesPerSecond = 0L,
                                     etaMillis = -1L,
                                 )
@@ -149,6 +159,9 @@ class DownloadService : Service() {
                         var done = existing
                         var lastTelemetryDone = done
                         var lastTelemetryTime = SystemClock.elapsedRealtime()
+                        var throttleWindowStarted = lastTelemetryTime
+                        var throttleWindowBytes = 0L
+                        val speedLimitBytesPerSecond = taskSettings.speedLimitKib.toLong() * 1024L
 
                         store.update(id) {
                             it.copy(
@@ -188,6 +201,23 @@ class DownloadService : Service() {
                                 if (count < 0) break
                                 channel.write(java.nio.ByteBuffer.wrap(buffer, 0, count))
                                 done += count
+
+                                if (speedLimitBytesPerSecond > 0L) {
+                                    throttleWindowBytes += count
+                                    val now = SystemClock.elapsedRealtime()
+                                    val elapsed = now - throttleWindowStarted
+                                    val expected = throttleWindowBytes * 1000L / speedLimitBytesPerSecond
+                                    val sleepMillis = expected - elapsed
+                                    if (sleepMillis > 0L) {
+                                        SystemClock.sleep(sleepMillis.coerceAtMost(MAX_THROTTLE_SLEEP_MS))
+                                    }
+                                    val afterSleep = SystemClock.elapsedRealtime()
+                                    if (afterSleep - throttleWindowStarted >= THROTTLE_WINDOW_RESET_MS) {
+                                        throttleWindowStarted = afterSleep
+                                        throttleWindowBytes = 0L
+                                    }
+                                }
+
                                 val now = SystemClock.elapsedRealtime()
                                 if (now - lastUpdate >= 400L) {
                                     val elapsed = (now - lastTelemetryTime).coerceAtLeast(1L)
@@ -214,6 +244,7 @@ class DownloadService : Service() {
                             }
                         }
                         finalizeDestination(destination)
+                        val sha256 = if (taskSettings.calculateSha256) calculateSha256(destination, id) else null
                         store.update(id) {
                             it.copy(
                                 state = DownloadState.COMPLETED,
@@ -222,6 +253,7 @@ class DownloadService : Service() {
                                 total = total,
                                 error = null,
                                 retryCount = 0,
+                                sha256 = sha256,
                                 speedBytesPerSecond = 0L,
                                 etaMillis = -1L,
                             )
@@ -283,20 +315,23 @@ class DownloadService : Service() {
         }
     }
 
-    private fun openConnection(item: DownloadItem, existing: Long): HttpURLConnection =
-        (URL(item.url).openConnection() as HttpURLConnection).apply {
-            instanceFollowRedirects = true
-            connectTimeout = 15_000
-            readTimeout = 30_000
-            setRequestProperty("User-Agent", "YDownload/0.3")
-            if (existing > 0L) {
-                setRequestProperty("Range", "bytes=$existing-")
-                (item.etag ?: item.lastModified)?.let { validator ->
-                    setRequestProperty("If-Range", validator)
-                }
+    private fun openConnection(
+        item: DownloadItem,
+        existing: Long,
+        settings: YDownloadEnhancedSettings,
+    ): HttpURLConnection = (URL(item.url).openConnection() as HttpURLConnection).apply {
+        instanceFollowRedirects = true
+        connectTimeout = 15_000
+        readTimeout = 30_000
+        setRequestProperty("User-Agent", settings.userAgent)
+        if (existing > 0L) {
+            setRequestProperty("Range", "bytes=$existing-")
+            (item.etag ?: item.lastModified)?.let { validator ->
+                setRequestProperty("If-Range", validator)
             }
-            connect()
         }
+        connect()
+    }
 
     private fun pauseDownload(id: Long) {
         if (id in active) {
@@ -333,6 +368,7 @@ class DownloadService : Service() {
                 retryCount = 0,
                 etag = null,
                 lastModified = null,
+                sha256 = null,
                 speedBytesPerSecond = 0L,
                 etaMillis = -1L,
             )
@@ -398,6 +434,23 @@ class DownloadService : Service() {
             )
         }
     }
+
+    private fun calculateSha256(destination: Uri, id: Long): String? = runCatching {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val input = contentResolver.openInputStream(destination)
+            ?: error("Unable to reopen downloaded file for SHA-256")
+        input.use { stream ->
+            val buffer = ByteArray(BUFFER_SIZE)
+            while (true) {
+                val count = stream.read(buffer)
+                if (count < 0) break
+                if (count > 0) digest.update(buffer, 0, count)
+            }
+        }
+        digest.digest().joinToString("") { "%02x".format(it) }
+    }.onFailure {
+        YDownloadSuiteRuntime.log(HostLogLevel.WARN, "SHA-256 calculation failed id=$id", it)
+    }.getOrNull()
 
     private fun serviceNotification(): Notification = Notification.Builder(this, CHANNEL)
         .setSmallIcon(android.R.drawable.stat_sys_download)
@@ -534,6 +587,8 @@ class DownloadService : Service() {
         private const val TASK_NOTIFICATION_RANGE = 900_000
         private const val BUFFER_SIZE = 128 * 1024
         private const val HTTP_RANGE_NOT_SATISFIABLE = 416
+        private const val MAX_THROTTLE_SLEEP_MS = 1_000L
+        private const val THROTTLE_WINDOW_RESET_MS = 5_000L
 
         private fun send(context: Context, action: String, id: Long) {
             ContextCompat.startForegroundService(
