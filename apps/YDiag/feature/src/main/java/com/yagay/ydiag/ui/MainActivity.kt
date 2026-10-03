@@ -570,12 +570,14 @@ private fun AppPickerDialog(
                 } else {
                     LazyColumn(Modifier.height(480.dp)) {
                         items(visible, key = { it.packageName }) { app ->
+                            val systemSuffix = if (app.system) {
+                                " · " + stringResource(R.string.ydiag_system_app)
+                            } else {
+                                ""
+                            }
                             YCheckboxItem(
                                 title = app.label,
-                                subtitle = buildString {
-                                    append(app.packageName)
-                                    if (app.system) append(" · ").append(stringResource(R.string.ydiag_system_app))
-                                },
+                                subtitle = app.packageName + systemSuffix,
                                 checked = app.packageName in selected,
                                 onCheckedChange = { onToggle(app.packageName) },
                             )
