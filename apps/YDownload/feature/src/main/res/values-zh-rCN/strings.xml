@@ -9,7 +9,11 @@
 <string name="enable_system_patch">启用 DownloadManager 补丁</string><string name="enable_system_patch_summary">对 LSPosed 作用域内应用的 DownloadManager 请求应用以下策略，但原系统调用仍然继续执行。</string>
 <string name="allow_metered">允许计费网络</string><string name="allow_roaming">允许漫游网络</string><string name="require_charging">仅充电时下载</string><string name="require_idle">仅设备空闲时下载</string><string name="force_completion_notification">保留下载完成通知</string>
 <string name="no_downloads">没有下载任务</string><string name="no_downloads_summary">在上方添加 HTTP 或 HTTPS 链接。</string>
-<string name="status">状态</string><string name="progress">进度</string><string name="progress_percent">%1$d%%</string><string name="queued">等待中</string><string name="running">下载中</string><string name="paused">系统已暂停</string><string name="completed">已完成</string><string name="failed">失败</string><string name="cancelled">已取消</string>
-<string name="pause">暂停</string><string name="resume">继续 / 重试</string><string name="retry">重试</string><string name="cancel">取消</string><string name="open">打开</string><string name="remove">移除</string>
+<string name="status">状态</string><string name="progress">进度</string><string name="progress_percent">%1$d%%</string><string name="queued">等待中</string><string name="running">下载中</string><string name="paused">已暂停</string><string name="completed">已完成</string><string name="failed">失败</string><string name="cancelled">已取消</string>
+<string name="ydownload_speed">速度</string><string name="ydownload_eta">剩余时间</string>
+<string name="ydownload_speed_bps">%1$d B/s</string><string name="ydownload_speed_kbps">%1$.1f KB/s</string><string name="ydownload_speed_mbps">%1$.1f MB/s</string><string name="ydownload_speed_gbps">%1$.1f GB/s</string>
+<string name="ydownload_eta_seconds">%1$d 秒</string><string name="ydownload_eta_minutes">%1$d 分 %2$d 秒</string><string name="ydownload_eta_hours">%1$d 小时 %2$d 分</string>
+<string name="ydownload_system_control_unsupported">当前系统 DownloadProvider 不允许手动暂停/继续这个任务。</string>
+<string name="pause">暂停</string><string name="resume">继续</string><string name="retry">重试</string><string name="cancel">取消</string><string name="open">打开</string><string name="remove">移除</string>
 <string name="download_channel">下载任务</string><string name="download_service">YDownload</string><string name="download_running">正在下载…</string>
 </resources>
