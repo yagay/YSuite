@@ -12,6 +12,13 @@ from generate_feature_catalog import load_features
 
 ROOT = Path(__file__).resolve().parents[1]
 
+FORBIDDEN_SOURCE_PATTERNS = {
+    "feature FileProvider implementation/import": re.compile(r"\bFileProvider\b|androidx\.core\.content\.FileProvider"),
+    "process-global libsu default builder": re.compile(r"Shell\.setDefaultBuilder\s*\("),
+    "process-global uncaught-exception handler": re.compile(r"Thread\.setDefaultUncaughtExceptionHandler\s*\("),
+    "direct all-files settings flow": re.compile(r"ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION"),
+}
+
 
 def error(message: str, errors: list[str]) -> None:
     errors.append(message)
@@ -50,6 +57,14 @@ def resolve_component_name(namespace: str, class_name: str) -> str:
     if "." not in class_name:
         return namespace + "." + class_name
     return class_name
+
+
+def source_files(project_dir: Path):
+    source_root = project_dir / "src"
+    if not source_root.is_dir():
+        return
+    for suffix in ("*.kt", "*.java"):
+        yield from source_root.rglob(suffix)
 
 
 def main() -> int:
@@ -127,6 +142,16 @@ def main() -> int:
         if 'android:name="androidx.core.content.FileProvider"' in manifest:
             raw_file_provider_owners.append(feature_id)
 
+        for path in source_files(project_dir):
+            text = read(path)
+            relative = path.relative_to(ROOT)
+            for label, pattern in FORBIDDEN_SOURCE_PATTERNS.items():
+                if pattern.search(text):
+                    error(
+                        f"{feature_id}: {label} in {relative}; use FeatureHost/host-owned infrastructure",
+                        errors,
+                    )
+
         for tag in ("activity", "service", "receiver", "provider"):
             for class_name in re.findall(
                 rf"<{tag}\b[^>]*android:name\s*=\s*\"([^\"]+)\"",
@@ -167,6 +192,7 @@ def main() -> int:
     print(f"[feature-boundary] Feature library boundary: OK ({len(features)} features)")
     print("[feature-boundary] Feature-to-Feature hard dependencies: none")
     print("[feature-boundary] Application/LSPosed/FileProvider host ownership: OK")
+    print("[feature-boundary] process-global Root/crash infrastructure: host-owned")
     print("[feature-boundary] Android component classes/authorities: collision-free")
     print("[feature-boundary] generic standalone composer: OK")
     return 0
