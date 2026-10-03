@@ -1,14 +1,13 @@
 package com.yagay.YMiniGuard;
 
-import com.yagay.suite.api.FeatureHost;
-import com.yagay.suite.api.FeatureHostRegistry;
+import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.HostBinaryCommandResult;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 final class RootManager {
-    private static final String PLUGIN_ID = "yminiguard";
+    private static final FeatureServices SERVICES = FeatureServices.of("yminiguard", "YMiniGuard");
 
     static final class RootStatus {
         final boolean granted;
@@ -36,8 +35,7 @@ final class RootManager {
     }
 
     static String capture(String command, int maxChars) {
-        FeatureHost host = FeatureHostRegistry.find(PLUGIN_ID);
-        if (host != null) return captureThroughHost(host, command, maxChars);
+        if (SERVICES.hostOrNull() != null) return captureThroughHost(command, maxChars);
 
         java.lang.Process process = null;
         StringBuilder out = new StringBuilder();
@@ -73,10 +71,10 @@ final class RootManager {
         }
     }
 
-    private static String captureThroughHost(FeatureHost host, String command, int maxChars) {
+    private static String captureThroughHost(String command, int maxChars) {
         try {
             int maxBytes = Math.max(4096, Math.min(Integer.MAX_VALUE / 4, maxChars) * 4);
-            HostBinaryCommandResult result = host.rootExecuteBinary(
+            HostBinaryCommandResult result = SERVICES.rootBinary(
                     "root-manager",
                     command,
                     20L,
@@ -95,8 +93,8 @@ final class RootManager {
             if (result.getTimedOut()) return "[timeout]\n" + body;
             return "[exit=" + result.getCode() + "]\n" + body;
         } catch (Throwable t) {
-            // Host exists: never bypass YSuite with a second local su process.
-            return "[exception=" + t.getClass().getName() + "] YSuite Root host: "
+            // Host exists: never bypass the managed host with a second local su process.
+            return "[exception=" + t.getClass().getName() + "] Host Root: "
                     + t.getMessage() + "\n";
         }
     }
