@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?><resources>
-<string name="ydownload_title">YDownload</string><string name="ydownload_subtitle">Unified download manager using the YSuite UI and runtime</string>
-<string name="new_download">New download</string><string name="new_download_summary">HTTP/HTTPS, pause/resume, history and foreground downloads</string>
+<string name="ydownload_title">YDownload</string><string name="ydownload_subtitle">Patch and extend Android downloads without replacing DownloadProvider</string>
+<string name="new_download">New download</string><string name="new_download_summary">System DownloadManager is the default; the resumable YDownload engine remains available as an explicit fallback.</string>
 <string name="url">URL</string><string name="file_name_optional">File name (optional)</string><string name="start">Start</string>
-<string name="system_integration">System integration</string><string name="system_integration_summary">Safe mode keeps Android DownloadProvider installed while YDownload owns its own engine.</string>
-<string name="download_provider">DownloadProvider</string><string name="preserved">Preserved</string><string name="engine">Download engine</string><string name="native_engine">YDownload native HTTP engine</string>
+<string name="system_download">System download</string><string name="enhanced_download">Enhanced download</string>
+<string name="system_patch">System download patch</string><string name="system_patch_summary">Keep Android DownloadProvider as the owner and apply safe request policies around DownloadManager.</string>
+<string name="system_integration">System integration</string><string name="system_integration_summary">Android DownloadProvider remains installed and is the primary compatibility path.</string>
+<string name="download_provider">DownloadProvider</string><string name="preserved">Preserved</string><string name="default_engine">Default engine</string><string name="android_download_manager">Android DownloadManager</string><string name="engine">Engine</string><string name="native_engine">YDownload native HTTP engine</string><string name="enhanced_engine">YDownload enhanced engine</string>
+<string name="enable_system_patch">Enable DownloadManager patch</string><string name="enable_system_patch_summary">Apply these policies to DownloadManager requests in LSPosed-scoped apps while keeping the original system call.</string>
+<string name="allow_metered">Allow metered networks</string><string name="allow_roaming">Allow roaming</string><string name="require_charging">Require charging</string><string name="require_idle">Require device idle</string><string name="force_completion_notification">Keep completion notification</string>
 <string name="no_downloads">No downloads</string><string name="no_downloads_summary">Add an HTTP or HTTPS link above.</string>
-<string name="status">Status</string><string name="progress">Progress</string><string name="progress_percent">%1$d%%</string><string name="queued">Queued</string><string name="running">Running</string><string name="paused">Paused</string><string name="completed">Completed</string><string name="failed">Failed</string><string name="cancelled">Cancelled</string>
-<string name="pause">Pause</string><string name="resume">Resume / retry</string><string name="cancel">Cancel</string><string name="open">Open</string><string name="remove">Remove</string>
+<string name="status">Status</string><string name="progress">Progress</string><string name="progress_percent">%1$d%%</string><string name="queued">Queued</string><string name="running">Running</string><string name="paused">Paused by system</string><string name="completed">Completed</string><string name="failed">Failed</string><string name="cancelled">Cancelled</string>
+<string name="pause">Pause</string><string name="resume">Resume / retry</string><string name="retry">Retry</string><string name="cancel">Cancel</string><string name="open">Open</string><string name="remove">Remove</string>
 <string name="download_channel">Downloads</string><string name="download_service">YDownload</string><string name="download_running">Downloading…</string>
 </resources>
