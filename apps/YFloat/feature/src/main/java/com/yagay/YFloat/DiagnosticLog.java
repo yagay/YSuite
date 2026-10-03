@@ -3,9 +3,10 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.os.Build;
 import android.os.SystemClock;
+
+import com.yagay.suite.api.FeatureServices;
+
 import java.io.*;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ public final class DiagnosticLog {
     private static final long MAX_BYTES = 2L * 1024L * 1024L;
     private static final long HOT_LOG_INTERVAL_MS = 90L;
     private static final Map<String, Long> HOT_LAST = new HashMap<>();
+    private static final FeatureServices SERVICES = FeatureServices.of("yfloat", "YFloat");
     private static final ExecutorService IO = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "YFloat-Diagnostic");
         t.setPriority(Thread.NORM_PRIORITY - 1);
@@ -52,24 +54,12 @@ public final class DiagnosticLog {
         try { IO.execute(() -> write(target, now, finalTag, finalMsg)); } catch (Throwable ignored) {}
     }
 
-    /**
-     * Important state that must always appear in a YSuite feature export even when YFloat's verbose
-     * diagnostics switch is off. Standalone YFloat remains independent; the Suite bridge is found
-     * reflectively only when the current host package actually is YSuite.
-     */
+    /** Important state is always routed through the common host log, independent of verbose mode. */
     public static void critical(Context c, String tag, String msg) {
         Context x = c != null ? c.getApplicationContext() : app;
         if (x == null) return;
         if (enabled(x)) i(x, tag, msg);
-        if (!"com.yagay.YSuite".equals(x.getPackageName())) return;
-        try {
-            Class<?> cls = Class.forName("com.yagay.suite.core.SuiteLog");
-            Field instanceField = cls.getField("INSTANCE");
-            Object instance = instanceField.get(null);
-            Method method = cls.getMethod("i", Context.class, String.class, String.class);
-            method.invoke(instance, x, "yfloat", "[" + (tag == null ? "" : tag) + "] "
-                    + (msg == null ? "" : msg));
-        } catch (Throwable ignored) { }
+        SERVICES.info("[" + (tag == null ? "" : tag) + "] " + (msg == null ? "" : msg));
     }
 
     private static void write(Context x,long now,String tag,String msg) {
