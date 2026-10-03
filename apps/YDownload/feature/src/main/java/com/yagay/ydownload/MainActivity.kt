@@ -2,11 +2,9 @@ package com.yagay.ydownload
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -26,7 +23,6 @@ import com.yagay.yui.YFeatureScaffold
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusRow
 import com.yagay.yui.YStatusTone
-import java.net.URI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -36,8 +32,6 @@ class MainActivity : YComposeActivity() {
     @Composable override fun YContent() {
         val store = remember { DownloadStore.get(this) }
         val items by store.items.collectAsStateWithLifecycle()
-        var url by remember { mutableStateOf("") }
-        var fileName by remember { mutableStateOf("") }
         var patchSettings by remember { mutableStateOf(YDownloadPatchSettings.load(this)) }
         var enhancedSettings by remember { mutableStateOf(YDownloadEnhancedSettings.load(this)) }
 
@@ -53,79 +47,7 @@ class MainActivity : YComposeActivity() {
             subtitle = stringResource(R.string.ydownload_subtitle),
         ) { padding ->
             YFeatureList(padding) {
-                item {
-                    YFeatureCard(
-                        title = stringResource(R.string.new_download),
-                        subtitle = stringResource(R.string.new_download_summary),
-                    ) {
-                        OutlinedTextField(
-                            url,
-                            { url = it },
-                            Modifier.fillMaxWidth(),
-                            label = { Text(stringResource(R.string.url)) },
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            fileName,
-                            { fileName = it },
-                            Modifier.fillMaxWidth(),
-                            label = { Text(stringResource(R.string.file_name_optional)) },
-                            singleLine = true,
-                        )
-                        YStatusRow(
-                            stringResource(R.string.default_engine),
-                            if (enhancedSettings.defaultBackend == DownloadBackend.SYSTEM) {
-                                stringResource(R.string.android_download_manager)
-                            } else {
-                                stringResource(R.string.enhanced_engine)
-                            },
-                            YStatusTone.Neutral,
-                        )
-                        YActionRow {
-                            val systemClick: () -> Unit = {
-                                createTask(store, url, fileName, DownloadBackend.SYSTEM)?.let { task ->
-                                    lifecycleScope.launch(Dispatchers.IO) {
-                                        SystemDownloadBridge.enqueue(this@MainActivity, task)
-                                            .onSuccess { systemId ->
-                                                store.update(task.id) {
-                                                    it.copy(systemId = systemId, state = DownloadState.QUEUED, error = null)
-                                                }
-                                            }
-                                            .onFailure { error ->
-                                                store.update(task.id) {
-                                                    it.copy(state = DownloadState.FAILED, error = error.message)
-                                                }
-                                            }
-                                    }
-                                    url = ""
-                                    fileName = ""
-                                }
-                            }
-                            val enhancedClick: () -> Unit = {
-                                createTask(store, url, fileName, DownloadBackend.ENHANCED)?.let { task ->
-                                    DownloadService.start(this@MainActivity, task.id)
-                                    url = ""
-                                    fileName = ""
-                                }
-                            }
-                            if (enhancedSettings.defaultBackend == DownloadBackend.SYSTEM) {
-                                Button(onClick = systemClick, enabled = url.isNotBlank()) {
-                                    Text(stringResource(R.string.system_download))
-                                }
-                                OutlinedButton(onClick = enhancedClick, enabled = url.isNotBlank()) {
-                                    Text(stringResource(R.string.enhanced_download))
-                                }
-                            } else {
-                                Button(onClick = enhancedClick, enabled = url.isNotBlank()) {
-                                    Text(stringResource(R.string.enhanced_download))
-                                }
-                                OutlinedButton(onClick = systemClick, enabled = url.isNotBlank()) {
-                                    Text(stringResource(R.string.system_download))
-                                }
-                            }
-                        }
-                    }
-                }
+                item { YDownloadNewTaskCard(store, enhancedSettings) }
 
                 item {
                     YFeatureCard(
@@ -311,6 +233,17 @@ class MainActivity : YComposeActivity() {
                                 YStatusTone.Warning,
                             )
                         }
+                        if (task.expectedSha256 != null) {
+                            YStatusRow(
+                                stringResource(R.string.expected_sha256),
+                                task.expectedSha256,
+                                if (task.sha256?.equals(task.expectedSha256, ignoreCase = true) == true) {
+                                    YStatusTone.Good
+                                } else {
+                                    YStatusTone.Neutral
+                                },
+                            )
+                        }
                         if (task.total > 0) {
                             val percent = ((task.done * 100L) / task.total).coerceIn(0L, 100L).toInt()
                             YStatusRow(stringResource(R.string.progress), stringResource(R.string.progress_percent, percent))
@@ -364,6 +297,7 @@ class MainActivity : YComposeActivity() {
                     store.update(task.id) {
                         it.copy(
                             state = DownloadState.CANCELLED,
+                            requestHeaders = emptyMap(),
                             speedBytesPerSecond = 0L,
                             etaMillis = -1L,
                         )
@@ -466,22 +400,6 @@ class MainActivity : YComposeActivity() {
         runCatching {
             startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
         }
-    }
-
-    private fun createTask(
-        store: DownloadStore,
-        rawUrl: String,
-        rawFileName: String,
-        backend: DownloadBackend,
-    ): DownloadItem? {
-        val normalized = rawUrl.trim()
-        val scheme = runCatching { URI(normalized).scheme?.lowercase() }.getOrNull()
-        if (scheme != "http" && scheme != "https") return null
-        val derived = rawFileName.trim().takeIf { it.isNotBlank() }
-            ?: normalized.substringBefore('?').substringAfterLast('/').takeIf { it.isNotBlank() }
-            ?: "download-${System.currentTimeMillis()}"
-        val safeName = derived.replace(Regex("[\\\\/:*?\"<>|]"), "_")
-        return store.add(normalized, safeName, backend)
     }
 
     @Composable
