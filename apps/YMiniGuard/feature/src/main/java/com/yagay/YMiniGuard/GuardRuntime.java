@@ -54,7 +54,8 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
         this.context = app != null ? app : context;
         boolean suiteHost = attachToSuiteBroker();
         if (!suiteHost) {
-            installCrashHandler();
+            // Standalone still owns its local LSPosed service listener, but crash handling is never
+            // process-global Feature infrastructure. Host diagnostics remains the single owner.
             XposedServiceHelper.registerListener(this);
         }
     }
@@ -117,19 +118,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
         } catch (Throwable error) {
             Log.e(TAG, "YSuite broker attach failed", error);
         }
-        // Host class exists: never install another process-global listener/crash handler.
         return true;
-    }
-
-    private void installCrashHandler() {
-        Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
-        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
-            CrashStore.record(
-                    context,
-                    "uncaught:" + (thread == null ? "unknown" : thread.getName()),
-                    throwable);
-            if (previous != null) previous.uncaughtException(thread, throwable);
-        });
     }
 
     @Override
