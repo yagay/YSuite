@@ -10,6 +10,8 @@ import android.graphics.drawable.RippleDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -17,6 +19,7 @@ import android.widget.HorizontalScrollView
 import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.annotation.MenuRes
 import androidx.appcompat.widget.AppCompatEditText
@@ -29,6 +32,10 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.checkbox.MaterialCheckBox
+import com.google.android.material.slider.Slider
+import java.util.function.IntConsumer
+import java.util.function.IntFunction
 
 class YViewScreen internal constructor(
     val view: View,
@@ -661,6 +668,122 @@ object YViewLayout {
         minimumHeight = YView.buttonHeight(context)
         minimumWidth = 0
         setPadding(YView.controlGap(context), 0, YView.controlGap(context), 0)
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun spinnerSetting(
+        context: Context,
+        title: String,
+        labels: Array<String>,
+        selected: Int,
+        vertical: Boolean = false,
+        onSelected: IntConsumer? = null,
+    ): View {
+        val safe = labels.ifEmpty { arrayOf("") }
+        val spinner = Spinner(context).apply {
+            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, safe)
+            setSelection(selected.coerceIn(0, safe.lastIndex))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    if (position in safe.indices) onSelected?.accept(position)
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            }
+        }
+        val block = settingBlock(context)
+        if (vertical) {
+            block.addView(text(context, title, 14f, false))
+            block.addView(
+                spinner,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    YView.touchTarget(context),
+                ).apply { topMargin = maxOf(1, YView.controlGap(context) / 4) },
+            )
+        } else {
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            row.addView(
+                text(context, title, 14f, false),
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.82f),
+            )
+            row.addView(
+                spinner,
+                LinearLayout.LayoutParams(0, YView.touchTarget(context), 1.18f),
+            )
+            block.addView(row, matchWrap())
+        }
+        return block
+    }
+
+    @JvmStatic
+    fun sliderSetting(
+        context: Context,
+        title: String,
+        min: Int,
+        max: Int,
+        current: Int,
+        valueLabel: IntFunction<String>?,
+        onChanged: IntConsumer?,
+    ): View {
+        val block = sliderBlock(context)
+        val top = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val name = text(context, title, 14f, false)
+        val initial = current.coerceIn(min, max)
+        val value = caption(context, valueLabel?.apply(initial) ?: initial.toString(), 13f).apply {
+            gravity = Gravity.END
+        }
+        top.addView(name, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        top.addView(value, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        block.addView(top, matchWrap())
+
+        val slider = Slider(context).apply {
+            valueFrom = min.toFloat()
+            valueTo = max.toFloat()
+            stepSize = 1f
+            this.value = initial.toFloat()
+            minimumHeight = 0
+            setPadding(0, 0, 0, 0)
+            addOnChangeListener { _, next, fromUser ->
+                if (!fromUser) return@addOnChangeListener
+                val intValue = next.toInt().coerceIn(min, max)
+                value.text = valueLabel?.apply(intValue) ?: intValue.toString()
+                onChanged?.accept(intValue)
+            }
+        }
+        block.addView(
+            slider,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(context, 34),
+            ).apply { topMargin = dp(context, -1) },
+        )
+        return block
+    }
+
+    @JvmStatic
+    fun checkBoxRow(
+        context: Context,
+        title: String,
+        checked: Boolean,
+        listener: CompoundButton.OnCheckedChangeListener?,
+    ): MaterialCheckBox = MaterialCheckBox(context).apply {
+        isUseMaterialThemeColors = true
+        text = title
+        setTextColor(textPrimary(context))
+        textSize = 14f
+        val horizontal = YView.controlGap(context)
+        val vertical = maxOf(1, YView.controlGap(context) / 2)
+        setPadding(horizontal, vertical, horizontal, vertical)
+        isChecked = checked
+        if (listener != null) setOnCheckedChangeListener(listener)
+        minimumHeight = YView.touchTarget(context)
     }
 
     @JvmStatic
