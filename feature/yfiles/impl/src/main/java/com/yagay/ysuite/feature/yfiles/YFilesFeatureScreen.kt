@@ -28,8 +28,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.ysuite.designsystem.component.YSuiteConfirmDialog
-import com.yagay.ysuite.designsystem.component.YSuiteFilterBar
-import com.yagay.ysuite.designsystem.component.YSuiteFilterOption
 import com.yagay.ysuite.designsystem.component.YSuiteFormField
 import com.yagay.ysuite.designsystem.component.YSuiteListItem
 import com.yagay.ysuite.designsystem.component.YSuiteSearchField
@@ -53,13 +51,15 @@ import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.filemanager.YFileBreadcrumbBar
 import com.yagay.ysuite.productui.filemanager.YFileEntryRow
+import com.yagay.ysuite.productui.filemanager.FileExplorerBackButton
+import com.yagay.ysuite.productui.filemanager.FileExplorerSearchBar
+import com.yagay.ysuite.productui.filemanager.FileExplorerSelectionTopBar
+import com.yagay.ysuite.productui.filemanager.FileExplorerSortOption
+import com.yagay.ysuite.productui.filemanager.FileExplorerTopActions
 import com.yagay.ysuite.productui.filemanager.FileExplorerWorkspace
 import com.yagay.ysuite.productui.filemanager.YFileProductItemKind
 import com.yagay.ysuite.productui.filemanager.YFileProductSource
 import com.yagay.ysuite.productui.filemanager.YFileProductSourceKind
-import com.yagay.ysuite.productui.filemanager.YFileSearchCommandBar
-import com.yagay.ysuite.productui.filemanager.YFileSectionSwitcher
-import com.yagay.ysuite.productui.filemanager.YFileSelectionBar
 import com.yagay.ysuite.productui.filemanager.YFileSourcePane
 import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsLink
@@ -117,68 +117,65 @@ fun YFilesFeatureScreen(
         YFilesTab.Tools ->
             NiaToolSurface(
                 title = stringResource(R.string.yfiles_tab_tools),
-                navigationIcon = { YSuiteHostNavigationButton() },
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    YFileSectionSwitcher(
-                        filesLabel = stringResource(R.string.yfiles_tab_files),
-                        toolsLabel = stringResource(R.string.yfiles_tab_tools),
-                        settingsLabel = stringResource(R.string.yfiles_tab_settings),
-                        selectedId = "tools",
-                        onSelect = { id ->
-                            when (id) {
-                                "files" -> browser.setTab(YFilesTab.Files)
-                                "settings" -> browser.setTab(YFilesTab.Settings)
-                            }
+                navigationIcon = {
+                    FileExplorerBackButton(
+                        contentDescription =
+                            stringResource(R.string.yfiles_tab_files),
+                        onClick = {
+                            browser.setTab(YFilesTab.Files)
                         },
                     )
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement =
-                            Arrangement.spacedBy(YSuiteSpacing.Small),
-                    ) {
-                        toolsContent(
-                            browserState = state,
-                            toolState = toolState,
-                            tools = tools,
-                        )
-                    }
+                },
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement =
+                        Arrangement.spacedBy(YSuiteSpacing.Small),
+                ) {
+                    toolsContent(
+                        browserState = state,
+                        toolState = toolState,
+                        tools = tools,
+                    )
                 }
             }
         YFilesTab.Settings ->
             ComposeSettingsSurface(
                 title = stringResource(R.string.yfiles_tab_settings),
-                navigationIcon = { YSuiteHostNavigationButton() },
-            ) {
-                Column(
-                    verticalArrangement =
-                        Arrangement.spacedBy(YSuiteSpacing.Large),
-                ) {
-                    YFilesSettingsContent(
-                        state = state,
-                        environment = environment,
-                        browser = browser,
-                        allFilesGranted =
-                            Environment.isExternalStorageManager(),
-                        onOpenAllFilesSettings = {
-                            val intent = Intent(
-                                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                Uri.parse("package:" + context.packageName),
-                            )
-                            context.startActivity(intent)
-                        },
-                        onAddSaf = {
-                            val intent = Intent(
-                                Intent.ACTION_OPEN_DOCUMENT_TREE,
-                            ).addFlags(
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
-                            )
-                            treeLauncher.launch(intent)
+                navigationIcon = {
+                    FileExplorerBackButton(
+                        contentDescription =
+                            stringResource(R.string.yfiles_tab_files),
+                        onClick = {
+                            browser.setTab(YFilesTab.Files)
                         },
                     )
-                }
+                },
+            ) { _ ->
+                YFilesSettingsContent(
+                    state = state,
+                    environment = environment,
+                    browser = browser,
+                    allFilesGranted =
+                        Environment.isExternalStorageManager(),
+                    onOpenAllFilesSettings = {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                            Uri.parse("package:" + context.packageName),
+                        )
+                        context.startActivity(intent)
+                    },
+                    onAddSaf = {
+                        val intent = Intent(
+                            Intent.ACTION_OPEN_DOCUMENT_TREE,
+                        ).addFlags(
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
+                        )
+                        treeLauncher.launch(intent)
+                    },
+                )
             }
     }
 
@@ -248,6 +245,47 @@ private fun YFilesBrowserSurface(
     FileExplorerWorkspace(
         title = stringResource(R.string.yfiles_title),
         navigationIcon = { YSuiteHostNavigationButton() },
+        actions = {
+            FileExplorerTopActions(
+                sortOptions = listOf(
+                    FileExplorerSortOption(
+                        YFileSort.Name.name,
+                        stringResource(R.string.yfiles_sort_name),
+                    ),
+                    FileExplorerSortOption(
+                        YFileSort.Modified.name,
+                        stringResource(R.string.yfiles_sort_modified),
+                    ),
+                    FileExplorerSortOption(
+                        YFileSort.Size.name,
+                        stringResource(R.string.yfiles_sort_size),
+                    ),
+                    FileExplorerSortOption(
+                        YFileSort.Type.name,
+                        stringResource(R.string.yfiles_sort_type),
+                    ),
+                ),
+                selectedSortId = state.sort.name,
+                onSortSelected = {
+                    browser.setSort(YFileSort.valueOf(it))
+                },
+                showHidden = state.showHidden,
+                showHiddenLabel =
+                    stringResource(R.string.yfiles_show_hidden),
+                onShowHiddenChange = browser::setShowHidden,
+                recursive = state.recursive,
+                recursiveLabel =
+                    stringResource(R.string.yfiles_recursive),
+                onRecursiveChange = browser::setRecursive,
+            )
+        },
+        drawerContent = { _, closeDrawer ->
+            YFilesSourcePane(
+                state = state,
+                browser = browser,
+                onNavigate = closeDrawer,
+            )
+        },
         breadcrumb = {
             YFileBreadcrumbBar(
                 path = directory?.path
@@ -266,18 +304,11 @@ private fun YFilesBrowserSurface(
                 browser = browser,
             )
         },
-        drawerContent = { _, closeDrawer ->
-            YFilesSourcePane(
-                state = state,
-                browser = browser,
-                onNavigate = closeDrawer,
-            )
-        },
         detailPane = detailContent,
         selectionTopBar =
             if (state.selected.isNotEmpty()) {
                 {
-                    YFileSelectionBar(
+                    FileExplorerSelectionTopBar(
                         countLabel = stringResource(
                             R.string.yfiles_selected_count,
                             state.selected.size,
@@ -297,20 +328,6 @@ private fun YFilesBrowserSurface(
             } else {
                 null
             },
-        bottomBar = {
-            YFileSectionSwitcher(
-                filesLabel = stringResource(R.string.yfiles_tab_files),
-                toolsLabel = stringResource(R.string.yfiles_tab_tools),
-                settingsLabel = stringResource(R.string.yfiles_tab_settings),
-                selectedId = "files",
-                onSelect = { id ->
-                    when (id) {
-                        "tools" -> browser.setTab(YFilesTab.Tools)
-                        "settings" -> browser.setTab(YFilesTab.Settings)
-                    }
-                },
-            )
-        },
     ) { adaptive ->
         YFilesMainContent(
             state = state,
@@ -319,76 +336,18 @@ private fun YFilesBrowserSurface(
             onEmptyTrash = onEmptyTrash,
         )
     }
-}
+
 
 @Composable
 private fun YFilesCommandBar(
     state: YFilesUiState,
     browser: YFilesViewModel,
 ) {
-    Column(
-        verticalArrangement =
-            Arrangement.spacedBy(YSuiteSpacing.XSmall),
-    ) {
-        if (state.mode == YFilesBrowserMode.Directory) {
-            YFileSearchCommandBar(
-                query = state.query,
-                searchLabel = stringResource(R.string.yfiles_search),
-                showHiddenLabel = stringResource(R.string.yfiles_show_hidden),
-                recursiveLabel = stringResource(R.string.yfiles_recursive),
-                showHidden = state.showHidden,
-                recursive = state.recursive,
-                onQueryChange = browser::setQuery,
-                onShowHiddenChange = browser::setShowHidden,
-                onRecursiveChange = browser::setRecursive,
-            )
-            YSuiteFilterBar(
-                options = listOf(
-                    YSuiteFilterOption(
-                        YFileSort.Name.name,
-                        stringResource(R.string.yfiles_sort_name),
-                    ),
-                    YSuiteFilterOption(
-                        YFileSort.Modified.name,
-                        stringResource(R.string.yfiles_sort_modified),
-                    ),
-                    YSuiteFilterOption(
-                        YFileSort.Size.name,
-                        stringResource(R.string.yfiles_sort_size),
-                    ),
-                    YSuiteFilterOption(
-                        YFileSort.Type.name,
-                        stringResource(R.string.yfiles_sort_type),
-                    ),
-                ),
-                selectedId = state.sort.name,
-                onSelected = { browser.setSort(YFileSort.valueOf(it)) },
-            )
-        }
-
-        YSuiteFilterBar(
-            options = listOf(
-                YSuiteFilterOption(
-                    YFilesBrowserMode.Directory.name,
-                    stringResource(R.string.yfiles_mode_directory),
-                ),
-                YSuiteFilterOption(
-                    YFilesBrowserMode.Favorites.name,
-                    stringResource(R.string.yfiles_mode_favorites),
-                ),
-                YSuiteFilterOption(
-                    YFilesBrowserMode.Recent.name,
-                    stringResource(R.string.yfiles_mode_recent),
-                ),
-                YSuiteFilterOption(
-                    YFilesBrowserMode.Trash.name,
-                    stringResource(R.string.yfiles_mode_trash),
-                ),
-            ),
-            selectedId = state.mode.name,
-            onSelected = {
-                browser.setMode(YFilesBrowserMode.valueOf(it))
-            },
+    if (state.mode == YFilesBrowserMode.Directory) {
+        FileExplorerSearchBar(
+            query = state.query,
+            searchLabel = stringResource(R.string.yfiles_search),
+            onQueryChange = browser::setQuery,
         )
     }
 }
@@ -413,6 +372,8 @@ private fun YFilesSourcePane(
         favoritesLabel = stringResource(R.string.yfiles_mode_favorites),
         recentLabel = stringResource(R.string.yfiles_mode_recent),
         trashLabel = stringResource(R.string.yfiles_mode_trash),
+        toolsLabel = stringResource(R.string.yfiles_tab_tools),
+        settingsLabel = stringResource(R.string.yfiles_tab_settings),
         activeSectionId = state.mode.productSectionId(),
         onSourceSelected = { providerId ->
             browser.selectProvider(providerId)
@@ -427,6 +388,14 @@ private fun YFilesSourcePane(
                     else -> YFilesBrowserMode.Directory
                 },
             )
+            onNavigate()
+        },
+        onToolsSelected = {
+            browser.setTab(YFilesTab.Tools)
+            onNavigate()
+        },
+        onSettingsSelected = {
+            browser.setTab(YFilesTab.Settings)
             onNavigate()
         },
     )
@@ -731,18 +700,6 @@ private fun YFilesSettingsContent(
         }
     }
 
-    YFileSectionSwitcher(
-        filesLabel = stringResource(R.string.yfiles_tab_files),
-        toolsLabel = stringResource(R.string.yfiles_tab_tools),
-        settingsLabel = stringResource(R.string.yfiles_tab_settings),
-        selectedId = "settings",
-        onSelect = { id ->
-            when (id) {
-                "files" -> browser.setTab(YFilesTab.Files)
-                "tools" -> browser.setTab(YFilesTab.Tools)
-            }
-        },
-    )
 }
 
 private fun YFilesBrowserMode.productSectionId(): String =
