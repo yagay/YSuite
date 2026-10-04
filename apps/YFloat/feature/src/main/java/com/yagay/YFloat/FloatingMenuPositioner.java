@@ -3,12 +3,14 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.graphics.Rect;
 
+import com.yagay.yui.YView;
+
 /** Single owner for floating action-menu placement and screen-edge clamping. */
 final class FloatingMenuPositioner {
     static int[] aroundAnchor(Context c, Rect usable, Rect anchor,
                               int menuWidth, int menuHeight, boolean centerWhenMissing) {
-        int margin = UiTokens.dp(c, 8);
-        int gap = UiTokens.dp(c, 8);
+        int margin = YView.dp(c, 8);
+        int gap = YView.dp(c, 8);
         int minX = usable.left + margin;
         int maxX = Math.max(minX, usable.right - margin - menuWidth);
         int minY = usable.top + margin;
@@ -18,7 +20,7 @@ final class FloatingMenuPositioner {
             int x = ScreenGeometry.clamp(usable.centerX() - menuWidth / 2, minX, maxX);
             int fallbackY = centerWhenMissing
                     ? usable.centerY() - menuHeight / 2
-                    : usable.top + UiTokens.dp(c, 52);
+                    : usable.top + YView.dp(c, 52);
             return new int[]{x, ScreenGeometry.clamp(fallbackY, minY, maxY)};
         }
 
@@ -40,7 +42,7 @@ final class FloatingMenuPositioner {
 
     static int[] lockedRow(Context c, Rect usable, int centerX, int topY,
                            int menuWidth, int menuHeight) {
-        int margin = UiTokens.dp(c, 8);
+        int margin = YView.dp(c, 8);
         int minX = usable.left + margin;
         int maxX = Math.max(minX, usable.right - margin - menuWidth);
         int minY = usable.top + margin;

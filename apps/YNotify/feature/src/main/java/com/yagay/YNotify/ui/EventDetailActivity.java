@@ -323,7 +323,7 @@ public class EventDetailActivity extends AppCompatActivity {
 
     private void line(StringBuilder sb, int labelRes, String value) {
         if (value != null && !value.isBlank()) {
-            sappend(getString(labelRes)).append(": ").append(value).append('\n');
+            sb.append(getString(labelRes)).append(": ").append(value).append('\n');
         }
     }
 
