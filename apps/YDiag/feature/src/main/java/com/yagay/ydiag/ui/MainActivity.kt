@@ -19,15 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,7 +59,6 @@ import com.yagay.yui.YSection
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YPageRole
 import com.yagay.yui.YPageScaffold
-import com.yagay.yui.YSectionHeader
 import com.yagay.yui.YMetricCard
 import com.yagay.yui.YIcons
 import com.yagay.yui.YNavigationSpec
@@ -76,6 +69,15 @@ import com.yagay.yui.YSecondaryButton
 import com.yagay.yui.YStatusSpec
 import com.yagay.yui.YStatusStrip
 import com.yagay.yui.YStatusTone
+import com.yagay.yui.YActionSpec
+import com.yagay.yui.YActionStyle
+import com.yagay.yui.YChoiceSpec
+import com.yagay.yui.YDivider
+import com.yagay.yui.YFormDialog
+import com.yagay.yui.YMessageHost
+import com.yagay.yui.YNavigationItem
+import com.yagay.yui.YNotice
+import com.yagay.yui.YRadioGroup
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -151,7 +153,7 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
                 else -> YPageRole.SETTINGS
             },
             subtitle = stringResource(R.string.ydiag_subtitle),
-            snackbarHost = { SnackbarHost(snackbar) },
+            snackbarHost = { YMessageHost(snackbar) },
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
                 when (tab) {
@@ -343,7 +345,12 @@ private fun HistoryScreen(history: List<HistoryItem>, onExport: (HistoryItem) ->
                 title = item.meta.targetPackages.joinToString().ifBlank { stringResource(R.string.ydiag_unknown_target) },
                 subtitle = formatDate(item.meta.startedAt),
                 detail = stringResource(R.string.ydiag_history_detail, item.meta.enabledOptions.size, item.meta.problemMarks.size),
-                trailing = { TextButton(onClick = { onExport(item) }) { Text(stringResource(R.string.ydiag_export)) } },
+                trailing = {
+                    YSecondaryButton(
+                        text = stringResource(R.string.ydiag_export),
+                        onClick = { onExport(item) },
+                    )
+                },
             )
         }
     }
@@ -384,7 +391,7 @@ private fun DiagnosticConfigScreen(
             if (options.isNotEmpty()) {
                 item { YSectionHeader(categoryTitle(category), Modifier.padding(top = 8.dp)) }
                 items(options, key = { it.id }) { option ->
-                    YListItem(
+                    YSwitchItem(
                         title = option.title,
                         subtitle = stringResource(
                             R.string.ydiag_option_meta,
@@ -392,13 +399,8 @@ private fun DiagnosticConfigScreen(
                             loadText(option.load),
                         ),
                         detail = option.description,
-                        onClick = { onToggle(option.id) },
-                        trailing = {
-                            Switch(
-                                checked = option.id in enabled,
-                                onCheckedChange = { onToggle(option.id) },
-                            )
-                        },
+                        checked = option.id in enabled,
+                        onCheckedChange = { onToggle(option.id) },
                     )
                 }
             }
@@ -431,45 +433,54 @@ private fun SettingsScreen(
         }
         item {
             YSection(title = stringResource(R.string.ydiag_activation_strategy)) {
-                ActivationModeRow(
-                    activationMode == Preferences.ACTIVATION_AUTO,
-                    stringResource(R.string.ydiag_activation_auto),
-                    stringResource(R.string.ydiag_activation_auto_desc),
-                ) { onActivationMode(Preferences.ACTIVATION_AUTO) }
-                ActivationModeRow(
-                    activationMode == Preferences.ACTIVATION_MANUAL,
-                    stringResource(R.string.ydiag_activation_manual),
-                    stringResource(R.string.ydiag_activation_manual_desc),
-                ) { onActivationMode(Preferences.ACTIVATION_MANUAL) }
-                ActivationModeRow(
-                    activationMode == Preferences.ACTIVATION_ROOT_ONLY,
-                    stringResource(R.string.ydiag_activation_root),
-                    stringResource(R.string.ydiag_activation_root_desc),
-                ) { onActivationMode(Preferences.ACTIVATION_ROOT_ONLY) }
+                YRadioGroup(
+                    value = activationMode,
+                    options = listOf(
+                        YChoiceSpec(
+                            Preferences.ACTIVATION_AUTO,
+                            stringResource(R.string.ydiag_activation_auto),
+                            stringResource(R.string.ydiag_activation_auto_desc),
+                        ),
+                        YChoiceSpec(
+                            Preferences.ACTIVATION_MANUAL,
+                            stringResource(R.string.ydiag_activation_manual),
+                            stringResource(R.string.ydiag_activation_manual_desc),
+                        ),
+                        YChoiceSpec(
+                            Preferences.ACTIVATION_ROOT_ONLY,
+                            stringResource(R.string.ydiag_activation_root),
+                            stringResource(R.string.ydiag_activation_root_desc),
+                        ),
+                    ),
+                    onSelected = onActivationMode,
+                )
             }
         }
         item { YSectionHeader(stringResource(R.string.ydiag_export_location)) }
         item {
             YSection(title = stringResource(R.string.ydiag_package_directory)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = exportMode == "download", onClick = { onExportMode("download") })
-                    Column {
-                        Text(stringResource(R.string.ydiag_download_folder))
-                        Text(stringResource(R.string.ydiag_download_desc), style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = exportMode == "custom", onClick = { onExportMode("custom") })
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.ydiag_custom_folder))
-                        Text(
+                YRadioGroup(
+                    value = exportMode,
+                    options = listOf(
+                        YChoiceSpec(
+                            "download",
+                            stringResource(R.string.ydiag_download_folder),
+                            stringResource(R.string.ydiag_download_desc),
+                        ),
+                        YChoiceSpec(
+                            "custom",
+                            stringResource(R.string.ydiag_custom_folder),
                             customTree ?: stringResource(R.string.ydiag_no_folder),
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    TextButton(onClick = onChooseTree) { Text(stringResource(R.string.ydiag_choose)) }
+                        ),
+                    ),
+                    onSelected = onExportMode,
+                )
+                if (exportMode == "custom") {
+                    YNavigationItem(
+                        title = stringResource(R.string.ydiag_choose),
+                        subtitle = customTree ?: stringResource(R.string.ydiag_no_folder),
+                        onClick = onChooseTree,
+                    )
                 }
             }
         }
@@ -499,28 +510,9 @@ private fun SettingsScreen(
             }
         }
         item {
-            HorizontalDivider()
+            YDivider()
             YSectionHeader(stringResource(R.string.ydiag_privacy))
             Text(stringResource(R.string.ydiag_privacy_desc), style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-@Composable
-private fun ActivationModeRow(
-    selected: Boolean,
-    title: String,
-    detail: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Column(Modifier.weight(1f)) {
-            Text(title)
-            Text(detail, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -551,47 +543,49 @@ private fun AppPickerDialog(
                 )
         }
     }
-    AlertDialog(
+
+    YFormDialog(
+        title = stringResource(R.string.ydiag_picker_title),
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.ydiag_done)) } },
-        title = {
-            Column {
-                Text(stringResource(R.string.ydiag_picker_title))
-                Text(stringResource(R.string.ydiag_picker_desc), style = MaterialTheme.typography.bodySmall)
-            }
-        },
-        text = {
-            Column {
-                YSearchField(value = search, onValueChange = onSearch, hint = stringResource(R.string.ydiag_search_apps))
-                Spacer(Modifier.height(8.dp))
-                YFilterBar(
-                    options = AppFilter.entries.map { filterLabel(it) },
-                    selectedIndex = AppFilter.entries.indexOf(filter).coerceAtLeast(0),
-                    onSelected = { index -> AppFilter.entries.getOrNull(index)?.let(onFilter) },
-                )
-                Spacer(Modifier.height(8.dp))
-                if (visible.isEmpty()) {
-                    YEmptyMessage(stringResource(R.string.ydiag_no_filtered_apps))
-                } else {
-                    LazyColumn(Modifier.height(480.dp)) {
-                        items(visible, key = { it.packageName }) { app ->
-                            val systemSuffix = if (app.system) {
-                                " · " + stringResource(R.string.ydiag_system_app)
-                            } else {
-                                ""
-                            }
-                            YCheckboxItem(
-                                title = app.label,
-                                subtitle = app.packageName + systemSuffix,
-                                checked = app.packageName in selected,
-                                onCheckedChange = { onToggle(app.packageName) },
-                            )
-                        }
+        actions = listOf(
+            YActionSpec(
+                label = stringResource(R.string.ydiag_done),
+                style = YActionStyle.PRIMARY,
+                onClick = onDismiss,
+            )
+        ),
+    ) {
+        YNotice(stringResource(R.string.ydiag_picker_desc))
+        YSearchField(
+            value = search,
+            onValueChange = onSearch,
+            hint = stringResource(R.string.ydiag_search_apps),
+        )
+        YFilterBar(
+            options = AppFilter.entries.map { filterLabel(it) },
+            selectedIndex = AppFilter.entries.indexOf(filter).coerceAtLeast(0),
+            onSelected = { index -> AppFilter.entries.getOrNull(index)?.let(onFilter) },
+        )
+        if (visible.isEmpty()) {
+            YEmptyMessage(stringResource(R.string.ydiag_no_filtered_apps))
+        } else {
+            LazyColumn(Modifier.height(480.dp)) {
+                items(visible, key = { it.packageName }) { app ->
+                    val systemSuffix = if (app.system) {
+                        " · " + stringResource(R.string.ydiag_system_app)
+                    } else {
+                        ""
                     }
+                    YCheckboxItem(
+                        title = app.label,
+                        subtitle = app.packageName + systemSuffix,
+                        checked = app.packageName in selected,
+                        onCheckedChange = { onToggle(app.packageName) },
+                    )
                 }
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable

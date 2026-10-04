@@ -385,9 +385,13 @@ fun YSwitchItem(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     enabled: Boolean = true,
+    detail: String? = null,
+    leading: @Composable (() -> Unit)? = null,
 ) = YListItem(
     title = title,
     subtitle = subtitle,
+    detail = detail,
+    leading = leading,
     modifier = modifier,
     enabled = enabled,
     onClick = { if (enabled) onCheckedChange(!checked) },
