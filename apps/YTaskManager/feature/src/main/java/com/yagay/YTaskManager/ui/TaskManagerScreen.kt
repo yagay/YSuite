@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,17 +28,10 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -86,6 +80,14 @@ import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YStatusPill
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
+import com.yagay.yui.YActionSpec
+import com.yagay.yui.YActionStyle
+import com.yagay.yui.YConfirmDialog
+import com.yagay.yui.YFormDialog
+import com.yagay.yui.YIconAction
+import com.yagay.yui.YListSkeleton
+import com.yagay.yui.YMessageHost
+import com.yagay.yui.YNotice
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
@@ -138,14 +140,18 @@ fun TaskManagerApp(viewModel: MainViewModel) {
                 HomePage.NETWORK -> stringResource(R.string.ytm_network_summary)
             },
             actions = {
-                IconButton(onClick = viewModel::refresh) {
-                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.ytm_refresh))
-                }
-                IconButton(onClick = { showSettings = true }) {
-                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ytm_settings))
-                }
+                YIconAction(
+                    icon = YIcons.Refresh,
+                    contentDescription = stringResource(R.string.ytm_refresh),
+                    onClick = viewModel::refresh,
+                )
+                YIconAction(
+                    icon = YIcons.Settings,
+                    contentDescription = stringResource(R.string.ytm_settings),
+                    onClick = { showSettings = true },
+                )
             },
-            snackbarHost = { SnackbarHost(snackbar) },
+            snackbarHost = { YMessageHost(snackbar) },
         ) { padding ->
             Box(
                 modifier = Modifier
@@ -194,20 +200,18 @@ fun TaskManagerApp(viewModel: MainViewModel) {
     }
 
     pendingKill?.let { (process, forceStop) ->
-        AlertDialog(
-            onDismissRequest = { pendingKill = null },
-            title = { Text(stringResource(if (forceStop) R.string.ytm_force_stop_question else R.string.ytm_kill_question)) },
-            text = { Text(process.displayName) },
-            confirmButton = {
-                Button(onClick = {
-                    pendingKill = null
-                    selected = null
-                    if (forceStop) viewModel.forceStop(process) else viewModel.killProcess(process)
-                }) { Text(stringResource(R.string.ytm_confirm)) }
+        YConfirmDialog(
+            title = stringResource(if (forceStop) R.string.ytm_force_stop_question else R.string.ytm_kill_question),
+            message = process.displayName,
+            confirmLabel = stringResource(R.string.ytm_confirm),
+            dismissLabel = stringResource(R.string.ytm_cancel),
+            onConfirm = {
+                pendingKill = null
+                selected = null
+                if (forceStop) viewModel.forceStop(process) else viewModel.killProcess(process)
             },
-            dismissButton = {
-                TextButton(onClick = { pendingKill = null }) { Text(stringResource(R.string.ytm_cancel)) }
-            },
+            onDismiss = { pendingKill = null },
+            dangerous = true,
         )
     }
 
@@ -239,9 +243,10 @@ private fun ProcessPage(
             onLinux = viewModel::setShowLinuxProcesses,
         )
         if (state.loading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            YListSkeleton(
+                rows = 7,
+                modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
+            )
         } else {
             ProcessList(state, onSelect)
         }
@@ -288,9 +293,11 @@ private fun FilterSection(
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             trailingIcon = if (state.query.isNotEmpty()) {
                 {
-                    IconButton(onClick = { onQuery("") }) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.ytm_clear))
-                    }
+                    YIconAction(
+                        icon = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.ytm_clear),
+                        onClick = { onQuery("") },
+                    )
                 }
             } else null,
         )
@@ -615,42 +622,63 @@ private fun ProcessDialog(
     onKill: () -> Unit,
     onForceStop: () -> Unit,
 ) {
-    AlertDialog(
+    val actions = buildList {
+        add(
+            YActionSpec(
+                label = stringResource(if (process.isPinned) R.string.ytm_unpin else R.string.ytm_pin),
+                onClick = onPin,
+            )
+        )
+        if (process.packageName != null) {
+            add(
+                YActionSpec(
+                    label = stringResource(R.string.ytm_force_stop),
+                    style = YActionStyle.DANGER,
+                    onClick = onForceStop,
+                )
+            )
+        }
+        add(
+            YActionSpec(
+                label = stringResource(R.string.ytm_kill_pid),
+                style = YActionStyle.DANGER,
+                onClick = onKill,
+            )
+        )
+        add(YActionSpec(label = stringResource(R.string.ytm_close), onClick = onDismiss))
+    }
+
+    YFormDialog(
+        title = process.displayName,
         onDismissRequest = onDismiss,
-        title = { Text(process.displayName) },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                item { CopyDetail("PID", process.pid.toString()) }
-                if (process.ppid != 0) item { ParentDetail(process.ppid, parent, onOpenParent) }
-                item { CopyDetail("UID", process.uid.toString()) }
-                item { CopyDetail(stringResource(R.string.ytm_user), process.userName) }
-                item { CopyDetail(stringResource(R.string.ytm_cpu_usage), String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent)) }
-                item { CopyDetail(stringResource(R.string.ytm_ram_usage), formatBytes(process.rssKb * 1024L)) }
-                item { CopyDetail(stringResource(R.string.ytm_realtime_download), formatSpeed(process.rxBytesPerSecond)) }
-                item { CopyDetail(stringResource(R.string.ytm_realtime_upload), formatSpeed(process.txBytesPerSecond)) }
-                if (process.virtualMemoryKb > 0L) item { CopyDetail(stringResource(R.string.ytm_virtual_memory), formatBytes(process.virtualMemoryKb * 1024L)) }
-                item { CopyDetail(stringResource(R.string.ytm_foreground), if (process.isForeground) stringResource(R.string.ytm_yes) else stringResource(R.string.ytm_no)) }
-                item { CopyDetail(stringResource(R.string.ytm_threads), process.threads.toString()) }
-                item { CopyDetail(stringResource(R.string.ytm_nice_value), process.nice.toString()) }
-                item { CopyDetail(stringResource(R.string.ytm_status), process.state) }
-                item { CopyDetail(stringResource(R.string.ytm_start_time), formatStartTime(process.startTimeMillis, stringResource(R.string.ytm_unknown))) }
-                item { CopyDetail(stringResource(R.string.ytm_elapsed_time), formatDuration(process.elapsedTimeMillis)) }
-                process.executablePath?.let { value -> item { CopyDetail(stringResource(R.string.ytm_executable_path), value) } }
-                process.cgroup?.let { value -> item { CopyDetail("Cgroup", value) } }
-                if (process.packageNames.isNotEmpty()) item { CopyDetail(stringResource(R.string.ytm_package), process.packageNames.joinToString("\n")) }
-                item { CopyDetail(stringResource(R.string.ytm_command), process.command) }
-                process.oomScoreAdj?.let { value -> item { CopyDetail(stringResource(R.string.ytm_oom_score_adj), value.toString()) } }
-            }
-        },
-        confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                TextButton(onClick = onPin) { Text(stringResource(if (process.isPinned) R.string.ytm_unpin else R.string.ytm_pin)) }
-                if (process.packageName != null) Button(onClick = onForceStop) { Text(stringResource(R.string.ytm_force_stop)) }
-                Button(onClick = onKill) { Text(stringResource(R.string.ytm_kill_pid)) }
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.ytm_close)) } },
-    )
+        actions = actions,
+    ) {
+        LazyColumn(
+            modifier = Modifier.heightIn(max = 480.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            item { CopyDetail("PID", process.pid.toString()) }
+            if (process.ppid != 0) item { ParentDetail(process.ppid, parent, onOpenParent) }
+            item { CopyDetail("UID", process.uid.toString()) }
+            item { CopyDetail(stringResource(R.string.ytm_user), process.userName) }
+            item { CopyDetail(stringResource(R.string.ytm_cpu_usage), String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent)) }
+            item { CopyDetail(stringResource(R.string.ytm_ram_usage), formatBytes(process.rssKb * 1024L)) }
+            item { CopyDetail(stringResource(R.string.ytm_realtime_download), formatSpeed(process.rxBytesPerSecond)) }
+            item { CopyDetail(stringResource(R.string.ytm_realtime_upload), formatSpeed(process.txBytesPerSecond)) }
+            if (process.virtualMemoryKb > 0L) item { CopyDetail(stringResource(R.string.ytm_virtual_memory), formatBytes(process.virtualMemoryKb * 1024L)) }
+            item { CopyDetail(stringResource(R.string.ytm_foreground), if (process.isForeground) stringResource(R.string.ytm_yes) else stringResource(R.string.ytm_no)) }
+            item { CopyDetail(stringResource(R.string.ytm_threads), process.threads.toString()) }
+            item { CopyDetail(stringResource(R.string.ytm_nice_value), process.nice.toString()) }
+            item { CopyDetail(stringResource(R.string.ytm_status), process.state) }
+            item { CopyDetail(stringResource(R.string.ytm_start_time), formatStartTime(process.startTimeMillis, stringResource(R.string.ytm_unknown))) }
+            item { CopyDetail(stringResource(R.string.ytm_elapsed_time), formatDuration(process.elapsedTimeMillis)) }
+            process.executablePath?.let { value -> item { CopyDetail(stringResource(R.string.ytm_executable_path), value) } }
+            process.cgroup?.let { value -> item { CopyDetail("Cgroup", value) } }
+            if (process.packageNames.isNotEmpty()) item { CopyDetail(stringResource(R.string.ytm_package), process.packageNames.joinToString("\n")) }
+            item { CopyDetail(stringResource(R.string.ytm_command), process.command) }
+            process.oomScoreAdj?.let { value -> item { CopyDetail(stringResource(R.string.ytm_oom_score_adj), value.toString()) } }
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -709,33 +737,35 @@ private fun SettingsDialog(
     onRefreshInterval: (Long) -> Unit,
     onConfirmKill: (Boolean) -> Unit,
 ) {
-    AlertDialog(
+    val intervals = listOf(500L, 800L, 1000L, 2000L)
+    YFormDialog(
+        title = stringResource(R.string.ytm_process_settings),
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.ytm_process_settings)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ToggleRow(stringResource(R.string.ytm_auto_refresh), state.autoRefresh, onAutoRefresh)
-                ToggleRow(stringResource(R.string.ytm_confirm_before_kill), state.confirmKill, onConfirmKill)
-                Text(stringResource(R.string.ytm_refresh_interval), style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(500L, 800L, 1000L, 2000L).forEach { value ->
-                        FilterChip(
-                            selected = state.refreshIntervalMs == value,
-                            onClick = { onRefreshInterval(value) },
-                            label = { Text(stringResource(R.string.ytm_milliseconds, value)) },
-                        )
-                    }
-                }
-                Text(stringResource(R.string.ytm_network_sampling), style = MaterialTheme.typography.bodySmall)
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.ytm_done)) } },
-    )
-}
-
-@Composable
-private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    YSwitchItem(title = label, checked = checked, onCheckedChange = onCheckedChange)
+        actions = listOf(
+            YActionSpec(
+                label = stringResource(R.string.ytm_done),
+                style = YActionStyle.PRIMARY,
+                onClick = onDismiss,
+            )
+        ),
+    ) {
+        YSwitchItem(
+            title = stringResource(R.string.ytm_auto_refresh),
+            checked = state.autoRefresh,
+            onCheckedChange = onAutoRefresh,
+        )
+        YSwitchItem(
+            title = stringResource(R.string.ytm_confirm_before_kill),
+            checked = state.confirmKill,
+            onCheckedChange = onConfirmKill,
+        )
+        YFilterBar(
+            options = intervals.map { stringResource(R.string.ytm_milliseconds, it) },
+            selectedIndex = intervals.indexOf(state.refreshIntervalMs).coerceAtLeast(0),
+            onSelected = { index -> intervals.getOrNull(index)?.let(onRefreshInterval) },
+        )
+        YNotice(stringResource(R.string.ytm_network_sampling))
+    }
 }
 
 @Composable
