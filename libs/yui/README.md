@@ -6,8 +6,10 @@ YUI is the single UI and layout layer for YSuite and every standalone feature bu
 
 Normal feature screens keep business content in `apps/*/feature`, while shared presentation belongs here:
 
-- `YPageScaffold` and role-specific scaffolds own page chrome and content width.
-- `YNavigationSuite` owns top-level navigation: bottom navigation on compact windows and a rail on wider windows.
+- `YPageTemplate` owns content width, row density, card emphasis and app-bar prominence for each page role.
+- `YPageScaffold` and role-specific scaffolds render those templates.
+- `YAppShell` uses the official Material 3 Adaptive Navigation Suite for top-level navigation.
+- `YNavigationSuite` is only a migration compatibility alias.
 - `YPageList`, list/detail and supporting-pane helpers own responsive layout.
 - `YTheme`, semantic colors, shapes and generated tokens own Material 3 styling.
 - `YViewLayout` and `Theme.YUI` are the compatibility layer for Java/View/XML features.
@@ -37,8 +39,10 @@ Specialized interaction surfaces such as overlays, capture probes, drag/reorder 
 The implementation follows established open-source Android patterns rather than copying another app's visual identity:
 
 - Android **Now in Android**: Material 3 design-system ownership and adaptive top-level navigation.
-- Android **Adaptive Apps samples**: compact/medium/expanded layout behavior.
-- **Mihon**: shared utility-app scaffolds and dense settings/list presentation.
+- Android **Material 3 Adaptive**: canonical adaptive navigation and pane behavior.
+- **Seal**: settings hierarchy and task-first screen structure.
+- **Droid-ify**: dense searchable/filterable app lists.
+- **Material Files**: path-first file-browser information hierarchy.
 
 YSuite keeps its own palette, semantics and component vocabulary. Dynamic color is used when available; the shared YUI palette is the fallback.
 

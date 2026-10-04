@@ -39,9 +39,9 @@ REQUIRED_YUI_MARKERS = (
     "fun YTimelineScaffold(", "fun YLogScaffold(", "fun YEditorScaffold(", "fun YWizardScaffold(",
 )
 REQUIRED_ADAPTIVE_MARKERS = (
-    "enum class YWindowWidthClass", "fun YAdaptiveBox(", "fun YNavigationSuite(",
-    "fun YListDetailScaffold(", "fun YSupportingPaneScaffold(", "fun YResponsiveGrid(",
-    "fun YBreadcrumbBar(",
+    "enum class YWindowWidthClass", "data class YPageTemplate", "fun YAdaptiveBox(",
+    "fun YAppShell(", "fun YNavigationSuite(", "fun YListDetailScaffold(",
+    "fun YSupportingPaneScaffold(", "fun YResponsiveGrid(", "fun YBreadcrumbBar(",
 )
 REQUIRED_FORM_MARKERS = (
     "fun YIconAction(", "fun YTextField(", "fun YNumberField(", "fun YPasswordField(",

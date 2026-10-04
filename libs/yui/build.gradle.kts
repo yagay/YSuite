@@ -39,6 +39,8 @@ dependencies {
     api(libs.androidx.compose.foundation)
     api(libs.androidx.compose.material3)
     api(libs.androidx.compose.material.icons.extended)
+    api("androidx.compose.material3.adaptive:adaptive:1.3.0")
+    api("androidx.compose.material3:material3-adaptive-navigation-suite:1.4.0")
 
     api(libs.androidx.activity.compose)
     api(libs.androidx.lifecycle.runtime.compose)

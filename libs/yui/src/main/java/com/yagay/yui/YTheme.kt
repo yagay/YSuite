@@ -1,34 +1,29 @@
 package com.yagay.yui
 
 import android.os.Build
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -125,38 +120,22 @@ fun YTheme(
     }
 }
 
-/** Adaptive YSuite top bar used by every Compose feature. */
+/** Material 3 app bar selected by the current page template. */
 @Composable
 fun YTopBar(
     title: String,
     subtitle: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().statusBarsPadding(),
-        tonalElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(Modifier.fillMaxWidth()) {
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val horizontal = yPageHorizontalPadding(maxWidth)
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = YDimens.ToolbarHeight)
-                        .padding(horizontal = horizontal, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                ) {
-                    Column(Modifier.weight(1f)) { YTopBarCopy(title, subtitle) }
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                        verticalAlignment = Alignment.CenterVertically,
-                        content = actions,
-                    )
-                }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
-        }
+    when (LocalYPageRole.current.template().topBarStyle) {
+        YTopBarStyle.PROMINENT -> MediumTopAppBar(
+            title = { YTopBarCopy(title, subtitle) },
+            actions = actions,
+        )
+        YTopBarStyle.COMPACT -> TopAppBar(
+            title = { YTopBarCopy(title, subtitle) },
+            actions = actions,
+        )
     }
 }
 

@@ -150,7 +150,7 @@ fun YFeatureCard(
         content()
     }
 
-    if (role == YPageRole.DASHBOARD) {
+    if (role.template().emphasizeCards) {
         YCard(modifier = modifier.fillMaxWidth()) {
             sectionBody()
         }

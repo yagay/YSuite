@@ -137,11 +137,12 @@ fun YPageList(
     content: LazyListScope.() -> Unit,
 ) {
     val role = LocalYPageRole.current
-    val rowSpacing = if (compact) 0.dp else role.sectionSpacing()
+    val template = role.template()
+    val rowSpacing = if (compact) 0.dp else template.sectionSpacing
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val horizontal = yPageHorizontalPadding(maxWidth)
         LazyColumn(
-            modifier = Modifier.widthIn(max = role.maxContentWidth()).fillMaxSize(),
+            modifier = Modifier.widthIn(max = template.maxContentWidth).fillMaxSize(),
             contentPadding = PaddingValues(
                 start = horizontal,
                 top = padding.calculateTopPadding() + YDimens.ScreenVertical,
@@ -156,7 +157,11 @@ fun YPageList(
 
 @Composable
 fun YSectionHeader(title: String, modifier: Modifier = Modifier, subtitle: String? = null) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    val topPadding = if (LocalYPageRole.current == YPageRole.SETTINGS) 18.dp else 10.dp
+    Column(
+        modifier.fillMaxWidth().padding(top = topPadding, bottom = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
         Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         if (!subtitle.isNullOrBlank()) {
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -179,11 +184,12 @@ fun YListItem(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
+    val roleTemplate = LocalYPageRole.current.template()
     val interactionModifier = if (onClick != null || onLongClick != null) {
         modifier.combinedClickable(enabled = enabled, onClick = { onClick?.invoke() }, onLongClick = onLongClick)
     } else modifier
     ListItem(
-        modifier = interactionModifier.fillMaxWidth(),
+        modifier = interactionModifier.fillMaxWidth().heightIn(min = roleTemplate.minimumRowHeight),
         colors = ListItemDefaults.colors(
             containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
             else Color.Transparent,

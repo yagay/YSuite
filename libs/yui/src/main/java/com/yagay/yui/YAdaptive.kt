@@ -5,14 +5,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -21,14 +18,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -50,28 +44,44 @@ data class YWindowInfo(
 
 internal val LocalYPageRole = staticCompositionLocalOf { YPageRole.LIST }
 
+enum class YTopBarStyle { COMPACT, PROMINENT }
+
+@Immutable
+data class YPageTemplate(
+    val maxContentWidth: Dp,
+    val sectionSpacing: Dp,
+    val minimumRowHeight: Dp,
+    val topBarStyle: YTopBarStyle,
+    val emphasizeCards: Boolean = false,
+)
+
+internal fun YPageRole.template(): YPageTemplate = when (this) {
+    YPageRole.DASHBOARD -> YPageTemplate(
+        YDimens.ContentMaxWidth, 12.dp, 64.dp, YTopBarStyle.PROMINENT, emphasizeCards = true,
+    )
+    YPageRole.SETTINGS -> YPageTemplate(
+        YDimens.FormMaxWidth, 0.dp, 64.dp, YTopBarStyle.PROMINENT,
+    )
+    YPageRole.MANAGER, YPageRole.BROWSER, YPageRole.TIMELINE, YPageRole.LOG -> YPageTemplate(
+        YDimens.ContentMaxWidth, 0.dp, 56.dp, YTopBarStyle.COMPACT,
+    )
+    YPageRole.DETAIL, YPageRole.EDITOR, YPageRole.WIZARD -> YPageTemplate(
+        YDimens.FormMaxWidth, 8.dp, 64.dp, YTopBarStyle.COMPACT,
+    )
+    YPageRole.LIST -> YPageTemplate(
+        YDimens.ContentMaxWidth, 0.dp, 60.dp, YTopBarStyle.COMPACT,
+    )
+}
+
 fun yPageHorizontalPadding(width: Dp): Dp = when {
     width < YDimens.MediumBreakpoint -> YDimens.ScreenHorizontal
     width < YDimens.ExpandedBreakpoint -> YDimens.ScreenHorizontalMedium
     else -> YDimens.ScreenHorizontalExpanded
 }
 
-internal fun YPageRole.maxContentWidth(): Dp = when (this) {
-    YPageRole.SETTINGS, YPageRole.DETAIL, YPageRole.EDITOR, YPageRole.WIZARD -> YDimens.FormMaxWidth
-    else -> YDimens.ContentMaxWidth
-}
-
-internal fun YPageRole.prefersCompactRows(): Boolean = when (this) {
-    YPageRole.MANAGER, YPageRole.BROWSER, YPageRole.TIMELINE, YPageRole.LOG -> true
-    else -> false
-}
-
-internal fun YPageRole.sectionSpacing(): Dp = when (this) {
-    YPageRole.LIST, YPageRole.MANAGER, YPageRole.BROWSER, YPageRole.TIMELINE, YPageRole.LOG -> 0.dp
-    YPageRole.SETTINGS -> 6.dp
-    YPageRole.DASHBOARD -> 12.dp
-    else -> 12.dp
-}
+internal fun YPageRole.maxContentWidth(): Dp = template().maxContentWidth
+internal fun YPageRole.prefersCompactRows(): Boolean = template().minimumRowHeight <= 56.dp
+internal fun YPageRole.sectionSpacing(): Dp = template().sectionSpacing
 
 @Composable
 fun YAdaptiveBox(
@@ -96,7 +106,45 @@ data class YNavigationSpec(
     val selectedIcon: ImageVector = icon,
 )
 
-/** Bottom navigation on phones and navigation rail on wider windows. */
+/**
+ * Canonical YSuite application shell. Material 3 Adaptive chooses the navigation surface for
+ * the current window and posture; feature modules no longer own phone/tablet breakpoints.
+ */
+@Composable
+fun YAppShell(
+    selectedKey: String,
+    items: List<YNavigationSpec>,
+    onSelected: (YNavigationSpec) -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    NavigationSuiteScaffold(
+        navigationSuiteItems = {
+            items.forEach { item ->
+                val selected = item.key == selectedKey
+                item(
+                    selected = selected,
+                    onClick = { onSelected(item) },
+                    icon = {
+                        Icon(
+                            if (selected) item.selectedIcon else item.icon,
+                            contentDescription = item.label,
+                        )
+                    },
+                    label = { Text(item.label) },
+                )
+            }
+        },
+        layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo()),
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+    ) {
+        content()
+    }
+}
+
+/** Compatibility alias while old feature call sites are migrated. */
+@Deprecated("Use YAppShell")
 @Composable
 fun YNavigationSuite(
     selectedKey: String,
@@ -104,64 +152,7 @@ fun YNavigationSuite(
     onSelected: (YNavigationSpec) -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
-) {
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        if (maxWidth < YDimens.MediumBreakpoint) {
-            Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxWidth()) { content() }
-                NavigationBar(
-                    tonalElevation = 0.dp,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ) {
-                    items.forEach { item ->
-                        val selected = item.key == selectedKey
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { onSelected(item) },
-                            icon = { Icon(if (selected) item.selectedIcon else item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
-                    }
-                }
-            }
-        } else {
-            Row(Modifier.fillMaxSize()) {
-                NavigationRail(
-                    modifier = Modifier.fillMaxHeight().width(YDimens.NavigationRailWidth),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ) {
-                    Spacer(Modifier.height(8.dp))
-                    items.forEach { item ->
-                        val selected = item.key == selectedKey
-                        NavigationRailItem(
-                            selected = selected,
-                            onClick = { onSelected(item) },
-                            icon = { Icon(if (selected) item.selectedIcon else item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            colors = NavigationRailItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
-                    }
-                }
-                Box(Modifier.weight(1f).fillMaxHeight()) { content() }
-            }
-        }
-    }
-}
+) = YAppShell(selectedKey, items, onSelected, modifier, content)
 
 /** Standard master/detail behavior: split pane on expanded windows, single pane otherwise. */
 @Composable

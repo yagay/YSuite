@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 fun YComponentCatalogScreen() {
     var text by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(0) }
+    var enabled by remember { mutableStateOf(true) }
     val title = stringResource(R.string.yui_catalog_title)
     val subtitle = stringResource(R.string.yui_catalog_subtitle)
     val primary = stringResource(R.string.yui_catalog_primary)
@@ -42,6 +43,22 @@ fun YComponentCatalogScreen() {
             item { YNotice(error, tone = YNoticeTone.ERROR) }
             item { YProgressItem(primary, progress = 0.62f, subtitle = secondary) }
             item { YSectionHeader(stringResource(R.string.yui_catalog_forms)) }
+            item {
+                YSwitchItem(
+                    title = primary,
+                    subtitle = secondary,
+                    checked = enabled,
+                    onCheckedChange = { enabled = it },
+                )
+            }
+            item {
+                YListItem(
+                    title = optionA,
+                    subtitle = secondary,
+                    selected = selected == 0,
+                    onClick = { selected = 0 },
+                )
+            }
             item {
                 YTextField(
                     value = text,
