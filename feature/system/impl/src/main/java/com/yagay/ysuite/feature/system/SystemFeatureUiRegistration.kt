@@ -12,6 +12,7 @@ import com.yagay.ysuite.platform.api.PlatformCapabilityMonitor
 import com.yagay.ysuite.runtime.FeatureLifecycleEvent
 import com.yagay.ysuite.runtime.FeatureLifecycleObserver
 import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
+import com.yagay.ysuite.ui.YSuitePageKind
 
 class SystemFeatureUiRegistration(
     private val capabilityMonitor: PlatformCapabilityMonitor,
@@ -22,6 +23,9 @@ class SystemFeatureUiRegistration(
     private val permissionCatalog: PermissionCatalog,
 ) : YSuiteFeatureUiRegistration {
     override val contract = SystemFeatureContract
+
+    override val pageKind =
+        YSuitePageKind.Dashboard
 
     override val lifecycleObserver =
         FeatureLifecycleObserver { event ->
