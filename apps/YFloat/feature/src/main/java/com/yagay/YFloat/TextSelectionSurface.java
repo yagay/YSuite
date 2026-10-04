@@ -1,5 +1,6 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YOverlayTokens;
 import android.content.Context;
 import android.graphics.Color;
 import android.text.InputType;
@@ -34,7 +35,7 @@ public class TextSelectionSurface extends FrameLayout {
 
         textView = new SelectionEditText(context);
         textView.owner = this;
-        textView.setTextColor(UiTokens.textPrimary(context));
+        textView.setTextColor(YOverlayTokens.textPrimary(context));
         textView.setTextSize(16);
         textView.setBackgroundColor(Color.TRANSPARENT);
         textView.setSingleLine(false);
@@ -87,7 +88,7 @@ public class TextSelectionSurface extends FrameLayout {
     public EditText editor() { return textView; }
 
     private int dp(int v) {
-        return UiTokens.dp(getContext(), v);
+        return YOverlayTokens.dp(getContext(), v);
     }
 
     private static final class SelectionEditText extends AppCompatEditText {

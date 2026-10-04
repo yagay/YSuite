@@ -1,5 +1,6 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YOverlayTokens;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
@@ -25,7 +26,7 @@ final class ResultUi {
         LinearLayout box = new LinearLayout(c);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(c, BOX_HPAD_DP), dp(c, 8), dp(c, BOX_HPAD_DP), dp(c, 8));
-        box.setBackground(popupBackground(c, UiTokens.resultSurface(c)));
+        box.setBackground(popupBackground(c, YOverlayTokens.resultSurface(c)));
         // Do not use platform elevation here. The result card fills the dialog window closely,
         // so Android clips the elevation shadow at the rectangular window bounds and leaves
         // square dark corners outside the rounded surface.
@@ -48,14 +49,14 @@ final class ResultUi {
         background.setShape(GradientDrawable.RECTANGLE);
         background.setColor(color);
         background.setCornerRadius(dp(c, POPUP_RADIUS_DP));
-        background.setStroke(dp(c, 1), UiTokens.outline(c));
+        background.setStroke(dp(c, 1), YOverlayTokens.outline(c));
         return background;
     }
 
     static TextView heading(Context c, String text) {
         TextView title = new TextView(c);
         title.setText(text == null ? "" : text);
-        title.setTextColor(UiTokens.textPrimary(c));
+        title.setTextColor(YOverlayTokens.textPrimary(c));
         title.setTextSize(17);
         title.setGravity(Gravity.CENTER_VERTICAL);
         return title;
@@ -103,7 +104,7 @@ final class ResultUi {
     }
 
     static int dp(Context c, int v) {
-        return UiTokens.dp(c, v);
+        return YOverlayTokens.dp(c, v);
     }
 
     static int clamp(int v, int min, int max) {

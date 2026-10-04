@@ -1,5 +1,6 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YOverlayTokens;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -15,7 +16,7 @@ final class FloatingMenuUi {
     static LinearLayout root(Context c, int radiusDp) {
         LinearLayout root = new LinearLayout(c);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackground(rounded(UiTokens.menuSurface(c), dp(c, radiusDp)));
+        root.setBackground(rounded(YOverlayTokens.menuSurface(c), dp(c, radiusDp)));
         root.setElevation(dp(c, 10));
         root.setClipToOutline(true);
         root.setClickable(true);
@@ -47,14 +48,14 @@ final class FloatingMenuUi {
 
     static TextView secondaryRow(Context c, String text) {
         TextView tv = row(c, text, null);
-        tv.setTextColor(UiTokens.menuSecondaryText(c));
+        tv.setTextColor(YOverlayTokens.menuSecondaryText(c));
         return tv;
     }
 
     private static TextView baseText(Context c, String text) {
         TextView tv = new TextView(c);
         tv.setText(text == null ? "" : text);
-        tv.setTextColor(UiTokens.menuPrimaryText(c));
+        tv.setTextColor(YOverlayTokens.menuPrimaryText(c));
         tv.setTextSize(14);
         tv.setBackground(ripple(c));
         tv.setClickable(true);
@@ -73,10 +74,10 @@ final class FloatingMenuUi {
         GradientDrawable content = new GradientDrawable();
         content.setColor(Color.TRANSPARENT);
         content.setCornerRadius(999f);
-        return new RippleDrawable(ColorStateList.valueOf(UiTokens.menuRipple(c)), content, null);
+        return new RippleDrawable(ColorStateList.valueOf(YOverlayTokens.menuRipple(c)), content, null);
     }
 
-    static int dp(Context c, int value) { return UiTokens.dp(c, value); }
+    static int dp(Context c, int value) { return YOverlayTokens.dp(c, value); }
 
     private FloatingMenuUi() {}
 }
