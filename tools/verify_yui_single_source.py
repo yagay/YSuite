@@ -143,6 +143,29 @@ def main() -> None:
             + ", ".join(page_layouts)
         )
 
+    activity_offenders: list[str] = []
+    for path in APPS.glob("*/feature/src/main/java/**/*Activity.*"):
+        if not path.is_file() or path.suffix not in {".kt", ".java"}:
+            continue
+        source = path.read_text(encoding="utf-8", errors="replace")
+        if any(
+            marker in source
+            for marker in (
+                "YComposeActivity",
+                "YViewLayout",
+                "YViewPage",
+                "YUiWindowOptOut",
+                "com.yagay.yui",
+            )
+        ):
+            continue
+        activity_offenders.append(str(path.relative_to(ROOT)))
+    if activity_offenders:
+        fail(
+            "normal feature Activities must use the shared YUI activity/page framework: "
+            + ", ".join(sorted(activity_offenders))
+        )
+
     for module, (path, markers) in MODULE_UI.items():
         source = read(path)
         for marker in markers:
