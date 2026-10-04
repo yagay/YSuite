@@ -21,6 +21,8 @@ import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ProgressBar
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
@@ -65,6 +67,11 @@ class YViewListRow(
     @JvmField val subtitle: TextView,
     @JvmField val icon: ImageView?,
     @JvmField val trailing: LinearLayout,
+)
+
+class YViewRadioGroup(
+    @JvmField val group: RadioGroup,
+    @JvmField val buttons: List<RadioButton>,
 )
 
 class YViewFilterBar(
@@ -493,6 +500,43 @@ object YViewLayout {
     fun listView(context: Context): ListView = ListView(context).apply {
         dividerHeight = maxOf(1, dp(context, 1))
         setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun contentColumn(context: Context, padded: Boolean = true): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        if (padded) {
+            setPadding(
+                YView.screenHorizontal(context),
+                YView.screenVertical(context),
+                YView.screenHorizontal(context),
+                YView.sectionGap(context),
+            )
+        }
+    }
+
+    @JvmStatic
+    fun radioGroup(context: Context, labels: Array<String>): YViewRadioGroup {
+        val group = RadioGroup(context).apply {
+            orientation = RadioGroup.VERTICAL
+        }
+        val buttons = labels.map { label ->
+            RadioButton(context).apply {
+                id = View.generateViewId()
+                text = label
+                minimumHeight = YView.touchTarget(context)
+                setTextColor(YView.onSurface(context))
+                group.addView(
+                    this,
+                    RadioGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ),
+                )
+            }
+        }
+        return YViewRadioGroup(group, buttons)
     }
 
     @JvmStatic
