@@ -29,6 +29,11 @@ enum class YFileSort {
     Type,
 }
 
+enum class YFileTransferMode {
+    Copy,
+    Move,
+}
+
 data class YFileQuery(
     val path: String,
     val text: String = "",
@@ -37,4 +42,33 @@ data class YFileQuery(
     val sort: YFileSort = YFileSort.Name,
     val descending: Boolean = false,
     val maxResults: Int = 500,
+)
+
+data class YFileFailure(
+    val path: String,
+    val code: String,
+)
+
+data class YFileBatchResult(
+    val succeeded: Int,
+    val failures: List<YFileFailure>,
+) {
+    val failed: Int
+        get() = failures.size
+}
+
+data class YFileClipboard(
+    val entries: List<YFileEntry>,
+    val mode: YFileTransferMode,
+)
+
+data class YTrashEntry(
+    val id: String,
+    val originalPath: String,
+    val entry: YFileEntry,
+)
+
+data class YFilesPlacesSnapshot(
+    val favoritePaths: Set<String> = emptySet(),
+    val recentPaths: List<String> = emptyList(),
 )
