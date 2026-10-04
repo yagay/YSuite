@@ -50,4 +50,50 @@
     <string name="ydownload_service_active">%1$d active downloads</string>
     <string name="ydownload_completed">Download completed</string>
     <string name="ydownload_failed">Download failed</string>
+
+    <string name="ydownload_settings">Download settings</string>
+    <string name="ydownload_settings_downloads">Downloads</string>
+    <string name="ydownload_settings_network">Network</string>
+    <string name="ydownload_settings_notifications">Notifications</string>
+    <string name="ydownload_default_folder">Default save folder</string>
+    <string name="ydownload_default_folder_system">Download/YDownload</string>
+    <string name="ydownload_use_system_folder">Use system default folder</string>
+    <string name="ydownload_max_concurrent">Maximum concurrent downloads</string>
+    <string name="ydownload_speed_limit">Global speed limit</string>
+    <string name="ydownload_unlimited">Unlimited</string>
+    <string name="ydownload_speed_512k">512 KB/s</string>
+    <string name="ydownload_speed_1m">1 MB/s</string>
+    <string name="ydownload_speed_5m">5 MB/s</string>
+    <string name="ydownload_speed_10m">10 MB/s</string>
+    <string name="ydownload_wifi_only">Wi‑Fi only</string>
+    <string name="ydownload_wifi_only_desc">New downloads only start while Wi‑Fi is available.</string>
+    <string name="ydownload_notification_progress">Download notifications</string>
+    <string name="ydownload_notification_progress_desc">Show progress, completion and failure notifications.</string>
+    <string name="ydownload_default_user_agent">Default User-Agent</string>
+    <string name="ydownload_user_agent_mobile">Mobile</string>
+    <string name="ydownload_user_agent_desktop">Desktop</string>
+
+    <string name="ydownload_sort_date">Sort by added time</string>
+    <string name="ydownload_sort_name">Sort by file name</string>
+    <string name="ydownload_clear_completed">Clear completed tasks</string>
+    <string name="ydownload_paste_clipboard">Paste from clipboard</string>
+    <string name="ydownload_import_file">Import from text file</string>
+    <string name="ydownload_share">Share file</string>
+    <string name="ydownload_copy_link">Copy download link</string>
+    <string name="ydownload_open_folder">Open save folder</string>
+    <string name="ydownload_properties">Properties</string>
+    <string name="ydownload_redownload">Download again</string>
+    <string name="ydownload_close">Close</string>
+
+    <string name="ydownload_property_file_name">File name</string>
+    <string name="ydownload_property_url">Download URL</string>
+    <string name="ydownload_property_size">Size</string>
+    <string name="ydownload_property_downloaded">Downloaded</string>
+    <string name="ydownload_property_mime">MIME type</string>
+    <string name="ydownload_property_resumable">Resumable</string>
+    <string name="ydownload_property_added">Added</string>
+    <string name="ydownload_property_completed">Completed</string>
+    <string name="ydownload_property_error">Error</string>
+    <string name="ydownload_yes">Yes</string>
+    <string name="ydownload_no">No</string>
 </resources>

@@ -25,6 +25,18 @@ val LocalYSuiteHostNavigation =
     staticCompositionLocalOf { YSuiteHostNavigationState() }
 
 @Composable
+fun YSuiteBackNavigationButton(
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = stringResource(R.string.common_back),
+        )
+    }
+}
+
+@Composable
 fun YSuiteHostNavigationButton() {
     val navigation = LocalYSuiteHostNavigation.current
     when (navigation.icon) {

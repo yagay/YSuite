@@ -18,9 +18,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -74,6 +77,11 @@ data class QdmDownloadActionLabels(
     val retry: String,
     val remove: String,
     val more: String,
+    val share: String,
+    val copyLink: String,
+    val openFolder: String,
+    val properties: String,
+    val redownload: String,
 )
 
 @Composable
@@ -87,6 +95,11 @@ fun QdmDownloadList(
     onOpen: (String) -> Unit,
     onRetry: (String) -> Unit,
     onRemove: (String) -> Unit,
+    onShare: (String) -> Unit,
+    onCopyLink: (String) -> Unit,
+    onOpenFolder: (String) -> Unit,
+    onProperties: (String) -> Unit,
+    onRedownload: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) {
@@ -118,6 +131,11 @@ fun QdmDownloadList(
                 onOpen = { onOpen(item.id) },
                 onRetry = { onRetry(item.id) },
                 onRemove = { onRemove(item.id) },
+                onShare = { onShare(item.id) },
+                onCopyLink = { onCopyLink(item.id) },
+                onOpenFolder = { onOpenFolder(item.id) },
+                onProperties = { onProperties(item.id) },
+                onRedownload = { onRedownload(item.id) },
             )
             HorizontalDivider()
         }
@@ -134,6 +152,11 @@ private fun QdmDownloadItemRow(
     onOpen: () -> Unit,
     onRetry: () -> Unit,
     onRemove: () -> Unit,
+    onShare: () -> Unit,
+    onCopyLink: () -> Unit,
+    onOpenFolder: () -> Unit,
+    onProperties: () -> Unit,
+    onRedownload: () -> Unit,
 ) {
     var menuExpanded by remember {
         mutableStateOf(false)
@@ -296,6 +319,73 @@ private fun QdmDownloadItemRow(
                             },
                         )
                     }
+                    if (item.canOpen) {
+                        QdmMenuItem(
+                            text = labels.share,
+                            icon = {
+                                Icon(
+                                    Icons.Default.Share,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onShare()
+                            },
+                        )
+                        QdmMenuItem(
+                            text = labels.openFolder,
+                            icon = {
+                                Icon(
+                                    Icons.Default.FolderOpen,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onOpenFolder()
+                            },
+                        )
+                    }
+                    QdmMenuItem(
+                        text = labels.copyLink,
+                        icon = {
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onCopyLink()
+                        },
+                    )
+                    QdmMenuItem(
+                        text = labels.redownload,
+                        icon = {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onRedownload()
+                        },
+                    )
+                    QdmMenuItem(
+                        text = labels.properties,
+                        icon = {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onProperties()
+                        },
+                    )
                     if (item.canCancel) {
                         QdmMenuItem(
                             text = labels.cancel,
@@ -572,4 +662,51 @@ fun QdmAddDownloadDialog(
             }
         }
     }
+}
+
+
+data class QdmDownloadProperty(
+    val label: String,
+    val value: String,
+)
+
+@Composable
+fun QdmDownloadPropertiesDialog(
+    title: String,
+    properties: List<QdmDownloadProperty>,
+    closeLabel: String,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(
+                verticalArrangement =
+                    Arrangement.spacedBy(YSuiteSpacing.Small),
+            ) {
+                properties.forEach { property ->
+                    Column {
+                        Text(
+                            text = property.label,
+                            style =
+                                MaterialTheme.typography.labelSmall,
+                            color =
+                                MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = property.value,
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(closeLabel)
+            }
+        },
+    )
 }

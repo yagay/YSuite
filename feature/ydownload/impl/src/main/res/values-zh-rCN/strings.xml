@@ -50,4 +50,50 @@
     <string name="ydownload_service_active">%1$d 个活动下载</string>
     <string name="ydownload_completed">下载完成</string>
     <string name="ydownload_failed">下载失败</string>
+
+    <string name="ydownload_settings">下载设置</string>
+    <string name="ydownload_settings_downloads">下载</string>
+    <string name="ydownload_settings_network">网络</string>
+    <string name="ydownload_settings_notifications">通知</string>
+    <string name="ydownload_default_folder">默认保存目录</string>
+    <string name="ydownload_default_folder_system">Download/YDownload</string>
+    <string name="ydownload_use_system_folder">恢复系统默认目录</string>
+    <string name="ydownload_max_concurrent">最大同时下载数</string>
+    <string name="ydownload_speed_limit">全局速度限制</string>
+    <string name="ydownload_unlimited">不限速</string>
+    <string name="ydownload_speed_512k">512 KB/s</string>
+    <string name="ydownload_speed_1m">1 MB/s</string>
+    <string name="ydownload_speed_5m">5 MB/s</string>
+    <string name="ydownload_speed_10m">10 MB/s</string>
+    <string name="ydownload_wifi_only">仅 Wi‑Fi 下载</string>
+    <string name="ydownload_wifi_only_desc">开启后，新的下载只会在 Wi‑Fi 可用时开始。</string>
+    <string name="ydownload_notification_progress">下载通知</string>
+    <string name="ydownload_notification_progress_desc">显示下载进度、完成和失败通知。</string>
+    <string name="ydownload_default_user_agent">默认 User-Agent</string>
+    <string name="ydownload_user_agent_mobile">移动端</string>
+    <string name="ydownload_user_agent_desktop">桌面端</string>
+
+    <string name="ydownload_sort_date">按添加时间排序</string>
+    <string name="ydownload_sort_name">按文件名排序</string>
+    <string name="ydownload_clear_completed">清理已完成任务</string>
+    <string name="ydownload_paste_clipboard">从剪贴板添加</string>
+    <string name="ydownload_import_file">从文本文件导入</string>
+    <string name="ydownload_share">分享文件</string>
+    <string name="ydownload_copy_link">复制下载链接</string>
+    <string name="ydownload_open_folder">打开保存目录</string>
+    <string name="ydownload_properties">属性</string>
+    <string name="ydownload_redownload">重新下载</string>
+    <string name="ydownload_close">关闭</string>
+
+    <string name="ydownload_property_file_name">文件名</string>
+    <string name="ydownload_property_url">下载地址</string>
+    <string name="ydownload_property_size">大小</string>
+    <string name="ydownload_property_downloaded">已下载</string>
+    <string name="ydownload_property_mime">MIME 类型</string>
+    <string name="ydownload_property_resumable">断点续传</string>
+    <string name="ydownload_property_added">添加时间</string>
+    <string name="ydownload_property_completed">完成时间</string>
+    <string name="ydownload_property_error">错误</string>
+    <string name="ydownload_yes">是</string>
+    <string name="ydownload_no">否</string>
 </resources>

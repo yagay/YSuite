@@ -1,7 +1,13 @@
 package com.yagay.ysuite.feature.ydownload
 
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -15,11 +21,20 @@ import com.yagay.ysuite.productui.download.QdmAddDownloadDialog
 import com.yagay.ysuite.productui.download.QdmAddDownloadLabels
 import com.yagay.ysuite.productui.download.QdmAddDownloadModel
 import com.yagay.ysuite.productui.download.QdmDownloadActionLabels
+import com.yagay.ysuite.productui.download.QdmDownloadFabLabels
 import com.yagay.ysuite.productui.download.QdmDownloadList
+import com.yagay.ysuite.productui.download.QdmDownloadMenuLabels
+import com.yagay.ysuite.productui.download.QdmDownloadPropertiesDialog
+import com.yagay.ysuite.productui.download.QdmDownloadProperty
 import com.yagay.ysuite.productui.download.QdmDownloadRowModel
 import com.yagay.ysuite.productui.download.QdmDownloadTab
 import com.yagay.ysuite.productui.download.QdmDownloadWorkspace
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
+import java.text.DateFormat
+import java.util.Date
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun YDownloadFeatureScreen(
@@ -40,6 +55,52 @@ fun YDownloadFeatureScreen(
     val state by
         model.state.collectAsStateWithLifecycle()
 
+    if (state.page == YDownloadPage.Settings) {
+        BackHandler(onBack = model::backToMain)
+        YDownloadSettingsScreen(
+            settings = state.settings,
+            onBack = model::backToMain,
+            onDefaultTreeUri =
+                model::setDefaultTreeUri,
+            onMaxConcurrent =
+                model::setMaxConcurrent,
+            onSpeedLimit =
+                model::setSpeedLimit,
+            onWifiOnly =
+                model::setWifiOnly,
+            onNotifications =
+                model::setNotifications,
+            onUserAgent =
+                model::setDefaultUserAgent,
+        )
+        return
+    }
+
+    val scope = rememberCoroutineScope()
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val content =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            context.contentResolver
+                                .openInputStream(uri)
+                                ?.bufferedReader()
+                                ?.use { it.readText() }
+                                .orEmpty()
+                        }.getOrDefault("")
+                    }
+                model.importUrls(
+                    content.split(
+                        Regex("[,\\n\\r]+"),
+                    ),
+                )
+            }
+        }
+
     val tabs =
         YDownloadTab.entries.map { tab ->
             QdmDownloadTab(
@@ -49,13 +110,18 @@ fun YDownloadFeatureScreen(
         }
 
     val filtered =
-        state.items.forTab(
-            tab = state.selectedTab,
-            query = state.searchQuery,
+        model.sorted(
+            state.items.forTab(
+                tab = state.selectedTab,
+                query = state.searchQuery,
+            ),
         )
 
     QdmDownloadWorkspace(
-        title = stringResource(R.string.ydownload_title),
+        title =
+            stringResource(
+                R.string.ydownload_title,
+            ),
         tabs = tabs,
         selectedTabId = state.selectedTab.name,
         onTabSelected = {
@@ -67,9 +133,13 @@ fun YDownloadFeatureScreen(
         searchActive = state.searchActive,
         searchQuery = state.searchQuery,
         searchPlaceholder =
-            stringResource(R.string.ydownload_search),
+            stringResource(
+                R.string.ydownload_search,
+            ),
         addContentDescription =
-            stringResource(R.string.ydownload_add),
+            stringResource(
+                R.string.ydownload_add,
+            ),
         closeSearchContentDescription =
             stringResource(
                 R.string.ydownload_close_search,
@@ -77,9 +147,68 @@ fun YDownloadFeatureScreen(
         onSearchQueryChange =
             model::setSearchQuery,
         onToggleSearch = model::toggleSearch,
-        onAdd = model::showAddDialog,
+        onAdd = { model.showAddDialog() },
         navigationIcon = {
             YSuiteHostNavigationButton()
+        },
+        menuLabels =
+            QdmDownloadMenuLabels(
+                sortDate =
+                    stringResource(
+                        R.string.ydownload_sort_date,
+                    ),
+                sortName =
+                    stringResource(
+                        R.string.ydownload_sort_name,
+                    ),
+                clearCompleted =
+                    stringResource(
+                        R.string.ydownload_clear_completed,
+                    ),
+                settings =
+                    stringResource(
+                        R.string.ydownload_settings,
+                    ),
+            ),
+        fabLabels =
+            QdmDownloadFabLabels(
+                add =
+                    stringResource(
+                        R.string.ydownload_add,
+                    ),
+                paste =
+                    stringResource(
+                        R.string.ydownload_paste_clipboard,
+                    ),
+                importFile =
+                    stringResource(
+                        R.string.ydownload_import_file,
+                    ),
+            ),
+        onSettings = model::showSettings,
+        onSortDate = model::sortByDate,
+        onSortName = model::sortByName,
+        onClearCompleted = model::clearCompleted,
+        onPasteClipboard = {
+            val clipboard =
+                context.getSystemService(
+                    Context.CLIPBOARD_SERVICE,
+                ) as ClipboardManager
+            val text =
+                clipboard.primaryClip
+                    ?.getItemAt(0)
+                    ?.coerceToText(context)
+                    ?.toString()
+                    .orEmpty()
+            model.importUrls(listOf(text))
+        },
+        onImportFile = {
+            importLauncher.launch(
+                arrayOf(
+                    "text/plain",
+                    "text/*",
+                ),
+            )
         },
     ) { _, _ ->
         QdmDownloadList(
@@ -121,6 +250,26 @@ fun YDownloadFeatureScreen(
                         stringResource(
                             R.string.ydownload_more,
                         ),
+                    share =
+                        stringResource(
+                            R.string.ydownload_share,
+                        ),
+                    copyLink =
+                        stringResource(
+                            R.string.ydownload_copy_link,
+                        ),
+                    openFolder =
+                        stringResource(
+                            R.string.ydownload_open_folder,
+                        ),
+                    properties =
+                        stringResource(
+                            R.string.ydownload_properties,
+                        ),
+                    redownload =
+                        stringResource(
+                            R.string.ydownload_redownload,
+                        ),
                 ),
             onPause = model::pause,
             onResume = model::resume,
@@ -128,6 +277,11 @@ fun YDownloadFeatureScreen(
             onOpen = model::open,
             onRetry = model::retry,
             onRemove = model::remove,
+            onShare = model::share,
+            onCopyLink = model::copyLink,
+            onOpenFolder = model::openFolder,
+            onProperties = model::showProperties,
+            onRedownload = model::redownload,
         )
     }
 
@@ -224,6 +378,29 @@ fun YDownloadFeatureScreen(
             onDismiss = model::dismissAddDialog,
         )
     }
+
+    state.propertiesItemId
+        ?.let { id ->
+            state.items.firstOrNull {
+                it.id == id
+            }
+        }
+        ?.let { item ->
+            QdmDownloadPropertiesDialog(
+                title =
+                    stringResource(
+                        R.string.ydownload_properties,
+                    ),
+                properties =
+                    item.properties(),
+                closeLabel =
+                    stringResource(
+                        R.string.ydownload_close,
+                    ),
+                onDismiss =
+                    model::dismissProperties,
+            )
+        }
 }
 
 @Composable
@@ -333,6 +510,102 @@ private fun YDownloadItem.toRowModel():
                 state != YDownloadState.Connecting,
     )
 }
+
+@Composable
+private fun YDownloadItem.properties():
+    List<QdmDownloadProperty> =
+    buildList {
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_file_name,
+                ),
+                fileName,
+            ),
+        )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_url,
+                ),
+                url,
+            ),
+        )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_size,
+                ),
+                if (totalBytes > 0L) {
+                    formatBytes(totalBytes)
+                } else {
+                    "--"
+                },
+            ),
+        )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_downloaded,
+                ),
+                formatBytes(downloadedBytes),
+            ),
+        )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_mime,
+                ),
+                mimeType.ifBlank { "--" },
+            ),
+        )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_resumable,
+                ),
+                stringResource(
+                    if (supportsRanges) {
+                        R.string.ydownload_yes
+                    } else {
+                        R.string.ydownload_no
+                    },
+                ),
+            ),
+        )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_added,
+                ),
+                DateFormat.getDateTimeInstance()
+                    .format(
+                        Date(addedAtMillis),
+                    ),
+            ),
+        )
+        completedAtMillis?.let {
+            add(
+                QdmDownloadProperty(
+                    stringResource(
+                        R.string.ydownload_property_completed,
+                    ),
+                    DateFormat.getDateTimeInstance()
+                        .format(Date(it)),
+                ),
+            )
+        }
+        errorMessage?.let {
+            add(
+                QdmDownloadProperty(
+                    stringResource(
+                        R.string.ydownload_property_error,
+                    ),
+                    it,
+                ),
+            )
+        }
+    }
 
 @Composable
 private fun metadataText(

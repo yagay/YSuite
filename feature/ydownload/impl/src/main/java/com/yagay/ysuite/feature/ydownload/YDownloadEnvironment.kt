@@ -7,6 +7,7 @@ import okhttp3.OkHttpClient
 
 data class YDownloadEnvironment(
     val repository: YDownloadRepository,
+    val settings: YDownloadSettingsRepository,
     val engine: YDownloadEngine,
     val metadataFetcher: YDownloadMetadataFetcher,
 )
@@ -44,15 +45,19 @@ internal object YDownloadRuntime {
                         .build()
                 val repository =
                     YDownloadRepository(context)
+                val settings =
+                    YDownloadSettingsRepository(context)
                 val engine =
                     YDownloadEngine(
                         context = context,
                         repository = repository,
+                        settings = settings,
                         client = client,
                         logger = loggerBridge,
                     )
                 YDownloadEnvironment(
                     repository = repository,
+                    settings = settings,
                     engine = engine,
                     metadataFetcher =
                         YDownloadMetadataFetcher(client),

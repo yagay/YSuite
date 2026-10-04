@@ -22,11 +22,14 @@ dependencies {
     implementation(project(":core:productui"))
     implementation(project(":core:presentation"))
     implementation(project(":core:logging:api"))
+    implementation(project(":core:permissions:api"))
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
 

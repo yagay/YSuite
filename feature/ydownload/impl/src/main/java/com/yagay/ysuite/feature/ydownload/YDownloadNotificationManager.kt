@@ -76,7 +76,21 @@ internal class YDownloadNotificationManager(
             .setContentIntent(launchIntent())
             .build()
 
-    fun update(items: List<YDownloadItem>) {
+    fun update(
+        items: List<YDownloadItem>,
+        enabled: Boolean,
+    ) {
+        if (!enabled) {
+            items.forEach { item ->
+                manager.cancel(item.notificationId())
+                manager.cancel(
+                    item.notificationId() + RESULT_OFFSET,
+                )
+            }
+            terminalNotified.clear()
+            return
+        }
+
         val active =
             items.filter {
                 it.state == YDownloadState.Downloading ||

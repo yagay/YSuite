@@ -3,6 +3,8 @@ package com.yagay.ysuite.feature.ydownload
 import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
+import android.net.ConnectivityManager
+import android.net.Network
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -16,6 +18,20 @@ class YDownloadService : LifecycleService() {
     private lateinit var notifications:
         YDownloadNotificationManager
     private var wakeLock: PowerManager.WakeLock? = null
+    private lateinit var connectivity:
+        ConnectivityManager
+    private val networkCallback =
+        object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                if (
+                    environment.settings.settings
+                        .value.wifiOnly
+                ) {
+                    environment.engine.pumpQueue()
+                }
+            }
+        }
+
     @Volatile
     private var commandReceived = false
 
@@ -32,19 +48,31 @@ class YDownloadService : LifecycleService() {
             ).also {
                 it.createChannels()
             }
+        connectivity =
+            getSystemService(
+                CONNECTIVITY_SERVICE,
+            ) as ConnectivityManager
+        connectivity.registerDefaultNetworkCallback(
+            networkCallback,
+        )
 
         startForeground(
             YDownloadNotificationManager
                 .SERVICE_NOTIFICATION_ID,
             notifications.serviceNotification(),
         )
-        acquireWakeLock()
 
         lifecycleScope.launch {
             environment.repository.refresh()
+            environment.engine.pumpQueue()
             environment.repository.items
                 .collectLatest { items ->
-                    notifications.update(items)
+                    notifications.update(
+                        items = items,
+                        enabled =
+                            environment.settings.settings
+                                .value.notificationsEnabled,
+                    )
                     val hasActive =
                         items.any {
                             it.state ==
@@ -52,9 +80,24 @@ class YDownloadService : LifecycleService() {
                                 it.state ==
                                 YDownloadState.Connecting
                         }
+                    val hasQueued =
+                        items.any {
+                            it.state ==
+                                YDownloadState.Pending &&
+                                it.queued
+                        }
+                    if (
+                        hasActive ||
+                        environment.engine.hasActiveDownloads()
+                    ) {
+                        acquireWakeLock()
+                    } else {
+                        releaseWakeLock()
+                    }
                     if (
                         commandReceived &&
                         !hasActive &&
+                        !hasQueued &&
                         !environment.engine
                             .hasActiveDownloads()
                     ) {
@@ -89,6 +132,11 @@ class YDownloadService : LifecycleService() {
             return START_STICKY
         }
 
+        if (intent.action == ACTION_PUMP) {
+            environment.engine.pumpQueue()
+            return START_STICKY
+        }
+
         val id =
             intent.getStringExtra(
                 EXTRA_DOWNLOAD_ID,
@@ -115,6 +163,11 @@ class YDownloadService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        runCatching {
+            connectivity.unregisterNetworkCallback(
+                networkCallback,
+            )
+        }
         releaseWakeLock()
         super.onDestroy()
     }
@@ -152,6 +205,8 @@ class YDownloadService : LifecycleService() {
             "com.yagay.ysuite.ydownload.PAUSE"
         const val ACTION_CANCEL =
             "com.yagay.ysuite.ydownload.CANCEL"
+        const val ACTION_PUMP =
+            "com.yagay.ysuite.ydownload.PUMP"
         const val EXTRA_DOWNLOAD_ID =
             "download_id"
 
@@ -196,6 +251,22 @@ class YDownloadService : LifecycleService() {
                 context,
                 ACTION_CANCEL,
                 id,
+            )
+        }
+
+        fun pump(
+            context: Context,
+        ) {
+            val intent =
+                Intent(
+                    context,
+                    YDownloadService::class.java,
+                ).apply {
+                    action = ACTION_PUMP
+                }
+            ContextCompat.startForegroundService(
+                context,
+                intent,
             )
         }
 
