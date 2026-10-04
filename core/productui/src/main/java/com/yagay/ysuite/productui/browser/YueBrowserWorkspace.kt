@@ -26,13 +26,13 @@ fun YueBrowserWorkspace(
     addressBar: @Composable () -> Unit,
     tabStrip: @Composable () -> Unit = {},
     toolbar: @Composable RowScope.() -> Unit = {},
-    wideTabPane: @Composable (ProductAdaptiveInfo) -> Unit = {},
+    wideTabPane: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
     bottomBar: @Composable () -> Unit = {},
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
         Row(modifier = Modifier.fillMaxSize()) {
-            if (adaptive.isExpanded) {
+            if (adaptive.isExpanded && wideTabPane != null) {
                 Surface(
                     modifier = Modifier
                         .width(248.dp)

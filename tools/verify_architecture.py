@@ -37,6 +37,20 @@ for kind, spec in upstream_products.items():
         sys.exit(1)
 
 legacy_roots = ["apps", "libs/yui", "suite", "standalone"]
+legacy_ui_files = (
+    "core/ui/src/main/java/com/yagay/ysuite/ui/YSuiteAdaptive.kt",
+    "core/ui/src/main/java/com/yagay/ysuite/ui/YSuiteAppShell.kt",
+    "core/ui/src/main/java/com/yagay/ysuite/ui/YSuiteArchitectureOverview.kt",
+    "core/ui/src/main/java/com/yagay/ysuite/ui/YSuiteLazyPages.kt",
+    "core/ui/src/main/java/com/yagay/ysuite/ui/YSuitePageState.kt",
+    "core/ui/src/main/java/com/yagay/ysuite/ui/YSuitePages.kt",
+)
+for legacy_file in legacy_ui_files:
+    if (ROOT / legacy_file).exists():
+        violations.append(
+            f"legacy generic UI file must not exist: {legacy_file}"
+        )
+
 for legacy in legacy_roots:
     if (ROOT / legacy).exists():
         violations.append(

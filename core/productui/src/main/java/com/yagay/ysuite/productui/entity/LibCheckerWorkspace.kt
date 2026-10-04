@@ -30,7 +30,7 @@ fun LibCheckerWorkspace(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     searchAndFilters: @Composable () -> Unit = {},
-    navigationPane: @Composable (ProductAdaptiveInfo) -> Unit = {},
+    navigationPane: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
     detailPane: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
     selectionBar: @Composable () -> Unit = {},
     content: @Composable (ProductAdaptiveInfo) -> Unit,
@@ -48,7 +48,7 @@ fun LibCheckerWorkspace(
                 .fillMaxSize(),
         ) { adaptive ->
             Row(modifier = Modifier.fillMaxSize()) {
-                if (adaptive.isExpanded) {
+                if (adaptive.isExpanded && navigationPane != null) {
                     Surface(
                         modifier = Modifier
                             .width(248.dp)

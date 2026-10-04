@@ -29,7 +29,7 @@ fun ComposeTodoTaskWorkspace(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     filters: @Composable () -> Unit = {},
-    categories: @Composable (ProductAdaptiveInfo) -> Unit = {},
+    categories: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
     detailPane: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
@@ -46,7 +46,7 @@ fun ComposeTodoTaskWorkspace(
                 .fillMaxSize(),
         ) { adaptive ->
             Row(modifier = Modifier.fillMaxSize()) {
-                if (adaptive.isExpanded) {
+                if (adaptive.isExpanded && categories != null) {
                     Surface(
                         modifier = Modifier
                             .width(240.dp)
