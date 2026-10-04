@@ -336,7 +336,7 @@ private fun YFilesBrowserSurface(
             onEmptyTrash = onEmptyTrash,
         )
     }
-
+}
 
 @Composable
 private fun YFilesCommandBar(
