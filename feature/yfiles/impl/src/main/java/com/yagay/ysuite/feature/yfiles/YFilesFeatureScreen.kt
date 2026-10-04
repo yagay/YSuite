@@ -259,13 +259,15 @@ private fun YFilesBrowserSurface(
             )
         },
         detailPane =
-            state.focused?.let { node ->
-                { _: ProductAdaptiveInfo ->
+            if (state.focused != null) {
+                {
                     YFilesDetailPane(
-                        node = node,
+                        node = state.focused,
                         browser = browser,
                     )
                 }
+            } else {
+                null
             },
         selectionBar =
             if (state.selected.isNotEmpty()) {
