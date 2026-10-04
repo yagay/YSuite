@@ -13,7 +13,7 @@ YUI_RES = ROOT / "libs/yui/src/main/res/values/yui.xml"
 YSUITE = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt"
 YPOWER = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java"
 YMINIGUARD = ROOT / "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java"
-YNOTIFY_XML = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_main.xml"
+YNOTIFY = ROOT / "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/MainActivity.java"
 YENTRY = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainActivity.kt"
 YPARAM = ROOT / "apps/YParam/feature/src/main/java/com/yagay/yparam/ui/MainActivity.java"
 YNFC_SCREEN = ROOT / "apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt"
@@ -26,8 +26,8 @@ YPARAM_DETAIL = ROOT / "apps/YParam/feature/src/main/java/com/yagay/yparam/ui/Ap
 YPOWER_DETAIL = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/AppDetailActivity.java"
 YPOWER_RECOMMENDED = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/RecommendedAppsActivity.java"
 YPOWER_DIAG = ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/DiagnosticActivity.java"
-YNOTIFY_HISTORY = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_app_history.xml"
-YNOTIFY_DETAIL = ROOT / "apps/YNotify/feature/src/main/res/layout/activity_event_detail.xml"
+YNOTIFY_HISTORY = ROOT / "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/AppHistoryActivity.java"
+YNOTIFY_DETAIL = ROOT / "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/EventDetailActivity.java"
 YENTRY_SCOPE = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/ScopeScreen.kt"
 YENTRY_ROOT = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt"
 YENTRY_TABS = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainTabs.kt"
@@ -64,7 +64,7 @@ def main() -> None:
     ysuite = text(YSUITE)
     ypower = text(YPOWER)
     yminiguard = text(YMINIGUARD)
-    ynotify = text(YNOTIFY_XML)
+    ynotify = text(YNOTIFY)
     yentry = text(YENTRY)
     yparam = text(YPARAM)
     ynfc_screen = text(YNFC_SCREEN)
@@ -98,7 +98,11 @@ def main() -> None:
 
     for marker in (
         "fun install(",
+        "fun installPage(",
+        "fun page(",
         "fun installFixed(",
+        "fun filterBar(",
+        "fun bottomNavigation(",
         "fun sectionHeader(",
         "fun card(",
         "fun statusLine(",
@@ -165,12 +169,10 @@ def main() -> None:
     require(ydiag, "YFeatureEmpty(", "YDiag empty states")
     require(ydiag, "YSearchField(", "YDiag app picker")
 
-    if "Widget.YUI." not in ynotify or "TextAppearance.YUI." not in ynotify:
-        fail("YNotify XML main layout must consume shared Widget.YUI and TextAppearance.YUI styles")
-    if "Widget.YUI.Card" not in ynotify:
-        fail("YNotify settings must use shared YUI cards")
-    if "@dimen/yui_" not in ynotify:
-        fail("YNotify XML main layout must consume shared YUI dimensions")
+    require(ynotify, "YViewLayout.installPage(", "YNotify main screen")
+    require(ynotify, "YViewLayout.filterBar(", "YNotify timeline filters")
+    require(ynotify, "YViewLayout.bottomNavigation(", "YNotify main navigation")
+    require(ynotify, "YViewLayout.section(", "YNotify settings sections")
 
     # Secondary/detail screens.
     for source, label in (
@@ -190,16 +192,11 @@ def main() -> None:
     require(ypower_diag, "YViewLayout.actionRow(", "YPower Diagnostic")
     require(ypower_diag, "YViewLayout.setStatus(", "YPower Diagnostic")
 
-    for source, label in (
-        (ynotify_history, "YNotify AppHistory XML"),
-        (ynotify_detail, "YNotify EventDetail XML"),
-    ):
-        if "@dimen/yui_" not in source:
-            fail(f"{label} must consume shared YUI dimensions")
-    if "Widget.YUI.Button.Outlined" not in ynotify_history:
-        fail("YNotify AppHistory XML must use the shared outlined button")
-    if "TextAppearance.YUI.SectionTitle" not in ynotify_detail or "Widget.YUI.Button.Tonal" not in ynotify_detail:
-        fail("YNotify EventDetail XML must use shared section text and tonal button styles")
+    require(ynotify_history, "YViewLayout.installPage(", "YNotify AppHistory")
+    require(ynotify_history, "YViewLayout.switchRow(", "YNotify AppHistory settings")
+    require(ynotify_history, "YViewLayout.filterBar(", "YNotify AppHistory filters")
+    require(ynotify_detail, "YViewLayout.installPage(", "YNotify EventDetail")
+    require(ynotify_detail, "YViewLayout.sectionHeader(", "YNotify EventDetail sections")
 
     require(yentry_scope, "YFeatureSectionHeader(", "YEntryCleaner scope screen")
     require(yentry_scope, "YFeatureCard(", "YEntryCleaner scope screen")
@@ -241,7 +238,7 @@ def main() -> None:
     # Specialized diagnostic text highlighting in YPower Diagnostic and YNFC's log console may
     # keep semantic high-contrast colors. Normal cards/status/chrome remain YUI-owned.
     print(
-        "ui-framework: OK compose=YFeature* view=YViewLayout xml=Widget.YUI "
+        "ui-framework: OK compose=YFeature* view=YViewPage/YViewLayout page-xml=forbidden "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
         "secondary=YParam.AppDetail,YPower.AppDetail,YPower.RecommendedApps,YPower.Diagnostic,"
         "YNotify.AppHistory,YNotify.EventDetail,YEntryCleaner.Scope,YEntryCleaner.Components,"
