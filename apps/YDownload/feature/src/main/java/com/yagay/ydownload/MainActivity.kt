@@ -14,8 +14,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
 import com.yagay.yui.YTabBar
 import com.yagay.yui.YTabSpec
 import com.yagay.yui.YPrimaryActionButton
@@ -25,8 +25,8 @@ import com.yagay.yui.YPageRole
 import com.yagay.yui.YPageScaffold
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YChoiceSetting
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -71,7 +71,7 @@ class MainActivity : YComposeActivity() {
                     if (items.isNotEmpty()) item { YDownloadBatchControls(items, store) }
                     if (items.isEmpty()) {
                         item {
-                            YFeatureCard(
+                            YSection(
                                 title = stringResource(R.string.no_downloads),
                                 subtitle = stringResource(R.string.no_downloads_summary),
                             )
@@ -92,13 +92,13 @@ class MainActivity : YComposeActivity() {
         settings: YDownloadPatchSettings,
         onChanged: (YDownloadPatchSettings) -> Unit,
     ) {
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.system_patch),
             subtitle = stringResource(R.string.system_patch_summary),
         ) {
-            YStatusRow(stringResource(R.string.download_provider), stringResource(R.string.preserved), YStatusTone.Good)
-            YStatusRow(stringResource(R.string.default_engine), stringResource(R.string.android_download_manager), YStatusTone.Good)
-            YSettingSwitch(
+            YStatusLine(stringResource(R.string.download_provider), stringResource(R.string.preserved), YStatusTone.Good)
+            YStatusLine(stringResource(R.string.default_engine), stringResource(R.string.android_download_manager), YStatusTone.Good)
+            YSwitchItem(
                 title = stringResource(R.string.enable_system_patch),
                 subtitle = stringResource(R.string.enable_system_patch_summary),
                 checked = settings.enabled,
@@ -106,35 +106,35 @@ class MainActivity : YComposeActivity() {
                     onChanged(YDownloadPatchSettings.update(this@MainActivity) { copy(enabled = it) })
                 },
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.allow_metered),
                 checked = settings.allowMetered,
                 onCheckedChange = {
                     onChanged(YDownloadPatchSettings.update(this@MainActivity) { copy(allowMetered = it) })
                 },
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.allow_roaming),
                 checked = settings.allowRoaming,
                 onCheckedChange = {
                     onChanged(YDownloadPatchSettings.update(this@MainActivity) { copy(allowRoaming = it) })
                 },
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.require_charging),
                 checked = settings.requireCharging,
                 onCheckedChange = {
                     onChanged(YDownloadPatchSettings.update(this@MainActivity) { copy(requireCharging = it) })
                 },
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.require_idle),
                 checked = settings.requireDeviceIdle,
                 onCheckedChange = {
                     onChanged(YDownloadPatchSettings.update(this@MainActivity) { copy(requireDeviceIdle = it) })
                 },
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.force_completion_notification),
                 checked = settings.forceCompletionNotification,
                 onCheckedChange = {
@@ -149,7 +149,7 @@ class MainActivity : YComposeActivity() {
         settings: YDownloadEnhancedSettings,
         onChanged: (YDownloadEnhancedSettings) -> Unit,
     ) {
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.enhanced_engine_settings),
             subtitle = stringResource(R.string.enhanced_engine_settings_summary),
         ) {
@@ -180,7 +180,7 @@ class MainActivity : YComposeActivity() {
                     )
                 },
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.auto_retry),
                 subtitle = stringResource(R.string.auto_retry_summary),
                 checked = settings.autoRetry,
@@ -221,9 +221,9 @@ class MainActivity : YComposeActivity() {
         } else {
             stringResource(R.string.enhanced_engine)
         }
-        YFeatureCard(title = task.fileName, subtitle = task.url, detail = task.error) {
-            YStatusRow(stringResource(R.string.engine), engine, YStatusTone.Neutral)
-            YStatusRow(
+        YSection(title = task.fileName, subtitle = task.url, detail = task.error) {
+            YStatusLine(stringResource(R.string.engine), engine, YStatusTone.Neutral)
+            YStatusLine(
                 stringResource(R.string.status),
                 status,
                 when (task.state) {
@@ -233,10 +233,10 @@ class MainActivity : YComposeActivity() {
                 },
             )
             if (task.backend == DownloadBackend.ENHANCED && task.retryCount > 0) {
-                YStatusRow(stringResource(R.string.retry_count), task.retryCount.toString(), YStatusTone.Warning)
+                YStatusLine(stringResource(R.string.retry_count), task.retryCount.toString(), YStatusTone.Warning)
             }
             if (task.expectedSha256 != null) {
-                YStatusRow(
+                YStatusLine(
                     stringResource(R.string.expected_sha256),
                     task.expectedSha256,
                     if (task.sha256?.equals(task.expectedSha256, ignoreCase = true) == true) YStatusTone.Good else YStatusTone.Neutral,
@@ -244,13 +244,13 @@ class MainActivity : YComposeActivity() {
             }
             if (task.total > 0) {
                 val percent = ((task.done * 100L) / task.total).coerceIn(0L, 100L).toInt()
-                YStatusRow(stringResource(R.string.progress), stringResource(R.string.progress_percent, percent))
+                YStatusLine(stringResource(R.string.progress), stringResource(R.string.progress_percent, percent))
             }
             if (task.speedBytesPerSecond > 0L) {
-                YStatusRow(stringResource(R.string.ydownload_speed), formatSpeed(task.speedBytesPerSecond), YStatusTone.Neutral)
+                YStatusLine(stringResource(R.string.ydownload_speed), formatSpeed(task.speedBytesPerSecond), YStatusTone.Neutral)
             }
             if (task.etaMillis >= 0L && task.state == DownloadState.RUNNING) {
-                YStatusRow(stringResource(R.string.ydownload_eta), formatEta(task.etaMillis), YStatusTone.Neutral)
+                YStatusLine(stringResource(R.string.ydownload_eta), formatEta(task.etaMillis), YStatusTone.Neutral)
             }
             if (task.backend == DownloadBackend.SYSTEM) SystemTaskActions(task, store) else EnhancedTaskActions(task, store)
         }
@@ -258,7 +258,7 @@ class MainActivity : YComposeActivity() {
 
     @Composable
     private fun SystemTaskActions(task: DownloadItem, store: DownloadStore) {
-        YActionRow {
+        YHorizontalActions {
             when (task.state) {
                 DownloadState.RUNNING, DownloadState.QUEUED -> YSecondaryActionButton(
                     onClick = { controlSystemTask(task, store, pause = true) },
@@ -294,7 +294,7 @@ class MainActivity : YComposeActivity() {
 
     @Composable
     private fun EnhancedTaskActions(task: DownloadItem, store: DownloadStore) {
-        YActionRow {
+        YHorizontalActions {
             when (task.state) {
                 DownloadState.RUNNING, DownloadState.QUEUED -> YSecondaryActionButton(
                     { DownloadService.pause(this@MainActivity, task.id) },

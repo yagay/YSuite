@@ -14,8 +14,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -93,7 +93,7 @@ fun YFilesBatchToolbar(
         return
     }
 
-    YStatusRow(
+    YStatusLine(
         stringResource(R.string.yfiles_batch_selection),
         stringResource(R.string.yfiles_selected_count, selected.size),
         YStatusTone.Warning,
@@ -105,12 +105,12 @@ fun YFilesBatchToolbar(
         } else {
             stringResource(R.string.move)
         }
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.file_clipboard),
             stringResource(R.string.yfiles_batch_pending, modeLabel, selected.size),
             YStatusTone.Warning,
         )
-        YActionRow {
+        YHorizontalActions {
             Button(
                 onClick = {
                     busy = true
@@ -150,7 +150,7 @@ fun YFilesBatchToolbar(
         }
     }
 
-    YActionRow {
+    YHorizontalActions {
         OutlinedButton(
             onClick = {
                 busy = true
@@ -175,7 +175,7 @@ fun YFilesBatchToolbar(
         ) { Text(stringResource(R.string.yfiles_clear_selection)) }
     }
 
-    YActionRow {
+    YHorizontalActions {
         OutlinedButton(
             onClick = { YFilesBatchSelectionState.pendingMode = FileTransferMode.COPY },
             enabled = !busy,

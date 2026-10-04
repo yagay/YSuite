@@ -16,10 +16,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 
 @Composable
@@ -29,11 +29,11 @@ fun YDownloadHookScopeCard(context: Context) {
     var userAgentDraft by remember(context) { mutableStateOf(settings.userAgent) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.ydownload_hook_scope_title),
             subtitle = stringResource(R.string.ydownload_hook_scope_summary),
         ) {
-            YStatusRow(
+            YStatusLine(
                 stringResource(R.string.hook_scope_system_provider),
                 stringResource(R.string.hook_scope_do_not_hook),
                 YStatusTone.Good,
@@ -49,7 +49,7 @@ fun YDownloadHookScopeCard(context: Context) {
                         YDownloadHookScopeAdvisor.Signal.BROWSER -> stringResource(R.string.ydownload_scope_browser)
                         YDownloadHookScopeAdvisor.Signal.COMMON_CALLER -> stringResource(R.string.ydownload_scope_common_caller)
                     }
-                    YStatusRow(
+                    YStatusLine(
                         candidate.displayName,
                         reason,
                         if (candidate.signal == YDownloadHookScopeAdvisor.Signal.DOWNLOAD_RECEIVER) {
@@ -67,7 +67,7 @@ fun YDownloadHookScopeCard(context: Context) {
             Text(stringResource(R.string.ydownload_hook_scope_note))
         }
 
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.enhanced_network_tools),
             subtitle = stringResource(R.string.enhanced_network_tools_summary),
         ) {
@@ -78,7 +78,7 @@ fun YDownloadHookScopeCard(context: Context) {
                 label = { Text(stringResource(R.string.user_agent)) },
                 singleLine = true,
             )
-            YActionRow {
+            YHorizontalActions {
                 Button(
                     onClick = {
                         settings = YDownloadEnhancedSettings.update(context) { copy(userAgent = userAgentDraft) }
@@ -95,13 +95,13 @@ fun YDownloadHookScopeCard(context: Context) {
                 ) { Text(stringResource(R.string.reset_user_agent)) }
             }
 
-            YStatusRow(
+            YStatusLine(
                 stringResource(R.string.speed_limit),
                 if (settings.speedLimitKib == 0) stringResource(R.string.unlimited)
                 else stringResource(R.string.speed_limit_value, settings.speedLimitKib),
                 YStatusTone.Neutral,
             )
-            YActionRow {
+            YHorizontalActions {
                 listOf(0, 512, 1024, 2048).forEach { limit ->
                     OutlinedButton(
                         onClick = {
@@ -115,7 +115,7 @@ fun YDownloadHookScopeCard(context: Context) {
                     }
                 }
             }
-            YActionRow {
+            YHorizontalActions {
                 listOf(4096, 8192, 16384).forEach { limit ->
                     OutlinedButton(
                         onClick = {
@@ -124,7 +124,7 @@ fun YDownloadHookScopeCard(context: Context) {
                     ) { Text(stringResource(R.string.speed_limit_value, limit)) }
                 }
             }
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.calculate_sha256),
                 subtitle = stringResource(R.string.calculate_sha256_summary),
                 checked = settings.calculateSha256,

@@ -13,9 +13,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.io.File
 import java.io.FileInputStream
@@ -450,17 +450,17 @@ fun YFilesExtraToolsCard(
     val trash = remember(revision) { store.trashRecords() }
     val isFavorite = remember(revision, path) { store.isFavorite(path) }
 
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.navigation_safety_tools),
         subtitle = stringResource(R.string.navigation_safety_tools_summary),
     ) {
         YFilesBatchToolbar(path = path, onChanged = onChanged, onError = onError)
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.favorite_folder),
             if (isFavorite) stringResource(R.string.yfiles_yes) else stringResource(R.string.yfiles_no),
             if (isFavorite) YStatusTone.Good else YStatusTone.Neutral,
         )
-        YActionRow {
+        YHorizontalActions {
             OutlinedButton(
                 onClick = { store.toggleFavorite(path); revision++ },
                 enabled = !busy,
@@ -496,14 +496,14 @@ fun YFilesExtraToolsCard(
             }
         }
         analysis?.let { result ->
-            YStatusRow(stringResource(R.string.analysis_size), formatExtraBytes(result.totalBytes), YStatusTone.Neutral)
-            YStatusRow(
+            YStatusLine(stringResource(R.string.analysis_size), formatExtraBytes(result.totalBytes), YStatusTone.Neutral)
+            YStatusLine(
                 stringResource(R.string.analysis_items),
                 stringResource(R.string.analysis_items_value, result.fileCount, result.directoryCount),
                 if (result.truncated) YStatusTone.Warning else YStatusTone.Good,
             )
             result.categories.forEach { usage ->
-                YStatusRow(
+                YStatusLine(
                     storageCategoryLabel(usage.category),
                     stringResource(R.string.yfiles_category_value, usage.files, formatExtraBytes(usage.bytes)),
                     YStatusTone.Neutral,
@@ -523,7 +523,7 @@ fun YFilesExtraToolsCard(
             enabled = !busy,
         ) { Text(stringResource(R.string.yfiles_find_duplicates)) }
         duplicateScan?.let { scan ->
-            YStatusRow(
+            YStatusLine(
                 stringResource(R.string.yfiles_duplicate_summary),
                 stringResource(R.string.yfiles_duplicate_summary_value, scan.duplicateFiles, formatExtraBytes(scan.wastedBytes)),
                 if (scan.groups.isEmpty()) YStatusTone.Good else YStatusTone.Warning,
@@ -531,7 +531,7 @@ fun YFilesExtraToolsCard(
             if (scan.truncated) Text(stringResource(R.string.yfiles_duplicate_truncated, scan.scannedFiles))
             scan.groups.take(3).forEach { group ->
                 val first = group.files.first()
-                YActionRow {
+                YHorizontalActions {
                     Text(stringResource(R.string.yfiles_duplicate_group, group.files.size, formatExtraBytes(group.sizeBytes)))
                     OutlinedButton(
                         onClick = { File(first).parentFile?.absolutePath?.let(onNavigate) },
@@ -540,13 +540,13 @@ fun YFilesExtraToolsCard(
                 }
             }
         }
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.recycle_bin),
             stringResource(R.string.recycle_bin_items, trash.size),
             if (trash.isEmpty()) YStatusTone.Neutral else YStatusTone.Warning,
         )
         trash.take(3).forEach { record ->
-            YActionRow {
+            YHorizontalActions {
                 Text(record.name)
                 OutlinedButton(
                     onClick = {
@@ -600,8 +600,8 @@ fun YFilesEntryExtraActions(
     var busy by remember(entry.path) { mutableStateOf(false) }
     var checksum by remember(entry.path) { mutableStateOf<String?>(null) }
 
-    YActionRow { YFilesSelectionToggle(entry) }
-    YActionRow {
+    YHorizontalActions { YFilesSelectionToggle(entry) }
+    YHorizontalActions {
         if (!entry.isDirectory) {
             OutlinedButton(
                 onClick = {

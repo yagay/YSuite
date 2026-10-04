@@ -21,14 +21,14 @@ import androidx.lifecycle.lifecycleScope
 import com.yagay.suite.api.HostCapability
 import com.yagay.suite.api.HostCapabilityState
 import com.yagay.suite.api.HostLogLevel
-import com.yagay.yui.YActionRow
+import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YOverflowMenu
 import com.yagay.yui.YListItem
 import com.yagay.yui.YActionStyle
 import com.yagay.yui.YActionSpec
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YChoiceSetting
-import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YSection
 import com.yagay.yui.YFilterBar
 import com.yagay.yui.YFilterSpec
 import com.yagay.yui.YTabBar
@@ -44,8 +44,8 @@ import com.yagay.yui.YPageScaffold
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YSearchField
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.io.File
 import java.text.DateFormat
@@ -192,16 +192,16 @@ class MainActivity : YComposeActivity() {
 
                 if (page == 2) {
                     item {
-                        YFeatureCard(
+                        YSection(
                             title = stringResource(R.string.documentsui_integration),
                         subtitle = stringResource(R.string.documentsui_summary),
                     ) {
-                        YStatusRow(
+                        YStatusLine(
                             stringResource(R.string.documentsui),
                             stringResource(R.string.yfiles_preserved),
                             YStatusTone.Good,
                         )
-                        YSettingSwitch(
+                        YSwitchItem(
                             title = stringResource(R.string.enable_picker_patch),
                             subtitle = stringResource(R.string.enable_picker_patch_summary),
                             checked = patchSettings.enabled,
@@ -209,14 +209,14 @@ class MainActivity : YComposeActivity() {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) { copy(enabled = it) }
                             },
                         )
-                        YSettingSwitch(
+                        YSwitchItem(
                             title = stringResource(R.string.local_files_only),
                             checked = patchSettings.localOnly,
                             onCheckedChange = {
                                 patchSettings = YFilesPatchSettings.update(this@MainActivity) { copy(localOnly = it) }
                             },
                         )
-                        YSettingSwitch(
+                        YSwitchItem(
                             title = stringResource(R.string.allow_multiple_picker),
                             subtitle = stringResource(R.string.allow_multiple_picker_summary),
                             checked = patchSettings.allowMultiple,
@@ -249,7 +249,7 @@ class MainActivity : YComposeActivity() {
                                 }
                             },
                         )
-                        YStatusRow(
+                        YStatusLine(
                             stringResource(R.string.default_picker_folder),
                             if (patchSettings.initialUri.isNullOrBlank()) {
                                 stringResource(R.string.system_default)
@@ -259,7 +259,7 @@ class MainActivity : YComposeActivity() {
                             if (patchSettings.initialUri.isNullOrBlank()) YStatusTone.Neutral else YStatusTone.Good,
                         )
                         patchSettings.initialUri?.let { Text(it) }
-                        YActionRow {
+                        YHorizontalActions {
                             YPrimaryActionButton(onClick = {
                                 @Suppress("DEPRECATION")
                                 startActivityForResult(
@@ -275,7 +275,7 @@ class MainActivity : YComposeActivity() {
                                 )
                             }) { Text(stringResource(R.string.system_pick_multiple)) }
                         }
-                        YActionRow {
+                        YHorizontalActions {
                             YSecondaryActionButton(onClick = {
                                 @Suppress("DEPRECATION")
                                 startActivityForResult(
@@ -291,7 +291,7 @@ class MainActivity : YComposeActivity() {
                                 )
                             }) { Text(stringResource(R.string.system_create_file)) }
                         }
-                        YActionRow {
+                        YHorizontalActions {
                             YSecondaryActionButton(onClick = {
                                 @Suppress("DEPRECATION")
                                 startActivityForResult(
@@ -316,16 +316,16 @@ class MainActivity : YComposeActivity() {
 
                 if (page == 1) {
                     item {
-                        YFeatureCard(
+                        YSection(
                             title = stringResource(R.string.advanced_file_tools),
                         subtitle = stringResource(R.string.advanced_file_tools_summary),
                     ) {
-                        YStatusRow(
+                        YStatusLine(
                             stringResource(R.string.all_files_access),
                             if (allFilesGranted) stringResource(R.string.granted) else stringResource(R.string.not_granted),
                             if (allFilesGranted) YStatusTone.Good else YStatusTone.Warning,
                         )
-                        YStatusRow(
+                        YStatusLine(
                             stringResource(R.string.root_access),
                             if (rootGranted) stringResource(R.string.available) else stringResource(R.string.unavailable),
                             if (rootGranted) YStatusTone.Good else YStatusTone.Neutral,
@@ -463,7 +463,7 @@ class MainActivity : YComposeActivity() {
                             } else {
                                 stringResource(R.string.move)
                             }
-                            YFeatureCard(
+                            YSection(
                                 title = stringResource(R.string.file_clipboard),
                                 subtitle = "$transferLabel: ${transfer.source.name}",
                             ) {
@@ -499,11 +499,11 @@ class MainActivity : YComposeActivity() {
                         }
                     }
 
-                error?.let { item { YFeatureCard(title = stringResource(R.string.error), detail = it) } }
+                error?.let { item { YSection(title = stringResource(R.string.error), detail = it) } }
 
                 if (rootMode) {
                     if (rootNames.isEmpty()) {
-                        item { YFeatureCard(title = stringResource(R.string.empty_folder)) }
+                        item { YSection(title = stringResource(R.string.empty_folder)) }
                     } else {
                         items(rootNames, key = { it }) { name ->
                             YFilesRootEntryCard(
@@ -519,7 +519,7 @@ class MainActivity : YComposeActivity() {
                         }
                     }
                 } else if (entries.isEmpty()) {
-                    item { YFeatureCard(title = stringResource(R.string.empty_folder)) }
+                    item { YSection(title = stringResource(R.string.empty_folder)) }
                 } else {
                     items(entries, key = { it.path }) { entry ->
                         val shareLabel = stringResource(R.string.share)

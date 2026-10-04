@@ -22,10 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.net.HttpURLConnection
 import java.net.URI
@@ -223,17 +223,17 @@ fun YDownloadQueueToolsCard(context: Context) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.ydownload_queue_title),
             subtitle = stringResource(R.string.ydownload_queue_summary),
         ) {
-            YStatusRow(stringResource(R.string.ydownload_queue_total), items.size.toString(), YStatusTone.Neutral)
-            YStatusRow(
+            YStatusLine(stringResource(R.string.ydownload_queue_total), items.size.toString(), YStatusTone.Neutral)
+            YStatusLine(
                 stringResource(R.string.ydownload_queue_active),
                 items.count { it.state == DownloadState.RUNNING || it.state == DownloadState.QUEUED }.toString(),
                 YStatusTone.Good,
             )
-            YStatusRow(
+            YStatusLine(
                 stringResource(R.string.ydownload_queue_failed),
                 items.count { it.state == DownloadState.FAILED }.toString(),
                 if (items.any { it.state == DownloadState.FAILED }) YStatusTone.Warning else YStatusTone.Neutral,
@@ -245,13 +245,13 @@ fun YDownloadQueueToolsCard(context: Context) {
                 4 -> stringResource(R.string.ydownload_queue_vpn)
                 else -> stringResource(R.string.ydownload_queue_unknown_network)
             }
-            YStatusRow(
+            YStatusLine(
                 stringResource(R.string.ydownload_queue_network),
                 transportLabel + " · " + if (network.second) stringResource(R.string.ydownload_queue_metered) else stringResource(R.string.ydownload_queue_unmetered),
                 if (network.second) YStatusTone.Warning else YStatusTone.Good,
             )
             byHost.take(6).forEach { host ->
-                YStatusRow(host.key, host.value.toString(), YStatusTone.Neutral)
+                YStatusLine(host.key, host.value.toString(), YStatusTone.Neutral)
             }
 
             OutlinedTextField(
@@ -263,12 +263,12 @@ fun YDownloadQueueToolsCard(context: Context) {
                 minLines = 3,
                 maxLines = 8,
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.ydownload_queue_use_enhanced),
                 checked = useEnhanced,
                 onCheckedChange = { useEnhanced = it },
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.ydownload_queue_skip_duplicates),
                 checked = skipDuplicates,
                 onCheckedChange = { skipDuplicates = it },
@@ -282,7 +282,7 @@ fun YDownloadQueueToolsCard(context: Context) {
                 minLines = 2,
                 maxLines = 5,
             )
-            YActionRow {
+            YHorizontalActions {
                 Button(
                     onClick = {
                         val headers = DownloadRequestOptions.parseHeaders(headersText).getOrElse {
@@ -299,7 +299,7 @@ fun YDownloadQueueToolsCard(context: Context) {
                     Text(stringResource(R.string.ydownload_queue_paste))
                 }
             }
-            YActionRow {
+            YHorizontalActions {
                 OutlinedButton(onClick = {
                     val seen = mutableSetOf<String>()
                     items.sortedByDescending(DownloadItem::id).forEach { item ->
@@ -314,7 +314,7 @@ fun YDownloadQueueToolsCard(context: Context) {
                     Text(stringResource(R.string.ydownload_queue_clear_failed_cancelled))
                 }
             }
-            YActionRow {
+            YHorizontalActions {
                 OutlinedButton(onClick = {
                     copyToClipboard("YDownload URLs", items.map(DownloadItem::url).distinct().joinToString("\n"))
                 }, enabled = items.isNotEmpty()) { Text(stringResource(R.string.ydownload_queue_copy_urls)) }
@@ -329,7 +329,7 @@ fun YDownloadQueueToolsCard(context: Context) {
             message?.let { Text(it) }
         }
 
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.ydownload_probe_title),
             subtitle = stringResource(R.string.ydownload_probe_summary),
         ) {
@@ -353,11 +353,11 @@ fun YDownloadQueueToolsCard(context: Context) {
                 }
             }, enabled = !busy && probeUrl.isNotBlank()) { Text(stringResource(R.string.ydownload_probe_run)) }
             probe?.let { result ->
-                YStatusRow(stringResource(R.string.ydownload_probe_http), result.responseCode.toString(), if (result.responseCode in 200..299) YStatusTone.Good else YStatusTone.Warning)
-                YStatusRow(stringResource(R.string.ydownload_probe_size), if (result.contentLength >= 0) formatQueueBytes(result.contentLength) else stringResource(R.string.ydownload_probe_unknown), YStatusTone.Neutral)
-                YStatusRow(stringResource(R.string.ydownload_probe_ranges), if (result.acceptRanges) stringResource(R.string.ydownload_queue_yes) else stringResource(R.string.ydownload_queue_no), if (result.acceptRanges) YStatusTone.Good else YStatusTone.Neutral)
-                result.contentType?.let { YStatusRow(stringResource(R.string.ydownload_probe_type), it, YStatusTone.Neutral) }
-                result.suggestedFileName?.let { YStatusRow(stringResource(R.string.file_name_optional), it, YStatusTone.Neutral) }
+                YStatusLine(stringResource(R.string.ydownload_probe_http), result.responseCode.toString(), if (result.responseCode in 200..299) YStatusTone.Good else YStatusTone.Warning)
+                YStatusLine(stringResource(R.string.ydownload_probe_size), if (result.contentLength >= 0) formatQueueBytes(result.contentLength) else stringResource(R.string.ydownload_probe_unknown), YStatusTone.Neutral)
+                YStatusLine(stringResource(R.string.ydownload_probe_ranges), if (result.acceptRanges) stringResource(R.string.ydownload_queue_yes) else stringResource(R.string.ydownload_queue_no), if (result.acceptRanges) YStatusTone.Good else YStatusTone.Neutral)
+                result.contentType?.let { YStatusLine(stringResource(R.string.ydownload_probe_type), it, YStatusTone.Neutral) }
+                result.suggestedFileName?.let { YStatusLine(stringResource(R.string.file_name_optional), it, YStatusTone.Neutral) }
                 result.etag?.let { Text(it) }
                 result.lastModified?.let { Text(it) }
                 Text(result.finalUrl)

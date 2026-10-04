@@ -7,9 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,16 +28,16 @@ fun YDownloadBatchControls(
     val finishedCount = items.count { it.state == DownloadState.COMPLETED || it.state == DownloadState.CANCELLED }
     val hashedItems = items.filter { !it.sha256.isNullOrBlank() }
 
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.batch_controls),
         subtitle = stringResource(R.string.batch_controls_summary),
     ) {
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.batch_overview),
             stringResource(R.string.batch_overview_value, activeCount, pausedCount, failedCount),
             YStatusTone.Neutral,
         )
-        YActionRow {
+        YHorizontalActions {
             OutlinedButton(
                 onClick = {
                     items.filter { it.state == DownloadState.RUNNING || it.state == DownloadState.QUEUED }
@@ -94,7 +94,7 @@ fun YDownloadBatchControls(
                 enabled = pausedCount > 0,
             ) { Text(stringResource(R.string.resume_all)) }
         }
-        YActionRow {
+        YHorizontalActions {
             OutlinedButton(
                 onClick = {
                     items.filter { it.state == DownloadState.FAILED }.forEach { task ->
@@ -155,7 +155,7 @@ fun YDownloadBatchControls(
         if (hashedItems.isNotEmpty()) {
             Text(stringResource(R.string.ydownload_sha256))
             hashedItems.take(3).forEach { task ->
-                YStatusRow(task.fileName, task.sha256.orEmpty(), YStatusTone.Good)
+                YStatusLine(task.fileName, task.sha256.orEmpty(), YStatusTone.Good)
             }
         }
     }

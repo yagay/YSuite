@@ -14,10 +14,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.net.URI
 import kotlinx.coroutines.Dispatchers
@@ -56,7 +56,7 @@ fun YDownloadNewTaskCard(
         requestOptionsInvalid = false
     }
 
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.new_download),
         subtitle = stringResource(R.string.new_download_summary),
     ) {
@@ -74,7 +74,7 @@ fun YDownloadNewTaskCard(
             label = { Text(stringResource(R.string.file_name_optional)) },
             singleLine = true,
         )
-        YSettingSwitch(
+        YSwitchItem(
             title = stringResource(R.string.advanced_request_options),
             subtitle = stringResource(R.string.advanced_request_options_summary),
             checked = showAdvanced,
@@ -103,7 +103,7 @@ fun YDownloadNewTaskCard(
             )
             if (requestOptionsInvalid) Text(stringResource(R.string.invalid_request_options))
         }
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.default_engine),
             if (enhancedSettings.defaultBackend == DownloadBackend.SYSTEM) {
                 stringResource(R.string.android_download_manager)
@@ -112,7 +112,7 @@ fun YDownloadNewTaskCard(
             },
             YStatusTone.Neutral,
         )
-        YActionRow {
+        YHorizontalActions {
             val systemClick: () -> Unit = system@{
                 val headers = parsedHeaders() ?: run {
                     requestOptionsInvalid = true
