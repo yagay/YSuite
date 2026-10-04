@@ -31,7 +31,7 @@ fun YSuiteStateHost(
     modifier: Modifier = Modifier,
     onRetry: (() -> Unit)? = null,
     onPermissionAction: (() -> Unit)? = null,
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit = {},
 ) {
     when (state) {
         YSuitePageState.Content -> content()

@@ -593,9 +593,33 @@ class ZipArchiveProvider : YFileProvider {
 
     private fun normalizeEntryName(
         value: String,
-    ): String =
-        value.replace('\\', '/')
-            .trimStart('/')
+    ): String {
+        val replaced =
+            value.replace('\\', '/')
+                .trimStart('/')
+        val directory =
+            replaced.endsWith("/")
+        val segments =
+            replaced.split('/')
+                .filter(String::isNotEmpty)
+        require(
+            segments.none { it == ".." },
+        ) {
+            "Unsafe archive entry"
+        }
+        val normalized =
+            segments
+                .filterNot { it == "." }
+                .joinToString("/")
+        return if (
+            directory &&
+            normalized.isNotEmpty()
+        ) {
+            normalized + "/"
+        } else {
+            normalized
+        }
+    }
 
     private fun encode(
         mountId: String,

@@ -243,9 +243,19 @@ class YFilesTrashService(
                 return result
         }
 
+        if (
+            ref.providerId !=
+                DOCUMENT_PROVIDER_ID
+        ) {
+            return Outcome.Success(
+                providerRoot,
+            )
+        }
+
         var current = ref
         var parent = when (
-            val result = engine.parent(current)
+            val result =
+                engine.parent(current)
         ) {
             is Outcome.Success ->
                 result.value
