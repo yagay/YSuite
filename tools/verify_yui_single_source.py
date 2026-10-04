@@ -66,7 +66,7 @@ MODULE_UI = {
     "YFloat": (Path("apps/YFloat/feature/src/main/java/com/yagay/YFloat/MainActivity.java"), ("com.yagay.yui.YViewLayout",)),
     "YMiniGuard": (Path("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java"), ("YViewLayout",)),
     "YNFC": (Path("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt"), ("YManagerScaffold", "YPageList")),
-    "YNotify": (Path("apps/YNotify/feature/src/main/res/layout/activity_main.xml"), ("Widget.YUI.", "TextAppearance.YUI.")),
+    "YNotify": (Path("apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/MainActivity.java"), ("YViewLayout", "YViewPage")),
     "YParam": (Path("apps/YParam/feature/src/main/java/com/yagay/yparam/ui/MainActivity.java"), ("YViewLayout",)),
     "YPower": (Path("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java"), ("YViewLayout",)),
     "YTaskManager": (Path("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt"), ("YManagerScaffold", "YAppShell")),
@@ -131,6 +131,17 @@ def main() -> None:
         offenders.append(str(relative))
     if offenders:
         fail("feature-local UI systems are forbidden; use libs/yui instead: " + ", ".join(sorted(offenders)))
+
+    page_layouts = sorted(
+        str(path.relative_to(ROOT))
+        for path in APPS.glob("*/feature/src/main/res/layout/activity_*.xml")
+        if path.is_file()
+    )
+    if page_layouts:
+        fail(
+            "feature-owned page XML is forbidden; build normal screens from shared YUI shells: "
+            + ", ".join(page_layouts)
+        )
 
     for module, (path, markers) in MODULE_UI.items():
         source = read(path)
