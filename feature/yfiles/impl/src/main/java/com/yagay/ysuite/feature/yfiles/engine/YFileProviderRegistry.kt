@@ -45,7 +45,7 @@ class YFileProviderRegistry(
         } else {
             Outcome.Failure(
                 code = "provider_not_found",
-                message = "Unknown file provider",
+                message = PROVIDER_NOT_FOUND_MESSAGE,
             )
         }
     }
@@ -54,4 +54,9 @@ class YFileProviderRegistry(
         ref: YFileRef,
     ): Outcome<YFileProvider> =
         provider(ref.providerId)
+
+    companion object {
+        private const val PROVIDER_NOT_FOUND_MESSAGE =
+            "Unknown file provider"
+    }
 }

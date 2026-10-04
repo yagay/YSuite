@@ -61,10 +61,11 @@ class LocalFileProviderTest {
 
             val provider =
                 LocalFileProvider(root.absolutePath)
+            val searchTerm = "target"
             val result = provider.list(
                 directory = provider.root(),
                 query = YFileQuery(
-                    text = "target",
+                    text = searchTerm,
                     recursive = true,
                 ),
             )

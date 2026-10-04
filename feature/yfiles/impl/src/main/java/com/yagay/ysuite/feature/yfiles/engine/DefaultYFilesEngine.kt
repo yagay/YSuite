@@ -148,9 +148,14 @@ class DefaultYFilesEngine(
         if (source.providerId != destination.providerId) {
             return Outcome.Failure(
                 code = "cross_provider_transfer_pending",
-                message = "Cross-provider transfer is not enabled yet",
+                message = CROSS_PROVIDER_PENDING_MESSAGE,
             )
         }
         return withProviderSuspend(source, block)
+    }
+
+    companion object {
+        private const val CROSS_PROVIDER_PENDING_MESSAGE =
+            "Cross-provider transfer is not enabled yet"
     }
 }
