@@ -45,3 +45,5 @@ jobs:
         run: gradle build --stacktrace
       - name: Verify alternate standalone feature
         run: gradle :host:standalone:assembleDebug -PstandaloneFeature=settings --stacktrace
+      - name: Verify YFiles standalone feature
+        run: gradle :host:standalone:assembleDebug -PstandaloneFeature=yfiles --stacktrace

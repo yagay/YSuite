@@ -1,0 +1,57 @@
+package com.yagay.ysuite.feature.yfiles.engine
+
+import com.yagay.ysuite.common.Outcome
+import com.yagay.ysuite.feature.yfiles.api.YFileProvider
+import com.yagay.ysuite.feature.yfiles.api.YFileProviderDescriptor
+import com.yagay.ysuite.feature.yfiles.api.YFileRef
+
+class YFileProviderRegistry(
+    providers: List<YFileProvider>,
+) {
+    private val providersById: Map<String, YFileProvider>
+
+    val descriptors: List<YFileProviderDescriptor>
+
+    init {
+        require(providers.isNotEmpty()) {
+            "At least one file provider is required"
+        }
+
+        val grouped = providers.groupBy {
+            it.descriptor.id
+        }
+        val duplicates = grouped
+            .filterValues { it.size > 1 }
+            .keys
+        require(duplicates.isEmpty()) {
+            "Duplicate file provider ids: " +
+                duplicates.sorted().joinToString()
+        }
+
+        providersById = providers.associateBy {
+            it.descriptor.id
+        }
+        descriptors = providers
+            .map(YFileProvider::descriptor)
+            .sortedBy(YFileProviderDescriptor::id)
+    }
+
+    fun provider(
+        providerId: String,
+    ): Outcome<YFileProvider> {
+        val provider = providersById[providerId]
+        return if (provider != null) {
+            Outcome.Success(provider)
+        } else {
+            Outcome.Failure(
+                code = "provider_not_found",
+                message = "Unknown file provider",
+            )
+        }
+    }
+
+    fun provider(
+        ref: YFileRef,
+    ): Outcome<YFileProvider> =
+        provider(ref.providerId)
+}

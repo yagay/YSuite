@@ -1,0 +1,23 @@
+<resources>
+    <string name="yfiles_title">YFiles</string>
+    <string name="yfiles_summary">Provider-based file manager built on the YSuite file engine.</string>
+    <string name="yfiles_sources">Storage sources</string>
+    <string name="yfiles_location">Location</string>
+    <string name="yfiles_search">Search files</string>
+    <string name="yfiles_recursive">Search subfolders</string>
+    <string name="yfiles_parent">Parent</string>
+    <string name="yfiles_refresh">Refresh</string>
+    <string name="yfiles_files">Files</string>
+    <string name="yfiles_loading">Loading files…</string>
+    <string name="yfiles_empty">No matching files.</string>
+    <string name="yfiles_error">Unable to access this source.</string>
+    <string name="yfiles_provider_local">Local storage</string>
+    <string name="yfiles_provider_document">Documents / SAF</string>
+    <string name="yfiles_provider_root">Root filesystem</string>
+    <string name="yfiles_provider_archive">Archive</string>
+    <string name="yfiles_provider_remote">Network storage</string>
+    <string name="yfiles_type_folder">Folder</string>
+    <string name="yfiles_type_file">File</string>
+    <string name="yfiles_type_link">Symbolic link</string>
+    <string name="yfiles_type_other">Other</string>
+</resources>

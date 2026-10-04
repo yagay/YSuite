@@ -1,0 +1,23 @@
+<resources>
+    <string name="yfiles_title">YFiles</string>
+    <string name="yfiles_summary">基于 YSuite 文件引擎重新构建的 Provider 文件管理器。</string>
+    <string name="yfiles_sources">存储来源</string>
+    <string name="yfiles_location">位置</string>
+    <string name="yfiles_search">搜索文件</string>
+    <string name="yfiles_recursive">搜索子文件夹</string>
+    <string name="yfiles_parent">上一级</string>
+    <string name="yfiles_refresh">刷新</string>
+    <string name="yfiles_files">文件</string>
+    <string name="yfiles_loading">正在读取文件…</string>
+    <string name="yfiles_empty">没有匹配的文件。</string>
+    <string name="yfiles_error">无法访问这个存储来源。</string>
+    <string name="yfiles_provider_local">本地存储</string>
+    <string name="yfiles_provider_document">文档 / SAF</string>
+    <string name="yfiles_provider_root">Root 文件系统</string>
+    <string name="yfiles_provider_archive">压缩包</string>
+    <string name="yfiles_provider_remote">网络存储</string>
+    <string name="yfiles_type_folder">文件夹</string>
+    <string name="yfiles_type_file">文件</string>
+    <string name="yfiles_type_link">符号链接</string>
+    <string name="yfiles_type_other">其他</string>
+</resources>
