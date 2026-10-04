@@ -70,6 +70,8 @@
     <string name="ydownload_speed_10m">10 MB/s</string>
     <string name="ydownload_wifi_only">仅 Wi‑Fi 下载</string>
     <string name="ydownload_wifi_only_desc">开启后，新的下载只会在 Wi‑Fi 可用时开始。</string>
+    <string name="ydownload_auto_resume_network">网络恢复后自动续传</string>
+    <string name="ydownload_auto_resume_network_desc">网络中断时保留任务排队，连接恢复后自动继续下载。</string>
     <string name="ydownload_notification_progress">下载通知</string>
     <string name="ydownload_notification_progress_desc">显示下载进度、完成和失败通知。</string>
     <string name="ydownload_default_user_agent">默认 User-Agent</string>

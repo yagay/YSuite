@@ -26,6 +26,7 @@ fun YDownloadSettingsScreen(
     onMaxConcurrent: (Int) -> Unit,
     onSpeedLimit: (Long) -> Unit,
     onWifiOnly: (Boolean) -> Unit,
+    onAutoResumeNetwork: (Boolean) -> Unit,
     onNotifications: (Boolean) -> Unit,
     onUserAgent: (String) -> Unit,
 ) {
@@ -179,6 +180,19 @@ fun YDownloadSettingsScreen(
                     ),
                 checked = settings.wifiOnly,
                 onCheckedChange = onWifiOnly,
+            )
+            ComposeSettingsSwitch(
+                title =
+                    stringResource(
+                        R.string.ydownload_auto_resume_network,
+                    ),
+                subtitle =
+                    stringResource(
+                        R.string
+                            .ydownload_auto_resume_network_desc,
+                    ),
+                checked = settings.autoResumeNetwork,
+                onCheckedChange = onAutoResumeNetwork,
             )
         }
 

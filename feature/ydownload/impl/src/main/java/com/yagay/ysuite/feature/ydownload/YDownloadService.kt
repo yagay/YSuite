@@ -23,12 +23,7 @@ class YDownloadService : LifecycleService() {
     private val networkCallback =
         object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                if (
-                    environment.settings.settings
-                        .value.wifiOnly
-                ) {
-                    environment.engine.pumpQueue()
-                }
+                environment.engine.pumpQueue()
             }
         }
 

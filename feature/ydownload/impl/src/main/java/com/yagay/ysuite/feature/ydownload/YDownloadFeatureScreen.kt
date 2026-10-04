@@ -69,6 +69,8 @@ fun YDownloadFeatureScreen(
                 model::setSpeedLimit,
             onWifiOnly =
                 model::setWifiOnly,
+            onAutoResumeNetwork =
+                model::setAutoResumeNetwork,
             onNotifications =
                 model::setNotifications,
             onUserAgent =

@@ -25,6 +25,7 @@ data class YDownloadSettings(
     val maxConcurrentDownloads: Int = 3,
     val globalSpeedLimitBytesPerSecond: Long = 0L,
     val wifiOnly: Boolean = false,
+    val autoResumeNetwork: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val defaultUserAgent: String = MOBILE_USER_AGENT,
 ) {
@@ -51,6 +52,8 @@ class YDownloadSettingsRepository(
             longPreferencesKey("speed_limit")
         val wifiOnly =
             booleanPreferencesKey("wifi_only")
+        val autoResumeNetwork =
+            booleanPreferencesKey("auto_resume_network")
         val notifications =
             booleanPreferencesKey("notifications")
         val userAgent =
@@ -84,6 +87,8 @@ class YDownloadSettingsRepository(
                             .coerceAtLeast(0L),
                     wifiOnly =
                         preferences[Keys.wifiOnly] ?: false,
+                    autoResumeNetwork =
+                        preferences[Keys.autoResumeNetwork] ?: true,
                     notificationsEnabled =
                         preferences[Keys.notifications] ?: true,
                     defaultUserAgent =
@@ -123,6 +128,12 @@ class YDownloadSettingsRepository(
     suspend fun setWifiOnly(value: Boolean) {
         context.yDownloadSettingsDataStore.edit {
             it[Keys.wifiOnly] = value
+        }
+    }
+
+    suspend fun setAutoResumeNetwork(value: Boolean) {
+        context.yDownloadSettingsDataStore.edit {
+            it[Keys.autoResumeNetwork] = value
         }
     }
 

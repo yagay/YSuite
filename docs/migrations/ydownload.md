@@ -13,8 +13,10 @@ completion opening, task removal, batch URL import and clipboard import.
 
 The add-download dialog can override the save folder per task and persists that choice with the
 task. The integrated settings page controls the default save folder, maximum concurrent downloads,
-global bandwidth limit, Wi-Fi-only mode, download notifications and default User-Agent. These values
-are wired into the engine/runtime rather than being presentation-only settings.
+global bandwidth limit, Wi-Fi-only mode, network-return auto-resume, download notifications and
+default User-Agent. These values are wired into the engine/runtime rather than being presentation-only
+settings. Interrupted transfers remain resumable; removing an unfinished task cleans up its partial
+destination while clearing completed tasks keeps the finished files.
 
 ## Product UI
 

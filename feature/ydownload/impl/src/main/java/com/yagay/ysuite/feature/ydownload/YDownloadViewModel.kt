@@ -542,7 +542,8 @@ class YDownloadViewModel(
         val uri =
             customTree?.let(Uri::parse)
                 ?: Uri.parse(
-                    "content://com.android.externalstorage.documents/root/primary",
+                    "content://com.android.externalstorage.documents/" +
+                        "document/primary%3ADownload%2FYDownload",
                 )
         val intent =
             Intent(Intent.ACTION_VIEW)
@@ -581,6 +582,14 @@ class YDownloadViewModel(
     fun setWifiOnly(value: Boolean) {
         viewModelScope.launch {
             environment.settings.setWifiOnly(value)
+            YDownloadService.pump(appContext)
+        }
+    }
+
+    fun setAutoResumeNetwork(value: Boolean) {
+        viewModelScope.launch {
+            environment.settings
+                .setAutoResumeNetwork(value)
             YDownloadService.pump(appContext)
         }
     }

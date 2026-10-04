@@ -70,6 +70,8 @@
     <string name="ydownload_speed_10m">10 MB/s</string>
     <string name="ydownload_wifi_only">Wi‑Fi only</string>
     <string name="ydownload_wifi_only_desc">New downloads only start while Wi‑Fi is available.</string>
+    <string name="ydownload_auto_resume_network">Auto-resume after network returns</string>
+    <string name="ydownload_auto_resume_network_desc">Keep interrupted downloads queued and resume them automatically when connectivity returns.</string>
     <string name="ydownload_notification_progress">Download notifications</string>
     <string name="ydownload_notification_progress_desc">Show progress, completion and failure notifications.</string>
     <string name="ydownload_default_user_agent">Default User-Agent</string>

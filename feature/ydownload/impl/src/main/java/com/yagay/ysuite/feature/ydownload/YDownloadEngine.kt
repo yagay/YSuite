@@ -72,6 +72,23 @@ class YDownloadEngine(
                         ?: return@withLock
                 val config = settings.settings.value
 
+                if (!isNetworkConnected()) {
+                    val shouldQueue =
+                        config.wifiOnly ||
+                            config.autoResumeNetwork
+                    repository.updateState(
+                        id = id,
+                        state =
+                            if (shouldQueue) {
+                                YDownloadState.Pending
+                            } else {
+                                YDownloadState.Paused
+                            },
+                        queued = shouldQueue,
+                    )
+                    return@withLock
+                }
+
                 if (
                     config.wifiOnly &&
                     !isWifiConnected()
@@ -165,7 +182,10 @@ class YDownloadEngine(
         activeJobs.remove(item.id)
             ?.cancelAndJoin()
 
-        if (deleteFile) {
+        if (
+            deleteFile ||
+            item.state != YDownloadState.Completed
+        ) {
             item.outputUri
                 ?.let(Uri::parse)
                 ?.let { uri ->
@@ -391,16 +411,19 @@ class YDownloadEngine(
                     error is ConnectException ||
                     error is UnknownHostException ||
                     error is SocketTimeoutException
-            val wifiOnly =
-                settings.settings.value.wifiOnly
+            val config =
+                settings.settings.value
+            val shouldQueueForNetwork =
+                networkInterruption &&
+                    (
+                        config.wifiOnly ||
+                            config.autoResumeNetwork
+                    )
 
             repository.updateState(
                 id = id,
                 state =
-                    if (
-                        networkInterruption &&
-                        wifiOnly
-                    ) {
+                    if (shouldQueueForNetwork) {
                         YDownloadState.Pending
                     } else if (networkInterruption) {
                         YDownloadState.Paused
@@ -414,9 +437,7 @@ class YDownloadEngine(
                         error.message
                             ?: error.javaClass.simpleName
                     },
-                queued =
-                    networkInterruption &&
-                        wifiOnly,
+                queued = shouldQueueForNetwork,
             )
 
             if (networkInterruption) {
@@ -511,6 +532,18 @@ class YDownloadEngine(
             values,
             null,
             null,
+        )
+    }
+
+    private fun isNetworkConnected(): Boolean {
+        val network =
+            connectivity.activeNetwork
+                ?: return false
+        val capabilities =
+            connectivity.getNetworkCapabilities(network)
+                ?: return false
+        return capabilities.hasCapability(
+            NetworkCapabilities.NET_CAPABILITY_INTERNET,
         )
     }
 
