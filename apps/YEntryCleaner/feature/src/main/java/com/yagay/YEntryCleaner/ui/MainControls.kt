@@ -42,6 +42,11 @@ import androidx.compose.ui.unit.dp
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.IntentKind
 import com.yagay.YEntryCleaner.domain.AppTypeFilter
+import com.yagay.yui.YActionSpec
+import com.yagay.yui.YCustomTopBar
+import com.yagay.yui.YIconAction
+import com.yagay.yui.YIcons
+import com.yagay.yui.YOverflowMenu
 
 @Composable
 internal fun CompactSearchField(query: String, onQueryChange: (String) -> Unit) {
@@ -84,7 +89,6 @@ internal fun CompactSearchField(query: String, onQueryChange: (String) -> Unit) 
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MainToolbar(
     query: String,
@@ -96,38 +100,52 @@ internal fun MainToolbar(
     onRestore: () -> Unit,
     onBackup: () -> Unit
 ) {
-    var menu by remember { mutableStateOf(false) }
-    TopAppBar(
+    YCustomTopBar(
         title = {
             if (expanded) CompactSearchField(query, onQuery)
             else Text(stringResource(R.string.yentrycleaner_app_name), fontWeight = FontWeight.Bold, maxLines = 1)
         },
         navigationIcon = {
-            if (expanded) IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.close_search))
+            if (expanded) {
+                YIconAction(
+                    icon = YIcons.Back,
+                    contentDescription = stringResource(R.string.close_search),
+                    onClick = onClose,
+                )
             }
         },
         actions = {
             if (expanded) {
-                if (query.isNotEmpty()) IconButton(onClick = { onQuery("") }) {
-                    Icon(Icons.Rounded.Close, stringResource(R.string.clear_search))
+                if (query.isNotEmpty()) {
+                    YIconAction(
+                        icon = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.clear_search),
+                        onClick = { onQuery("") },
+                    )
                 }
             } else {
-                IconButton(onClick = onSearch) { Icon(Icons.Rounded.Search, stringResource(R.string.common_search)) }
-                IconButton(onClick = onRefresh) { Icon(Icons.Rounded.Refresh, stringResource(R.string.common_refresh)) }
-                Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.common_more)) }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.restore_backup)) },
-                            onClick = { menu = false; onRestore() }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.export_backup)) },
-                            onClick = { menu = false; onBackup() }
-                        )
-                    }
-                }
+                YIconAction(
+                    icon = YIcons.Search,
+                    contentDescription = stringResource(R.string.common_search),
+                    onClick = onSearch,
+                )
+                YIconAction(
+                    icon = YIcons.Refresh,
+                    contentDescription = stringResource(R.string.common_refresh),
+                    onClick = onRefresh,
+                )
+                YOverflowMenu(
+                    actions = listOf(
+                        YActionSpec(
+                            label = stringResource(R.string.restore_backup),
+                            onClick = onRestore,
+                        ),
+                        YActionSpec(
+                            label = stringResource(R.string.export_backup),
+                            onClick = onBackup,
+                        ),
+                    )
+                )
             }
         }
     )

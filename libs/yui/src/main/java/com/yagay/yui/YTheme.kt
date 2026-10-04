@@ -141,6 +141,20 @@ fun YTopBar(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun YCustomTopBar(
+    title: @Composable () -> Unit,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    TopAppBar(
+        title = title,
+        navigationIcon = navigationIcon,
+        actions = actions,
+    )
+}
+
 @Composable
 private fun YTopBarCopy(title: String, subtitle: String?) {
     Text(

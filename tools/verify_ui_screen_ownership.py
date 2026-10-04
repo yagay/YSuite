@@ -28,6 +28,8 @@ SOURCE_MARKERS = (
     "YFeatureList(",
     "YFeatureSectionHeader(",
     "YSearchField(",
+    "YFullScreenDialog(",
+    "YFormDialog(",
     "YViewLayout.install(",
     "YViewLayout.installFixed(",
     "YViewLayout.installPage(",
