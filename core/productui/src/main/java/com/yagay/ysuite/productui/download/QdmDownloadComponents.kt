@@ -49,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
 data class QdmDownloadRowModel(
@@ -171,7 +170,7 @@ private fun QdmDownloadItemRow(
                     } else {
                         MaterialTheme.colorScheme.primary
                     },
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(YSuiteSpacing.XLarge),
             )
             Spacer(Modifier.width(YSuiteSpacing.Medium))
             Column(

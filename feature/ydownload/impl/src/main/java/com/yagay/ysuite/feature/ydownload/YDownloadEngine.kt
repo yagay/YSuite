@@ -9,6 +9,10 @@ import com.yagay.ysuite.feature.ydownload.api.YDownloadItem
 import com.yagay.ysuite.feature.ydownload.api.YDownloadState
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import java.io.FileOutputStream
+import java.net.ConnectException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +43,8 @@ class YDownloadEngine(
         )
     private val activeJobs =
         ConcurrentHashMap<String, Job>()
+    private val activeCalls =
+        ConcurrentHashMap<String, okhttp3.Call>()
 
     fun start(id: String) {
         if (activeJobs[id]?.isActive == true) return
@@ -51,6 +57,7 @@ class YDownloadEngine(
     }
 
     suspend fun pause(id: String) {
+        activeCalls.remove(id)?.cancel()
         activeJobs.remove(id)
             ?.cancelAndJoin()
         repository.updateState(
@@ -61,6 +68,7 @@ class YDownloadEngine(
     }
 
     suspend fun cancel(id: String) {
+        activeCalls.remove(id)?.cancel()
         activeJobs.remove(id)
             ?.cancelAndJoin()
         repository.updateState(
@@ -74,6 +82,7 @@ class YDownloadEngine(
         item: YDownloadItem,
         deleteFile: Boolean,
     ) {
+        activeCalls.remove(item.id)?.cancel()
         activeJobs.remove(item.id)
             ?.cancelAndJoin()
 
@@ -143,9 +152,13 @@ class YDownloadEngine(
                 )
             }
 
-            client.newCall(
-                requestBuilder.build(),
-            ).execute().use { response ->
+            val call =
+                client.newCall(
+                    requestBuilder.build(),
+                )
+            activeCalls[id] = call
+
+            call.execute().use { response ->
                 if (!response.isSuccessful) {
                     error("HTTP " + response.code)
                 }
@@ -203,13 +216,15 @@ class YDownloadEngine(
                                 val count =
                                     input.read(buffer)
                                 if (count < 0) break
-                                channel.write(
+                                val byteBuffer =
                                     java.nio.ByteBuffer.wrap(
                                         buffer,
                                         0,
                                         count,
-                                    ),
-                                )
+                                    )
+                                while (byteBuffer.hasRemaining()) {
+                                    channel.write(byteBuffer)
+                                }
                                 downloaded += count
                                 windowBytes += count
 
@@ -284,21 +299,45 @@ class YDownloadEngine(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Throwable) {
+            val networkInterruption =
+                error is SocketException ||
+                    error is ConnectException ||
+                    error is UnknownHostException ||
+                    error is SocketTimeoutException
+
             repository.updateState(
                 id = id,
-                state = YDownloadState.Failed,
+                state =
+                    if (networkInterruption) {
+                        YDownloadState.Paused
+                    } else {
+                        YDownloadState.Failed
+                    },
                 error =
-                    error.message
-                        ?: "Download failed",
+                    if (networkInterruption) {
+                        null
+                    } else {
+                        error.message
+                            ?: error.javaClass.simpleName
+                    },
                 queued = false,
             )
-            logger.error(
-                TAG,
-                "Download failed: " + id,
-                error,
-            )
-            startNextQueued()
+
+            if (networkInterruption) {
+                logger.debug(
+                    TAG,
+                    "Network interruption paused " + id,
+                )
+            } else {
+                logger.error(
+                    TAG,
+                    "Download failed: " + id,
+                    error,
+                )
+                startNextQueued()
+            }
         } finally {
+            activeCalls.remove(id)
             activeJobs.remove(id)
         }
     }
