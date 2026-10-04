@@ -1,12 +1,14 @@
 package com.yagay.YEntryCleaner.ui
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -14,9 +16,13 @@ import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.CustomOpenDefinition
 import com.yagay.YEntryCleaner.domain.OpenPreset
 import com.yagay.YEntryCleaner.domain.OpenTypeConfig
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YStatusRow
-import com.yagay.yui.YStatusTone
+import com.yagay.yui.YActionSpec
+import com.yagay.yui.YActionStyle
+import com.yagay.yui.YFormDialog
+import com.yagay.yui.YListItem
+import com.yagay.yui.YNotice
+import com.yagay.yui.YNoticeTone
+import com.yagay.yui.YTextField
 
 @StringRes
 private fun customOpenErrorRes(code: String?): Int = when (code) {
@@ -46,61 +52,52 @@ internal fun CustomOpenTypeDialog(
         return
     }
 
-    AlertDialog(
+    YFormDialog(
+        title = stringResource(R.string.custom_open_title),
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.custom_open_title)) },
-        text = {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    stringResource(R.string.custom_open_help),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 420.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(OpenPreset.CUSTOM_SLOTS, key = { it.name }) { slot ->
-                        val definition = config.customDefinitions[slot]
-                        val summary = if (definition == null) {
-                            stringResource(R.string.custom_open_not_configured)
-                        } else {
-                            buildString {
-                                if (definition.mimeTypes.isNotEmpty()) {
-                                    append(stringResource(R.string.custom_open_mime_summary, definition.mimeTypes.joinToString()))
-                                }
-                                if (definition.mimeTypes.isNotEmpty() && definition.extensions.isNotEmpty()) append(stringResource(R.string.yentry_list_separator))
-                                if (definition.extensions.isNotEmpty()) {
-                                    append(
-                                        stringResource(
-                                            R.string.custom_open_extension_summary,
-                                            definition.extensions.joinToString { ".$it" }
-                                        )
-                                    )
-                                }
-                            }
+        actions = listOf(
+            YActionSpec(
+                label = stringResource(R.string.common_done),
+                style = YActionStyle.PRIMARY,
+                onClick = onDismiss,
+            ),
+        ),
+    ) {
+        YNotice(stringResource(R.string.custom_open_help))
+        LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
+            items(OpenPreset.CUSTOM_SLOTS, key = { it.name }) { slot ->
+                val definition = config.customDefinitions[slot]
+                val summary = if (definition == null) {
+                    stringResource(R.string.custom_open_not_configured)
+                } else {
+                    buildString {
+                        if (definition.mimeTypes.isNotEmpty()) {
+                            append(stringResource(R.string.custom_open_mime_summary, definition.mimeTypes.joinToString()))
                         }
-                        YFeatureCard(
-                            title = definition?.title ?: stringResource(slot.titleRes()),
-                            subtitle = summary,
-                            trailing = {
-                                TextButton(onClick = { editing = slot }) {
-                                    Text(stringResource(if (definition == null) R.string.common_add else R.string.common_edit))
-                                }
-                            }
-                        ) {
-                            YStatusRow(
-                                label = stringResource(R.string.open_type_filter),
-                                value = stringResource(if (definition == null) R.string.custom_open_not_configured else R.string.common_enable),
-                                tone = if (definition == null) YStatusTone.Neutral else YStatusTone.Good
+                        if (definition.mimeTypes.isNotEmpty() && definition.extensions.isNotEmpty()) {
+                            append(stringResource(R.string.yentry_list_separator))
+                        }
+                        if (definition.extensions.isNotEmpty()) {
+                            append(
+                                stringResource(
+                                    R.string.custom_open_extension_summary,
+                                    definition.extensions.joinToString { ".$it" }
+                                )
                             )
                         }
                     }
                 }
+                YListItem(
+                    title = definition?.title ?: stringResource(slot.titleRes()),
+                    subtitle = summary,
+                    detail = stringResource(
+                        if (definition == null) R.string.custom_open_not_configured else R.string.common_enable
+                    ),
+                    onClick = { editing = slot },
+                )
             }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_done)) } }
-    )
+        }
+    }
 }
 
 @Composable
@@ -123,67 +120,66 @@ private fun CustomOpenTypeEditor(
         .toSet()
 
     val presetTitle = stringResource(preset.titleRes())
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                if (initial == null) stringResource(R.string.custom_open_add_title, presetTitle)
-                else stringResource(R.string.custom_open_edit_title, initial.title)
+    val actions = buildList {
+        onDelete?.let { delete ->
+            add(
+                YActionSpec(
+                    label = stringResource(R.string.common_delete),
+                    style = YActionStyle.DANGER,
+                    onClick = delete,
+                )
             )
+        }
+        add(YActionSpec(label = stringResource(R.string.common_cancel), onClick = onDismiss))
+        add(
+            YActionSpec(
+                label = stringResource(R.string.common_save),
+                style = YActionStyle.PRIMARY,
+                onClick = {
+                    runCatching {
+                        CustomOpenDefinition(title, parseSet(mimeText), parseSet(extensionText)).validated()
+                    }.onSuccess(onSave).onFailure { errorRes = customOpenErrorRes(it.message) }
+                },
+            )
+        )
+    }
+
+    YFormDialog(
+        title = if (initial == null) {
+            stringResource(R.string.custom_open_add_title, presetTitle)
+        } else {
+            stringResource(R.string.custom_open_edit_title, initial.title)
         },
-        text = {
-            YFeatureCard(
-                title = initial?.title ?: presetTitle,
-                subtitle = stringResource(R.string.custom_open_help)
-            ) {
-                OutlinedTextField(
-                    title,
-                    { title = it; errorRes = null },
-                    label = { Text(stringResource(R.string.custom_open_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    mimeText,
-                    { mimeText = it; errorRes = null },
-                    label = { Text(stringResource(R.string.custom_open_mime_label)) },
-                    supportingText = { Text(stringResource(R.string.custom_open_mime_example)) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp)
-                )
-                OutlinedTextField(
-                    extensionText,
-                    { extensionText = it; errorRes = null },
-                    label = { Text(stringResource(R.string.custom_open_extension_label)) },
-                    supportingText = { Text(stringResource(R.string.custom_open_extension_example)) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp)
-                )
-                errorRes?.let {
-                    YStatusRow(
-                        label = stringResource(R.string.rules_summary_status),
-                        value = stringResource(it),
-                        tone = YStatusTone.Error
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                onDelete?.let { delete ->
-                    TextButton(onClick = delete) {
-                        Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                TextButton(
-                    onClick = {
-                        runCatching {
-                            CustomOpenDefinition(title, parseSet(mimeText), parseSet(extensionText)).validated()
-                        }.onSuccess(onSave).onFailure { errorRes = customOpenErrorRes(it.message) }
-                    }
-                ) {
-                    Text(stringResource(R.string.common_save))
-                }
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
-    )
+        onDismissRequest = onDismiss,
+        actions = actions,
+    ) {
+        YNotice(stringResource(R.string.custom_open_help))
+        YTextField(
+            value = title,
+            onValueChange = { title = it; errorRes = null },
+            label = stringResource(R.string.custom_open_name),
+        )
+        YTextField(
+            value = mimeText,
+            onValueChange = { mimeText = it; errorRes = null },
+            label = stringResource(R.string.custom_open_mime_label),
+            supportingText = stringResource(R.string.custom_open_mime_example),
+            singleLine = false,
+            modifier = Modifier.heightIn(min = 96.dp),
+        )
+        YTextField(
+            value = extensionText,
+            onValueChange = { extensionText = it; errorRes = null },
+            label = stringResource(R.string.custom_open_extension_label),
+            supportingText = stringResource(R.string.custom_open_extension_example),
+            singleLine = false,
+            modifier = Modifier.heightIn(min = 96.dp),
+        )
+        errorRes?.let {
+            YNotice(
+                text = stringResource(it),
+                tone = YNoticeTone.ERROR,
+            )
+        }
+    }
 }

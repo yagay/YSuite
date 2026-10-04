@@ -40,19 +40,25 @@ def main() -> None:
         require(dashboard, marker, "unified dashboard")
     require(dashboard, "DashboardModuleStatusCard", "dashboard module status")
 
-    for marker in ("YFeatureCard(", "YStatusRow(", "YStatusTone"):
+    for marker in ("YSectionHeader(", "YStatusItem(", "YActionGroup(", "YConfirmDialog("):
         require(runtime, marker, "runtime panel")
+    for marker in ("YFeatureCard(", "YStatusRow(", "AlertDialog("):
+        reject(runtime, marker, "runtime panel")
 
     for marker in ("YSearchField(", "YFeatureEmpty(", "YSettingRow("):
         require(browser, marker, "browser host UI")
     require(browser, "normalizeBrowserHost", "browser host validation")
     require(browser, "BrowserLinkConfig.MAX_HOSTS", "browser host limit")
 
-    for marker in ("YFeatureCard(", "YStatusRow(", "CustomOpenDefinition(", "validated()"):
+    for marker in ("YFormDialog(", "YListItem(", "YTextField(", "CustomOpenDefinition(", "validated()"):
         require(custom_open, marker, "custom OPEN editor")
+    for marker in ("YFeatureCard(", "YStatusRow(", "AlertDialog(", "OutlinedTextField("):
+        reject(custom_open, marker, "custom OPEN editor")
 
-    for marker in ("YFeatureCard(", "YSearchField(", "YSettingSwitch(", "YStatusRow(", "YFeatureEmpty("):
+    for marker in ("YFullScreenDialog(", "YToggleFilterBar(", "YSearchField(", "YSwitchItem(", "YStatusItem(", "YCheckboxItem("):
         require(scope_picker, marker, "app scope picker")
+    for marker in ("YFeatureCard(", "YSettingSwitch(", "YStatusRow(", "YFeatureEmpty(", "Scaffold(", "TopAppBar("):
+        reject(scope_picker, marker, "app scope picker")
     require(scope_picker, "VisibilityScope.entries", "app scope category controls")
     require(scope_picker, "onSelectedChange", "app scope package selection")
 

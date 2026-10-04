@@ -10,7 +10,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,10 +25,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.data.readBackupText
+import com.yagay.yui.YActionSpec
+import com.yagay.yui.YAppShell
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCustomScaffold
+import com.yagay.yui.YFormDialog
 import com.yagay.yui.YNavigationSpec
-import com.yagay.yui.YAppShell
 import com.yagay.yui.YPageRole
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -59,24 +60,25 @@ class MainActivity : YComposeActivity() {
             if (!state.module.outdated) restartPromptDismissed = false
         }
         if (state.module.outdated && !restartPromptDismissed) {
-            AlertDialog(
+            YFormDialog(
+                title = stringResource(R.string.restart_required_title),
                 onDismissRequest = { restartPromptDismissed = true },
-                title = { Text(stringResource(R.string.restart_required_title)) },
-                text = { Text(stringResource(R.string.restart_required_message)) },
-                confirmButton = {
-                    TextButton(onClick = { restartPromptDismissed = true }) {
-                        Text(stringResource(R.string.common_ok))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        restartPromptDismissed = true
-                        vm.setDestination(Destination.DASHBOARD)
-                    }) {
-                        Text(stringResource(R.string.restart_required_open_status))
-                    }
-                }
-            )
+                actions = listOf(
+                    YActionSpec(
+                        label = stringResource(R.string.common_ok),
+                        onClick = { restartPromptDismissed = true },
+                    ),
+                    YActionSpec(
+                        label = stringResource(R.string.restart_required_open_status),
+                        onClick = {
+                            restartPromptDismissed = true
+                            vm.setDestination(Destination.DASHBOARD)
+                        },
+                    ),
+                ),
+            ) {
+                androidx.compose.material3.Text(stringResource(R.string.restart_required_message))
+            }
         }
         val keyboard = LocalSoftwareKeyboardController.current
         val closeSearch: () -> Unit = {
