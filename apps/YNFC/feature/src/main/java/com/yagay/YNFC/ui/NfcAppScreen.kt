@@ -10,9 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +43,9 @@ import com.yagay.yui.YPageList
 import com.yagay.yui.YSectionHeader
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSecondaryButton
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YTabBar
+import com.yagay.yui.YTabSpec
 
 /** Stateless Activity boundary for the complete NFC screen; operation state stays screen-local. */
 @Composable
@@ -149,22 +149,18 @@ fun NfcAppScreen(
                 }
             }
             item {
-                YSection(
+                YSwitchItem(
                     title = stringResource(R.string.ynfc_log_display),
                     subtitle = if (logsEnabled) {
                         stringResource(R.string.ynfc_log_enabled)
                     } else {
                         stringResource(R.string.ynfc_log_disabled)
                     },
-                    trailing = {
-                        Switch(
-                            checked = logsEnabled,
-                            onCheckedChange = { enabled ->
-                                logsEnabled = enabled
-                                onLoggingChanged(enabled)
-                                if (!enabled) logLines.clear()
-                            },
-                        )
+                    checked = logsEnabled,
+                    onCheckedChange = { enabled ->
+                        logsEnabled = enabled
+                        onLoggingChanged(enabled)
+                        if (!enabled) logLines.clear()
                     },
                 )
             }
@@ -174,15 +170,17 @@ fun NfcAppScreen(
                         title = stringResource(R.string.ynfc_diagnostic_logs),
                         subtitle = stringResource(R.string.ynfc_diagnostic_logs_desc),
                     ) {
-                        ScrollableTabRow(selectedTabIndex = selectedSource.ordinal, edgePadding = 4.dp) {
-                            LogSource.entries.forEach { source ->
-                                Tab(
-                                    selected = selectedSource == source,
-                                    onClick = { selectedSource = source },
-                                    text = { Text(source.label, fontSize = 11.sp) },
-                                )
-                            }
-                        }
+                        YTabBar(
+                            tabs = LogSource.entries.map { source ->
+                                YTabSpec(source.name, source.label)
+                            },
+                            selectedKey = selectedSource.name,
+                            onSelected = { tab ->
+                                LogSource.entries.firstOrNull { it.name == tab.key }?.let {
+                                    selectedSource = it
+                                }
+                            },
+                        )
                         Box(
                             Modifier
                                 .fillMaxWidth()

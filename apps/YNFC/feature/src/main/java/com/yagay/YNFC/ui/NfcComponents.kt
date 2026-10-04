@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -26,6 +24,7 @@ import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSecondaryButton
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
+import com.yagay.yui.YDivider
 
 @Composable
 fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readModeEnabled: Boolean) {
@@ -250,9 +249,11 @@ fun ReadCardPanel(
                         Modifier.weight(1f),
                     )
                 }
-                TextButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.ynfc_close_read_result))
-                }
+                YSecondaryButton(
+                    text = stringResource(R.string.ynfc_close_read_result),
+                    onClick = onClear,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -319,13 +320,14 @@ fun CardItem(
                 YPrimaryButton(stringResource(R.string.ynfc_simulate), onSimulate)
             }
             Spacer(Modifier.width(4.dp))
-            TextButton(onClick = onDelete, contentPadding = PaddingValues(horizontal = 6.dp)) {
-                Text(stringResource(R.string.ynfc_delete))
-            }
+            YSecondaryButton(
+                text = stringResource(R.string.ynfc_delete),
+                onClick = onDelete,
+            )
         },
     ) {
         if (expanded) {
-            HorizontalDivider()
+            YDivider()
             CardDetails(card)
         }
     }
