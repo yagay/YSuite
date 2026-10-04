@@ -79,12 +79,16 @@ fun YSuiteAdaptiveContainer(
 ) {
     YSuiteAdaptiveLayout(modifier = modifier.fillMaxWidth()) { info ->
         Box(
-            modifier = Modifier
-                .widthIn(max = YSuiteLayoutTokens.ContentMaxWidth)
-                .fillMaxWidth()
-                .align(Alignment.TopCenter),
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            content(info.widthClass)
+            Box(
+                modifier = Modifier
+                    .widthIn(max = YSuiteLayoutTokens.ContentMaxWidth)
+                    .fillMaxWidth(),
+            ) {
+                content(info.widthClass)
+            }
         }
     }
 }
