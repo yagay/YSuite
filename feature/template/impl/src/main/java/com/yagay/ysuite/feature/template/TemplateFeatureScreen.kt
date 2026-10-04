@@ -10,7 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.ysuite.designsystem.component.YSuiteSection
 import com.yagay.ysuite.designsystem.component.YSuiteSwitchItem
-import com.yagay.ysuite.productui.tool.YToolSurface
+import com.yagay.ysuite.productui.tool.NiaToolSurface
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 
 @Composable
@@ -19,7 +19,7 @@ fun TemplateFeatureScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    YToolSurface(
+    NiaToolSurface(
         title = stringResource(R.string.template_title),
         navigationIcon = { YSuiteHostNavigationButton() },
     ) {

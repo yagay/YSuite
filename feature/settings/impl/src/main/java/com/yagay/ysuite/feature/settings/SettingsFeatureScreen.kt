@@ -7,11 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yagay.ysuite.designsystem.component.YSuiteFilterBar
-import com.yagay.ysuite.designsystem.component.YSuiteFilterOption
-import com.yagay.ysuite.designsystem.component.YSuiteListItem
-import com.yagay.ysuite.designsystem.component.YSuiteSection
-import com.yagay.ysuite.productui.settings.YSettingsSurface
+import com.yagay.ysuite.productui.settings.ComposeSettingsChoice
+import com.yagay.ysuite.productui.settings.ComposeSettingsChoiceGroup
+import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
 import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
@@ -25,65 +23,57 @@ fun SettingsFeatureScreen(
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    YSettingsSurface(
+    ComposeSettingsSurface(
         title = stringResource(R.string.settings_title),
         navigationIcon = { YSuiteHostNavigationButton() },
     ) {
-        YSuiteSection(
-            title = stringResource(R.string.settings_appearance),
-        ) {
-            YSuiteListItem(
-                title = stringResource(R.string.settings_theme),
-            )
-            YSuiteFilterBar(
-                options = listOf(
-                    YSuiteFilterOption(
-                        AppThemeMode.System.name,
-                        stringResource(R.string.settings_theme_system),
-                    ),
-                    YSuiteFilterOption(
-                        AppThemeMode.Light.name,
-                        stringResource(R.string.settings_theme_light),
-                    ),
-                    YSuiteFilterOption(
-                        AppThemeMode.Dark.name,
-                        stringResource(R.string.settings_theme_dark),
-                    ),
+        ComposeSettingsChoiceGroup(
+            title = stringResource(R.string.settings_theme),
+            selectedId = state.settings.themeMode.name,
+            choices = listOf(
+                ComposeSettingsChoice(
+                    AppThemeMode.System.name,
+                    stringResource(R.string.settings_theme_system),
                 ),
-                selectedId = state.settings.themeMode.name,
-                onSelected = { selected ->
-                    viewModel.setThemeMode(
-                        AppThemeMode.valueOf(selected),
-                    )
-                },
-            )
+                ComposeSettingsChoice(
+                    AppThemeMode.Light.name,
+                    stringResource(R.string.settings_theme_light),
+                ),
+                ComposeSettingsChoice(
+                    AppThemeMode.Dark.name,
+                    stringResource(R.string.settings_theme_dark),
+                ),
+            ),
+            onSelected = { selected ->
+                viewModel.setThemeMode(
+                    AppThemeMode.valueOf(selected),
+                )
+            },
+        )
 
-            YSuiteListItem(
-                title = stringResource(R.string.settings_language),
-            )
-            YSuiteFilterBar(
-                options = listOf(
-                    YSuiteFilterOption(
-                        "system",
-                        stringResource(R.string.settings_language_system),
-                    ),
-                    YSuiteFilterOption(
-                        "en",
-                        stringResource(R.string.settings_language_english),
-                    ),
-                    YSuiteFilterOption(
-                        "zh-Hans",
-                        stringResource(R.string.settings_language_chinese),
-                    ),
+        ComposeSettingsChoiceGroup(
+            title = stringResource(R.string.settings_language),
+            selectedId = state.settings.languageTag ?: "system",
+            choices = listOf(
+                ComposeSettingsChoice(
+                    "system",
+                    stringResource(R.string.settings_language_system),
                 ),
-                selectedId = state.settings.languageTag ?: "system",
-                onSelected = { selected ->
-                    viewModel.setLanguageTag(
-                        selected.takeUnless { it == "system" },
-                    )
-                },
-            )
-        }
+                ComposeSettingsChoice(
+                    "en",
+                    stringResource(R.string.settings_language_english),
+                ),
+                ComposeSettingsChoice(
+                    "zh-Hans",
+                    stringResource(R.string.settings_language_chinese),
+                ),
+            ),
+            onSelected = { selected ->
+                viewModel.setLanguageTag(
+                    selected.takeUnless { it == "system" },
+                )
+            },
+        )
     }
 }
 

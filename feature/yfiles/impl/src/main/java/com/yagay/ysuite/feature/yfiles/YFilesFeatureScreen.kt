@@ -53,7 +53,7 @@ import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.filemanager.YFileBreadcrumbBar
 import com.yagay.ysuite.productui.filemanager.YFileEntryRow
-import com.yagay.ysuite.productui.filemanager.YFileManagerScaffold
+import com.yagay.ysuite.productui.filemanager.FileExplorerWorkspace
 import com.yagay.ysuite.productui.filemanager.YFileProductItemKind
 import com.yagay.ysuite.productui.filemanager.YFileProductSource
 import com.yagay.ysuite.productui.filemanager.YFileProductSourceKind
@@ -61,8 +61,10 @@ import com.yagay.ysuite.productui.filemanager.YFileSearchCommandBar
 import com.yagay.ysuite.productui.filemanager.YFileSectionSwitcher
 import com.yagay.ysuite.productui.filemanager.YFileSelectionBar
 import com.yagay.ysuite.productui.filemanager.YFileSourcePane
-import com.yagay.ysuite.productui.settings.YSettingsSurface
-import com.yagay.ysuite.productui.tool.YToolSurface
+import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
+import com.yagay.ysuite.productui.settings.ComposeSettingsLink
+import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
+import com.yagay.ysuite.productui.tool.NiaToolSurface
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 import java.text.DateFormat
 
@@ -113,7 +115,7 @@ fun YFilesFeatureScreen(
                 onEmptyTrash = { confirmEmptyTrash = true },
             )
         YFilesTab.Tools ->
-            YToolSurface(
+            NiaToolSurface(
                 title = stringResource(R.string.yfiles_tab_tools),
                 navigationIcon = { YSuiteHostNavigationButton() },
             ) {
@@ -144,7 +146,7 @@ fun YFilesFeatureScreen(
                 }
             }
         YFilesTab.Settings ->
-            YSettingsSurface(
+            ComposeSettingsSurface(
                 title = stringResource(R.string.yfiles_tab_settings),
                 navigationIcon = { YSuiteHostNavigationButton() },
             ) {
@@ -243,7 +245,7 @@ private fun YFilesBrowserSurface(
             }
         }
 
-    YFileManagerScaffold(
+    FileExplorerWorkspace(
         title = stringResource(R.string.yfiles_title),
         navigationIcon = { YSuiteHostNavigationButton() },
         breadcrumb = {
@@ -264,20 +266,15 @@ private fun YFilesBrowserSurface(
                 browser = browser,
             )
         },
-        compactSourceBar = {
-            YFilesCompactSourceBar(
-                state = state,
-                browser = browser,
-            )
-        },
-        sourcePane = {
+        drawerContent = { _, closeDrawer ->
             YFilesSourcePane(
                 state = state,
                 browser = browser,
+                onNavigate = closeDrawer,
             )
         },
         detailPane = detailContent,
-        selectionBar =
+        selectionTopBar =
             if (state.selected.isNotEmpty()) {
                 {
                     YFileSelectionBar(
@@ -397,27 +394,10 @@ private fun YFilesCommandBar(
 }
 
 @Composable
-private fun YFilesCompactSourceBar(
-    state: YFilesUiState,
-    browser: YFilesViewModel,
-) {
-    YSuiteFilterBar(
-        options =
-            state.providers.map { provider ->
-                YSuiteFilterOption(
-                    id = provider.id,
-                    label = providerLabel(provider.kind),
-                )
-            },
-        selectedId = state.activeProviderId,
-        onSelected = browser::selectProvider,
-    )
-}
-
-@Composable
 private fun YFilesSourcePane(
     state: YFilesUiState,
     browser: YFilesViewModel,
+    onNavigate: () -> Unit = {},
 ) {
     YFileSourcePane(
         sources =
@@ -434,7 +414,10 @@ private fun YFilesSourcePane(
         recentLabel = stringResource(R.string.yfiles_mode_recent),
         trashLabel = stringResource(R.string.yfiles_mode_trash),
         activeSectionId = state.mode.productSectionId(),
-        onSourceSelected = browser::selectProvider,
+        onSourceSelected = { providerId ->
+            browser.selectProvider(providerId)
+            onNavigate()
+        },
         onSectionSelected = { section ->
             browser.setMode(
                 when (section) {
@@ -444,6 +427,7 @@ private fun YFilesSourcePane(
                     else -> YFilesBrowserMode.Directory
                 },
             )
+            onNavigate()
         },
     )
 }
@@ -698,10 +682,10 @@ private fun YFilesSettingsContent(
     onOpenAllFilesSettings: () -> Unit,
     onAddSaf: () -> Unit,
 ) {
-    YSuiteSection(
+    ComposeSettingsGroup(
         title = stringResource(R.string.yfiles_settings_access),
     ) {
-        YSuiteListItem(
+        ComposeSettingsLink(
             title = stringResource(R.string.yfiles_all_files_access),
             subtitle = stringResource(
                 if (allFilesGranted) {
@@ -710,46 +694,37 @@ private fun YFilesSettingsContent(
                     R.string.yfiles_not_granted
                 },
             ),
+            enabled = !allFilesGranted,
+            onClick = onOpenAllFilesSettings,
         )
-        if (!allFilesGranted) {
-            YSuiteSecondaryButton(
-                text = stringResource(R.string.yfiles_open_settings),
-                onClick = onOpenAllFilesSettings,
-            )
-        }
-        YSuiteListItem(
+        ComposeSettingsLink(
             title = stringResource(R.string.yfiles_root_access),
             subtitle = rootStatusText(state.rootStatus),
-        )
-        YSuiteSecondaryButton(
-            text = stringResource(R.string.yfiles_refresh_root),
             onClick = browser::refreshRootStatus,
         )
     }
 
-    YSuiteSection(
+    ComposeSettingsGroup(
         title = stringResource(R.string.yfiles_saf),
     ) {
-        YSuiteSecondaryButton(
-            text = stringResource(R.string.yfiles_add_saf),
+        ComposeSettingsLink(
+            title = stringResource(R.string.yfiles_add_saf),
             onClick = onAddSaf,
         )
         val trees = environment.documentTrees.trees()
         if (trees.isEmpty()) {
-            YSuiteListItem(
+            ComposeSettingsLink(
                 title = stringResource(R.string.yfiles_no_saf),
+                enabled = false,
+                onClick = {},
             )
         } else {
             trees.forEach { tree ->
-                YSuiteListItem(
+                ComposeSettingsLink(
                     title = tree.toString(),
-                    trailing = {
-                        YSuiteSecondaryButton(
-                            text = stringResource(R.string.yfiles_remove_saf),
-                            onClick = {
-                                browser.removeDocumentTree(tree)
-                            },
-                        )
+                    subtitle = stringResource(R.string.yfiles_remove_saf),
+                    onClick = {
+                        browser.removeDocumentTree(tree)
                     },
                 )
             }
