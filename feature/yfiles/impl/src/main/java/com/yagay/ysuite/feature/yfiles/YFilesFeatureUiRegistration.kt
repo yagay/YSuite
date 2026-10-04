@@ -5,6 +5,7 @@ import androidx.compose.ui.res.stringResource
 import com.yagay.ysuite.feature.yfiles.api.YFilesFeatureContract
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
+import com.yagay.ysuite.ui.YSuitePageKind
 
 class YFilesFeatureUiRegistration(
     private val environment: YFilesEnvironment,
@@ -12,6 +13,9 @@ class YFilesFeatureUiRegistration(
 ) : YSuiteFeatureUiRegistration {
     override val contract =
         YFilesFeatureContract
+
+    override val pageKind =
+        YSuitePageKind.Manager
 
     @Composable
     override fun label(): String =

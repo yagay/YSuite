@@ -13,23 +13,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,7 +43,6 @@ import kotlinx.coroutines.launch
 
 private const val HOME_ID = "__home__"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun YSuiteFeatureHost(
     registry: YSuiteFeatureRegistry,
@@ -69,8 +63,8 @@ fun YSuiteFeatureHost(
         selectedId = HOME_ID
     }
 
-    YSuiteAdaptiveContainer(modifier = modifier.fillMaxSize()) { widthClass ->
-        if (widthClass == YSuiteWidthClass.Expanded) {
+    YSuiteAdaptiveLayout(modifier = modifier.fillMaxSize()) { adaptive ->
+        if (adaptive.widthClass == YSuiteWidthClass.Expanded) {
             Row(modifier = Modifier.fillMaxSize()) {
                 PermanentNavigationPane(
                     features = features,
@@ -78,15 +72,21 @@ fun YSuiteFeatureHost(
                     onSelect = { selectedId = it },
                 )
                 Box(modifier = Modifier.weight(1f)) {
-                    FeatureDestination(
-                        selectedId = selectedId,
-                        registry = registry,
-                        onSelect = { selectedId = it },
-                    )
+                    CompositionLocalProvider(
+                        LocalYSuiteHostNavigation provides
+                            YSuiteHostNavigationState(),
+                    ) {
+                        FeatureDestination(
+                            selectedId = selectedId,
+                            registry = registry,
+                            onSelect = { selectedId = it },
+                        )
+                    }
                 }
             }
         } else {
-            val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+            val drawerState =
+                rememberDrawerState(initialValue = DrawerValue.Closed)
             val scope = rememberCoroutineScope()
 
             ModalNavigationDrawer(
@@ -111,41 +111,29 @@ fun YSuiteFeatureHost(
                     }
                 },
             ) {
-                Scaffold(
-                    topBar = {
-                        TopAppBar(
-                            title = { Text(stringResource(R.string.app_name)) },
-                            navigationIcon = {
-                                if (selectedId == HOME_ID) {
-                                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                        Icon(
-                                            Icons.Default.Menu,
-                                            contentDescription = stringResource(R.string.common_menu),
-                                        )
-                                    }
-                                } else {
-                                    IconButton(onClick = { selectedId = HOME_ID }) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = stringResource(R.string.common_back),
-                                        )
-                                    }
-                                }
+                val navigationState =
+                    if (selectedId == HOME_ID) {
+                        YSuiteHostNavigationState(
+                            icon = YSuiteHostNavigationIcon.Menu,
+                            onClick = {
+                                scope.launch { drawerState.open() }
                             },
                         )
-                    },
-                ) { padding ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                    ) {
-                        FeatureDestination(
-                            selectedId = selectedId,
-                            registry = registry,
-                            onSelect = { selectedId = it },
+                    } else {
+                        YSuiteHostNavigationState(
+                            icon = YSuiteHostNavigationIcon.Back,
+                            onClick = { selectedId = HOME_ID },
                         )
                     }
+
+                CompositionLocalProvider(
+                    LocalYSuiteHostNavigation provides navigationState,
+                ) {
+                    FeatureDestination(
+                        selectedId = selectedId,
+                        registry = registry,
+                        onSelect = { selectedId = it },
+                    )
                 }
             }
         }

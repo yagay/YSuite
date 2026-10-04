@@ -3,16 +3,11 @@ package com.yagay.ysuite.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
 enum class YSuitePageRole {
@@ -34,32 +29,25 @@ fun YSuitePage(
     header: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.(YSuiteWidthClass) -> Unit,
 ) {
-    YSuiteAdaptiveContainer(modifier = modifier.fillMaxSize()) { widthClass ->
+    val kind = when (role) {
+        YSuitePageRole.Dashboard -> YSuitePageKind.Dashboard
+        YSuitePageRole.List -> YSuitePageKind.Manager
+        YSuitePageRole.Detail -> YSuitePageKind.Detail
+        YSuitePageRole.Settings -> YSuitePageKind.Settings
+    }
+
+    YSuiteSurfaceShell(
+        kind = kind,
+        title = title,
+        subtitle = subtitle,
+        modifier = modifier,
+    ) { info ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .then(
-                    if (role == YSuitePageRole.Detail) {
-                        Modifier
-                    } else {
-                        Modifier
-                    },
-                )
-                .verticalScroll(rememberScrollState())
-                .padding(YSuiteSpacing.Medium),
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Large),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.XSmall)) {
-                Text(title, style = MaterialTheme.typography.headlineSmall)
-                if (!subtitle.isNullOrBlank()) {
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
             header?.invoke(this)
 
             YSuiteStateHost(
@@ -67,7 +55,7 @@ fun YSuitePage(
                 onRetry = onRetry,
                 onPermissionAction = onPermissionAction,
             ) {
-                content(widthClass)
+                content(info.widthClass)
             }
         }
     }
