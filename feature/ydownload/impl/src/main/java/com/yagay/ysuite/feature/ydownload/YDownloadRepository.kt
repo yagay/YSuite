@@ -208,7 +208,8 @@ class YDownloadRepository(
             mutex.withLock {
                 query(
                     selection =
-                        "$COL_STATE IN (?, ?, ?)",
+                        "($COL_STATE IN (?, ?)) OR " +
+                            "($COL_STATE = ? AND $COL_QUEUED = 0)",
                     args = arrayOf(
                         YDownloadState.Downloading.name,
                         YDownloadState.Connecting.name,

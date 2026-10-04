@@ -47,6 +47,8 @@ jobs:
         run: gradle :app:lintDebug --stacktrace
       - name: Build YFiles standalone smoke
         run: gradle :host:standalone:assembleDebug -PstandaloneFeature=yfiles --stacktrace
+      - name: Build YDownload standalone smoke
+        run: gradle :host:standalone:assembleDebug -PstandaloneFeature=ydownload --stacktrace
       - name: Build YSuite Debug
         run: gradle :app:assembleDebug --stacktrace
       - name: Upload YSuite Debug APK

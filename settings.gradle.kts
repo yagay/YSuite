@@ -46,5 +46,7 @@ include(":feature:system:impl")
 
 include(":feature:yfiles:api")
 include(":feature:yfiles:impl")
+include(":feature:ydownload:api")
+include(":feature:ydownload:impl")
 
 include(":host:standalone")

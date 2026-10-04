@@ -16,6 +16,8 @@ class YDownloadService : LifecycleService() {
     private lateinit var notifications:
         YDownloadNotificationManager
     private var wakeLock: PowerManager.WakeLock? = null
+    @Volatile
+    private var commandReceived = false
 
     override fun onCreate() {
         super.onCreate()
@@ -51,6 +53,7 @@ class YDownloadService : LifecycleService() {
                                 YDownloadState.Connecting
                         }
                     if (
+                        commandReceived &&
                         !hasActive &&
                         !environment.engine
                             .hasActiveDownloads()
@@ -72,6 +75,8 @@ class YDownloadService : LifecycleService() {
             flags,
             startId,
         )
+
+        commandReceived = true
 
         if (intent == null) {
             lifecycleScope.launch {

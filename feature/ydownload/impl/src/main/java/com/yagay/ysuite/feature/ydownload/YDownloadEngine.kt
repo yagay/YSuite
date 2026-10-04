@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -198,7 +199,7 @@ class YDownloadEngine(
                         responseBody.byteStream().use { input ->
                             val buffer = ByteArray(64 * 1024)
                             while (true) {
-                                scope.ensureActive()
+                                currentCoroutineContext().ensureActive()
                                 val count =
                                     input.read(buffer)
                                 if (count < 0) break

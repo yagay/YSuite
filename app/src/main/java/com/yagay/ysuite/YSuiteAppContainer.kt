@@ -9,6 +9,8 @@ import com.yagay.ysuite.feature.settings.SettingsFeatureUiRegistration
 import com.yagay.ysuite.feature.system.SystemFeatureUiRegistration
 import com.yagay.ysuite.feature.yfiles.YFilesEnvironmentFactory
 import com.yagay.ysuite.feature.yfiles.YFilesFeatureUiRegistration
+import com.yagay.ysuite.feature.ydownload.YDownloadEnvironmentFactory
+import com.yagay.ysuite.feature.ydownload.YDownloadFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
 import com.yagay.ysuite.logging.api.InMemoryLogStore
@@ -79,6 +81,13 @@ class YSuiteAppContainer(
                 environment = YFilesEnvironmentFactory.create(
                     context = context,
                     rootGateway = platform.root,
+                ),
+                logger = logger,
+            ),
+            YDownloadFeatureUiRegistration(
+                environment = YDownloadEnvironmentFactory.create(
+                    context = context,
+                    logger = logger,
                 ),
                 logger = logger,
             ),
