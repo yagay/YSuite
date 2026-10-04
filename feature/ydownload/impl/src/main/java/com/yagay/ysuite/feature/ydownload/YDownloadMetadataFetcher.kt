@@ -18,6 +18,7 @@ class YDownloadMetadataFetcher(
         cookies: String?,
         username: String?,
         password: String?,
+        customHeaders: Map<String, String> = emptyMap(),
     ): Result<YDownloadMetadata> =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -30,6 +31,7 @@ class YDownloadMetadataFetcher(
                         cookies,
                         username,
                         password,
+                        customHeaders,
                     )
                     .build()
 
@@ -49,6 +51,7 @@ class YDownloadMetadataFetcher(
                         cookies,
                         username,
                         password,
+                        customHeaders,
                     )
                     .build()
 
@@ -148,7 +151,16 @@ internal fun Request.Builder.applyHeaders(
     cookies: String?,
     username: String?,
     password: String?,
+    customHeaders: Map<String, String> = emptyMap(),
 ): Request.Builder {
+    customHeaders.forEach { (name, value) ->
+        if (
+            name.isNotBlank() &&
+            value.isNotBlank()
+        ) {
+            header(name.trim(), value.trim())
+        }
+    }
     referer
         ?.takeIf { it.isNotBlank() }
         ?.let { header("Referer", it) }

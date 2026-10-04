@@ -13,10 +13,15 @@ import com.yagay.ysuite.settings.AppThemeMode
 import kotlinx.coroutines.flow.map
 
 @Composable
+const val YSUITE_EXTRA_INITIAL_FEATURE_ID =
+    "com.yagay.ysuite.extra.INITIAL_FEATURE_ID"
+
+@Composable
 fun YSuiteApplication(
     settingsRepository: AppSettingsRepository,
     featureRegistry: YSuiteFeatureRegistry,
     singleFeature: Boolean = false,
+    initialFeatureId: String? = null,
 ) {
     val loadedSettings by settingsRepository.settings
         .map<AppSettings, AppSettings?> { it }
@@ -38,11 +43,18 @@ fun YSuiteApplication(
         AppThemeMode.Dark -> true
     }
 
-    YSuiteRoot(darkTheme = darkTheme) {
+    YSuiteRoot(
+        darkTheme = darkTheme,
+        dynamicColorEnabled =
+            settings.dynamicColorEnabled,
+    ) {
         if (singleFeature) {
             YSuiteSingleFeatureHost(registry = featureRegistry)
         } else {
-            YSuiteFeatureHost(registry = featureRegistry)
+            YSuiteFeatureHost(
+                registry = featureRegistry,
+                initialFeatureId = initialFeatureId,
+            )
         }
     }
 }

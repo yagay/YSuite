@@ -5,9 +5,12 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -29,9 +32,11 @@ private val DarkColors = darkColorScheme(
 @Composable
 fun YSuiteTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColorEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val view = LocalView.current
+    val context = LocalContext.current
     if (!view.isInEditMode) {
         val activity = view.context as? Activity
         activity?.window?.let { window ->
@@ -45,8 +50,24 @@ fun YSuiteTheme(
             }
         }
     }
+    val colorScheme =
+        if (
+            dynamicColorEnabled &&
+            Build.VERSION.SDK_INT >= 31
+        ) {
+            if (darkTheme) {
+                dynamicDarkColorScheme(context)
+            } else {
+                dynamicLightColorScheme(context)
+            }
+        } else if (darkTheme) {
+            DarkColors
+        } else {
+            LightColors
+        }
+
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
+        colorScheme = colorScheme,
         typography = YSuiteTypography,
         shapes = YSuiteShapes,
         content = content,

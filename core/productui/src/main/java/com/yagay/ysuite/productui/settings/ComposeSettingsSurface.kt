@@ -26,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -196,5 +197,53 @@ fun ComposeSettingsChoiceGroup(
                 },
             )
         }
+    }
+}
+
+
+@Composable
+fun ComposeSettingsIntSlider(
+    title: String,
+    value: Int,
+    range: IntRange,
+    onValueChange: (Int) -> Unit,
+    subtitle: String? = null,
+) {
+    val safeValue = value.coerceIn(range.first, range.last)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        ListItem(
+            headlineContent = { Text(title) },
+            supportingContent =
+                subtitle?.let { valueText ->
+                    { Text(valueText) }
+                },
+            trailingContent = {
+                Text(
+                    text = safeValue.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+        )
+        Slider(
+            value = safeValue.toFloat(),
+            onValueChange = {
+                onValueChange(
+                    it.toInt().coerceIn(
+                        range.first,
+                        range.last,
+                    ),
+                )
+            },
+            valueRange =
+                range.first.toFloat()..
+                    range.last.toFloat(),
+            steps =
+                (range.last - range.first - 1)
+                    .coerceAtLeast(0),
+            modifier =
+                Modifier.padding(
+                    horizontal = YSuiteSpacing.Medium,
+                ),
+        )
     }
 }

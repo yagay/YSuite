@@ -10,4 +10,6 @@
     <string name="settings_language_system">System default</string>
     <string name="settings_language_english">English</string>
     <string name="settings_language_chinese">Simplified Chinese</string>
+    <string name="settings_dynamic_color">Dynamic color</string>
+    <string name="settings_dynamic_color_desc">Use Material You colors from the system wallpaper on supported Android versions.</string>
 </resources>

@@ -32,10 +32,11 @@ YDownload settings use YSuite's Compose-Settings product surface. YSuite supplie
 theme, typography, spacing, shapes, localization, permission requester and host navigation.
 YDownload does not define a private Theme/Color/Type system.
 
-QDM's browser remains a separate Browser product concern in YSuite. QDM's current
-Copy/Move/Rename dialog is an upstream placeholder, so YDownload does not claim it as a supported
-feature. Scheduled-download data/worker scaffolding is also not exposed in QDM's current Add
-Download UI and is therefore not presented as a completed YDownload function.
+QDM's integrated browser and browser ad-blocking remain intentionally outside YDownload. The rest
+of the download-manager feature set is implemented in YDownload, including persisted segmented
+downloads, per-task connection count and speed limit, custom HTTP headers, scheduled downloads,
+SAF destinations and share-to-download URL capture. QDM's current Copy/Move/Rename dialog is an
+upstream placeholder rather than a working download feature, so it is not presented as supported.
 
 ## Platform capabilities
 
@@ -48,16 +49,26 @@ service notification remains. Android 13+ notification permission is requested t
 YSuite permission requester.
 
 The engine enforces maximum concurrent downloads, auto-pumps queued tasks when capacity opens,
-supports a shared global bandwidth limiter, and prevents Wi-Fi-only downloads from starting on
-non-Wi-Fi networks. Download tasks are persisted in a module-owned SQLite store so process
-recreation does not lose state.
+supports both global and per-task bandwidth limits, and prevents Wi-Fi-only downloads from starting
+on non-Wi-Fi networks. Multi-connection tasks persist every chunk range and completed byte count so
+pause, network interruption and process recreation resume each chunk from its own saved offset.
+Servers or destinations that cannot safely support segmented random-access transfers fall back to a
+single connection rather than risking file corruption.
+
+Scheduled tasks are persisted and dispatched with Android JobScheduler. Incoming HTTP/HTTPS links
+and text/plain URL shares are accepted by a lightweight capture activity, persisted, and routed to
+the YDownload add dialog in either the integrated YSuite host or the standalone YDownload build.
+Download tasks are stored in a module-owned SQLite database so process recreation does not lose
+state.
 
 The implementation keeps QDM's Repository -> Engine -> Foreground Service -> ViewModel -> Product UI
 separation but uses the YSuite composition root instead of Hilt.
 
-QDM exposes a thread-count preference for segmented downloads. YDownload deliberately does not
-expose a non-functional thread-count control: safe multi-connection resume requires persistent
-per-chunk offsets, which the current YDownload engine does not yet implement.
+QDM's thread-count feature is implemented with an additional safety layer: YDownload persists
+per-chunk offsets instead of reconstructing progress from one aggregate byte counter. The default
+connection count is configurable from 1 to 16 and each task can override it. The add-download
+dialog also exposes QDM model capabilities that were not fully surfaced in the upstream UI:
+per-task speed limit, custom headers and scheduled start time.
 
 ## Localization
 

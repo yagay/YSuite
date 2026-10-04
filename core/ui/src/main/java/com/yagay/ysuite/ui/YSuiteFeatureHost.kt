@@ -48,9 +48,24 @@ private const val HOME_ROUTE = "__home__"
 fun YSuiteFeatureHost(
     registry: YSuiteFeatureRegistry,
     modifier: Modifier = Modifier,
+    initialFeatureId: String? = null,
 ) {
     val features = registry.features
-    var backStack by rememberSaveable { mutableStateOf(listOf(HOME_ROUTE)) }
+    val initialRoute =
+        initialFeatureId
+            ?.let(registry::findById)
+            ?.contract
+            ?.startRoute
+            ?.value
+    var backStack by rememberSaveable(initialFeatureId) {
+        mutableStateOf(
+            if (initialRoute != null) {
+                listOf(HOME_ROUTE, initialRoute)
+            } else {
+                listOf(HOME_ROUTE)
+            },
+        )
+    }
     val currentRoute = backStack.last()
     val activeFeature =
         currentRoute

@@ -102,4 +102,18 @@
     <string name="ydownload_property_error">错误</string>
     <string name="ydownload_yes">是</string>
     <string name="ydownload_no">否</string>
+    <string name="ydownload_tab_scheduled">计划</string>
+    <string name="ydownload_state_scheduled">已计划</string>
+    <string name="ydownload_default_threads">默认下载连接数</string>
+    <string name="ydownload_default_threads_desc">用于支持 HTTP Range 断点续传的文件。</string>
+    <string name="ydownload_threads">连接数</string>
+    <string name="ydownload_task_speed_limit">单任务限速（KB/s，0 = 不限速）</string>
+    <string name="ydownload_custom_headers">自定义 HTTP Headers（每行 Name: Value）</string>
+    <string name="ydownload_schedule">计划下载</string>
+    <string name="ydownload_clear_schedule">清除</string>
+    <string name="ydownload_schedule_none">正常开始</string>
+    <string name="ydownload_property_threads">连接数</string>
+    <string name="ydownload_property_task_speed_limit">单任务限速</string>
+    <string name="ydownload_property_custom_headers">自定义 HTTP Headers</string>
+    <string name="ydownload_property_scheduled">计划时间</string>
 </resources>

@@ -6,11 +6,21 @@ import com.yagay.ysuite.designsystem.theme.YSuiteTheme
 @Composable
 fun YSuiteRoot(
     darkTheme: Boolean? = null,
+    dynamicColorEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     if (darkTheme == null) {
-        YSuiteTheme(content = content)
+        YSuiteTheme(
+            dynamicColorEnabled =
+                dynamicColorEnabled,
+            content = content,
+        )
     } else {
-        YSuiteTheme(darkTheme = darkTheme, content = content)
+        YSuiteTheme(
+            darkTheme = darkTheme,
+            dynamicColorEnabled =
+                dynamicColorEnabled,
+            content = content,
+        )
     }
 }

@@ -7,5 +7,7 @@ interface AppSettingsRepository {
 
     suspend fun setThemeMode(mode: AppThemeMode)
 
+    suspend fun setDynamicColorEnabled(enabled: Boolean)
+
     suspend fun setLanguageTag(languageTag: String?)
 }

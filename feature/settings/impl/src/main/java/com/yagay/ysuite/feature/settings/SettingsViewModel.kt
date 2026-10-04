@@ -30,6 +30,12 @@ class SettingsViewModel(
         }
     }
 
+    fun setDynamicColorEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setDynamicColorEnabled(enabled)
+        }
+    }
+
     fun setLanguageTag(languageTag: String?) {
         viewModelScope.launch {
             repository.setLanguageTag(languageTag)

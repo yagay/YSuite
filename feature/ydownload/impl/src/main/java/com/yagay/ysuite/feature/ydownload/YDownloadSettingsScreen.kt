@@ -12,6 +12,7 @@ import com.yagay.ysuite.permissions.api.PermissionRequirement
 import com.yagay.ysuite.productui.settings.ComposeSettingsChoice
 import com.yagay.ysuite.productui.settings.ComposeSettingsChoiceGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
+import com.yagay.ysuite.productui.settings.ComposeSettingsIntSlider
 import com.yagay.ysuite.productui.settings.ComposeSettingsLink
 import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
 import com.yagay.ysuite.productui.settings.ComposeSettingsSwitch
@@ -24,6 +25,7 @@ fun YDownloadSettingsScreen(
     onBack: () -> Unit,
     onDefaultTreeUri: (String?) -> Unit,
     onMaxConcurrent: (Int) -> Unit,
+    onDefaultThreadCount: (Int) -> Unit,
     onSpeedLimit: (Long) -> Unit,
     onWifiOnly: (Boolean) -> Unit,
     onAutoResumeNetwork: (Boolean) -> Unit,
@@ -95,25 +97,28 @@ fun YDownloadSettingsScreen(
             }
         }
 
-        ComposeSettingsChoiceGroup(
+        ComposeSettingsIntSlider(
             title =
                 stringResource(
                     R.string.ydownload_max_concurrent,
                 ),
-            selectedId =
-                settings.maxConcurrentDownloads
-                    .toString(),
-            choices =
-                (1..10).map { value ->
-                    ComposeSettingsChoice(
-                        id = value.toString(),
-                        label = value.toString(),
-                    )
-                },
-            onSelected = {
-                it.toIntOrNull()
-                    ?.let(onMaxConcurrent)
-            },
+            value = settings.maxConcurrentDownloads,
+            range = 1..10,
+            onValueChange = onMaxConcurrent,
+        )
+
+        ComposeSettingsIntSlider(
+            title =
+                stringResource(
+                    R.string.ydownload_default_threads,
+                ),
+            subtitle =
+                stringResource(
+                    R.string.ydownload_default_threads_desc,
+                ),
+            value = settings.defaultThreadCount,
+            range = 1..16,
+            onValueChange = onDefaultThreadCount,
         )
 
         ComposeSettingsChoiceGroup(

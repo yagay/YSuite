@@ -45,6 +45,10 @@ data class YDownloadAddDraft(
     val username: String = "",
     val password: String = "",
     val destinationTreeUri: String? = null,
+    val threadCount: Int = 4,
+    val speedLimitBytesPerSecond: Long = 0L,
+    val customHeadersText: String = "",
+    val scheduledAtMillis: Long? = null,
     val loading: Boolean = false,
     val error: String? = null,
 )
@@ -77,8 +81,49 @@ class YDownloadViewModel(
         mutableState.asStateFlow()
 
     init {
+        YDownloadIncomingUrlStore
+            .consume(appContext)
+            ?.let(::showAddDialog)
+
+        viewModelScope.launch {
+            YDownloadIncomingUrlStore.urls
+                .collect { url ->
+                    YDownloadIncomingUrlStore
+                        .clearIfMatches(
+                            appContext,
+                            url,
+                        )
+                    showAddDialog(url)
+                }
+        }
+
         viewModelScope.launch {
             environment.repository.refresh()
+            environment.repository.items.value
+                .filter {
+                    it.state ==
+                        YDownloadState.Scheduled
+                }
+                .forEach { item ->
+                    val scheduledAt =
+                        item.scheduledAtMillis
+                    if (
+                        scheduledAt == null ||
+                        scheduledAt <=
+                        System.currentTimeMillis()
+                    ) {
+                        YDownloadService.start(
+                            appContext,
+                            item.id,
+                        )
+                    } else {
+                        environment.scheduler.schedule(
+                            downloadId = item.id,
+                            scheduledAtMillis =
+                                scheduledAt,
+                        )
+                    }
+                }
             environment.repository.items.collect { items ->
                 mutableState.update {
                     it.copy(items = items)
@@ -188,6 +233,9 @@ class YDownloadViewModel(
                     YDownloadAddDraft(
                         url = initialUrl,
                         userAgent = defaultUa,
+                        threadCount =
+                            state.value.settings
+                                .defaultThreadCount,
                     ),
             )
         }
@@ -255,6 +303,34 @@ class YDownloadViewModel(
             copy(destinationTreeUri = value)
         }
 
+    fun updateThreadCount(value: Int) =
+        updateDraft {
+            copy(threadCount = value.coerceIn(1, 16))
+        }
+
+    fun updateSpeedLimitBytesPerSecond(value: Long) =
+        updateDraft {
+            copy(
+                speedLimitBytesPerSecond =
+                    value.coerceAtLeast(0L),
+            )
+        }
+
+    fun updateCustomHeaders(value: String) =
+        updateDraft {
+            copy(customHeadersText = value)
+        }
+
+    fun updateScheduledAt(value: Long?) =
+        updateDraft {
+            copy(
+                scheduledAtMillis =
+                    value?.takeIf {
+                        it > System.currentTimeMillis()
+                    },
+            )
+        }
+
     fun fetchMetadata() {
         fetchJob?.cancel()
         fetchMetadataInternal()
@@ -315,6 +391,10 @@ class YDownloadViewModel(
                     draft.password.takeIf(
                         String::isNotBlank,
                     ),
+                customHeaders =
+                    parseHeaders(
+                        draft.customHeadersText,
+                    ),
             ).fold(
                 onSuccess = { metadata ->
                     updateDraft {
@@ -330,6 +410,12 @@ class YDownloadViewModel(
                                 metadata.totalBytes,
                             supportsRanges =
                                 metadata.supportsRanges,
+                            threadCount =
+                                if (metadata.supportsRanges) {
+                                    threadCount.coerceIn(1, 16)
+                                } else {
+                                    1
+                                },
                             loading = false,
                             error = null,
                         )
@@ -396,6 +482,9 @@ class YDownloadViewModel(
                         destinationTreeUri =
                             state.value.settings
                                 .defaultTreeUri,
+                        threadCount =
+                            state.value.settings
+                                .defaultThreadCount,
                     ),
                 queued = true,
             )
@@ -412,7 +501,19 @@ class YDownloadViewModel(
     }
 
     fun cancel(id: String) {
-        YDownloadService.cancel(appContext, id)
+        val current = item(id) ?: return
+        if (current.state == YDownloadState.Scheduled) {
+            viewModelScope.launch {
+                environment.scheduler.cancel(id)
+                environment.repository.updateState(
+                    id = id,
+                    state = YDownloadState.Cancelled,
+                    queued = false,
+                )
+            }
+        } else {
+            YDownloadService.cancel(appContext, id)
+        }
     }
 
     fun retry(id: String) {
@@ -422,6 +523,7 @@ class YDownloadViewModel(
     fun remove(id: String) {
         val item = item(id) ?: return
         viewModelScope.launch {
+            environment.scheduler.cancel(id)
             environment.engine.remove(
                 item = item,
                 deleteFile = false,
@@ -453,6 +555,14 @@ class YDownloadViewModel(
                         password = source.password.orEmpty(),
                         destinationTreeUri =
                             source.destinationTreeUri,
+                        threadCount =
+                            source.threadCount,
+                        speedLimitBytesPerSecond =
+                            source.speedLimitBytesPerSecond,
+                        customHeadersText =
+                            formatHeaders(
+                                source.customHeaders,
+                            ),
                     ),
             )
         }
@@ -572,6 +682,13 @@ class YDownloadViewModel(
         }
     }
 
+    fun setDefaultThreadCount(value: Int) {
+        viewModelScope.launch {
+            environment.settings
+                .setDefaultThreadCount(value)
+        }
+    }
+
     fun setSpeedLimit(value: Long) {
         viewModelScope.launch {
             environment.settings
@@ -618,6 +735,11 @@ class YDownloadViewModel(
             draft.fileName.ifBlank {
                 fileNameFromUrl(draft.url)
             }
+        val scheduledAt =
+            draft.scheduledAtMillis
+                ?.takeIf {
+                    it > System.currentTimeMillis()
+                }
 
         viewModelScope.launch {
             val id =
@@ -663,13 +785,49 @@ class YDownloadViewModel(
                                 draft.destinationTreeUri
                                     ?: state.value.settings
                                         .defaultTreeUri,
+                            threadCount =
+                                if (
+                                    draft.supportsRanges &&
+                                    draft.totalBytes > 0L
+                                ) {
+                                    draft.threadCount
+                                        .coerceIn(1, 16)
+                                } else {
+                                    1
+                                },
+                            speedLimitBytesPerSecond =
+                                draft.speedLimitBytesPerSecond
+                                    .coerceAtLeast(0L),
+                            customHeaders =
+                                parseHeaders(
+                                    draft.customHeadersText,
+                                ),
+                            scheduledAtMillis = scheduledAt,
                         ),
-                    queued = !startNow,
+                    queued =
+                        scheduledAt == null &&
+                            !startNow,
                 )
 
             dismissAddDialog()
 
-            if (startNow) {
+            if (scheduledAt != null) {
+                val scheduled =
+                    environment.scheduler.schedule(
+                        downloadId = id,
+                        scheduledAtMillis =
+                            scheduledAt,
+                    )
+                if (!scheduled) {
+                    environment.repository.updateState(
+                        id = id,
+                        state = YDownloadState.Failed,
+                        error =
+                            "Unable to schedule download",
+                        queued = false,
+                    )
+                }
+            } else if (startNow) {
                 YDownloadService.start(
                     appContext,
                     id,
@@ -732,6 +890,44 @@ class YDownloadViewModel(
 
     private companion object {
         const val TAG = "YDownload/ViewModel"
+
+        fun parseHeaders(
+            value: String,
+        ): Map<String, String> =
+            value.lineSequence()
+                .mapNotNull { line ->
+                    val trimmed = line.trim()
+                    if (
+                        trimmed.isBlank() ||
+                        trimmed.startsWith("#")
+                    ) {
+                        return@mapNotNull null
+                    }
+                    val index = trimmed.indexOf(':')
+                    if (index <= 0) {
+                        return@mapNotNull null
+                    }
+                    val name =
+                        trimmed.substring(0, index).trim()
+                    val headerValue =
+                        trimmed.substring(index + 1).trim()
+                    if (
+                        name.isBlank() ||
+                        headerValue.isBlank()
+                    ) {
+                        null
+                    } else {
+                        name to headerValue
+                    }
+                }
+                .toMap()
+
+        fun formatHeaders(
+            headers: Map<String, String>,
+        ): String =
+            headers.entries.joinToString("\n") {
+                it.key + ": " + it.value
+            }
 
         fun fileNameFromUrl(url: String): String {
             val raw =

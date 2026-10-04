@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import com.yagay.ysuite.feature.ydownload.api.YDownloadChunk
 import com.yagay.ysuite.feature.ydownload.api.YDownloadItem
 import com.yagay.ysuite.feature.ydownload.api.YDownloadState
 import com.yagay.ysuite.logging.api.YSuiteLogger
@@ -20,6 +21,9 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -56,7 +60,10 @@ class YDownloadEngine(
     private val activeJobs =
         ConcurrentHashMap<String, Job>()
     private val activeCalls =
-        ConcurrentHashMap<String, okhttp3.Call>()
+        ConcurrentHashMap<
+            String,
+            MutableSet<okhttp3.Call>,
+        >()
     private val bandwidthLimiter =
         GlobalBandwidthLimiter()
 
@@ -71,6 +78,14 @@ class YDownloadEngine(
                     repository.find(id)
                         ?: return@withLock
                 val config = settings.settings.value
+
+                if (
+                    item.state == YDownloadState.Scheduled &&
+                    (item.scheduledAtMillis ?: Long.MAX_VALUE) >
+                    System.currentTimeMillis()
+                ) {
+                    return@withLock
+                }
 
                 if (!isNetworkConnected()) {
                     val shouldQueue =
@@ -151,7 +166,7 @@ class YDownloadEngine(
     }
 
     suspend fun pause(id: String) {
-        activeCalls.remove(id)?.cancel()
+        cancelCalls(id)
         activeJobs.remove(id)
             ?.cancelAndJoin()
         repository.updateState(
@@ -163,7 +178,7 @@ class YDownloadEngine(
     }
 
     suspend fun cancel(id: String) {
-        activeCalls.remove(id)?.cancel()
+        cancelCalls(id)
         activeJobs.remove(id)
             ?.cancelAndJoin()
         repository.updateState(
@@ -178,7 +193,7 @@ class YDownloadEngine(
         item: YDownloadItem,
         deleteFile: Boolean,
     ) {
-        activeCalls.remove(item.id)?.cancel()
+        cancelCalls(item.id)
         activeJobs.remove(item.id)
             ?.cancelAndJoin()
 
@@ -225,182 +240,59 @@ class YDownloadEngine(
                             )
                         }
 
-            var resumeFrom =
-                item.downloadedBytes
-                    .coerceAtLeast(0L)
-
-            val requestBuilder =
-                Request.Builder()
-                    .url(item.url)
-                    .get()
-                    .applyHeaders(
-                        item.referer,
-                        item.userAgent,
-                        item.cookies,
-                        item.username,
-                        item.password,
-                    )
-
-            if (resumeFrom > 0L) {
-                requestBuilder.header(
-                    "Range",
-                    "bytes=" + resumeFrom + "-",
-                )
-            }
-
-            val call =
-                client.newCall(
-                    requestBuilder.build(),
-                )
-            activeCalls[id] = call
-
-            call.execute().use { response ->
-                if (!response.isSuccessful) {
-                    error("HTTP " + response.code)
-                }
-
-                val responseBody =
-                    response.body
-                        ?: error("Empty response body")
-                val resumed = response.code == 206
-                val supportsRanges =
-                    resumed ||
-                        response.header("Accept-Ranges")
-                            ?.equals(
-                                "bytes",
-                                ignoreCase = true,
-                            ) == true
-
-                if (resumeFrom > 0L && !resumed) {
-                    resumeFrom = 0L
-                    repository.resetProgress(id)
-                }
-
-                val totalFromRange =
-                    response.header("Content-Range")
-                        ?.substringAfterLast('/')
-                        ?.toLongOrNull()
-                val totalBytes =
-                    totalFromRange
-                        ?: responseBody.contentLength()
-                            .takeIf { it >= 0L }
-                            ?.let { it + resumeFrom }
-                        ?: item.totalBytes
-
-                resolver.openFileDescriptor(
-                    outputUri,
-                    "rw",
-                )?.use { descriptor ->
-                    FileOutputStream(
-                        descriptor.fileDescriptor,
-                    ).channel.use { channel ->
-                        if (resumeFrom == 0L) {
-                            channel.truncate(0L)
-                        }
-                        channel.position(resumeFrom)
-
-                        var downloaded = resumeFrom
-                        var windowBytes = 0L
-                        var windowStarted =
-                            System.currentTimeMillis()
-                        var lastUiUpdate = 0L
-
-                        responseBody.byteStream().use { input ->
-                            val buffer = ByteArray(64 * 1024)
-                            while (true) {
-                                currentCoroutineContext()
-                                    .ensureActive()
-                                val count =
-                                    input.read(buffer)
-                                if (count < 0) break
-
-                                bandwidthLimiter.acquire(
-                                    byteCount = count,
-                                    bytesPerSecond =
-                                        settings.settings.value
-                                            .globalSpeedLimitBytesPerSecond,
-                                )
-
-                                val byteBuffer =
-                                    java.nio.ByteBuffer.wrap(
-                                        buffer,
-                                        0,
-                                        count,
-                                    )
-                                while (
-                                    byteBuffer.hasRemaining()
-                                ) {
-                                    channel.write(byteBuffer)
-                                }
-                                downloaded += count
-                                windowBytes += count
-
-                                val now =
-                                    System.currentTimeMillis()
-                                if (now - lastUiUpdate >= 250L) {
-                                    val elapsed =
-                                        (now - windowStarted)
-                                            .coerceAtLeast(1L)
-                                    val speed =
-                                        windowBytes * 1000L /
-                                            elapsed
-                                    val remaining =
-                                        if (totalBytes > 0L) {
-                                            (
-                                                totalBytes -
-                                                    downloaded
-                                            ).coerceAtLeast(0L)
-                                        } else {
-                                            0L
-                                        }
-                                    val eta =
-                                        if (
-                                            speed > 0L &&
-                                            remaining > 0L
-                                        ) {
-                                            remaining / speed
-                                        } else {
-                                            0L
-                                        }
-
-                                    repository.updateProgress(
-                                        id = id,
-                                        downloadedBytes = downloaded,
-                                        totalBytes = totalBytes,
-                                        speed = speed,
-                                        etaSeconds = eta,
-                                        supportsRanges =
-                                            supportsRanges,
-                                    )
-                                    lastUiUpdate = now
-
-                                    if (elapsed >= 1000L) {
-                                        windowBytes = 0L
-                                        windowStarted = now
-                                    }
-                                }
-                            }
-                        }
-
-                        channel.force(true)
-                        val finalTotal =
-                            if (totalBytes > 0L) {
-                                totalBytes
-                            } else {
-                                downloaded
-                            }
-                        repository.markCompleted(
+            val finalTotal =
+                if (
+                    item.threadCount > 1 &&
+                    item.supportsRanges &&
+                    item.totalBytes > 0L
+                ) {
+                    try {
+                        downloadSegmented(
                             id = id,
-                            totalBytes = finalTotal,
+                            item = item,
+                            outputUri = outputUri,
                         )
-                        publishOutput(outputUri)
+                    } catch (
+                        rangeUnsupported:
+                            RangeUnsupportedException,
+                    ) {
                         logger.debug(
                             TAG,
-                            "Completed " + item.fileName,
+                            "Server rejected segmented ranges; " +
+                                "falling back to one connection",
+                        )
+                        cancelCalls(id)
+                        repository.clearChunks(id)
+                        repository.resetProgress(id)
+                        truncateOutput(outputUri)
+                        downloadSingle(
+                            id = id,
+                            item =
+                                item.copy(
+                                    downloadedBytes = 0L,
+                                    chunks = emptyList(),
+                                ),
+                            outputUri = outputUri,
+                            forceRestart = true,
                         )
                     }
-                } ?: error("Unable to open destination")
-            }
+                } else {
+                    downloadSingle(
+                        id = id,
+                        item = item,
+                        outputUri = outputUri,
+                    )
+                }
+
+            repository.markCompleted(
+                id = id,
+                totalBytes = finalTotal,
+            )
+            publishOutput(outputUri)
+            logger.debug(
+                TAG,
+                "Completed " + item.fileName,
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Throwable) {
@@ -453,11 +345,611 @@ class YDownloadEngine(
                 )
             }
         } finally {
-            activeCalls.remove(id)
+            cancelCalls(id)
             activeJobs.remove(id)
             pumpQueue()
         }
     }
+
+    private suspend fun downloadSingle(
+        id: String,
+        item: YDownloadItem,
+        outputUri: Uri,
+        forceRestart: Boolean = false,
+    ): Long {
+        var resumeFrom =
+            if (forceRestart) {
+                0L
+            } else {
+                item.downloadedBytes.coerceAtLeast(0L)
+            }
+        val requestBuilder =
+            Request.Builder()
+                .url(item.url)
+                .get()
+                .header("Accept-Encoding", "identity")
+                .applyHeaders(
+                    item.referer,
+                    item.userAgent,
+                    item.cookies,
+                    item.username,
+                    item.password,
+                    item.customHeaders,
+                )
+        if (resumeFrom > 0L) {
+            requestBuilder.header(
+                "Range",
+                "bytes=" + resumeFrom + "-",
+            )
+        }
+
+        val call =
+            client.newCall(requestBuilder.build())
+        registerCall(id, call)
+        try {
+            call.execute().use { response ->
+                if (!response.isSuccessful) {
+                    error("HTTP " + response.code)
+                }
+                val body =
+                    response.body
+                        ?: error("Empty response body")
+                val resumed = response.code == 206
+                val supportsRanges =
+                    resumed ||
+                        response.header("Accept-Ranges")
+                            ?.equals(
+                                "bytes",
+                                ignoreCase = true,
+                            ) == true
+
+                if (resumeFrom > 0L && !resumed) {
+                    resumeFrom = 0L
+                    repository.resetProgress(id)
+                }
+
+                val totalFromRange =
+                    response.header("Content-Range")
+                        ?.substringAfterLast('/')
+                        ?.toLongOrNull()
+                val totalBytes =
+                    totalFromRange
+                        ?: body.contentLength()
+                            .takeIf { it >= 0L }
+                            ?.let { it + resumeFrom }
+                        ?: item.totalBytes
+
+                val taskLimiter =
+                    GlobalBandwidthLimiter()
+                resolver.openFileDescriptor(
+                    outputUri,
+                    "rw",
+                )?.use { descriptor ->
+                    FileOutputStream(
+                        descriptor.fileDescriptor,
+                    ).channel.use { channel ->
+                        if (resumeFrom == 0L) {
+                            channel.truncate(0L)
+                        }
+                        channel.position(resumeFrom)
+
+                        var downloaded = resumeFrom
+                        var windowBytes = 0L
+                        var windowStarted =
+                            System.currentTimeMillis()
+                        var lastUpdate = 0L
+
+                        body.byteStream().use { input ->
+                            val buffer = ByteArray(BUFFER_SIZE)
+                            while (true) {
+                                currentCoroutineContext()
+                                    .ensureActive()
+                                val count = input.read(buffer)
+                                if (count < 0) break
+
+                                throttle(
+                                    count = count,
+                                    item = item,
+                                    taskLimiter = taskLimiter,
+                                )
+
+                                val byteBuffer =
+                                    java.nio.ByteBuffer.wrap(
+                                        buffer,
+                                        0,
+                                        count,
+                                    )
+                                while (byteBuffer.hasRemaining()) {
+                                    channel.write(byteBuffer)
+                                }
+                                downloaded += count
+                                windowBytes += count
+
+                                val now =
+                                    System.currentTimeMillis()
+                                if (
+                                    now - lastUpdate >=
+                                    PROGRESS_INTERVAL_MILLIS
+                                ) {
+                                    val elapsed =
+                                        (now - windowStarted)
+                                            .coerceAtLeast(1L)
+                                    val speed =
+                                        windowBytes * 1000L /
+                                            elapsed
+                                    val remaining =
+                                        if (totalBytes > 0L) {
+                                            (
+                                                totalBytes -
+                                                    downloaded
+                                            ).coerceAtLeast(0L)
+                                        } else {
+                                            0L
+                                        }
+                                    val eta =
+                                        if (
+                                            speed > 0L &&
+                                            remaining > 0L
+                                        ) {
+                                            remaining / speed
+                                        } else {
+                                            0L
+                                        }
+                                    repository.updateProgress(
+                                        id = id,
+                                        downloadedBytes = downloaded,
+                                        totalBytes = totalBytes,
+                                        speed = speed,
+                                        etaSeconds = eta,
+                                        supportsRanges =
+                                            supportsRanges,
+                                    )
+                                    lastUpdate = now
+                                    if (elapsed >= 1000L) {
+                                        windowBytes = 0L
+                                        windowStarted = now
+                                    }
+                                }
+                            }
+                        }
+                        channel.force(true)
+                        repository.updateProgress(
+                            id = id,
+                            downloadedBytes = downloaded,
+                            totalBytes =
+                                if (totalBytes > 0L) {
+                                    totalBytes
+                                } else {
+                                    downloaded
+                                },
+                            speed = 0L,
+                            etaSeconds = 0L,
+                            supportsRanges = supportsRanges,
+                        )
+                        return if (totalBytes > 0L) {
+                            totalBytes
+                        } else {
+                            downloaded
+                        }
+                    }
+                } ?: error("Unable to open destination")
+            }
+        } finally {
+            unregisterCall(id, call)
+        }
+    }
+
+    private suspend fun downloadSegmented(
+        id: String,
+        item: YDownloadItem,
+        outputUri: Uri,
+    ): Long = coroutineScope {
+        val totalBytes = item.totalBytes
+        val threadCount =
+            item.threadCount.coerceIn(1, 16)
+        val stored =
+            item.chunks.takeIf {
+                validChunks(
+                    chunks = it,
+                    totalBytes = totalBytes,
+                )
+            }
+        val chunks =
+            stored ?: splitIntoChunks(
+                totalBytes = totalBytes,
+                count = threadCount,
+            ).also {
+                prepareSegmentedOutput(
+                    outputUri = outputUri,
+                    totalBytes = totalBytes,
+                )
+                repository.setChunks(id, it)
+            }
+        val mutableChunks = chunks.toMutableList()
+        val progressMutex = Mutex()
+        val taskLimiter =
+            GlobalBandwidthLimiter()
+        var windowBytes = 0L
+        var windowStarted =
+            System.currentTimeMillis()
+        var lastUpdate = 0L
+
+        mutableChunks.mapIndexed { index, initial ->
+            async(Dispatchers.IO) {
+                val length = initial.length
+                if (
+                    length <= 0L ||
+                    initial.downloadedBytes >= length
+                ) {
+                    return@async
+                }
+                val start =
+                    initial.startByte +
+                        initial.downloadedBytes
+                val end = initial.endByte
+                val builder =
+                    Request.Builder()
+                        .url(item.url)
+                        .get()
+                        .header(
+                            "Range",
+                            "bytes=$start-$end",
+                        )
+                        .header(
+                            "Accept-Encoding",
+                            "identity",
+                        )
+                        .applyHeaders(
+                            item.referer,
+                            item.userAgent,
+                            item.cookies,
+                            item.username,
+                            item.password,
+                            item.customHeaders,
+                        )
+                val call =
+                    client.newCall(builder.build())
+                registerCall(id, call)
+                try {
+                    call.execute().use { response ->
+                        if (response.code != 206) {
+                            throw RangeUnsupportedException(
+                                "Expected HTTP 206 but got " +
+                                    response.code,
+                            )
+                        }
+                        val body =
+                            response.body
+                                ?: error("Empty response body")
+                        resolver.openFileDescriptor(
+                            outputUri,
+                            "rw",
+                        )?.use { descriptor ->
+                            FileOutputStream(
+                                descriptor.fileDescriptor,
+                            ).channel.use { channel ->
+                                var writePosition = start
+                                channel.position(writePosition)
+                                val input = body.byteStream()
+                                input.use {
+                                    val buffer =
+                                        ByteArray(BUFFER_SIZE)
+                                    while (
+                                        writePosition <= end
+                                    ) {
+                                        currentCoroutineContext()
+                                            .ensureActive()
+                                        val count =
+                                            input.read(buffer)
+                                        if (count < 0) break
+                                        val allowed =
+                                            minOf(
+                                                count.toLong(),
+                                                end -
+                                                    writePosition +
+                                                    1L,
+                                            ).toInt()
+                                        if (allowed <= 0) break
+
+                                        throttle(
+                                            count = allowed,
+                                            item = item,
+                                            taskLimiter =
+                                                taskLimiter,
+                                        )
+
+                                        val byteBuffer =
+                                            java.nio.ByteBuffer.wrap(
+                                                buffer,
+                                                0,
+                                                allowed,
+                                            )
+                                        while (
+                                            byteBuffer
+                                                .hasRemaining()
+                                        ) {
+                                            channel.write(
+                                                byteBuffer,
+                                            )
+                                        }
+                                        writePosition += allowed
+
+                                        progressMutex.withLock {
+                                            val old =
+                                                mutableChunks[
+                                                    index
+                                                ]
+                                            mutableChunks[index] =
+                                                old.copy(
+                                                    downloadedBytes =
+                                                        (
+                                                            old
+                                                                .downloadedBytes +
+                                                                allowed
+                                                        ).coerceAtMost(
+                                                            old.length,
+                                                        ),
+                                                )
+                                            windowBytes += allowed
+                                            val now =
+                                                System
+                                                    .currentTimeMillis()
+                                            val completed =
+                                                mutableChunks[
+                                                    index
+                                                ].completed
+                                            if (
+                                                completed ||
+                                                now - lastUpdate >=
+                                                PROGRESS_INTERVAL_MILLIS
+                                            ) {
+                                                val aggregate =
+                                                    mutableChunks
+                                                        .sumOf {
+                                                            it.downloadedBytes
+                                                        }
+                                                        .coerceAtMost(
+                                                            totalBytes,
+                                                        )
+                                                val elapsed =
+                                                    (
+                                                        now -
+                                                            windowStarted
+                                                    ).coerceAtLeast(
+                                                        1L,
+                                                    )
+                                                val speed =
+                                                    windowBytes *
+                                                        1000L /
+                                                        elapsed
+                                                val remaining =
+                                                    (
+                                                        totalBytes -
+                                                            aggregate
+                                                    ).coerceAtLeast(
+                                                        0L,
+                                                    )
+                                                val eta =
+                                                    if (
+                                                        speed > 0L &&
+                                                        remaining >
+                                                        0L
+                                                    ) {
+                                                        remaining /
+                                                            speed
+                                                    } else {
+                                                        0L
+                                                    }
+                                                repository
+                                                    .updateChunks(
+                                                        id = id,
+                                                        chunks =
+                                                            mutableChunks
+                                                                .toList(),
+                                                        downloadedBytes =
+                                                            aggregate,
+                                                        totalBytes =
+                                                            totalBytes,
+                                                        speed = speed,
+                                                        etaSeconds =
+                                                            eta,
+                                                    )
+                                                lastUpdate = now
+                                                if (
+                                                    elapsed >=
+                                                    1000L
+                                                ) {
+                                                    windowBytes = 0L
+                                                    windowStarted = now
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                channel.force(false)
+                            }
+                        } ?: error(
+                            "Unable to open destination",
+                        )
+                    }
+                } finally {
+                    unregisterCall(id, call)
+                }
+            }
+        }.awaitAll()
+
+        val downloaded =
+            mutableChunks.sumOf {
+                it.downloadedBytes
+            }.coerceAtMost(totalBytes)
+        if (
+            downloaded != totalBytes ||
+            mutableChunks.any { !it.completed }
+        ) {
+            error(
+                "Segmented download incomplete: " +
+                    "$downloaded/$totalBytes",
+            )
+        }
+        repository.updateChunks(
+            id = id,
+            chunks = mutableChunks,
+            downloadedBytes = totalBytes,
+            totalBytes = totalBytes,
+            speed = 0L,
+            etaSeconds = 0L,
+        )
+        totalBytes
+    }
+
+    private suspend fun throttle(
+        count: Int,
+        item: YDownloadItem,
+        taskLimiter: GlobalBandwidthLimiter,
+    ) {
+        bandwidthLimiter.acquire(
+            byteCount = count,
+            bytesPerSecond =
+                settings.settings.value
+                    .globalSpeedLimitBytesPerSecond,
+        )
+        taskLimiter.acquire(
+            byteCount = count,
+            bytesPerSecond =
+                item.speedLimitBytesPerSecond,
+        )
+    }
+
+    private fun registerCall(
+        id: String,
+        call: okhttp3.Call,
+    ) {
+        activeCalls
+            .computeIfAbsent(id) {
+                ConcurrentHashMap
+                    .newKeySet<okhttp3.Call>()
+            }
+            .add(call)
+    }
+
+    private fun unregisterCall(
+        id: String,
+        call: okhttp3.Call,
+    ) {
+        activeCalls[id]?.let { calls ->
+            calls.remove(call)
+            if (calls.isEmpty()) {
+                activeCalls.remove(id, calls)
+            }
+        }
+    }
+
+    private fun cancelCalls(id: String) {
+        activeCalls.remove(id)
+            ?.forEach { call ->
+                runCatching { call.cancel() }
+            }
+    }
+
+    private fun splitIntoChunks(
+        totalBytes: Long,
+        count: Int,
+    ): List<YDownloadChunk> {
+        val actualCount =
+            minOf(
+                count.coerceIn(1, 16),
+                totalBytes.coerceAtMost(Int.MAX_VALUE.toLong())
+                    .toInt()
+                    .coerceAtLeast(1),
+            )
+        val baseSize =
+            totalBytes / actualCount
+        val remainder =
+            totalBytes % actualCount
+        var start = 0L
+        return List(actualCount) { index ->
+            val size =
+                baseSize +
+                    if (index < remainder) 1L else 0L
+            val end = start + size - 1L
+            YDownloadChunk(
+                startByte = start,
+                endByte = end,
+                downloadedBytes = 0L,
+            ).also {
+                start = end + 1L
+            }
+        }
+    }
+
+    private fun validChunks(
+        chunks: List<YDownloadChunk>,
+        totalBytes: Long,
+    ): Boolean {
+        if (
+            chunks.isEmpty() ||
+            totalBytes <= 0L ||
+            chunks.first().startByte != 0L ||
+            chunks.last().endByte != totalBytes - 1L
+        ) {
+            return false
+        }
+        var expectedStart = 0L
+        return chunks.all { chunk ->
+            val valid =
+                chunk.startByte == expectedStart &&
+                    chunk.endByte >= chunk.startByte &&
+                    chunk.downloadedBytes in
+                    0L..chunk.length
+            expectedStart = chunk.endByte + 1L
+            valid
+        }
+    }
+
+    private fun prepareSegmentedOutput(
+        outputUri: Uri,
+        totalBytes: Long,
+    ) {
+        resolver.openFileDescriptor(
+            outputUri,
+            "rw",
+        )?.use { descriptor ->
+            FileOutputStream(
+                descriptor.fileDescriptor,
+            ).channel.use { channel ->
+                channel.truncate(0L)
+                if (totalBytes > 0L) {
+                    channel.position(totalBytes - 1L)
+                    channel.write(
+                        java.nio.ByteBuffer.wrap(
+                            byteArrayOf(0),
+                        ),
+                    )
+                }
+                channel.force(true)
+            }
+        } ?: error("Unable to prepare destination")
+    }
+
+    private fun truncateOutput(
+        outputUri: Uri,
+    ) {
+        resolver.openFileDescriptor(
+            outputUri,
+            "rw",
+        )?.use { descriptor ->
+            FileOutputStream(
+                descriptor.fileDescriptor,
+            ).channel.use { channel ->
+                channel.truncate(0L)
+                channel.force(true)
+            }
+        }
+    }
+
+    private class RangeUnsupportedException(
+        message: String,
+    ) : IllegalStateException(message)
 
     private fun createOutput(
         item: YDownloadItem,
@@ -601,5 +1093,7 @@ class YDownloadEngine(
 
     private companion object {
         const val TAG = "YDownload/Engine"
+        const val BUFFER_SIZE = 64 * 1024
+        const val PROGRESS_INTERVAL_MILLIS = 250L
     }
 }

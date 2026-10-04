@@ -23,6 +23,7 @@ private val Context.yDownloadSettingsDataStore
 data class YDownloadSettings(
     val defaultTreeUri: String? = null,
     val maxConcurrentDownloads: Int = 3,
+    val defaultThreadCount: Int = 4,
     val globalSpeedLimitBytesPerSecond: Long = 0L,
     val wifiOnly: Boolean = false,
     val autoResumeNetwork: Boolean = true,
@@ -48,6 +49,8 @@ class YDownloadSettingsRepository(
             stringPreferencesKey("default_tree_uri")
         val maxConcurrent =
             intPreferencesKey("max_concurrent")
+        val defaultThreadCount =
+            intPreferencesKey("default_thread_count")
         val speedLimit =
             longPreferencesKey("speed_limit")
         val wifiOnly =
@@ -82,6 +85,9 @@ class YDownloadSettingsRepository(
                     maxConcurrentDownloads =
                         (preferences[Keys.maxConcurrent] ?: 3)
                             .coerceIn(1, 10),
+                    defaultThreadCount =
+                        (preferences[Keys.defaultThreadCount] ?: 4)
+                            .coerceIn(1, 16),
                     globalSpeedLimitBytesPerSecond =
                         (preferences[Keys.speedLimit] ?: 0L)
                             .coerceAtLeast(0L),
@@ -116,6 +122,12 @@ class YDownloadSettingsRepository(
     suspend fun setMaxConcurrentDownloads(value: Int) {
         context.yDownloadSettingsDataStore.edit {
             it[Keys.maxConcurrent] = value.coerceIn(1, 10)
+        }
+    }
+
+    suspend fun setDefaultThreadCount(value: Int) {
+        context.yDownloadSettingsDataStore.edit {
+            it[Keys.defaultThreadCount] = value.coerceIn(1, 16)
         }
     }
 

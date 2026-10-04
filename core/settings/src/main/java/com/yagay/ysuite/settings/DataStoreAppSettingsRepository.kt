@@ -1,6 +1,7 @@
 package com.yagay.ysuite.settings
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -17,6 +18,8 @@ class DataStoreAppSettingsRepository(
 ) : AppSettingsRepository {
     private object Keys {
         val themeMode = stringPreferencesKey("theme_mode")
+        val dynamicColor =
+            booleanPreferencesKey("dynamic_color")
         val languageTag = stringPreferencesKey("language_tag")
     }
 
@@ -34,6 +37,8 @@ class DataStoreAppSettingsRepository(
                     themeMode = preferences[Keys.themeMode]
                         ?.let { stored -> AppThemeMode.entries.firstOrNull { it.name == stored } }
                         ?: AppThemeMode.System,
+                    dynamicColorEnabled =
+                        preferences[Keys.dynamicColor] ?: true,
                     languageTag = preferences[Keys.languageTag]?.takeIf(String::isNotBlank),
                 )
             }
@@ -41,6 +46,14 @@ class DataStoreAppSettingsRepository(
     override suspend fun setThemeMode(mode: AppThemeMode) {
         context.ySuiteSettingsDataStore.edit { preferences ->
             preferences[Keys.themeMode] = mode.name
+        }
+    }
+
+    override suspend fun setDynamicColorEnabled(
+        enabled: Boolean,
+    ) {
+        context.ySuiteSettingsDataStore.edit { preferences ->
+            preferences[Keys.dynamicColor] = enabled
         }
     }
 

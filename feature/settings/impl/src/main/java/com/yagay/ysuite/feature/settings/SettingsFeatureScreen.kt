@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.ysuite.productui.settings.ComposeSettingsChoice
 import com.yagay.ysuite.productui.settings.ComposeSettingsChoiceGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
+import com.yagay.ysuite.productui.settings.ComposeSettingsSwitch
 import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
@@ -49,6 +50,21 @@ fun SettingsFeatureScreen(
                     AppThemeMode.valueOf(selected),
                 )
             },
+        )
+
+        ComposeSettingsSwitch(
+            title =
+                stringResource(
+                    R.string.settings_dynamic_color,
+                ),
+            subtitle =
+                stringResource(
+                    R.string.settings_dynamic_color_desc,
+                ),
+            checked =
+                state.settings.dynamicColorEnabled,
+            onCheckedChange =
+                viewModel::setDynamicColorEnabled,
         )
 
         ComposeSettingsChoiceGroup(

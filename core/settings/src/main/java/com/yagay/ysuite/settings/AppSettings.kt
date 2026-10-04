@@ -8,5 +8,6 @@ enum class AppThemeMode {
 
 data class AppSettings(
     val themeMode: AppThemeMode = AppThemeMode.System,
+    val dynamicColorEnabled: Boolean = true,
     val languageTag: String? = null,
 )

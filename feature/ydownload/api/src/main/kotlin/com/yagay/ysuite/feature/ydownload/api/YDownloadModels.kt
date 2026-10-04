@@ -8,6 +8,7 @@ enum class YDownloadState {
     Completed,
     Failed,
     Cancelled,
+    Scheduled,
 }
 
 enum class YDownloadTab {
@@ -17,6 +18,19 @@ enum class YDownloadTab {
     Queue,
     Finished,
     Error,
+    Scheduled,
+}
+
+data class YDownloadChunk(
+    val startByte: Long,
+    val endByte: Long,
+    val downloadedBytes: Long,
+) {
+    val length: Long
+        get() = (endByte - startByte + 1L).coerceAtLeast(0L)
+
+    val completed: Boolean
+        get() = downloadedBytes >= length
 }
 
 data class YDownloadItem(
@@ -41,6 +55,11 @@ data class YDownloadItem(
     val username: String?,
     val password: String?,
     val destinationTreeUri: String? = null,
+    val threadCount: Int = 1,
+    val speedLimitBytesPerSecond: Long = 0L,
+    val customHeaders: Map<String, String> = emptyMap(),
+    val scheduledAtMillis: Long? = null,
+    val chunks: List<YDownloadChunk> = emptyList(),
 ) {
     val progress: Float?
         get() =
@@ -64,6 +83,10 @@ data class YDownloadRequest(
     val username: String? = null,
     val password: String? = null,
     val destinationTreeUri: String? = null,
+    val threadCount: Int = 1,
+    val speedLimitBytesPerSecond: Long = 0L,
+    val customHeaders: Map<String, String> = emptyMap(),
+    val scheduledAtMillis: Long? = null,
 )
 
 data class YDownloadMetadata(
@@ -102,6 +125,10 @@ fun List<YDownloadItem>.forTab(
             YDownloadTab.Error ->
                 filter {
                     it.state == YDownloadState.Failed
+                }
+            YDownloadTab.Scheduled ->
+                filter {
+                    it.state == YDownloadState.Scheduled
                 }
         }
 

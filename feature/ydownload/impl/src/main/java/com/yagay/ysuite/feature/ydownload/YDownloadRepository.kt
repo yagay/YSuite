@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.yagay.ysuite.feature.ydownload.api.YDownloadChunk
 import com.yagay.ysuite.feature.ydownload.api.YDownloadItem
 import com.yagay.ysuite.feature.ydownload.api.YDownloadRequest
 import com.yagay.ysuite.feature.ydownload.api.YDownloadState
@@ -44,6 +45,11 @@ class YDownloadRepository(
         withContext(Dispatchers.IO) {
             mutex.withLock {
                 val id = UUID.randomUUID().toString()
+                val scheduledAt =
+                    request.scheduledAtMillis
+                        ?.takeIf {
+                            it > System.currentTimeMillis()
+                        }
                 val values = ContentValues().apply {
                     put(COL_ID, id)
                     put(COL_URL, request.url)
@@ -52,7 +58,14 @@ class YDownloadRepository(
                     put(COL_MIME_TYPE, request.mimeType)
                     put(COL_TOTAL_BYTES, request.totalBytes)
                     put(COL_DOWNLOADED_BYTES, 0L)
-                    put(COL_STATE, YDownloadState.Pending.name)
+                    put(
+                        COL_STATE,
+                        if (scheduledAt != null) {
+                            YDownloadState.Scheduled.name
+                        } else {
+                            YDownloadState.Pending.name
+                        },
+                    )
                     put(COL_SPEED, 0L)
                     put(COL_ETA, 0L)
                     put(COL_ADDED_AT, System.currentTimeMillis())
@@ -62,7 +75,10 @@ class YDownloadRepository(
                         COL_SUPPORTS_RANGES,
                         if (request.supportsRanges) 1 else 0,
                     )
-                    put(COL_QUEUED, if (queued) 1 else 0)
+                    put(
+                        COL_QUEUED,
+                        if (scheduledAt == null && queued) 1 else 0,
+                    )
                     put(COL_REFERER, request.referer)
                     put(COL_USER_AGENT, request.userAgent)
                     put(COL_COOKIES, request.cookies)
@@ -72,6 +88,21 @@ class YDownloadRepository(
                         COL_DESTINATION_TREE_URI,
                         request.destinationTreeUri,
                     )
+                    put(
+                        COL_THREAD_COUNT,
+                        request.threadCount.coerceIn(1, 16),
+                    )
+                    put(
+                        COL_TASK_SPEED_LIMIT,
+                        request.speedLimitBytesPerSecond
+                            .coerceAtLeast(0L),
+                    )
+                    put(
+                        COL_CUSTOM_HEADERS,
+                        encodeHeaders(request.customHeaders),
+                    )
+                    put(COL_SCHEDULED_AT, scheduledAt)
+                    put(COL_CHUNKS, "")
                 }
                 helper.writableDatabase.insertOrThrow(
                     TABLE,
@@ -164,6 +195,50 @@ class YDownloadRepository(
                 put(COL_COMPLETED_AT, System.currentTimeMillis())
                 put(COL_QUEUED, 0)
                 putNull(COL_ERROR)
+            },
+        )
+    }
+
+    suspend fun updateChunks(
+        id: String,
+        chunks: List<YDownloadChunk>,
+        downloadedBytes: Long,
+        totalBytes: Long,
+        speed: Long,
+        etaSeconds: Long,
+    ) {
+        updateColumns(
+            id,
+            ContentValues().apply {
+                put(COL_STATE, YDownloadState.Downloading.name)
+                put(COL_CHUNKS, encodeChunks(chunks))
+                put(COL_DOWNLOADED_BYTES, downloadedBytes)
+                put(COL_TOTAL_BYTES, totalBytes)
+                put(COL_SPEED, speed)
+                put(COL_ETA, etaSeconds)
+                put(COL_QUEUED, 0)
+                putNull(COL_ERROR)
+            },
+        )
+    }
+
+    suspend fun setChunks(
+        id: String,
+        chunks: List<YDownloadChunk>,
+    ) {
+        updateColumns(
+            id,
+            ContentValues().apply {
+                put(COL_CHUNKS, encodeChunks(chunks))
+            },
+        )
+    }
+
+    suspend fun clearChunks(id: String) {
+        updateColumns(
+            id,
+            ContentValues().apply {
+                put(COL_CHUNKS, "")
             },
         )
     }
@@ -310,6 +385,21 @@ class YDownloadRepository(
             password = nullableString(COL_PASSWORD),
             destinationTreeUri =
                 nullableString(COL_DESTINATION_TREE_URI),
+            threadCount =
+                int(COL_THREAD_COUNT).coerceIn(1, 16),
+            speedLimitBytesPerSecond =
+                long(COL_TASK_SPEED_LIMIT)
+                    .coerceAtLeast(0L),
+            customHeaders =
+                decodeHeaders(
+                    nullableString(COL_CUSTOM_HEADERS),
+                ),
+            scheduledAtMillis =
+                nullableLong(COL_SCHEDULED_AT),
+            chunks =
+                decodeChunks(
+                    nullableString(COL_CHUNKS),
+                ),
         )
 
     private fun Cursor.string(name: String): String =
@@ -363,7 +453,12 @@ class YDownloadRepository(
                     $COL_COOKIES TEXT,
                     $COL_USERNAME TEXT,
                     $COL_PASSWORD TEXT,
-                    $COL_DESTINATION_TREE_URI TEXT
+                    $COL_DESTINATION_TREE_URI TEXT,
+                    $COL_THREAD_COUNT INTEGER NOT NULL DEFAULT 1,
+                    $COL_TASK_SPEED_LIMIT INTEGER NOT NULL DEFAULT 0,
+                    $COL_CUSTOM_HEADERS TEXT,
+                    $COL_SCHEDULED_AT INTEGER,
+                    $COL_CHUNKS TEXT
                 )
                 """.trimIndent(),
             )
@@ -380,12 +475,34 @@ class YDownloadRepository(
                         "$COL_DESTINATION_TREE_URI TEXT",
                 )
             }
+            if (oldVersion < 3) {
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_THREAD_COUNT INTEGER NOT NULL DEFAULT 1",
+                )
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_TASK_SPEED_LIMIT INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_CUSTOM_HEADERS TEXT",
+                )
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_SCHEDULED_AT INTEGER",
+                )
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_CHUNKS TEXT",
+                )
+            }
         }
     }
 
     private companion object {
         const val DB_NAME = "ydownload.db"
-        const val DB_VERSION = 2
+        const val DB_VERSION = 3
         const val TABLE = "downloads"
         const val COL_ID = "id"
         const val COL_URL = "url"
@@ -409,6 +526,69 @@ class YDownloadRepository(
         const val COL_PASSWORD = "password"
         const val COL_DESTINATION_TREE_URI =
             "destination_tree_uri"
+        const val COL_THREAD_COUNT = "thread_count"
+        const val COL_TASK_SPEED_LIMIT = "task_speed_limit"
+        const val COL_CUSTOM_HEADERS = "custom_headers"
+        const val COL_SCHEDULED_AT = "scheduled_at"
+        const val COL_CHUNKS = "chunks"
+
+        fun encodeHeaders(
+            headers: Map<String, String>,
+        ): String =
+            headers.entries.joinToString("\n") {
+                it.key.trim() + "\t" + it.value.trim()
+            }
+
+        fun decodeHeaders(value: String?): Map<String, String> =
+            value.orEmpty()
+                .lineSequence()
+                .mapNotNull { line ->
+                    val index = line.indexOf('\t')
+                    if (index <= 0) return@mapNotNull null
+                    val key = line.substring(0, index).trim()
+                    val headerValue =
+                        line.substring(index + 1).trim()
+                    if (key.isBlank()) null else key to headerValue
+                }
+                .toMap()
+
+        fun encodeChunks(
+            chunks: List<YDownloadChunk>,
+        ): String =
+            chunks.joinToString(";") {
+                listOf(
+                    it.startByte,
+                    it.endByte,
+                    it.downloadedBytes,
+                ).joinToString(",")
+            }
+
+        fun decodeChunks(
+            value: String?,
+        ): List<YDownloadChunk> =
+            value.orEmpty()
+                .split(';')
+                .mapNotNull { encoded ->
+                    val parts = encoded.split(',')
+                    if (parts.size != 3) {
+                        return@mapNotNull null
+                    }
+                    val start =
+                        parts[0].toLongOrNull()
+                            ?: return@mapNotNull null
+                    val end =
+                        parts[1].toLongOrNull()
+                            ?: return@mapNotNull null
+                    val downloaded =
+                        parts[2].toLongOrNull()
+                            ?: return@mapNotNull null
+                    YDownloadChunk(
+                        startByte = start,
+                        endByte = end,
+                        downloadedBytes =
+                            downloaded.coerceAtLeast(0L),
+                    )
+                }
 
         val ALL_COLUMNS = arrayOf(
             COL_ID,
@@ -432,6 +612,11 @@ class YDownloadRepository(
             COL_USERNAME,
             COL_PASSWORD,
             COL_DESTINATION_TREE_URI,
+            COL_THREAD_COUNT,
+            COL_TASK_SPEED_LIMIT,
+            COL_CUSTOM_HEADERS,
+            COL_SCHEDULED_AT,
+            COL_CHUNKS,
         )
     }
 }

@@ -102,4 +102,18 @@
     <string name="ydownload_property_error">Error</string>
     <string name="ydownload_yes">Yes</string>
     <string name="ydownload_no">No</string>
+    <string name="ydownload_tab_scheduled">Scheduled</string>
+    <string name="ydownload_state_scheduled">Scheduled</string>
+    <string name="ydownload_default_threads">Default connections per download</string>
+    <string name="ydownload_default_threads_desc">Used for resumable files that support HTTP range requests.</string>
+    <string name="ydownload_threads">Connections</string>
+    <string name="ydownload_task_speed_limit">Task speed limit (KB/s, 0 = unlimited)</string>
+    <string name="ydownload_custom_headers">Custom HTTP headers (one Name: Value per line)</string>
+    <string name="ydownload_schedule">Schedule</string>
+    <string name="ydownload_clear_schedule">Clear</string>
+    <string name="ydownload_schedule_none">Start normally</string>
+    <string name="ydownload_property_threads">Connections</string>
+    <string name="ydownload_property_task_speed_limit">Task speed limit</string>
+    <string name="ydownload_property_custom_headers">Custom HTTP headers</string>
+    <string name="ydownload_property_scheduled">Scheduled time</string>
 </resources>

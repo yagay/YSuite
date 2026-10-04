@@ -1,5 +1,7 @@
 package com.yagay.ysuite.feature.ydownload
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -32,6 +34,7 @@ import com.yagay.ysuite.productui.download.QdmDownloadTab
 import com.yagay.ysuite.productui.download.QdmDownloadWorkspace
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 import java.text.DateFormat
+import java.util.Calendar
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,8 +45,9 @@ fun YDownloadFeatureScreen(
     environment: YDownloadEnvironment,
     logger: YSuiteLogger,
 ) {
+    val localContext = LocalContext.current
     val context =
-        LocalContext.current.applicationContext
+        localContext.applicationContext
     val model: YDownloadViewModel =
         viewModel(
             factory =
@@ -65,6 +69,8 @@ fun YDownloadFeatureScreen(
                 model::setDefaultTreeUri,
             onMaxConcurrent =
                 model::setMaxConcurrent,
+            onDefaultThreadCount =
+                model::setDefaultThreadCount,
             onSpeedLimit =
                 model::setSpeedLimit,
             onWifiOnly =
@@ -310,6 +316,74 @@ fun YDownloadFeatureScreen(
 
     if (state.addDialogVisible) {
         val draft = state.addDraft
+
+        fun chooseSchedule() {
+            val initial =
+                Calendar.getInstance().apply {
+                    draft.scheduledAtMillis?.let {
+                        timeInMillis = it
+                    }
+                }
+            DatePickerDialog(
+                localContext,
+                { _, year, month, day ->
+                    val selected =
+                        Calendar.getInstance().apply {
+                            timeInMillis =
+                                initial.timeInMillis
+                            set(
+                                Calendar.YEAR,
+                                year,
+                            )
+                            set(
+                                Calendar.MONTH,
+                                month,
+                            )
+                            set(
+                                Calendar.DAY_OF_MONTH,
+                                day,
+                            )
+                        }
+                    TimePickerDialog(
+                        localContext,
+                        { _, hour, minute ->
+                            selected.set(
+                                Calendar.HOUR_OF_DAY,
+                                hour,
+                            )
+                            selected.set(
+                                Calendar.MINUTE,
+                                minute,
+                            )
+                            selected.set(
+                                Calendar.SECOND,
+                                0,
+                            )
+                            selected.set(
+                                Calendar.MILLISECOND,
+                                0,
+                            )
+                            model.updateScheduledAt(
+                                selected.timeInMillis,
+                            )
+                        },
+                        initial.get(
+                            Calendar.HOUR_OF_DAY,
+                        ),
+                        initial.get(Calendar.MINUTE),
+                        true,
+                    ).show()
+                },
+                initial.get(Calendar.YEAR),
+                initial.get(Calendar.MONTH),
+                initial.get(Calendar.DAY_OF_MONTH),
+            ).apply {
+                datePicker.minDate =
+                    System.currentTimeMillis() -
+                        60_000L
+            }.show()
+        }
+
         QdmAddDownloadDialog(
             model =
                 QdmAddDownloadModel(
@@ -327,6 +401,27 @@ fun YDownloadFeatureScreen(
                                 R.string
                                     .ydownload_default_folder_system,
                             ),
+                    threadCount = draft.threadCount,
+                    threadSelectionEnabled =
+                        draft.supportsRanges &&
+                            draft.totalBytes > 0L,
+                    speedLimitBytesPerSecond =
+                        draft.speedLimitBytesPerSecond,
+                    customHeadersText =
+                        draft.customHeadersText,
+                    scheduleText =
+                        draft.scheduledAtMillis
+                            ?.let {
+                                DateFormat
+                                    .getDateTimeInstance()
+                                    .format(Date(it))
+                            }
+                            ?: stringResource(
+                                R.string
+                                    .ydownload_schedule_none,
+                            ),
+                    hasSchedule =
+                        draft.scheduledAtMillis != null,
                     metadataText =
                         metadataText(
                             totalBytes =
@@ -385,6 +480,29 @@ fun YDownloadFeatureScreen(
                             R.string
                                 .ydownload_use_default_folder,
                         ),
+                    threads =
+                        stringResource(
+                            R.string.ydownload_threads,
+                        ),
+                    speedLimit =
+                        stringResource(
+                            R.string
+                                .ydownload_task_speed_limit,
+                        ),
+                    customHeaders =
+                        stringResource(
+                            R.string
+                                .ydownload_custom_headers,
+                        ),
+                    schedule =
+                        stringResource(
+                            R.string.ydownload_schedule,
+                        ),
+                    clearSchedule =
+                        stringResource(
+                            R.string
+                                .ydownload_clear_schedule,
+                        ),
                     fetch =
                         stringResource(
                             R.string.ydownload_fetch,
@@ -395,7 +513,14 @@ fun YDownloadFeatureScreen(
                         ),
                     start =
                         stringResource(
-                            R.string.ydownload_start,
+                            if (
+                                draft.scheduledAtMillis !=
+                                null
+                            ) {
+                                R.string.ydownload_schedule
+                            } else {
+                                R.string.ydownload_start
+                            },
                         ),
                     cancel =
                         stringResource(
@@ -420,6 +545,16 @@ fun YDownloadFeatureScreen(
             },
             onUseDefaultFolder = {
                 model.updateDestinationTreeUri(null)
+            },
+            onThreadCountChange =
+                model::updateThreadCount,
+            onSpeedLimitChange =
+                model::updateSpeedLimitBytesPerSecond,
+            onCustomHeadersChange =
+                model::updateCustomHeaders,
+            onChooseSchedule = ::chooseSchedule,
+            onClearSchedule = {
+                model.updateScheduledAt(null)
             },
             onFetch = model::fetchMetadata,
             onAddQueue = model::addToQueue,
@@ -468,6 +603,8 @@ private fun YDownloadTab.label(): String =
                 R.string.ydownload_tab_finished
             YDownloadTab.Error ->
                 R.string.ydownload_tab_error
+            YDownloadTab.Scheduled ->
+                R.string.ydownload_tab_scheduled
         },
     )
 
@@ -495,6 +632,8 @@ private fun YDownloadItem.toRowModel():
                     R.string.ydownload_state_failed
                 YDownloadState.Cancelled ->
                     R.string.ydownload_state_cancelled
+                YDownloadState.Scheduled ->
+                    R.string.ydownload_state_scheduled
             },
         )
 
@@ -548,7 +687,8 @@ private fun YDownloadItem.toRowModel():
             state == YDownloadState.Downloading ||
                 state == YDownloadState.Connecting ||
                 state == YDownloadState.Paused ||
-                state == YDownloadState.Pending,
+                state == YDownloadState.Pending ||
+                state == YDownloadState.Scheduled,
         canOpen =
             state == YDownloadState.Completed &&
                 outputUri != null,
@@ -619,6 +759,54 @@ private fun YDownloadItem.properties():
                     ),
             ),
         )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_threads,
+                ),
+                threadCount.toString(),
+            ),
+        )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_task_speed_limit,
+                ),
+                if (speedLimitBytesPerSecond > 0L) {
+                    formatBytes(
+                        speedLimitBytesPerSecond,
+                    ) + "/s"
+                } else {
+                    stringResource(
+                        R.string.ydownload_unlimited,
+                    )
+                },
+            ),
+        )
+        if (customHeaders.isNotEmpty()) {
+            add(
+                QdmDownloadProperty(
+                    stringResource(
+                        R.string.ydownload_property_custom_headers,
+                    ),
+                    customHeaders.entries
+                        .joinToString("\n") {
+                            it.key + ": " + it.value
+                        },
+                ),
+            )
+        }
+        scheduledAtMillis?.let {
+            add(
+                QdmDownloadProperty(
+                    stringResource(
+                        R.string.ydownload_property_scheduled,
+                    ),
+                    DateFormat.getDateTimeInstance()
+                        .format(Date(it)),
+                ),
+            )
+        }
         add(
             QdmDownloadProperty(
                 stringResource(

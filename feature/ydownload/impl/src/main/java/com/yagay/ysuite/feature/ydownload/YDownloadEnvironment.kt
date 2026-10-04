@@ -10,6 +10,7 @@ data class YDownloadEnvironment(
     val settings: YDownloadSettingsRepository,
     val engine: YDownloadEngine,
     val metadataFetcher: YDownloadMetadataFetcher,
+    val scheduler: YDownloadScheduler,
 )
 
 object YDownloadEnvironmentFactory {
@@ -55,12 +56,15 @@ internal object YDownloadRuntime {
                         client = client,
                         logger = loggerBridge,
                     )
+                val scheduler =
+                    YDownloadScheduler(context)
                 YDownloadEnvironment(
                     repository = repository,
                     settings = settings,
                     engine = engine,
                     metadataFetcher =
                         YDownloadMetadataFetcher(client),
+                    scheduler = scheduler,
                 ).also {
                     environment = it
                 }

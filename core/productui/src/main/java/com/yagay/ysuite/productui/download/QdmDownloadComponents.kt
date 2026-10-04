@@ -38,6 +38,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -444,6 +445,12 @@ data class QdmAddDownloadModel(
     val username: String,
     val password: String,
     val destinationText: String,
+    val threadCount: Int,
+    val threadSelectionEnabled: Boolean,
+    val speedLimitBytesPerSecond: Long,
+    val customHeadersText: String,
+    val scheduleText: String,
+    val hasSchedule: Boolean,
     val metadataText: String?,
     val loading: Boolean,
     val error: String?,
@@ -461,6 +468,11 @@ data class QdmAddDownloadLabels(
     val destination: String,
     val chooseFolder: String,
     val useDefaultFolder: String,
+    val threads: String,
+    val speedLimit: String,
+    val customHeaders: String,
+    val schedule: String,
+    val clearSchedule: String,
     val fetch: String,
     val addQueue: String,
     val start: String,
@@ -480,6 +492,11 @@ fun QdmAddDownloadDialog(
     onPasswordChange: (String) -> Unit,
     onChooseFolder: () -> Unit,
     onUseDefaultFolder: () -> Unit,
+    onThreadCountChange: (Int) -> Unit,
+    onSpeedLimitChange: (Long) -> Unit,
+    onCustomHeadersChange: (String) -> Unit,
+    onChooseSchedule: () -> Unit,
+    onClearSchedule: () -> Unit,
     onFetch: () -> Unit,
     onAddQueue: () -> Unit,
     onStart: () -> Unit,
@@ -620,6 +637,110 @@ fun QdmAddDownloadDialog(
                     onClick = onUseDefaultFolder,
                 ) {
                     Text(labels.useDefaultFolder)
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text =
+                            labels.threads +
+                                ": " +
+                                model.threadCount,
+                        style =
+                            MaterialTheme.typography.labelLarge,
+                    )
+                    Slider(
+                        value =
+                            model.threadCount
+                                .toFloat(),
+                        onValueChange = {
+                            onThreadCountChange(
+                                it.toInt()
+                                    .coerceIn(1, 16),
+                            )
+                        },
+                        valueRange = 1f..16f,
+                        steps = 14,
+                        enabled =
+                            model.threadSelectionEnabled,
+                    )
+                }
+
+                OutlinedTextField(
+                    value =
+                        (
+                            model.speedLimitBytesPerSecond /
+                                1024L
+                        ).toString(),
+                    onValueChange = { raw ->
+                        val kbps =
+                            raw.filter(Char::isDigit)
+                                .toLongOrNull()
+                                ?: 0L
+                        onSpeedLimitChange(
+                            kbps
+                                .coerceAtMost(
+                                    Long.MAX_VALUE /
+                                        1024L,
+                                ) * 1024L,
+                        )
+                    },
+                    label = {
+                        Text(labels.speedLimit)
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                OutlinedTextField(
+                    value = model.customHeadersText,
+                    onValueChange =
+                        onCustomHeadersChange,
+                    label = {
+                        Text(labels.customHeaders)
+                    },
+                    minLines = 2,
+                    maxLines = 5,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            YSuiteSpacing.Small,
+                        ),
+                    verticalAlignment =
+                        Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = labels.schedule,
+                            style =
+                                MaterialTheme.typography.labelSmall,
+                            color =
+                                MaterialTheme.colorScheme
+                                    .onSurfaceVariant,
+                        )
+                        Text(
+                            text = model.scheduleText,
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onChooseSchedule,
+                    ) {
+                        Text(labels.schedule)
+                    }
+                    if (model.hasSchedule) {
+                        TextButton(
+                            onClick = onClearSchedule,
+                        ) {
+                            Text(labels.clearSchedule)
+                        }
+                    }
                 }
 
                 OutlinedTextField(
