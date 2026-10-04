@@ -8,10 +8,8 @@ import com.yagay.ysuite.diagnostics.DiagnosticStatus
 import com.yagay.ysuite.feature.settings.SettingsFeatureUiRegistration
 import com.yagay.ysuite.feature.system.SystemFeatureUiRegistration
 import com.yagay.ysuite.feature.template.TemplateFeatureUiRegistration
+import com.yagay.ysuite.feature.yfiles.YFilesEnvironmentFactory
 import com.yagay.ysuite.feature.yfiles.YFilesFeatureUiRegistration
-import com.yagay.ysuite.feature.yfiles.engine.DefaultYFilesEngine
-import com.yagay.ysuite.feature.yfiles.engine.YFileProviderRegistry
-import com.yagay.ysuite.feature.yfiles.provider.local.LocalFileProvider
 import com.yagay.ysuite.logging.android.AndroidLogSink
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
 import com.yagay.ysuite.logging.api.InMemoryLogStore
