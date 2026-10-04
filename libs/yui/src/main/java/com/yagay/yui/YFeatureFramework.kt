@@ -58,7 +58,7 @@ fun YFeatureScaffold(
 }
 
 @Composable
-fun YFeatureCustomScaffold(
+fun YCustomScaffold(
     modifier: Modifier = Modifier,
     state: YPageState = YPageState.Ready,
     topBar: @Composable () -> Unit,
@@ -80,6 +80,28 @@ fun YFeatureCustomScaffold(
         ) { padding -> YFeatureStateContent(padding, state, content) }
     }
 }
+
+@Deprecated("Use YCustomScaffold")
+@Composable
+fun YFeatureCustomScaffold(
+    modifier: Modifier = Modifier,
+    state: YPageState = YPageState.Ready,
+    topBar: @Composable () -> Unit,
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    role: YPageRole = YPageRole.LIST,
+    content: @Composable (PaddingValues) -> Unit,
+) = YCustomScaffold(
+    modifier = modifier,
+    state = state,
+    topBar = topBar,
+    bottomBar = bottomBar,
+    snackbarHost = snackbarHost,
+    floatingActionButton = floatingActionButton,
+    role = role,
+    content = content,
+)
 
 @Composable
 private fun YFeatureStateContent(

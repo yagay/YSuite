@@ -28,7 +28,7 @@ import com.yagay.YEntryCleaner.data.readBackupText
 import com.yagay.yui.YActionSpec
 import com.yagay.yui.YAppShell
 import com.yagay.yui.YComposeActivity
-import com.yagay.yui.YFeatureCustomScaffold
+import com.yagay.yui.YCustomScaffold
 import com.yagay.yui.YFormDialog
 import com.yagay.yui.YNavigationSpec
 import com.yagay.yui.YPageRole
@@ -149,7 +149,7 @@ class MainActivity : YComposeActivity() {
                 Destination.entries.firstOrNull { it.name == item.key }?.let(vm::setDestination)
             },
         ) {
-            YFeatureCustomScaffold(
+            YCustomScaffold(
                 role = if (state.destination == Destination.DASHBOARD) YPageRole.DASHBOARD else YPageRole.MANAGER,
                 topBar = {
                     MainToolbar(

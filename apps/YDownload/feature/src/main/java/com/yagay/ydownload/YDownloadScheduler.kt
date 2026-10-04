@@ -22,9 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSection
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -325,11 +325,11 @@ fun YDownloadSchedulerCard(context: Context) {
         }
     }
 
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.ydownload_scheduler_title),
         subtitle = stringResource(R.string.ydownload_scheduler_summary),
     ) {
-        YSettingSwitch(
+        YSwitchItem(
             title = stringResource(R.string.ydownload_scheduler_auto),
             subtitle = stringResource(R.string.ydownload_scheduler_auto_summary),
             checked = autoRebalance,
@@ -379,12 +379,12 @@ fun YDownloadSchedulerCard(context: Context) {
                 Text(stringResource(R.string.ydownload_scheduler_rebalance))
             }
         }
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.ydownload_scheduler_default_priority),
             priorityLabel(defaults.priority),
             YStatusTone.Neutral,
         )
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.ydownload_scheduler_default_network),
             networkRuleLabel(defaults.networkRule),
             YStatusTone.Neutral,
@@ -407,7 +407,7 @@ fun YDownloadSchedulerCard(context: Context) {
                         revision++
                     }) { Text(stringResource(R.string.ydownload_scheduler_resume_group, group)) }
                 }
-                YStatusRow(
+                YStatusLine(
                     group,
                     count.toString(),
                     if (selectedGroupAction == group) YStatusTone.Good else YStatusTone.Neutral,
