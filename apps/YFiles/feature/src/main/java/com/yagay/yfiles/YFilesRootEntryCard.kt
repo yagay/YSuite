@@ -1,10 +1,6 @@
 package com.yagay.yfiles
 
 import android.content.Intent
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,8 +10,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import com.yagay.yui.YActionSpec
+import com.yagay.yui.YActionStyle
+import com.yagay.yui.YFormDialog
 import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YPrimaryButton
+import com.yagay.yui.YSecondaryButton
 import com.yagay.yui.YSection
+import com.yagay.yui.YTextField
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,9 +62,10 @@ fun YFilesRootEntryCard(
         detail = fullPath,
     ) {
         YHorizontalActions {
-            Button(
+            YPrimaryButton(
+                text = stringResource(R.string.yfiles_open),
                 onClick = {
-                    if (busy) return@Button
+                    if (busy) return@YPrimaryButton
                     busy = true
                     scope.launch {
                         val directory = withContext(Dispatchers.IO) {
@@ -86,10 +89,11 @@ fun YFilesRootEntryCard(
                     }
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.yfiles_open)) }
-            OutlinedButton(
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.share),
                 onClick = {
-                    if (busy) return@OutlinedButton
+                    if (busy) return@YSecondaryButton
                     busy = true
                     scope.launch {
                         val staged = withContext(Dispatchers.IO) {
@@ -103,51 +107,55 @@ fun YFilesRootEntryCard(
                     }
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.share)) }
-            OutlinedButton(
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.copy),
                 onClick = {
                     transferMode = FileTransferMode.COPY
                     destinationPath = parentPath
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.copy)) }
-            OutlinedButton(
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.move),
                 onClick = {
                     transferMode = FileTransferMode.MOVE
                     destinationPath = parentPath
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.move)) }
+            )
         }
         YHorizontalActions {
-            OutlinedButton(
+            YSecondaryButton(
+                text = stringResource(R.string.rename),
                 onClick = {
                     renameValue = name
                     renameDialog = true
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.rename)) }
-            OutlinedButton(
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.delete),
                 onClick = { deleteDialog = true },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.delete)) }
+            )
         }
     }
 
     if (renameDialog) {
-        AlertDialog(
+        YFormDialog(
+            title = stringResource(R.string.rename),
             onDismissRequest = { if (!busy) renameDialog = false },
-            title = { Text(stringResource(R.string.rename)) },
-            text = {
-                OutlinedTextField(
-                    value = renameValue,
-                    onValueChange = { renameValue = it },
-                    label = { Text(stringResource(R.string.new_name)) },
-                    singleLine = true,
-                )
-            },
-            confirmButton = {
-                Button(
+            actions = listOf(
+                YActionSpec(
+                    label = stringResource(R.string.yfiles_cancel),
+                    enabled = !busy,
+                    onClick = { renameDialog = false },
+                ),
+                YActionSpec(
+                    label = stringResource(R.string.rename),
+                    enabled = renameValue.isNotBlank() && !busy,
+                    style = YActionStyle.PRIMARY,
                     onClick = {
                         runRoot {
                             withContext(Dispatchers.IO) {
@@ -155,39 +163,35 @@ fun YFilesRootEntryCard(
                             }.also { result -> if (result.isSuccess) renameDialog = false }
                         }
                     },
-                    enabled = renameValue.isNotBlank() && !busy,
-                ) { Text(stringResource(R.string.rename)) }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { renameDialog = false }, enabled = !busy) {
-                    Text(stringResource(R.string.yfiles_cancel))
-                }
-            },
-        )
+                ),
+            ),
+        ) {
+            YTextField(
+                value = renameValue,
+                onValueChange = { renameValue = it },
+                label = stringResource(R.string.new_name),
+            )
+        }
     }
 
     transferMode?.let { mode ->
-        AlertDialog(
+        YFormDialog(
+            title = if (mode == FileTransferMode.COPY) {
+                stringResource(R.string.copy)
+            } else {
+                stringResource(R.string.move)
+            },
             onDismissRequest = { if (!busy) transferMode = null },
-            title = {
-                Text(
-                    if (mode == FileTransferMode.COPY) {
-                        stringResource(R.string.copy)
-                    } else {
-                        stringResource(R.string.move)
-                    },
-                )
-            },
-            text = {
-                OutlinedTextField(
-                    value = destinationPath,
-                    onValueChange = { destinationPath = it },
-                    label = { Text(stringResource(R.string.destination_folder)) },
-                    singleLine = true,
-                )
-            },
-            confirmButton = {
-                Button(
+            actions = listOf(
+                YActionSpec(
+                    label = stringResource(R.string.yfiles_cancel),
+                    enabled = !busy,
+                    onClick = { transferMode = null },
+                ),
+                YActionSpec(
+                    label = stringResource(R.string.confirm),
+                    enabled = destinationPath.isNotBlank() && !busy,
+                    style = YActionStyle.PRIMARY,
                     onClick = {
                         runRoot {
                             withContext(Dispatchers.IO) {
@@ -195,24 +199,31 @@ fun YFilesRootEntryCard(
                             }.also { result -> if (result.isSuccess) transferMode = null }
                         }
                     },
-                    enabled = destinationPath.isNotBlank() && !busy,
-                ) { Text(stringResource(R.string.confirm)) }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { transferMode = null }, enabled = !busy) {
-                    Text(stringResource(R.string.yfiles_cancel))
-                }
-            },
-        )
+                ),
+            ),
+        ) {
+            YTextField(
+                value = destinationPath,
+                onValueChange = { destinationPath = it },
+                label = stringResource(R.string.destination_folder),
+            )
+        }
     }
 
     if (deleteDialog) {
-        AlertDialog(
+        YFormDialog(
+            title = stringResource(R.string.confirm_delete),
             onDismissRequest = { if (!busy) deleteDialog = false },
-            title = { Text(stringResource(R.string.confirm_delete)) },
-            text = { Text(stringResource(R.string.confirm_delete_summary, name)) },
-            confirmButton = {
-                Button(
+            actions = listOf(
+                YActionSpec(
+                    label = stringResource(R.string.yfiles_cancel),
+                    enabled = !busy,
+                    onClick = { deleteDialog = false },
+                ),
+                YActionSpec(
+                    label = stringResource(R.string.delete),
+                    enabled = !busy,
+                    style = YActionStyle.DANGER,
                     onClick = {
                         runRoot {
                             withContext(Dispatchers.IO) {
@@ -220,15 +231,11 @@ fun YFilesRootEntryCard(
                             }.also { result -> if (result.isSuccess) deleteDialog = false }
                         }
                     },
-                    enabled = !busy,
-                ) { Text(stringResource(R.string.delete)) }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { deleteDialog = false }, enabled = !busy) {
-                    Text(stringResource(R.string.yfiles_cancel))
-                }
-            },
-        )
+                ),
+            ),
+        ) {
+            Text(stringResource(R.string.confirm_delete_summary, name))
+        }
     }
 }
 
