@@ -16,7 +16,13 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -44,6 +50,7 @@ import com.yagay.YEntryCleaner.domain.matchesOpenPreset
 import com.yagay.YEntryCleaner.domain.matchesBrowserHost
 import com.yagay.YEntryCleaner.domain.priorityAppGroups
 import com.yagay.YEntryCleaner.domain.priorityCandidates
+import com.yagay.yui.YCheckboxControl
 import com.yagay.yui.YSection
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YStatusLine
@@ -421,7 +428,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Checkbox(
+                        YCheckboxControl(
                             checked = group.rank != null,
                             enabled = group.rank != null || rankedRaw.size < 200,
                             onCheckedChange = { checked ->

@@ -15,7 +15,16 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -31,6 +40,10 @@ import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.data.CleanupKind
 import com.yagay.YEntryCleaner.data.RootComponent
 import com.yagay.YEntryCleaner.domain.AppTypeFilter
+import com.yagay.yui.YActionSpec
+import com.yagay.yui.YActionStyle
+import com.yagay.yui.YCheckboxControl
+import com.yagay.yui.YFormDialog
 import com.yagay.yui.YSection
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YSectionHeader
@@ -55,16 +68,19 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
     val message by vm.componentMessage.collectAsState()
     val rootNotice by vm.componentRootNotice.collectAsState()
     rootNotice?.let { notice ->
-        AlertDialog(
+        YFormDialog(
+            title = stringResource(R.string.root_permission_required),
             onDismissRequest = vm::dismissComponentRootNotice,
-            title = { Text(stringResource(R.string.root_permission_required)) },
-            text = { Text(notice) },
-            confirmButton = {
-                TextButton(onClick = vm::dismissComponentRootNotice) {
-                    Text(stringResource(R.string.root_permission_ack))
-                }
-            }
-        )
+            actions = listOf(
+                YActionSpec(
+                    label = stringResource(R.string.root_permission_ack),
+                    style = YActionStyle.PRIMARY,
+                    onClick = vm::dismissComponentRootNotice,
+                ),
+            ),
+        ) {
+            Text(notice)
+        }
     }
 
     var kind by remember { mutableStateOf<CleanupKind?>(null) }
@@ -339,7 +355,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         .heightIn(min = 48.dp).padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Checkbox(
+                    YCheckboxControl(
                         checked = item.enabled == false,
                         enabled = editable,
                         onCheckedChange = null,

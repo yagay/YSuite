@@ -421,6 +421,21 @@ fun YCheckboxItem(
 )
 
 @Composable
+fun YCheckboxControl(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Checkbox(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+    )
+}
+
+@Composable
 fun YStatusItem(
     title: String,
     value: String,

@@ -9,7 +9,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,12 +25,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.BrowserLinkConfig
 import com.yagay.YEntryCleaner.domain.normalizeBrowserHost
+import com.yagay.yui.YActionSpec
+import com.yagay.yui.YActionStyle
 import com.yagay.yui.YEmptyMessage
+import com.yagay.yui.YFormDialog
+import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSearchField
+import com.yagay.yui.YTextField
 import com.yagay.yui.YSettingRow
 
 /** Compact BROWSER-domain selector shown inside the shared top filter row. */
@@ -183,68 +193,61 @@ fun BrowserHostDialog(
     val normalized = normalizeBrowserHost(input)
     val canAdd = normalized != null && normalized !in hosts && hosts.size < BrowserLinkConfig.MAX_HOSTS
 
-    AlertDialog(
+    YFormDialog(
+        title = stringResource(R.string.browser_hosts_title),
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        modifier = Modifier.fillMaxWidth().padding(20.dp),
-        title = { Text(stringResource(R.string.browser_hosts_title)) },
-        text = {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    stringResource(R.string.browser_hosts_help),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = input,
-                        onValueChange = { input = it },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.browser_host_input)) },
-                        placeholder = { Text(stringResource(R.string.browser_host_example)) },
-                        isError = input.isNotBlank() && normalized == null
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        enabled = canAdd,
-                        onClick = {
-                            val host = normalized ?: return@Button
-                            hosts = (hosts + host).distinct().sorted()
-                            input = ""
-                        }
-                    ) { Text(stringResource(R.string.common_add)) }
-                }
-                if (input.isNotBlank() && normalized == null) {
-                    Text(
-                        stringResource(R.string.browser_host_invalid),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-                if (hosts.isEmpty()) {
-                    YEmptyMessage(message = stringResource(R.string.browser_hosts_empty))
-                } else {
-                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
-                        items(hosts, key = { it }) { host ->
-                            YSettingRow(title = host) {
-                                IconButton(onClick = { hosts = hosts - host }) {
-                                    Icon(Icons.Rounded.Delete, stringResource(R.string.common_delete))
-                                }
-                            }
-                            HorizontalDivider()
+        actions = listOf(
+            YActionSpec(
+                label = stringResource(R.string.common_cancel),
+                onClick = onDismiss,
+            ),
+            YActionSpec(
+                label = stringResource(R.string.common_save),
+                style = YActionStyle.PRIMARY,
+                onClick = { onSave(hosts.toSet()); onDismiss() },
+            ),
+        ),
+    ) {
+        Text(
+            stringResource(R.string.browser_hosts_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            YTextField(
+                value = input,
+                onValueChange = { input = it },
+                modifier = Modifier.weight(1f),
+                label = stringResource(R.string.browser_host_input),
+                supportingText = stringResource(R.string.browser_host_example),
+                errorText = if (input.isNotBlank() && normalized == null) {
+                    stringResource(R.string.browser_host_invalid)
+                } else null,
+            )
+            Spacer(Modifier.width(8.dp))
+            YPrimaryButton(
+                text = stringResource(R.string.common_add),
+                enabled = canAdd,
+                onClick = {
+                    val host = normalized ?: return@YPrimaryButton
+                    hosts = (hosts + host).distinct().sorted()
+                    input = ""
+                },
+            )
+        }
+        if (hosts.isEmpty()) {
+            YEmptyMessage(message = stringResource(R.string.browser_hosts_empty))
+        } else {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
+                items(hosts, key = { it }) { host ->
+                    YSettingRow(title = host) {
+                        IconButton(onClick = { hosts = hosts - host }) {
+                            Icon(Icons.Rounded.Delete, stringResource(R.string.common_delete))
                         }
                     }
+                    HorizontalDivider()
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { onSave(hosts.toSet()); onDismiss() }) {
-                Text(stringResource(R.string.common_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
-    )
+    }
 }
