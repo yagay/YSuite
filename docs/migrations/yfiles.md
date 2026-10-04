@@ -1,89 +1,73 @@
 # Feature migration: YFiles
 
+Product surface: FileManager
+Upstream project: SysAdminDoc/FileExplorer
+Upstream license: MIT
+
 ## Scope
 
-YFiles was restarted from a clean source baseline and rebuilt as a provider-based file manager.
+YFiles is a provider-based file manager with unified Local, Document/SAF, Root and ZIP Archive access.
 
-The rebuilt implementation now includes:
-- unified Local, Document/SAF, Root and ZIP Archive providers,
-- a provider registry and central file engine,
-- same-provider and cross-provider copy/move,
-- streamed cross-provider file transfer with progress,
-- create, rename, delete and batch operations,
-- search, recursive search, hidden-file filtering and sorting,
-- favorites and recent locations,
-- managed recycle bin with restore/empty,
-- ZIP browsing, creation and extraction,
-- SHA-256, duplicate scan and directory analysis,
-- UTF-8 text editing and HEX preview,
-- bulk rename,
-- split/join,
-- file comparison,
-- cleanup analysis,
-- Linux chmod and symbolic-link support where the provider exposes those capabilities,
-- all-files-access settings entry and persistent SAF tree grants,
-- integrated and standalone builds.
+The current implementation includes provider-routed browsing and search, create/rename/delete,
+same-provider and streamed cross-provider copy/move, conflict handling, favorites/recent locations,
+managed recycle bin, ZIP browse/create/extract, checksums, duplicate and directory analysis, text
+and HEX tools, bulk rename, split/join, compare, cleanup analysis, chmod and symbolic-link support.
 
-Remote SMB/SFTP/WebDAV is intentionally not embedded in this clean-room slice because it requires
-separate protocol dependencies and credential models. The engine already reserves the Remote
-provider kind for a future backend without changing the YFiles UI.
+Remote SMB/SFTP/WebDAV remains a separate backend concern. The engine keeps a Remote provider kind
+so a mature protocol implementation can be added without changing the file-manager product UI.
 
-## Clean-room implementation
+## Product UI
 
-The earlier YFiles implementation on this branch was deleted completely before this rewrite.
+The product hierarchy is adapted from the MIT-licensed `SysAdminDoc/FileExplorer` project rather
+than being invented as a YSuite-specific generic page. YFiles preserves the file-manager model:
+locations drawer/pane, breadcrumb navigation, search, sort direction, selection-mode top bar,
+long-press multi-select, file rows, inspector/details, compact bottom-sheet details, tools as
+secondary file-manager pages and a new-folder primary action.
 
-Material Files and Amaze File Manager were used only as architectural and behavioural references.
-No GPL source code was copied into YSuite.
+YSuite owns only the shared visual/integration layer: Material theme, typography, spacing, localized
+strings, dialogs, Root/Hook/platform adapters and diagnostics. Feature code does not define its own
+theme, layout XML, drawable UI kit or private design system.
 
-The YFiles engine, provider interfaces, Local/SAF/Root/Archive providers, transfer coordinator,
-maintenance tools, state models and UI binding are independently written for YSuite.
-
-## UI
-
-YFiles does not own a separate UI framework.
-
-Feature-owned code only composes YFiles business state. All visible controls, page structure,
-dialogs, status badges, list rows, filters and search fields come from `core:ui` and
-`core:designsystem`.
-
-Local, SAF, Root and Archive use the same YFiles screen. CI rejects YFiles-owned themes, widget
-libraries, layouts, colors, dimensions, shapes and styles.
+Material Files and Amaze File Manager may still be used as behavioral references, but GPL source is
+not copied into YSuite.
 
 ## Platform capabilities
 
-Local access uses the Android storage surface available to the host.
+Local access uses Android external storage through the Local provider.
 
-SAF uses persisted document-tree URI grants.
+SAF stores persistable document-tree grants transactionally. If local persistence fails after a
+grant is taken, the grant is released again.
 
-Root uses the shared `RootGateway`; YFiles never launches `su` directly. The Android host provides
-the Root adapter in the composition root.
+Root uses the shared `RootGateway`; YFiles never launches `su` directly. Both integrated YSuite and
+the generic standalone host inject the Android Root adapter through the composition root.
 
-Archive is a read-only ZIP virtual provider. Archives from non-local providers are materialized into
-the app cache through the engine and then mounted.
+Archive is a read-only ZIP virtual provider. Cross-provider transfer streams through provider
+read/write contracts. Replace operations stage the new item and preserve the old destination until
+promotion succeeds.
 
-Cross-provider copy/move streams through provider read/write contracts.
+The recycle bin persists metadata synchronously, rolls back a move when metadata persistence fails,
+prunes stale records and restores using the original file name with conflict-safe rename behavior.
 
 ## Localization
 
-All user-facing YFiles text is provided in English and Simplified Chinese resources with matching
-keys.
+All user-facing YFiles text is maintained in English and Simplified Chinese resources with matching
+keys. Product actions added by this migration, including sort direction and select-all, are localized
+in both locales.
 
 ## Tests
 
-The test suite covers:
-- provider registration,
-- Local provider listing, recursive search and root boundary,
-- engine-routed create/rename/copy/move,
-- cross-provider streaming using test providers,
-- ZIP archive mount/read,
-- checksum, text/HEX and directory-analysis utilities.
+The test suite covers provider registration, Local listing/search/root boundaries, engine-routed
+create/rename/copy/move, cross-provider streaming, explicit target names, safe replace staging, ZIP
+and file-tool behavior.
 
-CI also runs architecture, foundation-freeze, migration, localization and standalone checks.
+CI additionally runs architecture boundaries, localization parity, frozen foundation checks,
+migration policy checks, Android lint, YFiles standalone smoke assembly and the integrated YSuite
+Debug build.
 
 ## Standalone
 
 YFiles uses the generic standalone host with `standaloneFeature=yfiles`.
 
-The generic standalone host does not inject the Android Root adapter, so Root reports unavailable in
-that host. The integrated YSuite app injects the real shared Root adapter. All non-Root YFiles
-features remain available in standalone.
+Standalone enters the feature directly instead of showing the suite dashboard and receives the real
+shared Android Root adapter through `YSuiteStandaloneDependencies`. The same feature UI and provider
+engine are used in integrated and standalone builds.

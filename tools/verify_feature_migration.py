@@ -176,10 +176,11 @@ for feature_dir in sorted(
                             "yfiles: feature-local UI resources are "
                             f"forbidden: {path.relative_to(ROOT)}"
                         )
+                elif relative.parts[0] == "xml":
+                    continue
                 else:
                     errors.append(
-                        "yfiles: drawable/layout/font UI resources must "
-                        "come from shared UI: "
+                        "yfiles: visual resources must come from shared UI: "
                         f"{path.relative_to(ROOT)}"
                     )
 
@@ -202,8 +203,7 @@ for feature_dir in sorted(
         )
         required_sections = (
             "## Scope",
-            "## Clean-room implementation",
-            "## UI",
+            "## Product UI",
             "## Platform capabilities",
             "## Localization",
             "## Tests",
@@ -215,6 +215,10 @@ for feature_dir in sorted(
                     f"{feature}: migration document missing "
                     f"section {section}"
                 )
+        if "Upstream project:" not in text:
+            errors.append(
+                f"{feature}: migration document must record an Upstream project"
+            )
 
 if errors:
     print("\n".join(sorted(set(errors))))
