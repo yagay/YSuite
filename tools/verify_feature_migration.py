@@ -145,6 +145,55 @@ for feature_dir in sorted(
                     f"{rel}: forbidden migration pattern: {label}"
                 )
 
+    if feature == "yfiles":
+        forbidden_names = (
+            "Theme.kt",
+            "Themes.kt",
+            "Components.kt",
+            "Widgets.kt",
+            "DesignSystem.kt",
+            "UiKit.kt",
+        )
+        for source in impl_sources:
+            if source.name in forbidden_names:
+                errors.append(
+                    f"yfiles: feature-local UI framework is forbidden: "
+                    f"{source.relative_to(ROOT)}"
+                )
+
+        resource_root = impl / "src/main/res"
+        if resource_root.exists():
+            allowed_value_files = {
+                "strings.xml",
+            }
+            for path in resource_root.rglob("*"):
+                if not path.is_file():
+                    continue
+                relative = path.relative_to(resource_root)
+                if relative.parts[0].startswith("values"):
+                    if path.name not in allowed_value_files:
+                        errors.append(
+                            "yfiles: feature-local UI resources are "
+                            f"forbidden: {path.relative_to(ROOT)}"
+                        )
+                else:
+                    errors.append(
+                        "yfiles: drawable/layout/font UI resources must "
+                        "come from shared UI: "
+                        f"{path.relative_to(ROOT)}"
+                    )
+
+        yfiles_gradle = impl / "build.gradle.kts"
+        if yfiles_gradle.exists():
+            gradle_text = yfiles_gradle.read_text(
+                encoding="utf-8",
+                errors="ignore",
+            )
+            if 'project(":core:designsystem")' not in gradle_text:
+                errors.append(
+                    "yfiles: must consume shared core:designsystem"
+                )
+
     migration_doc = ROOT / "docs/migrations" / f"{feature}.md"
     if migration_doc.exists():
         text = migration_doc.read_text(

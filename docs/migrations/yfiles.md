@@ -33,8 +33,12 @@ architecture.
 The UI only consumes `YFilesEngine`. It does not know whether a node comes from a local,
 Document/SAF, Root, Archive or Remote provider.
 
-Screens use shared YSuite pages and design-system components. The feature owns no Material3 widgets,
-theme, spacing, colors or shapes.
+YFiles has no independent UI framework. Page composition is feature-owned, while every visible
+control and visual primitive comes from `core:ui` and `core:designsystem`. Local, SAF, Root,
+Archive and Remote providers all render through the same unified YSuite UI.
+
+CI rejects YFiles-owned themes, component/widget libraries, layouts, colors, dimensions, shapes and
+styles.
 
 ## Platform capabilities
 
