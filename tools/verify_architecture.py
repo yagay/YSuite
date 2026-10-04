@@ -159,7 +159,7 @@ for gradle in ROOT.glob("feature/*/impl/build.gradle.kts"):
             )
 
 for registration in ROOT.glob(
-    "feature/*/impl/src/main/java/**/**FeatureUiRegistration.kt"
+    "feature/*/impl/src/main/java/**/*FeatureUiRegistration.kt"
 ):
     rel = registration.relative_to(ROOT).as_posix()
     text = registration.read_text(encoding="utf-8", errors="ignore")
@@ -180,7 +180,8 @@ for registration in ROOT.glob(
     if required is None:
         continue
 
-    feature_root = registration.parents[5]
+    feature_name = rel.split("/")[1]
+    feature_root = ROOT / "feature" / feature_name / "impl"
     feature_sources = "\n".join(
         source.read_text(encoding="utf-8", errors="ignore")
         for source in feature_root.rglob("*.kt")
