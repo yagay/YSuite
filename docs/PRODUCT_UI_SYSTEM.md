@@ -20,7 +20,10 @@ It does **not** decide how a file manager, browser, settings screen or automatio
 - `YDownloadManagerSurface` — queues/history/filtering/selection actions.
 - `YTaskManagerSurface` — filters + task collection + optional details pane.
 - `YAutomationStudioSurface` — library + editor + inspector on expanded screens.
+- `YEntityManagerSurface` — collection navigation + entity list + optional inspector for apps/components/rules.
 - `YToolSurface` — focused parameter/form/utility workflows.
+- `YDetailSurface` — one focused entity/result/editor with readable-width content.
+- `YFullscreenSurface` — edge-to-edge preview/media/terminal experiences with content-owned chrome.
 
 A feature chooses one product surface. It must not fall back to a generic page because a generic page is easier to wire.
 

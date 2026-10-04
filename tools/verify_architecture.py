@@ -37,7 +37,10 @@ product_surface_requirements = {
     "DownloadManager": "YDownloadManagerSurface",
     "TaskManager": "YTaskManagerSurface",
     "AutomationStudio": "YAutomationStudioSurface",
+    "EntityManager": "YEntityManagerSurface",
     "Tool": "YToolSurface",
+    "Detail": "YDetailSurface",
+    "Fullscreen": "YFullscreenSurface",
 }
 
 android_adapter_packages = (

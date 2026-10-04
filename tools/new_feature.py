@@ -38,9 +38,21 @@ PRODUCTS = {
         "com.yagay.ysuite.productui.automation.YAutomationStudioSurface",
         "YAutomationStudioSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, library = {}, editor = { _ -> body() })",
     ),
+    "EntityManager": (
+        "com.yagay.ysuite.productui.manager.YEntityManagerSurface",
+        "YEntityManagerSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
+    ),
     "Tool": (
         "com.yagay.ysuite.productui.tool.YToolSurface",
         "YToolSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
+    ),
+    "Detail": (
+        "com.yagay.ysuite.productui.detail.YDetailSurface",
+        "YDetailSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
+    ),
+    "Fullscreen": (
+        "com.yagay.ysuite.productui.fullscreen.YFullscreenSurface",
+        "YFullscreenSurface(content = { _ -> body() })",
     ),
 }
 
