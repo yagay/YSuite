@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,7 +25,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,6 +38,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -386,14 +390,49 @@ fun QdmAddDownloadDialog(
     onStart: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(labels.title) },
-        text = {
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false,
+            ),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(YSuiteSpacing.Medium),
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = YSuiteSpacing.XSmall,
+        ) {
             Column(
+                modifier = Modifier
+                    .verticalScroll(
+                        rememberScrollState(),
+                    )
+                    .padding(YSuiteSpacing.Large),
                 verticalArrangement =
-                    Arrangement.spacedBy(YSuiteSpacing.Small),
+                    Arrangement.spacedBy(
+                        YSuiteSpacing.Small,
+                    ),
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment =
+                        Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = labels.title,
+                        style =
+                            MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onDismiss) {
+                        Text(labels.cancel)
+                    }
+                }
+
                 OutlinedTextField(
                     value = model.url,
                     onValueChange = onUrlChange,
@@ -401,15 +440,22 @@ fun QdmAddDownloadDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+
                 Row(
                     horizontalArrangement =
-                        Arrangement.spacedBy(YSuiteSpacing.Small),
-                    verticalAlignment = Alignment.CenterVertically,
+                        Arrangement.spacedBy(
+                            YSuiteSpacing.Small,
+                        ),
+                    verticalAlignment =
+                        Alignment.CenterVertically,
                 ) {
                     OutlinedTextField(
                         value = model.fileName,
-                        onValueChange = onFileNameChange,
-                        label = { Text(labels.fileName) },
+                        onValueChange =
+                            onFileNameChange,
+                        label = {
+                            Text(labels.fileName)
+                        },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
@@ -422,21 +468,27 @@ fun QdmAddDownloadDialog(
                         Text(labels.fetch)
                     }
                 }
+
                 model.metadataText?.let {
                     Text(
                         text = it,
-                        style = MaterialTheme.typography.bodySmall,
+                        style =
+                            MaterialTheme.typography.bodySmall,
                         color =
-                            MaterialTheme.colorScheme.onSurfaceVariant,
+                            MaterialTheme.colorScheme
+                                .onSurfaceVariant,
                     )
                 }
                 model.error?.let {
                     Text(
                         text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.error,
                     )
                 }
+
                 OutlinedTextField(
                     value = model.referer,
                     onValueChange = onRefererChange,
@@ -446,8 +498,11 @@ fun QdmAddDownloadDialog(
                 )
                 OutlinedTextField(
                     value = model.userAgent,
-                    onValueChange = onUserAgentChange,
-                    label = { Text(labels.userAgent) },
+                    onValueChange =
+                        onUserAgentChange,
+                    label = {
+                        Text(labels.userAgent)
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -459,52 +514,63 @@ fun QdmAddDownloadDialog(
                 )
                 Row(
                     horizontalArrangement =
-                        Arrangement.spacedBy(YSuiteSpacing.Small),
+                        Arrangement.spacedBy(
+                            YSuiteSpacing.Small,
+                        ),
                 ) {
                     OutlinedTextField(
                         value = model.username,
-                        onValueChange = onUsernameChange,
-                        label = { Text(labels.username) },
+                        onValueChange =
+                            onUsernameChange,
+                        label = {
+                            Text(labels.username)
+                        },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedTextField(
                         value = model.password,
-                        onValueChange = onPasswordChange,
-                        label = { Text(labels.password) },
+                        onValueChange =
+                            onPasswordChange,
+                        label = {
+                            Text(labels.password)
+                        },
                         singleLine = true,
+                        visualTransformation =
+                            PasswordVisualTransformation(),
                         modifier = Modifier.weight(1f),
                     )
                 }
-            }
-        },
-        confirmButton = {
-            Row(
-                horizontalArrangement =
-                    Arrangement.spacedBy(YSuiteSpacing.Small),
-            ) {
-                OutlinedButton(
-                    onClick = onAddQueue,
-                    enabled =
-                        model.url.isNotBlank() &&
-                            model.fileName.isNotBlank(),
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            YSuiteSpacing.Small,
+                        ),
                 ) {
-                    Text(labels.addQueue)
-                }
-                Button(
-                    onClick = onStart,
-                    enabled =
-                        model.url.isNotBlank() &&
-                            model.fileName.isNotBlank(),
-                ) {
-                    Text(labels.start)
+                    OutlinedButton(
+                        onClick = onAddQueue,
+                        enabled =
+                            model.url.isNotBlank() &&
+                                model.fileName
+                                    .isNotBlank(),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(labels.addQueue)
+                    }
+                    Button(
+                        onClick = onStart,
+                        enabled =
+                            model.url.isNotBlank() &&
+                                model.fileName
+                                    .isNotBlank(),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(labels.start)
+                    }
                 }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(labels.cancel)
-            }
-        },
-    )
+        }
+    }
 }

@@ -91,11 +91,13 @@ internal class YDownloadNotificationManager(
         items.forEach { item ->
             when (item.state) {
                 YDownloadState.Downloading,
-                YDownloadState.Connecting ->
+                YDownloadState.Connecting -> {
+                    terminalNotified.remove(item.id)
                     manager.notify(
                         item.notificationId(),
                         progressNotification(item),
                     )
+                }
                 YDownloadState.Completed -> {
                     manager.cancel(item.notificationId())
                     if (terminalNotified.add(item.id)) {

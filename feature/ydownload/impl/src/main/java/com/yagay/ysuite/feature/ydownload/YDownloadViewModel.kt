@@ -195,7 +195,7 @@ class YDownloadViewModel(
                             loading = false,
                             error =
                                 error.message
-                                    ?: "Metadata request failed",
+                                    ?: error.javaClass.simpleName,
                         )
                     }
                 },
