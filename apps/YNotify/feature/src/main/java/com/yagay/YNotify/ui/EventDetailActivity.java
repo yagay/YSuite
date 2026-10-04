@@ -5,6 +5,12 @@ import android.service.notification.NotificationListenerService;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import android.graphics.Typeface;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import com.yagay.YNotify.R;
 import com.yagay.YNotify.data.EventRecord;
@@ -13,25 +19,97 @@ import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.HistoryRepairEngine;
 import com.yagay.YNotify.data.NotificationRevision;
 import com.yagay.YNotify.data.NotifyDatabase;
-import com.yagay.YNotify.databinding.ActivityEventDetailBinding;
+import com.yagay.yui.YView;
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewPage;
 
 import java.util.Collections;
 import java.util.List;
 
 public class EventDetailActivity extends AppCompatActivity {
-    private ActivityEventDetailBinding b;
+    private TextView app;
+    private TextView meta;
+    private TextView title;
+    private TextView fullText;
+    private TextView revisionHistory;
+    private TextView messages;
+    private TextView actions;
+    private TextView raw;
+    private Button correctClassification;
     private long eventId = -1L;
     private EventRecord current;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        b = ActivityEventDetailBinding.inflate(getLayoutInflater());
-        setContentView(b.getRoot());
-        b.toolbar.setNavigationOnClickListener(v -> finish());
         eventId = getIntent().getLongExtra("id", -1);
         if (eventId < 0) { finish(); return; }
-        b.btnCorrectClassification.setOnClickListener(v -> showClassificationDialog());
+        buildUi();
+        correctClassification.setOnClickListener(v -> showClassificationDialog());
         load();
+    }
+
+    private void buildUi() {
+        YViewPage page = YViewLayout.installPage(
+                this,
+                getString(R.string.ynotify_event_detail),
+                null);
+        page.toolbar.setNavigationIcon(R.drawable.ic_back);
+        page.toolbar.setNavigationContentDescription(R.string.ynotify_back);
+        page.toolbar.setNavigationOnClickListener(v -> finish());
+
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(
+                YView.screenHorizontal(this),
+                YView.sectionGap(this),
+                YView.screenHorizontal(this),
+                YView.sectionGap(this));
+        ScrollView scroll = YViewLayout.scrollPage(this, body);
+        page.content.addView(scroll, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        app = new TextView(this);
+        YView.styleSectionTitle(app);
+        body.addView(app);
+
+        meta = new TextView(this);
+        YView.styleCaption(meta);
+        meta.setTextIsSelectable(true);
+        meta.setPadding(0, YView.controlGap(this), 0, 0);
+        body.addView(meta);
+
+        correctClassification = YViewLayout.secondaryButton(
+                this,
+                getString(R.string.ynotify_correct_classification));
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        actionParams.topMargin = YView.sectionGap(this);
+        body.addView(correctClassification, actionParams);
+
+        title = addDetailSection(body, R.string.ynotify_detail_title, false);
+        fullText = addDetailSection(body, R.string.ynotify_detail_full_text, false);
+        revisionHistory = addDetailSection(body, R.string.ynotify_revision_history, true);
+        messages = addDetailSection(body, R.string.ynotify_message_structure, true);
+        actions = addDetailSection(body, R.string.ynotify_action_buttons, true);
+        raw = addDetailSection(body, R.string.ynotify_raw_extras, true);
+    }
+
+    private TextView addDetailSection(LinearLayout body, int titleRes, boolean monospace) {
+        YViewLayout.sectionHeader(body, getString(titleRes), null);
+        TextView value = new TextView(this);
+        if (monospace) {
+            YView.styleCaption(value);
+            value.setTypeface(Typeface.MONOSPACE);
+        } else {
+            YView.styleBody(value);
+        }
+        value.setTextIsSelectable(true);
+        body.addView(value, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return value;
     }
 
     private void load() {
@@ -80,19 +158,19 @@ public class EventDetailActivity extends AppCompatActivity {
                         default: type = EventTypes.OTHER_UI; break;
                     }
                     dialog.dismiss();
-                    b.btnCorrectClassification.setEnabled(false);
+                    correctClassification.setEnabled(false);
                     HistoryRepairEngine.manualClassifyAsync(this, eventId, type, headsUp, bubble, () -> {
-                        b.btnCorrectClassification.setEnabled(true);
+                        correctClassification.setEnabled(true);
                         load();
                     });
                 })
                 .setNegativeButton(R.string.ynotify_cancel, null);
         if (r.classificationLocked) {
             builder.setNeutralButton(R.string.ynotify_restore_auto_classification, (dialog, which) -> {
-                b.btnCorrectClassification.setEnabled(false);
+                correctClassification.setEnabled(false);
                 HistoryRepairEngine.clearManualLockAsync(this, eventId, () ->
                         HistoryRepairEngine.repairAsync(this, report -> {
-                            b.btnCorrectClassification.setEnabled(true);
+                            correctClassification.setEnabled(true);
                             load();
                         }));
             });
@@ -114,8 +192,8 @@ public class EventDetailActivity extends AppCompatActivity {
     }
 
     private void bind(EventRecord r, List<NotificationRevision> revisions) {
-        b.app.setText(r.appLabel + "\n" + r.packageName);
-        b.btnCorrectClassification.setText(r.classificationLocked
+        app.setText(r.appLabel + "\n" + r.packageName);
+        correctClassification.setText(r.classificationLocked
                 ? R.string.ynotify_modify_manual_classification
                 : R.string.ynotify_correct_classification);
         StringBuilder m = new StringBuilder();
@@ -170,14 +248,14 @@ public class EventDetailActivity extends AppCompatActivity {
         if (r.payloadSilent) line(m, R.string.ynotify_meta_payload_silent, getString(R.string.ynotify_yes));
         if (r.silent) line(m, R.string.ynotify_meta_silent, getString(R.string.ynotify_yes));
         if (r.revisionCount > 0) line(m, R.string.ynotify_meta_revision_count, String.valueOf(r.revisionCount));
-        b.meta.setText(m.toString().trim());
+        meta.setText(m.toString().trim());
 
-        b.title.setText(n(r.title));
-        b.fullText.setText(n(r.fullText != null ? r.fullText : r.text));
-        b.revisionHistory.setText(formatRevisions(revisions));
-        b.messages.setText(pretty(r.messagesJson));
-        b.actions.setText(pretty(r.actionsJson));
-        b.raw.setText(pretty(r.rawExtras));
+        title.setText(n(r.title));
+        fullText.setText(n(r.fullText != null ? r.fullText : r.text));
+        revisionHistory.setText(formatRevisions(revisions));
+        messages.setText(pretty(r.messagesJson));
+        actions.setText(pretty(r.actionsJson));
+        raw.setText(pretty(r.rawExtras));
     }
 
     private String displayEventType(String value) {
@@ -245,7 +323,7 @@ public class EventDetailActivity extends AppCompatActivity {
 
     private void line(StringBuilder sb, int labelRes, String value) {
         if (value != null && !value.isBlank()) {
-            sb.append(getString(labelRes)).append(": ").append(value).append('\n');
+            sappend(getString(labelRes)).append(": ").append(value).append('\n');
         }
     }
 
