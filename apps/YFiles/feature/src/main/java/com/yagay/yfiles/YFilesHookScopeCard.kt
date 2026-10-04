@@ -8,8 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSection
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 
 @Composable
@@ -19,13 +19,13 @@ fun YFilesHookScopeCard(context: Context) {
     val callers = targets.filter { it.kind == YFilesHookScopeAdvisor.TargetKind.CALLER }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.yfiles_hook_scope_title),
             subtitle = stringResource(R.string.yfiles_hook_scope_summary),
         ) {
             Text(stringResource(R.string.yfiles_scope_picker_targets))
             pickers.forEach { target ->
-                YStatusRow(
+                YStatusLine(
                     target.displayName,
                     if (target.installed) {
                         stringResource(R.string.hook_scope_recommended)
@@ -40,7 +40,7 @@ fun YFilesHookScopeCard(context: Context) {
             if (callers.isNotEmpty()) {
                 Text(stringResource(R.string.yfiles_scope_optional_callers))
                 callers.take(8).forEach { target ->
-                    YStatusRow(
+                    YStatusLine(
                         target.displayName,
                         stringResource(R.string.yfiles_scope_optional),
                         YStatusTone.Neutral,

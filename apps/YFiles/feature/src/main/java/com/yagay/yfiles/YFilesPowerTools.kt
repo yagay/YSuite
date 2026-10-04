@@ -22,9 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -339,7 +339,7 @@ fun YFilesPowerToolsCard(context: Context) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.yfiles_power_cleanup_title),
             subtitle = stringResource(R.string.yfiles_power_cleanup_summary),
         ) {
@@ -348,7 +348,7 @@ fun YFilesPowerToolsCard(context: Context) {
                 enabled = !busy,
             ) { Text(stringResource(R.string.yfiles_power_scan_storage)) }
             scan?.let { result ->
-                YStatusRow(
+                YStatusLine(
                     stringResource(R.string.yfiles_power_scanned),
                     result.scannedEntries.toString(),
                     if (result.truncated) YStatusTone.Warning else YStatusTone.Good,
@@ -356,7 +356,7 @@ fun YFilesPowerToolsCard(context: Context) {
                 YCleanupKind.values().forEach { kind ->
                     val bucket = result.buckets[kind] ?: YCleanupBucket()
                     if (bucket.count > 0) {
-                        YStatusRow(
+                        YStatusLine(
                             cleanupKindLabel(kind),
                             stringResource(R.string.yfiles_power_count_size, bucket.count, formatExtraBytes(bucket.bytes)),
                             YStatusTone.Neutral,
@@ -365,7 +365,7 @@ fun YFilesPowerToolsCard(context: Context) {
                 }
                 result.candidates.take(6).forEach { candidate ->
                     val file = File(candidate.path)
-                    YActionRow {
+                    YHorizontalActions {
                         Text(file.name.ifBlank { candidate.path })
                         OutlinedButton(
                             onClick = {
@@ -381,7 +381,7 @@ fun YFilesPowerToolsCard(context: Context) {
             }
         }
 
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.yfiles_power_lab_title),
             subtitle = stringResource(R.string.yfiles_power_lab_summary),
         ) {
@@ -392,7 +392,7 @@ fun YFilesPowerToolsCard(context: Context) {
                 label = { Text(stringResource(R.string.yfiles_power_path)) },
                 singleLine = true,
             )
-            YActionRow {
+            YHorizontalActions {
                 OutlinedButton(onClick = { runIo({ YFilesPowerBackend.textPreview(toolPath) }) { preview = it } }, enabled = !busy && toolPath.isNotBlank()) {
                     Text(stringResource(R.string.yfiles_power_text_preview))
                 }
@@ -405,7 +405,7 @@ fun YFilesPowerToolsCard(context: Context) {
                     }
                 }, enabled = !busy && toolPath.isNotBlank()) { Text(stringResource(R.string.yfiles_power_checksums)) }
             }
-            YActionRow {
+            YHorizontalActions {
                 OutlinedButton(onClick = { runIo({ YFilesPowerBackend.linuxInfo(toolPath) }) { linuxInfo = it } }, enabled = !busy && toolPath.isNotBlank()) {
                     Text(stringResource(R.string.yfiles_power_linux_info))
                 }
@@ -418,7 +418,7 @@ fun YFilesPowerToolsCard(context: Context) {
                 }
             }
             apkDetails?.let { details ->
-                YStatusRow(details.label, details.packageName, YStatusTone.Good)
+                YStatusLine(details.label, details.packageName, YStatusTone.Good)
                 Text(stringResource(R.string.yfiles_power_apk_version, details.versionName, details.versionCode))
                 OutlinedButton(onClick = { runIo({ YFilesPowerBackend.installApk(context, toolPath) }) }, enabled = !busy) {
                     Text(stringResource(R.string.yfiles_power_install_apk))
@@ -442,7 +442,7 @@ fun YFilesPowerToolsCard(context: Context) {
                 label = { Text(stringResource(R.string.yfiles_power_link_path)) },
                 singleLine = true,
             )
-            YActionRow {
+            YHorizontalActions {
                 OutlinedButton(onClick = { runIo({ YFilesPowerBackend.chmod(toolPath, chmodMode) }) { linuxInfo = null } }, enabled = !busy && toolPath.isNotBlank()) {
                     Text(stringResource(R.string.yfiles_power_apply_chmod))
                 }
@@ -458,7 +458,7 @@ fun YFilesPowerToolsCard(context: Context) {
                 label = { Text(stringResource(R.string.yfiles_power_password)) },
                 singleLine = true,
             )
-            YActionRow {
+            YHorizontalActions {
                 Button(onClick = { runIo({ YFilesPowerBackend.encrypt(toolPath, password) }) { lastOutput = it.absolutePath } }, enabled = !busy && toolPath.isNotBlank() && password.length >= 6) {
                     Text(stringResource(R.string.yfiles_power_encrypt))
                 }

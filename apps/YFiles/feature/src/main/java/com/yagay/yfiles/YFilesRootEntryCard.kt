@@ -14,8 +14,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,12 +54,12 @@ fun YFilesRootEntryCard(
         }
     }
 
-    YFeatureCard(
+    YSection(
         title = name,
         subtitle = stringResource(R.string.root_entry),
         detail = fullPath,
     ) {
-        YActionRow {
+        YHorizontalActions {
             Button(
                 onClick = {
                     if (busy) return@Button
@@ -119,7 +119,7 @@ fun YFilesRootEntryCard(
                 enabled = !busy,
             ) { Text(stringResource(R.string.move)) }
         }
-        YActionRow {
+        YHorizontalActions {
             OutlinedButton(
                 onClick = {
                     renameValue = name

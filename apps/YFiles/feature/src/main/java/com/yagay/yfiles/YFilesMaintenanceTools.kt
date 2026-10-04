@@ -17,10 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -358,7 +358,7 @@ fun YFilesMaintenanceToolsCard(context: Context) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.yfiles_maintenance_title),
             subtitle = stringResource(R.string.yfiles_maintenance_summary),
         ) {
@@ -376,7 +376,7 @@ fun YFilesMaintenanceToolsCard(context: Context) {
             )
 
             Text(stringResource(R.string.yfiles_maintenance_text_editor))
-            YActionRow {
+            YHorizontalActions {
                 OutlinedButton(onClick = {
                     runIo({ YFilesMaintenanceBackend.loadText(targetPath) }) {
                         editorText = it
@@ -405,13 +405,13 @@ fun YFilesMaintenanceToolsCard(context: Context) {
             }
 
             Text(stringResource(R.string.yfiles_maintenance_cleanup))
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.yfiles_maintenance_keep_newest),
                 subtitle = stringResource(R.string.yfiles_maintenance_keep_newest_summary),
                 checked = keepNewest,
                 onCheckedChange = { keepNewest = it },
             )
-            YActionRow {
+            YHorizontalActions {
                 Button(onClick = {
                     runIo({ YFilesMaintenanceBackend.cleanupDuplicates(targetPath, keepNewest, trashStore) }) { result ->
                         outputText = context.getString(
@@ -430,7 +430,7 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                 }
             }
             if (emptyTrees.isNotEmpty()) {
-                YStatusRow(
+                YStatusLine(
                     stringResource(R.string.yfiles_maintenance_empty_found),
                     emptyTrees.size.toString(),
                     YStatusTone.Warning,
@@ -465,12 +465,12 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                 label = { Text(stringResource(R.string.yfiles_maintenance_replace)) },
                 singleLine = true,
             )
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.yfiles_maintenance_regex),
                 checked = regexRename,
                 onCheckedChange = { regexRename = it; renamePlan = emptyList() },
             )
-            YActionRow {
+            YHorizontalActions {
                 OutlinedButton(onClick = {
                     runIo({ YFilesMaintenanceBackend.planRename(targetPath, findText, replaceText, regexRename) }) {
                         renamePlan = it
@@ -508,7 +508,7 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                 label = { Text(stringResource(R.string.yfiles_maintenance_part_size)) },
                 singleLine = true,
             )
-            YActionRow {
+            YHorizontalActions {
                 Button(onClick = {
                     val size = partSize.toIntOrNull() ?: 256
                     runIo({ YFilesMaintenanceBackend.splitFile(targetPath, size) }) { parts ->
@@ -540,7 +540,7 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                 Text(stringResource(R.string.yfiles_maintenance_compare_now))
             }
             compareResult?.let { result ->
-                YStatusRow(
+                YStatusLine(
                     stringResource(R.string.yfiles_maintenance_compare_result),
                     if (result.identical) {
                         stringResource(R.string.yfiles_maintenance_identical)
@@ -549,12 +549,12 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                     },
                     if (result.identical) YStatusTone.Good else YStatusTone.Warning,
                 )
-                YStatusRow(
+                YStatusLine(
                     stringResource(R.string.yfiles_maintenance_left_size),
                     formatExtraBytes(result.leftSize),
                     YStatusTone.Neutral,
                 )
-                YStatusRow(
+                YStatusLine(
                     stringResource(R.string.yfiles_maintenance_right_size),
                     formatExtraBytes(result.rightSize),
                     YStatusTone.Neutral,
