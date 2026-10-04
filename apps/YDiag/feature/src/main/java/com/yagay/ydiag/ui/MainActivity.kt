@@ -73,7 +73,8 @@ import com.yagay.yui.YNavigationSuite
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YSecondaryButton
-import com.yagay.yui.YStatusPill
+import com.yagay.yui.YStatusSpec
+import com.yagay.yui.YStatusStrip
 import com.yagay.yui.YStatusTone
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -150,18 +151,6 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
                 else -> YPageRole.SETTINGS
             },
             subtitle = stringResource(R.string.ydiag_subtitle),
-            actions = {
-                YStatusPill(
-                    "Root",
-                    if (monitor.rootAvailable) stringResource(R.string.ydiag_available) else stringResource(R.string.ydiag_unavailable),
-                    if (monitor.rootAvailable) YStatusTone.Good else YStatusTone.Error,
-                )
-                YStatusPill(
-                    "LSPosed",
-                    if (module.connected) stringResource(R.string.ydiag_connected) else stringResource(R.string.ydiag_disconnected),
-                    if (module.connected) YStatusTone.Good else YStatusTone.Warning,
-                )
-            },
             snackbarHost = { SnackbarHost(snackbar) },
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
@@ -226,6 +215,22 @@ private fun MonitorScreen(
     YPageList(
         padding = PaddingValues(0.dp),
     ) {
+        item {
+            YStatusStrip(
+                listOf(
+                    YStatusSpec(
+                        "Root",
+                        if (monitor.rootAvailable) stringResource(R.string.ydiag_available) else stringResource(R.string.ydiag_unavailable),
+                        if (monitor.rootAvailable) YStatusTone.Good else YStatusTone.Error,
+                    ),
+                    YStatusSpec(
+                        "LSPosed",
+                        if (module.connected) stringResource(R.string.ydiag_connected) else stringResource(R.string.ydiag_disconnected),
+                        if (module.connected) YStatusTone.Good else YStatusTone.Warning,
+                    ),
+                ),
+            )
+        }
         item {
             YFeatureCard(
                 title = if (monitor.running) stringResource(R.string.ydiag_running) else stringResource(R.string.ydiag_not_started),

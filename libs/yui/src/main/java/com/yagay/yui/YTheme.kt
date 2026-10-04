@@ -139,41 +139,20 @@ fun YTopBar(
     ) {
         Column(Modifier.fillMaxWidth()) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val compact = maxWidth < YDimens.CompactBreakpoint
                 val horizontal = yPageHorizontalPadding(maxWidth)
-                if (compact) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(
-                            start = horizontal,
-                            top = 8.dp,
-                            end = horizontal,
-                            bottom = 8.dp,
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        YTopBarCopy(title, subtitle)
-                        Row(
-                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                            verticalAlignment = Alignment.CenterVertically,
-                            content = actions,
-                        )
-                    }
-                } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = YDimens.ToolbarHeight)
+                        .padding(horizontal = horizontal, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                ) {
+                    Column(Modifier.weight(1f)) { YTopBarCopy(title, subtitle) }
                     Row(
-                        modifier = Modifier.fillMaxWidth().heightIn(min = YDimens.ToolbarHeight)
-                            .padding(horizontal = horizontal, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                    ) {
-                        Column(Modifier.weight(1f)) { YTopBarCopy(title, subtitle) }
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                            verticalAlignment = Alignment.CenterVertically,
-                            content = actions,
-                        )
-                    }
+                        verticalAlignment = Alignment.CenterVertically,
+                        content = actions,
+                    )
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
