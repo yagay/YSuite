@@ -1,17 +1,11 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YViewLayout;
-import android.view.Gravity;
-import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
-import com.google.android.material.slider.Slider;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import java.util.HashSet;
@@ -47,34 +41,14 @@ final class SettingsPageUi {
 
     void seek(LinearLayout parent, String label, String key,
               int min, int max, int current, String suffix) {
-        LinearLayout block = YViewLayout.sliderBlock(activity);
-        LinearLayout top = new LinearLayout(activity);
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.CENTER_VERTICAL);
-        TextView name = YViewLayout.text(activity, label, 14, false);
-        TextView value = YViewLayout.caption(activity, current + suffix, 13);
-        value.setGravity(Gravity.END);
-        top.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
-        top.addView(value, new LinearLayout.LayoutParams(-2, -2));
-        block.addView(top);
-
-        Slider slider = new Slider(activity);
-        slider.setValueFrom(min);
-        slider.setValueTo(max);
-        slider.setStepSize(1f);
-        slider.setValue(Math.max(min, Math.min(max, current)));
-        slider.setMinimumHeight(0);
-        slider.setPadding(0, 0, 0, 0);
-        slider.addOnChangeListener((s, next, fromUser) -> {
-            if (!fromUser) return;
-            int intValue = Math.round(next);
-            value.setText(intValue + suffix);
-            fs.setInt(key, intValue);
-        });
-        LinearLayout.LayoutParams sliderLp = new LinearLayout.LayoutParams(-1, YViewLayout.dp(activity, 34));
-        sliderLp.topMargin = YViewLayout.dp(activity, -1);
-        block.addView(slider, sliderLp);
-        YViewLayout.addRow(parent, block);
+        YViewLayout.addRow(parent, YViewLayout.sliderSetting(
+                activity,
+                label,
+                min,
+                max,
+                current,
+                value -> value + suffix,
+                value -> fs.setInt(key, value)));
     }
 
     void actionSpinner(LinearLayout parent, String label, String key, String def) {
@@ -142,44 +116,18 @@ final class SettingsPageUi {
                 position -> fs.setInt(key, position));
     }
 
-    /** One Spinner construction/listener/layout path for every settings selector. */
+    /** Shared YUI spinner row; feature code only binds the selected value. */
     private void addPreferenceSpinner(LinearLayout parent, String label, String[] labels,
                                       int selected, boolean vertical, IntConsumer onSelected) {
         String[] safeLabels = labels == null ? new String[0] : labels;
         if (safeLabels.length == 0) return;
-        Spinner spinner = new Spinner(activity);
-        spinner.setAdapter(new ArrayAdapter<>(activity,
-                android.R.layout.simple_spinner_dropdown_item, safeLabels));
-        spinner.setSelection(ScreenGeometry.clamp(selected, 0, safeLabels.length - 1));
-        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(android.widget.AdapterView<?> parent,
-                                                 android.view.View view, int position, long id) {
-                if (onSelected != null && position >= 0 && position < safeLabels.length) {
-                    onSelected.accept(position);
-                }
-            }
-            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
-        });
-        addSpinnerRow(parent, label, spinner, vertical);
-    }
-
-    void addSpinnerRow(LinearLayout parent, String label, Spinner spinner, boolean vertical) {
-        LinearLayout block = YViewLayout.settingBlock(activity);
-        if (vertical) {
-            block.addView(YViewLayout.text(activity, label, 14, false));
-            LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, YViewLayout.dp(activity, 48));
-            sp.topMargin = YViewLayout.dp(activity, 2);
-            block.addView(spinner, sp);
-        } else {
-            LinearLayout row = new LinearLayout(activity);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            TextView title = YViewLayout.text(activity, label, 14, false);
-            row.addView(title, new LinearLayout.LayoutParams(0, -2, 0.82f));
-            row.addView(spinner, new LinearLayout.LayoutParams(0, YViewLayout.dp(activity, 48), 1.18f));
-            block.addView(row);
-        }
-        YViewLayout.addRow(parent, block);
+        YViewLayout.addRow(parent, YViewLayout.spinnerSetting(
+                activity,
+                label,
+                safeLabels,
+                selected,
+                vertical,
+                onSelected));
     }
 
     void addOcrModelRow(LinearLayout parent, int model) {
@@ -187,17 +135,14 @@ final class SettingsPageUi {
         TextView status = YViewLayout.text(activity, OcrModelManager.displayName(model), 14, false);
         block.addView(status);
 
-        LinearLayout buttons = new LinearLayout(activity);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout buttons = YViewLayout.buttonRow(activity);
         MaterialButton download = YViewLayout.compactButton(activity,
                 activity.getString(R.string.yfloat_model_download_update));
         MaterialButton remove = YViewLayout.compactButton(activity,
                 activity.getString(R.string.yfloat_model_delete));
-        addWeightedButton(buttons, download, true);
-        addWeightedButton(buttons, remove, false);
-        LinearLayout.LayoutParams buttonsLp = new LinearLayout.LayoutParams(-1, -2);
-        buttonsLp.topMargin = YViewLayout.dp(activity, 7);
-        block.addView(buttons, buttonsLp);
+        YViewLayout.addAction(buttons, download);
+        YViewLayout.addAction(buttons, remove);
+        block.addView(buttons);
         YViewLayout.addRow(parent, block);
 
         Runnable refresh = () -> {
@@ -274,15 +219,12 @@ final class SettingsPageUi {
     }
 
     private MaterialCheckBox ocrLanguageCheck(String label, String code, Set<String> selected) {
-        MaterialCheckBox box = new MaterialCheckBox(activity);
-        box.setUseMaterialThemeColors(true);
-        box.setText(label);
-        box.setTextColor(YViewLayout.textPrimary(activity));
-        box.setTextSize(14);
-        box.setPadding(YViewLayout.dp(activity, 10), YViewLayout.dp(activity, 7),
-                YViewLayout.dp(activity, 10), YViewLayout.dp(activity, 7));
+        MaterialCheckBox box = YViewLayout.checkBoxRow(
+                activity,
+                label,
+                selected.contains(code),
+                null);
         box.setTag(code);
-        box.setChecked(selected.contains(code));
         box.setOnCheckedChangeListener((button, checked) -> {
             String lang = String.valueOf(button.getTag());
             if (checked) selected.add(lang); else selected.remove(lang);
@@ -298,13 +240,5 @@ final class SettingsPageUi {
             DiagnosticLog.i(activity, "OCR_LANG", "selected=" + selected);
         });
         return box;
-    }
-
-    void addWeightedButton(LinearLayout row, MaterialButton button, boolean first) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        if (first) lp.setMarginEnd(YViewLayout.dp(activity, 6));
-        else lp.setMarginStart(YViewLayout.dp(activity, 6));
-        row.addView(button, lp);
     }
 }
