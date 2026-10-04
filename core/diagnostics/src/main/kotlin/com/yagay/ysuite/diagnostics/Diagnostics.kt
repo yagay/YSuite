@@ -12,6 +12,7 @@ data class DiagnosticFinding(
     val status: DiagnosticStatus,
     val summary: String,
     val details: String? = null,
+    val owner: String = "core",
 )
 
 fun interface DiagnosticCheck {
@@ -42,4 +43,48 @@ class DiagnosticRunner(
                     }
             },
         )
+}
+
+class DiagnosticCenter {
+    private val checksByOwner = linkedMapOf<String, MutableList<DiagnosticCheck>>()
+
+    @Synchronized
+    fun register(
+        owner: String,
+        checks: List<DiagnosticCheck>,
+    ) {
+        require(owner.isNotBlank()) { "owner cannot be blank" }
+        checksByOwner.getOrPut(owner) { mutableListOf() }.addAll(checks)
+    }
+
+    @Synchronized
+    fun clear(owner: String) {
+        checksByOwner.remove(owner)
+    }
+
+    suspend fun runAll(): DiagnosticReport {
+        val snapshot = synchronized(this) {
+            checksByOwner.flatMap { (owner, checks) ->
+                checks.map { check ->
+                    DiagnosticCheck {
+                        check.run().copy(owner = owner)
+                    }
+                }
+            }
+        }
+        return DiagnosticRunner(snapshot).runAll()
+    }
+
+    suspend fun run(owner: String): DiagnosticReport {
+        val snapshot = synchronized(this) {
+            checksByOwner[owner]
+                ?.map { check ->
+                    DiagnosticCheck {
+                        check.run().copy(owner = owner)
+                    }
+                }
+                .orEmpty()
+        }
+        return DiagnosticRunner(snapshot).runAll()
+    }
 }

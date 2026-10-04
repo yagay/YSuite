@@ -26,8 +26,10 @@ android {
 dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:settings"))
-    implementation(project(":core:logging"))
-    implementation(project(":core:permissions"))
+    implementation(project(":core:logging:api"))
+    implementation(project(":core:logging:android"))
+    implementation(project(":core:permissions:api"))
+    implementation(project(":core:permissions:android"))
     implementation(project(":core:diagnostics"))
     implementation(project(":core:platform:api"))
     implementation(project(":core:platform:android"))
