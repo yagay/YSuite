@@ -45,6 +45,33 @@ class CrossProviderTransferTest {
     }
 
     @Test
+    fun engineUsesExplicitTargetName() = runBlocking {
+        val source = MemoryProvider("source")
+        val destination = MemoryProvider("destination")
+        source.put("original.txt", "content".toByteArray())
+
+        val engine = DefaultYFilesEngine(
+            YFileProviderRegistry(
+                listOf(source, destination),
+            ),
+        )
+
+        val copied = engine.copy(
+            source = YFileRef("source", "/original.txt"),
+            destinationDirectory = destination.root(),
+            targetName = "restored.txt",
+        )
+
+        assertTrue(copied is Outcome.Success)
+        copied as Outcome.Success
+        assertEquals("restored.txt", copied.value.name)
+        assertArrayEquals(
+            "content".toByteArray(),
+            destination.bytes("/restored.txt"),
+        )
+    }
+
+    @Test
     fun crossProviderMoveDeletesSourceAfterCopy() = runBlocking {
         val source = MemoryProvider("source")
         val destination = MemoryProvider("destination")

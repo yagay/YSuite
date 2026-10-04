@@ -56,6 +56,7 @@ interface YFilesEngine {
     suspend fun copy(
         source: YFileRef,
         destinationDirectory: YFileRef,
+        targetName: String? = null,
         strategy: YFileConflictStrategy =
             YFileConflictStrategy.Rename,
         onProgress: YFileProgressListener? = null,
@@ -64,6 +65,7 @@ interface YFilesEngine {
     suspend fun move(
         source: YFileRef,
         destinationDirectory: YFileRef,
+        targetName: String? = null,
         strategy: YFileConflictStrategy =
             YFileConflictStrategy.Rename,
         onProgress: YFileProgressListener? = null,

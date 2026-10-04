@@ -109,6 +109,7 @@ class DefaultYFilesEngine(
     override suspend fun copy(
         source: YFileRef,
         destinationDirectory: YFileRef,
+        targetName: String?,
         strategy: YFileConflictStrategy,
         onProgress: YFileProgressListener?,
     ): Outcome<YFileNode> {
@@ -136,7 +137,7 @@ class DefaultYFilesEngine(
             val result = resolveTarget(
                 destinationProvider.value,
                 destinationDirectory,
-                sourceNode.name,
+                targetName ?: sourceNode.name,
                 strategy,
             )
         ) {
@@ -191,6 +192,7 @@ class DefaultYFilesEngine(
     override suspend fun move(
         source: YFileRef,
         destinationDirectory: YFileRef,
+        targetName: String?,
         strategy: YFileConflictStrategy,
         onProgress: YFileProgressListener?,
     ): Outcome<YFileNode> {
@@ -218,7 +220,7 @@ class DefaultYFilesEngine(
             val result = resolveTarget(
                 destinationProvider.value,
                 destinationDirectory,
-                sourceNode.name,
+                targetName ?: sourceNode.name,
                 strategy,
             )
         ) {

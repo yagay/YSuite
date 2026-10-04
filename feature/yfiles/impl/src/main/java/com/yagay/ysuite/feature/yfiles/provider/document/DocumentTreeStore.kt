@@ -44,10 +44,19 @@ class DocumentTreeStore(
             .orEmpty()
             .toMutableSet()
         next += uri.toString()
-        preferences.edit()
+        val persisted = preferences.edit()
             .putStringSet(KEY_TREES, next)
-            .apply()
-        return true
+            .commit()
+        if (!persisted) {
+            runCatching {
+                context.contentResolver
+                    .releasePersistableUriPermission(
+                        uri,
+                        permissionFlags,
+                    )
+            }
+        }
+        return persisted
     }
 
     fun remove(uri: Uri) {
@@ -56,9 +65,12 @@ class DocumentTreeStore(
             .orEmpty()
             .toMutableSet()
         next -= uri.toString()
-        preferences.edit()
+        val persisted = preferences.edit()
             .putStringSet(KEY_TREES, next)
-            .apply()
+            .commit()
+        if (!persisted) {
+            return
+        }
 
         runCatching {
             context.contentResolver

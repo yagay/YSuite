@@ -25,13 +25,19 @@ class YFilesTrashService(
 
     suspend fun records(): List<YTrashRecord> {
         val existing = mutableListOf<YTrashRecord>()
+        val staleIds = mutableSetOf<String>()
         for (record in loadRecords()) {
             if (
                 engine.stat(record.trashedRef)
                     is Outcome.Success
             ) {
                 existing += record
+            } else {
+                staleIds += record.id
             }
+        }
+        if (staleIds.isNotEmpty()) {
+            removeRecords(staleIds)
         }
         return existing.sortedByDescending {
             it.deletedAtMillis
@@ -130,6 +136,7 @@ class YFilesTrashService(
                 val rollback = engine.move(
                     source = moved.value.ref,
                     destinationDirectory = originalParent,
+                    targetName = node.name,
                     strategy = YFileConflictStrategy.Rename,
                 )
                 failures += YFileFailure(
@@ -168,6 +175,7 @@ class YFilesTrashService(
                 source = record.trashedRef,
                 destinationDirectory =
                     record.originalParent,
+                targetName = record.originalName,
                 strategy =
                     YFileConflictStrategy.Rename,
             )
@@ -354,11 +362,19 @@ class YFilesTrashService(
     private fun removeRecord(
         id: String,
     ) {
+        removeRecords(setOf(id))
+    }
+
+    @Synchronized
+    private fun removeRecords(
+        ids: Set<String>,
+    ) {
+        if (ids.isEmpty()) return
         val next = preferences
             .getStringSet(KEY_RECORDS, emptySet())
             .orEmpty()
             .filterNot {
-                decode(it)?.id == id
+                decode(it)?.id in ids
             }
             .toSet()
         preferences.edit()

@@ -177,6 +177,30 @@ fun YSuiteFeatureHost(
 }
 
 @Composable
+fun YSuiteSingleFeatureHost(
+    registry: YSuiteFeatureRegistry,
+    modifier: Modifier = Modifier,
+) {
+    val feature = registry.features.singleOrNull()
+        ?: error("Standalone host requires exactly one feature")
+
+    DisposableEffect(feature) {
+        feature.lifecycleObserver.onEvent(FeatureLifecycleEvent.Activated)
+        onDispose {
+            feature.lifecycleObserver.onEvent(FeatureLifecycleEvent.Deactivated)
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalYSuiteHostNavigation provides YSuiteHostNavigationState(),
+    ) {
+        Box(modifier = modifier.fillMaxSize()) {
+            feature.Content()
+        }
+    }
+}
+
+@Composable
 private fun PermanentNavigationPane(
     features: List<YSuiteFeatureUiRegistration>,
     selectedId: String,
