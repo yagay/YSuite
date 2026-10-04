@@ -8,4 +8,18 @@
     <string name="localization_summary">内置英文和简体中文，并使用统一语言控制器。</string>
     <string name="feature_boundary">功能完全隔离</string>
     <string name="feature_boundary_summary">以后所有功能只通过公共契约接入，不允许功能之间直接相互依赖。</string>
+    <string name="page_system">统一页面体系</string>
+    <string name="page_system_summary">仪表盘、列表、详情和设置页面共用同一套响应式结构与状态处理。</string>
+    <string name="navigation_system">统一导航契约</string>
+    <string name="navigation_system_summary">功能模块只暴露路由契约，由主应用统一管理导航栈。</string>
+    <string name="common_search">搜索</string>
+    <string name="common_retry">重试</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_confirm">确认</string>
+    <string name="common_close">关闭</string>
+    <string name="common_settings">设置</string>
+    <string name="common_loading">正在加载…</string>
+    <string name="common_error">出现错误</string>
+    <string name="common_empty">暂无内容</string>
+    <string name="common_permission_required">需要权限</string>
 </resources>

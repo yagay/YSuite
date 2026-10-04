@@ -16,6 +16,8 @@ jobs:
           python-version: "3.12"
       - name: Verify architecture boundaries
         run: python tools/verify_architecture.py
+      - name: Verify localization parity
+        run: python tools/verify_localization.py
 
   build:
     runs-on: ubuntu-latest

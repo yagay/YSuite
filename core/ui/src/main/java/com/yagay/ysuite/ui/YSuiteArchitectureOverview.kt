@@ -16,22 +16,40 @@ import com.yagay.ysuite.resources.R
 @Composable
 internal fun YSuiteArchitectureOverview(padding: PaddingValues = PaddingValues()) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(padding).padding(YSuiteSpacing.Medium),
-        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Large),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
     ) {
-        YSuiteSection(title = stringResource(R.string.architecture_ready)) {
-            YSuiteListItem(
-                title = stringResource(R.string.design_system),
-                subtitle = stringResource(R.string.design_system_summary),
-            )
-            YSuiteListItem(
-                title = stringResource(R.string.localization),
-                subtitle = stringResource(R.string.localization_summary),
-            )
-            YSuiteListItem(
-                title = stringResource(R.string.feature_boundary),
-                subtitle = stringResource(R.string.feature_boundary_summary),
-            )
+        YSuiteDashboardPage(
+            title = stringResource(R.string.architecture_ready),
+            subtitle = stringResource(R.string.architecture_ready_summary),
+        ) { widthClass ->
+            YSuiteSection(title = stringResource(R.string.design_system)) {
+                YSuiteListItem(
+                    title = stringResource(R.string.design_system),
+                    subtitle = stringResource(R.string.design_system_summary),
+                )
+                YSuiteListItem(
+                    title = stringResource(R.string.page_system),
+                    subtitle = stringResource(R.string.page_system_summary),
+                )
+                YSuiteListItem(
+                    title = stringResource(R.string.navigation_system),
+                    subtitle = stringResource(R.string.navigation_system_summary),
+                )
+                YSuiteListItem(
+                    title = stringResource(R.string.localization),
+                    subtitle = stringResource(R.string.localization_summary),
+                )
+                YSuiteListItem(
+                    title = stringResource(R.string.feature_boundary),
+                    subtitle = stringResource(R.string.feature_boundary_summary),
+                )
+                YSuiteListItem(
+                    title = widthClass.name,
+                    subtitle = null,
+                )
+            }
         }
     }
 }
