@@ -66,6 +66,7 @@ dependencies {
     implementation(project(selectedFeature.module))
     implementation(project(":core:ui"))
     implementation(project(":core:settings"))
+    implementation(project(":core:platform:android"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)

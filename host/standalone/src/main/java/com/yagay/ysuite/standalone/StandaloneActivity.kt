@@ -4,10 +4,13 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import com.yagay.ysuite.platform.android.DefaultPlatformServices
 import com.yagay.ysuite.settings.DataStoreAppSettingsRepository
 import com.yagay.ysuite.ui.YSuiteApplication
 import com.yagay.ysuite.ui.YSuiteFeatureRegistry
 import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
+import com.yagay.ysuite.ui.YSuiteStandaloneAwareRegistration
+import com.yagay.ysuite.ui.YSuiteStandaloneDependencies
 
 class StandaloneActivity : AppCompatActivity() {
     private val settings by lazy {
@@ -42,11 +45,22 @@ class StandaloneActivity : AppCompatActivity() {
         )
         val instance = registrationClass.getField("INSTANCE").get(null)
 
-        return instance as? YSuiteFeatureUiRegistration
-            ?: error(
+        val registration =
+            instance as? YSuiteFeatureUiRegistration
+                ?: error(
                 "Standalone registration does not implement " +
                     "YSuiteFeatureUiRegistration: " +
                     BuildConfig.FEATURE_REGISTRATION_CLASS,
+                )
+
+        (registration as? YSuiteStandaloneAwareRegistration)
+            ?.bindStandaloneDependencies(
+                YSuiteStandaloneDependencies(
+                    rootGateway =
+                        DefaultPlatformServices.create().root,
+                ),
             )
+
+        return registration
     }
 }
