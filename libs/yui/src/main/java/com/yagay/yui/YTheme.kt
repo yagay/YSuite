@@ -165,7 +165,7 @@ private fun YTopBarCopy(title: String, subtitle: String?) {
     Text(
         title,
         style = MaterialTheme.typography.titleLarge,
-        maxLines = 1,
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )
     if (!subtitle.isNullOrBlank()) {
