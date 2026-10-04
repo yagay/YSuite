@@ -1,7 +1,13 @@
 package com.yagay.ysuite.feature.system
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -25,6 +31,7 @@ import com.yagay.ysuite.permissions.api.PermissionStatus
 import com.yagay.ysuite.platform.api.CapabilityKind
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.PlatformCapabilityMonitor
+import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.productui.dashboard.NiaDashboardSurface
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 import com.yagay.ysuite.ui.rememberYSuitePermissionRequester
@@ -57,7 +64,13 @@ fun SystemFeatureScreen(
         title = stringResource(R.string.system_title),
         navigationIcon = { YSuiteHostNavigationButton() },
     ) { _ ->
-        YSuiteSection(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Large),
+        ) {
+            YSuiteSection(
             title = stringResource(R.string.system_platform),
         ) {
             CapabilityRow(
@@ -88,10 +101,11 @@ fun SystemFeatureScreen(
             findings = state.diagnostics,
         )
 
-        LogSection(
-            records = state.logs,
-            onClear = model::clearLogs,
-        )
+            LogSection(
+                records = state.logs,
+                onClear = model::clearLogs,
+            )
+        }
     }
 }
 

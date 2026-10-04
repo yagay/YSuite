@@ -46,12 +46,12 @@ fun ComposeSettingsSurface(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
-    categoryPane: @Composable (ProductAdaptiveInfo) -> Unit = {},
+    categoryPane: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
     content: @Composable ColumnScope.(ProductAdaptiveInfo) -> Unit,
 ) {
     ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
         Row(modifier = Modifier.fillMaxSize()) {
-            if (adaptive.isExpanded) {
+            if (adaptive.isExpanded && categoryPane != null) {
                 Surface(
                     modifier = Modifier
                         .width(264.dp)
@@ -77,8 +77,8 @@ fun ComposeSettingsSurface(
                     Column(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .fillMaxWidth()
                             .widthIn(max = 760.dp)
+                            .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
                             .padding(
                                 horizontal = YSuiteSpacing.Medium,

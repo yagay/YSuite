@@ -53,23 +53,32 @@ class SystemViewModel(
         logger.debug(TAG, "System center refresh started")
 
         viewModelScope.launch {
-            val permissions = permissionCatalog.requirements()
-            val permissionResult =
-                permissionChecker.snapshot(permissions)
-            val capabilities = capabilityMonitor.probe()
-            val diagnostics = diagnosticCenter.runAll()
+            try {
+                val permissions = permissionCatalog.requirements()
+                val permissionResult =
+                    permissionChecker.snapshot(permissions)
+                val capabilities = capabilityMonitor.probe()
+                val diagnostics = diagnosticCenter.runAll()
 
-            updateState {
-                it.copy(
-                    refreshing = false,
-                    capabilities = capabilities,
-                    permissions = permissions,
-                    permissionResult = permissionResult,
-                    diagnostics = diagnostics.findings,
+                updateState {
+                    it.copy(
+                        capabilities = capabilities,
+                        permissions = permissions,
+                        permissionResult = permissionResult,
+                        diagnostics = diagnostics.findings,
+                    )
+                }
+
+                logger.debug(TAG, "System center refresh completed")
+            } catch (error: Throwable) {
+                logger.error(
+                    TAG,
+                    "System center refresh failed",
+                    error,
                 )
+            } finally {
+                updateState { it.copy(refreshing = false) }
             }
-
-            logger.debug(TAG, "System center refresh completed")
         }
     }
 
