@@ -67,9 +67,10 @@ internal fun YPageRole.prefersCompactRows(): Boolean = when (this) {
 }
 
 internal fun YPageRole.sectionSpacing(): Dp = when (this) {
-    YPageRole.MANAGER, YPageRole.BROWSER, YPageRole.TIMELINE, YPageRole.LOG -> 8.dp
-    YPageRole.DASHBOARD -> 18.dp
-    else -> YDimens.SectionGap
+    YPageRole.LIST, YPageRole.MANAGER, YPageRole.BROWSER, YPageRole.TIMELINE, YPageRole.LOG -> 0.dp
+    YPageRole.SETTINGS -> 6.dp
+    YPageRole.DASHBOARD -> 12.dp
+    else -> 12.dp
 }
 
 @Composable

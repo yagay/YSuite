@@ -16,7 +16,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.yagay.yui.YActionRow
 import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFilterBar
+import com.yagay.yui.YTabBar
+import com.yagay.yui.YTabSpec
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YPageList
@@ -55,13 +56,13 @@ class MainActivity : YComposeActivity() {
         ) { padding ->
             YPageList(padding) {
                 item {
-                    YFilterBar(
-                        options = listOf(
-                            stringResource(R.string.ydownload_tab_tasks),
-                            stringResource(R.string.ydownload_tab_settings),
+                    YTabBar(
+                        tabs = listOf(
+                            YTabSpec("tasks", stringResource(R.string.ydownload_tab_tasks)),
+                            YTabSpec("settings", stringResource(R.string.ydownload_tab_settings)),
                         ),
-                        selectedIndex = page,
-                        onSelected = { page = it },
+                        selectedKey = if (page == 0) "tasks" else "settings",
+                        onSelected = { page = if (it.key == "tasks") 0 else 1 },
                     )
                 }
 

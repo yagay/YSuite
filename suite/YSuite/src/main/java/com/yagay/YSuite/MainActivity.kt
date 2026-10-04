@@ -430,26 +430,22 @@ private fun FeatureCard(
             }
         }
 
-        if (feature.requiresRoot) {
+        if (feature.requiresRoot && rootAvailable != true) {
             YStatusRow(
                 stringResource(R.string.capability_root),
                 when (rootAvailable) {
-                    true -> stringResource(R.string.status_authorized)
                     false -> stringResource(R.string.status_unavailable_or_unauthorized)
                     null -> stringResource(R.string.status_checking)
+                    else -> stringResource(R.string.status_authorized)
                 },
-                when (rootAvailable) {
-                    true -> YStatusTone.Good
-                    false -> YStatusTone.Error
-                    null -> YStatusTone.Neutral
-                },
+                if (rootAvailable == false) YStatusTone.Error else YStatusTone.Neutral,
             )
         }
-        if (feature.requiresHook) {
+        if (feature.requiresHook && !xposedConnected) {
             YStatusRow(
                 stringResource(R.string.capability_lsposed),
-                if (xposedConnected) stringResource(R.string.status_connected) else stringResource(R.string.status_not_connected),
-                if (xposedConnected) YStatusTone.Good else YStatusTone.Warning,
+                stringResource(R.string.status_not_connected),
+                YStatusTone.Warning,
             )
         }
 

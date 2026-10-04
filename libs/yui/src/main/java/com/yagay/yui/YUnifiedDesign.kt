@@ -36,6 +36,8 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -88,6 +90,7 @@ data class YFilterSpec(
     val label: String,
     val selected: Boolean,
     val onClick: () -> Unit,
+    val enabled: Boolean = true,
 )
 
 @Immutable
@@ -134,7 +137,7 @@ fun YPageList(
     content: LazyListScope.() -> Unit,
 ) {
     val role = LocalYPageRole.current
-    val compactRows = compact || role.prefersCompactRows()
+    val rowSpacing = if (compact) 0.dp else role.sectionSpacing()
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val horizontal = yPageHorizontalPadding(maxWidth)
         LazyColumn(
@@ -145,9 +148,7 @@ fun YPageList(
                 end = horizontal,
                 bottom = padding.calculateBottomPadding() + YDimens.ScreenVertical,
             ),
-            verticalArrangement = Arrangement.spacedBy(
-                if (compactRows) role.sectionSpacing().coerceAtMost(8.dp) else role.sectionSpacing(),
-            ),
+            verticalArrangement = Arrangement.spacedBy(rowSpacing),
             content = content,
         )
     }
@@ -494,20 +495,39 @@ fun YToggleFilterBar(filters: List<YFilterSpec>, modifier: Modifier = Modifier) 
             FilterChip(
                 selected = filter.selected,
                 onClick = filter.onClick,
+                enabled = filter.enabled,
                 label = { Text(filter.label) },
             )
         }
     }
 }
 
+@Suppress("DEPRECATION")
 @Composable
 fun YTabBar(tabs: List<YTabSpec>, selectedKey: String, onSelected: (YTabSpec) -> Unit, modifier: Modifier = Modifier) {
-    YFilterBar(
-        options = tabs.map { it.label },
-        selectedIndex = tabs.indexOfFirst { it.key == selectedKey }.coerceAtLeast(0),
-        onSelected = { index -> tabs.getOrNull(index)?.let(onSelected) },
-        modifier = modifier,
-    )
+    if (tabs.isEmpty()) return
+    val selectedIndex = tabs.indexOfFirst { it.key == selectedKey }.coerceIn(0, tabs.lastIndex)
+    ScrollableTabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = modifier.fillMaxWidth(),
+        edgePadding = 0.dp,
+        containerColor = Color.Transparent,
+        divider = {},
+    ) {
+        tabs.forEach { tab ->
+            Tab(
+                selected = tab.key == selectedKey,
+                onClick = { onSelected(tab) },
+                text = {
+                    Text(
+                        tab.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+            )
+        }
+    }
 }
 
 @Composable

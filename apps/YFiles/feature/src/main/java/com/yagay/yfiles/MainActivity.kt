@@ -30,6 +30,12 @@ import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YChoiceSetting
 import com.yagay.yui.YFeatureCard
 import com.yagay.yui.YFilterBar
+import com.yagay.yui.YFilterSpec
+import com.yagay.yui.YTabBar
+import com.yagay.yui.YTabSpec
+import com.yagay.yui.YToggleFilterBar
+import com.yagay.yui.YActionGroup
+import com.yagay.yui.YSectionHeader
 import com.yagay.yui.YPageList
 import com.yagay.yui.YPageRole
 import com.yagay.yui.YPageScaffold
@@ -161,14 +167,24 @@ class MainActivity : YComposeActivity() {
         ) { padding ->
             YPageList(padding) {
                 item {
-                    YFilterBar(
-                        options = listOf(
-                            stringResource(R.string.yfiles_tab_files),
-                            stringResource(R.string.yfiles_tab_tools),
-                            stringResource(R.string.yfiles_tab_settings),
+                    YTabBar(
+                        tabs = listOf(
+                            YTabSpec("files", stringResource(R.string.yfiles_tab_files)),
+                            YTabSpec("tools", stringResource(R.string.yfiles_tab_tools)),
+                            YTabSpec("settings", stringResource(R.string.yfiles_tab_settings)),
                         ),
-                        selectedIndex = page,
-                        onSelected = { page = it },
+                        selectedKey = when (page) {
+                            0 -> "files"
+                            1 -> "tools"
+                            else -> "settings"
+                        },
+                        onSelected = {
+                            page = when (it.key) {
+                                "files" -> 0
+                                "tools" -> 1
+                                else -> 2
+                            }
+                        },
                     )
                 }
 
@@ -338,32 +354,48 @@ class MainActivity : YComposeActivity() {
 
                 if (page == 0) {
                     item {
-                        YFeatureCard(title = stringResource(R.string.location), subtitle = path) {
+                        YSectionHeader(
+                            title = stringResource(R.string.location),
+                            subtitle = path,
+                        )
+                    }
+                    item {
                         YSearchField(query, { query = it }, hint = stringResource(R.string.search_files))
-                        YSettingSwitch(
-                            title = stringResource(R.string.recursive_search),
-                            subtitle = stringResource(R.string.recursive_search_summary),
-                            checked = recursiveSearch,
-                            onCheckedChange = { recursiveSearch = it },
-                            enabled = !rootMode,
+                    }
+                    item {
+                        YToggleFilterBar(
+                            filters = listOf(
+                                YFilterSpec(
+                                    label = stringResource(R.string.recursive_search),
+                                    selected = recursiveSearch,
+                                    enabled = !rootMode,
+                                    onClick = { recursiveSearch = !recursiveSearch },
+                                ),
+                                YFilterSpec(
+                                    label = stringResource(R.string.show_hidden),
+                                    selected = showHidden,
+                                    enabled = !rootMode,
+                                    onClick = { showHidden = !showHidden },
+                                ),
+                                YFilterSpec(
+                                    label = stringResource(R.string.root_mode),
+                                    selected = rootMode,
+                                    enabled = rootGranted,
+                                    onClick = { rootMode = !rootMode },
+                                ),
+                                YFilterSpec(
+                                    label = stringResource(R.string.descending),
+                                    selected = sortDescending,
+                                    enabled = !rootMode,
+                                    onClick = { sortDescending = !sortDescending },
+                                ),
+                            ),
                         )
-                        YSettingSwitch(
-                            title = stringResource(R.string.show_hidden),
-                            checked = showHidden,
-                            onCheckedChange = { showHidden = it },
-                            enabled = !rootMode,
-                        )
-                        YSettingSwitch(
-                            title = stringResource(R.string.root_mode),
-                            checked = rootMode,
-                            onCheckedChange = { rootMode = it },
-                            subtitle = stringResource(R.string.root_mode_summary),
-                            enabled = rootGranted,
-                        )
-                        if (!rootMode) {
+                    }
+                    if (!rootMode) {
+                        item {
                             val sortModes = FileSortMode.entries
-                            YChoiceSetting(
-                                title = stringResource(R.string.local_sort),
+                            YFilterBar(
                                 options = listOf(
                                     stringResource(R.string.sort_name),
                                     stringResource(R.string.sort_modified),
@@ -375,62 +407,74 @@ class MainActivity : YComposeActivity() {
                                     sortModes.getOrNull(index)?.let { sortMode = it }
                                 },
                             )
-                            YSettingSwitch(
-                                title = stringResource(R.string.descending),
-                                checked = sortDescending,
-                                onCheckedChange = { sortDescending = it },
-                            )
                         }
-                        pendingTransfer?.let { transfer ->
+                    }
+                    item {
+                        YActionGroup(
+                            actions = listOf(
+                                YActionSpec(
+                                    label = stringResource(R.string.parent),
+                                    enabled = repository.parent(path) != null && !operationBusy,
+                                    onClick = { repository.parent(path)?.let { path = it; query = "" } },
+                                ),
+                                YActionSpec(
+                                    label = stringResource(R.string.refresh),
+                                    enabled = !operationBusy,
+                                    onClick = { refresh++ },
+                                ),
+                                YActionSpec(
+                                    label = stringResource(R.string.new_folder),
+                                    enabled = !operationBusy,
+                                    style = YActionStyle.PRIMARY,
+                                    onClick = { newFolderDialog = true },
+                                ),
+                                YActionSpec(
+                                    label = stringResource(R.string.new_file),
+                                    enabled = !operationBusy,
+                                    onClick = { newFileDialog = true },
+                                ),
+                            ),
+                        )
+                    }
+                    pendingTransfer?.let { transfer ->
+                        item {
                             val transferLabel = if (transfer.mode == FileTransferMode.COPY) {
                                 stringResource(R.string.copy)
                             } else {
                                 stringResource(R.string.move)
                             }
-                            YStatusRow(
-                                stringResource(R.string.file_clipboard),
-                                "$transferLabel: ${transfer.source.name}",
-                                YStatusTone.Warning,
-                            )
-                            YActionRow {
-                                YPrimaryActionButton(
-                                    onClick = {
-                                        operationBusy = true
-                                        lifecycleScope.launch {
-                                            val result = withContext(Dispatchers.IO) {
-                                                repository.transfer(transfer, path)
-                                            }
-                                            result.onSuccess {
-                                                pendingTransfer = null
-                                                error = null
-                                                refresh++
-                                            }.onFailure { error = it.message }
-                                            operationBusy = false
-                                        }
-                                    },
-                                    enabled = !rootMode && !operationBusy,
-                                ) { Text(stringResource(R.string.paste_here)) }
-                                YSecondaryActionButton(
-                                    onClick = { pendingTransfer = null },
-                                    enabled = !operationBusy,
-                                ) { Text(stringResource(R.string.yfiles_cancel)) }
-                            }
-                        }
-                        YActionRow {
-                            YSecondaryActionButton(
-                                onClick = { repository.parent(path)?.let { path = it; query = "" } },
-                                enabled = repository.parent(path) != null && !operationBusy,
-                            ) { Text(stringResource(R.string.parent)) }
-                            YSecondaryActionButton(onClick = { refresh++ }, enabled = !operationBusy) {
-                                Text(stringResource(R.string.refresh))
-                            }
-                        }
-                        YActionRow {
-                            YPrimaryActionButton(onClick = { newFolderDialog = true }, enabled = !operationBusy) {
-                                Text(stringResource(R.string.new_folder))
-                            }
-                            YSecondaryActionButton(onClick = { newFileDialog = true }, enabled = !operationBusy) {
-                                Text(stringResource(R.string.new_file))
+                            YFeatureCard(
+                                title = stringResource(R.string.file_clipboard),
+                                subtitle = "$transferLabel: ${transfer.source.name}",
+                            ) {
+                                YActionGroup(
+                                    actions = listOf(
+                                        YActionSpec(
+                                            label = stringResource(R.string.paste_here),
+                                            enabled = !rootMode && !operationBusy,
+                                            style = YActionStyle.PRIMARY,
+                                            onClick = {
+                                                operationBusy = true
+                                                lifecycleScope.launch {
+                                                    val result = withContext(Dispatchers.IO) {
+                                                        repository.transfer(transfer, path)
+                                                    }
+                                                    result.onSuccess {
+                                                        pendingTransfer = null
+                                                        error = null
+                                                        refresh++
+                                                    }.onFailure { error = it.message }
+                                                    operationBusy = false
+                                                }
+                                            },
+                                        ),
+                                        YActionSpec(
+                                            label = stringResource(R.string.yfiles_cancel),
+                                            enabled = !operationBusy,
+                                            onClick = { pendingTransfer = null },
+                                        ),
+                                    ),
+                                )
                             }
                         }
                     }

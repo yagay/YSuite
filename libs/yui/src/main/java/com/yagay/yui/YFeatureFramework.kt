@@ -1,7 +1,6 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 enum class YStatusTone { Neutral, Good, Warning, Error }
@@ -139,27 +139,13 @@ fun YFeatureCard(
 
     @Composable
     fun sectionBody() {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            if (maxWidth < YDimens.CompactBreakpoint) {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    YFeatureCardCopy(title, subtitle, detail)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
-                        content = trailing,
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                ) {
-                    Column(Modifier.weight(1f)) { YFeatureCardCopy(title, subtitle, detail) }
-                    trailing()
-                }
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        ) {
+            Column(Modifier.weight(1f)) { YFeatureCardCopy(title, subtitle, detail) }
+            trailing()
         }
         content()
     }
@@ -262,22 +248,24 @@ fun YStatusRow(
     modifier: Modifier = Modifier,
 ) {
     val valueColor = yStatusForeground(tone)
-    BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth < YDimens.CompactBreakpoint) {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(value, style = MaterialTheme.typography.bodyMedium, color = valueColor)
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Text(label, Modifier.weight(0.36f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(value, Modifier.weight(0.64f), style = MaterialTheme.typography.bodyMedium, color = valueColor)
-            }
-        }
+    Row(
+        modifier = modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            label,
+            Modifier.weight(0.42f),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            value,
+            Modifier.weight(0.58f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor,
+            textAlign = TextAlign.End,
+        )
     }
 }
 
@@ -308,7 +296,7 @@ fun YSearchField(
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
         singleLine = true,
-        label = { Text(resolvedHint) },
+        placeholder = { Text(resolvedHint) },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         shape = MaterialTheme.shapes.extraLarge,

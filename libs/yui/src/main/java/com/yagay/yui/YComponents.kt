@@ -1,7 +1,6 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -76,30 +75,13 @@ fun YSettingRow(
     subtitle: String? = null,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
-    BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth < YDimens.CompactBreakpoint) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                YSettingCopy(title, subtitle)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = trailing,
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-            ) {
-                Column(Modifier.weight(1f)) { YSettingCopy(title, subtitle) }
-                trailing()
-            }
-        }
+    Row(
+        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+    ) {
+        Column(Modifier.weight(1f)) { YSettingCopy(title, subtitle) }
+        trailing()
     }
 }
 
