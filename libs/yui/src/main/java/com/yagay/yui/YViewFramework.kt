@@ -12,15 +12,22 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.annotation.MenuRes
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -36,8 +43,115 @@ class YViewSection(
     @JvmField val body: LinearLayout,
 )
 
+class YViewPage(
+    @JvmField val root: LinearLayout,
+    @JvmField val toolbar: MaterialToolbar,
+    @JvmField val content: FrameLayout,
+)
+
+class YViewFilterBar(
+    @JvmField val view: HorizontalScrollView,
+    @JvmField val group: ChipGroup,
+    @JvmField val chips: List<Chip>,
+) {
+    fun indexForId(id: Int): Int = chips.indexOfFirst { it.id == id }
+}
+
 /** Java/View compatibility renderer backed by the generated YUI geometry resources. */
 object YViewLayout {
+
+    /** Canonical View-system page shell for all normal Java/XML-era feature screens. */
+    @JvmStatic
+    @JvmOverloads
+    fun installPage(activity: Activity, title: String, subtitle: String? = null): YViewPage {
+        val page = page(activity, title, subtitle)
+        activity.setContentView(page.root)
+        return page
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun page(context: Context, title: String, subtitle: String? = null): YViewPage {
+        val root = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            YView.applyRoot(this)
+        }
+        val toolbar = MaterialToolbar(context).apply {
+            this.title = title
+            this.subtitle = subtitle
+            setTitleTextAppearance(context, R.style.TextAppearance_YUI_PageTitle)
+            setTitleTextColor(YView.onSurface(context))
+            setSubtitleTextColor(YView.onSurfaceVariant(context))
+            setContentInsetsRelative(
+                YView.screenHorizontal(context),
+                YView.screenHorizontal(context),
+            )
+            minimumHeight = YView.dimen(context, R.dimen.yui_toolbar_height)
+            elevation = 0f
+        }
+        root.addView(
+            toolbar,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        val content = FrameLayout(context).apply {
+            clipToPadding = false
+        }
+        root.addView(
+            content,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            ),
+        )
+        return YViewPage(root, toolbar, content)
+    }
+
+    @JvmStatic
+    fun filterBar(context: Context, labels: List<String>, selectedIndex: Int = 0): YViewFilterBar {
+        val group = ChipGroup(context).apply {
+            isSingleSelection = true
+            isSelectionRequired = true
+            setPadding(
+                YView.screenHorizontal(context),
+                YView.controlGap(context) / 2,
+                YView.screenHorizontal(context),
+                YView.controlGap(context) / 2,
+            )
+        }
+        val chips = labels.mapIndexed { index, label ->
+            Chip(context).apply {
+                id = View.generateViewId()
+                text = label
+                isCheckable = true
+                isChecked = index == selectedIndex
+                group.addView(this)
+            }
+        }
+        val scroll = HorizontalScrollView(context).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(
+                group,
+                HorizontalScrollView.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        return YViewFilterBar(scroll, group, chips)
+    }
+
+    @JvmStatic
+    fun bottomNavigation(context: Context, @MenuRes menuRes: Int): BottomNavigationView =
+        BottomNavigationView(context).apply {
+            inflateMenu(menuRes)
+            elevation = 0f
+            setBackgroundColor(YView.background(context))
+        }
+
     @JvmStatic
     @JvmOverloads
     fun install(activity: Activity, title: String, subtitle: String? = null): YViewScreen {
