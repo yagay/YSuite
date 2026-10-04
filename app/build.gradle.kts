@@ -25,9 +25,18 @@ android {
 
 dependencies {
     implementation(project(":core:ui"))
-    implementation(project(":core:navigation"))
+    implementation(project(":core:settings"))
+    implementation(project(":core:logging"))
+    implementation(project(":core:permissions"))
+    implementation(project(":core:diagnostics"))
+    implementation(project(":core:platform:api"))
+    implementation(project(":core:platform:android"))
+    implementation(project(":feature:template:impl"))
+    implementation(project(":feature:settings:impl"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)

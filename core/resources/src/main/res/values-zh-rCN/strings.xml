@@ -11,7 +11,13 @@
     <string name="page_system">统一页面体系</string>
     <string name="page_system_summary">仪表盘、列表、详情和设置页面共用同一套响应式结构与状态处理。</string>
     <string name="navigation_system">统一导航契约</string>
-    <string name="navigation_system_summary">功能模块只暴露路由契约，由主应用统一管理导航栈。</string>
+    <string name="navigation_system_summary">功能模块只暴露路由契约，由主应用统一管理导航。</string>
+    <string name="home_title">YSuite 功能</string>
+    <string name="home_summary">所有功能统一使用同一套注册、导航、设计系统和平台契约。</string>
+    <string name="home_no_features">暂时没有注册功能。</string>
+    <string name="common_home">主页</string>
+    <string name="common_menu">菜单</string>
+    <string name="common_back">返回</string>
     <string name="common_search">搜索</string>
     <string name="common_retry">重试</string>
     <string name="common_cancel">取消</string>

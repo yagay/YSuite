@@ -5,6 +5,6 @@ plugins {
 kotlin { jvmToolchain(17) }
 
 dependencies {
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.core)
+    api(project(":core:model"))
+    api(project(":core:navigation"))
 }

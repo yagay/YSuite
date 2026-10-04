@@ -11,18 +11,18 @@ This branch intentionally does **not** reuse the legacy YSuite feature/UI source
 - Loading / Empty / Error / Permission page states
 - Search / Filter / Dialog primitives
 - Compact / Medium / Expanded responsive layout
-- Framework-neutral navigation contracts
+- Registry-backed adaptive navigation
+- Explicit application Composition Root
+- App-wide DataStore theme/language settings wired to UI
 - Standard ViewModel state/effect base
-- DataStore-backed application settings
-- Central logging contract
-- Permission checking boundary
-- Framework-neutral diagnostics runner
-- Root / LSPosed API and replaceable Android adapter boundary
+- Central logging, permissions and diagnostics contracts
+- Root / LSPosed API with replaceable Android adapters
 - Feature `api/impl` reference template
+- Framework-owned Settings feature
 - Standalone feature host using the same feature implementation
-- English + Simplified Chinese from day one
-- CI-enforced architecture and localization rules
+- Feature create/remove scripts
+- English + Simplified Chinese
+- CI architecture, localization and full-build verification
+- Unit tests for navigation and diagnostics
 
-No legacy feature has been connected to the main app.
-
-See `docs/` for the contracts.
+No legacy YSuite feature has been migrated.

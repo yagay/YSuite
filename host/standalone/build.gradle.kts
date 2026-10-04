@@ -26,9 +26,9 @@ android {
 dependencies {
     implementation(project(":feature:template:impl"))
     implementation(project(":core:ui"))
-    implementation(project(":core:resources"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)

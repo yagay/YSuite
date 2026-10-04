@@ -34,5 +34,7 @@ include(":core:platform:android")
 
 include(":feature:template:api")
 include(":feature:template:impl")
+include(":feature:settings:api")
+include(":feature:settings:impl")
 
 include(":host:standalone")

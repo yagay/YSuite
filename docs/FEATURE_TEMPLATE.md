@@ -1,6 +1,6 @@
 # Feature template
 
-Every production feature starts from the same shape:
+Every production feature starts from:
 
 ```
 feature/<name>/
@@ -10,26 +10,43 @@ feature/<name>/
 
 ## api
 
-Pure Kotlin only.
-
-Owns:
+Pure Kotlin only. It owns:
 - feature id and route contract,
-- public models needed by the app composition root,
-- no Android, Compose, Root or LSPosed implementation.
+- public models needed by the composition root,
+- no Android or Compose implementation.
 
 ## impl
 
 Owns:
 - ViewModel,
-- feature-specific strings,
-- repository implementations specific to the feature,
-- screens built only from `core:ui` page contracts and `core:designsystem` components.
+- feature-specific resources,
+- repositories specific to that feature,
+- screens built from `core:ui` page contracts and `core:designsystem`.
 
 It must not:
 - import Material3 directly,
-- create a second theme/page system,
+- create another theme/page system,
 - depend on another feature implementation,
 - hardcode user-visible UI strings.
 
-`feature:template:api` and `feature:template:impl` are compile-checked reference modules and are not
-connected to the main YSuite app.
+## Generator
+
+Create a skeleton:
+
+```
+python tools/new_feature.py sample
+```
+
+Preview without writing:
+
+```
+python tools/new_feature.py sample --dry-run
+```
+
+Remove a generated feature:
+
+```
+python tools/remove_feature.py sample --yes
+```
+
+The framework-owned `template` and `settings` features cannot be removed by the removal tool.
