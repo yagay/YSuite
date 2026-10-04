@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,6 +43,7 @@ import com.yagay.ysuite.designsystem.component.YSuiteSection
 import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.resources.R
+import com.yagay.ysuite.runtime.FeatureLifecycleEvent
 import kotlinx.coroutines.launch
 
 private const val HOME_ID = "__home__"
@@ -54,6 +56,14 @@ fun YSuiteFeatureHost(
 ) {
     val features = registry.features
     var selectedId by rememberSaveable { mutableStateOf(HOME_ID) }
+    val activeFeature = registry.findById(selectedId)
+
+    DisposableEffect(activeFeature) {
+        activeFeature?.lifecycleObserver?.onEvent(FeatureLifecycleEvent.Activated)
+        onDispose {
+            activeFeature?.lifecycleObserver?.onEvent(FeatureLifecycleEvent.Deactivated)
+        }
+    }
 
     BackHandler(enabled = selectedId != HOME_ID) {
         selectedId = HOME_ID
