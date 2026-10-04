@@ -188,16 +188,8 @@ public class AppDetailActivity extends AppCompatActivity {
     }
 
     private MaterialCheckBox addCheck(LinearLayout root, String text, boolean checked) {
-        LinearLayout row = YViewLayout.listRow(this);
-        TextView title = YViewLayout.listTitle(this);
-        title.setText(text);
-        row.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
-
-        MaterialCheckBox box = new MaterialCheckBox(this);
-        box.setChecked(checked);
-        row.addView(box);
-        row.setOnClickListener(v -> box.setChecked(!box.isChecked()));
-        root.addView(row);
+        MaterialCheckBox box = YViewLayout.checkBoxRow(this, text, checked, null);
+        root.addView(box);
         return box;
     }
 }

@@ -12,8 +12,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatEditText;
 
-import com.google.android.material.checkbox.MaterialCheckBox;
-
 import com.yagay.ypower.R;
 import com.yagay.ypower.data.ProfileStore;
 import com.yagay.ypower.data.RecommendedAppRegistry;
@@ -22,6 +20,7 @@ import com.yagay.ypower.xposed.XposedBridgeManager;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewScreen;
+import com.yagay.yui.YViewListRow;
 import com.yagay.yui.YViewStatusTone;
 
 import java.util.ArrayList;
@@ -134,37 +133,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addRow(String label, String packageName) {
-        LinearLayout row = YViewLayout.listRow(this);
+        YViewListRow row = YViewLayout.listItem(this, false);
+        boolean recommended = RecommendedAppRegistry.find(packageName) != null;
+        row.title.setText(label);
+        row.subtitle.setText(packageName
+                + (recommended ? "\n" + getString(R.string.yp_recommended_available) : ""));
 
-        MaterialCheckBox enabled = new MaterialCheckBox(this);
-        enabled.setChecked(ProfileStore.get(this).getProfile(packageName).enabled);
+        com.google.android.material.checkbox.MaterialCheckBox enabled =
+                YViewLayout.checkBoxControl(
+                        this,
+                        ProfileStore.get(this).getProfile(packageName).enabled,
+                        null);
         enabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
             ProfileStore.get(this).setEnabled(packageName, isChecked);
             buttonView.post(() -> loadApps(search == null ? "" : search.getText().toString()));
         });
-        row.addView(enabled);
-
-        LinearLayout copy = new LinearLayout(this);
-        copy.setOrientation(LinearLayout.VERTICAL);
-        boolean recommended = RecommendedAppRegistry.find(packageName) != null;
-
-        TextView title = YViewLayout.listTitle(this);
-        title.setText(label);
-        copy.addView(title);
-
-        TextView subtitle = YViewLayout.listSubtitle(this);
-        subtitle.setText(packageName + (recommended ? "\n" + getString(R.string.yp_recommended_available) : ""));
-        copy.addView(subtitle);
-
-        LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(0, -2, 1f);
-        copyParams.setMarginStart(YViewLayout.listGap(this));
-        row.addView(copy, copyParams);
+        row.trailing.addView(enabled);
 
         Button detail = YViewLayout.secondaryButton(this, getString(R.string.yp_settings));
         detail.setOnClickListener(v -> openDetails(packageName));
-        row.addView(detail);
-        row.setOnClickListener(v -> openDetails(packageName));
-        list.addView(row);
+        row.trailing.addView(detail);
+        row.root.setOnClickListener(v -> openDetails(packageName));
+        list.addView(row.root);
     }
 
     private void openDetails(String packageName) {

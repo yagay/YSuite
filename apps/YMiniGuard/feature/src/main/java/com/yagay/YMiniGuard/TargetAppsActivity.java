@@ -22,6 +22,7 @@ import com.google.android.material.checkbox.MaterialCheckBox;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewStatusTone;
+import com.yagay.yui.YViewListRow;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -105,12 +106,10 @@ public final class TargetAppsActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        progress = new ProgressBar(this);
-        progress.setIndeterminate(true);
+        progress = YViewLayout.progressIndicator(this);
         root.addView(progress);
 
-        ListView list = new ListView(this);
-        list.setDividerHeight(1);
+        ListView list = YViewLayout.listView(this);
         adapter = new AppAdapter();
         list.setAdapter(adapter);
         root.addView(list, new LinearLayout.LayoutParams(
@@ -262,25 +261,14 @@ public final class TargetAppsActivity extends Activity {
         }
 
         private RowHolder createRow() {
-            LinearLayout row = YViewLayout.listRow(TargetAppsActivity.this);
-
-            LinearLayout texts = new LinearLayout(TargetAppsActivity.this);
-            texts.setOrientation(LinearLayout.VERTICAL);
-
-            TextView title = YViewLayout.listTitle(TargetAppsActivity.this);
-            texts.addView(title);
-
-            TextView subtitle = YViewLayout.listSubtitle(TargetAppsActivity.this);
-            texts.addView(subtitle);
-
-            row.addView(texts, new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-
-            MaterialCheckBox check = new MaterialCheckBox(TargetAppsActivity.this);
-            row.addView(check);
-
-            RowHolder holder = new RowHolder(row, title, subtitle, check);
-            row.setTag(holder);
+            YViewListRow row = YViewLayout.listItem(TargetAppsActivity.this, false);
+            MaterialCheckBox check = YViewLayout.checkBoxControl(
+                    TargetAppsActivity.this,
+                    false,
+                    null);
+            row.trailing.addView(check);
+            RowHolder holder = new RowHolder(row.root, row.title, row.subtitle, check);
+            row.root.setTag(holder);
             return holder;
         }
     }
