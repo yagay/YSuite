@@ -14,7 +14,9 @@ data class PermissionResult(
     val statuses: Map<String, PermissionStatus>,
 ) {
     val allGranted: Boolean
-        get() = statuses.values.all { it == PermissionStatus.Granted }
+        get() = statuses.values.all {
+            it == PermissionStatus.Granted
+        }
 }
 
 interface PermissionChecker {
@@ -25,7 +27,12 @@ interface PermissionChecker {
     ): PermissionResult =
         PermissionResult(
             statuses = requirements.associate { requirement ->
-                requirement.permission to status(requirement.permission)
+                requirement.permission to
+                    status(requirement.permission)
             },
         )
+}
+
+fun interface PermissionCatalog {
+    fun requirements(): List<PermissionRequirement>
 }

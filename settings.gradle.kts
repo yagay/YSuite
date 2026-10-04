@@ -40,5 +40,7 @@ include(":feature:template:api")
 include(":feature:template:impl")
 include(":feature:settings:api")
 include(":feature:settings:impl")
+include(":feature:system:api")
+include(":feature:system:impl")
 
 include(":host:standalone")

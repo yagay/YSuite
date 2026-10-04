@@ -35,6 +35,7 @@ dependencies {
     implementation(project(":core:platform:android"))
     implementation(project(":feature:template:impl"))
     implementation(project(":feature:settings:impl"))
+    implementation(project(":feature:system:impl"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

@@ -1,0 +1,26 @@
+<resources>
+    <string name="system_title">系统</string>
+    <string name="system_summary">查看 YSuite 公共基础设施的实时运行状态。</string>
+    <string name="system_platform">平台能力</string>
+    <string name="system_root">Root</string>
+    <string name="system_hooks">LSPosed Hook</string>
+    <string name="system_permissions">权限</string>
+    <string name="system_permissions_empty">当前宿主没有声明权限。</string>
+    <string name="system_request_permissions">请求未授权权限</string>
+    <string name="system_diagnostics">诊断</string>
+    <string name="system_diagnostics_empty">暂无诊断结果。</string>
+    <string name="system_logs">日志</string>
+    <string name="system_logs_empty">暂无日志记录。</string>
+    <string name="system_refresh">刷新</string>
+    <string name="system_clear_logs">清空日志</string>
+    <string name="system_status_available">可用</string>
+    <string name="system_status_unavailable">不可用</string>
+    <string name="system_status_permission">需要权限</string>
+    <string name="system_status_error">错误</string>
+    <string name="system_status_granted">已授权</string>
+    <string name="system_status_denied">未授权</string>
+    <string name="system_status_pass">通过</string>
+    <string name="system_status_warning">警告</string>
+    <string name="system_status_unknown">未知</string>
+    <string name="system_refreshing">正在刷新…</string>
+</resources>

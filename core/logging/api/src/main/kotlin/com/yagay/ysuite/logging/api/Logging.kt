@@ -25,6 +25,12 @@ fun interface LogSink {
     fun write(record: LogRecord)
 }
 
+interface LogStore : LogSink {
+    val records: StateFlow<List<LogRecord>>
+
+    fun clear()
+}
+
 interface YSuiteLogger {
     fun log(record: LogRecord)
 
@@ -64,28 +70,35 @@ class CompositeYSuiteLogger(
 
 class InMemoryLogStore(
     private val capacity: Int = 1_000,
-) : LogSink {
-    private val records = ArrayDeque<LogRecord>()
-    private val mutableSnapshot = MutableStateFlow<List<LogRecord>>(emptyList())
+) : LogStore {
+    private val buffer = ArrayDeque<LogRecord>()
+    private val mutableRecords =
+        MutableStateFlow<List<LogRecord>>(emptyList())
 
-    val snapshot: StateFlow<List<LogRecord>> = mutableSnapshot.asStateFlow()
+    override val records: StateFlow<List<LogRecord>> =
+        mutableRecords.asStateFlow()
+
+    val snapshot: StateFlow<List<LogRecord>>
+        get() = records
 
     init {
-        require(capacity > 0) { "capacity must be greater than zero" }
+        require(capacity > 0) {
+            "capacity must be greater than zero"
+        }
     }
 
     @Synchronized
     override fun write(record: LogRecord) {
-        if (records.size == capacity) {
-            records.removeFirst()
+        if (buffer.size == capacity) {
+            buffer.removeFirst()
         }
-        records.addLast(record)
-        mutableSnapshot.value = records.toList()
+        buffer.addLast(record)
+        mutableRecords.value = buffer.toList()
     }
 
     @Synchronized
-    fun clear() {
-        records.clear()
-        mutableSnapshot.value = emptyList()
+    override fun clear() {
+        buffer.clear()
+        mutableRecords.value = emptyList()
     }
 }

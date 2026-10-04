@@ -6,10 +6,12 @@ import com.yagay.ysuite.diagnostics.DiagnosticCheck
 import com.yagay.ysuite.diagnostics.DiagnosticFinding
 import com.yagay.ysuite.diagnostics.DiagnosticStatus
 import com.yagay.ysuite.feature.settings.SettingsFeatureUiRegistration
+import com.yagay.ysuite.feature.system.SystemFeatureUiRegistration
 import com.yagay.ysuite.feature.template.TemplateFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
 import com.yagay.ysuite.logging.api.InMemoryLogStore
+import com.yagay.ysuite.permissions.android.AndroidPermissionCatalog
 import com.yagay.ysuite.permissions.android.AndroidPermissionChecker
 import com.yagay.ysuite.platform.android.DefaultPlatformServices
 import com.yagay.ysuite.platform.api.CapabilityKind
@@ -32,6 +34,7 @@ class YSuiteAppContainer(
     )
 
     val permissions = AndroidPermissionChecker(context)
+    val permissionCatalog = AndroidPermissionCatalog(context)
     val platform = DefaultPlatformServices.create()
     val capabilityMonitor = PlatformCapabilityMonitor(platform)
 
@@ -63,16 +66,34 @@ class YSuiteAppContainer(
 
     val featureRegistry = YSuiteFeatureRegistry(
         listOf(
+            SystemFeatureUiRegistration(
+                capabilityMonitor = capabilityMonitor,
+                diagnosticCenter = diagnostics,
+                logStore = logStore,
+                logger = logger,
+                permissionChecker = permissions,
+                permissionCatalog = permissionCatalog,
+            ),
             TemplateFeatureUiRegistration,
             SettingsFeatureUiRegistration(settings),
         ),
     )
+
+    init {
+        logger.debug(
+            tag = "YSuite/App",
+            message = "Composition root initialized",
+        )
+    }
 }
 
 private fun CapabilityStatus.toDiagnosticStatus(): DiagnosticStatus =
     when (this) {
         CapabilityStatus.Available -> DiagnosticStatus.Pass
-        CapabilityStatus.PermissionRequired -> DiagnosticStatus.Warning
-        CapabilityStatus.Unavailable -> DiagnosticStatus.Warning
-        CapabilityStatus.Error -> DiagnosticStatus.Failure
+        CapabilityStatus.PermissionRequired ->
+            DiagnosticStatus.Warning
+        CapabilityStatus.Unavailable ->
+            DiagnosticStatus.Warning
+        CapabilityStatus.Error ->
+            DiagnosticStatus.Failure
     }
