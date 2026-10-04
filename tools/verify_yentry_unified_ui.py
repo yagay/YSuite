@@ -42,7 +42,7 @@ def main() -> None:
 
     for marker in ("YSectionHeader(", "YStatusItem(", "YActionGroup(", "YConfirmDialog("):
         require(runtime, marker, "runtime panel")
-    for marker in ("YSection(", "YStatusLine(", "AlertDialog("):
+    for marker in ("AlertDialog(", "Button(", "OutlinedButton("):
         reject(runtime, marker, "runtime panel")
 
     for marker in ("YSearchField(", "YEmptyMessage(", "YSettingRow("):
@@ -52,12 +52,12 @@ def main() -> None:
 
     for marker in ("YFormDialog(", "YListItem(", "YTextField(", "CustomOpenDefinition(", "validated()"):
         require(custom_open, marker, "custom OPEN editor")
-    for marker in ("YSection(", "YStatusLine(", "AlertDialog(", "OutlinedTextField("):
+    for marker in ("AlertDialog(", "OutlinedTextField(", "TextButton("):
         reject(custom_open, marker, "custom OPEN editor")
 
     for marker in ("YFullScreenDialog(", "YToggleFilterBar(", "YSearchField(", "YSwitchItem(", "YStatusItem(", "YCheckboxItem("):
         require(scope_picker, marker, "app scope picker")
-    for marker in ("YSection(", "YSwitchItem(", "YStatusLine(", "YEmptyMessage(", "Scaffold(", "TopAppBar("):
+    for marker in ("Scaffold(", "TopAppBar(", "AlertDialog(", "FilterChip(", "OutlinedTextField("):
         reject(scope_picker, marker, "app scope picker")
     require(scope_picker, "VisibilityScope.entries", "app scope category controls")
     require(scope_picker, "onSelectedChange", "app scope package selection")

@@ -119,7 +119,7 @@ def main() -> int:
     host_ui = (ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt").read_text(encoding="utf-8")
     if not ui_framework.is_file():
         fail("shared YUI feature framework is missing")
-    for primitive in ("YDashboardScaffold", "YPageList", "YFeatureCard", "YActionRow"):
+    for primitive in ("YDashboardScaffold", "YPageList", "YSection", "YHorizontalActions"):
         if primitive not in host_ui:
             fail(f"YSuite host UI must use shared YUI primitive: {primitive}")
 
