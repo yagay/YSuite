@@ -24,7 +24,6 @@ class LocalYFilesRepositoryTest {
             val result = repository.list(
                 YFileQuery(
                     path = root.absolutePath,
-                    text = "",
                     sort = YFileSort.Name,
                 ),
             )
@@ -49,11 +48,12 @@ class LocalYFilesRepositoryTest {
 
             val repository =
                 LocalYFilesRepository(root.absolutePath)
+            val searchTerm = "target"
 
             val result = repository.list(
                 YFileQuery(
                     path = root.absolutePath,
-                    text = "target",
+                    text = searchTerm,
                     recursive = true,
                 ),
             )
