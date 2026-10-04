@@ -1,5 +1,7 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewSection;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -45,29 +47,29 @@ public class MainActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
 
-        LinearLayout root = AppUi.pageRoot(this,
+        LinearLayout root = YViewLayout.pageRoot(this,
                 getString(R.string.yfloat_title),
                 getString(R.string.yfloat_subtitle));
 
-        AppUi.Section service = AppUi.section(this,
+        YViewSection service = YViewLayout.section(this,
                 getString(R.string.yfloat_service_title),
                 getString(R.string.yfloat_service_desc));
-        overlaySwitch = AppUi.switchRow(this,
+        overlaySwitch = YViewLayout.switchRow(this,
                 getString(R.string.yfloat_enable_float_icon),
                 getString(R.string.yfloat_enable_float_icon_desc),
                 FloatServiceState.isEnabled(this),
                 (button, checked) -> onOverlayToggle(checked));
-        AppUi.addRow(service.body, AppUi.switchContainer(overlaySwitch));
+        YViewLayout.addRow(service.body, YViewLayout.switchContainer(overlaySwitch));
 
-        LinearLayout statusRow = AppUi.baseRow(this);
-        statusRow.addView(AppUi.text(this, getString(R.string.yfloat_current_status), 15, false),
+        LinearLayout statusRow = YViewLayout.baseRow(this);
+        statusRow.addView(YViewLayout.text(this, getString(R.string.yfloat_current_status), 15, false),
                 new LinearLayout.LayoutParams(0, -2, 1f));
-        serviceStatus = AppUi.statusPill(this, getString(R.string.yfloat_status_loading), false);
+        serviceStatus = YViewLayout.statusPill(this, getString(R.string.yfloat_status_loading), false);
         statusRow.addView(serviceStatus, new LinearLayout.LayoutParams(-2, -2));
-        AppUi.addRow(service.body, statusRow);
-        AppUi.addSection(root, service);
+        YViewLayout.addRow(service.body, statusRow);
+        YViewLayout.addSection(root, service);
 
-        AppUi.Section permissions = AppUi.section(this,
+        YViewSection permissions = YViewLayout.section(this,
                 getString(R.string.yfloat_permissions_title),
                 getString(R.string.yfloat_permissions_desc));
         overlayPermission = permissionRow(
@@ -75,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
                 getString(R.string.yfloat_overlay_permission_desc),
                 () -> startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName()))));
-        AppUi.addRow(permissions.body, overlayPermission.view);
+        YViewLayout.addRow(permissions.body, overlayPermission.view);
 
         boolean suiteHost = "com.yagay.YSuite".equals(getPackageName());
         accessibilityPermission = permissionRow(
@@ -86,61 +88,61 @@ public class MainActivity extends AppCompatActivity {
                         ? R.string.yfloat_suite_accessibility_desc
                         : R.string.yfloat_accessibility_service_desc),
                 this::openAccessibilitySettings);
-        AppUi.addRow(permissions.body, accessibilityPermission.view);
+        YViewLayout.addRow(permissions.body, accessibilityPermission.view);
 
         if (Build.VERSION.SDK_INT >= 33) {
             notificationPermission = permissionRow(
                     getString(R.string.yfloat_notification_permission),
                     getString(R.string.yfloat_notification_permission_desc),
                     this::handleNotificationPermission);
-            AppUi.addRow(permissions.body, notificationPermission.view);
+            YViewLayout.addRow(permissions.body, notificationPermission.view);
         }
-        AppUi.addSection(root, permissions);
+        YViewLayout.addSection(root, permissions);
 
-        AppUi.Section settings = AppUi.section(this,
+        YViewSection settings = YViewLayout.section(this,
                 getString(R.string.yfloat_feature_settings),
                 getString(R.string.yfloat_feature_settings_desc));
-        AppUi.addRow(settings.body, AppUi.navRow(this,
+        YViewLayout.addRow(settings.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_float_icon_settings),
                 getString(R.string.yfloat_float_icon_settings_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_ICON))));
-        AppUi.addRow(settings.body, AppUi.navRow(this,
+        YViewLayout.addRow(settings.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_gesture_settings),
                 getString(R.string.yfloat_gesture_settings_desc),
                 () -> startActivity(new Intent(this, GestureHubActivity.class))));
-        AppUi.addRow(settings.body, AppUi.navRow(this,
+        YViewLayout.addRow(settings.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_capture_ocr_settings),
                 getString(R.string.yfloat_capture_ocr_settings_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_CAPTURE))));
-        AppUi.addRow(settings.body, AppUi.navRow(this,
+        YViewLayout.addRow(settings.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_environment_settings),
                 getString(R.string.yfloat_environment_settings_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_ENVIRONMENT))));
-        AppUi.addRow(settings.body, AppUi.navRow(this,
+        YViewLayout.addRow(settings.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_interface_settings),
                 getString(R.string.yfloat_interface_settings_desc),
                 () -> startActivity(new Intent(this, AppearanceSettingsActivity.class))));
-        AppUi.addSection(root, settings);
+        YViewLayout.addSection(root, settings);
 
-        AppUi.Section advanced = AppUi.section(this, getString(R.string.yfloat_advanced_title), null);
-        AppUi.addRow(advanced.body, AppUi.navRow(this,
+        YViewSection advanced = YViewLayout.section(this, getString(R.string.yfloat_advanced_title), null);
+        YViewLayout.addRow(advanced.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_advanced_permissions),
                 getString(R.string.yfloat_advanced_permissions_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_PRIVILEGE))));
-        AppUi.addRow(advanced.body, AppUi.navRow(this,
+        YViewLayout.addRow(advanced.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_diagnostics),
                 getString(R.string.yfloat_diagnostics_desc),
                 () -> startActivity(new Intent(this, DiagnosticsActivity.class))));
-        AppUi.addSection(root, advanced);
+        YViewLayout.addSection(root, advanced);
 
-        TextView footer = AppUi.caption(this,
+        TextView footer = YViewLayout.caption(this,
                 getString(R.string.yfloat_version, BuildConfig.VERSION_NAME),
                 12);
         footer.setGravity(Gravity.CENTER_HORIZONTAL);
-        footer.setPadding(0, 2, 0, AppUi.dp(this, 4));
+        footer.setPadding(0, 2, 0, YViewLayout.dp(this, 4));
         root.addView(footer);
 
-        setContentView(AppUi.scrollPage(this, root));
+        setContentView(YViewLayout.scrollPage(this, root));
     }
 
     @Override protected void onResume() {
@@ -281,27 +283,27 @@ public class MainActivity extends AppCompatActivity {
 
     private void setServiceStatus(String text, boolean positive) {
         serviceStatus.setText(text);
-        serviceStatus.setTextColor(positive ? AppUi.success(this) : AppUi.warning(this));
-        serviceStatus.setBackground(AppUi.rounded(this,
-                positive ? AppUi.successSurface(this) : AppUi.warningSurface(this), 999));
+        serviceStatus.setTextColor(positive ? YViewLayout.success(this) : YViewLayout.warning(this));
+        serviceStatus.setBackground(YViewLayout.rounded(this,
+                positive ? YViewLayout.successSurface(this) : YViewLayout.warningSurface(this), 999));
     }
 
     private PermissionRow permissionRow(String title, String subtitle, Runnable action) {
-        LinearLayout row = AppUi.baseRow(this);
+        LinearLayout row = YViewLayout.baseRow(this);
 
         LinearLayout copy = new LinearLayout(this);
         copy.setOrientation(LinearLayout.VERTICAL);
-        TextView titleView = AppUi.text(this, title, 15, false);
+        TextView titleView = YViewLayout.text(this, title, 15, false);
         copy.addView(titleView);
-        TextView sub = AppUi.caption(this, subtitle, 12);
-        sub.setPadding(0, AppUi.dp(this, 2), AppUi.dp(this, 8), 0);
+        TextView sub = YViewLayout.caption(this, subtitle, 12);
+        sub.setPadding(0, YViewLayout.dp(this, 2), YViewLayout.dp(this, 8), 0);
         copy.addView(sub);
-        TextView status = AppUi.caption(this, getString(R.string.yfloat_permission_not_authorized), 12);
-        status.setPadding(0, AppUi.dp(this, 2), 0, 0);
+        TextView status = YViewLayout.caption(this, getString(R.string.yfloat_permission_not_authorized), 12);
+        status.setPadding(0, YViewLayout.dp(this, 2), 0, 0);
         copy.addView(status);
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton button = AppUi.compactButton(this, getString(R.string.yfloat_permission_authorize));
+        MaterialButton button = YViewLayout.compactButton(this, getString(R.string.yfloat_permission_authorize));
         button.setOnClickListener(v -> { if (action != null) action.run(); });
         row.addView(button, new LinearLayout.LayoutParams(-2, -2));
         return new PermissionRow(row, status, button);
@@ -312,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
         row.status.setText(granted
                 ? R.string.yfloat_permission_authorized
                 : R.string.yfloat_permission_not_authorized);
-        row.status.setTextColor(granted ? AppUi.success(this) : AppUi.warning(this));
+        row.status.setTextColor(granted ? YViewLayout.success(this) : YViewLayout.warning(this));
         row.button.setText(granted
                 ? R.string.yfloat_permission_settings
                 : R.string.yfloat_permission_authorize);
@@ -324,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
     ) {
         if (row == null || snapshot == null) return;
         row.status.setText(snapshot.statusLabel(this));
-        row.status.setTextColor(snapshot.hostEnabled ? AppUi.success(this) : AppUi.warning(this));
+        row.status.setTextColor(snapshot.hostEnabled ? YViewLayout.success(this) : YViewLayout.warning(this));
         if (snapshot.hostEnabled) {
             row.button.setText(R.string.yfloat_permission_settings);
         } else if ("com.yagay.YSuite".equals(getPackageName())) {

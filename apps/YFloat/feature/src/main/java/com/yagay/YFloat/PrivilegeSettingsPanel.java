@@ -1,5 +1,7 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewSection;
 import android.content.Intent;
 import android.text.format.DateFormat;
 import android.view.View;
@@ -17,15 +19,15 @@ public final class PrivilegeSettingsPanel {
     private PrivilegeSettingsPanel() {}
 
     public static LinearLayout build(AppCompatActivity activity, FloatSettings fs) {
-        LinearLayout root = AppUi.pageRoot(activity,
+        LinearLayout root = YViewLayout.pageRoot(activity,
                 activity.getString(R.string.yfloat_priv_title),
                 activity.getString(R.string.yfloat_priv_desc));
 
-        TextView modeStatus = AppUi.caption(activity, "", 13);
-        TextView rootStatus = AppUi.caption(activity, "", 13);
-        TextView googleAppStatus = AppUi.caption(activity, "", 13);
+        TextView modeStatus = YViewLayout.caption(activity, "", 13);
+        TextView rootStatus = YViewLayout.caption(activity, "", 13);
+        TextView googleAppStatus = YViewLayout.caption(activity, "", 13);
 
-        AppUi.Section master = AppUi.section(activity,
+        YViewSection master = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_priv_master_title),
                 activity.getString(R.string.yfloat_priv_master_desc));
         SwitchMaterial enhanced = preferenceSwitch(activity, fs,
@@ -36,12 +38,12 @@ public final class PrivilegeSettingsPanel {
                     refresh(activity, fs, modeStatus, rootStatus);
                     refreshGoogleApp(activity, fs, googleAppStatus);
                 });
-        AppUi.addRow(master.body, AppUi.switchContainer(enhanced));
-        AppUi.addRow(master.body, statusBlock(activity,
+        YViewLayout.addRow(master.body, YViewLayout.switchContainer(enhanced));
+        YViewLayout.addRow(master.body, statusBlock(activity,
                 activity.getString(R.string.yfloat_priv_active_mode), modeStatus));
-        AppUi.addSection(root, master);
+        YViewLayout.addSection(root, master);
 
-        AppUi.Section rootSection = AppUi.section(activity, "Root",
+        YViewSection rootSection = YViewLayout.section(activity, "Root",
                 activity.getString(R.string.yfloat_priv_root_desc));
         SwitchMaterial rootSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_use_root),
@@ -51,19 +53,19 @@ public final class PrivilegeSettingsPanel {
                     refresh(activity, fs, modeStatus, rootStatus);
                     refreshGoogleApp(activity, fs, googleAppStatus);
                 });
-        AppUi.addRow(rootSection.body, AppUi.switchContainer(rootSwitch));
+        YViewLayout.addRow(rootSection.body, YViewLayout.switchContainer(rootSwitch));
 
         SwitchMaterial rootScreenshotSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_root_screenshot),
                 activity.getString(R.string.yfloat_priv_root_screenshot_desc),
                 FloatSettings.K_ROOT_SCREENSHOT, fs.rootScreenshot(),
                 () -> refresh(activity, fs, modeStatus, rootStatus));
-        AppUi.addRow(rootSection.body, AppUi.switchContainer(rootScreenshotSwitch));
-        AppUi.addRow(rootSection.body, statusBlock(activity,
+        YViewLayout.addRow(rootSection.body, YViewLayout.switchContainer(rootScreenshotSwitch));
+        YViewLayout.addRow(rootSection.body, statusBlock(activity,
                 activity.getString(R.string.yfloat_priv_root_status), rootStatus));
 
-        LinearLayout rootButtons = AppUi.buttonRow(activity);
-        MaterialButton checkRoot = AppUi.secondaryButton(activity,
+        LinearLayout rootButtons = YViewLayout.buttonRow(activity);
+        MaterialButton checkRoot = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_priv_check_root));
         checkRoot.setOnClickListener(v -> {
             checkRoot.setEnabled(false);
@@ -79,21 +81,21 @@ public final class PrivilegeSettingsPanel {
             });
         });
         rootButtons.addView(checkRoot, new LinearLayout.LayoutParams(0, -2, 1f));
-        AppUi.addRow(rootSection.body, rootButtons);
+        YViewLayout.addRow(rootSection.body, rootButtons);
 
-        TextView rootNote = AppUi.caption(activity,
+        TextView rootNote = YViewLayout.caption(activity,
                 activity.getString(R.string.yfloat_priv_root_note), 12);
-        AppUi.addRow(rootSection.body, simpleBlock(activity, rootNote));
-        AppUi.addSection(root, rootSection);
+        YViewLayout.addRow(rootSection.body, simpleBlock(activity, rootNote));
+        YViewLayout.addSection(root, rootSection);
 
-        AppUi.Section googleAppSection = AppUi.section(activity,
+        YViewSection googleAppSection = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_priv_google_title),
                 activity.getString(R.string.yfloat_priv_google_desc));
-        AppUi.addRow(googleAppSection.body, statusBlock(activity,
+        YViewLayout.addRow(googleAppSection.body, statusBlock(activity,
                 activity.getString(R.string.yfloat_priv_google_status), googleAppStatus));
 
-        LinearLayout googleStopRow = AppUi.buttonRow(activity);
-        MaterialButton stopGoogle = AppUi.primaryButton(activity,
+        LinearLayout googleStopRow = YViewLayout.buttonRow(activity);
+        MaterialButton stopGoogle = YViewLayout.primaryButton(activity,
                 activity.getString(R.string.yfloat_priv_google_stop));
         stopGoogle.setOnClickListener(v -> {
             if (!fs.canUseRoot()) {
@@ -117,14 +119,14 @@ public final class PrivilegeSettingsPanel {
         });
         googleStopRow.addView(stopGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton refreshGoogle = AppUi.secondaryButton(activity,
+        MaterialButton refreshGoogle = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_priv_refresh_status));
         refreshGoogle.setOnClickListener(v -> refreshGoogleApp(activity, fs, googleAppStatus));
         googleStopRow.addView(refreshGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
-        AppUi.addRow(googleAppSection.body, googleStopRow);
+        YViewLayout.addRow(googleAppSection.body, googleStopRow);
 
-        LinearLayout googleAdvancedRow = AppUi.buttonRow(activity);
-        MaterialButton freezeGoogle = AppUi.secondaryButton(activity,
+        LinearLayout googleAdvancedRow = YViewLayout.buttonRow(activity);
+        MaterialButton freezeGoogle = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_priv_google_freeze));
         freezeGoogle.setOnClickListener(v -> {
             if (!fs.canUseRoot()) {
@@ -154,7 +156,7 @@ public final class PrivilegeSettingsPanel {
         });
         googleAdvancedRow.addView(freezeGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton restoreGoogle = AppUi.secondaryButton(activity,
+        MaterialButton restoreGoogle = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_priv_google_restore));
         restoreGoogle.setOnClickListener(v -> {
             if (!fs.canUseRoot()) {
@@ -176,15 +178,15 @@ public final class PrivilegeSettingsPanel {
             });
         });
         googleAdvancedRow.addView(restoreGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
-        AppUi.addRow(googleAppSection.body, googleAdvancedRow);
+        YViewLayout.addRow(googleAppSection.body, googleAdvancedRow);
 
-        TextView googleNote = AppUi.caption(activity,
+        TextView googleNote = YViewLayout.caption(activity,
                 activity.getString(R.string.yfloat_priv_google_note), 12);
-        AppUi.addRow(googleAppSection.body, simpleBlock(activity, googleNote));
-        AppUi.addSection(root, googleAppSection);
+        YViewLayout.addRow(googleAppSection.body, simpleBlock(activity, googleNote));
+        YViewLayout.addSection(root, googleAppSection);
 
-        TextView lsposedStatus = AppUi.caption(activity, "", 13);
-        AppUi.Section lsposedSection = AppUi.section(activity, "LSPosed",
+        TextView lsposedStatus = YViewLayout.caption(activity, "", 13);
+        YViewSection lsposedSection = YViewLayout.section(activity, "LSPosed",
                 activity.getString(R.string.yfloat_priv_lsposed_desc));
         SwitchMaterial lsposedSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_enable_lsposed),
@@ -195,9 +197,9 @@ public final class PrivilegeSettingsPanel {
                     refresh(activity, fs, modeStatus, rootStatus);
                 });
         lsposedSwitch.setEnabled(PrivilegeManager.lsposedProviderAvailable());
-        AppUi.addRow(lsposedSection.body, AppUi.switchContainer(lsposedSwitch));
+        YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(lsposedSwitch));
 
-        SwitchMaterial googleCircleSwitch = AppUi.switchRow(activity,
+        SwitchMaterial googleCircleSwitch = YViewLayout.switchRow(activity,
                 activity.getString(R.string.yfloat_priv_google_circle),
                 activity.getString(R.string.yfloat_priv_google_circle_desc),
                 fs.circleEngine() == 1,
@@ -209,7 +211,7 @@ public final class PrivilegeSettingsPanel {
                     refresh(activity, fs, modeStatus, rootStatus);
                     refreshLsposed(activity, lsposedStatus);
                 });
-        AppUi.addRow(lsposedSection.body, AppUi.switchContainer(googleCircleSwitch));
+        YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(googleCircleSwitch));
 
         SwitchMaterial secureScreenshotSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_secure_screenshot),
@@ -219,12 +221,12 @@ public final class PrivilegeSettingsPanel {
                     LsposedStatusManager.syncRuntimeConfigAsync();
                     refresh(activity, fs, modeStatus, rootStatus);
                 });
-        AppUi.addRow(lsposedSection.body, AppUi.switchContainer(secureScreenshotSwitch));
-        AppUi.addRow(lsposedSection.body, statusBlock(activity,
+        YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(secureScreenshotSwitch));
+        YViewLayout.addRow(lsposedSection.body, statusBlock(activity,
                 activity.getString(R.string.yfloat_priv_lsposed_status), lsposedStatus));
 
-        LinearLayout lsposedButtons = AppUi.buttonRow(activity);
-        MaterialButton refreshLsposed = AppUi.secondaryButton(activity,
+        LinearLayout lsposedButtons = YViewLayout.buttonRow(activity);
+        MaterialButton refreshLsposed = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_priv_refresh_status));
         refreshLsposed.setOnClickListener(v -> {
             lsposedStatus.setText(R.string.yfloat_priv_reading_lsposed);
@@ -232,7 +234,7 @@ public final class PrivilegeSettingsPanel {
         });
         lsposedButtons.addView(refreshLsposed, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton reloadHooks = AppUi.primaryButton(activity,
+        MaterialButton reloadHooks = YViewLayout.primaryButton(activity,
                 activity.getString(R.string.yfloat_priv_reload_hooks));
         reloadHooks.setOnClickListener(v -> {
             if (!fs.canUseRoot()) {
@@ -255,19 +257,19 @@ public final class PrivilegeSettingsPanel {
             }
         });
         lsposedButtons.addView(reloadHooks, new LinearLayout.LayoutParams(0, -2, 1f));
-        AppUi.addRow(lsposedSection.body, lsposedButtons);
+        YViewLayout.addRow(lsposedSection.body, lsposedButtons);
 
-        LinearLayout lsposedTools = AppUi.buttonRow(activity);
-        MaterialButton probeSecure = AppUi.secondaryButton(activity,
+        LinearLayout lsposedTools = YViewLayout.buttonRow(activity);
+        MaterialButton probeSecure = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_priv_test_secure_capture));
         probeSecure.setOnClickListener(v -> activity.startActivity(
                 new Intent(activity, SecureCaptureProbeActivity.class)));
         lsposedTools.addView(probeSecure, new LinearLayout.LayoutParams(0, -2, 1f));
-        AppUi.addRow(lsposedSection.body, lsposedTools);
+        YViewLayout.addRow(lsposedSection.body, lsposedTools);
 
-        TextView lsposedNote = AppUi.caption(activity,
+        TextView lsposedNote = YViewLayout.caption(activity,
                 activity.getString(R.string.yfloat_priv_lsposed_note), 12);
-        AppUi.addRow(lsposedSection.body, simpleBlock(activity, lsposedNote));
+        YViewLayout.addRow(lsposedSection.body, simpleBlock(activity, lsposedNote));
 
         LsposedStatusManager.Listener lsposedListener = snapshot -> {
             lsposedSwitch.setEnabled(PrivilegeManager.lsposedProviderAvailable());
@@ -284,9 +286,9 @@ public final class PrivilegeSettingsPanel {
                 LsposedStatusManager.removeListener(lsposedListener);
             }
         });
-        AppUi.addSection(root, lsposedSection);
+        YViewLayout.addSection(root, lsposedSection);
 
-        AppUi.Section fallback = AppUi.section(activity,
+        YViewSection fallback = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_priv_fallback_title),
                 activity.getString(R.string.yfloat_priv_fallback_desc));
         SwitchMaterial fallbackSwitch = preferenceSwitch(activity, fs,
@@ -294,8 +296,8 @@ public final class PrivilegeSettingsPanel {
                 activity.getString(R.string.yfloat_priv_fallback_switch_desc),
                 FloatSettings.K_PRIVILEGE_FALLBACK, fs.privilegeFallback(),
                 () -> refresh(activity, fs, modeStatus, rootStatus));
-        AppUi.addRow(fallback.body, AppUi.switchContainer(fallbackSwitch));
-        AppUi.addSection(root, fallback);
+        YViewLayout.addRow(fallback.body, YViewLayout.switchContainer(fallbackSwitch));
+        YViewLayout.addSection(root, fallback);
 
         refresh(activity, fs, modeStatus, rootStatus);
         refreshGoogleApp(activity, fs, googleAppStatus);
@@ -306,7 +308,7 @@ public final class PrivilegeSettingsPanel {
     private static SwitchMaterial preferenceSwitch(AppCompatActivity activity, FloatSettings fs,
                                                     String title, String subtitle,
                                                     String key, boolean current, Runnable changed) {
-        return AppUi.switchRow(activity, title, subtitle, current, (button, checked) -> {
+        return YViewLayout.switchRow(activity, title, subtitle, current, (button, checked) -> {
             fs.setBoolean(key, checked);
             DiagnosticLog.i(activity, "PRIVILEGE", "setting " + key + "=" + checked);
             if (changed != null) changed.run();
@@ -314,16 +316,16 @@ public final class PrivilegeSettingsPanel {
     }
 
     private static LinearLayout statusBlock(AppCompatActivity activity, String title, TextView status) {
-        LinearLayout block = AppUi.settingBlock(activity);
-        block.addView(AppUi.text(activity, title, 14, false));
+        LinearLayout block = YViewLayout.settingBlock(activity);
+        block.addView(YViewLayout.text(activity, title, 14, false));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.topMargin = AppUi.dp(activity, 4);
+        lp.topMargin = YViewLayout.dp(activity, 4);
         block.addView(status, lp);
         return block;
     }
 
     private static LinearLayout simpleBlock(AppCompatActivity activity, TextView text) {
-        LinearLayout block = AppUi.settingBlock(activity);
+        LinearLayout block = YViewLayout.settingBlock(activity);
         block.addView(text, new LinearLayout.LayoutParams(-1, -2));
         return block;
     }
@@ -333,11 +335,11 @@ public final class PrivilegeSettingsPanel {
         if (status == null) return;
         if (!fs.canUseRoot()) {
             status.setText(R.string.yfloat_priv_root_management_disabled);
-            status.setTextColor(AppUi.textPrimary(activity));
+            status.setTextColor(YViewLayout.textPrimary(activity));
             return;
         }
         status.setText(R.string.yfloat_priv_google_reading);
-        status.setTextColor(AppUi.textPrimary(activity));
+        status.setTextColor(YViewLayout.textPrimary(activity));
         GoogleAppController.queryAsync(activity,
                 result -> applyGoogleResult(activity, status, result));
     }
@@ -356,9 +358,9 @@ public final class PrivilegeSettingsPanel {
                 ? "" : "\n" + result.detail));
         boolean positive = result.state == GoogleAppController.State.STOPPED
                 || result.state == GoogleAppController.State.FROZEN;
-        status.setTextColor(positive ? AppUi.success(activity)
+        status.setTextColor(positive ? YViewLayout.success(activity)
                 : result.state == GoogleAppController.State.UNKNOWN
-                ? AppUi.warning(activity) : AppUi.textPrimary(activity));
+                ? YViewLayout.warning(activity) : YViewLayout.textPrimary(activity));
     }
 
     private static void refresh(AppCompatActivity activity, FloatSettings fs,
@@ -373,7 +375,7 @@ public final class PrivilegeSettingsPanel {
         }
         modeStatus.setText(mode.toString());
         modeStatus.setTextColor(fs.enhancedMode()
-                ? AppUi.success(activity) : AppUi.textPrimary(activity));
+                ? YViewLayout.success(activity) : YViewLayout.textPrimary(activity));
 
         String providerLine = activity.getString(fs.canUseRoot()
                 ? R.string.yfloat_priv_provider_root_allowed
@@ -390,7 +392,7 @@ public final class PrivilegeSettingsPanel {
                     + "\n" + providerLine);
         }
         rootStatus.setTextColor(fs.rootLastGranted()
-                ? AppUi.success(activity) : AppUi.textPrimary(activity));
+                ? YViewLayout.success(activity) : YViewLayout.textPrimary(activity));
     }
 
     private static void refreshLsposed(AppCompatActivity activity, TextView status) {
@@ -403,7 +405,7 @@ public final class PrivilegeSettingsPanel {
                     + "\n" + activity.getString(R.string.yfloat_priv_config_unavailable)
                     + "\n" + activity.getString(R.string.yfloat_priv_system_unknown)
                     + "\n" + detail);
-            status.setTextColor(AppUi.textPrimary(activity));
+            status.setTextColor(YViewLayout.textPrimary(activity));
             return;
         }
 
@@ -452,7 +454,7 @@ public final class PrivilegeSettingsPanel {
                 + "\n" + processLine
                 + detailLine);
         status.setTextColor(PrivilegeManager.lsposedProviderAvailable()
-                ? AppUi.success(activity) : AppUi.textPrimary(activity));
+                ? YViewLayout.success(activity) : YViewLayout.textPrimary(activity));
     }
 
     private static String enabled(AppCompatActivity activity, boolean value) {

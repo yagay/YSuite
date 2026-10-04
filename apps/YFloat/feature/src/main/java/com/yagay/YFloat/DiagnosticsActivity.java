@@ -1,5 +1,7 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewSection;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.net.Uri;
@@ -29,47 +31,47 @@ public final class DiagnosticsActivity extends AppCompatActivity {
         super.onCreate(state);
         fs = new FloatSettings(this);
 
-        LinearLayout root = AppUi.pageRoot(this,
+        LinearLayout root = YViewLayout.pageRoot(this,
                 getString(R.string.yfloat_diag_page_title),
                 getString(R.string.yfloat_diag_page_desc));
 
-        AppUi.Section logging = AppUi.section(this,
+        YViewSection logging = YViewLayout.section(this,
                 getString(R.string.yfloat_diag_log_title),
                 getString(R.string.yfloat_diag_log_desc));
-        SwitchMaterial loggingSwitch = AppUi.switchRow(this,
+        SwitchMaterial loggingSwitch = YViewLayout.switchRow(this,
                 getString(R.string.yfloat_diag_logging),
                 getString(R.string.yfloat_diag_logging_desc),
                 fs.diagnosticLogging(),
                 (button, checked) -> fs.setBoolean(FloatSettings.K_DIAGNOSTIC, checked));
-        AppUi.addRow(logging.body, AppUi.switchContainer(loggingSwitch));
+        YViewLayout.addRow(logging.body, YViewLayout.switchContainer(loggingSwitch));
         addButtonPair(logging.body,
                 button(getString(R.string.yfloat_diag_save), this::exportDiagnostic),
                 button(getString(R.string.yfloat_diag_clear), () -> {
                     DiagnosticLog.clear(this);
                     Toast.makeText(this, R.string.yfloat_diag_cleared, Toast.LENGTH_SHORT).show();
                 }));
-        AppUi.addSection(root, logging);
+        YViewLayout.addSection(root, logging);
 
-        setContentView(AppUi.scrollPage(this, root));
+        setContentView(YViewLayout.scrollPage(this, root));
     }
 
     private MaterialButton button(String label, Runnable action) {
-        MaterialButton button = AppUi.secondaryButton(this, label);
+        MaterialButton button = YViewLayout.secondaryButton(this, label);
         button.setOnClickListener(v -> { if (action != null) action.run(); });
         return button;
     }
 
     private void addButtonPair(LinearLayout parent, MaterialButton left, MaterialButton right) {
-        LinearLayout row = AppUi.buttonRow(this);
+        LinearLayout row = YViewLayout.buttonRow(this);
         LinearLayout.LayoutParams leftLp = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        leftLp.setMarginEnd(AppUi.dp(this, 6));
+        leftLp.setMarginEnd(YViewLayout.dp(this, 6));
         row.addView(left, leftLp);
         LinearLayout.LayoutParams rightLp = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        rightLp.setMarginStart(AppUi.dp(this, 6));
+        rightLp.setMarginStart(YViewLayout.dp(this, 6));
         row.addView(right, rightLp);
-        AppUi.addRow(parent, row);
+        YViewLayout.addRow(parent, row);
     }
 
     private void exportDiagnostic() {

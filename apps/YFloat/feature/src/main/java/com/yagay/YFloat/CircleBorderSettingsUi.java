@@ -1,5 +1,6 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YViewLayout;
 import android.view.Gravity;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
@@ -17,7 +18,7 @@ final class CircleBorderSettingsUi {
     };
 
     static void add(SettingsActivity activity, FloatSettings fs, LinearLayout parent) {
-        SwitchMaterial enabled = AppUi.switchRow(activity,
+        SwitchMaterial enabled = YViewLayout.switchRow(activity,
                 activity.getString(R.string.yfloat_circle_border_show),
                 activity.getString(R.string.yfloat_circle_border_show_desc),
                 fs.circleBorderEnabled(),
@@ -25,7 +26,7 @@ final class CircleBorderSettingsUi {
                     fs.setBoolean(FloatSettings.K_CIRCLE_BORDER_ENABLED, checked);
                     CircleActiveBorderOverlay.refreshStyle(activity);
                 });
-        AppUi.addRow(parent, AppUi.switchContainer(enabled));
+        YViewLayout.addRow(parent, YViewLayout.switchContainer(enabled));
 
         String[] colorLabels = {
                 activity.getString(R.string.yfloat_color_blue_default),
@@ -53,13 +54,13 @@ final class CircleBorderSettingsUi {
         addSpinnerRow(activity, parent,
                 activity.getString(R.string.yfloat_circle_border_color), color);
 
-        LinearLayout block = AppUi.sliderBlock(activity);
+        LinearLayout block = YViewLayout.sliderBlock(activity);
         LinearLayout top = new LinearLayout(activity);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        TextView name = AppUi.text(activity,
+        TextView name = YViewLayout.text(activity,
                 activity.getString(R.string.yfloat_circle_border_width), 14, false);
-        TextView value = AppUi.caption(activity, activity.getString(R.string.yfloat_dimension_dp, fs.circleBorderWidthDp()), 13);
+        TextView value = YViewLayout.caption(activity, activity.getString(R.string.yfloat_dimension_dp, fs.circleBorderWidthDp()), 13);
         value.setGravity(Gravity.END);
         top.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
         top.addView(value, new LinearLayout.LayoutParams(-2, -2));
@@ -79,23 +80,23 @@ final class CircleBorderSettingsUi {
             fs.setInt(FloatSettings.K_CIRCLE_BORDER_WIDTH_DP, dp);
             CircleActiveBorderOverlay.refreshStyle(activity);
         });
-        LinearLayout.LayoutParams sliderLp = new LinearLayout.LayoutParams(-1, AppUi.dp(activity, 34));
-        sliderLp.topMargin = AppUi.dp(activity, -1);
+        LinearLayout.LayoutParams sliderLp = new LinearLayout.LayoutParams(-1, YViewLayout.dp(activity, 34));
+        sliderLp.topMargin = YViewLayout.dp(activity, -1);
         block.addView(width, sliderLp);
-        AppUi.addRow(parent, block);
+        YViewLayout.addRow(parent, block);
     }
 
     private static void addSpinnerRow(SettingsActivity activity, LinearLayout parent,
                                       String label, Spinner spinner) {
-        LinearLayout block = AppUi.settingBlock(activity);
+        LinearLayout block = YViewLayout.settingBlock(activity);
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = AppUi.text(activity, label, 14, false);
+        TextView title = YViewLayout.text(activity, label, 14, false);
         row.addView(title, new LinearLayout.LayoutParams(0, -2, 0.82f));
-        row.addView(spinner, new LinearLayout.LayoutParams(0, AppUi.dp(activity, 48), 1.18f));
+        row.addView(spinner, new LinearLayout.LayoutParams(0, YViewLayout.dp(activity, 48), 1.18f));
         block.addView(row);
-        AppUi.addRow(parent, block);
+        YViewLayout.addRow(parent, block);
     }
 
     private static int indexForColor(int color) {

@@ -1,5 +1,7 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewSection;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -28,7 +30,7 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
     }
 
     private void rebuild() {
-        LinearLayout root = AppUi.pageRoot(this,
+        LinearLayout root = YViewLayout.pageRoot(this,
                 getString(R.string.yfloat_menu_labels_title),
                 getString(R.string.yfloat_menu_labels_desc));
 
@@ -38,12 +40,12 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
         addTargetSection(root, TargetMenuStore.MODE_PROCESS,
                 getString(R.string.yfloat_menu_process_title));
 
-        setContentView(AppUi.scrollPage(this, root));
+        setContentView(YViewLayout.scrollPage(this, root));
     }
 
     private void addCustomSection(LinearLayout root) {
         List<CustomMenuActionStore.Item> items = CustomMenuActionStore.load(this);
-        AppUi.Section section = AppUi.section(this,
+        YViewSection section = YViewLayout.section(this,
                 getString(R.string.yfloat_menu_text_actions_count, items.size()),
                 getString(R.string.yfloat_menu_text_actions_desc));
         if (items.isEmpty()) {
@@ -67,12 +69,12 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
                                 null));
             }
         }
-        AppUi.addSection(root, section);
+        YViewLayout.addSection(root, section);
     }
 
     private void addTargetSection(LinearLayout root, String mode, String title) {
         List<TargetMenuStore.Item> system = discoverTargets(mode);
-        AppUi.Section section = AppUi.section(this,
+        YViewSection section = YViewLayout.section(this,
                 getString(R.string.yfloat_menu_target_count, title, system.size()),
                 getString(R.string.yfloat_menu_target_desc));
 
@@ -107,7 +109,7 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
                                 }));
             }
         }
-        AppUi.addSection(root, section);
+        YViewLayout.addSection(root, section);
     }
 
     private List<TargetMenuStore.Item> discoverTargets(String mode) {
@@ -152,38 +154,38 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
                               String title,
                               String subtitle,
                               Runnable editAction) {
-        LinearLayout row = AppUi.baseRow(this);
+        LinearLayout row = YViewLayout.baseRow(this);
 
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView name = AppUi.text(this, title, 14, false);
+        TextView name = YViewLayout.text(this, title, 14, false);
         name.setSingleLine(true);
         name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         texts.addView(name);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = AppUi.caption(this, subtitle, 11);
+            TextView sub = YViewLayout.caption(this, subtitle, 11);
             sub.setSingleLine(true);
             sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            sub.setPadding(0, AppUi.dp(this, 2), AppUi.dp(this, 8), 0);
+            sub.setPadding(0, YViewLayout.dp(this, 2), YViewLayout.dp(this, 8), 0);
             texts.addView(sub);
         }
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton edit = AppUi.compactButton(this,
+        MaterialButton edit = YViewLayout.compactButton(this,
                 getString(R.string.yfloat_menu_edit));
         edit.setOnClickListener(v -> {
             if (editAction != null) editAction.run();
         });
         row.addView(edit, new LinearLayout.LayoutParams(-2, -2));
-        AppUi.addRow(parent, row);
+        YViewLayout.addRow(parent, row);
     }
 
     private void addEmpty(LinearLayout parent, String message) {
-        LinearLayout row = AppUi.baseRow(this);
-        TextView empty = AppUi.caption(this, message, 13);
+        LinearLayout row = YViewLayout.baseRow(this);
+        TextView empty = YViewLayout.caption(this, message, 13);
         row.addView(empty, new LinearLayout.LayoutParams(-1, -2));
-        AppUi.addRow(parent, row);
+        YViewLayout.addRow(parent, row);
     }
 
     private void showRenameDialog(String current,
@@ -191,21 +193,21 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
                                   java.util.function.Consumer<String> onSave,
                                   Runnable onReset) {
         EditText input = new EditText(this);
-        AppUi.styleInput(this, input);
+        YViewLayout.styleInput(this, input);
         input.setSingleLine(true);
         input.setText(current == null ? "" : current);
         input.setSelectAllOnFocus(true);
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(AppUi.dp(this, 20), AppUi.dp(this, 4),
-                AppUi.dp(this, 20), 0);
+        box.setPadding(YViewLayout.dp(this, 20), YViewLayout.dp(this, 4),
+                YViewLayout.dp(this, 20), 0);
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
         if (systemLabel != null && !systemLabel.isBlank()) {
-            TextView system = AppUi.caption(this,
+            TextView system = YViewLayout.caption(this,
                     getString(R.string.yfloat_menu_system_name, systemLabel), 11);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-            lp.topMargin = AppUi.dp(this, 6);
+            lp.topMargin = YViewLayout.dp(this, 6);
             box.addView(system, lp);
         }
 

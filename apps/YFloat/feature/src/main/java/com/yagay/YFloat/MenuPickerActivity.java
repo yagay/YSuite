@@ -1,5 +1,7 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewSection;
 import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.Context;
@@ -77,20 +79,20 @@ public final class MenuPickerActivity extends AppCompatActivity {
         LinearLayout root = page(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bbd8b45f263b),
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6e3a792bba29), null);
 
-        AppUi.Section add = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e9d4ef0e0f3),
+        YViewSection add = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e9d4ef0e0f3),
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d3967f250042) );
-        AppUi.addRow(add.body, AppUi.navRow(this,
+        YViewLayout.addRow(add.body, YViewLayout.navRow(this,
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b3221af51e30),
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_00fc4ee7dba2),
                 this::showCustomApps));
-        AppUi.addRow(add.body, AppUi.navRow(this,
+        YViewLayout.addRow(add.body, YViewLayout.navRow(this,
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_cc4bc628204a),
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_23d869f51ca4),
                 this::showCustomIntentTypes));
-        AppUi.addSection(root, add);
+        YViewLayout.addSection(root, add);
 
         List<CustomMenuActionStore.Item> items = CustomMenuActionStore.load(this);
-        AppUi.Section current = AppUi.section(this,
+        YViewSection current = YViewLayout.section(this,
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_37e04e11cd7e) + items.size() + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_56891917dcd7),
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f2d0c5283f9b) );
         if (items.isEmpty()) {
@@ -100,7 +102,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
             for (int i = 0; i < items.size(); i++) {
                 CustomMenuActionStore.Item item = items.get(i);
                 final int index = i;
-                AppUi.addRow(current.body, sortableRow(
+                YViewLayout.addRow(current.body, sortableRow(
                         item.id,
                         item.label,
                         CustomMenuActionStore.typeLabel(item.type),
@@ -121,7 +123,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                         }));
             }
         }
-        AppUi.addSection(root, current);
+        YViewLayout.addSection(root, current);
         show(root);
     }
 
@@ -158,11 +160,11 @@ public final class MenuPickerActivity extends AppCompatActivity {
         apps.sort(Comparator.comparing(this::appLabel, String.CASE_INSENSITIVE_ORDER));
 
         final List<ApplicationInfo> appList = apps;
-        AppUi.Section list = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca), null);
+        YViewSection list = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca), null);
         renderCustomApps(list.body, appList, "");
         addSearchField(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_48611beed801), query ->
                 renderCustomApps(list.body, appList, query));
-        AppUi.addSection(root, list);
+        YViewLayout.addSection(root, list);
         show(root);
     }
 
@@ -203,13 +205,13 @@ public final class MenuPickerActivity extends AppCompatActivity {
             }
         } catch (Throwable ignored) {}
 
-        AppUi.Section entries = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3dc5e4ed0792) + all.size() + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_4380927eaa54), null);
+        YViewSection entries = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3dc5e4ed0792) + all.size() + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_4380927eaa54), null);
         if (all.isEmpty()) {
             addEmpty(entries.body, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_19b2e463a253));
         } else {
-            for (Discovered d : all) AppUi.addRow(entries.body, customDiscoveredRow(d));
+            for (Discovered d : all) YViewLayout.addRow(entries.body, customDiscoveredRow(d));
         }
-        AppUi.addSection(root, entries);
+        YViewLayout.addSection(root, entries);
         show(root);
     }
 
@@ -219,12 +221,12 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 this::showCustomHome);
         addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d35e0660dc9b));
 
-        AppUi.Section types = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b522870a5b41), null);
+        YViewSection types = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b522870a5b41), null);
         for (IntentTypeCatalog.Spec spec : IntentTypeCatalog.all()) {
-            AppUi.addRow(types.body, actionRow(spec.title, spec.description, null,
+            YViewLayout.addRow(types.body, actionRow(spec.title, spec.description, null,
                     () -> showCustomHandlersForType(spec), null));
         }
-        AppUi.addSection(root, types);
+        YViewLayout.addSection(root, types);
         show(root);
     }
 
@@ -238,23 +240,23 @@ public final class MenuPickerActivity extends AppCompatActivity {
         handlers.removeIf(ri -> ri.activityInfo == null || getPackageName().equals(ri.activityInfo.packageName));
         handlers.sort(Comparator.comparing(this::resolveAppThenActivityLabel, String.CASE_INSENSITIVE_ORDER));
 
-        AppUi.Section entries = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f698355e1d6c), null);
+        YViewSection entries = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f698355e1d6c), null);
         renderIntentHandlers(entries.body, handlers, spec, "");
         addSearchField(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c7122a703331), query ->
                 renderIntentHandlers(entries.body, handlers, spec, query));
-        AppUi.addSection(root, entries);
+        YViewLayout.addSection(root, entries);
         show(root);
     }
 
     private android.widget.EditText addSearchField(LinearLayout root,
                                                    String hint,
                                                    java.util.function.Consumer<String> onQuery) {
-        LinearLayout box = AppUi.settingBlock(this);
-        box.setPadding(AppUi.dp(this, 2), AppUi.dp(this, 2),
-                AppUi.dp(this, 2), AppUi.dp(this, 7));
+        LinearLayout box = YViewLayout.settingBlock(this);
+        box.setPadding(YViewLayout.dp(this, 2), YViewLayout.dp(this, 2),
+                YViewLayout.dp(this, 2), YViewLayout.dp(this, 7));
 
         android.widget.EditText input = new android.widget.EditText(this);
-        AppUi.styleInput(this, input);
+        YViewLayout.styleInput(this, input);
         input.setSingleLine(true);
         input.setHint(hint);
         input.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
@@ -262,7 +264,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = AppUi.dp(this, 3);
+        lp.bottomMargin = YViewLayout.dp(this, 3);
         root.addView(box, lp);
 
         input.addTextChangedListener(new android.text.TextWatcher() {
@@ -286,7 +288,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
             if (!matchesSearch(query, label, pkg)) continue;
             Drawable icon = null;
             try { icon = app.loadIcon(pm()); } catch (Throwable ignored) {}
-            AppUi.addRow(body,
+            YViewLayout.addRow(body,
                     actionRow(label, pkg, icon, () -> showCustomAppActions(pkg, label), null));
             shown++;
         }
@@ -315,7 +317,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                     appName + ": " + spec.title,
                     activityName, appIcon(ai.packageName),
                     ai.packageName, ai.name, spec.type);
-            AppUi.addRow(body, customDiscoveredRow(d));
+            YViewLayout.addRow(body, customDiscoveredRow(d));
             shown++;
         }
         if (shown == 0) {
@@ -338,7 +340,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                     item.packageName,
                     item.className,
                     shortClass(item.className))) continue;
-            AppUi.addRow(body,
+            YViewLayout.addRow(body,
                     actionRow(item.label, shortClass(item.className), targetIcon(item), () -> {
                         saveCurrentTargetOrder(current);
                         if (TargetMenuStore.add(this, targetMode, item)) {
@@ -394,15 +396,15 @@ public final class MenuPickerActivity extends AppCompatActivity {
                         : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a8f164a758a8),
                 null);
 
-        AppUi.Section tools = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1e1616217b08), null);
+        YViewSection tools = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1e1616217b08), null);
         LinearLayout buttons = new LinearLayout(this);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setPadding(AppUi.dp(this, 14), AppUi.dp(this, 8),
-                AppUi.dp(this, 14), AppUi.dp(this, 8));
-        MaterialButton add = AppUi.secondaryButton(this,
+        buttons.setPadding(YViewLayout.dp(this, 14), YViewLayout.dp(this, 8),
+                YViewLayout.dp(this, 14), YViewLayout.dp(this, 8));
+        MaterialButton add = YViewLayout.secondaryButton(this,
                 isShareTarget() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c));
         add.setOnClickListener(v -> showTargetAdd());
-        MaterialButton reset = AppUi.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_5be1c4cbf6e8));
+        MaterialButton reset = YViewLayout.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_5be1c4cbf6e8));
         reset.setEnabled(customized);
         reset.setOnClickListener(v -> {
             TargetMenuStore.reset(this, targetMode);
@@ -410,15 +412,15 @@ public final class MenuPickerActivity extends AppCompatActivity {
             showTargetManager();
         });
         LinearLayout.LayoutParams aLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        aLp.setMarginEnd(AppUi.dp(this, 6));
+        aLp.setMarginEnd(YViewLayout.dp(this, 6));
         buttons.addView(add, aLp);
         LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        rLp.setMarginStart(AppUi.dp(this, 6));
+        rLp.setMarginStart(YViewLayout.dp(this, 6));
         buttons.addView(reset, rLp);
-        AppUi.addRow(tools.body, buttons);
-        AppUi.addSection(root, tools);
+        YViewLayout.addRow(tools.body, buttons);
+        YViewLayout.addSection(root, tools);
 
-        AppUi.Section current = AppUi.section(this,
+        YViewSection current = YViewLayout.section(this,
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a3c88e3881d7) + items.size() + com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_56891917dcd7),
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b12aa75c57c1) );
         if (items.isEmpty()) {
@@ -428,7 +430,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
             for (int i = 0; i < items.size(); i++) {
                 TargetMenuStore.Item item = items.get(i);
                 final int index = i;
-                AppUi.addRow(current.body, sortableRow(
+                YViewLayout.addRow(current.body, sortableRow(
                         item.key(),
                         item.label,
                         shortClass(item.className),
@@ -451,7 +453,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                         }));
             }
         }
-        AppUi.addSection(root, current);
+        YViewLayout.addSection(root, current);
         show(root);
     }
 
@@ -471,11 +473,11 @@ public final class MenuPickerActivity extends AppCompatActivity {
             if (!selected.contains(item.key())) available.add(item);
         }
 
-        AppUi.Section list = AppUi.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fb9f01be58cf), null);
+        YViewSection list = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fb9f01be58cf), null);
         renderTargetAdd(list.body, available, current, "");
         addSearchField(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_7721bc688162), query ->
                 renderTargetAdd(list.body, available, current, query));
-        AppUi.addSection(root, list);
+        YViewLayout.addSection(root, list);
         show(root);
     }
 
@@ -548,9 +550,9 @@ public final class MenuPickerActivity extends AppCompatActivity {
                              Runnable moveUp,
                              Runnable moveDown,
                              Runnable remove) {
-        LinearLayout row = AppUi.baseRow(this);
-        row.setPadding(AppUi.dp(this, 6), AppUi.dp(this, 7),
-                AppUi.dp(this, 6), AppUi.dp(this, 7));
+        LinearLayout row = YViewLayout.baseRow(this);
+        row.setPadding(YViewLayout.dp(this, 6), YViewLayout.dp(this, 7),
+                YViewLayout.dp(this, 6), YViewLayout.dp(this, 7));
 
         ImageView handle = iconButton(
                 R.drawable.yfloat_ic_drag_handle,
@@ -568,11 +570,11 @@ public final class MenuPickerActivity extends AppCompatActivity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView titleView = AppUi.text(this, title, 14, false);
+        TextView titleView = YViewLayout.text(this, title, 14, false);
         titleView.setSingleLine(true);
         texts.addView(titleView);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = AppUi.caption(this, subtitle, 11);
+            TextView sub = YViewLayout.caption(this, subtitle, 11);
             sub.setSingleLine(true);
             sub.setPadding(0, dp(2), 0, 0);
             texts.addView(sub);
@@ -607,21 +609,21 @@ public final class MenuPickerActivity extends AppCompatActivity {
                            Drawable icon,
                            Runnable action,
                            String sideText) {
-        LinearLayout row = AppUi.baseRow(this);
+        LinearLayout row = YViewLayout.baseRow(this);
         row.setClickable(true);
         row.setFocusable(true);
-        row.setBackground(AppUi.rowBackground(this));
+        row.setBackground(YViewLayout.rowBackground(this));
 
         addIcon(row, icon, 36, 12);
 
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView a = AppUi.text(this, title, 15, false);
+        TextView a = YViewLayout.text(this, title, 15, false);
         a.setSingleLine(true);
         texts.addView(a);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView b = AppUi.caption(this, subtitle, 12);
+            TextView b = YViewLayout.caption(this, subtitle, 12);
             b.setSingleLine(true);
             b.setPadding(0, dp(2), dp(8), 0);
             texts.addView(b);
@@ -629,7 +631,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
 
         if (sideText != null) {
-            MaterialButton side = AppUi.compactButton(this, sideText);
+            MaterialButton side = YViewLayout.compactButton(this, sideText);
             side.setOnClickListener(v -> { if (action != null) action.run(); });
             row.addView(side, new LinearLayout.LayoutParams(-2, -2));
         } else {
@@ -652,24 +654,24 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private void addEmpty(LinearLayout parent, String message) {
-        LinearLayout row = AppUi.baseRow(this);
-        TextView empty = AppUi.caption(this, message, 13);
+        LinearLayout row = YViewLayout.baseRow(this);
+        TextView empty = YViewLayout.caption(this, message, 13);
         empty.setGravity(Gravity.CENTER_VERTICAL);
         row.addView(empty, new LinearLayout.LayoutParams(-1, -2));
-        AppUi.addRow(parent, row);
+        YViewLayout.addRow(parent, row);
     }
 
     private LinearLayout page(String title, String subtitle, Runnable backAction) {
         localBackAction = backAction;
-        return AppUi.pageRoot(this, title, subtitle);
+        return YViewLayout.pageRoot(this, title, subtitle);
     }
 
     private void show(LinearLayout root) {
-        setContentView(AppUi.scrollPage(this, root));
+        setContentView(YViewLayout.scrollPage(this, root));
     }
 
     private void addLocalBack(LinearLayout root, String label) {
-        MaterialButton back = AppUi.secondaryButton(this, label);
+        MaterialButton back = YViewLayout.secondaryButton(this, label);
         back.setIconResource(R.drawable.yfloat_ic_arrow_back);
         back.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
         back.setIconPadding(dp(8));
@@ -678,7 +680,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
             if (action != null) action.run();
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = AppUi.dp(this, 12);
+        lp.bottomMargin = YViewLayout.dp(this, 12);
         root.addView(back, lp);
     }
 
@@ -701,7 +703,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         view.setContentDescription(contentDescription);
         view.setPadding(dp(8), dp(8), dp(8), dp(8));
         view.setAlpha(enabled ? 1f : 0.38f);
-        view.setColorFilter(enabled ? AppUi.textPrimary(this) : AppUi.textSecondary(this));
+        view.setColorFilter(enabled ? YViewLayout.textPrimary(this) : YViewLayout.textSecondary(this));
         android.util.TypedValue out = new android.util.TypedValue();
         if (getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, out, true)) {
             view.setBackgroundResource(out.resourceId);
@@ -710,13 +712,13 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private TextView sortButton(String value, boolean enabled) {
-        TextView tv = AppUi.text(this, value, 19, false);
+        TextView tv = YViewLayout.text(this, value, 19, false);
         tv.setGravity(Gravity.CENTER);
         tv.setEnabled(enabled);
         tv.setAlpha(enabled ? 1f : .25f);
         tv.setClickable(enabled);
         tv.setFocusable(enabled);
-        tv.setBackground(AppUi.rowBackground(this));
+        tv.setBackground(YViewLayout.rowBackground(this));
         return tv;
     }
 
@@ -797,7 +799,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private int dp(int value) {
-        return AppUi.dp(this, value);
+        return YViewLayout.dp(this, value);
     }
 
     private void handleBackNavigation() {
