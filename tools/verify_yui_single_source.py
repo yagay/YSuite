@@ -132,6 +132,23 @@ def main() -> None:
     if offenders:
         fail("feature-local UI systems are forbidden; use libs/yui instead: " + ", ".join(sorted(offenders)))
 
+    local_color_files = sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in APPS.glob("*/feature/src/main/res/values*/colors.xml")
+        if path.is_file()
+        and path.relative_to(ROOT).as_posix() != "apps/YFloat/feature/src/main/res/values/colors.xml"
+    )
+    if local_color_files:
+        fail(
+            "feature-local color palettes are forbidden; use Theme.YUI/YUI semantic tokens: "
+            + ", ".join(local_color_files)
+        )
+    yfloat_colors = ROOT / "apps/YFloat/feature/src/main/res/values/colors.xml"
+    if yfloat_colors.is_file():
+        color_source = yfloat_colors.read_text(encoding="utf-8", errors="replace")
+        if "transparent" not in color_source or "#" in color_source.replace("#00000000", ""):
+            fail("YFloat colors.xml may only keep the specialized transparent window color")
+
     page_layouts = sorted(
         str(path.relative_to(ROOT))
         for path in APPS.glob("*/feature/src/main/res/layout/activity_*.xml")
