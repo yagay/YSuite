@@ -11,9 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 # so consuming the shared card/section vocabulary is sufficient ownership for those files.
 SOURCE_MARKERS = (
     "YComposeActivity",
-    "YFeatureScaffold(",
-    "YFeatureCustomScaffold(",
     "YPageScaffold(",
+    "YSection(",
     "YSettingsScaffold(",
     "YListScaffold(",
     "YManagerScaffold(",

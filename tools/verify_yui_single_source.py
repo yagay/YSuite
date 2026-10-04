@@ -172,6 +172,22 @@ def main() -> None:
             if marker not in source:
                 fail(f"{module} normal screen must consume shared YUI marker {marker!r}")
 
+    legacy_api_offenders: list[str] = []
+    legacy_apis = (
+        "YFeatureScaffold(", "YFeatureCustomScaffold(", "YFeatureCard(", "YFeatureSectionHeader(",
+        "YFeatureEmpty(", "YFeatureStat(", "YStatusRow(", "YSettingSwitch(", "YActionRow(", "YFeatureList(",
+    )
+    for root in (APPS, ROOT / "suite"):
+        for path in root.rglob("*"):
+            if not path.is_file() or path.suffix not in {".kt", ".java"} or "/build/" in path.as_posix():
+                continue
+            source = path.read_text(encoding="utf-8", errors="replace")
+            used = [api for api in legacy_apis if api in source]
+            if used:
+                legacy_api_offenders.append(f"{path.relative_to(ROOT)}: {', '.join(used)}")
+    if legacy_api_offenders:
+        fail("legacy YUI APIs are forbidden in feature/host sources: " + "; ".join(sorted(legacy_api_offenders)))
+
     raw_navigation: list[str] = []
     for path in APPS.glob("*/feature/src/main/**/*"):
         if not path.is_file() or path.suffix not in {".kt", ".java"}:

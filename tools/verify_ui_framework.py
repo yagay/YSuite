@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-YUI_COMPOSE = ROOT / "libs/yui/src/main/java/com/yagay/yui/YFeatureFramework.kt"
+YUI_COMPOSE = ROOT / "libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt"
 YUI_VIEW = ROOT / "libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt"
 YUI_RES = ROOT / "libs/yui/src/main/res/values/yui.xml"
 YSUITE = ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt"
@@ -84,15 +84,15 @@ def main() -> None:
     yentry_rows = text(YENTRY_ROWS)
 
     for marker in (
-        "fun YFeatureScaffold(",
-        "fun YFeatureCustomScaffold(",
-        "fun YFeatureSectionHeader(",
-        "fun YFeatureCard(",
-        "fun YFeatureEmpty(",
-        "fun YFeatureStat(",
-        "fun YStatusRow(",
-        "fun YSettingSwitch(",
-        "fun YSearchField(",
+        "fun YPageScaffold(",
+        "fun YSectionHeader(",
+        "fun YSection(",
+        "fun YEmptyMessage(",
+        "fun YMetricCard(",
+        "fun YStatusLine(",
+        "fun YSwitchItem(",
+        "fun YActionGroup(",
+        "fun YHorizontalActions(",
     ):
         require(compose, marker, "Compose YUI framework")
 
@@ -127,7 +127,7 @@ def main() -> None:
 
     require(ysuite, "YDashboardScaffold(", "YSuite main screen")
     require(ysuite, "YPageList(", "YSuite main screen")
-    require(ysuite, "YFeatureCard(", "YSuite main screen")
+    require(ysuite, "YSection(", "YSuite main screen")
     require(ypower, "YViewLayout.install(", "YPower main screen")
     require(ypower, "YViewLayout.card(", "YPower main screen")
     require(yminiguard, "YViewLayout.install(", "YMiniGuard main screen")
@@ -142,9 +142,9 @@ def main() -> None:
 
     require(ynfc_screen, "YManagerScaffold(", "YNFC main screen")
     require(ynfc_screen, "YPageList(", "YNFC main screen")
-    require(ynfc_screen, "YFeatureEmpty(", "YNFC main screen")
-    require(ynfc_components, "YFeatureCard(", "YNFC content components")
-    require(ynfc_components, "YStatusRow(", "YNFC content components")
+    require(ynfc_screen, "YEmptyMessage(", "YNFC main screen")
+    require(ynfc_components, "YSection(", "YNFC content components")
+    require(ynfc_components, "YStatusLine(", "YNFC content components")
 
     require(ytask, "YManagerScaffold(", "YTaskManager main screen")
     require(ytask, "YAppShell(", "YTaskManager main navigation")
@@ -154,8 +154,8 @@ def main() -> None:
     require(ytask, "YFilterBar(", "YTaskManager sort filter")
     require(ytask, "YListItem(", "YTaskManager process rows")
     require(ytask, "YPageList(", "YTaskManager resource/network pages")
-    require(ytask, "YFeatureEmpty(", "YTaskManager empty states")
-    require(ytask, "YStatusRow(", "YTaskManager resource metrics")
+    require(ytask, "YEmptyMessage(", "YTaskManager empty states")
+    require(ytask, "YStatusLine(", "YTaskManager resource metrics")
 
     require(ydiag, "YComposeActivity", "YDiag activity")
     require(ydiag, "YPageScaffold(", "YDiag main screen")
@@ -165,8 +165,8 @@ def main() -> None:
     require(ydiag, "YListItem(", "YDiag list rows")
     require(ydiag, "YFilterBar(", "YDiag filters")
     require(ydiag, "YCheckboxItem(", "YDiag app picker rows")
-    require(ydiag, "YFeatureStat(", "YDiag monitor stats")
-    require(ydiag, "YFeatureEmpty(", "YDiag empty states")
+    require(ydiag, "YMetricCard(", "YDiag monitor stats")
+    require(ydiag, "YEmptyMessage(", "YDiag empty states")
     require(ydiag, "YSearchField(", "YDiag app picker")
 
     require(ynotify, "YViewLayout.installPage(", "YNotify main screen")
@@ -203,10 +203,10 @@ def main() -> None:
     require(yentry_scope, "YListItem(", "YEntryCleaner scope screen")
     require(yentry_scope, "YStatusItem(", "YEntryCleaner scope screen")
     require(yentry_scope, "YNotice(", "YEntryCleaner scope screen")
-    require(yentry_root, "YFeatureSectionHeader(", "YEntryCleaner component screen")
-    require(yentry_root, "YFeatureCard(", "YEntryCleaner component screen")
-    require(yentry_root, "YStatusRow(", "YEntryCleaner component screen")
-    require(yentry_root, "YFeatureEmpty(", "YEntryCleaner component screen")
+    require(yentry_root, "YSectionHeader(", "YEntryCleaner component screen")
+    require(yentry_root, "YSection(", "YEntryCleaner component screen")
+    require(yentry_root, "YStatusLine(", "YEntryCleaner component screen")
+    require(yentry_root, "YEmptyMessage(", "YEntryCleaner component screen")
 
     # Rules/Priority keep their specialized interaction surfaces, but normal summary/status/empty
     # presentation must stay on YUI. The interaction markers below intentionally protect drag,
@@ -215,9 +215,9 @@ def main() -> None:
         (yentry_tabs, "YEntryCleaner RulesTab"),
         (yentry_priority, "YEntryCleaner PriorityDialog"),
     ):
-        require(source, "YFeatureCard(", label)
-        require(source, "YStatusRow(", label)
-        require(source, "YFeatureEmpty(", label)
+        require(source, "YSection(", label)
+        require(source, "YStatusLine(", label)
+        require(source, "YEmptyMessage(", label)
     require(yentry_tabs, "AppRow(", "YEntryCleaner RulesTab app rows")
     require(yentry_tabs, "ListControls(", "YEntryCleaner RulesTab filters")
     require(yentry_rows, "bulkLockSwipe", "YEntryCleaner RulesTab lock interaction")
@@ -239,7 +239,7 @@ def main() -> None:
     # Specialized diagnostic text highlighting in YPower Diagnostic and YNFC's log console may
     # keep semantic high-contrast colors. Normal cards/status/chrome remain YUI-owned.
     print(
-        "ui-framework: OK compose=YFeature* view=YViewPage/YViewLayout page-xml=forbidden "
+        "ui-framework: OK compose=YUI-v2 view=YViewPage/YViewLayout page-xml=forbidden "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
         "secondary=YParam.AppDetail,YPower.AppDetail,YPower.RecommendedApps,YPower.Diagnostic,"
         "YNotify.AppHistory,YNotify.EventDetail,YEntryCleaner.Scope,YEntryCleaner.Components,"
