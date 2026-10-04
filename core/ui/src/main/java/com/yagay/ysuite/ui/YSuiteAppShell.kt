@@ -10,13 +10,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -42,22 +42,20 @@ fun YSuiteHostNavigationButton() {
     val navigation = LocalYSuiteHostNavigation.current
     when (navigation.icon) {
         YSuiteHostNavigationIcon.None -> Unit
-        YSuiteHostNavigationIcon.Menu -> {
+        YSuiteHostNavigationIcon.Menu ->
             IconButton(onClick = navigation.onClick) {
                 Icon(
                     imageVector = Icons.Default.Menu,
                     contentDescription = stringResource(R.string.common_menu),
                 )
             }
-        }
-        YSuiteHostNavigationIcon.Back -> {
+        YSuiteHostNavigationIcon.Back ->
             IconButton(onClick = navigation.onClick) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.common_back),
                 )
             }
-        }
     }
 }
 
@@ -69,6 +67,10 @@ fun YSuiteStandardTopBar(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
         title = {
             Column {
                 Text(
@@ -105,17 +107,17 @@ fun YSuiteAppShell(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             when {
                 topBar != null -> topBar()
-                title != null -> {
+                title != null ->
                     YSuiteStandardTopBar(
                         title = title,
                         subtitle = subtitle,
                         actions = actions,
                     )
-                }
             }
         },
         bottomBar = bottomBar,
