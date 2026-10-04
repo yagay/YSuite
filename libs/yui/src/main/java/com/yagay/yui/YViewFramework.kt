@@ -595,6 +595,21 @@ object YViewLayout {
         background = YView.fieldBackground(context)
     }
 
+    @JvmStatic
+    @JvmOverloads
+    fun textInput(
+        context: Context,
+        hint: String? = null,
+        value: String? = null,
+        singleLine: Boolean = true,
+    ): AppCompatEditText = AppCompatEditText(context).apply {
+        this.hint = hint
+        setText(value.orEmpty())
+        isSingleLine = singleLine
+        minHeight = YView.dimen(context, R.dimen.yui_touch_target)
+        styleInput(context, this)
+    }
+
     @JvmStatic fun primaryButton(context: Context, text: String): MaterialButton =
         MaterialButton(context).apply {
             this.text = text
