@@ -1,17 +1,25 @@
 package com.yagay.ysuite.feature.system
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yagay.ysuite.designsystem.component.YSuiteDataRow
 import com.yagay.ysuite.designsystem.component.YSuiteActionButton
+import com.yagay.ysuite.designsystem.component.YSuiteDataRow
+import com.yagay.ysuite.designsystem.component.YSuiteItemKind
+import com.yagay.ysuite.designsystem.component.YSuiteMetricTile
 import com.yagay.ysuite.designsystem.component.YSuitePanel
 import com.yagay.ysuite.designsystem.component.YSuiteStatusPill
 import com.yagay.ysuite.designsystem.component.YSuiteStatusTone
+import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.diagnostics.DiagnosticCenter
 import com.yagay.ysuite.diagnostics.DiagnosticFinding
 import com.yagay.ysuite.diagnostics.DiagnosticStatus
@@ -26,6 +34,7 @@ import com.yagay.ysuite.platform.api.CapabilityKind
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.PlatformCapabilityMonitor
 import com.yagay.ysuite.ui.YSuiteDashboardScreen
+import com.yagay.ysuite.ui.YSuiteWidthClass
 import com.yagay.ysuite.ui.rememberYSuitePermissionRequester
 
 @Composable
@@ -55,39 +64,72 @@ fun SystemFeatureScreen(
     YSuiteDashboardScreen(
         title = stringResource(R.string.system_title),
         subtitle = stringResource(R.string.system_summary),
-    ) { _ ->
-        YSuitePanel(
-            title = stringResource(R.string.system_platform),
-        ) {
-            CapabilityRow(
-                label = stringResource(R.string.system_root),
-                status = state.capabilities?.get(CapabilityKind.Root),
-            )
-            CapabilityRow(
-                label = stringResource(R.string.system_hooks),
-                status = state.capabilities?.get(CapabilityKind.Hooks),
-            )
-            YSuiteActionButton(
-                text = if (state.refreshing) {
+    ) { widthClass ->
+        val rootStatus =
+            state.capabilities?.get(CapabilityKind.Root)
+                ?: CapabilityStatus.Unavailable
+        val hookStatus =
+            state.capabilities?.get(CapabilityKind.Hooks)
+                ?: CapabilityStatus.Unavailable
+
+        if (widthClass == YSuiteWidthClass.Compact) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+            ) {
+                YSuiteMetricTile(
+                    label = stringResource(R.string.system_root),
+                    value = capabilityStatusText(rootStatus),
+                    tone = capabilityStatusTone(rootStatus),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                YSuiteMetricTile(
+                    label = stringResource(R.string.system_hooks),
+                    value = capabilityStatusText(hookStatus),
+                    tone = capabilityStatusTone(hookStatus),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
+            ) {
+                YSuiteMetricTile(
+                    label = stringResource(R.string.system_root),
+                    value = capabilityStatusText(rootStatus),
+                    tone = capabilityStatusTone(rootStatus),
+                    modifier = Modifier.weight(1f),
+                )
+                YSuiteMetricTile(
+                    label = stringResource(R.string.system_hooks),
+                    value = capabilityStatusText(hookStatus),
+                    tone = capabilityStatusTone(hookStatus),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        YSuiteActionButton(
+            text =
+                if (state.refreshing) {
                     stringResource(R.string.system_refreshing)
                 } else {
                     stringResource(R.string.system_refresh)
                 },
-                onClick = model::refresh,
-            )
-        }
+            onClick = model::refresh,
+        )
 
-        PermissionSection(
+        PermissionPanel(
             requirements = state.permissions,
             result = state.permissionResult,
             onRequest = requester::launch,
         )
 
-        DiagnosticSection(
+        DiagnosticPanel(
             findings = state.diagnostics,
         )
 
-        LogSection(
+        LogPanel(
             records = state.logs,
             onClear = model::clearLogs,
         )
@@ -95,24 +137,7 @@ fun SystemFeatureScreen(
 }
 
 @Composable
-private fun CapabilityRow(
-    label: String,
-    status: CapabilityStatus?,
-) {
-    val resolved = status ?: CapabilityStatus.Unavailable
-    YSuiteDataRow(
-        title = label,
-        trailing = {
-            YSuiteStatusPill(
-                text = capabilityStatusText(resolved),
-                tone = capabilityStatusTone(resolved),
-            )
-        },
-    )
-}
-
-@Composable
-private fun PermissionSection(
+private fun PermissionPanel(
     requirements: List<PermissionRequirement>,
     result: PermissionResult,
     onRequest: (List<PermissionRequirement>) -> Unit,
@@ -121,17 +146,18 @@ private fun PermissionSection(
         title = stringResource(R.string.system_permissions),
     ) {
         if (requirements.isEmpty()) {
-            val emptyTitle =
-                stringResource(R.string.system_permissions_empty)
-            YSuiteDataRow(title = emptyTitle)
+            YSuiteDataRow(
+                title = stringResource(R.string.system_permissions_empty),
+                kind = YSuiteItemKind.Permission,
+            )
         } else {
             requirements.forEach { requirement ->
-                val status = result.statuses[requirement.permission]
-                    ?: PermissionStatus.Denied
-                val permissionName =
-                    requirement.permission.substringAfterLast('.')
+                val status =
+                    result.statuses[requirement.permission]
+                        ?: PermissionStatus.Denied
                 YSuiteDataRow(
-                    title = permissionName,
+                    title = requirement.permission.substringAfterLast('.'),
+                    kind = YSuiteItemKind.Permission,
                     trailing = {
                         YSuiteStatusPill(
                             text = permissionStatusText(status),
@@ -142,8 +168,7 @@ private fun PermissionSection(
             }
 
             val denied = requirements.filter {
-                result.statuses[it.permission] !=
-                    PermissionStatus.Granted
+                result.statuses[it.permission] != PermissionStatus.Granted
             }
             if (denied.isNotEmpty()) {
                 YSuiteActionButton(
@@ -158,31 +183,27 @@ private fun PermissionSection(
 }
 
 @Composable
-private fun DiagnosticSection(
+private fun DiagnosticPanel(
     findings: List<DiagnosticFinding>,
 ) {
     YSuitePanel(
         title = stringResource(R.string.system_diagnostics),
     ) {
         if (findings.isEmpty()) {
-            val emptyTitle =
-                stringResource(R.string.system_diagnostics_empty)
-            YSuiteDataRow(title = emptyTitle)
+            YSuiteDataRow(
+                title = stringResource(R.string.system_diagnostics_empty),
+                kind = YSuiteItemKind.Info,
+            )
         } else {
             findings.forEach { finding ->
-                val findingTitle = finding.id
-                val findingSubtitle = finding.owner
                 YSuiteDataRow(
-                    title = findingTitle,
-                    subtitle = findingSubtitle,
+                    title = finding.id,
+                    subtitle = finding.owner,
+                    kind = YSuiteItemKind.Info,
                     trailing = {
                         YSuiteStatusPill(
-                            text = diagnosticStatusText(
-                                finding.status,
-                            ),
-                            tone = diagnosticStatusTone(
-                                finding.status,
-                            ),
+                            text = diagnosticStatusText(finding.status),
+                            tone = diagnosticStatusTone(finding.status),
                         )
                     },
                 )
@@ -192,7 +213,7 @@ private fun DiagnosticSection(
 }
 
 @Composable
-private fun LogSection(
+private fun LogPanel(
     records: List<com.yagay.ysuite.logging.api.LogRecord>,
     onClear: () -> Unit,
 ) {
@@ -200,22 +221,20 @@ private fun LogSection(
         title = stringResource(R.string.system_logs),
     ) {
         if (records.isEmpty()) {
-            val emptyTitle =
-                stringResource(R.string.system_logs_empty)
-            YSuiteDataRow(title = emptyTitle)
+            YSuiteDataRow(
+                title = stringResource(R.string.system_logs_empty),
+                kind = YSuiteItemKind.Log,
+            )
         } else {
-            records.asReversed().forEach { record ->
-                val logTitle =
-                    record.level.name + " · " + record.tag
+            records.asReversed().take(20).forEach { record ->
                 YSuiteDataRow(
-                    title = logTitle,
+                    title = record.level.name + " · " + record.tag,
                     subtitle = record.message,
+                    kind = YSuiteItemKind.Log,
                 )
             }
             YSuiteActionButton(
-                text = stringResource(
-                    R.string.system_clear_logs,
-                ),
+                text = stringResource(R.string.system_clear_logs),
                 onClick = onClear,
             )
         }
@@ -266,10 +285,8 @@ private fun permissionStatusTone(
     status: PermissionStatus,
 ): YSuiteStatusTone =
     when (status) {
-        PermissionStatus.Granted ->
-            YSuiteStatusTone.Positive
-        PermissionStatus.Denied ->
-            YSuiteStatusTone.Warning
+        PermissionStatus.Granted -> YSuiteStatusTone.Positive
+        PermissionStatus.Denied -> YSuiteStatusTone.Warning
     }
 
 @Composable
@@ -291,14 +308,10 @@ private fun diagnosticStatusTone(
     status: DiagnosticStatus,
 ): YSuiteStatusTone =
     when (status) {
-        DiagnosticStatus.Pass ->
-            YSuiteStatusTone.Positive
-        DiagnosticStatus.Warning ->
-            YSuiteStatusTone.Warning
-        DiagnosticStatus.Failure ->
-            YSuiteStatusTone.Error
-        DiagnosticStatus.Unknown ->
-            YSuiteStatusTone.Neutral
+        DiagnosticStatus.Pass -> YSuiteStatusTone.Positive
+        DiagnosticStatus.Warning -> YSuiteStatusTone.Warning
+        DiagnosticStatus.Failure -> YSuiteStatusTone.Error
+        DiagnosticStatus.Unknown -> YSuiteStatusTone.Neutral
     }
 
 private class SystemViewModelFactory(
