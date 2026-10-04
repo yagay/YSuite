@@ -74,6 +74,37 @@ class CrossProviderTransferTest {
         )
     }
 
+    @Test
+    fun replaceStagesNewContentBeforeRemovingExisting() = runBlocking {
+        val source = MemoryProvider("source")
+        val destination = MemoryProvider("destination")
+        source.put("same.txt", "new".toByteArray())
+        destination.put("same.txt", "old".toByteArray())
+
+        val engine = DefaultYFilesEngine(
+            YFileProviderRegistry(
+                listOf(source, destination),
+            ),
+        )
+
+        val copied = engine.copy(
+            source = YFileRef("source", "/same.txt"),
+            destinationDirectory = destination.root(),
+            strategy = com.yagay.ysuite.feature.yfiles.api
+                .YFileConflictStrategy.Replace,
+        )
+
+        assertTrue(copied is Outcome.Success)
+        assertArrayEquals(
+            "new".toByteArray(),
+            destination.bytes("/same.txt"),
+        )
+        assertEquals(
+            listOf("/same.txt"),
+            destination.paths(),
+        )
+    }
+
     private class MemoryProvider(
         private val id: String,
     ) : YFileProvider {
@@ -110,6 +141,9 @@ class CrossProviderTransferTest {
 
         fun bytes(path: String): ByteArray =
             files.getValue(path)
+
+        fun paths(): List<String> =
+            files.keys.sorted()
 
         override suspend fun list(
             directory: YFileRef,
@@ -169,8 +203,19 @@ class CrossProviderTransferTest {
         override suspend fun rename(
             ref: YFileRef,
             newName: String,
-        ): Outcome<YFileNode> =
-            failure("unsupported_rename")
+        ): Outcome<YFileNode> {
+            val bytes = files.remove(ref.path)
+                ?: return failure("not_found")
+            val newPath = "/" + newName
+            if (newPath in files) {
+                files[ref.path] = bytes
+                return failure("exists")
+            }
+            files[newPath] = bytes
+            return Outcome.Success(
+                node(newPath, bytes),
+            )
+        }
 
         override suspend fun delete(
             ref: YFileRef,

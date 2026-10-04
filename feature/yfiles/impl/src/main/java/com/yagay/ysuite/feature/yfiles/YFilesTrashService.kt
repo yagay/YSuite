@@ -118,19 +118,32 @@ class YFilesTrashService(
             }
             moved as Outcome.Success
 
-            saveRecord(
+            val record =
                 YTrashRecord(
-                    id = UUID.randomUUID()
-                        .toString(),
-                    originalParent =
-                        originalParent,
+                    id = UUID.randomUUID().toString(),
+                    originalParent = originalParent,
                     originalName = node.name,
-                    trashedRef =
-                        moved.value.ref,
-                    deletedAtMillis =
-                        System.currentTimeMillis(),
-                ),
-            )
+                    trashedRef = moved.value.ref,
+                    deletedAtMillis = System.currentTimeMillis(),
+                )
+            if (!saveRecord(record)) {
+                val rollback = engine.move(
+                    source = moved.value.ref,
+                    destinationDirectory = originalParent,
+                    strategy = YFileConflictStrategy.Rename,
+                )
+                failures += YFileFailure(
+                    ref = ref,
+                    code =
+                        if (rollback is Outcome.Success) {
+                            "trash_metadata_persist_failed"
+                        } else {
+                            "trash_metadata_persist_and_rollback_failed"
+                        },
+                    message = TRASH_METADATA_MESSAGE,
+                )
+                continue
+            }
             succeeded += 1
         }
 
@@ -326,15 +339,15 @@ class YFilesTrashService(
     @Synchronized
     private fun saveRecord(
         record: YTrashRecord,
-    ) {
+    ): Boolean {
         val next = preferences
             .getStringSet(KEY_RECORDS, emptySet())
             .orEmpty()
             .toMutableSet()
         next += encode(record)
-        preferences.edit()
+        return preferences.edit()
             .putStringSet(KEY_RECORDS, next)
-            .apply()
+            .commit()
     }
 
     @Synchronized
@@ -350,7 +363,7 @@ class YFilesTrashService(
             .toSet()
         preferences.edit()
             .putStringSet(KEY_RECORDS, next)
-            .apply()
+            .commit()
     }
 
     private fun encode(
@@ -438,5 +451,7 @@ class YFilesTrashService(
             "document"
         private const val ROOT_TRASH_MESSAGE =
             "Provider root cannot be moved to trash"
+        private const val TRASH_METADATA_MESSAGE =
+            "Unable to persist trash metadata"
     }
 }

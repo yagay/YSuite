@@ -132,8 +132,8 @@ class DefaultYFilesEngine(
             is Outcome.Failure -> return result
         }
 
-        val targetName = when (
-            val result = resolveTargetName(
+        val target = when (
+            val result = resolveTarget(
                 destinationProvider.value,
                 destinationDirectory,
                 sourceNode.name,
@@ -144,18 +144,34 @@ class DefaultYFilesEngine(
             is Outcome.Failure -> return result
         }
 
+        if (target.existing?.ref == source) {
+            return Outcome.Success(sourceNode)
+        }
+
+        if (strategy == YFileConflictStrategy.Replace &&
+            target.existing != null
+        ) {
+            return replaceByStaging(
+                sourceProvider = sourceProvider.value,
+                destinationProvider = destinationProvider.value,
+                sourceNode = sourceNode,
+                destinationDirectory = destinationDirectory,
+                targetName = target.name,
+                existing = target.existing,
+                move = false,
+                onProgress = onProgress,
+            )
+        }
+
         if (
             source.providerId ==
                 destinationDirectory.providerId
         ) {
             val direct = sourceProvider.value.copy(
                 source = source,
-                destinationDirectory =
-                    destinationDirectory,
-                targetName = targetName,
-                replace =
-                    strategy ==
-                        YFileConflictStrategy.Replace,
+                destinationDirectory = destinationDirectory,
+                targetName = target.name,
+                replace = false,
             )
             if (direct is Outcome.Success) {
                 return direct
@@ -164,12 +180,10 @@ class DefaultYFilesEngine(
 
         return streamCopy(
             sourceProvider = sourceProvider.value,
-            destinationProvider =
-                destinationProvider.value,
+            destinationProvider = destinationProvider.value,
             sourceNode = sourceNode,
-            destinationDirectory =
-                destinationDirectory,
-            targetName = targetName,
+            destinationDirectory = destinationDirectory,
+            targetName = target.name,
             onProgress = onProgress,
         )
     }
@@ -200,8 +214,8 @@ class DefaultYFilesEngine(
             is Outcome.Failure -> return result
         }
 
-        val targetName = when (
-            val result = resolveTargetName(
+        val target = when (
+            val result = resolveTarget(
                 destinationProvider.value,
                 destinationDirectory,
                 sourceNode.name,
@@ -212,18 +226,34 @@ class DefaultYFilesEngine(
             is Outcome.Failure -> return result
         }
 
+        if (target.existing?.ref == source) {
+            return Outcome.Success(sourceNode)
+        }
+
+        if (strategy == YFileConflictStrategy.Replace &&
+            target.existing != null
+        ) {
+            return replaceByStaging(
+                sourceProvider = sourceProvider.value,
+                destinationProvider = destinationProvider.value,
+                sourceNode = sourceNode,
+                destinationDirectory = destinationDirectory,
+                targetName = target.name,
+                existing = target.existing,
+                move = true,
+                onProgress = onProgress,
+            )
+        }
+
         if (
             source.providerId ==
                 destinationDirectory.providerId
         ) {
             val direct = sourceProvider.value.move(
                 source = source,
-                destinationDirectory =
-                    destinationDirectory,
-                targetName = targetName,
-                replace =
-                    strategy ==
-                        YFileConflictStrategy.Replace,
+                destinationDirectory = destinationDirectory,
+                targetName = target.name,
+                replace = false,
             )
             if (direct is Outcome.Success) {
                 return direct
@@ -232,12 +262,10 @@ class DefaultYFilesEngine(
 
         val copied = streamCopy(
             sourceProvider = sourceProvider.value,
-            destinationProvider =
-                destinationProvider.value,
+            destinationProvider = destinationProvider.value,
             sourceNode = sourceNode,
-            destinationDirectory =
-                destinationDirectory,
-            targetName = targetName,
+            destinationDirectory = destinationDirectory,
+            targetName = target.name,
             onProgress = onProgress,
         )
         if (copied is Outcome.Failure) {
@@ -245,16 +273,12 @@ class DefaultYFilesEngine(
         }
 
         return when (
-            val deleted =
-                sourceProvider.value.delete(source)
+            val deleted = sourceProvider.value.delete(source)
         ) {
-            is Outcome.Success ->
-                copied
+            is Outcome.Success -> copied
             is Outcome.Failure -> {
                 copied as Outcome.Success
-                destinationProvider.value.delete(
-                    copied.value.ref,
-                )
+                destinationProvider.value.delete(copied.value.ref)
                 deleted
             }
         }
@@ -487,12 +511,17 @@ class DefaultYFilesEngine(
         }
     }
 
-    private suspend fun resolveTargetName(
+    private data class ResolvedTarget(
+        val name: String,
+        val existing: YFileNode?,
+    )
+
+    private suspend fun resolveTarget(
         provider: YFileProvider,
         destination: YFileRef,
         requestedName: String,
         strategy: YFileConflictStrategy,
-    ): Outcome<String> {
+    ): Outcome<ResolvedTarget> {
         val listing = provider.list(
             destination,
             YFileQuery(
@@ -505,12 +534,12 @@ class DefaultYFilesEngine(
         }
         listing as Outcome.Success
 
-        val names = listing.value
-            .associateBy { it.name }
-
+        val names = listing.value.associateBy { it.name }
         val existing = names[requestedName]
         if (existing == null) {
-            return Outcome.Success(requestedName)
+            return Outcome.Success(
+                ResolvedTarget(requestedName, null),
+            )
         }
 
         return when (strategy) {
@@ -519,47 +548,138 @@ class DefaultYFilesEngine(
                     code = "conflict_skipped",
                     message = CONFLICT_SKIPPED_MESSAGE,
                 )
-            YFileConflictStrategy.Replace -> {
-                when (
-                    val deleted =
-                        provider.delete(existing.ref)
-                ) {
-                    is Outcome.Success ->
-                        Outcome.Success(requestedName)
-                    is Outcome.Failure ->
-                        deleted
-                }
-            }
+            YFileConflictStrategy.Replace ->
+                Outcome.Success(
+                    ResolvedTarget(requestedName, existing),
+                )
             YFileConflictStrategy.Rename -> {
                 val dot = requestedName.lastIndexOf('.')
                 val hasExtension =
                     dot > 0 &&
                         dot < requestedName.lastIndex
-                val base = if (hasExtension) {
-                    requestedName.substring(0, dot)
-                } else {
-                    requestedName
-                }
-                val extension = if (hasExtension) {
-                    requestedName.substring(dot)
-                } else {
-                    ""
-                }
+                val base =
+                    if (hasExtension) {
+                        requestedName.substring(0, dot)
+                    } else {
+                        requestedName
+                    }
+                val extension =
+                    if (hasExtension) {
+                        requestedName.substring(dot)
+                    } else {
+                        ""
+                    }
 
                 var index = 1
                 var candidate: String
                 do {
                     candidate =
-                        base +
-                            " (" +
-                            index +
-                            ")" +
-                            extension
+                        base + " (" + index + ")" + extension
                     index += 1
                 } while (candidate in names)
-                Outcome.Success(candidate)
+
+                Outcome.Success(
+                    ResolvedTarget(candidate, null),
+                )
             }
         }
+    }
+
+    private suspend fun replaceByStaging(
+        sourceProvider: YFileProvider,
+        destinationProvider: YFileProvider,
+        sourceNode: YFileNode,
+        destinationDirectory: YFileRef,
+        targetName: String,
+        existing: YFileNode,
+        move: Boolean,
+        onProgress: YFileProgressListener?,
+    ): Outcome<YFileNode> {
+        val token = System.nanoTime().toString(16)
+        val tempName = ".ysuite-new-" + token + "-" + targetName
+        val backupName = ".ysuite-old-" + token + "-" + targetName
+
+        val staged =
+            if (
+                sourceNode.ref.providerId ==
+                    destinationDirectory.providerId
+            ) {
+                when (
+                    val direct = sourceProvider.copy(
+                        source = sourceNode.ref,
+                        destinationDirectory = destinationDirectory,
+                        targetName = tempName,
+                        replace = false,
+                    )
+                ) {
+                    is Outcome.Success -> direct
+                    is Outcome.Failure ->
+                        streamCopy(
+                            sourceProvider = sourceProvider,
+                            destinationProvider = destinationProvider,
+                            sourceNode = sourceNode,
+                            destinationDirectory = destinationDirectory,
+                            targetName = tempName,
+                            onProgress = onProgress,
+                        )
+                }
+            } else {
+                streamCopy(
+                    sourceProvider = sourceProvider,
+                    destinationProvider = destinationProvider,
+                    sourceNode = sourceNode,
+                    destinationDirectory = destinationDirectory,
+                    targetName = tempName,
+                    onProgress = onProgress,
+                )
+            }
+
+        if (staged is Outcome.Failure) {
+            return staged
+        }
+        staged as Outcome.Success
+
+        val backup = destinationProvider.rename(
+            existing.ref,
+            backupName,
+        )
+        if (backup is Outcome.Failure) {
+            destinationProvider.delete(staged.value.ref)
+            return backup
+        }
+        backup as Outcome.Success
+
+        val promoted = destinationProvider.rename(
+            staged.value.ref,
+            targetName,
+        )
+        if (promoted is Outcome.Failure) {
+            destinationProvider.rename(
+                backup.value.ref,
+                targetName,
+            )
+            destinationProvider.delete(staged.value.ref)
+            return promoted
+        }
+        promoted as Outcome.Success
+
+        if (move) {
+            val deletedSource =
+                sourceProvider.delete(sourceNode.ref)
+            if (deletedSource is Outcome.Failure) {
+                destinationProvider.delete(
+                    promoted.value.ref,
+                )
+                destinationProvider.rename(
+                    backup.value.ref,
+                    targetName,
+                )
+                return deletedSource
+            }
+        }
+
+        destinationProvider.delete(backup.value.ref)
+        return promoted
     }
 
     private suspend fun <T> runBatch(
