@@ -124,6 +124,8 @@ fun YSuiteTextFormDialog(
     onValueChange: (String, String) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    extraContent:
+        (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -131,18 +133,26 @@ fun YSuiteTextFormDialog(
         text = {
             Column(
                 verticalArrangement =
-                    Arrangement.spacedBy(YSuiteSpacing.Small),
+                    Arrangement.spacedBy(
+                        YSuiteSpacing.Small,
+                    ),
             ) {
                 fields.forEach { field ->
                     OutlinedTextField(
                         value = field.value,
                         onValueChange = {
-                            onValueChange(field.id, it)
+                            onValueChange(
+                                field.id,
+                                it,
+                            )
                         },
                         singleLine = true,
-                        label = { Text(field.label) },
+                        label = {
+                            Text(field.label)
+                        },
                     )
                 }
+                extraContent?.invoke()
             }
         },
         confirmButton = {

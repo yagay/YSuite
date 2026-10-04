@@ -19,17 +19,73 @@ import androidx.compose.ui.Modifier
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
 @Composable
-fun YSuiteSection(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun YSuiteSectionHeader(
+    title: String,
+    subtitle: String? = null,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+        verticalArrangement =
+            Arrangement.spacedBy(
+                YSuiteSpacing.XSmall,
+            ),
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+        Text(
+            text = title,
+            style =
+                MaterialTheme.typography
+                    .titleMedium,
+        )
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                text = subtitle,
+                style =
+                    MaterialTheme.typography
+                        .bodyMedium,
+                color =
+                    MaterialTheme.colorScheme
+                        .onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+fun YSuiteSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement =
+            Arrangement.spacedBy(
+                YSuiteSpacing.Small,
+            ),
+    ) {
+        YSuiteSectionHeader(title = title)
+        Card(
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        MaterialTheme.colorScheme
+                            .surfaceContainerLow,
+                ),
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(YSuiteSpacing.Medium),
-                verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
-            ) { content() }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        YSuiteSpacing.Medium,
+                    ),
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        YSuiteSpacing.Medium,
+                    ),
+            ) {
+                content()
+            }
         }
     }
 }
@@ -43,13 +99,32 @@ fun YSuiteListItem(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
+        verticalAlignment =
+            Alignment.CenterVertically,
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                YSuiteSpacing.Medium,
+            ),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+        Column(
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = title,
+                style =
+                    MaterialTheme.typography
+                        .bodyLarge,
+            )
             if (!subtitle.isNullOrBlank()) {
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = subtitle,
+                    style =
+                        MaterialTheme.typography
+                            .bodyMedium,
+                    color =
+                        MaterialTheme.colorScheme
+                            .onSurfaceVariant,
+                )
             }
         }
         trailing?.invoke()
@@ -57,23 +132,58 @@ fun YSuiteListItem(
 }
 
 @Composable
-fun YSuiteSwitchItem(title: String, subtitle: String? = null, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    YSuiteListItem(title = title, subtitle = subtitle, trailing = {
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    })
+fun YSuiteSwitchItem(
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    YSuiteListItem(
+        title = title,
+        subtitle = subtitle,
+        trailing = {
+            Switch(
+                checked = checked,
+                onCheckedChange =
+                    onCheckedChange,
+            )
+        },
+    )
 }
 
 @Composable
-fun YSuitePrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(onClick = onClick, modifier = modifier) { Text(text) }
+fun YSuitePrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+    ) {
+        Text(text)
+    }
 }
 
 @Composable
-fun YSuiteSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedButton(onClick = onClick, modifier = modifier) { Text(text) }
+fun YSuiteSecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+    ) {
+        Text(text)
+    }
 }
 
 @Composable
 fun YSuiteDivider() {
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    HorizontalDivider(
+        color =
+            MaterialTheme.colorScheme
+                .outlineVariant,
+    )
 }
