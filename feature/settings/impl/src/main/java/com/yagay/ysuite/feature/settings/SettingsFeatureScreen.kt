@@ -7,13 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yagay.ysuite.designsystem.component.YSuiteFilterBar
-import com.yagay.ysuite.designsystem.component.YSuiteFilterOption
-import com.yagay.ysuite.designsystem.component.YSuiteListItem
-import com.yagay.ysuite.designsystem.component.YSuiteSection
+import com.yagay.ysuite.designsystem.component.YSuiteSegmentedControl
+import com.yagay.ysuite.designsystem.component.YSuiteSegmentOption
+import com.yagay.ysuite.designsystem.component.YSuiteDataRow
+import com.yagay.ysuite.designsystem.component.YSuitePanel
 import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
-import com.yagay.ysuite.ui.YSuiteSettingsPage
+import com.yagay.ysuite.ui.YSuiteSettingsScreen
 
 @Composable
 fun SettingsFeatureScreen(
@@ -24,17 +24,17 @@ fun SettingsFeatureScreen(
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    YSuiteSettingsPage(
+    YSuiteSettingsScreen(
         title = stringResource(R.string.settings_title),
         subtitle = stringResource(R.string.settings_summary),
     ) { _ ->
-        YSuiteSection(title = stringResource(R.string.settings_appearance)) {
-            YSuiteListItem(title = stringResource(R.string.settings_theme))
-            YSuiteFilterBar(
+        YSuitePanel(title = stringResource(R.string.settings_appearance)) {
+            YSuiteDataRow(title = stringResource(R.string.settings_theme))
+            YSuiteSegmentedControl(
                 options = listOf(
-                    YSuiteFilterOption(AppThemeMode.System.name, stringResource(R.string.settings_theme_system)),
-                    YSuiteFilterOption(AppThemeMode.Light.name, stringResource(R.string.settings_theme_light)),
-                    YSuiteFilterOption(AppThemeMode.Dark.name, stringResource(R.string.settings_theme_dark)),
+                    YSuiteSegmentOption(AppThemeMode.System.name, stringResource(R.string.settings_theme_system)),
+                    YSuiteSegmentOption(AppThemeMode.Light.name, stringResource(R.string.settings_theme_light)),
+                    YSuiteSegmentOption(AppThemeMode.Dark.name, stringResource(R.string.settings_theme_dark)),
                 ),
                 selectedId = state.settings.themeMode.name,
                 onSelected = { selected ->
@@ -42,12 +42,12 @@ fun SettingsFeatureScreen(
                 },
             )
 
-            YSuiteListItem(title = stringResource(R.string.settings_language))
-            YSuiteFilterBar(
+            YSuiteDataRow(title = stringResource(R.string.settings_language))
+            YSuiteSegmentedControl(
                 options = listOf(
-                    YSuiteFilterOption("system", stringResource(R.string.settings_language_system)),
-                    YSuiteFilterOption("en", stringResource(R.string.settings_language_english)),
-                    YSuiteFilterOption("zh-Hans", stringResource(R.string.settings_language_chinese)),
+                    YSuiteSegmentOption("system", stringResource(R.string.settings_language_system)),
+                    YSuiteSegmentOption("en", stringResource(R.string.settings_language_english)),
+                    YSuiteSegmentOption("zh-Hans", stringResource(R.string.settings_language_chinese)),
                 ),
                 selectedId = state.settings.languageTag ?: "system",
                 onSelected = { selected ->

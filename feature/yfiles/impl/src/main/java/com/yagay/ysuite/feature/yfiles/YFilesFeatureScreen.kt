@@ -24,17 +24,17 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.ysuite.designsystem.component.YSuiteConfirmDialog
-import com.yagay.ysuite.designsystem.component.YSuiteFilterBar
-import com.yagay.ysuite.designsystem.component.YSuiteFilterOption
+import com.yagay.ysuite.designsystem.component.YSuiteSegmentedControl
+import com.yagay.ysuite.designsystem.component.YSuiteSegmentOption
 import com.yagay.ysuite.designsystem.component.YSuiteFormField
-import com.yagay.ysuite.designsystem.component.YSuiteListItem
-import com.yagay.ysuite.designsystem.component.YSuiteSearchField
-import com.yagay.ysuite.designsystem.component.YSuiteSecondaryButton
-import com.yagay.ysuite.designsystem.component.YSuiteSection
-import com.yagay.ysuite.designsystem.component.YSuiteSectionHeader
-import com.yagay.ysuite.designsystem.component.YSuiteStatusBadge
+import com.yagay.ysuite.designsystem.component.YSuiteDataRow
+import com.yagay.ysuite.designsystem.component.YSuiteSearchBar
+import com.yagay.ysuite.designsystem.component.YSuiteActionButton
+import com.yagay.ysuite.designsystem.component.YSuitePanel
+import com.yagay.ysuite.designsystem.component.YSuitePanelLabel
+import com.yagay.ysuite.designsystem.component.YSuiteStatusPill
 import com.yagay.ysuite.designsystem.component.YSuiteStatusTone
-import com.yagay.ysuite.designsystem.component.YSuiteSwitchItem
+import com.yagay.ysuite.designsystem.component.YSuiteToggleRow
 import com.yagay.ysuite.designsystem.component.YSuiteTextEditorDialog
 import com.yagay.ysuite.designsystem.component.YSuiteTextFormDialog
 import com.yagay.ysuite.designsystem.component.YSuiteTextInputDialog
@@ -45,7 +45,7 @@ import com.yagay.ysuite.feature.yfiles.api.YFileSort
 import com.yagay.ysuite.feature.yfiles.api.YFileType
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.CapabilityStatus
-import com.yagay.ysuite.ui.YSuiteLazyListPage
+import com.yagay.ysuite.ui.YSuiteManagerListScreen
 import com.yagay.ysuite.ui.YSuitePageState
 import java.text.DateFormat
 
@@ -119,7 +119,7 @@ fun YFilesFeatureScreen(
             YSuitePageState.Content
         }
 
-    YSuiteLazyListPage(
+    YSuiteManagerListScreen(
         title = stringResource(
             R.string.yfiles_title,
         ),
@@ -130,23 +130,23 @@ fun YFilesFeatureScreen(
         onRetry = browser::refresh,
         header = {
             item {
-                YSuiteFilterBar(
+                YSuiteSegmentedControl(
                     options = listOf(
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             YFilesTab.Files.name,
                             stringResource(
                                 R.string
                                     .yfiles_tab_files,
                             ),
                         ),
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             YFilesTab.Tools.name,
                             stringResource(
                                 R.string
                                     .yfiles_tab_tools,
                             ),
                         ),
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             YFilesTab.Settings.name,
                             stringResource(
                                 R.string
@@ -225,7 +225,7 @@ fun YFilesFeatureScreen(
 
         if (state.error != null) {
             item {
-                YSuiteStatusBadge(
+                YSuiteStatusPill(
                     text = state.error.orEmpty(),
                     tone =
                         YSuiteStatusTone.Error,
@@ -303,9 +303,9 @@ private fun LazyListScope.filesContent(
     onEmptyTrash: () -> Unit,
 ) {
     item {
-        YSuiteFilterBar(
+        YSuiteSegmentedControl(
             options = listOf(
-                YSuiteFilterOption(
+                YSuiteSegmentOption(
                     YFilesBrowserMode
                         .Directory.name,
                     stringResource(
@@ -313,7 +313,7 @@ private fun LazyListScope.filesContent(
                             .yfiles_mode_directory,
                     ),
                 ),
-                YSuiteFilterOption(
+                YSuiteSegmentOption(
                     YFilesBrowserMode
                         .Favorites.name,
                     stringResource(
@@ -321,7 +321,7 @@ private fun LazyListScope.filesContent(
                             .yfiles_mode_favorites,
                     ),
                 ),
-                YSuiteFilterOption(
+                YSuiteSegmentOption(
                     YFilesBrowserMode
                         .Recent.name,
                     stringResource(
@@ -329,7 +329,7 @@ private fun LazyListScope.filesContent(
                             .yfiles_mode_recent,
                     ),
                 ),
-                YSuiteFilterOption(
+                YSuiteSegmentOption(
                     YFilesBrowserMode
                         .Trash.name,
                     stringResource(
@@ -392,15 +392,15 @@ private fun LazyListScope.directoryContent(
     onDelete: () -> Unit,
 ) {
     item {
-        YSuiteSection(
+        YSuitePanel(
             title = stringResource(
                 R.string.yfiles_sources,
             ),
         ) {
-            YSuiteFilterBar(
+            YSuiteSegmentedControl(
                 options =
                     state.providers.map {
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             id = it.id,
                             label =
                                 providerLabel(
@@ -423,29 +423,29 @@ private fun LazyListScope.directoryContent(
                     .any {
                         it.ref == directory
                     }
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string.yfiles_location,
                 ),
             ) {
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = directory.path,
                     subtitle =
                         directory.providerId,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_parent,
                     ),
                     onClick = browser::parent,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_refresh,
                     ),
                     onClick = browser::refresh,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         if (isFavorite) {
                             R.string
@@ -458,7 +458,7 @@ private fun LazyListScope.directoryContent(
                     onClick =
                         browser::toggleFavorite,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_new_folder,
@@ -467,7 +467,7 @@ private fun LazyListScope.directoryContent(
                         browser
                             ::beginCreateDirectory,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_new_file,
                     ),
@@ -478,12 +478,12 @@ private fun LazyListScope.directoryContent(
         }
 
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string.yfiles_search,
                 ),
             ) {
-                YSuiteSearchField(
+                YSuiteSearchBar(
                     value = state.query,
                     onValueChange =
                         browser::setQuery,
@@ -491,7 +491,7 @@ private fun LazyListScope.directoryContent(
                         R.string.yfiles_search,
                     ),
                 )
-                YSuiteSwitchItem(
+                YSuiteToggleRow(
                     title = stringResource(
                         R.string
                             .yfiles_recursive,
@@ -500,7 +500,7 @@ private fun LazyListScope.directoryContent(
                     onCheckedChange =
                         browser::setRecursive,
                 )
-                YSuiteSwitchItem(
+                YSuiteToggleRow(
                     title = stringResource(
                         R.string
                             .yfiles_show_hidden,
@@ -510,16 +510,16 @@ private fun LazyListScope.directoryContent(
                     onCheckedChange =
                         browser::setShowHidden,
                 )
-                YSuiteFilterBar(
+                YSuiteSegmentedControl(
                     options = listOf(
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             YFileSort.Name.name,
                             stringResource(
                                 R.string
                                     .yfiles_sort_name,
                             ),
                         ),
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             YFileSort
                                 .Modified.name,
                             stringResource(
@@ -527,14 +527,14 @@ private fun LazyListScope.directoryContent(
                                     .yfiles_sort_modified,
                             ),
                         ),
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             YFileSort.Size.name,
                             stringResource(
                                 R.string
                                     .yfiles_sort_size,
                             ),
                         ),
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             YFileSort.Type.name,
                             stringResource(
                                 R.string
@@ -550,16 +550,16 @@ private fun LazyListScope.directoryContent(
                         )
                     },
                 )
-                YSuiteFilterBar(
+                YSuiteSegmentedControl(
                     options = listOf(
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             "asc",
                             stringResource(
                                 R.string
                                     .yfiles_ascending,
                             ),
                         ),
-                        YSuiteFilterOption(
+                        YSuiteSegmentOption(
                             "desc",
                             stringResource(
                                 R.string
@@ -587,28 +587,28 @@ private fun LazyListScope.directoryContent(
 
     if (state.selected.isNotEmpty()) {
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string
                         .yfiles_selected_count,
                     state.selected.size,
                 ),
             ) {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_copy,
                     ),
                     onClick =
                         browser::prepareCopy,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_move,
                     ),
                     onClick =
                         browser::prepareMove,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_move_to_bin,
@@ -617,14 +617,14 @@ private fun LazyListScope.directoryContent(
                         browser
                             ::moveSelectedToTrash,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_delete_permanently,
                     ),
                     onClick = onDelete,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_clear_selection,
@@ -638,7 +638,7 @@ private fun LazyListScope.directoryContent(
 
     state.clipboard?.let { clipboard ->
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     if (clipboard.move) {
                         R.string
@@ -650,7 +650,7 @@ private fun LazyListScope.directoryContent(
                     clipboard.refs.size,
                 ),
             ) {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_paste_here,
@@ -664,7 +664,7 @@ private fun LazyListScope.directoryContent(
 
     state.progress?.let { progress ->
         item {
-            YSuiteStatusBadge(
+            YSuiteStatusPill(
                 text = stringResource(
                     R.string.yfiles_progress,
                     progress.currentName,
@@ -680,7 +680,7 @@ private fun LazyListScope.directoryContent(
 
     state.operationResult?.let { result ->
         item {
-            YSuiteStatusBadge(
+            YSuiteStatusPill(
                 text = stringResource(
                     R.string
                         .yfiles_operation_result,
@@ -699,7 +699,7 @@ private fun LazyListScope.directoryContent(
     }
 
     item {
-        YSuiteSectionHeader(
+        YSuitePanelLabel(
             title = stringResource(
                 R.string.yfiles_files,
             ),
@@ -711,7 +711,7 @@ private fun LazyListScope.directoryContent(
         state.entries.isEmpty()
     ) {
         item {
-            YSuiteListItem(
+            YSuiteDataRow(
                 title = stringResource(
                     R.string.yfiles_empty,
                 ),
@@ -729,15 +729,17 @@ private fun LazyListScope.directoryContent(
     ) { node ->
         val selected =
             node.ref in state.selected
-        YSuiteListItem(
+        YSuiteDataRow(
             title = node.name,
             subtitle =
                 nodeSubtitle(node),
+            kind = nodeItemKind(node.type),
+            selected = selected,
             modifier = Modifier.clickable {
                 browser.open(node)
             },
             trailing = {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         if (selected) {
                             R.string
@@ -760,19 +762,19 @@ private fun LazyListScope.directoryContent(
 
     state.focused?.let { node ->
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string.yfiles_details,
                 ),
             ) {
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = node.name,
                     subtitle =
                         nodeTypeLabel(
                             node.type,
                         ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string.yfiles_provider,
                     ),
@@ -780,7 +782,7 @@ private fun LazyListScope.directoryContent(
                         node.ref.providerId,
                 )
                 node.sizeBytes?.let {
-                    YSuiteListItem(
+                    YSuiteDataRow(
                         title =
                             stringResource(
                                 R.string
@@ -792,7 +794,7 @@ private fun LazyListScope.directoryContent(
                 }
                 node.modifiedAtMillis
                     ?.let {
-                        YSuiteListItem(
+                        YSuiteDataRow(
                             title =
                                 stringResource(
                                     R.string
@@ -802,7 +804,7 @@ private fun LazyListScope.directoryContent(
                                 formatDate(it),
                         )
                     }
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string.yfiles_access,
                     ),
@@ -821,7 +823,7 @@ private fun LazyListScope.directoryContent(
                             ),
                         ),
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_rename,
                     ),
@@ -831,7 +833,7 @@ private fun LazyListScope.directoryContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_close,
                     ),
@@ -851,13 +853,13 @@ private fun LazyListScope.savedLocations(
     browser: YFilesViewModel,
 ) {
     item {
-        YSuiteSectionHeader(
+        YSuitePanelLabel(
             title = stringResource(titleRes),
         )
     }
     if (locations.isEmpty()) {
         item {
-            YSuiteListItem(
+            YSuiteDataRow(
                 title =
                     stringResource(emptyRes),
             )
@@ -871,7 +873,7 @@ private fun LazyListScope.savedLocations(
                 it.ref.path
         },
     ) { location ->
-        YSuiteListItem(
+        YSuiteDataRow(
             title = location.label,
             subtitle =
                 location.ref.providerId +
@@ -892,7 +894,7 @@ private fun LazyListScope.trashContent(
     onEmptyTrash: () -> Unit,
 ) {
     item {
-        YSuiteSectionHeader(
+        YSuitePanelLabel(
             title = stringResource(
                 R.string.yfiles_mode_trash,
             ),
@@ -900,7 +902,7 @@ private fun LazyListScope.trashContent(
     }
     if (state.trashRecords.isEmpty()) {
         item {
-            YSuiteListItem(
+            YSuiteDataRow(
                 title = stringResource(
                     R.string.yfiles_no_trash,
                 ),
@@ -911,12 +913,12 @@ private fun LazyListScope.trashContent(
         items = state.trashRecords,
         key = { it.id },
     ) { record ->
-        YSuiteListItem(
+        YSuiteDataRow(
             title = record.originalName,
             subtitle =
                 record.originalParent.path,
             trailing = {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_restore,
                     ),
@@ -931,7 +933,7 @@ private fun LazyListScope.trashContent(
     }
     if (state.trashRecords.isNotEmpty()) {
         item {
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = stringResource(
                     R.string
                         .yfiles_empty_trash,
@@ -961,14 +963,14 @@ private fun LazyListScope.toolsContent(
         }
 
     item {
-        YSuiteSection(
+        YSuitePanel(
             title = stringResource(
                 R.string
                     .yfiles_tools_current,
             ),
         ) {
             if (directory != null) {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_analyze,
                     ),
@@ -978,7 +980,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_duplicates,
@@ -989,7 +991,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_cleanup_scan,
@@ -1000,7 +1002,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_symlink,
@@ -1013,13 +1015,13 @@ private fun LazyListScope.toolsContent(
     }
 
     item {
-        YSuiteSection(
+        YSuitePanel(
             title = stringResource(
                 R.string
                     .yfiles_tools_selected,
             ),
         ) {
-            YSuiteListItem(
+            YSuiteDataRow(
                 title = stringResource(
                     R.string
                         .yfiles_selected_count,
@@ -1027,7 +1029,7 @@ private fun LazyListScope.toolsContent(
                 ),
             )
             if (selectedNodes.isNotEmpty()) {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_create_zip,
@@ -1035,7 +1037,7 @@ private fun LazyListScope.toolsContent(
                     onClick =
                         tools::beginZip,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_bulk_rename,
@@ -1045,7 +1047,7 @@ private fun LazyListScope.toolsContent(
                 )
             }
             if (singleFile != null) {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_sha256,
                     ),
@@ -1055,7 +1057,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_text_editor,
@@ -1066,7 +1068,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_hex,
                     ),
@@ -1076,14 +1078,14 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_split,
                     ),
                     onClick =
                         tools::beginSplit,
                 )
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_chmod,
                     ),
@@ -1100,7 +1102,7 @@ private fun LazyListScope.toolsContent(
                     ) &&
                     directory != null
                 ) {
-                    YSuiteSecondaryButton(
+                    YSuiteActionButton(
                         text = stringResource(
                             R.string
                                 .yfiles_extract_zip,
@@ -1118,7 +1120,7 @@ private fun LazyListScope.toolsContent(
                         ".part001",
                     )
                 ) {
-                    YSuiteSecondaryButton(
+                    YSuiteActionButton(
                         text = stringResource(
                             R.string.yfiles_join,
                         ),
@@ -1131,7 +1133,7 @@ private fun LazyListScope.toolsContent(
                 }
             }
             if (selectedNodes.size == 2) {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_compare,
@@ -1150,7 +1152,7 @@ private fun LazyListScope.toolsContent(
 
     if (toolState.busy) {
         item {
-            YSuiteStatusBadge(
+            YSuiteStatusPill(
                 text = stringResource(
                     R.string
                         .yfiles_tool_running,
@@ -1162,7 +1164,7 @@ private fun LazyListScope.toolsContent(
     }
     toolState.error?.let {
         item {
-            YSuiteStatusBadge(
+            YSuiteStatusPill(
                 text = it,
                 tone = YSuiteStatusTone.Error,
             )
@@ -1170,7 +1172,7 @@ private fun LazyListScope.toolsContent(
     }
     toolState.batchResult?.let {
         item {
-            YSuiteStatusBadge(
+            YSuiteStatusPill(
                 text = stringResource(
                     R.string
                         .yfiles_operation_result,
@@ -1200,12 +1202,12 @@ private fun LazyListScope.toolResults(
 ) {
     state.hash?.let { hash ->
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string.yfiles_sha256,
                 ),
             ) {
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = hash.algorithm,
                     subtitle = hash.hex,
                 )
@@ -1215,13 +1217,13 @@ private fun LazyListScope.toolResults(
 
     state.analysis?.let { analysis ->
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string
                         .yfiles_analysis,
                 ),
             ) {
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_analysis_items,
@@ -1230,7 +1232,7 @@ private fun LazyListScope.toolResults(
                             .directoryCount,
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_analysis_size,
@@ -1241,7 +1243,7 @@ private fun LazyListScope.toolResults(
                     ),
                 )
                 if (analysis.truncated) {
-                    YSuiteStatusBadge(
+                    YSuiteStatusPill(
                         text = stringResource(
                             R.string
                                 .yfiles_analysis_truncated,
@@ -1254,7 +1256,7 @@ private fun LazyListScope.toolResults(
                 analysis.largestFiles
                     .take(10)
                     .forEach {
-                        YSuiteListItem(
+                        YSuiteDataRow(
                             title = it.name,
                             subtitle =
                                 formatBytes(
@@ -1269,7 +1271,7 @@ private fun LazyListScope.toolResults(
 
     if (state.duplicates.isNotEmpty()) {
         item {
-            YSuiteSectionHeader(
+            YSuitePanelLabel(
                 title = stringResource(
                     R.string
                         .yfiles_duplicates,
@@ -1277,7 +1279,7 @@ private fun LazyListScope.toolResults(
             )
         }
         items(state.duplicates) { group ->
-            YSuiteListItem(
+            YSuiteDataRow(
                 title = stringResource(
                     R.string
                         .yfiles_duplicate_group,
@@ -1297,12 +1299,12 @@ private fun LazyListScope.toolResults(
 
     state.hexPreview?.let { hex ->
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string.yfiles_hex,
                 ),
             ) {
-                YSuiteListItem(
+                YSuiteDataRow(
                     title =
                         hex.byteCount
                             .toString() +
@@ -1310,7 +1312,7 @@ private fun LazyListScope.toolResults(
                     subtitle = hex.text,
                 )
                 if (hex.truncated) {
-                    YSuiteStatusBadge(
+                    YSuiteStatusPill(
                         text = stringResource(
                             R.string
                                 .yfiles_preview_truncated,
@@ -1320,7 +1322,7 @@ private fun LazyListScope.toolResults(
                                 .Warning,
                     )
                 }
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.yfiles_close,
                     ),
@@ -1333,12 +1335,12 @@ private fun LazyListScope.toolResults(
 
     state.compare?.let { compare ->
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string.yfiles_compare,
                 ),
             ) {
-                YSuiteStatusBadge(
+                YSuiteStatusPill(
                     text = stringResource(
                         if (
                             compare.identical
@@ -1361,12 +1363,12 @@ private fun LazyListScope.toolResults(
                                 .Warning
                         },
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(R.string.yfiles_compare_left_hash),
                     subtitle =
                         compare.leftHash,
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(R.string.yfiles_compare_right_hash),
                     subtitle =
                         compare.rightHash,
@@ -1377,13 +1379,13 @@ private fun LazyListScope.toolResults(
 
     state.cleanup?.let { cleanup ->
         item {
-            YSuiteSection(
+            YSuitePanel(
                 title = stringResource(
                     R.string
                         .yfiles_cleanup_scan,
                 ),
             ) {
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_summary,
@@ -1394,7 +1396,7 @@ private fun LazyListScope.toolResults(
                         ),
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_large,
@@ -1402,14 +1404,14 @@ private fun LazyListScope.toolResults(
                             .size,
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_old,
                         cleanup.oldFiles.size,
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_hidden,
@@ -1417,7 +1419,7 @@ private fun LazyListScope.toolResults(
                             .size,
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_empty,
@@ -1426,14 +1428,14 @@ private fun LazyListScope.toolResults(
                             .size,
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_apk,
                         cleanup.apkFiles.size,
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_downloads,
@@ -1441,7 +1443,7 @@ private fun LazyListScope.toolResults(
                             .size,
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_screenshots,
@@ -1449,7 +1451,7 @@ private fun LazyListScope.toolResults(
                             .size,
                     ),
                 )
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_cleanup_recordings,
@@ -1469,7 +1471,7 @@ private fun LazyListScope.toolResults(
         state.cleanup != null
     ) {
         item {
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = stringResource(
                     R.string
                         .yfiles_clear_results,
@@ -1490,19 +1492,19 @@ private fun LazyListScope.settingsContent(
     onAddSaf: () -> Unit,
 ) {
     item {
-        YSuiteSection(
+        YSuitePanel(
             title = stringResource(
                 R.string
                     .yfiles_settings_access,
             ),
         ) {
-            YSuiteListItem(
+            YSuiteDataRow(
                 title = stringResource(
                     R.string
                         .yfiles_all_files_access,
                 ),
                 trailing = {
-                    YSuiteStatusBadge(
+                    YSuiteStatusPill(
                         text = stringResource(
                             if (
                                 allFilesGranted
@@ -1528,7 +1530,7 @@ private fun LazyListScope.settingsContent(
                 },
             )
             if (!allFilesGranted) {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string
                             .yfiles_open_settings,
@@ -1537,13 +1539,13 @@ private fun LazyListScope.settingsContent(
                         onOpenAllFilesSettings,
                 )
             }
-            YSuiteListItem(
+            YSuiteDataRow(
                 title = stringResource(
                     R.string
                         .yfiles_root_access,
                 ),
                 trailing = {
-                    YSuiteStatusBadge(
+                    YSuiteStatusPill(
                         text =
                             rootStatusText(
                                 state
@@ -1557,7 +1559,7 @@ private fun LazyListScope.settingsContent(
                     )
                 },
             )
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = stringResource(
                     R.string
                         .yfiles_refresh_root,
@@ -1572,19 +1574,19 @@ private fun LazyListScope.settingsContent(
     val trees =
         environment.documentTrees.trees()
     item {
-        YSuiteSection(
+        YSuitePanel(
             title = stringResource(
                 R.string.yfiles_saf,
             ),
         ) {
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = stringResource(
                     R.string.yfiles_add_saf,
                 ),
                 onClick = onAddSaf,
             )
             if (trees.isEmpty()) {
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = stringResource(
                         R.string
                             .yfiles_no_saf,
@@ -1592,10 +1594,10 @@ private fun LazyListScope.settingsContent(
                 )
             }
             trees.forEach { tree ->
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = tree.toString(),
                     trailing = {
-                        YSuiteSecondaryButton(
+                        YSuiteActionButton(
                             text =
                                 stringResource(
                                     R.string
@@ -1615,7 +1617,7 @@ private fun LazyListScope.settingsContent(
     }
 
     item {
-        YSuiteSectionHeader(
+        YSuitePanelLabel(
             title = stringResource(
                 R.string
                     .yfiles_provider_capabilities,
@@ -1626,7 +1628,7 @@ private fun LazyListScope.settingsContent(
         state.providers,
         key = { it.id },
     ) { provider ->
-        YSuiteListItem(
+        YSuiteDataRow(
             title =
                 providerLabel(
                     provider.kind,
@@ -1843,7 +1845,7 @@ private fun toolsDialogs(
                 onDismiss =
                     tools::cancelRename,
                 extraContent = {
-                    YSuiteSwitchItem(
+                    YSuiteToggleRow(
                         title =
                             stringResource(
                                 R.string
@@ -2039,6 +2041,20 @@ private fun nodeSubtitle(
             stringResource(
                 R.string.yfiles_type_other,
             )
+    }
+
+private fun nodeItemKind(
+    type: YFileType,
+): com.yagay.ysuite.designsystem.component.YSuiteItemKind =
+    when (type) {
+        YFileType.Directory ->
+            com.yagay.ysuite.designsystem.component.YSuiteItemKind.Folder
+        YFileType.File ->
+            com.yagay.ysuite.designsystem.component.YSuiteItemKind.File
+        YFileType.SymbolicLink ->
+            com.yagay.ysuite.designsystem.component.YSuiteItemKind.Link
+        YFileType.Other ->
+            com.yagay.ysuite.designsystem.component.YSuiteItemKind.Info
     }
 
 @Composable

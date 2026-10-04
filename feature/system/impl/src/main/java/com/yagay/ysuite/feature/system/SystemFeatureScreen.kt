@@ -7,10 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yagay.ysuite.designsystem.component.YSuiteListItem
-import com.yagay.ysuite.designsystem.component.YSuiteSecondaryButton
-import com.yagay.ysuite.designsystem.component.YSuiteSection
-import com.yagay.ysuite.designsystem.component.YSuiteStatusBadge
+import com.yagay.ysuite.designsystem.component.YSuiteDataRow
+import com.yagay.ysuite.designsystem.component.YSuiteActionButton
+import com.yagay.ysuite.designsystem.component.YSuitePanel
+import com.yagay.ysuite.designsystem.component.YSuiteStatusPill
 import com.yagay.ysuite.designsystem.component.YSuiteStatusTone
 import com.yagay.ysuite.diagnostics.DiagnosticCenter
 import com.yagay.ysuite.diagnostics.DiagnosticFinding
@@ -25,7 +25,7 @@ import com.yagay.ysuite.permissions.api.PermissionStatus
 import com.yagay.ysuite.platform.api.CapabilityKind
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.PlatformCapabilityMonitor
-import com.yagay.ysuite.ui.YSuiteDashboardPage
+import com.yagay.ysuite.ui.YSuiteDashboardScreen
 import com.yagay.ysuite.ui.rememberYSuitePermissionRequester
 
 @Composable
@@ -52,11 +52,11 @@ fun SystemFeatureScreen(
         onResult = model::applyPermissionResult,
     )
 
-    YSuiteDashboardPage(
+    YSuiteDashboardScreen(
         title = stringResource(R.string.system_title),
         subtitle = stringResource(R.string.system_summary),
     ) { _ ->
-        YSuiteSection(
+        YSuitePanel(
             title = stringResource(R.string.system_platform),
         ) {
             CapabilityRow(
@@ -67,7 +67,7 @@ fun SystemFeatureScreen(
                 label = stringResource(R.string.system_hooks),
                 status = state.capabilities?.get(CapabilityKind.Hooks),
             )
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = if (state.refreshing) {
                     stringResource(R.string.system_refreshing)
                 } else {
@@ -100,10 +100,10 @@ private fun CapabilityRow(
     status: CapabilityStatus?,
 ) {
     val resolved = status ?: CapabilityStatus.Unavailable
-    YSuiteListItem(
+    YSuiteDataRow(
         title = label,
         trailing = {
-            YSuiteStatusBadge(
+            YSuiteStatusPill(
                 text = capabilityStatusText(resolved),
                 tone = capabilityStatusTone(resolved),
             )
@@ -117,23 +117,23 @@ private fun PermissionSection(
     result: PermissionResult,
     onRequest: (List<PermissionRequirement>) -> Unit,
 ) {
-    YSuiteSection(
+    YSuitePanel(
         title = stringResource(R.string.system_permissions),
     ) {
         if (requirements.isEmpty()) {
             val emptyTitle =
                 stringResource(R.string.system_permissions_empty)
-            YSuiteListItem(title = emptyTitle)
+            YSuiteDataRow(title = emptyTitle)
         } else {
             requirements.forEach { requirement ->
                 val status = result.statuses[requirement.permission]
                     ?: PermissionStatus.Denied
                 val permissionName =
                     requirement.permission.substringAfterLast('.')
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = permissionName,
                     trailing = {
-                        YSuiteStatusBadge(
+                        YSuiteStatusPill(
                             text = permissionStatusText(status),
                             tone = permissionStatusTone(status),
                         )
@@ -146,7 +146,7 @@ private fun PermissionSection(
                     PermissionStatus.Granted
             }
             if (denied.isNotEmpty()) {
-                YSuiteSecondaryButton(
+                YSuiteActionButton(
                     text = stringResource(
                         R.string.system_request_permissions,
                     ),
@@ -161,22 +161,22 @@ private fun PermissionSection(
 private fun DiagnosticSection(
     findings: List<DiagnosticFinding>,
 ) {
-    YSuiteSection(
+    YSuitePanel(
         title = stringResource(R.string.system_diagnostics),
     ) {
         if (findings.isEmpty()) {
             val emptyTitle =
                 stringResource(R.string.system_diagnostics_empty)
-            YSuiteListItem(title = emptyTitle)
+            YSuiteDataRow(title = emptyTitle)
         } else {
             findings.forEach { finding ->
                 val findingTitle = finding.id
                 val findingSubtitle = finding.owner
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = findingTitle,
                     subtitle = findingSubtitle,
                     trailing = {
-                        YSuiteStatusBadge(
+                        YSuiteStatusPill(
                             text = diagnosticStatusText(
                                 finding.status,
                             ),
@@ -196,23 +196,23 @@ private fun LogSection(
     records: List<com.yagay.ysuite.logging.api.LogRecord>,
     onClear: () -> Unit,
 ) {
-    YSuiteSection(
+    YSuitePanel(
         title = stringResource(R.string.system_logs),
     ) {
         if (records.isEmpty()) {
             val emptyTitle =
                 stringResource(R.string.system_logs_empty)
-            YSuiteListItem(title = emptyTitle)
+            YSuiteDataRow(title = emptyTitle)
         } else {
             records.asReversed().forEach { record ->
                 val logTitle =
                     record.level.name + " · " + record.tag
-                YSuiteListItem(
+                YSuiteDataRow(
                     title = logTitle,
                     subtitle = record.message,
                 )
             }
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = stringResource(
                     R.string.system_clear_logs,
                 ),
