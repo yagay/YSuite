@@ -72,7 +72,6 @@ import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsLink
 import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
 import com.yagay.ysuite.productui.tool.NiaToolSurface
-import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 import java.io.File
 import java.net.URLConnection
 import java.text.DateFormat
@@ -439,6 +438,7 @@ private fun YFilesMainContent(
     state: YFilesUiState,
     browser: YFilesViewModel,
     adaptive: ProductAdaptiveInfo,
+    context: Context,
     onEmptyTrash: () -> Unit,
 ) {
     when (state.mode) {
@@ -446,7 +446,7 @@ private fun YFilesMainContent(
             YFilesDirectoryList(
                 state = state,
                 browser = browser,
-                showInlineDetails = !adaptive.isExpanded,
+                context = context,
             )
         YFilesBrowserMode.Favorites ->
             YFilesSavedList(
@@ -467,13 +467,26 @@ private fun YFilesMainContent(
                 onEmptyTrash = onEmptyTrash,
             )
     }
+
+    if (!adaptive.isExpanded) {
+        state.focused?.let { node ->
+            FileExplorerDetailsSheet(
+                onDismiss = { browser.focus(null) },
+            ) {
+                YFilesDetailContent(
+                    node = node,
+                    browser = browser,
+                )
+            }
+        }
+    }
 }
 
 @Composable
 private fun YFilesDirectoryList(
     state: YFilesUiState,
     browser: YFilesViewModel,
-    showInlineDetails: Boolean,
+    context: Context,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -502,7 +515,20 @@ private fun YFilesDirectoryList(
                 subtitle = nodeSubtitle(node),
                 kind = node.productItemKind(),
                 selected = selected,
-                onOpen = { browser.open(node) },
+                selectionMode = state.selected.isNotEmpty(),
+                onOpen = {
+                    if (
+                        node.type == YFileType.Directory ||
+                        (
+                            node.type == YFileType.File &&
+                            node.name.endsWith(".zip", ignoreCase = true)
+                        )
+                    ) {
+                        browser.open(node)
+                    } else if (!openExternalFile(context, node)) {
+                        browser.focus(node)
+                    }
+                },
                 onToggleSelection = {
                     browser.toggleSelection(node)
                 },
@@ -511,7 +537,7 @@ private fun YFilesDirectoryList(
 
         state.clipboard?.let { clipboard ->
             item {
-                YSuiteSection(
+                FileExplorerToolGroup(
                     title = stringResource(
                         if (clipboard.move) {
                             R.string.yfiles_clipboard_move
@@ -521,7 +547,7 @@ private fun YFilesDirectoryList(
                         clipboard.refs.size,
                     ),
                 ) {
-                    YSuiteSecondaryButton(
+                    FileExplorerToolAction(
                         text = stringResource(R.string.yfiles_paste_here),
                         onClick = browser::pasteHere,
                     )
@@ -550,17 +576,6 @@ private fun YFilesDirectoryList(
                 )
             }
         }
-
-        if (showInlineDetails) {
-            state.focused?.let { node ->
-                item {
-                    YFilesDetailPane(
-                        node = node,
-                        browser = browser,
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -585,6 +600,7 @@ private fun YFilesSavedList(
                 subtitle = location.ref.path,
                 kind = YFileProductItemKind.Folder,
                 selected = false,
+                selectionMode = false,
                 onOpen = { browser.navigateSaved(location) },
                 onToggleSelection = { browser.navigateSaved(location) },
             )
@@ -615,13 +631,14 @@ private fun YFilesTrashList(
                 subtitle = record.originalParent.path,
                 kind = YFileProductItemKind.File,
                 selected = false,
+                selectionMode = false,
                 onOpen = { browser.restoreTrash(record.id) },
                 onToggleSelection = { browser.restoreTrash(record.id) },
             )
         }
         if (state.trashRecords.isNotEmpty()) {
             item {
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(R.string.yfiles_empty_trash),
                     onClick = onEmptyTrash,
                 )
@@ -637,41 +654,50 @@ private fun YFilesDetailPane(
 ) {
     Column(
         modifier = Modifier.padding(YSuiteSpacing.Medium),
-        verticalArrangement =
-            Arrangement.spacedBy(YSuiteSpacing.Small),
     ) {
-        YSuiteSection(
-            title = stringResource(R.string.yfiles_details),
-        ) {
-            YSuiteListItem(
-                title = node.name,
-                subtitle = nodeTypeLabel(node.type),
-            )
-            YSuiteListItem(
-                title = stringResource(R.string.yfiles_provider),
-                subtitle = node.ref.providerId,
-            )
-            node.sizeBytes?.let {
-                YSuiteListItem(
-                    title = stringResource(R.string.yfiles_size),
-                    subtitle = formatBytes(it),
-                )
-            }
-            node.modifiedAtMillis?.let {
-                YSuiteListItem(
-                    title = stringResource(R.string.yfiles_modified),
-                    subtitle = formatDate(it),
-                )
-            }
-            YSuiteSecondaryButton(
-                text = stringResource(R.string.yfiles_rename),
-                onClick = { browser.beginRename(node) },
-            )
-            YSuiteSecondaryButton(
-                text = stringResource(R.string.yfiles_close),
-                onClick = { browser.focus(null) },
+        YFilesDetailContent(
+            node = node,
+            browser = browser,
+        )
+    }
+}
+
+@Composable
+private fun YFilesDetailContent(
+    node: YFileNode,
+    browser: YFilesViewModel,
+) {
+    FileExplorerToolGroup(
+        title = stringResource(R.string.yfiles_details),
+    ) {
+        FileExplorerDetailRow(
+            title = node.name,
+            subtitle = nodeTypeLabel(node.type),
+        )
+        FileExplorerDetailRow(
+            title = stringResource(R.string.yfiles_provider),
+            subtitle = node.ref.providerId,
+        )
+        node.sizeBytes?.let {
+            FileExplorerDetailRow(
+                title = stringResource(R.string.yfiles_size),
+                subtitle = formatBytes(it),
             )
         }
+        node.modifiedAtMillis?.let {
+            FileExplorerDetailRow(
+                title = stringResource(R.string.yfiles_modified),
+                subtitle = formatDate(it),
+            )
+        }
+        FileExplorerToolAction(
+            text = stringResource(R.string.yfiles_rename),
+            onClick = { browser.beginRename(node) },
+        )
+        FileExplorerToolAction(
+            text = stringResource(R.string.yfiles_close),
+            onClick = { browser.focus(null) },
+        )
     }
 }
 
@@ -785,14 +811,14 @@ private fun LazyListScope.toolsContent(
         }
 
     item {
-        YSuiteSection(
+        FileExplorerToolGroup(
             title = stringResource(
                 R.string
                     .yfiles_tools_current,
             ),
         ) {
             if (directory != null) {
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string.yfiles_analyze,
                     ),
@@ -802,7 +828,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string
                             .yfiles_duplicates,
@@ -813,7 +839,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string
                             .yfiles_cleanup_scan,
@@ -824,7 +850,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string
                             .yfiles_symlink,
@@ -837,7 +863,7 @@ private fun LazyListScope.toolsContent(
     }
 
     item {
-        YSuiteSection(
+        FileExplorerToolGroup(
             title = stringResource(
                 R.string
                     .yfiles_tools_selected,
@@ -851,7 +877,7 @@ private fun LazyListScope.toolsContent(
                 ),
             )
             if (selectedNodes.isNotEmpty()) {
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string
                             .yfiles_create_zip,
@@ -859,7 +885,7 @@ private fun LazyListScope.toolsContent(
                     onClick =
                         tools::beginZip,
                 )
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string
                             .yfiles_bulk_rename,
@@ -869,7 +895,7 @@ private fun LazyListScope.toolsContent(
                 )
             }
             if (singleFile != null) {
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string.yfiles_sha256,
                     ),
@@ -879,7 +905,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string
                             .yfiles_text_editor,
@@ -890,7 +916,7 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string.yfiles_hex,
                     ),
@@ -900,14 +926,14 @@ private fun LazyListScope.toolsContent(
                         )
                     },
                 )
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string.yfiles_split,
                     ),
                     onClick =
                         tools::beginSplit,
                 )
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string.yfiles_chmod,
                     ),
@@ -924,7 +950,7 @@ private fun LazyListScope.toolsContent(
                     ) &&
                     directory != null
                 ) {
-                    YSuiteSecondaryButton(
+                    FileExplorerToolAction(
                         text = stringResource(
                             R.string
                                 .yfiles_extract_zip,
@@ -942,7 +968,7 @@ private fun LazyListScope.toolsContent(
                         ".part001",
                     )
                 ) {
-                    YSuiteSecondaryButton(
+                    FileExplorerToolAction(
                         text = stringResource(
                             R.string.yfiles_join,
                         ),
@@ -955,7 +981,7 @@ private fun LazyListScope.toolsContent(
                 }
             }
             if (selectedNodes.size == 2) {
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string
                             .yfiles_compare,
@@ -1024,7 +1050,7 @@ private fun LazyListScope.toolResults(
 ) {
     state.hash?.let { hash ->
         item {
-            YSuiteSection(
+            FileExplorerToolGroup(
                 title = stringResource(
                     R.string.yfiles_sha256,
                 ),
@@ -1039,7 +1065,7 @@ private fun LazyListScope.toolResults(
 
     state.analysis?.let { analysis ->
         item {
-            YSuiteSection(
+            FileExplorerToolGroup(
                 title = stringResource(
                     R.string
                         .yfiles_analysis,
@@ -1121,7 +1147,7 @@ private fun LazyListScope.toolResults(
 
     state.hexPreview?.let { hex ->
         item {
-            YSuiteSection(
+            FileExplorerToolGroup(
                 title = stringResource(
                     R.string.yfiles_hex,
                 ),
@@ -1144,7 +1170,7 @@ private fun LazyListScope.toolResults(
                                 .Warning,
                     )
                 }
-                YSuiteSecondaryButton(
+                FileExplorerToolAction(
                     text = stringResource(
                         R.string.yfiles_close,
                     ),
@@ -1157,7 +1183,7 @@ private fun LazyListScope.toolResults(
 
     state.compare?.let { compare ->
         item {
-            YSuiteSection(
+            FileExplorerToolGroup(
                 title = stringResource(
                     R.string.yfiles_compare,
                 ),
@@ -1201,7 +1227,7 @@ private fun LazyListScope.toolResults(
 
     state.cleanup?.let { cleanup ->
         item {
-            YSuiteSection(
+            FileExplorerToolGroup(
                 title = stringResource(
                     R.string
                         .yfiles_cleanup_scan,
@@ -1293,7 +1319,7 @@ private fun LazyListScope.toolResults(
         state.cleanup != null
     ) {
         item {
-            YSuiteSecondaryButton(
+            FileExplorerToolAction(
                 text = stringResource(
                     R.string
                         .yfiles_clear_results,
@@ -1302,165 +1328,6 @@ private fun LazyListScope.toolResults(
                     tools::clearResults,
             )
         }
-    }
-}
-
-private fun LazyListScope.settingsContent(
-    state: YFilesUiState,
-    environment: YFilesEnvironment,
-    browser: YFilesViewModel,
-    allFilesGranted: Boolean,
-    onOpenAllFilesSettings: () -> Unit,
-    onAddSaf: () -> Unit,
-) {
-    item {
-        YSuiteSection(
-            title = stringResource(
-                R.string
-                    .yfiles_settings_access,
-            ),
-        ) {
-            YSuiteListItem(
-                title = stringResource(
-                    R.string
-                        .yfiles_all_files_access,
-                ),
-                trailing = {
-                    YSuiteStatusBadge(
-                        text = stringResource(
-                            if (
-                                allFilesGranted
-                            ) {
-                                R.string
-                                    .yfiles_granted
-                            } else {
-                                R.string
-                                    .yfiles_not_granted
-                            },
-                        ),
-                        tone =
-                            if (
-                                allFilesGranted
-                            ) {
-                                YSuiteStatusTone
-                                    .Positive
-                            } else {
-                                YSuiteStatusTone
-                                    .Warning
-                            },
-                    )
-                },
-            )
-            if (!allFilesGranted) {
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string
-                            .yfiles_open_settings,
-                    ),
-                    onClick =
-                        onOpenAllFilesSettings,
-                )
-            }
-            YSuiteListItem(
-                title = stringResource(
-                    R.string
-                        .yfiles_root_access,
-                ),
-                trailing = {
-                    YSuiteStatusBadge(
-                        text =
-                            rootStatusText(
-                                state
-                                    .rootStatus,
-                            ),
-                        tone =
-                            rootStatusTone(
-                                state
-                                    .rootStatus,
-                            ),
-                    )
-                },
-            )
-            YSuiteSecondaryButton(
-                text = stringResource(
-                    R.string
-                        .yfiles_refresh_root,
-                ),
-                onClick =
-                    browser
-                        ::refreshRootStatus,
-            )
-        }
-    }
-
-    val trees =
-        environment.documentTrees.trees()
-    item {
-        YSuiteSection(
-            title = stringResource(
-                R.string.yfiles_saf,
-            ),
-        ) {
-            YSuiteSecondaryButton(
-                text = stringResource(
-                    R.string.yfiles_add_saf,
-                ),
-                onClick = onAddSaf,
-            )
-            if (trees.isEmpty()) {
-                YSuiteListItem(
-                    title = stringResource(
-                        R.string
-                            .yfiles_no_saf,
-                    ),
-                )
-            }
-            trees.forEach { tree ->
-                YSuiteListItem(
-                    title = tree.toString(),
-                    trailing = {
-                        YSuiteSecondaryButton(
-                            text =
-                                stringResource(
-                                    R.string
-                                        .yfiles_remove_saf,
-                                ),
-                            onClick = {
-                                browser
-                                    .removeDocumentTree(
-                                        tree,
-                                    )
-                            },
-                        )
-                    },
-                )
-            }
-        }
-    }
-
-    item {
-        YSuiteSectionHeader(
-            title = stringResource(
-                R.string
-                    .yfiles_provider_capabilities,
-            ),
-        )
-    }
-    items(
-        state.providers,
-        key = { it.id },
-    ) { provider ->
-        YSuiteListItem(
-            title =
-                providerLabel(
-                    provider.kind,
-                ),
-            subtitle =
-                provider.capabilities
-                    .joinToString {
-                        it.name
-                    },
-        )
     }
 }
 
@@ -1805,6 +1672,45 @@ private fun toolsDialogs(
                 tools::cancelSymlink,
         )
     }
+}
+
+private fun openExternalFile(
+    context: Context,
+    node: YFileNode,
+): Boolean {
+    val uri =
+        when (node.ref.providerId) {
+            "document" ->
+                runCatching {
+                    Uri.parse(node.ref.path)
+                }.getOrNull()
+            "local" ->
+                runCatching {
+                    FileProvider.getUriForFile(
+                        context,
+                        context.packageName + ".yfiles.fileprovider",
+                        File(node.ref.path),
+                    )
+                }.getOrNull()
+            else ->
+                null
+        } ?: return false
+
+    val mime =
+        node.mimeType
+            ?.takeIf { it.isNotBlank() }
+            ?: URLConnection.guessContentTypeFromName(node.name)
+            ?: "*/*"
+
+    val intent =
+        Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uri, mime)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+    return runCatching {
+        context.startActivity(intent)
+        true
+    }.getOrDefault(false)
 }
 
 @Composable

@@ -142,4 +142,7 @@
     <string name="yfiles_remove_saf">Remove</string>
     <string name="yfiles_no_saf">No SAF folders have been added.</string>
     <string name="yfiles_provider_capabilities">Provider capabilities</string>
+    <string name="yfiles_sort_ascending">Ascending</string>
+    <string name="yfiles_sort_descending">Descending</string>
+    <string name="yfiles_select_all">Select all</string>
 </resources>

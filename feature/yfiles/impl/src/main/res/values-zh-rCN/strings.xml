@@ -142,4 +142,7 @@
     <string name="yfiles_remove_saf">移除</string>
     <string name="yfiles_no_saf">尚未添加 SAF 文件夹。</string>
     <string name="yfiles_provider_capabilities">Provider 能力</string>
+    <string name="yfiles_sort_ascending">升序</string>
+    <string name="yfiles_sort_descending">降序</string>
+    <string name="yfiles_select_all">全选</string>
 </resources>
