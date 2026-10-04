@@ -74,7 +74,7 @@ fun FileExplorerWorkspace(
                     adaptive = adaptive,
                     title = title,
                     modifier = Modifier.weight(1f),
-                    navigationIcon = navigationIcon,
+                    navigationIcon = { navigationIcon?.invoke() },
                     actions = actions,
                     breadcrumb = breadcrumb,
                     tabs = tabs,
