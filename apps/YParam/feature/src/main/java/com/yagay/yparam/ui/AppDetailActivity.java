@@ -12,7 +12,6 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -216,9 +215,6 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         System.arraycopy(presets, 0, options, 1, presets.length);
         options[options.length - 1] = getString(R.string.yparam_custom);
 
-        Spinner spinner = new Spinner(this);
-        spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, options));
-
         EditText custom = new EditText(this);
         custom.setSingleLine(true);
         custom.setHint(hint);
@@ -236,7 +232,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         }
         final int customIndex = presets.length + 1;
         custom.setVisibility(selected == customIndex ? View.VISIBLE : View.GONE);
-        spinner.setSelection(selected, false);
+        Spinner spinner = YViewLayout.spinnerControl(this, options, selected, null);
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (position == 0) custom.setText("");
@@ -267,9 +263,11 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         box.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         box.addView(text(label, 15, true));
         box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
-        Spinner s = new Spinner(this);
-        s.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, options));
-        s.setSelection(Math.max(0, Math.min(selected, options.length - 1)));
+        Spinner s = YViewLayout.spinnerControl(
+                this,
+                options,
+                Math.max(0, Math.min(selected, options.length - 1)),
+                null);
         box.addView(s);
         root.addView(box);
         return s;

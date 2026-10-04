@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -108,17 +107,15 @@ public class DiagnosticActivity extends AppCompatActivity {
                 getString(R.string.yp_session_desc)
         );
 
-        levelSpinner = new Spinner(this);
-        levelSpinner.setAdapter(new ArrayAdapter<>(
+        levelSpinner = YViewLayout.spinnerControl(
                 this,
-                android.R.layout.simple_spinner_dropdown_item,
                 new String[]{
                         getString(R.string.yp_level_fast),
                         getString(R.string.yp_level_standard),
                         getString(R.string.yp_level_deep)
-                }
-        ));
-        levelSpinner.setSelection(1);
+                },
+                1,
+                null);
         control.addView(YViewLayout.detailBlock(
                 this,
                 getString(R.string.yp_collection_level),
@@ -144,17 +141,16 @@ public class DiagnosticActivity extends AppCompatActivity {
                 getString(R.string.yp_results_title),
                 getString(R.string.yp_results_desc)
         );
-        viewSpinner = new Spinner(this);
-        viewSpinner.setAdapter(new ArrayAdapter<>(
+        viewSpinner = YViewLayout.spinnerControl(
                 this,
-                android.R.layout.simple_spinner_dropdown_item,
                 new String[]{
                         getString(R.string.yp_view_summary),
                         getString(R.string.yp_view_detailed),
                         getString(R.string.yp_view_attribution),
                         getString(R.string.yp_view_raw)
-                }
-        ));
+                },
+                0,
+                null);
         result.addView(viewSpinner);
 
         LinearLayout row2 = YViewLayout.actionRow(result);
