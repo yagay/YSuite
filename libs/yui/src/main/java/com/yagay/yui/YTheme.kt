@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.TopAppBar
@@ -121,6 +122,7 @@ fun YTheme(
 }
 
 /** Material 3 app bar selected by the current page template. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun YTopBar(
     title: String,
