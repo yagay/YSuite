@@ -9,6 +9,7 @@ import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.permissions.api.PermissionCatalog
 import com.yagay.ysuite.permissions.api.PermissionChecker
 import com.yagay.ysuite.platform.api.PlatformCapabilityMonitor
+import com.yagay.ysuite.productui.ProductSurfaceKind
 import com.yagay.ysuite.runtime.FeatureLifecycleEvent
 import com.yagay.ysuite.runtime.FeatureLifecycleObserver
 import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
@@ -22,6 +23,7 @@ class SystemFeatureUiRegistration(
     private val permissionCatalog: PermissionCatalog,
 ) : YSuiteFeatureUiRegistration {
     override val contract = SystemFeatureContract
+    override val productSurface = ProductSurfaceKind.Dashboard
 
     override val lifecycleObserver =
         FeatureLifecycleObserver { event ->

@@ -17,6 +17,7 @@ android {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    api(project(":core:productui"))
     implementation(project(":core:resources"))
     implementation(project(":core:navigation"))
     implementation(project(":core:settings"))
