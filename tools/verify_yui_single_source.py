@@ -224,6 +224,37 @@ def main() -> None:
             + ", ".join(sorted(raw_navigation))
         )
 
+    raw_view_controls: list[str] = []
+    forbidden_view_constructors = (
+        "new MaterialCheckBox(",
+        "new Slider(",
+        "new Spinner(",
+        "new MaterialButton(",
+        "new BottomNavigationView(",
+        "new MaterialToolbar(",
+    )
+    for path in APPS.glob("*/feature/src/main/java/**/*.java"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(ROOT).as_posix()
+        if relative.startswith("apps/YFloat/feature/src/main/java/com/yagay/YFloat/") and any(
+            name in relative
+            for name in (
+                "FloatingMenuUi.java",
+                "ResultUi.java",
+            )
+        ):
+            continue
+        source = path.read_text(encoding="utf-8", errors="replace")
+        used = [item for item in forbidden_view_constructors if item in source]
+        if used:
+            raw_view_controls.append(f"{relative}: {', '.join(used)}")
+    if raw_view_controls:
+        fail(
+            "normal Java/View screens must construct shared controls through YViewLayout: "
+            + "; ".join(sorted(raw_view_controls))
+        )
+
     raw_compose_controls: list[str] = []
     forbidden_compose_imports = (
         "androidx.compose.material3.Scaffold",
