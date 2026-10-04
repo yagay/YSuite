@@ -664,5 +664,5 @@ object YViewLayout {
     private fun screenV(context: Context): Int = YView.dimen(context, R.dimen.yui_screen_vertical)
     private fun sectionGap(context: Context): Int = YView.dimen(context, R.dimen.yui_section_gap)
     private fun controlGap(context: Context): Int = YView.dimen(context, R.dimen.yui_control_gap)
-    private fun dp(context: Context, value: Int): Int = YView.dp(context, value)
+    @JvmStatic fun dp(context: Context, value: Int): Int = YView.dp(context, value)
 }
