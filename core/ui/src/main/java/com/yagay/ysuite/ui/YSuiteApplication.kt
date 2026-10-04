@@ -10,6 +10,7 @@ import com.yagay.ysuite.resources.LocaleController
 import com.yagay.ysuite.settings.AppSettings
 import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
+import kotlinx.coroutines.flow.map
 
 @Composable
 fun YSuiteApplication(
@@ -17,13 +18,17 @@ fun YSuiteApplication(
     featureRegistry: YSuiteFeatureRegistry,
     singleFeature: Boolean = false,
 ) {
-    val settings by settingsRepository.settings.collectAsStateWithLifecycle(
-        initialValue = AppSettings(),
-    )
+    val loadedSettings by settingsRepository.settings
+        .map<AppSettings, AppSettings?> { it }
+        .collectAsStateWithLifecycle(initialValue = null)
+    val settings = loadedSettings ?: return
     val context = LocalContext.current
 
     LaunchedEffect(settings.languageTag) {
-        LocaleController.applyLanguageTag(context, settings.languageTag)
+        LocaleController.applyLanguageTag(
+            context = context,
+            languageTag = settings.languageTag,
+        )
     }
 
     val systemDark = isSystemInDarkTheme()
