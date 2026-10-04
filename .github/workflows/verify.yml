@@ -20,8 +20,9 @@ jobs:
         run: python tools/verify_localization.py
       - name: Verify feature tooling
         run: |
-          python -m py_compile tools/new_feature.py tools/remove_feature.py
+          python -m py_compile             tools/new_feature.py             tools/remove_feature.py             tools/verify_standalone_config.py
           python tools/new_feature.py ci_probe --dry-run
+          python tools/verify_standalone_config.py
 
   build:
     runs-on: ubuntu-latest
@@ -36,3 +37,5 @@ jobs:
           gradle-version: "9.4.1"
       - name: Build all clean modules
         run: gradle build --stacktrace
+      - name: Verify alternate standalone feature
+        run: gradle :host:standalone:assembleDebug -PstandaloneFeature=settings --stacktrace

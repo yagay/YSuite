@@ -13,7 +13,9 @@ def normalize(raw: str) -> str:
     return value
 
 def main():
-    parser = argparse.ArgumentParser(description="Remove a generated YSuite feature.")
+    parser = argparse.ArgumentParser(
+        description="Remove a generated YSuite feature."
+    )
     parser.add_argument("name")
     parser.add_argument("--yes", action="store_true")
     args = parser.parse_args()
@@ -32,10 +34,23 @@ def main():
     shutil.rmtree(base)
 
     settings = ROOT / "settings.gradle.kts"
-    text = settings.read_text(encoding="utf-8")
+    settings_text = settings.read_text(encoding="utf-8")
     for suffix in ("api", "impl"):
-        text = text.replace(f'include(":feature:{feature}:{suffix}")\n', "")
-    settings.write_text(text, encoding="utf-8")
+        settings_text = settings_text.replace(
+            f'include(":feature:{feature}:{suffix}")\n',
+            "",
+        )
+    settings.write_text(settings_text, encoding="utf-8")
+
+    standalone = ROOT / "config/standalone-features.properties"
+    lines = standalone.read_text(encoding="utf-8").splitlines()
+    standalone.write_text(
+        "\n".join(
+            line for line in lines
+            if not line.startswith(f"{feature}|")
+        ) + "\n",
+        encoding="utf-8",
+    )
 
     print(f"Removed feature:{feature}")
 
