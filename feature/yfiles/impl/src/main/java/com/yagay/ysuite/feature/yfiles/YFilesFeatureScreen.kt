@@ -1362,12 +1362,12 @@ private fun LazyListScope.toolResults(
                         },
                 )
                 YSuiteListItem(
-                    title = "SHA-256 #1",
+                    title = stringResource(R.string.yfiles_compare_left_hash),
                     subtitle =
                         compare.leftHash,
                 )
                 YSuiteListItem(
-                    title = "SHA-256 #2",
+                    title = stringResource(R.string.yfiles_compare_right_hash),
                     subtitle =
                         compare.rightHash,
                 )

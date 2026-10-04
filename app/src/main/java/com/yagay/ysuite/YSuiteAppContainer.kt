@@ -79,12 +79,9 @@ class YSuiteAppContainer(
                 permissionCatalog = permissionCatalog,
             ),
             YFilesFeatureUiRegistration(
-                engine = DefaultYFilesEngine(
-                    YFileProviderRegistry(
-                        listOf(
-                            LocalFileProvider(),
-                        ),
-                    ),
+                environment = YFilesEnvironmentFactory.create(
+                    context = context,
+                    rootGateway = platform.root,
                 ),
                 logger = logger,
             ),

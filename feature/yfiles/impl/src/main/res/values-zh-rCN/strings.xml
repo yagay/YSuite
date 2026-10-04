@@ -115,7 +115,7 @@
     <string name="yfiles_analysis_truncated">分析达到安全上限。</string>
     <string name="yfiles_duplicate_group">%1$d 份 · 每份 %2$s</string>
     <string name="yfiles_compare_identical">两个文件完全相同</string>
-    <string name="yfiles_compare_different">两个文件不同</string>
+    <string name="yfiles_compare_different">两个文件不同</string>\n    <string name="yfiles_compare_left_hash">SHA-256 #1</string>\n    <string name="yfiles_compare_right_hash">SHA-256 #2</string>
     <string name="yfiles_cleanup_summary">已扫描 %1$d 项 · 总计 %2$s</string>
     <string name="yfiles_cleanup_large">大文件：%1$d</string>
     <string name="yfiles_cleanup_old">旧文件：%1$d</string>

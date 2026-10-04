@@ -115,7 +115,7 @@
     <string name="yfiles_analysis_truncated">Analysis reached the safety limit.</string>
     <string name="yfiles_duplicate_group">%1$d copies · %2$s each</string>
     <string name="yfiles_compare_identical">Files are identical</string>
-    <string name="yfiles_compare_different">Files are different</string>
+    <string name="yfiles_compare_different">Files are different</string>\n    <string name="yfiles_compare_left_hash">SHA-256 #1</string>\n    <string name="yfiles_compare_right_hash">SHA-256 #2</string>
     <string name="yfiles_cleanup_summary">%1$d scanned · %2$s total</string>
     <string name="yfiles_cleanup_large">Large files: %1$d</string>
     <string name="yfiles_cleanup_old">Old files: %1$d</string>

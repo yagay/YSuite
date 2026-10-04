@@ -2,71 +2,88 @@
 
 ## Scope
 
-YFiles has been restarted from a clean source baseline.
+YFiles was restarted from a clean source baseline and rebuilt as a provider-based file manager.
 
-The first rebuilt slice contains:
-- a provider-neutral file reference and node model,
-- a provider capability model,
-- a provider registry,
-- a central YFiles engine,
-- a local-storage provider,
-- directory browsing,
-- local and recursive search,
-- bounded provider-root navigation,
-- basic provider-routed create / rename / delete / copy / move primitives,
+The rebuilt implementation now includes:
+- unified Local, Document/SAF, Root and ZIP Archive providers,
+- a provider registry and central file engine,
+- same-provider and cross-provider copy/move,
+- streamed cross-provider file transfer with progress,
+- create, rename, delete and batch operations,
+- search, recursive search, hidden-file filtering and sorting,
+- favorites and recent locations,
+- managed recycle bin with restore/empty,
+- ZIP browsing, creation and extraction,
+- SHA-256, duplicate scan and directory analysis,
+- UTF-8 text editing and HEX preview,
+- bulk rename,
+- split/join,
+- file comparison,
+- cleanup analysis,
+- Linux chmod and symbolic-link support where the provider exposes those capabilities,
+- all-files-access settings entry and persistent SAF tree grants,
 - integrated and standalone builds.
 
-Document/SAF, Root, Archive and Remote providers are intentionally separate future backends.
+Remote SMB/SFTP/WebDAV is intentionally not embedded in this clean-room slice because it requires
+separate protocol dependencies and credential models. The engine already reserves the Remote
+provider kind for a future backend without changing the YFiles UI.
 
 ## Clean-room implementation
 
-The previous YFiles implementation on this branch was removed completely before this rewrite.
+The earlier YFiles implementation on this branch was deleted completely before this rewrite.
 
-Material Files and Amaze File Manager are used only as architectural and behavioural references.
-No source code from those GPL projects is copied into YSuite.
+Material Files and Amaze File Manager were used only as architectural and behavioural references.
+No GPL source code was copied into YSuite.
 
-The new YFiles contracts, engine, registry, local provider and UI were written for the YSuite
-architecture.
+The YFiles engine, provider interfaces, Local/SAF/Root/Archive providers, transfer coordinator,
+maintenance tools, state models and UI binding are independently written for YSuite.
 
 ## UI
 
-The UI only consumes `YFilesEngine`. It does not know whether a node comes from a local,
-Document/SAF, Root, Archive or Remote provider.
+YFiles does not own a separate UI framework.
 
-YFiles has no independent UI framework. Page composition is feature-owned, while every visible
-control and visual primitive comes from `core:ui` and `core:designsystem`. Local, SAF, Root,
-Archive and Remote providers all render through the same unified YSuite UI.
+Feature-owned code only composes YFiles business state. All visible controls, page structure,
+dialogs, status badges, list rows, filters and search fields come from `core:ui` and
+`core:designsystem`.
 
-CI rejects YFiles-owned themes, component/widget libraries, layouts, colors, dimensions, shapes and
-styles.
+Local, SAF, Root and Archive use the same YFiles screen. CI rejects YFiles-owned themes, widget
+libraries, layouts, colors, dimensions, shapes and styles.
 
 ## Platform capabilities
 
-The initial provider is Local storage.
+Local access uses the Android storage surface available to the host.
 
-The engine model reserves distinct provider kinds for:
-- Document / SAF,
-- Root,
-- Archive,
-- Remote.
+SAF uses persisted document-tree URI grants.
 
-Root and Android-specific privileged capability plumbing will be injected through shared YSuite
-platform contracts rather than embedded into the UI.
+Root uses the shared `RootGateway`; YFiles never launches `su` directly. The Android host provides
+the Root adapter in the composition root.
+
+Archive is a read-only ZIP virtual provider. Archives from non-local providers are materialized into
+the app cache through the engine and then mounted.
+
+Cross-provider copy/move streams through provider read/write contracts.
 
 ## Localization
 
-English and Simplified Chinese resources are maintained together with matching keys.
+All user-facing YFiles text is provided in English and Simplified Chinese resources with matching
+keys.
 
 ## Tests
 
-Unit tests cover:
-- duplicate provider registration,
-- provider descriptor exposure,
-- directory-first local listing,
-- recursive search,
-- provider-root navigation boundary,
-- engine-routed file operations.
+The test suite covers:
+- provider registration,
+- Local provider listing, recursive search and root boundary,
+- engine-routed create/rename/copy/move,
+- cross-provider streaming using test providers,
+- ZIP archive mount/read,
+- checksum, text/HEX and directory-analysis utilities.
+
+CI also runs architecture, foundation-freeze, migration, localization and standalone checks.
 
 ## Standalone
 
 YFiles uses the generic standalone host with `standaloneFeature=yfiles`.
+
+The generic standalone host does not inject the Android Root adapter, so Root reports unavailable in
+that host. The integrated YSuite app injects the real shared Root adapter. All non-Root YFiles
+features remain available in standalone.

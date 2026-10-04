@@ -405,16 +405,16 @@ class RootFileProvider(
             append("dir=")
             append(quote(directoryPath))
             append("; ")
-            append("for p in \"$dir\"/* \"$dir\"/.[!.]* \"$dir\"/..?*; do ")
-            append("[ -e \"$p\" ] || [ -L \"$p\" ] || continue; ")
+            append("for p in \"\$dir\"/* \"\$dir\"/.[!.]* \"\$dir\"/..?*; do ")
+            append("[ -e \"\$p\" ] || [ -L \"\$p\" ] || continue; ")
             append("t=o; ")
-            append("if [ -L \"$p\" ]; then t=l; ")
-            append("elif [ -d \"$p\" ]; then t=d; ")
-            append("elif [ -f \"$p\" ]; then t=f; fi; ")
-            append("s=$(stat -c %s -- \"$p\" 2>/dev/null || echo 0); ")
-            append("m=$(stat -c %Y -- \"$p\" 2>/dev/null || echo 0); ")
-            append("x=$(printf %s \"$p\" | base64 | tr -d '\\n'); ")
-            append("printf '%s\\t%s\\t%s\\t%s\\n' \"$t\" \"$s\" \"$m\" \"$x\"; ")
+            append("if [ -L \"\$p\" ]; then t=l; ")
+            append("elif [ -d \"\$p\" ]; then t=d; ")
+            append("elif [ -f \"\$p\" ]; then t=f; fi; ")
+            append("s=$(stat -c %s -- \"\$p\" 2>/dev/null || echo 0); ")
+            append("m=$(stat -c %Y -- \"\$p\" 2>/dev/null || echo 0); ")
+            append("x=$(printf %s \"\$p\" | base64 | tr -d '\\n'); ")
+            append("printf '%s\\t%s\\t%s\\t%s\\n' \"\$t\" \"\$s\" \"\$m\" \"\$x\"; ")
             append("done")
         }
 
@@ -547,15 +547,15 @@ class RootFileProvider(
         path: String,
     ): String =
         "p=" + quote(path) + "; " +
-            "[ -e \"$p\" ] || [ -L \"$p\" ] || exit 2; " +
+            "[ -e \"\$p\" ] || [ -L \"\$p\" ] || exit 2; " +
             "t=o; " +
-            "if [ -L \"$p\" ]; then t=l; " +
-            "elif [ -d \"$p\" ]; then t=d; " +
-            "elif [ -f \"$p\" ]; then t=f; fi; " +
-            "s=$(stat -c %s -- \"$p\" 2>/dev/null || echo 0); " +
-            "m=$(stat -c %Y -- \"$p\" 2>/dev/null || echo 0); " +
-            "x=$(printf %s \"$p\" | base64 | tr -d '\\n'); " +
-            "printf '%s\\t%s\\t%s\\t%s\\n' \"$t\" \"$s\" \"$m\" \"$x\""
+            "if [ -L \"\$p\" ]; then t=l; " +
+            "elif [ -d \"\$p\" ]; then t=d; " +
+            "elif [ -f \"\$p\" ]; then t=f; fi; " +
+            "s=$(stat -c %s -- \"\$p\" 2>/dev/null || echo 0); " +
+            "m=$(stat -c %Y -- \"\$p\" 2>/dev/null || echo 0); " +
+            "x=$(printf %s \"\$p\" | base64 | tr -d '\\n'); " +
+            "printf '%s\\t%s\\t%s\\t%s\\n' \"\$t\" \"\$s\" \"\$m\" \"\$x\""
 
     private fun parseLine(
         line: String,
