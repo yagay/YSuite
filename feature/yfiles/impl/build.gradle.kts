@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:presentation"))
     implementation(project(":core:logging:api"))
+    implementation(project(":core:runtime"))
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
