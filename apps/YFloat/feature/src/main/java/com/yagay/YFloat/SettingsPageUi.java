@@ -2,6 +2,7 @@ package com.yagay.YFloat;
 
 import com.yagay.yui.YViewLayout;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.button.MaterialButton;

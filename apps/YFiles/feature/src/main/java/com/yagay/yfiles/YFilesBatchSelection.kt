@@ -49,7 +49,7 @@ fun YFilesSelectionToggle(entry: FileEntry) {
                 stringResource(R.string.yfiles_selected)
             } else {
                 stringResource(R.string.yfiles_select)
-            },,
+            },
         onClick = { YFilesBatchSelectionState.toggle(entry) },
     )
 }

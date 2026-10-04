@@ -25,9 +25,11 @@ import com.yagay.yui.YActionStyle
 import com.yagay.yui.YActionSpec
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YChoiceSetting
+import com.yagay.yui.YCheckboxControl
 import com.yagay.yui.YSection
 import com.yagay.yui.YFilterBar
 import com.yagay.yui.YFilterSpec
+import com.yagay.yui.YFormDialog
 import com.yagay.yui.YTabBar
 import com.yagay.yui.YTabSpec
 import com.yagay.yui.YToggleFilterBar

@@ -42,8 +42,8 @@ final class SettingsIconPage {
             in.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             activity.startActivityForResult(in, SettingsActivity.REQUEST_SLIDE_ICONS);
         });
-        ui.addWeightedButton(iconButtons, customIcon, true);
-        ui.addWeightedButton(iconButtons, slideIcon, false);
+        YViewLayout.addAction(iconButtons, customIcon);
+        YViewLayout.addAction(iconButtons, slideIcon);
         YViewLayout.addRow(appearance.body, iconButtons);
         ui.seek(appearance.body, activity.getString(R.string.yfloat_slideshow_interval),
                 FloatSettings.K_SLIDE_INTERVAL, 500, 10000, fs.slideIntervalMs(), " ms");
