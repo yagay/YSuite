@@ -112,7 +112,7 @@ fun YFileBreadcrumbBar(
             horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.XSmall),
         ) {
             IconButton(onClick = onUp) {
-                Icon(Icons.Default.ArrowBack, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
