@@ -2,8 +2,6 @@ package com.yagay.yfiles
 
 import android.content.Context
 import android.os.Environment
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +12,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YPrimaryButton
+import com.yagay.yui.YSecondaryButton
 import com.yagay.yui.YSection
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
@@ -461,13 +461,13 @@ fun YFilesExtraToolsCard(
             if (isFavorite) YStatusTone.Good else YStatusTone.Neutral,
         )
         YHorizontalActions {
-            OutlinedButton(
+            YSecondaryButton(
+                text = if (isFavorite) stringResource(R.string.remove_favorite) else stringResource(R.string.add_favorite),
                 onClick = { store.toggleFavorite(path); revision++ },
                 enabled = !busy,
-            ) {
-                Text(if (isFavorite) stringResource(R.string.remove_favorite) else stringResource(R.string.add_favorite))
-            }
-            Button(
+            )
+            YPrimaryButton(
+                text = stringResource(R.string.analyze_folder),
                 onClick = {
                     busy = true
                     scope.launch {
@@ -477,22 +477,26 @@ fun YFilesExtraToolsCard(
                     }
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.analyze_folder)) }
+            )
         }
         if (favorites.isNotEmpty()) {
             Text(stringResource(R.string.favorite_folders, favorites.size))
             favorites.take(4).forEach { favorite ->
-                OutlinedButton(onClick = { onNavigate(favorite) }, enabled = !busy) {
-                    Text(File(favorite).name.ifBlank { favorite })
-                }
+                YSecondaryButton(
+                    text = File(favorite).name.ifBlank { favorite },
+                    onClick = { onNavigate(favorite) },
+                    enabled = !busy,
+                )
             }
         }
         if (recents.isNotEmpty()) {
             Text(stringResource(R.string.yfiles_recent_locations, recents.size))
             recents.take(4).forEach { recent ->
-                OutlinedButton(onClick = { onNavigate(recent) }, enabled = !busy) {
-                    Text(File(recent).name.ifBlank { recent })
-                }
+                YSecondaryButton(
+                    text = File(recent).name.ifBlank { recent },
+                    onClick = { onNavigate(recent) },
+                    enabled = !busy,
+                )
             }
         }
         analysis?.let { result ->
@@ -511,7 +515,8 @@ fun YFilesExtraToolsCard(
             }
             if (result.truncated) Text(stringResource(R.string.analysis_truncated, result.scannedEntries))
         }
-        OutlinedButton(
+        YSecondaryButton(
+            text = stringResource(R.string.yfiles_find_duplicates),
             onClick = {
                 busy = true
                 scope.launch {
@@ -521,7 +526,7 @@ fun YFilesExtraToolsCard(
                 }
             },
             enabled = !busy,
-        ) { Text(stringResource(R.string.yfiles_find_duplicates)) }
+        )
         duplicateScan?.let { scan ->
             YStatusLine(
                 stringResource(R.string.yfiles_duplicate_summary),
@@ -533,10 +538,11 @@ fun YFilesExtraToolsCard(
                 val first = group.files.first()
                 YHorizontalActions {
                     Text(stringResource(R.string.yfiles_duplicate_group, group.files.size, formatExtraBytes(group.sizeBytes)))
-                    OutlinedButton(
+                    YSecondaryButton(
+                        text = stringResource(R.string.yfiles_show_location),
                         onClick = { File(first).parentFile?.absolutePath?.let(onNavigate) },
                         enabled = !busy,
-                    ) { Text(stringResource(R.string.yfiles_show_location)) }
+                    )
                 }
             }
         }
@@ -548,7 +554,8 @@ fun YFilesExtraToolsCard(
         trash.take(3).forEach { record ->
             YHorizontalActions {
                 Text(record.name)
-                OutlinedButton(
+                YSecondaryButton(
+                    text = stringResource(R.string.restore),
                     onClick = {
                         busy = true
                         scope.launch {
@@ -558,11 +565,12 @@ fun YFilesExtraToolsCard(
                         }
                     },
                     enabled = !busy,
-                ) { Text(stringResource(R.string.restore)) }
+                )
             }
         }
         if (trash.isNotEmpty()) {
-            OutlinedButton(
+            YSecondaryButton(
+                text = stringResource(R.string.empty_recycle_bin),
                 onClick = {
                     busy = true
                     scope.launch {
@@ -572,7 +580,7 @@ fun YFilesExtraToolsCard(
                     }
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.empty_recycle_bin)) }
+            )
         }
     }
 }
@@ -603,7 +611,8 @@ fun YFilesEntryExtraActions(
     YHorizontalActions { YFilesSelectionToggle(entry) }
     YHorizontalActions {
         if (!entry.isDirectory) {
-            OutlinedButton(
+            YSecondaryButton(
+                text = stringResource(R.string.sha256),
                 onClick = {
                     busy = true
                     scope.launch {
@@ -613,9 +622,10 @@ fun YFilesEntryExtraActions(
                     }
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.sha256)) }
+            )
         }
-        OutlinedButton(
+        YSecondaryButton(
+            text = stringResource(R.string.move_to_recycle_bin),
             onClick = {
                 busy = true
                 scope.launch {
@@ -625,7 +635,7 @@ fun YFilesEntryExtraActions(
                 }
             },
             enabled = !busy,
-        ) { Text(stringResource(R.string.move_to_recycle_bin)) }
+        )
     }
     checksum?.let { Text(stringResource(R.string.sha256_value, it)) }
 }

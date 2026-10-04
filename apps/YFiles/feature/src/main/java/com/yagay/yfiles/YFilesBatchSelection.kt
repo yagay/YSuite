@@ -2,8 +2,6 @@ package com.yagay.yfiles
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,6 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YPrimaryButton
+import com.yagay.yui.YSecondaryButton
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.io.File
@@ -44,15 +44,14 @@ internal object YFilesBatchSelectionState {
 @Composable
 fun YFilesSelectionToggle(entry: FileEntry) {
     val selected = YFilesBatchSelectionState.selected.containsKey(entry.path)
-    OutlinedButton(onClick = { YFilesBatchSelectionState.toggle(entry) }) {
-        Text(
-            if (selected) {
+    YSecondaryButton(
+        text = if (selected) {
                 stringResource(R.string.yfiles_selected)
             } else {
                 stringResource(R.string.yfiles_select)
-            },
-        )
-    }
+            },,
+        onClick = { YFilesBatchSelectionState.toggle(entry) },
+    )
 }
 
 @Composable
@@ -72,7 +71,8 @@ fun YFilesBatchToolbar(
     val pendingMode = YFilesBatchSelectionState.pendingMode
 
     if (selected.isEmpty()) {
-        OutlinedButton(
+        YSecondaryButton(
+            text = stringResource(R.string.yfiles_select_folder_items),
             onClick = {
                 busy = true
                 scope.launch {
@@ -89,7 +89,7 @@ fun YFilesBatchToolbar(
                 }
             },
             enabled = !busy,
-        ) { Text(stringResource(R.string.yfiles_select_folder_items)) }
+        )
         return
     }
 
@@ -111,7 +111,8 @@ fun YFilesBatchToolbar(
             YStatusTone.Warning,
         )
         YHorizontalActions {
-            Button(
+            YPrimaryButton(
+                text = stringResource(R.string.paste_here),
                 onClick = {
                     busy = true
                     scope.launch {
@@ -142,16 +143,18 @@ fun YFilesBatchToolbar(
                     }
                 },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.paste_here)) }
-            OutlinedButton(
+            )
+            YSecondaryButton(
+                text = stringResource(R.string.yfiles_cancel),
                 onClick = { YFilesBatchSelectionState.pendingMode = null },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.yfiles_cancel)) }
+            )
         }
     }
 
     YHorizontalActions {
-        OutlinedButton(
+        YSecondaryButton(
+            text = stringResource(R.string.yfiles_select_folder_items),
             onClick = {
                 busy = true
                 scope.launch {
@@ -168,23 +171,27 @@ fun YFilesBatchToolbar(
                 }
             },
             enabled = !busy,
-        ) { Text(stringResource(R.string.yfiles_select_folder_items)) }
-        OutlinedButton(
+        )
+        YSecondaryButton(
+            text = stringResource(R.string.yfiles_clear_selection),
             onClick = { YFilesBatchSelectionState.clear() },
             enabled = !busy,
-        ) { Text(stringResource(R.string.yfiles_clear_selection)) }
+        )
     }
 
     YHorizontalActions {
-        OutlinedButton(
+        YSecondaryButton(
+            text = stringResource(R.string.copy),
             onClick = { YFilesBatchSelectionState.pendingMode = FileTransferMode.COPY },
             enabled = !busy,
-        ) { Text(stringResource(R.string.copy)) }
-        OutlinedButton(
+        )
+        YSecondaryButton(
+            text = stringResource(R.string.move),
             onClick = { YFilesBatchSelectionState.pendingMode = FileTransferMode.MOVE },
             enabled = !busy,
-        ) { Text(stringResource(R.string.move)) }
-        OutlinedButton(
+        )
+        YSecondaryButton(
+            text = stringResource(R.string.share),
             onClick = {
                 val uris = selected
                     .asSequence()
@@ -209,10 +216,11 @@ fun YFilesBatchToolbar(
                 }
             },
             enabled = !busy,
-        ) { Text(stringResource(R.string.share)) }
+        )
     }
 
-    OutlinedButton(
+    YSecondaryButton(
+        text = stringResource(R.string.yfiles_move_selected_to_bin),
         onClick = {
             busy = true
             scope.launch {
@@ -241,5 +249,5 @@ fun YFilesBatchToolbar(
             }
         },
         enabled = !busy,
-    ) { Text(stringResource(R.string.yfiles_move_selected_to_bin)) }
+    )
 }
