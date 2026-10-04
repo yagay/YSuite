@@ -39,6 +39,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -335,14 +336,9 @@ fun YFileSourcePane(
             onClick = { onSectionSelected("trash") },
         )
 
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = YSuiteSpacing.XSmall),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        ) {
-            Box(modifier = Modifier.size(width = 1.dp, height = 1.dp))
-        }
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = YSuiteSpacing.XSmall),
+        )
 
         YFileSourceRow(
             label = toolsLabel,
