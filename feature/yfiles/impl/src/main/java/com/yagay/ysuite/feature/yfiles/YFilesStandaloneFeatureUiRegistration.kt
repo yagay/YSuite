@@ -2,6 +2,7 @@ package com.yagay.ysuite.feature.yfiles
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.yagay.ysuite.feature.yfiles.api.YFilesFeatureContract
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
@@ -24,11 +25,17 @@ object YFilesStandaloneFeatureUiRegistration :
 
     @Composable
     override fun Content() {
+        val context = LocalContext.current.applicationContext
         val repository = remember {
             LocalYFilesRepository()
         }
+        val placesRepository = remember(context) {
+            LocalYFilesPlacesRepository(context)
+        }
+
         YFilesFeatureScreen(
             repository = repository,
+            placesRepository = placesRepository,
             logger = logger,
         )
     }

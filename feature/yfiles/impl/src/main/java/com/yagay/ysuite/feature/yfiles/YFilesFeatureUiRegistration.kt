@@ -3,6 +3,7 @@ package com.yagay.ysuite.feature.yfiles
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.yagay.ysuite.feature.yfiles.api.YFilesFeatureContract
+import com.yagay.ysuite.feature.yfiles.api.YFilesPlacesRepository
 import com.yagay.ysuite.feature.yfiles.api.YFilesRepository
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.runtime.FeatureLifecycleEvent
@@ -11,6 +12,7 @@ import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
 
 class YFilesFeatureUiRegistration(
     private val repository: YFilesRepository,
+    private val placesRepository: YFilesPlacesRepository,
     private val logger: YSuiteLogger,
 ) : YSuiteFeatureUiRegistration {
     override val contract = YFilesFeatureContract
@@ -33,6 +35,7 @@ class YFilesFeatureUiRegistration(
     override fun Content() {
         YFilesFeatureScreen(
             repository = repository,
+            placesRepository = placesRepository,
             logger = logger,
         )
     }
