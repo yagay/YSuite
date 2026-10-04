@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.yagay.ysuite.model.FeatureDescriptor
 import com.yagay.ysuite.navigation.FeatureRegistration
 import com.yagay.ysuite.navigation.RouteId
+import com.yagay.ysuite.productui.ProductSurfaceKind
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -39,6 +40,8 @@ private class FakeUiRegistration(
     id: String,
     order: Int,
 ) : YSuiteFeatureUiRegistration {
+    override val productSurface = ProductSurfaceKind.Tool
+
     override val contract = object : FeatureRegistration {
         override val descriptor = FeatureDescriptor(
             id = id,

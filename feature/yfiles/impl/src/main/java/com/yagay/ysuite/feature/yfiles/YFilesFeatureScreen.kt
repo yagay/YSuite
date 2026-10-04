@@ -230,6 +230,18 @@ private fun YFilesBrowserSurface(
     val isFavorite =
         directory != null &&
             state.places.favorites.any { it.ref == directory }
+    val focusedNode = state.focused
+    val detailContent: (@Composable (ProductAdaptiveInfo) -> Unit)? =
+        if (focusedNode == null) {
+            null
+        } else {
+            { _: ProductAdaptiveInfo ->
+                YFilesDetailPane(
+                    node = focusedNode,
+                    browser = browser,
+                )
+            }
+        }
 
     YFileManagerScaffold(
         title = stringResource(R.string.yfiles_title),
@@ -258,17 +270,7 @@ private fun YFilesBrowserSurface(
                 browser = browser,
             )
         },
-        detailPane =
-            if (state.focused != null) {
-                {
-                    YFilesDetailPane(
-                        node = state.focused,
-                        browser = browser,
-                    )
-                }
-            } else {
-                null
-            },
+        detailPane = detailContent,
         selectionBar =
             if (state.selected.isNotEmpty()) {
                 {
