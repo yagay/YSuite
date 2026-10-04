@@ -20,6 +20,24 @@ pure_api_roots = (
     "feature/",
 )
 
+legacy_ui_symbols = (
+    "YSuiteSection(",
+    "YSuiteSectionHeader",
+    "YSuiteListItem",
+    "YSuiteSwitchItem",
+    "YSuitePrimaryButton",
+    "YSuiteSecondaryButton",
+    "YSuiteFilterBar",
+    "YSuiteFilterOption",
+    "YSuiteSearchField",
+    "YSuiteStatusBadge",
+    "YSuiteDashboardPage",
+    "YSuiteListPage",
+    "YSuiteDetailPage",
+    "YSuiteSettingsPage",
+    "YSuiteLazyListPage",
+)
+
 android_adapter_packages = (
     "com.yagay.ysuite.platform.android",
     "com.yagay.ysuite.logging.android",
@@ -38,6 +56,12 @@ for path in ROOT.rglob("*"):
         continue
 
     text = path.read_text(encoding="utf-8", errors="ignore")
+
+    for legacy_ui_symbol in legacy_ui_symbols:
+        if legacy_ui_symbol in text:
+            violations.append(
+                f"{rel}: legacy UI symbol is forbidden: {legacy_ui_symbol}"
+            )
 
     if rel.startswith("feature/") and "/impl/" in rel:
         if "androidx.compose.material3." in text:

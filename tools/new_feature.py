@@ -116,24 +116,36 @@ object {cls}FeatureContract : FeatureRegistration {{
 
     screen = f"""package com.yagay.ysuite.feature.{feature}
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.yagay.ysuite.designsystem.component.YSuiteListItem
-import com.yagay.ysuite.designsystem.component.YSuiteSection
-import com.yagay.ysuite.ui.YSuiteDashboardPage
+import com.yagay.ysuite.designsystem.component.YSuiteDataRow
+import com.yagay.ysuite.designsystem.component.YSuiteItemKind
+import com.yagay.ysuite.designsystem.component.YSuitePanel
+import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+import com.yagay.ysuite.ui.YSuiteToolShell
 
 @Composable
 fun {cls}FeatureScreen() {{
-    YSuiteDashboardPage(
+    YSuiteToolShell(
         title = stringResource(R.string.{feature}_title),
         subtitle = stringResource(R.string.{feature}_summary),
     ) {{ _ ->
-        YSuiteSection(
-            title = stringResource(R.string.{feature}_section),
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Large),
         ) {{
-            YSuiteListItem(
-                title = stringResource(R.string.{feature}_ready),
-            )
+            YSuitePanel(
+                title = stringResource(R.string.{feature}_section),
+            ) {{
+                YSuiteDataRow(
+                    title = stringResource(R.string.{feature}_ready),
+                    kind = YSuiteItemKind.Tool,
+                )
+            }}
         }}
     }}
 }}
@@ -145,9 +157,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.yagay.ysuite.feature.{feature}.api.{cls}FeatureContract
 import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
+import com.yagay.ysuite.ui.YSuitePageKind
 
 object {cls}FeatureUiRegistration : YSuiteFeatureUiRegistration {{
     override val contract = {cls}FeatureContract
+    override val pageKind = YSuitePageKind.Tool
 
     @Composable
     override fun label(): String =
