@@ -31,6 +31,7 @@ fun YFileManagerScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     breadcrumb: @Composable () -> Unit,
     commandBar: @Composable () -> Unit = {},
+    compactSourceBar: @Composable (ProductAdaptiveInfo) -> Unit = {},
     sourcePane: @Composable (ProductAdaptiveInfo) -> Unit = {},
     detailPane: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
     selectionBar: (@Composable () -> Unit)? = null,
@@ -85,6 +86,7 @@ fun YFileManagerScaffold(
                             navigationIcon = navigationIcon,
                             actions = actions,
                         )
+                        compactSourceBar(adaptive)
                         breadcrumb()
                         commandBar()
                     }

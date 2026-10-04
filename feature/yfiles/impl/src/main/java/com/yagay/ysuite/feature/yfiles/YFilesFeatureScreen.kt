@@ -264,6 +264,12 @@ private fun YFilesBrowserSurface(
                 browser = browser,
             )
         },
+        compactSourceBar = {
+            YFilesCompactSourceBar(
+                state = state,
+                browser = browser,
+            )
+        },
         sourcePane = {
             YFilesSourcePane(
                 state = state,
@@ -388,6 +394,24 @@ private fun YFilesCommandBar(
             },
         )
     }
+}
+
+@Composable
+private fun YFilesCompactSourceBar(
+    state: YFilesUiState,
+    browser: YFilesViewModel,
+) {
+    YSuiteFilterBar(
+        options =
+            state.providers.map { provider ->
+                YSuiteFilterOption(
+                    id = provider.id,
+                    label = providerLabel(provider.kind),
+                )
+            },
+        selectedId = state.activeProviderId,
+        onSelected = browser::selectProvider,
+    )
 }
 
 @Composable
