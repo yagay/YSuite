@@ -4,24 +4,25 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.util.LruCache
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yagay.YEntryCleaner.R
@@ -29,12 +30,20 @@ import com.yagay.YEntryCleaner.YEntryCleanerRuntime
 import com.yagay.YEntryCleaner.domain.AppType
 import com.yagay.YEntryCleaner.domain.VisibilityScope
 import com.yagay.YEntryCleaner.domain.listCleanerAppType
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YCheckboxItem
+import com.yagay.yui.YDimens
+import com.yagay.yui.YFilterSpec
+import com.yagay.yui.YFullScreenDialog
+import com.yagay.yui.YListSkeleton
+import com.yagay.yui.YNotice
+import com.yagay.yui.YNoticeTone
+import com.yagay.yui.YPageRole
 import com.yagay.yui.YSearchField
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSectionHeader
+import com.yagay.yui.YStatusItem
 import com.yagay.yui.YStatusTone
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YToggleFilterBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -87,7 +96,6 @@ private fun scopeAppIcon(packageName: String): Bitmap? {
     return icon
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AppScopePickerDialog(
     selected: Set<String>,
@@ -123,139 +131,93 @@ internal fun AppScopePickerDialog(
         com.yagay.YEntryCleaner.domain.VisibilityCompatConfig(visibilityScopes, fullPackages).activePackages()
     }
 
-    Dialog(
+    YFullScreenDialog(
+        title = stringResource(R.string.visibility_title),
+        backContentDescription = stringResource(R.string.common_back),
         onDismissRequest = dismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-    ) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.visibility_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = dismiss) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back))
-                        }
-                    },
-                )
-            },
-        ) { padding ->
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                YFeatureCard(
-                    title = stringResource(R.string.visibility_match_categories),
-                    subtitle = stringResource(R.string.visibility_help)
-                ) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(VisibilityScope.entries, key = { it.name }) { scope ->
-                            val checked = scope in visibilityScopes
-                            FilterChip(
-                                selected = checked,
-                                onClick = {
-                                    app.rules.setVisibilityScopes(
-                                        if (checked) visibilityScopes - scope else visibilityScopes + scope
-                                    )
-                                },
-                                label = { Text(stringResource(scope.titleRes())) },
+        role = YPageRole.LIST,
+    ) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = YDimens.ScreenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        ) {
+            YSectionHeader(
+                title = stringResource(R.string.visibility_match_categories),
+                subtitle = stringResource(R.string.visibility_help),
+            )
+            YToggleFilterBar(
+                filters = VisibilityScope.entries.map { scope ->
+                    val checked = scope in visibilityScopes
+                    YFilterSpec(
+                        label = stringResource(scope.titleRes()),
+                        selected = checked,
+                        onClick = {
+                            app.rules.setVisibilityScopes(
+                                if (checked) visibilityScopes - scope else visibilityScopes + scope
                             )
-                        }
-                    }
-                    YStatusRow(
-                        label = stringResource(R.string.visibility_match_categories),
-                        value = if (visibilityScopes.isEmpty()) {
-                            stringResource(R.string.visibility_no_categories)
-                        } else {
-                            stringResource(R.string.visibility_active_targets, activeTargets.size)
                         },
-                        tone = if (visibilityScopes.isEmpty()) YStatusTone.Warning else YStatusTone.Good
                     )
-                }
+                },
+            )
+            YStatusItem(
+                title = stringResource(R.string.visibility_match_categories),
+                value = if (visibilityScopes.isEmpty()) {
+                    stringResource(R.string.visibility_no_categories)
+                } else {
+                    stringResource(R.string.visibility_active_targets, activeTargets.size)
+                },
+                tone = if (visibilityScopes.isEmpty()) YStatusTone.Warning else YStatusTone.Good,
+            )
 
-                YSearchField(
-                    value = query,
-                    onValueChange = { query = it },
-                    hint = stringResource(R.string.visibility_search_sources)
-                )
-                YSettingSwitch(
-                    title = stringResource(R.string.visibility_show_system),
-                    checked = showSystem,
-                    onCheckedChange = { showSystem = it }
-                )
-                YStatusRow(
-                    label = stringResource(R.string.visibility_title),
-                    value = stringResource(R.string.visibility_summary, visible.size, apps.size, selected.size)
-                )
+            YSearchField(
+                value = query,
+                onValueChange = { query = it },
+                hint = stringResource(R.string.visibility_search_sources),
+            )
+            YSwitchItem(
+                title = stringResource(R.string.visibility_show_system),
+                checked = showSystem,
+                onCheckedChange = { showSystem = it },
+            )
+            YStatusItem(
+                title = stringResource(R.string.visibility_title),
+                value = stringResource(R.string.visibility_summary, visible.size, apps.size, selected.size),
+            )
 
-                when {
-                    loading -> {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    visible.isEmpty() -> {
-                        YFeatureEmpty(
-                            message = stringResource(R.string.no_matching_components),
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
-                        )
-                    }
-                    else -> {
-                        LazyColumn(Modifier.fillMaxSize()) {
-                            items(visible, key = { it.packageName }) { entry ->
-                                val checked = entry.packageName in selected
-                                val bitmap = scopeAppIcon(entry.packageName)
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            onSelectedChange(
-                                                if (checked) selected - entry.packageName
-                                                else selected + entry.packageName
-                                            )
-                                        }
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    bitmap?.let {
-                                        Image(
-                                            bitmap = it.asImageBitmap(),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(40.dp),
-                                        )
-                                        Spacer(Modifier.width(10.dp))
-                                    }
-                                    Checkbox(
-                                        checked = checked,
-                                        onCheckedChange = { value ->
-                                            onSelectedChange(
-                                                if (value) selected + entry.packageName
-                                                else selected - entry.packageName
-                                            )
-                                        },
+            when {
+                loading -> YListSkeleton(rows = 5)
+                visible.isEmpty() -> YNotice(
+                    text = stringResource(R.string.no_matching_components),
+                    tone = YNoticeTone.NEUTRAL,
+                )
+                else -> LazyColumn(Modifier.fillMaxSize()) {
+                    items(visible, key = { it.packageName }) { entry ->
+                        val checked = entry.packageName in selected
+                        val bitmap = scopeAppIcon(entry.packageName)
+                        YCheckboxItem(
+                            title = entry.label,
+                            subtitle = entry.packageName,
+                            detail = if (checked) stringResource(R.string.visibility_added) else null,
+                            checked = checked,
+                            onCheckedChange = { value ->
+                                onSelectedChange(
+                                    if (value) selected + entry.packageName
+                                    else selected - entry.packageName
+                                )
+                            },
+                            leading = bitmap?.let {
+                                {
+                                    Image(
+                                        bitmap = it.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(40.dp),
                                     )
-                                    Column(Modifier.weight(1f)) {
-                                        Text(entry.label, fontWeight = FontWeight.Medium)
-                                        Text(
-                                            entry.packageName,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    if (checked) {
-                                        Text(
-                                            stringResource(R.string.visibility_added),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
                                 }
-                                HorizontalDivider()
-                            }
-                        }
+                            },
+                        )
                     }
                 }
             }
