@@ -89,8 +89,8 @@ data class YTabSpec(val key: String, val label: String)
 data class YFilterSpec(
     val label: String,
     val selected: Boolean,
-    val onClick: () -> Unit,
     val enabled: Boolean = true,
+    val onClick: () -> Unit,
 )
 
 @Immutable

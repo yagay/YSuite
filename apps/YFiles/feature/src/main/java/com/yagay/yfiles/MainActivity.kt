@@ -478,7 +478,6 @@ class MainActivity : YComposeActivity() {
                             }
                         }
                     }
-                }
 
                 error?.let { item { YFeatureCard(title = stringResource(R.string.error), detail = it) } }
 
