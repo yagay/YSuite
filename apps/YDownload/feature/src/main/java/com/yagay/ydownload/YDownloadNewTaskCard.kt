@@ -1,9 +1,6 @@
 package com.yagay.ydownload
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,6 +11,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
+import com.yagay.yui.YTextField
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YSwitchItem
@@ -60,18 +60,18 @@ fun YDownloadNewTaskCard(
         title = stringResource(R.string.new_download),
         subtitle = stringResource(R.string.new_download_summary),
     ) {
-        OutlinedTextField(
+        YTextField(
             value = url,
             onValueChange = { url = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.url)) },
+            label = stringResource(R.string.url),
             singleLine = true,
         )
-        OutlinedTextField(
+        YTextField(
             value = fileName,
             onValueChange = { fileName = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.file_name_optional)) },
+            label = stringResource(R.string.file_name_optional),
             singleLine = true,
         )
         YSwitchItem(
@@ -84,21 +84,22 @@ fun YDownloadNewTaskCard(
             },
         )
         if (showAdvanced) {
-            OutlinedTextField(
+            YTextField(
                 value = customHeaders,
                 onValueChange = { customHeaders = it; requestOptionsInvalid = false },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.custom_headers)) },
-                supportingText = { Text(stringResource(R.string.custom_headers_summary)) },
+                label = stringResource(R.string.custom_headers),
+                supportingText = stringResource(R.string.custom_headers_summary),
+                singleLine = false,
                 minLines = 2,
                 maxLines = 5,
             )
-            OutlinedTextField(
+            YTextField(
                 value = expectedSha256,
                 onValueChange = { expectedSha256 = it.take(64); requestOptionsInvalid = false },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.expected_sha256)) },
-                supportingText = { Text(stringResource(R.string.expected_sha256_all_summary)) },
+                label = stringResource(R.string.expected_sha256),
+                supportingText = stringResource(R.string.expected_sha256_all_summary),
                 singleLine = true,
             )
             if (requestOptionsInvalid) Text(stringResource(R.string.invalid_request_options))
@@ -163,17 +164,17 @@ fun YDownloadNewTaskCard(
                 clearInput()
             }
             if (enhancedSettings.defaultBackend == DownloadBackend.SYSTEM) {
-                Button(onClick = systemClick, enabled = url.isNotBlank()) {
+                YPrimaryActionButton(onClick = systemClick, enabled = url.isNotBlank()) {
                     Text(stringResource(R.string.system_download))
                 }
-                OutlinedButton(onClick = enhancedClick, enabled = url.isNotBlank()) {
+                YSecondaryActionButton(onClick = enhancedClick, enabled = url.isNotBlank()) {
                     Text(stringResource(R.string.enhanced_download))
                 }
             } else {
-                Button(onClick = enhancedClick, enabled = url.isNotBlank()) {
+                YPrimaryActionButton(onClick = enhancedClick, enabled = url.isNotBlank()) {
                     Text(stringResource(R.string.enhanced_download))
                 }
-                OutlinedButton(onClick = systemClick, enabled = url.isNotBlank()) {
+                YSecondaryActionButton(onClick = systemClick, enabled = url.isNotBlank()) {
                     Text(stringResource(R.string.system_download))
                 }
             }

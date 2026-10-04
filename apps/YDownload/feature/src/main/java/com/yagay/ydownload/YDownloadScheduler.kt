@@ -6,9 +6,6 @@ import android.net.NetworkCapabilities
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,7 +18,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.yagay.yui.YActionRow
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
+import com.yagay.yui.YTextField
+import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YStatusLine
@@ -338,44 +338,44 @@ fun YDownloadSchedulerCard(context: Context) {
                 metaStore.setAutoRebalance(it)
             },
         )
-        OutlinedTextField(
+        YTextField(
             value = defaultGroupDraft,
             onValueChange = { defaultGroupDraft = it.take(64) },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.ydownload_scheduler_default_group)) },
+            label = stringResource(R.string.ydownload_scheduler_default_group),
             singleLine = true,
         )
-        OutlinedTextField(
+        YTextField(
             value = defaultTagDraft,
             onValueChange = { defaultTagDraft = it.take(96) },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.ydownload_scheduler_default_tag)) },
+            label = stringResource(R.string.ydownload_scheduler_default_tag),
             singleLine = true,
         )
-        YActionRow {
+        YHorizontalActions {
             YDownloadPriority.values().forEach { priority ->
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     defaults = metaStore.updateDefaults { it.copy(priority = priority) }
                     revision++
                 }) { Text(priorityLabel(priority)) }
             }
         }
-        YActionRow {
+        YHorizontalActions {
             YDownloadNetworkRule.values().forEach { rule ->
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     defaults = metaStore.updateDefaults { it.copy(networkRule = rule) }
                     revision++
                 }) { Text(networkRuleLabel(rule)) }
             }
         }
-        YActionRow {
-            Button(onClick = {
+        YHorizontalActions {
+            YPrimaryActionButton(onClick = {
                 defaults = metaStore.updateDefaults {
                     it.copy(group = defaultGroupDraft, tag = defaultTagDraft)
                 }
                 revision++
             }) { Text(stringResource(R.string.ydownload_scheduler_save_defaults)) }
-            OutlinedButton(onClick = { runRebalance() }) {
+            YSecondaryActionButton(onClick = { runRebalance() }) {
                 Text(stringResource(R.string.ydownload_scheduler_rebalance))
             }
         }
@@ -394,13 +394,13 @@ fun YDownloadSchedulerCard(context: Context) {
             Text(stringResource(R.string.ydownload_scheduler_groups))
             groups.take(8).forEach { group ->
                 val count = enhanced.count { metaStore.get(it.id).group == group }
-                YActionRow {
-                    OutlinedButton(onClick = {
+                YHorizontalActions {
+                    YSecondaryActionButton(onClick = {
                         selectedGroupAction = group
                         val countPaused = YDownloadScheduler.pauseGroup(context, store, group)
                         message = context.getString(R.string.ydownload_scheduler_group_paused, group, countPaused)
                     }) { Text(stringResource(R.string.ydownload_scheduler_pause_group, group)) }
-                    OutlinedButton(onClick = {
+                    YSecondaryActionButton(onClick = {
                         selectedGroupAction = group
                         val result = YDownloadScheduler.resumeGroup(context, store, group)
                         message = context.getString(R.string.ydownload_scheduler_group_resumed, group, result.started)
@@ -422,7 +422,7 @@ fun YDownloadSchedulerCard(context: Context) {
             Text(stringResource(R.string.ydownload_scheduler_task_metadata))
             editable.forEach { task ->
                 val meta = metaStore.get(task.id)
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     selectedTaskId = task.id
                     groupDraft = meta.group
                     tagDraft = meta.tag
@@ -436,35 +436,35 @@ fun YDownloadSchedulerCard(context: Context) {
             val task = items.firstOrNull { it.id == id }
             if (task != null) {
                 Text(stringResource(R.string.ydownload_scheduler_editing, task.fileName))
-                OutlinedTextField(
+                YTextField(
                     value = groupDraft,
                     onValueChange = { groupDraft = it.take(64) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.ydownload_scheduler_group)) },
+                    label = stringResource(R.string.ydownload_scheduler_group),
                     singleLine = true,
                 )
-                OutlinedTextField(
+                YTextField(
                     value = tagDraft,
                     onValueChange = { tagDraft = it.take(96) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.ydownload_scheduler_tag)) },
+                    label = stringResource(R.string.ydownload_scheduler_tag),
                     singleLine = true,
                 )
-                YActionRow {
+                YHorizontalActions {
                     YDownloadPriority.values().forEach { priority ->
-                        OutlinedButton(onClick = { selectedPriority = priority }) {
+                        YSecondaryActionButton(onClick = { selectedPriority = priority }) {
                             Text(priorityLabel(priority))
                         }
                     }
                 }
-                YActionRow {
+                YHorizontalActions {
                     YDownloadNetworkRule.values().forEach { rule ->
-                        OutlinedButton(onClick = { selectedNetwork = rule }) {
+                        YSecondaryActionButton(onClick = { selectedNetwork = rule }) {
                             Text(networkRuleLabel(rule))
                         }
                     }
                 }
-                Button(onClick = {
+                YPrimaryActionButton(onClick = {
                     val currentMeta = metaStore.get(id)
                     metaStore.put(
                         id,

@@ -8,9 +8,6 @@ import android.net.NetworkCapabilities
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,6 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
+import com.yagay.yui.YTextField
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YSwitchItem
@@ -254,12 +254,13 @@ fun YDownloadQueueToolsCard(context: Context) {
                 YStatusLine(host.key, host.value.toString(), YStatusTone.Neutral)
             }
 
-            OutlinedTextField(
+            YTextField(
                 value = bulkText,
                 onValueChange = { bulkText = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.ydownload_queue_bulk_urls)) },
-                supportingText = { Text(stringResource(R.string.ydownload_queue_bulk_urls_hint)) },
+                label = stringResource(R.string.ydownload_queue_bulk_urls),
+                supportingText = stringResource(R.string.ydownload_queue_bulk_urls_hint),
+                singleLine = false,
                 minLines = 3,
                 maxLines = 8,
             )
@@ -273,21 +274,22 @@ fun YDownloadQueueToolsCard(context: Context) {
                 checked = skipDuplicates,
                 onCheckedChange = { skipDuplicates = it },
             )
-            OutlinedTextField(
+            YTextField(
                 value = headersText,
                 onValueChange = { headersText = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.custom_headers)) },
-                supportingText = { Text(stringResource(R.string.custom_headers_summary)) },
+                label = stringResource(R.string.custom_headers),
+                supportingText = stringResource(R.string.custom_headers_summary),
+                singleLine = false,
                 minLines = 2,
                 maxLines = 5,
             )
             YHorizontalActions {
-                Button(
+                YPrimaryActionButton(
                     onClick = {
                         val headers = DownloadRequestOptions.parseHeaders(headersText).getOrElse {
                             message = it.message
-                            return@Button
+                            return@YPrimaryActionButton
                         }
                         val specs = YDownloadQueueBackend.parseBulk(bulkText)
                             .map { it to if (useEnhanced) DownloadBackend.ENHANCED else DownloadBackend.SYSTEM }
@@ -295,19 +297,19 @@ fun YDownloadQueueToolsCard(context: Context) {
                     },
                     enabled = !busy && bulkText.isNotBlank(),
                 ) { Text(stringResource(R.string.ydownload_queue_add_all)) }
-                OutlinedButton(onClick = { clipboardText()?.let { bulkText = it } }, enabled = !busy) {
+                YSecondaryActionButton(onClick = { clipboardText()?.let { bulkText = it } }, enabled = !busy) {
                     Text(stringResource(R.string.ydownload_queue_paste))
                 }
             }
             YHorizontalActions {
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     val seen = mutableSetOf<String>()
                     items.sortedByDescending(DownloadItem::id).forEach { item ->
                         if (!seen.add(item.url) && item.state != DownloadState.RUNNING) store.remove(item.id)
                     }
                     message = context.getString(R.string.ydownload_queue_deduped)
                 }, enabled = items.isNotEmpty() && !busy) { Text(stringResource(R.string.ydownload_queue_dedupe)) }
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     items.filter { it.state == DownloadState.FAILED || it.state == DownloadState.CANCELLED }.forEach { store.remove(it.id) }
                     message = context.getString(R.string.ydownload_queue_cleaned)
                 }, enabled = items.any { it.state == DownloadState.FAILED || it.state == DownloadState.CANCELLED } && !busy) {
@@ -315,13 +317,13 @@ fun YDownloadQueueToolsCard(context: Context) {
                 }
             }
             YHorizontalActions {
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     copyToClipboard("YDownload URLs", items.map(DownloadItem::url).distinct().joinToString("\n"))
                 }, enabled = items.isNotEmpty()) { Text(stringResource(R.string.ydownload_queue_copy_urls)) }
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     copyToClipboard("YDownload queue", YDownloadQueueBackend.exportQueue(items))
                 }, enabled = items.isNotEmpty()) { Text(stringResource(R.string.ydownload_queue_export_json)) }
-                OutlinedButton(onClick = {
+                YSecondaryActionButton(onClick = {
                     val imported = clipboardText()?.let(YDownloadQueueBackend::importQueue).orEmpty()
                     enqueueSpecs(imported, emptyMap())
                 }, enabled = !busy) { Text(stringResource(R.string.ydownload_queue_import_json)) }
@@ -333,14 +335,14 @@ fun YDownloadQueueToolsCard(context: Context) {
             title = stringResource(R.string.ydownload_probe_title),
             subtitle = stringResource(R.string.ydownload_probe_summary),
         ) {
-            OutlinedTextField(
+            YTextField(
                 value = probeUrl,
                 onValueChange = { probeUrl = it; probe = null },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.url)) },
+                label = stringResource(R.string.url),
                 singleLine = true,
             )
-            Button(onClick = {
+            YPrimaryActionButton(onClick = {
                 busy = true
                 scope.launch {
                     val settings = YDownloadEnhancedSettings.load(context)

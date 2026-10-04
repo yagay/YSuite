@@ -4,9 +4,6 @@ import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +13,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
+import com.yagay.yui.YTextField
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YSwitchItem
@@ -71,21 +71,21 @@ fun YDownloadHookScopeCard(context: Context) {
             title = stringResource(R.string.enhanced_network_tools),
             subtitle = stringResource(R.string.enhanced_network_tools_summary),
         ) {
-            OutlinedTextField(
+            YTextField(
                 value = userAgentDraft,
                 onValueChange = { userAgentDraft = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.user_agent)) },
+                label = stringResource(R.string.user_agent),
                 singleLine = true,
             )
             YHorizontalActions {
-                Button(
+                YPrimaryActionButton(
                     onClick = {
                         settings = YDownloadEnhancedSettings.update(context) { copy(userAgent = userAgentDraft) }
                         userAgentDraft = settings.userAgent
                     },
                 ) { Text(stringResource(R.string.apply_user_agent)) }
-                OutlinedButton(
+                YSecondaryActionButton(
                     onClick = {
                         userAgentDraft = YDownloadEnhancedSettings.DEFAULT_USER_AGENT
                         settings = YDownloadEnhancedSettings.update(context) {
@@ -103,7 +103,7 @@ fun YDownloadHookScopeCard(context: Context) {
             )
             YHorizontalActions {
                 listOf(0, 512, 1024, 2048).forEach { limit ->
-                    OutlinedButton(
+                    YSecondaryActionButton(
                         onClick = {
                             settings = YDownloadEnhancedSettings.update(context) { copy(speedLimitKib = limit) }
                         },
@@ -117,7 +117,7 @@ fun YDownloadHookScopeCard(context: Context) {
             }
             YHorizontalActions {
                 listOf(4096, 8192, 16384).forEach { limit ->
-                    OutlinedButton(
+                    YSecondaryActionButton(
                         onClick = {
                             settings = YDownloadEnhancedSettings.update(context) { copy(speedLimitKib = limit) }
                         },

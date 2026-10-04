@@ -1,12 +1,13 @@
 package com.yagay.ydownload
 
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
+import com.yagay.yui.YTextField
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YStatusLine
@@ -38,7 +39,7 @@ fun YDownloadBatchControls(
             YStatusTone.Neutral,
         )
         YHorizontalActions {
-            OutlinedButton(
+            YSecondaryActionButton(
                 onClick = {
                     items.filter { it.state == DownloadState.RUNNING || it.state == DownloadState.QUEUED }
                         .forEach { task ->
@@ -66,7 +67,7 @@ fun YDownloadBatchControls(
                 },
                 enabled = activeCount > 0,
             ) { Text(stringResource(R.string.pause_all)) }
-            Button(
+            YPrimaryActionButton(
                 onClick = {
                     items.filter { it.state == DownloadState.PAUSED }.forEach { task ->
                         if (task.backend == DownloadBackend.ENHANCED) {
@@ -95,7 +96,7 @@ fun YDownloadBatchControls(
             ) { Text(stringResource(R.string.resume_all)) }
         }
         YHorizontalActions {
-            OutlinedButton(
+            YSecondaryActionButton(
                 onClick = {
                     items.filter { it.state == DownloadState.FAILED }.forEach { task ->
                         if (task.backend == DownloadBackend.ENHANCED) {
@@ -143,7 +144,7 @@ fun YDownloadBatchControls(
                 },
                 enabled = failedCount > 0,
             ) { Text(stringResource(R.string.retry_failed)) }
-            OutlinedButton(
+            YSecondaryActionButton(
                 onClick = {
                     items.filter {
                         it.state == DownloadState.COMPLETED || it.state == DownloadState.CANCELLED
