@@ -52,11 +52,11 @@ final class SettingsGesturePage {
         LinearLayout colorsBlock = YViewLayout.settingBlock(activity);
         colorsBlock.addView(YViewLayout.text(activity,
                 activity.getString(R.string.yfloat_trail_colors), 14, false));
-        EditText lineColors = new EditText(activity);
-        YViewLayout.styleInput(activity, lineColors);
-        lineColors.setHint(R.string.yfloat_trail_colors_hint);
-        lineColors.setText(fs.lineColors());
-        lineColors.setSingleLine(true);
+        EditText lineColors = YViewLayout.textInput(
+                activity,
+                activity.getString(R.string.yfloat_trail_colors_hint),
+                fs.lineColors(),
+                true);
         lineColors.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {

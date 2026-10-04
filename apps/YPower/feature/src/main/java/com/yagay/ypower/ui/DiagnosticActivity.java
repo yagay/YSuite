@@ -161,13 +161,14 @@ public class DiagnosticActivity extends AppCompatActivity {
         YViewLayout.addAction(row2, show);
         YViewLayout.addAction(row2, export);
 
-        ScrollView scroll = new ScrollView(this);
-        output = new TextView(this);
+        output = YViewLayout.text(
+                this,
+                getString(R.string.yp_usage_steps),
+                14,
+                false);
         output.setTextIsSelectable(true);
-        YView.styleBody(output);
-        output.setText(getString(R.string.yp_usage_steps));
         output.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
-        scroll.addView(output);
+        ScrollView scroll = YViewLayout.scrollPage(this, output);
         result.addView(scroll, new LinearLayout.LayoutParams(-1, dp(420)));
     }
 

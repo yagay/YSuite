@@ -28,11 +28,11 @@ final class SettingsEnvironmentPage {
                 activity.getString(R.string.yfloat_hide_by_app_section),
                 activity.getString(R.string.yfloat_hide_by_app_desc));
         LinearLayout hideBlock = YViewLayout.settingBlock(activity);
-        EditText edit = new EditText(activity);
-        YViewLayout.styleInput(activity, edit);
-        edit.setText(fs.hiddenPackagesRaw());
-        edit.setHint(R.string.yfloat_package_list_hint);
-        edit.setSingleLine(false);
+        EditText edit = YViewLayout.textInput(
+                activity,
+                activity.getString(R.string.yfloat_package_list_hint),
+                fs.hiddenPackagesRaw(),
+                false);
         edit.setGravity(Gravity.TOP | Gravity.START);
         edit.setMinHeight(YViewLayout.dp(activity, 110));
         edit.addTextChangedListener(new TextWatcher() {

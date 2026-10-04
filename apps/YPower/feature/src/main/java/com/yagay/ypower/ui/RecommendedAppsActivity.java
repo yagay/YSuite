@@ -49,8 +49,7 @@ public class RecommendedAppsActivity extends AppCompatActivity {
                 root,
                 getString(R.string.yp_recommended_section),
                 getString(R.string.yp_recommended_section_desc));
-        list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
+        list = YViewLayout.contentColumn(this, false);
         root.addView(list);
     }
 

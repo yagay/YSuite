@@ -82,8 +82,7 @@ public class MainActivity extends AppCompatActivity {
         recommended.setOnClickListener(v -> startActivity(new Intent(this, RecommendedAppsActivity.class)));
         YViewLayout.addAction(actions, recommended);
 
-        list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
+        list = YViewLayout.contentColumn(this, false);
         appsCard.addView(list, new LinearLayout.LayoutParams(-1, -2));
     }
 
