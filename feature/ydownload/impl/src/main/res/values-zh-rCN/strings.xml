@@ -1,0 +1,53 @@
+<resources>
+    <string name="ydownload_title">YDownload</string>
+    <string name="ydownload_summary">下载管理器</string>
+    <string name="ydownload_search">搜索下载任务</string>
+    <string name="ydownload_close_search">关闭搜索</string>
+    <string name="ydownload_add">添加下载</string>
+    <string name="ydownload_empty">暂无下载任务</string>
+
+    <string name="ydownload_tab_all">全部</string>
+    <string name="ydownload_tab_downloading">下载中</string>
+    <string name="ydownload_tab_pending">待开始</string>
+    <string name="ydownload_tab_queue">队列</string>
+    <string name="ydownload_tab_finished">已完成</string>
+    <string name="ydownload_tab_error">失败</string>
+
+    <string name="ydownload_state_pending">待开始</string>
+    <string name="ydownload_state_queued">已排队</string>
+    <string name="ydownload_state_connecting">连接中</string>
+    <string name="ydownload_state_downloading">下载中</string>
+    <string name="ydownload_state_paused">已暂停</string>
+    <string name="ydownload_state_completed">已完成</string>
+    <string name="ydownload_state_failed">失败</string>
+    <string name="ydownload_state_cancelled">已取消</string>
+
+    <string name="ydownload_pause">暂停</string>
+    <string name="ydownload_resume">继续</string>
+    <string name="ydownload_cancel">取消</string>
+    <string name="ydownload_open">打开</string>
+    <string name="ydownload_retry">重试</string>
+    <string name="ydownload_remove">移除任务</string>
+    <string name="ydownload_more">更多操作</string>
+    <string name="ydownload_start">开始</string>
+    <string name="ydownload_add_queue">加入队列</string>
+
+    <string name="ydownload_url">下载地址</string>
+    <string name="ydownload_file_name">文件名</string>
+    <string name="ydownload_referer">来源地址</string>
+    <string name="ydownload_user_agent">用户代理</string>
+    <string name="ydownload_cookies">Cookies</string>
+    <string name="ydownload_username">用户名</string>
+    <string name="ydownload_password">密码</string>
+    <string name="ydownload_fetch">获取信息</string>
+    <string name="ydownload_resume_supported">支持断点续传</string>
+    <string name="ydownload_resume_unknown">断点续传状态未知</string>
+
+    <string name="ydownload_channel_service">YDownload 服务</string>
+    <string name="ydownload_channel_progress">下载进度</string>
+    <string name="ydownload_channel_result">下载结果</string>
+    <string name="ydownload_service_title">YDownload 正在运行</string>
+    <string name="ydownload_service_active">%1$d 个活动下载</string>
+    <string name="ydownload_completed">下载完成</string>
+    <string name="ydownload_failed">下载失败</string>
+</resources>

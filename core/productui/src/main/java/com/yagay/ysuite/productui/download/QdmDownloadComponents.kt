@@ -1,0 +1,510 @@
+package com.yagay.ysuite.productui.download
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+
+data class QdmDownloadRowModel(
+    val id: String,
+    val fileName: String,
+    val sizeProgressText: String,
+    val stateText: String,
+    val speedEtaText: String?,
+    val progress: Float?,
+    val canPause: Boolean,
+    val canResume: Boolean,
+    val canCancel: Boolean,
+    val canOpen: Boolean,
+    val canRetry: Boolean,
+    val canRemove: Boolean,
+)
+
+data class QdmDownloadActionLabels(
+    val pause: String,
+    val resume: String,
+    val cancel: String,
+    val open: String,
+    val retry: String,
+    val remove: String,
+    val more: String,
+)
+
+@Composable
+fun QdmDownloadList(
+    items: List<QdmDownloadRowModel>,
+    emptyText: String,
+    labels: QdmDownloadActionLabels,
+    onPause: (String) -> Unit,
+    onResume: (String) -> Unit,
+    onCancel: (String) -> Unit,
+    onOpen: (String) -> Unit,
+    onRetry: (String) -> Unit,
+    onRemove: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (items.isEmpty()) {
+        Box(
+            modifier = modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = emptyText,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(YSuiteSpacing.XLarge),
+            )
+        }
+        return
+    }
+
+    LazyColumn(modifier = modifier) {
+        items(
+            items = items,
+            key = { it.id },
+        ) { item ->
+            QdmDownloadItemRow(
+                item = item,
+                labels = labels,
+                onPause = { onPause(item.id) },
+                onResume = { onResume(item.id) },
+                onCancel = { onCancel(item.id) },
+                onOpen = { onOpen(item.id) },
+                onRetry = { onRetry(item.id) },
+                onRemove = { onRemove(item.id) },
+            )
+            HorizontalDivider()
+        }
+    }
+}
+
+@Composable
+private fun QdmDownloadItemRow(
+    item: QdmDownloadRowModel,
+    labels: QdmDownloadActionLabels,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onCancel: () -> Unit,
+    onOpen: () -> Unit,
+    onRetry: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    var menuExpanded by remember {
+        mutableStateOf(false)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    enabled = item.canOpen,
+                    onClick = onOpen,
+                )
+                .padding(
+                    horizontal = YSuiteSpacing.Medium,
+                    vertical = YSuiteSpacing.Small,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector =
+                    if (item.canRetry) {
+                        Icons.Default.Error
+                    } else {
+                        Icons.Default.Download
+                    },
+                contentDescription = null,
+                tint =
+                    if (item.canRetry) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                modifier = Modifier.size(32.dp),
+            )
+            Spacer(Modifier.width(YSuiteSpacing.Medium))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement =
+                    Arrangement.spacedBy(YSuiteSpacing.XSmall),
+            ) {
+                Text(
+                    text = item.fileName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = item.sizeProgressText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(YSuiteSpacing.Small),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = item.stateText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    item.speedEtaText?.let {
+                        Text(
+                            text = it,
+                            style =
+                                MaterialTheme.typography.labelMedium,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                item.progress?.let {
+                    LinearProgressIndicator(
+                        progress = { it.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            Box {
+                IconButton(
+                    onClick = {
+                        menuExpanded = true
+                    },
+                ) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = labels.more,
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = {
+                        menuExpanded = false
+                    },
+                ) {
+                    if (item.canPause) {
+                        QdmMenuItem(
+                            text = labels.pause,
+                            icon = {
+                                Icon(
+                                    Icons.Default.Pause,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onPause()
+                            },
+                        )
+                    }
+                    if (item.canResume) {
+                        QdmMenuItem(
+                            text = labels.resume,
+                            icon = {
+                                Icon(
+                                    Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onResume()
+                            },
+                        )
+                    }
+                    if (item.canRetry) {
+                        QdmMenuItem(
+                            text = labels.retry,
+                            icon = {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onRetry()
+                            },
+                        )
+                    }
+                    if (item.canOpen) {
+                        QdmMenuItem(
+                            text = labels.open,
+                            icon = {
+                                Icon(
+                                    Icons.Default.FolderOpen,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onOpen()
+                            },
+                        )
+                    }
+                    if (item.canCancel) {
+                        QdmMenuItem(
+                            text = labels.cancel,
+                            icon = {
+                                Icon(
+                                    Icons.Default.Cancel,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onCancel()
+                            },
+                        )
+                    }
+                    if (item.canRemove) {
+                        QdmMenuItem(
+                            text = labels.remove,
+                            icon = {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onRemove()
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QdmMenuItem(
+    text: String,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(text) },
+        leadingIcon = icon,
+        onClick = onClick,
+    )
+}
+
+data class QdmAddDownloadModel(
+    val url: String,
+    val fileName: String,
+    val referer: String,
+    val userAgent: String,
+    val cookies: String,
+    val username: String,
+    val password: String,
+    val metadataText: String?,
+    val loading: Boolean,
+    val error: String?,
+)
+
+data class QdmAddDownloadLabels(
+    val title: String,
+    val url: String,
+    val fileName: String,
+    val referer: String,
+    val userAgent: String,
+    val cookies: String,
+    val username: String,
+    val password: String,
+    val fetch: String,
+    val addQueue: String,
+    val start: String,
+    val cancel: String,
+)
+
+@Composable
+fun QdmAddDownloadDialog(
+    model: QdmAddDownloadModel,
+    labels: QdmAddDownloadLabels,
+    onUrlChange: (String) -> Unit,
+    onFileNameChange: (String) -> Unit,
+    onRefererChange: (String) -> Unit,
+    onUserAgentChange: (String) -> Unit,
+    onCookiesChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onFetch: () -> Unit,
+    onAddQueue: () -> Unit,
+    onStart: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(labels.title) },
+        text = {
+            Column(
+                verticalArrangement =
+                    Arrangement.spacedBy(YSuiteSpacing.Small),
+            ) {
+                OutlinedTextField(
+                    value = model.url,
+                    onValueChange = onUrlChange,
+                    label = { Text(labels.url) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(YSuiteSpacing.Small),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = model.fileName,
+                        onValueChange = onFileNameChange,
+                        label = { Text(labels.fileName) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedButton(
+                        onClick = onFetch,
+                        enabled =
+                            model.url.isNotBlank() &&
+                                !model.loading,
+                    ) {
+                        Text(labels.fetch)
+                    }
+                }
+                model.metadataText?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                model.error?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                OutlinedTextField(
+                    value = model.referer,
+                    onValueChange = onRefererChange,
+                    label = { Text(labels.referer) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = model.userAgent,
+                    onValueChange = onUserAgentChange,
+                    label = { Text(labels.userAgent) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = model.cookies,
+                    onValueChange = onCookiesChange,
+                    label = { Text(labels.cookies) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(YSuiteSpacing.Small),
+                ) {
+                    OutlinedTextField(
+                        value = model.username,
+                        onValueChange = onUsernameChange,
+                        label = { Text(labels.username) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = model.password,
+                        onValueChange = onPasswordChange,
+                        label = { Text(labels.password) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Row(
+                horizontalArrangement =
+                    Arrangement.spacedBy(YSuiteSpacing.Small),
+            ) {
+                OutlinedButton(
+                    onClick = onAddQueue,
+                    enabled =
+                        model.url.isNotBlank() &&
+                            model.fileName.isNotBlank(),
+                ) {
+                    Text(labels.addQueue)
+                }
+                Button(
+                    onClick = onStart,
+                    enabled =
+                        model.url.isNotBlank() &&
+                            model.fileName.isNotBlank(),
+                ) {
+                    Text(labels.start)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(labels.cancel)
+            }
+        },
+    )
+}

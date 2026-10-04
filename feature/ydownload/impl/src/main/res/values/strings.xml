@@ -1,0 +1,53 @@
+<resources>
+    <string name="ydownload_title">YDownload</string>
+    <string name="ydownload_summary">Download manager</string>
+    <string name="ydownload_search">Search downloads</string>
+    <string name="ydownload_close_search">Close search</string>
+    <string name="ydownload_add">Add download</string>
+    <string name="ydownload_empty">No downloads</string>
+
+    <string name="ydownload_tab_all">All</string>
+    <string name="ydownload_tab_downloading">Downloading</string>
+    <string name="ydownload_tab_pending">Pending</string>
+    <string name="ydownload_tab_queue">Queue</string>
+    <string name="ydownload_tab_finished">Finished</string>
+    <string name="ydownload_tab_error">Error</string>
+
+    <string name="ydownload_state_pending">Pending</string>
+    <string name="ydownload_state_queued">Queued</string>
+    <string name="ydownload_state_connecting">Connecting</string>
+    <string name="ydownload_state_downloading">Downloading</string>
+    <string name="ydownload_state_paused">Paused</string>
+    <string name="ydownload_state_completed">Completed</string>
+    <string name="ydownload_state_failed">Failed</string>
+    <string name="ydownload_state_cancelled">Cancelled</string>
+
+    <string name="ydownload_pause">Pause</string>
+    <string name="ydownload_resume">Resume</string>
+    <string name="ydownload_cancel">Cancel</string>
+    <string name="ydownload_open">Open</string>
+    <string name="ydownload_retry">Retry</string>
+    <string name="ydownload_remove">Remove task</string>
+    <string name="ydownload_more">More actions</string>
+    <string name="ydownload_start">Start</string>
+    <string name="ydownload_add_queue">Add to queue</string>
+
+    <string name="ydownload_url">Download URL</string>
+    <string name="ydownload_file_name">File name</string>
+    <string name="ydownload_referer">Referer</string>
+    <string name="ydownload_user_agent">User agent</string>
+    <string name="ydownload_cookies">Cookies</string>
+    <string name="ydownload_username">Username</string>
+    <string name="ydownload_password">Password</string>
+    <string name="ydownload_fetch">Fetch</string>
+    <string name="ydownload_resume_supported">Resume supported</string>
+    <string name="ydownload_resume_unknown">Resume support unknown</string>
+
+    <string name="ydownload_channel_service">YDownload service</string>
+    <string name="ydownload_channel_progress">Download progress</string>
+    <string name="ydownload_channel_result">Download results</string>
+    <string name="ydownload_service_title">YDownload is running</string>
+    <string name="ydownload_service_active">%1$d active downloads</string>
+    <string name="ydownload_completed">Download completed</string>
+    <string name="ydownload_failed">Download failed</string>
+</resources>
