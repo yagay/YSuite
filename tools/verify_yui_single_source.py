@@ -207,6 +207,45 @@ def main() -> None:
             + ", ".join(sorted(raw_navigation))
         )
 
+    raw_compose_controls: list[str] = []
+    forbidden_compose_imports = (
+        "androidx.compose.material3.Scaffold",
+        "androidx.compose.material3.TopAppBar",
+        "androidx.compose.material3.MediumTopAppBar",
+        "androidx.compose.material3.LargeTopAppBar",
+        "androidx.compose.material3.NavigationBar",
+        "androidx.compose.material3.NavigationRail",
+        "androidx.compose.material3.ScrollableTabRow",
+        "androidx.compose.material3.Tab",
+        "androidx.compose.material3.Button",
+        "androidx.compose.material3.OutlinedButton",
+        "androidx.compose.material3.OutlinedTextField",
+        "androidx.compose.material3.TextField",
+        "androidx.compose.material3.Switch",
+        "androidx.compose.material3.Checkbox",
+        "androidx.compose.material3.FilterChip",
+        "androidx.compose.material3.AlertDialog",
+        "androidx.compose.material3.RadioButton",
+    )
+    for path in APPS.glob("*/feature/src/main/java/**/*.kt"):
+        if not path.is_file():
+            continue
+        source = path.read_text(encoding="utf-8", errors="replace")
+        used = [
+            item.rsplit(".", 1)[-1]
+            for item in forbidden_compose_imports
+            if f"import {item}\n" in source
+        ]
+        if "import androidx.compose.material3.*" in source:
+            used.append("material3.*")
+        if used:
+            raw_compose_controls.append(f"{path.relative_to(ROOT)}: {', '.join(sorted(set(used)))}")
+    if raw_compose_controls:
+        fail(
+            "feature Compose UI must use shared YUI interaction primitives instead of raw Material3 controls: "
+            + "; ".join(sorted(raw_compose_controls))
+        )
+
     legacy_shells: list[str] = []
     for path in APPS.glob("*/feature/src/main/**/*"):
         if not path.is_file() or path.suffix not in {".kt", ".java"}:
