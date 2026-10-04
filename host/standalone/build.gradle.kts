@@ -34,9 +34,10 @@ val selectedFeature = standaloneSpecs[standaloneFeature]
             "Available: ${standaloneSpecs.keys.sorted().joinToString()}",
     )
 
-val generatedStandaloneDir = layout.buildDirectory.dir(
-    "generated/standaloneFeature/kotlin",
-)
+val generatedStandaloneDir = layout.buildDirectory
+    .dir("generated/standaloneFeature/kotlin")
+    .get()
+    .asFile
 
 val generateStandaloneFeature by tasks.registering {
     inputs.property("standaloneFeature", standaloneFeature)
@@ -44,7 +45,7 @@ val generateStandaloneFeature by tasks.registering {
     outputs.dir(generatedStandaloneDir)
 
     doLast {
-        val packageDir = generatedStandaloneDir.get().asFile.resolve(
+        val packageDir = generatedStandaloneDir.resolve(
             "com/yagay/ysuite/standalone/generated",
         )
         packageDir.mkdirs()
