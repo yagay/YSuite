@@ -22,6 +22,7 @@ data class YFilesEnvironment(
     val places: YFilesPlacesStore,
     val trash: YFilesTrashService,
     val tools: YFilesToolsService,
+    val rootGateway: RootGateway,
 )
 
 object YFilesEnvironmentFactory {
@@ -82,6 +83,7 @@ object YFilesEnvironmentFactory {
                             "yfiles-tools",
                         ),
                 ),
+            rootGateway = rootGateway,
         )
     }
 
