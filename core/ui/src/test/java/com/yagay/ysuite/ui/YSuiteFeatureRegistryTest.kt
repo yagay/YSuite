@@ -25,6 +25,19 @@ class YSuiteFeatureRegistryTest {
         )
     }
 
+    @Test
+    fun registryResolvesOwnedRoutes() {
+        val registration = FakeUiRegistration("files", 10)
+        val registry = YSuiteFeatureRegistry(
+            listOf(registration),
+        )
+
+        assertEquals(
+            registration,
+            registry.findByRoute("files"),
+        )
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun duplicateIdsAreRejected() {
         YSuiteFeatureRegistry(

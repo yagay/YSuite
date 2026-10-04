@@ -42,4 +42,9 @@ class YSuiteFeatureRegistry(
 
     fun findById(id: String): YSuiteFeatureUiRegistration? =
         features.firstOrNull { it.contract.descriptor.id == id }
+
+    fun findByRoute(route: String): YSuiteFeatureUiRegistration? =
+        features.firstOrNull { registration ->
+            registration.contract.routes.any { it.value == route }
+        }
 }

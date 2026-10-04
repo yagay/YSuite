@@ -42,7 +42,7 @@ import com.yagay.ysuite.resources.R
 import com.yagay.ysuite.runtime.FeatureLifecycleEvent
 import kotlinx.coroutines.launch
 
-private const val HOME_ID = "__home__"
+private const val HOME_ROUTE = "__home__"
 
 @Composable
 fun YSuiteFeatureHost(
@@ -50,15 +50,25 @@ fun YSuiteFeatureHost(
     modifier: Modifier = Modifier,
 ) {
     val features = registry.features
-    var backStack by rememberSaveable { mutableStateOf(listOf(HOME_ID)) }
-    val selectedId = backStack.last()
-    val activeFeature = registry.findById(selectedId)
+    var backStack by rememberSaveable { mutableStateOf(listOf(HOME_ROUTE)) }
+    val currentRoute = backStack.last()
+    val activeFeature =
+        currentRoute
+            .takeUnless { it == HOME_ROUTE }
+            ?.let(registry::findByRoute)
+    val selectedId =
+        activeFeature?.contract?.descriptor?.id ?: HOME_ROUTE
 
     fun navigateTo(id: String) {
-        if (id == selectedId) return
-        backStack =
-            if (id == HOME_ID) listOf(HOME_ID)
-            else backStack + id
+        if (id == HOME_ROUTE) {
+            backStack = listOf(HOME_ROUTE)
+            return
+        }
+        val target =
+            registry.findById(id) ?: return
+        val route = target.contract.startRoute.value
+        if (route == currentRoute) return
+        backStack = backStack + route
     }
 
     fun navigateBack() {
@@ -91,7 +101,7 @@ fun YSuiteFeatureHost(
                         LocalYSuiteHostNavigation provides
                             YSuiteHostNavigationState(
                                 icon =
-                                    if (selectedId == HOME_ID) {
+                                    if (selectedId == HOME_ROUTE) {
                                         YSuiteHostNavigationIcon.None
                                     } else {
                                         YSuiteHostNavigationIcon.Back
@@ -140,7 +150,7 @@ fun YSuiteFeatureHost(
                 },
             ) {
                 val navState =
-                    if (selectedId == HOME_ID) {
+                    if (selectedId == HOME_ROUTE) {
                         YSuiteHostNavigationState(
                             icon = YSuiteHostNavigationIcon.Menu,
                             onClick = { scope.launch { drawerState.open() } },
@@ -201,8 +211,8 @@ private fun NavigationItems(
 ) {
     NavigationDrawerItem(
         label = { Text(stringResource(R.string.common_home)) },
-        selected = selectedId == HOME_ID,
-        onClick = { onSelect(HOME_ID) },
+        selected = selectedId == HOME_ROUTE,
+        onClick = { onSelect(HOME_ROUTE) },
     )
 
     features.forEach { feature ->
@@ -220,7 +230,7 @@ private fun FeatureDestination(
     registry: YSuiteFeatureRegistry,
     onSelect: (String) -> Unit,
 ) {
-    if (selectedId == HOME_ID) {
+    if (selectedId == HOME_ROUTE) {
         YSuiteFeatureDashboard(
             features = registry.features,
             onSelect = onSelect,

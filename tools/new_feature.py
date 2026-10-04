@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import argparse
+import json
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
+UPSTREAM_PRODUCTS = json.loads(
+    (ROOT / "config/upstream-product-bases.json").read_text(encoding="utf-8")
+).get("products", {})
 
 PRODUCTS = {
     "Dashboard": (
@@ -12,7 +16,7 @@ PRODUCTS = {
     ),
     "FileManager": (
         "com.yagay.ysuite.productui.filemanager.FileExplorerWorkspace",
-        "FileExplorerWorkspace(title = title, navigationIcon = { YSuiteHostNavigationButton() }, drawerContent = { _, _ -> }, breadcrumb = {}, content = { _ -> body() })",
+        "FileExplorerWorkspace(title = title, navigationIcon = null, drawerContent = { _, _ -> }, breadcrumb = {}, content = { _ -> body() })",
     ),
     "Browser": (
         "com.yagay.ysuite.productui.browser.YueBrowserWorkspace",
@@ -87,6 +91,11 @@ def main():
     cls = class_name(feature)
     product = args.product
     surface_import, surface_call = PRODUCTS[product]
+    upstream = UPSTREAM_PRODUCTS.get(product)
+    if not upstream:
+        raise SystemExit(
+            f"Missing mature upstream mapping for product {product}"
+        )
 
     base = ROOT / "feature" / feature
     if base.exists():
@@ -115,6 +124,8 @@ def main():
 
     if args.dry_run:
         print(f"product={product}")
+        print(f"upstream={upstream['repo']}")
+        print(f"license={upstream['license']}")
         print("\n".join(str(path.relative_to(ROOT)) for path in planned))
         return
 
@@ -180,23 +191,13 @@ object {cls}FeatureContract : FeatureRegistration {{
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.yagay.ysuite.designsystem.component.YSuiteListItem
-import com.yagay.ysuite.designsystem.component.YSuiteSection
 import {surface_import}
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 
 @Composable
 fun {cls}FeatureScreen() {{
     val title = stringResource(R.string.{feature}_title)
-    {surface_call.replace("body()", f"""Column {{
-        YSuiteSection(
-            title = stringResource(R.string.{feature}_section),
-        ) {{
-            YSuiteListItem(
-                title = stringResource(R.string.{feature}_ready),
-            )
-        }}
-    }}""")}
+    {surface_call.replace("body()", "Column {}")}
 }}
 """
 
@@ -226,22 +227,20 @@ object {cls}FeatureUiRegistration : YSuiteFeatureUiRegistration {{
     strings_en = f"""<resources>
     <string name="{feature}_title">{cls}</string>
     <string name="{feature}_summary">YSuite feature module.</string>
-    <string name="{feature}_section">Overview</string>
-    <string name="{feature}_ready">Product surface scaffold ready</string>
 </resources>
 """
 
     strings_zh = f"""<resources>
     <string name="{feature}_title">{cls}</string>
     <string name="{feature}_summary">YSuite 功能模块。</string>
-    <string name="{feature}_section">概览</string>
-    <string name="{feature}_ready">产品级页面骨架已就绪</string>
 </resources>
 """
 
     migration_doc = f"""# Feature migration: {cls}
 
 Product surface: {product}
+Upstream project: {upstream['repo']}
+Upstream license: {upstream['license']}
 
 ## Scope
 
@@ -249,7 +248,10 @@ Describe the product workflow being implemented.
 
 ## Product UI
 
-Use the required {product} surface. Do not replace it with a generic page.
+Adapt the real product structure from {upstream['repo']} as closely as practical.
+Preserve its navigation, action hierarchy, selection behavior and responsive layout.
+YSuite should only unify theme, localization and platform/data adapters.
+Do not replace it with a generic page.
 
 ## Platform capabilities
 
@@ -306,7 +308,8 @@ Confirm the feature builds through the generic standalone host.
         )
 
     print(
-        f"Created feature:{feature} with ProductSurfaceKind.{product}"
+        f"Created feature:{feature} with ProductSurfaceKind.{product} "
+        f"from {upstream['repo']}"
     )
 
 if __name__ == "__main__":
