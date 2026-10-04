@@ -1,15 +1,17 @@
 package com.yagay.ysuite.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
@@ -20,8 +22,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,11 +32,13 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import com.yagay.ysuite.designsystem.component.YSuiteListItem
+import com.yagay.ysuite.designsystem.component.YSuiteSection
 import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.resources.R
@@ -45,13 +49,11 @@ private const val HOME_ID = "__home__"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun YSuiteFeatureHost(
-    features: List<YSuiteFeatureUiRegistration>,
+    registry: YSuiteFeatureRegistry,
     modifier: Modifier = Modifier,
 ) {
-    val sortedFeatures = remember(features) {
-        features.sortedWith(compareBy({ it.contract.descriptor.order }, { it.contract.descriptor.id }))
-    }
-    var selectedId by remember { mutableStateOf(HOME_ID) }
+    val features = registry.features
+    var selectedId by rememberSaveable { mutableStateOf(HOME_ID) }
 
     BackHandler(enabled = selectedId != HOME_ID) {
         selectedId = HOME_ID
@@ -61,14 +63,15 @@ fun YSuiteFeatureHost(
         if (widthClass == YSuiteWidthClass.Expanded) {
             Row(modifier = Modifier.fillMaxSize()) {
                 PermanentNavigationPane(
-                    features = sortedFeatures,
+                    features = features,
                     selectedId = selectedId,
                     onSelect = { selectedId = it },
                 )
                 Box(modifier = Modifier.weight(1f)) {
                     FeatureDestination(
                         selectedId = selectedId,
-                        features = sortedFeatures,
+                        registry = registry,
+                        onSelect = { selectedId = it },
                     )
                 }
             }
@@ -80,14 +83,21 @@ fun YSuiteFeatureHost(
                 drawerState = drawerState,
                 drawerContent = {
                     ModalDrawerSheet {
-                        NavigationItems(
-                            features = sortedFeatures,
-                            selectedId = selectedId,
-                            onSelect = {
-                                selectedId = it
-                                scope.launch { drawerState.close() }
-                            },
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .verticalScroll(rememberScrollState())
+                                .padding(YSuiteSpacing.Small),
+                        ) {
+                            NavigationItems(
+                                features = features,
+                                selectedId = selectedId,
+                                onSelect = {
+                                    selectedId = it
+                                    scope.launch { drawerState.close() }
+                                },
+                            )
+                        }
                     }
                 },
             ) {
@@ -98,7 +108,10 @@ fun YSuiteFeatureHost(
                             navigationIcon = {
                                 if (selectedId == HOME_ID) {
                                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.common_menu))
+                                        Icon(
+                                            Icons.Default.Menu,
+                                            contentDescription = stringResource(R.string.common_menu),
+                                        )
                                     }
                                 } else {
                                     IconButton(onClick = { selectedId = HOME_ID }) {
@@ -119,7 +132,8 @@ fun YSuiteFeatureHost(
                     ) {
                         FeatureDestination(
                             selectedId = selectedId,
-                            features = sortedFeatures,
+                            registry = registry,
+                            onSelect = { selectedId = it },
                         )
                     }
                 }
@@ -138,6 +152,7 @@ private fun PermanentNavigationPane(
         modifier = Modifier
             .width(YSuiteLayoutTokens.NavigationPaneWidth)
             .fillMaxHeight()
+            .verticalScroll(rememberScrollState())
             .padding(YSuiteSpacing.Medium),
         verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
     ) {
@@ -180,20 +195,28 @@ private fun NavigationItems(
 @Composable
 private fun FeatureDestination(
     selectedId: String,
-    features: List<YSuiteFeatureUiRegistration>,
+    registry: YSuiteFeatureRegistry,
+    onSelect: (String) -> Unit,
 ) {
     if (selectedId == HOME_ID) {
-        YSuiteFeatureDashboard(features = features)
+        YSuiteFeatureDashboard(
+            features = registry.features,
+            onSelect = onSelect,
+        )
         return
     }
 
-    features.firstOrNull { it.contract.descriptor.id == selectedId }?.Content()
-        ?: YSuiteFeatureDashboard(features = features)
+    registry.findById(selectedId)?.Content()
+        ?: YSuiteFeatureDashboard(
+            features = registry.features,
+            onSelect = onSelect,
+        )
 }
 
 @Composable
 private fun YSuiteFeatureDashboard(
     features: List<YSuiteFeatureUiRegistration>,
+    onSelect: (String) -> Unit,
 ) {
     YSuiteDashboardPage(
         title = stringResource(R.string.home_title),
@@ -208,10 +231,13 @@ private fun YSuiteFeatureDashboard(
             ) {}
         } else {
             features.forEach { feature ->
-                com.yagay.ysuite.designsystem.component.YSuiteSection(title = feature.label()) {
-                    Text(
-                        text = feature.contract.descriptor.id,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                YSuiteSection(title = feature.label()) {
+                    YSuiteListItem(
+                        title = feature.label(),
+                        subtitle = feature.contract.descriptor.id,
+                        modifier = Modifier.clickable {
+                            onSelect(feature.contract.descriptor.id)
+                        },
                     )
                 }
             }

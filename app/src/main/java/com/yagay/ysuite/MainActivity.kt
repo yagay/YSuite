@@ -17,7 +17,7 @@ class MainActivity : AppCompatActivity() {
         setContent {
             YSuiteApplication(
                 settingsRepository = container.settings,
-                features = container.features,
+                featureRegistry = container.featureRegistry,
             )
         }
     }

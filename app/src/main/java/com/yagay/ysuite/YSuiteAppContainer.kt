@@ -7,7 +7,7 @@ import com.yagay.ysuite.logging.AndroidYSuiteLogger
 import com.yagay.ysuite.permissions.AndroidPermissionChecker
 import com.yagay.ysuite.platform.android.DefaultPlatformServices
 import com.yagay.ysuite.settings.DataStoreAppSettingsRepository
-import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
+import com.yagay.ysuite.ui.YSuiteFeatureRegistry
 
 class YSuiteAppContainer(
     context: Context,
@@ -17,8 +17,10 @@ class YSuiteAppContainer(
     val permissions = AndroidPermissionChecker(context)
     val platform = DefaultPlatformServices.create()
 
-    val features: List<YSuiteFeatureUiRegistration> = listOf(
-        TemplateFeatureUiRegistration,
-        SettingsFeatureUiRegistration(settings),
+    val featureRegistry = YSuiteFeatureRegistry(
+        listOf(
+            TemplateFeatureUiRegistration,
+            SettingsFeatureUiRegistration(settings),
+        ),
     )
 }

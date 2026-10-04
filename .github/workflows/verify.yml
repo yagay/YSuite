@@ -18,6 +18,10 @@ jobs:
         run: python tools/verify_architecture.py
       - name: Verify localization parity
         run: python tools/verify_localization.py
+      - name: Verify feature tooling
+        run: |
+          python -m py_compile tools/new_feature.py tools/remove_feature.py
+          python tools/new_feature.py ci_probe --dry-run
 
   build:
     runs-on: ubuntu-latest
