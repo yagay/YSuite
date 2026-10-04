@@ -8,12 +8,13 @@ import com.yagay.ysuite.feature.yfiles.api.YFilesFeatureContract
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
 import com.yagay.ysuite.logging.api.InMemoryLogStore
 import com.yagay.ysuite.logging.api.YSuiteLogger
+import com.yagay.ysuite.productui.ProductSurfaceKind
 import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
 
 object YFilesStandaloneFeatureUiRegistration :
     YSuiteFeatureUiRegistration {
-    override val contract =
-        YFilesFeatureContract
+    override val contract = YFilesFeatureContract
+    override val productSurface = ProductSurfaceKind.FileManager
 
     private val logger: YSuiteLogger =
         CompositeYSuiteLogger(
@@ -29,14 +30,10 @@ object YFilesStandaloneFeatureUiRegistration :
     @Composable
     override fun Content() {
         val context =
-            LocalContext.current
-                .applicationContext
+            LocalContext.current.applicationContext
         val environment =
             remember(context) {
-                YFilesEnvironmentFactory
-                    .createWithoutRoot(
-                        context,
-                    )
+                YFilesEnvironmentFactory.createWithoutRoot(context)
             }
 
         YFilesFeatureScreen(
