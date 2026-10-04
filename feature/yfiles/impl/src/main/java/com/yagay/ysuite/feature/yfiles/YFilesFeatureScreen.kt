@@ -31,7 +31,7 @@ import com.yagay.ysuite.designsystem.component.YSuiteDataRow
 import com.yagay.ysuite.designsystem.component.YSuiteSearchBar
 import com.yagay.ysuite.designsystem.component.YSuiteActionButton
 import com.yagay.ysuite.designsystem.component.YSuitePanel
-import com.yagay.ysuite.designsystem.component.YSuitePanelLabel
+import com.yagay.ysuite.designsystem.component.YSuiteSectionLabel
 import com.yagay.ysuite.designsystem.component.YSuiteStatusPill
 import com.yagay.ysuite.designsystem.component.YSuiteStatusTone
 import com.yagay.ysuite.designsystem.component.YSuiteToggleRow
@@ -699,7 +699,7 @@ private fun LazyListScope.directoryContent(
     }
 
     item {
-        YSuitePanelLabel(
+        YSuiteSectionLabel(
             title = stringResource(
                 R.string.yfiles_files,
             ),
@@ -853,7 +853,7 @@ private fun LazyListScope.savedLocations(
     browser: YFilesViewModel,
 ) {
     item {
-        YSuitePanelLabel(
+        YSuiteSectionLabel(
             title = stringResource(titleRes),
         )
     }
@@ -894,7 +894,7 @@ private fun LazyListScope.trashContent(
     onEmptyTrash: () -> Unit,
 ) {
     item {
-        YSuitePanelLabel(
+        YSuiteSectionLabel(
             title = stringResource(
                 R.string.yfiles_mode_trash,
             ),
@@ -1271,7 +1271,7 @@ private fun LazyListScope.toolResults(
 
     if (state.duplicates.isNotEmpty()) {
         item {
-            YSuitePanelLabel(
+            YSuiteSectionLabel(
                 title = stringResource(
                     R.string
                         .yfiles_duplicates,
@@ -1617,7 +1617,7 @@ private fun LazyListScope.settingsContent(
     }
 
     item {
-        YSuitePanelLabel(
+        YSuiteSectionLabel(
             title = stringResource(
                 R.string
                     .yfiles_provider_capabilities,
