@@ -796,17 +796,7 @@ object YViewLayout {
         vertical: Boolean = false,
         onSelected: IntConsumer? = null,
     ): View {
-        val safe = labels.ifEmpty { arrayOf("") }
-        val spinner = Spinner(context).apply {
-            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, safe)
-            setSelection(selected.coerceIn(0, safe.lastIndex))
-            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    if (position in safe.indices) onSelected?.accept(position)
-                }
-                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-            }
-        }
+        val spinner = spinnerControl(context, labels, selected, onSelected)
         val block = settingBlock(context)
         if (vertical) {
             block.addView(text(context, title, 14f, false))
@@ -833,6 +823,27 @@ object YViewLayout {
             block.addView(row, matchWrap())
         }
         return block
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun spinnerControl(
+        context: Context,
+        labels: Array<String>,
+        selected: Int = 0,
+        onSelected: IntConsumer? = null,
+    ): Spinner {
+        val safe = labels.ifEmpty { arrayOf("") }
+        return Spinner(context).apply {
+            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, safe)
+            setSelection(selected.coerceIn(0, safe.lastIndex), false)
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    if (position in safe.indices) onSelected?.accept(position)
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            }
+        }
     }
 
     @JvmStatic
