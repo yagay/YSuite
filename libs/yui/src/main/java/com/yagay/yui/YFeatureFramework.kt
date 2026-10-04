@@ -107,6 +107,7 @@ private fun YFeatureStateContent(
     }
 }
 
+@Deprecated("Use YPageList")
 @Composable
 fun YFeatureList(
     padding: PaddingValues,
@@ -114,6 +115,7 @@ fun YFeatureList(
     content: LazyListScope.() -> Unit,
 ) = YPageList(padding = padding, modifier = modifier, content = content)
 
+@Deprecated("Use YSectionHeader")
 @Composable
 fun YFeatureSectionHeader(
     title: String,
@@ -121,11 +123,8 @@ fun YFeatureSectionHeader(
     subtitle: String? = null,
 ) = YSectionHeader(title = title, modifier = modifier, subtitle = subtitle)
 
-/**
- * Legacy card API kept for existing modules, but the visual surface is role-aware:
- * dashboards keep strong cards; ordinary settings/lists use flatter sections so dense tools
- * do not become a wall of nested cards.
- */
+/** Compatibility alias. Feature modules must migrate to [YSection]. */
+@Deprecated("Use YSection")
 @Composable
 fun YFeatureCard(
     title: String,
@@ -134,56 +133,12 @@ fun YFeatureCard(
     detail: String? = null,
     trailing: @Composable RowScope.() -> Unit = {},
     content: @Composable () -> Unit = {},
-) {
-    val role = LocalYPageRole.current
+) = YSection(title, modifier, subtitle, detail, trailing, content)
 
-    @Composable
-    fun sectionBody() {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        ) {
-            Column(Modifier.weight(1f)) { YFeatureCardCopy(title, subtitle, detail) }
-            trailing()
-        }
-        content()
-    }
-
-    if (role.template().emphasizeCards) {
-        YCard(modifier = modifier.fillMaxWidth()) {
-            sectionBody()
-        }
-    } else {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(
-                if (role.prefersCompactRows()) 8.dp else YDimens.ControlGap,
-            ),
-        ) {
-            sectionBody()
-            YDivider()
-        }
-    }
-}
-
+@Deprecated("Use YEmptyMessage")
 @Composable
-private fun YFeatureCardCopy(title: String, subtitle: String?, detail: String?) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        if (!subtitle.isNullOrBlank()) {
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (!detail.isNullOrBlank()) {
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-fun YFeatureEmpty(message: String, modifier: Modifier = Modifier) {
-    YNotice(text = message, modifier = modifier, tone = YNoticeTone.NEUTRAL)
-}
+fun YFeatureEmpty(message: String, modifier: Modifier = Modifier) =
+    YEmptyMessage(message = message, modifier = modifier)
 
 @Composable
 private fun yStatusForeground(tone: YStatusTone) = when (tone) {
@@ -201,19 +156,14 @@ private fun yStatusContainer(tone: YStatusTone) = when (tone) {
     YStatusTone.Error -> MaterialTheme.colorScheme.errorContainer
 }
 
+@Deprecated("Use YMetricCard")
 @Composable
 fun YFeatureStat(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
     tone: YStatusTone = YStatusTone.Neutral,
-) {
-    val color = yStatusForeground(tone)
-    YCard(modifier) {
-        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
+) = YMetricCard(label, value, modifier, tone)
 
 @Composable
 fun YStatusPill(
@@ -240,35 +190,16 @@ fun YStatusPill(
     }
 }
 
+@Deprecated("Use YStatusLine")
 @Composable
 fun YStatusRow(
     label: String,
     value: String,
     tone: YStatusTone = YStatusTone.Neutral,
     modifier: Modifier = Modifier,
-) {
-    val valueColor = yStatusForeground(tone)
-    Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            label,
-            Modifier.weight(0.42f),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            value,
-            Modifier.weight(0.58f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = valueColor,
-            textAlign = TextAlign.End,
-        )
-    }
-}
+) = YStatusLine(label, value, tone, modifier)
 
+@Deprecated("Use YSwitchItem")
 @Composable
 fun YSettingSwitch(
     title: String,

@@ -57,19 +57,13 @@ fun YPluginList(
     )
 }
 
-/** Legacy action row kept source-compatible; it now scrolls instead of clipping on small screens. */
+/** Compatibility alias for pre-v2 feature sources. */
+@Deprecated("Use YHorizontalActions")
 @Composable
 fun YActionRow(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
-}
+) = YHorizontalActions(modifier, content)
 
 @Composable
 fun YPluginHeader(

@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -167,6 +168,133 @@ fun YSectionHeader(title: String, modifier: Modifier = Modifier, subtitle: Strin
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+/** Canonical role-aware section. This replaces the old feature-specific card API. */
+@Composable
+fun YSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    detail: String? = null,
+    trailing: @Composable RowScope.() -> Unit = {},
+    content: @Composable () -> Unit = {},
+) {
+    val role = LocalYPageRole.current
+
+    @Composable
+    fun body() {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (!detail.isNullOrBlank()) {
+                    Text(
+                        detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            trailing()
+        }
+        content()
+    }
+
+    if (role.template().emphasizeCards) {
+        YCard(modifier = modifier.fillMaxWidth()) { body() }
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(
+                if (role.prefersCompactRows()) 8.dp else YDimens.ControlGap,
+            ),
+        ) {
+            body()
+            YDivider()
+        }
+    }
+}
+
+@Composable
+fun YEmptyMessage(message: String, modifier: Modifier = Modifier) {
+    YNotice(text = message, modifier = modifier, tone = YNoticeTone.NEUTRAL)
+}
+
+@Composable
+fun YMetricCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    tone: YStatusTone = YStatusTone.Neutral,
+) {
+    val color = when (tone) {
+        YStatusTone.Neutral -> MaterialTheme.colorScheme.onSurface
+        YStatusTone.Good -> ySemanticColors().success
+        YStatusTone.Warning -> ySemanticColors().warning
+        YStatusTone.Error -> MaterialTheme.colorScheme.error
+    }
+    YCard(modifier) {
+        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+fun YStatusLine(
+    label: String,
+    value: String,
+    tone: YStatusTone = YStatusTone.Neutral,
+    modifier: Modifier = Modifier,
+) {
+    val valueColor = when (tone) {
+        YStatusTone.Neutral -> MaterialTheme.colorScheme.onSurface
+        YStatusTone.Good -> ySemanticColors().success
+        YStatusTone.Warning -> ySemanticColors().warning
+        YStatusTone.Error -> MaterialTheme.colorScheme.error
+    }
+    Row(
+        modifier = modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            label,
+            Modifier.weight(0.42f),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            value,
+            Modifier.weight(0.58f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor,
+            textAlign = TextAlign.End,
+        )
+    }
+}
+
+@Composable
+fun YHorizontalActions(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
 }
 
 /** Canonical row for navigation, state, settings and manager/browser entries. */
