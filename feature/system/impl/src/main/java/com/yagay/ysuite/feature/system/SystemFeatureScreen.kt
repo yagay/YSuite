@@ -68,38 +68,40 @@ fun SystemFeatureScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Large),
+            verticalArrangement =
+                Arrangement.spacedBy(YSuiteSpacing.Large),
         ) {
             YSuiteSection(
-            title = stringResource(R.string.system_platform),
-        ) {
-            CapabilityRow(
-                label = stringResource(R.string.system_root),
-                status = state.capabilities?.get(CapabilityKind.Root),
-            )
-            CapabilityRow(
-                label = stringResource(R.string.system_hooks),
-                status = state.capabilities?.get(CapabilityKind.Hooks),
-            )
-            YSuiteSecondaryButton(
-                text = if (state.refreshing) {
-                    stringResource(R.string.system_refreshing)
-                } else {
-                    stringResource(R.string.system_refresh)
-                },
-                onClick = model::refresh,
-            )
-        }
+                title = stringResource(R.string.system_platform),
+            ) {
+                CapabilityRow(
+                    label = stringResource(R.string.system_root),
+                    status = state.capabilities?.get(CapabilityKind.Root),
+                )
+                CapabilityRow(
+                    label = stringResource(R.string.system_hooks),
+                    status = state.capabilities?.get(CapabilityKind.Hooks),
+                )
+                YSuiteSecondaryButton(
+                    text =
+                        if (state.refreshing) {
+                            stringResource(R.string.system_refreshing)
+                        } else {
+                            stringResource(R.string.system_refresh)
+                        },
+                    onClick = model::refresh,
+                )
+            }
 
-        PermissionSection(
-            requirements = state.permissions,
-            result = state.permissionResult,
-            onRequest = requester::launch,
-        )
+            PermissionSection(
+                requirements = state.permissions,
+                result = state.permissionResult,
+                onRequest = requester::launch,
+            )
 
-        DiagnosticSection(
-            findings = state.diagnostics,
-        )
+            DiagnosticSection(
+                findings = state.diagnostics,
+            )
 
             LogSection(
                 records = state.logs,

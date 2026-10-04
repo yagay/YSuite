@@ -8,7 +8,6 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,9 +32,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.ysuite.designsystem.component.YSuiteConfirmDialog
 import com.yagay.ysuite.designsystem.component.YSuiteFormField
 import com.yagay.ysuite.designsystem.component.YSuiteListItem
-import com.yagay.ysuite.designsystem.component.YSuiteSearchField
-import com.yagay.ysuite.designsystem.component.YSuiteSecondaryButton
-import com.yagay.ysuite.designsystem.component.YSuiteSection
 import com.yagay.ysuite.designsystem.component.YSuiteSectionHeader
 import com.yagay.ysuite.designsystem.component.YSuiteStatusBadge
 import com.yagay.ysuite.designsystem.component.YSuiteStatusTone
@@ -46,7 +42,6 @@ import com.yagay.ysuite.designsystem.component.YSuiteTextInputDialog
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.feature.yfiles.api.YFileNode
 import com.yagay.ysuite.feature.yfiles.api.YFileProviderKind
-import com.yagay.ysuite.feature.yfiles.api.YFileRef
 import com.yagay.ysuite.feature.yfiles.api.YFileSort
 import com.yagay.ysuite.feature.yfiles.api.YFileType
 import com.yagay.ysuite.logging.api.YSuiteLogger
