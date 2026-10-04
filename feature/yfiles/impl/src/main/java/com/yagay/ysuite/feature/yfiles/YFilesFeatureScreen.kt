@@ -62,6 +62,7 @@ import com.yagay.ysuite.productui.filemanager.FileExplorerSelectionTopBar
 import com.yagay.ysuite.productui.filemanager.FileExplorerSortOption
 import com.yagay.ysuite.productui.filemanager.FileExplorerToolAction
 import com.yagay.ysuite.productui.filemanager.FileExplorerToolGroup
+import com.yagay.ysuite.productui.filemanager.FileExplorerUtilitySurface
 import com.yagay.ysuite.productui.filemanager.FileExplorerTopActions
 import com.yagay.ysuite.productui.filemanager.FileExplorerWorkspace
 import com.yagay.ysuite.productui.filemanager.YFileProductItemKind
@@ -71,7 +72,6 @@ import com.yagay.ysuite.productui.filemanager.YFileSourcePane
 import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsLink
 import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
-import com.yagay.ysuite.productui.tool.NiaToolSurface
 import java.io.File
 import java.net.URLConnection
 import java.text.DateFormat
@@ -127,7 +127,7 @@ fun YFilesFeatureScreen(
                 onEmptyTrash = { confirmEmptyTrash = true },
             )
         YFilesTab.Tools ->
-            NiaToolSurface(
+            FileExplorerUtilitySurface(
                 title = stringResource(R.string.yfiles_tab_tools),
                 navigationIcon = {
                     FileExplorerBackButton(
