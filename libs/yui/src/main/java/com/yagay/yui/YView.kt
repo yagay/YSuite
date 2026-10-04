@@ -147,7 +147,7 @@ object YView {
     @JvmStatic fun warningContainer(context: Context): Int = if (isDark(context)) 0xFF693900.toInt() else 0xFFFFDDB8.toInt()
     @JvmStatic fun info(context: Context): Int = if (isDark(context)) 0xFFA7C8FF.toInt() else 0xFF285F9E.toInt()
 
-    private fun isDark(context: Context): Boolean {
+    @JvmStatic fun isDark(context: Context): Boolean {
         val mask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         return mask == Configuration.UI_MODE_NIGHT_YES
     }
