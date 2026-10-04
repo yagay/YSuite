@@ -30,6 +30,11 @@ SOURCE_MARKERS = (
     "YSearchField(",
     "YViewLayout.install(",
     "YViewLayout.installFixed(",
+    "YViewLayout.installPage(",
+    "YViewLayout.page(",
+    "YViewLayout.pageRoot(",
+    "YViewLayout.scrollPage(",
+    "YViewLayout.section(",
     "YViewLayout.card(",
 )
 XML_MARKERS = ("Widget.YUI.", "TextAppearance.YUI.", "@dimen/yui_")
@@ -44,9 +49,6 @@ SPECIALIZED_EXCEPTIONS: dict[str, str] = {
     "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ShadeDismissActivity.java":
         "empty translucent 300 ms compatibility Activity used only to dismiss the notification shade",
 }
-
-YFLOAT_APP_UI = ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppUi.java"
-YFLOAT_TOKENS = ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/UiTokens.java"
 
 ACTIVITY_RE = re.compile(r"\bclass\s+\w*Activity\b|\bextends\s+(?:AppCompatActivity|ComponentActivity|Activity)\b")
 BINDING_RE = re.compile(r"\b([A-Z][A-Za-z0-9]+Binding)\b")
@@ -63,14 +65,6 @@ def source_has_yui(text: str) -> bool:
 
 def xml_has_yui(text: str) -> bool:
     return any(marker in text for marker in XML_MARKERS)
-
-
-def yfloat_adapter_is_yui_backed() -> bool:
-    if not YFLOAT_APP_UI.is_file() or not YFLOAT_TOKENS.is_file():
-        return False
-    app_ui = YFLOAT_APP_UI.read_text(encoding="utf-8", errors="replace")
-    tokens = YFLOAT_TOKENS.read_text(encoding="utf-8", errors="replace")
-    return "UiTokens." in app_ui and "com.yagay.yui.YView" in tokens and "YView.color(" in tokens
 
 
 def binding_to_layout(binding: str) -> str | None:
@@ -113,9 +107,7 @@ def main() -> None:
     screens = 0
     yui_owned = 0
     xml_owned = 0
-    adapter_owned = 0
     exceptions = 0
-    yfloat_adapter_ready = yfloat_adapter_is_yui_backed()
 
     source_roots = [ROOT / "apps", ROOT / "suite"]
     for source_root in source_roots:
@@ -138,9 +130,6 @@ def main() -> None:
             if source_has_yui(text):
                 yui_owned += 1
                 continue
-            if key.startswith("apps/YFloat/") and "AppUi." in text and yfloat_adapter_ready:
-                adapter_owned += 1
-                continue
             layouts = related_layouts(path, text)
             if layouts and all(xml_has_yui(layout.read_text(encoding="utf-8", errors="replace")) for layout in layouts):
                 xml_owned += 1
@@ -161,9 +150,6 @@ def main() -> None:
         if not (ROOT / key).is_file():
             failures.append(f"stale specialized exception: {key} ({reason})")
 
-    if not yfloat_adapter_ready:
-        failures.append("YFloat AppUi compatibility layer is not backed by shared YView theme tokens")
-
     if failures:
         print("ui-screen-ownership: ERROR unowned normal screens:", file=sys.stderr)
         for item in failures:
@@ -175,7 +161,7 @@ def main() -> None:
         raise SystemExit(1)
 
     print(
-        f"ui-screen-ownership: OK screens={screens} source_yui={yui_owned} adapter_yui={adapter_owned} "
+        f"ui-screen-ownership: OK screens={screens} source_yui={yui_owned} "
         f"xml_yui={xml_owned} specialized={exceptions} activity_xml={xml_screens}"
     )
 

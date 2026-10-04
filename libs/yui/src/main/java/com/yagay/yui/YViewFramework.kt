@@ -23,7 +23,6 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
@@ -135,7 +134,7 @@ object YViewLayout {
             isHorizontalScrollBarEnabled = false
             addView(
                 group,
-                HorizontalScrollView.LayoutParams(
+                FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ),
@@ -496,7 +495,7 @@ object YViewLayout {
         isFillViewport = true
         clipToPadding = false
         setBackgroundColor(YView.background(context))
-        addView(content, ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        addView(content, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
 
     @JvmStatic
@@ -510,7 +509,7 @@ object YViewLayout {
             useCompatPadding = false
         }
         val holder = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        card.addView(holder, MaterialCardView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        card.addView(holder, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         if (!title.isNullOrBlank() || !subtitle.isNullOrBlank()) {
             val header = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
