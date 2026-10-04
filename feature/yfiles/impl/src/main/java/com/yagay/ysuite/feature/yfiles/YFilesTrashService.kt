@@ -23,15 +23,20 @@ class YFilesTrashService(
             Context.MODE_PRIVATE,
         )
 
-    suspend fun records(): List<YTrashRecord> =
-        loadRecords()
-            .filter {
-                engine.stat(it.trashedRef)
+    suspend fun records(): List<YTrashRecord> {
+        val existing = mutableListOf<YTrashRecord>()
+        for (record in loadRecords()) {
+            if (
+                engine.stat(record.trashedRef)
                     is Outcome.Success
+            ) {
+                existing += record
             }
-            .sortedByDescending {
-                it.deletedAtMillis
-            }
+        }
+        return existing.sortedByDescending {
+            it.deletedAtMillis
+        }
+    }
 
     suspend fun moveToTrash(
         refs: List<YFileRef>,
@@ -429,6 +434,8 @@ class YFilesTrashService(
             ".YSuiteTrash"
         private const val ROOT_TRASH_PARENT =
             "/data/local/tmp"
+        private const val DOCUMENT_PROVIDER_ID =
+            "document"
         private const val ROOT_TRASH_MESSAGE =
             "Provider root cannot be moved to trash"
     }

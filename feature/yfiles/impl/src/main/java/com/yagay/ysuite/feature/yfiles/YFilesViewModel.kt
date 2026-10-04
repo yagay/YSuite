@@ -616,6 +616,14 @@ class YFilesViewModel(
         }
     }
 
+    private fun scheduleRefresh() {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            delay(250L)
+            loadDirectory()
+        }
+    }
+
     fun refresh() {
         if (
             state.value.mode !=

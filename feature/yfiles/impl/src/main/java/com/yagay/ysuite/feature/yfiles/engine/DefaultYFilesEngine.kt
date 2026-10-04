@@ -348,8 +348,8 @@ class DefaultYFilesEngine(
         destinationDirectory: YFileRef,
         targetName: String,
         onProgress: YFileProgressListener?,
-    ): Outcome<YFileNode> =
-        when (sourceNode.type) {
+    ): Outcome<YFileNode> {
+        return when (sourceNode.type) {
             YFileType.Directory -> {
                 val created = destinationProvider
                     .createDirectory(
@@ -485,6 +485,7 @@ class DefaultYFilesEngine(
                 }
             }
         }
+    }
 
     private suspend fun resolveTargetName(
         provider: YFileProvider,

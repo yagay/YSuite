@@ -61,8 +61,8 @@ class YFilesToolsService(
     suspend fun analyze(
         root: YFileRef,
         maxEntries: Int = 20_000,
-    ): Outcome<YDirectoryAnalysis> =
-        try {
+    ): Outcome<YDirectoryAnalysis> {
+        return try {
             var files = 0
             var directories = 0
             var bytes = 0L
@@ -149,6 +149,7 @@ class YFilesToolsService(
                 ANALYSIS_MESSAGE,
             )
         }
+    }
 
     suspend fun duplicates(
         root: YFileRef,
@@ -220,8 +221,8 @@ class YFilesToolsService(
     suspend fun readText(
         ref: YFileRef,
         maxChars: Int = 200_000,
-    ): Outcome<YTextDocument> =
-        try {
+    ): Outcome<YTextDocument> {
+        return try {
             val bytes =
                 readBounded(
                     ref,
@@ -253,6 +254,7 @@ class YFilesToolsService(
                 TEXT_MESSAGE,
             )
         }
+    }
 
     suspend fun writeText(
         ref: YFileRef,
@@ -340,8 +342,8 @@ class YFilesToolsService(
     suspend fun previewRename(
         refs: List<YFileRef>,
         rule: YBatchRenameRule,
-    ): Outcome<List<YBatchRenameItem>> =
-        try {
+    ): Outcome<List<YBatchRenameItem>> {
+        return try {
             val regex = if (rule.regex) {
                 Regex(rule.find)
             } else {
@@ -392,6 +394,7 @@ class YFilesToolsService(
                 RENAME_MESSAGE,
             )
         }
+    }
 
     suspend fun applyRename(
         items: List<YBatchRenameItem>,
