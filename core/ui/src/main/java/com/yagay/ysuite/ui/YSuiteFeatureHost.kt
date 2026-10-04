@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -36,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.productui.ProductAdaptiveBox
-import com.yagay.ysuite.productui.ProductSurfaceKind
 import com.yagay.ysuite.productui.dashboard.NiaDashboardSurface
 import com.yagay.ysuite.resources.R
 import com.yagay.ysuite.runtime.FeatureLifecycleEvent
@@ -50,8 +50,22 @@ fun YSuiteFeatureHost(
     modifier: Modifier = Modifier,
 ) {
     val features = registry.features
-    var selectedId by rememberSaveable { mutableStateOf(HOME_ID) }
+    var backStack by rememberSaveable { mutableStateOf(listOf(HOME_ID)) }
+    val selectedId = backStack.last()
     val activeFeature = registry.findById(selectedId)
+
+    fun navigateTo(id: String) {
+        if (id == selectedId) return
+        backStack =
+            if (id == HOME_ID) listOf(HOME_ID)
+            else backStack + id
+    }
+
+    fun navigateBack() {
+        if (backStack.size > 1) {
+            backStack = backStack.dropLast(1)
+        }
+    }
 
     DisposableEffect(activeFeature) {
         activeFeature?.lifecycleObserver?.onEvent(FeatureLifecycleEvent.Activated)
@@ -60,8 +74,8 @@ fun YSuiteFeatureHost(
         }
     }
 
-    BackHandler(enabled = selectedId != HOME_ID) {
-        selectedId = HOME_ID
+    BackHandler(enabled = backStack.size > 1) {
+        navigateBack()
     }
 
     ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
@@ -70,16 +84,25 @@ fun YSuiteFeatureHost(
                 PermanentNavigationPane(
                     features = features,
                     selectedId = selectedId,
-                    onSelect = { selectedId = it },
+                    onSelect = ::navigateTo,
                 )
                 Box(modifier = Modifier.weight(1f)) {
                     CompositionLocalProvider(
-                        LocalYSuiteHostNavigation provides YSuiteHostNavigationState(),
+                        LocalYSuiteHostNavigation provides
+                            YSuiteHostNavigationState(
+                                icon =
+                                    if (selectedId == HOME_ID) {
+                                        YSuiteHostNavigationIcon.None
+                                    } else {
+                                        YSuiteHostNavigationIcon.Back
+                                    },
+                                onClick = ::navigateBack,
+                            ),
                     ) {
                         FeatureDestination(
                             selectedId = selectedId,
                             registry = registry,
-                            onSelect = { selectedId = it },
+                            onSelect = ::navigateTo,
                         )
                     }
                 }
@@ -108,7 +131,7 @@ fun YSuiteFeatureHost(
                                 features = features,
                                 selectedId = selectedId,
                                 onSelect = {
-                                    selectedId = it
+                                    navigateTo(it)
                                     scope.launch { drawerState.close() }
                                 },
                             )
@@ -125,7 +148,7 @@ fun YSuiteFeatureHost(
                     } else {
                         YSuiteHostNavigationState(
                             icon = YSuiteHostNavigationIcon.Back,
-                            onClick = { selectedId = HOME_ID },
+                            onClick = ::navigateBack,
                         )
                     }
 
@@ -135,7 +158,7 @@ fun YSuiteFeatureHost(
                     FeatureDestination(
                         selectedId = selectedId,
                         registry = registry,
-                        onSelect = { selectedId = it },
+                        onSelect = ::navigateTo,
                     )
                 }
             }
@@ -247,7 +270,7 @@ private fun ProductFeatureTile(
 ) {
     androidx.compose.material3.Surface(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = MaterialTheme.shapes.large,
@@ -260,19 +283,7 @@ private fun ProductFeatureTile(
                 text = feature.label(),
                 style = MaterialTheme.typography.titleLarge,
             )
-            Text(
-                text = productLabel(feature.productSurface),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = feature.contract.descriptor.id,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
 
-private fun productLabel(kind: ProductSurfaceKind): String =
-    kind.name

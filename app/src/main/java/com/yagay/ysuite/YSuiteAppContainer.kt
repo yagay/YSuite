@@ -7,7 +7,6 @@ import com.yagay.ysuite.diagnostics.DiagnosticFinding
 import com.yagay.ysuite.diagnostics.DiagnosticStatus
 import com.yagay.ysuite.feature.settings.SettingsFeatureUiRegistration
 import com.yagay.ysuite.feature.system.SystemFeatureUiRegistration
-import com.yagay.ysuite.feature.template.TemplateFeatureUiRegistration
 import com.yagay.ysuite.feature.yfiles.YFilesEnvironmentFactory
 import com.yagay.ysuite.feature.yfiles.YFilesFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
@@ -83,7 +82,6 @@ class YSuiteAppContainer(
                 ),
                 logger = logger,
             ),
-            TemplateFeatureUiRegistration,
             SettingsFeatureUiRegistration(settings),
         ),
     )

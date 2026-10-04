@@ -15,6 +15,7 @@ import com.yagay.ysuite.settings.AppThemeMode
 fun YSuiteApplication(
     settingsRepository: AppSettingsRepository,
     featureRegistry: YSuiteFeatureRegistry,
+    singleFeature: Boolean = false,
 ) {
     val settings by settingsRepository.settings.collectAsStateWithLifecycle(
         initialValue = AppSettings(),
@@ -33,6 +34,10 @@ fun YSuiteApplication(
     }
 
     YSuiteRoot(darkTheme = darkTheme) {
-        YSuiteFeatureHost(registry = featureRegistry)
+        if (singleFeature) {
+            YSuiteSingleFeatureHost(registry = featureRegistry)
+        } else {
+            YSuiteFeatureHost(registry = featureRegistry)
+        }
     }
 }

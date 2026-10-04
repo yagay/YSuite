@@ -33,7 +33,6 @@ dependencies {
     implementation(project(":core:diagnostics"))
     implementation(project(":core:platform:api"))
     implementation(project(":core:platform:android"))
-    implementation(project(":feature:template:impl"))
     implementation(project(":feature:settings:impl"))
     implementation(project(":feature:system:impl"))
     implementation(project(":feature:yfiles:api"))

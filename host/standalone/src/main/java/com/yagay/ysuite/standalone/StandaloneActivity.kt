@@ -31,6 +31,7 @@ class StandaloneActivity : AppCompatActivity() {
             YSuiteApplication(
                 settingsRepository = settings,
                 featureRegistry = featureRegistry,
+                singleFeature = true,
             )
         }
     }
