@@ -1,19 +1,28 @@
 package com.yagay.ysuite.productui.filemanager
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
@@ -23,9 +32,9 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -38,16 +47,19 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -88,48 +100,105 @@ data class FileExplorerSortOption(
     val label: String,
 )
 
+private data class BreadcrumbSegment(
+    val name: String,
+    val path: String,
+)
+
 @Composable
 fun YFileBreadcrumbBar(
     path: String,
     providerLabel: String,
     favorite: Boolean,
-    onUp: () -> Unit,
+    onRoot: () -> Unit,
+    onNavigatePath: (String) -> Unit,
     onRefresh: () -> Unit,
     onFavorite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scroll = rememberScrollState()
+    val absolutePath = path.startsWith("/")
+    val segments =
+        if (absolutePath) {
+            val parts = path.trimEnd('/').split('/').filter(String::isNotEmpty)
+            buildList {
+                var current = ""
+                for (part in parts) {
+                    current += "/" + part
+                    add(BreadcrumbSegment(part, current))
+                }
+            }
+        } else {
+            emptyList()
+        }
+
+    LaunchedEffect(path) {
+        scroll.animateScrollTo(scroll.maxValue)
+    }
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 1.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    horizontal = YSuiteSpacing.Small,
-                    vertical = YSuiteSpacing.XSmall,
-                ),
+                .horizontalScroll(scroll)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.XSmall),
         ) {
-            IconButton(onClick = onUp) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            }
-            Column(modifier = Modifier.weight(1f)) {
+            Icon(
+                imageVector = Icons.Default.Storage,
+                contentDescription = providerLabel,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable(onClick = onRoot),
+            )
+            Text(
+                text = providerLabel,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clickable(onClick = onRoot)
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+            )
+
+            if (absolutePath) {
+                segments.forEachIndexed { index, segment ->
+                    Text(
+                        text = "›",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 2.dp),
+                    )
+                    val last = index == segments.lastIndex
+                    Text(
+                        text = segment.name,
+                        style = MaterialTheme.typography.labelLarge,
+                        color =
+                            if (last) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .clickable(enabled = !last) {
+                                onNavigatePath(segment.path)
+                            }
+                            .padding(horizontal = 6.dp, vertical = 6.dp),
+                    )
+                }
+            } else {
                 Text(
                     text = path,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = providerLabel,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
             }
+
             IconButton(onClick = onFavorite) {
                 Icon(
                     imageVector =
@@ -157,10 +226,7 @@ fun FileExplorerSearchBar(
         onValueChange = onQueryChange,
         modifier = modifier
             .fillMaxWidth()
-            .padding(
-                horizontal = YSuiteSpacing.Small,
-                vertical = YSuiteSpacing.XSmall,
-            ),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         singleLine = true,
         placeholder = { Text(searchLabel) },
         leadingIcon = {
@@ -180,12 +246,16 @@ fun FileExplorerSearchBar(
 fun RowScope.FileExplorerTopActions(
     sortOptions: List<FileExplorerSortOption>,
     selectedSortId: String,
+    descending: Boolean,
+    ascendingLabel: String,
+    descendingLabel: String,
     onSortSelected: (String) -> Unit,
+    onDescendingChange: (Boolean) -> Unit,
     showHidden: Boolean,
     showHiddenLabel: String,
-    onShowHiddenChange: (Boolean) -> Unit,
     recursive: Boolean,
     recursiveLabel: String,
+    onShowHiddenChange: (Boolean) -> Unit,
     onRecursiveChange: (Boolean) -> Unit,
 ) {
     var sortExpanded by remember { mutableStateOf(false) }
@@ -206,20 +276,40 @@ fun RowScope.FileExplorerTopActions(
                 DropdownMenuItem(
                     text = {
                         Text(
-                            text =
-                                if (option.id == selectedSortId) {
-                                    "✓ " + option.label
-                                } else {
-                                    option.label
-                                },
+                            if (option.id == selectedSortId) {
+                                "✓ " + option.label
+                            } else {
+                                option.label
+                            },
                         )
                     },
                     onClick = {
-                        sortExpanded = false
                         onSortSelected(option.id)
+                        sortExpanded = false
                     },
                 )
             }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        if (descending) descendingLabel
+                        else ascendingLabel,
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector =
+                            if (descending) Icons.Default.ArrowDownward
+                            else Icons.Default.ArrowUpward,
+                        contentDescription = null,
+                    )
+                },
+                onClick = {
+                    onDescendingChange(!descending)
+                    sortExpanded = false
+                },
+            )
         }
     }
 
@@ -244,9 +334,7 @@ fun RowScope.FileExplorerTopActions(
                         onCheckedChange = null,
                     )
                 },
-                onClick = {
-                    onShowHiddenChange(!showHidden)
-                },
+                onClick = { onShowHiddenChange(!showHidden) },
             )
             DropdownMenuItem(
                 text = { Text(recursiveLabel) },
@@ -256,9 +344,7 @@ fun RowScope.FileExplorerTopActions(
                         onCheckedChange = null,
                     )
                 },
-                onClick = {
-                    onRecursiveChange(!recursive)
-                },
+                onClick = { onRecursiveChange(!recursive) },
             )
         }
     }
@@ -298,10 +384,10 @@ fun YFileSourcePane(
         modifier = modifier
             .fillMaxWidth()
             .padding(YSuiteSpacing.Medium),
-        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.XSmall),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         sources.forEach { source ->
-            YFileSourceRow(
+            SourceRow(
                 label = source.label,
                 icon = source.kind.icon(),
                 selected =
@@ -311,42 +397,42 @@ fun YFileSourcePane(
             )
         }
 
-        YFileSourceRow(
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        SourceRow(
             label = browserLabel,
             icon = Icons.Default.Home,
             selected = activeSectionId == "browser",
             onClick = { onSectionSelected("browser") },
         )
-        YFileSourceRow(
+        SourceRow(
             label = favoritesLabel,
             icon = Icons.Default.Star,
             selected = activeSectionId == "favorites",
             onClick = { onSectionSelected("favorites") },
         )
-        YFileSourceRow(
+        SourceRow(
             label = recentLabel,
             icon = Icons.Default.History,
             selected = activeSectionId == "recent",
             onClick = { onSectionSelected("recent") },
         )
-        YFileSourceRow(
+        SourceRow(
             label = trashLabel,
             icon = Icons.Default.Delete,
             selected = activeSectionId == "trash",
             onClick = { onSectionSelected("trash") },
         )
 
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = YSuiteSpacing.XSmall),
-        )
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        YFileSourceRow(
+        SourceRow(
             label = toolsLabel,
             icon = Icons.Default.Build,
             selected = false,
             onClick = onToolsSelected,
         )
-        YFileSourceRow(
+        SourceRow(
             label = settingsLabel,
             icon = Icons.Default.Settings,
             selected = false,
@@ -356,7 +442,7 @@ fun YFileSourcePane(
 }
 
 @Composable
-private fun YFileSourceRow(
+private fun SourceRow(
     label: String,
     icon: ImageVector,
     selected: Boolean,
@@ -372,12 +458,11 @@ private fun YFileSourceRow(
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
-            modifier = Modifier.padding(
-                horizontal = YSuiteSpacing.Small,
-                vertical = YSuiteSpacing.Small,
-            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(icon, contentDescription = null)
             Text(
@@ -391,57 +476,74 @@ private fun YFileSourceRow(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun YFileEntryRow(
     title: String,
     subtitle: String?,
     kind: YFileProductItemKind,
     selected: Boolean,
+    selectionMode: Boolean,
     onOpen: () -> Unit,
     onToggleSelection: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen),
+        modifier = modifier.fillMaxWidth(),
         color =
-            if (selected) MaterialTheme.colorScheme.primaryContainer
-            else Color.Transparent,
+            if (selected) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    horizontal = YSuiteSpacing.Medium,
-                    vertical = YSuiteSpacing.Small,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
-        ) {
-            Surface(
-                modifier = Modifier.size(42.dp),
-                color =
-                    if (kind == YFileProductItemKind.Folder) {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
+                .combinedClickable(
+                    onClick = {
+                        if (selectionMode) onToggleSelection()
+                        else onOpen()
                     },
-                shape = MaterialTheme.shapes.medium,
+                    onLongClick = onToggleSelection,
+                )
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                if (selectionMode && selected) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp),
+                    )
+                } else {
                     Icon(
                         imageVector = kind.icon(),
                         contentDescription = null,
-                        modifier = Modifier.size(22.dp),
+                        tint =
+                            if (kind == YFileProductItemKind.Folder) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        modifier = Modifier.size(28.dp),
                     )
                 }
             }
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp),
+            ) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -455,14 +557,6 @@ fun YFileEntryRow(
                     )
                 }
             }
-            IconButton(onClick = onToggleSelection) {
-                Icon(
-                    imageVector =
-                        if (selected) Icons.Default.Star
-                        else Icons.Default.MoreVert,
-                    contentDescription = null,
-                )
-            }
         }
     }
 }
@@ -471,11 +565,13 @@ fun YFileEntryRow(
 @Composable
 fun FileExplorerSelectionTopBar(
     countLabel: String,
+    selectAllLabel: String,
     copyLabel: String,
     moveLabel: String,
     trashLabel: String,
     deleteLabel: String,
     clearLabel: String,
+    onSelectAll: () -> Unit,
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onTrash: () -> Unit,
@@ -486,13 +582,13 @@ fun FileExplorerSelectionTopBar(
         title = { Text(countLabel) },
         navigationIcon = {
             IconButton(onClick = onClear) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = clearLabel,
-                )
+                Icon(Icons.Default.Close, contentDescription = clearLabel)
             }
         },
         actions = {
+            IconButton(onClick = onSelectAll) {
+                Icon(Icons.Default.SelectAll, contentDescription = selectAllLabel)
+            }
             IconButton(onClick = onCopy) {
                 Icon(Icons.Default.ContentCopy, contentDescription = copyLabel)
             }
@@ -509,13 +605,88 @@ fun FileExplorerSelectionTopBar(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FileExplorerDetailsSheet(
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            content = content,
+        )
+    }
+}
+
+@Composable
+fun FileExplorerDetailRow(
+    title: String,
+    subtitle: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent =
+            subtitle?.let { value ->
+                { Text(value) }
+            },
+        modifier =
+            if (onClick == null) Modifier
+            else Modifier.clickable(onClick = onClick),
+    )
+}
+
+@Composable
+fun FileExplorerToolGroup(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+        content()
+    }
+}
+
+@Composable
+fun FileExplorerToolAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ListItem(
+        headlineContent = { Text(text) },
+        trailingContent = {
+            Text(
+                text = "›",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    )
+}
+
 private fun YFileProductItemKind.icon(): ImageVector =
     when (this) {
         YFileProductItemKind.Folder -> Icons.Default.Folder
         YFileProductItemKind.File -> Icons.Default.Description
         YFileProductItemKind.Archive -> Icons.Default.Archive
         YFileProductItemKind.Link -> Icons.Default.Link
-        YFileProductItemKind.Other -> Icons.Default.MoreVert
+        YFileProductItemKind.Other -> Icons.Default.Description
     }
 
 private fun YFileProductSourceKind.icon(): ImageVector =

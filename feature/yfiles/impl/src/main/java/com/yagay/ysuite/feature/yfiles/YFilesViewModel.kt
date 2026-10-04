@@ -56,6 +56,7 @@ data class YFilesUiState(
     val providers: List<YFileProviderDescriptor>,
     val activeProviderId: String? = null,
     val directory: YFileRef? = null,
+    val canNavigateUp: Boolean = false,
     val entries: List<YFileNode> = emptyList(),
     val query: String = "",
     val recursive: Boolean = false,
@@ -115,7 +116,37 @@ class YFilesViewModel(
 
     fun setTab(tab: YFilesTab) {
         updateState {
-            it.copy(tab = tab)
+            it.copy(
+                tab = tab,
+                selected = emptySet(),
+                focused = null,
+                error = null,
+            )
+        }
+    }
+
+    fun canHandleBack(): Boolean {
+        val current = state.value
+        return current.selected.isNotEmpty() ||
+            current.focused != null ||
+            current.tab != YFilesTab.Files ||
+            current.mode != YFilesBrowserMode.Directory ||
+            current.canNavigateUp
+    }
+
+    fun navigateBack() {
+        val current = state.value
+        when {
+            current.selected.isNotEmpty() ->
+                clearSelection()
+            current.focused != null ->
+                focus(null)
+            current.tab != YFilesTab.Files ->
+                setTab(YFilesTab.Files)
+            current.mode != YFilesBrowserMode.Directory ->
+                setMode(YFilesBrowserMode.Directory)
+            current.canNavigateUp ->
+                parent()
         }
     }
 
@@ -271,6 +302,17 @@ class YFilesViewModel(
             it.copy(descending = value)
         }
         refresh()
+    }
+
+    fun selectAll() {
+        updateState { current ->
+            current.copy(
+                selected =
+                    current.entries
+                        .map { it.ref }
+                        .toSet(),
+            )
+        }
     }
 
     fun toggleSelection(
@@ -665,10 +707,34 @@ class YFilesViewModel(
         }
     }
 
+    fun navigatePath(
+        path: String,
+    ) {
+        val providerId =
+            state.value.activeProviderId ?: return
+        navigate(
+            ref = YFileRef(
+                providerId = providerId,
+                path = path,
+            ),
+            label = path,
+        )
+    }
+
     private fun navigate(
         ref: YFileRef,
         label: String,
     ) {
+        val canNavigateUp =
+            when (
+                val parent =
+                    environment.engine.parent(ref)
+            ) {
+                is Outcome.Success ->
+                    parent.value != null
+                is Outcome.Failure ->
+                    false
+            }
         updateState {
             it.copy(
                 mode =
@@ -676,6 +742,7 @@ class YFilesViewModel(
                 activeProviderId =
                     ref.providerId,
                 directory = ref,
+                canNavigateUp = canNavigateUp,
                 query = "",
                 entries = emptyList(),
                 selected = emptySet(),

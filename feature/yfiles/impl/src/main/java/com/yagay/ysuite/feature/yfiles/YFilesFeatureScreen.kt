@@ -1,9 +1,11 @@
 package com.yagay.ysuite.feature.yfiles
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -23,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,9 +55,13 @@ import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.filemanager.YFileBreadcrumbBar
 import com.yagay.ysuite.productui.filemanager.YFileEntryRow
 import com.yagay.ysuite.productui.filemanager.FileExplorerBackButton
+import com.yagay.ysuite.productui.filemanager.FileExplorerDetailRow
+import com.yagay.ysuite.productui.filemanager.FileExplorerDetailsSheet
 import com.yagay.ysuite.productui.filemanager.FileExplorerSearchBar
 import com.yagay.ysuite.productui.filemanager.FileExplorerSelectionTopBar
 import com.yagay.ysuite.productui.filemanager.FileExplorerSortOption
+import com.yagay.ysuite.productui.filemanager.FileExplorerToolAction
+import com.yagay.ysuite.productui.filemanager.FileExplorerToolGroup
 import com.yagay.ysuite.productui.filemanager.FileExplorerTopActions
 import com.yagay.ysuite.productui.filemanager.FileExplorerWorkspace
 import com.yagay.ysuite.productui.filemanager.YFileProductItemKind
@@ -66,6 +73,8 @@ import com.yagay.ysuite.productui.settings.ComposeSettingsLink
 import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
 import com.yagay.ysuite.productui.tool.NiaToolSurface
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
+import java.io.File
+import java.net.URLConnection
 import java.text.DateFormat
 
 @Composable
@@ -82,6 +91,10 @@ fun YFilesFeatureScreen(
     val state by browser.state.collectAsStateWithLifecycle()
     val toolState by tools.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    BackHandler(enabled = browser.canHandleBack()) {
+        browser.navigateBack()
+    }
 
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var confirmEmptyTrash by rememberSaveable { mutableStateOf(false) }
@@ -244,7 +257,7 @@ private fun YFilesBrowserSurface(
 
     FileExplorerWorkspace(
         title = stringResource(R.string.yfiles_title),
-        navigationIcon = { YSuiteHostNavigationButton() },
+        navigationIcon = null,
         actions = {
             FileExplorerTopActions(
                 sortOptions = listOf(
@@ -266,9 +279,15 @@ private fun YFilesBrowserSurface(
                     ),
                 ),
                 selectedSortId = state.sort.name,
+                descending = state.descending,
+                ascendingLabel =
+                    stringResource(R.string.yfiles_sort_ascending),
+                descendingLabel =
+                    stringResource(R.string.yfiles_sort_descending),
                 onSortSelected = {
                     browser.setSort(YFileSort.valueOf(it))
                 },
+                onDescendingChange = browser::setDescending,
                 showHidden = state.showHidden,
                 showHiddenLabel =
                     stringResource(R.string.yfiles_show_hidden),
@@ -293,7 +312,12 @@ private fun YFilesBrowserSurface(
                 providerLabel = directory?.providerId
                     ?: state.activeProviderId.orEmpty(),
                 favorite = isFavorite,
-                onUp = browser::parent,
+                onRoot = {
+                    state.activeProviderId?.let {
+                        browser.selectProvider(it)
+                    }
+                },
+                onNavigatePath = browser::navigatePath,
                 onRefresh = browser::refresh,
                 onFavorite = browser::toggleFavorite,
             )
@@ -313,11 +337,14 @@ private fun YFilesBrowserSurface(
                             R.string.yfiles_selected_count,
                             state.selected.size,
                         ),
+                        selectAllLabel =
+                            stringResource(R.string.yfiles_select_all),
                         copyLabel = stringResource(R.string.yfiles_copy),
                         moveLabel = stringResource(R.string.yfiles_move),
                         trashLabel = stringResource(R.string.yfiles_move_to_bin),
                         deleteLabel = stringResource(R.string.yfiles_delete_permanently),
                         clearLabel = stringResource(R.string.yfiles_clear_selection),
+                        onSelectAll = browser::selectAll,
                         onCopy = browser::prepareCopy,
                         onMove = browser::prepareMove,
                         onTrash = browser::moveSelectedToTrash,
@@ -333,6 +360,7 @@ private fun YFilesBrowserSurface(
             state = state,
             browser = browser,
             adaptive = adaptive,
+            context = LocalContext.current,
             onEmptyTrash = onEmptyTrash,
         )
     }
@@ -360,7 +388,12 @@ private fun YFilesSourcePane(
 ) {
     YFileSourcePane(
         sources =
-            state.providers.map { provider ->
+            state.providers
+                .filter { provider ->
+                    provider.kind != YFileProviderKind.Root ||
+                        state.rootStatus == CapabilityStatus.Available
+                }
+                .map { provider ->
                 YFileProductSource(
                     id = provider.id,
                     label = providerLabel(provider.kind),
