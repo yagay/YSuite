@@ -34,36 +34,6 @@ val selectedFeature = standaloneSpecs[standaloneFeature]
             "Available: ${standaloneSpecs.keys.sorted().joinToString()}",
     )
 
-val generatedStandaloneDir = layout.buildDirectory
-    .dir("generated/standaloneFeature/kotlin")
-    .get()
-    .asFile
-
-val generateStandaloneFeature by tasks.registering {
-    inputs.property("standaloneFeature", standaloneFeature)
-    inputs.property("registrationClass", selectedFeature.registrationClass)
-    outputs.dir(generatedStandaloneDir)
-
-    doLast {
-        val packageDir = generatedStandaloneDir.resolve(
-            "com/yagay/ysuite/standalone/generated",
-        )
-        packageDir.mkdirs()
-
-        val simpleName = selectedFeature.registrationClass.substringAfterLast('.')
-        packageDir.resolve("StandaloneFeature.kt").writeText(
-            """
-            package com.yagay.ysuite.standalone.generated
-
-            import ${selectedFeature.registrationClass}
-            import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
-
-            val standaloneFeatureRegistration: YSuiteFeatureUiRegistration = $simpleName
-            """.trimIndent() + "\n",
-        )
-    }
-}
-
 android {
     namespace = "com.yagay.ysuite.standalone"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -74,19 +44,22 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField(
+            "String",
+            "FEATURE_REGISTRATION_CLASS",
+            "\"${selectedFeature.registrationClass}\"",
+        )
     }
 
-    sourceSets.getByName("main").java.srcDir(generatedStandaloneDir)
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-}
-
-tasks.named("preBuild").configure {
-    dependsOn(generateStandaloneFeature)
 }
 
 dependencies {

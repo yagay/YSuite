@@ -20,5 +20,10 @@ Build another registered feature:
 gradle :host:standalone:assembleDebug -PstandaloneFeature=settings
 ```
 
-The host generates a tiny source bridge for the selected UI registration and depends only on that
-selected feature implementation plus shared foundation modules.
+At build configuration time the host:
+1. selects exactly one feature implementation dependency,
+2. assigns that feature's standalone application id,
+3. writes the registration object's class name into BuildConfig.
+
+At runtime the host loads that internal, repository-controlled Kotlin object and casts it to
+`YSuiteFeatureUiRegistration`. No generated Kotlin source or feature-specific host source is needed.
