@@ -3,7 +3,7 @@ name: Verify clean architecture
 on:
   push:
     branches:
-      - rebuild/standard-architecture
+      - rebuild/product-ui-system
   pull_request:
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
           python -m py_compile             tools/new_feature.py             tools/remove_feature.py             tools/verify_standalone_config.py \
             tools/verify_foundation_contract.py \
             tools/verify_feature_migration.py
-          python tools/new_feature.py ci_probe --dry-run
+          python tools/new_feature.py ci_probe --product Tool --dry-run
           python tools/verify_standalone_config.py
 
   build:
