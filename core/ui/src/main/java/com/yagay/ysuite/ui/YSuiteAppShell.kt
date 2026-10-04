@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun YSuiteAppShell(
+internal fun YSuiteAppShell(
     title: String,
     content: @Composable (PaddingValues) -> Unit,
 ) {

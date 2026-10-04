@@ -14,7 +14,7 @@ import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.resources.R
 
 @Composable
-fun YSuiteArchitectureOverview(padding: PaddingValues = PaddingValues()) {
+internal fun YSuiteArchitectureOverview(padding: PaddingValues = PaddingValues()) {
     Column(
         modifier = Modifier.fillMaxSize().padding(padding).padding(YSuiteSpacing.Medium),
         verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Large),

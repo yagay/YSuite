@@ -1,4 +1,5 @@
 <resources>
+    <string name="app_name">YSuite</string>
     <string name="architecture_ready">Clean architecture ready</string>
     <string name="architecture_ready_summary">The app shell, design system, navigation contracts and localization foundation are isolated and ready for features.</string>
     <string name="design_system">Unified design system</string>

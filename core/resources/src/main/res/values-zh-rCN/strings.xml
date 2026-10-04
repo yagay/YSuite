@@ -1,4 +1,5 @@
 <resources>
+    <string name="app_name">YSuite</string>
     <string name="architecture_ready">全新统一架构已就绪</string>
     <string name="architecture_ready_summary">应用外壳、设计系统、导航契约和多语言基础已经完全分离，可用于后续接入功能。</string>
     <string name="design_system">统一设计系统</string>

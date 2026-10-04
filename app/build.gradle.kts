@@ -25,7 +25,6 @@ android {
 
 dependencies {
     implementation(project(":core:ui"))
-    implementation(project(":core:resources"))
     implementation(project(":core:navigation"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
