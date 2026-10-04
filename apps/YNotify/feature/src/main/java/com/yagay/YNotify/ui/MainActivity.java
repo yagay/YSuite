@@ -9,12 +9,21 @@ import android.service.notification.NotificationListenerService;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatEditText;
 import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.yagay.YNotify.YNotifyApp;
 import com.yagay.YNotify.R;
@@ -26,7 +35,14 @@ import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.HistoryRepairEngine;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.data.NotifyDatabase;
-import com.yagay.YNotify.databinding.ActivityMainBinding;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.chip.ChipGroup;
+import com.yagay.yui.YView;
+import com.yagay.yui.YViewFilterBar;
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewPage;
+import com.yagay.yui.YViewSection;
 import com.yagay.YNotify.util.DiagnosticsExporter;
 import com.yagay.YNotify.util.SearchQuery;
 import com.yagay.YNotify.util.ServiceGrantStatus;
@@ -43,7 +59,29 @@ public class MainActivity extends AppCompatActivity {
     private static final String ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
             "android.settings.ACCESSIBILITY_DETAILS_SETTINGS";
 
-    private ActivityMainBinding b;
+    private MaterialToolbar toolbar;
+    private LinearLayout captureStatus;
+    private Button btnNotificationAccess;
+    private Button btnAccessibility;
+    private Button btnExportDiagnostics;
+    private Button btnHistoryRepair;
+    private Button btnClearAll;
+    private AppCompatEditText searchEdit;
+    private View searchBox;
+    private View filterScroll;
+    private ScrollView settingsPanel;
+    private ChipGroup chipGroup;
+    private YViewFilterBar filterBar;
+    private RecyclerView list;
+    private BottomNavigationView bottomNav;
+    private TextView diagnosticsStatus;
+    private TextView repairStatus;
+    private TextView runtimeStatus;
+    private RadioGroup retentionGroup;
+    private RadioButton retention7;
+    private RadioButton retention30;
+    private RadioButton retention90;
+    private RadioButton retentionForever;
     private final EventAdapter eventAdapter = new EventAdapter();
     private final AppAdapter appAdapter = new AppAdapter();
     private LiveData<List<EventRecord>> eventSource;
@@ -53,27 +91,26 @@ public class MainActivity extends AppCompatActivity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        b = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(b.getRoot());
-        b.list.setLayoutManager(new LinearLayoutManager(this));
-        b.list.setAdapter(eventAdapter);
+        buildUi();
+        list.setLayoutManager(new LinearLayoutManager(this));
+        list.setAdapter(eventAdapter);
 
-        b.btnNotificationAccess.setOnClickListener(v -> openNotificationListenerSettings());
-        b.btnAccessibility.setOnClickListener(v -> openAccessibilityServiceSettings());
+        btnNotificationAccess.setOnClickListener(v -> openNotificationListenerSettings());
+        btnAccessibility.setOnClickListener(v -> openAccessibilityServiceSettings());
 
-        b.bottomNav.setOnItemSelectedListener(item -> {
+        bottomNav.setOnItemSelectedListener(item -> {
             mode = item.getItemId();
             renderMode();
             return true;
         });
 
-        b.chipGroup.setOnCheckedStateChangeListener((group, ids) -> {
+        chipGroup.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty()) return;
-            selectedType = typeForChip(ids.get(0));
+            selectedType = typeForFilterIndex(filterBar.indexForId(ids.get(0)));
             observeTimeline();
         });
 
-        b.searchEdit.addTextChangedListener(new TextWatcher() {
+        searchEdit.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
             public void onTextChanged(CharSequence s, int st, int before, int count) {
                 if (mode == R.id.nav_timeline) observeTimeline();
@@ -85,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
         setupRetention();
         setupHistoryRepair();
         setupDiagnosticsExport();
-        b.btnClearAll.setOnClickListener(v -> new AlertDialog.Builder(this)
+        btnClearAll.setOnClickListener(v -> new AlertDialog.Builder(this)
                 .setTitle(R.string.ynotify_clear_confirm_title)
                 .setMessage(R.string.ynotify_clear_confirm_message)
                 .setNegativeButton(R.string.ynotify_cancel, null)
@@ -95,6 +132,163 @@ public class MainActivity extends AppCompatActivity {
         renderMode();
         observeTimeline();
         HistoryRepairEngine.runOnceAfterUpgrade(this);
+    }
+
+    private void buildUi() {
+        YViewPage page = YViewLayout.installPage(
+                this,
+                getString(R.string.ynotify_app_name),
+                null);
+        toolbar = page.toolbar;
+
+        LinearLayout main = new LinearLayout(this);
+        main.setOrientation(LinearLayout.VERTICAL);
+        page.content.addView(main, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        captureStatus = YViewLayout.buttonRow(this);
+        btnNotificationAccess = YViewLayout.secondaryButton(
+                this,
+                getString(R.string.ynotify_notification_access));
+        btnAccessibility = YViewLayout.secondaryButton(
+                this,
+                getString(R.string.ynotify_ui_messages));
+        YViewLayout.addAction(captureStatus, btnNotificationAccess);
+        YViewLayout.addAction(captureStatus, btnAccessibility);
+        main.addView(captureStatus, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout searchHolder = new LinearLayout(this);
+        searchHolder.setPadding(
+                YView.screenHorizontal(this),
+                YView.controlGap(this) / 2,
+                YView.screenHorizontal(this),
+                YView.controlGap(this) / 2);
+        searchEdit = YViewLayout.searchField(this, getString(R.string.ynotify_search_timeline));
+        searchHolder.addView(searchEdit, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        searchBox = searchHolder;
+        main.addView(searchHolder);
+
+        filterBar = YViewLayout.filterBar(
+                this,
+                List.of(
+                        getString(R.string.ynotify_filter_all),
+                        getString(R.string.ynotify_filter_notification),
+                        getString(R.string.ynotify_filter_heads_up),
+                        getString(R.string.ynotify_filter_bubble),
+                        getString(R.string.ynotify_filter_full_screen),
+                        getString(R.string.ynotify_filter_toast),
+                        getString(R.string.ynotify_filter_dialog),
+                        getString(R.string.ynotify_filter_popup),
+                        getString(R.string.ynotify_filter_snackbar)),
+                0);
+        chipGroup = filterBar.group;
+        filterScroll = filterBar.view;
+        main.addView(filterScroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        list = new RecyclerView(this);
+        list.setClipToPadding(false);
+        main.addView(list, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        LinearLayout settingsRoot = new LinearLayout(this);
+        settingsRoot.setOrientation(LinearLayout.VERTICAL);
+        settingsRoot.setPadding(
+                YView.screenHorizontal(this),
+                YView.screenVertical(this),
+                YView.screenHorizontal(this),
+                YView.sectionGap(this));
+        settingsPanel = YViewLayout.scrollPage(this, settingsRoot);
+        settingsPanel.setVisibility(View.GONE);
+        main.addView(settingsPanel, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        YViewSection runtime = YViewLayout.section(
+                this,
+                getString(R.string.ynotify_runtime_status),
+                null);
+        runtimeStatus = new TextView(this);
+        YView.styleBody(runtimeStatus);
+        runtimeStatus.setTextIsSelectable(true);
+        runtime.body.addView(runtimeStatus);
+        YViewLayout.addSection(settingsRoot, runtime);
+
+        YViewSection diagnostics = YViewLayout.section(
+                this,
+                getString(R.string.ynotify_diagnostic_logs),
+                getString(R.string.ynotify_diagnostic_logs_desc));
+        btnExportDiagnostics = YViewLayout.secondaryButton(
+                this,
+                getString(R.string.ynotify_export_diagnostics));
+        diagnostics.body.addView(btnExportDiagnostics, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        diagnosticsStatus = new TextView(this);
+        diagnosticsStatus.setText(R.string.ynotify_diagnostics_location);
+        YView.styleCaption(diagnosticsStatus);
+        diagnostics.body.addView(diagnosticsStatus);
+        YViewLayout.addSection(settingsRoot, diagnostics);
+
+        YViewSection repair = YViewLayout.section(
+                this,
+                getString(R.string.ynotify_history_repair),
+                getString(R.string.ynotify_history_repair_desc));
+        btnHistoryRepair = YViewLayout.secondaryButton(
+                this,
+                getString(R.string.ynotify_repair_history));
+        repair.body.addView(btnHistoryRepair, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        repairStatus = new TextView(this);
+        repairStatus.setText(R.string.ynotify_not_scanned);
+        YView.styleCaption(repairStatus);
+        repair.body.addView(repairStatus);
+        YViewLayout.addSection(settingsRoot, repair);
+
+        YViewSection retention = YViewLayout.section(
+                this,
+                getString(R.string.ynotify_retention),
+                null);
+        retentionGroup = new RadioGroup(this);
+        retention7 = radio(getString(R.string.ynotify_days_7));
+        retention30 = radio(getString(R.string.ynotify_days_30));
+        retention90 = radio(getString(R.string.ynotify_days_90));
+        retentionForever = radio(getString(R.string.ynotify_forever));
+        retentionGroup.addView(retention7);
+        retentionGroup.addView(retention30);
+        retentionGroup.addView(retention90);
+        retentionGroup.addView(retentionForever);
+        retention.body.addView(retentionGroup);
+        btnClearAll = YViewLayout.secondaryButton(
+                this,
+                getString(R.string.ynotify_clear_all));
+        retention.body.addView(btnClearAll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        YViewLayout.addSection(settingsRoot, retention);
+
+        TextView scope = new TextView(this);
+        scope.setText(R.string.ynotify_scope_help);
+        YView.styleBody(scope);
+        settingsRoot.addView(scope);
+
+        bottomNav = YViewLayout.bottomNavigation(this, R.menu.bottom_nav);
+        page.root.addView(bottomNav, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+
+    private RadioButton radio(String label) {
+        RadioButton button = new RadioButton(this);
+        button.setId(View.generateViewId());
+        button.setText(label);
+        return button;
     }
 
     private void openNotificationListenerSettings() {
@@ -129,15 +323,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupDiagnosticsExport() {
-        b.btnExportDiagnostics.setOnClickListener(v -> {
-            b.btnExportDiagnostics.setEnabled(false);
-            b.diagnosticsStatus.setText(R.string.ynotify_collecting_diagnostics);
+        btnExportDiagnostics.setOnClickListener(v -> {
+            btnExportDiagnostics.setEnabled(false);
+            diagnosticsStatus.setText(R.string.ynotify_collecting_diagnostics);
             DiagnosticsExporter.export(this, new DiagnosticsExporter.Callback() {
                 @Override
                 public void onSuccess(String fileName, String location, android.net.Uri uri, boolean rootCollected) {
                     if (isFinishing()) return;
-                    b.btnExportDiagnostics.setEnabled(true);
-                    b.diagnosticsStatus.setText(rootCollected
+                    btnExportDiagnostics.setEnabled(true);
+                    diagnosticsStatus.setText(rootCollected
                             ? getString(R.string.ynotify_exported_root, location)
                             : getString(R.string.ynotify_exported_no_root, location));
                     Toast.makeText(MainActivity.this, R.string.ynotify_diagnostics_saved, Toast.LENGTH_LONG).show();
@@ -146,8 +340,8 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(String message) {
                     if (isFinishing()) return;
-                    b.btnExportDiagnostics.setEnabled(true);
-                    b.diagnosticsStatus.setText(getString(R.string.ynotify_export_failed_detail, message));
+                    btnExportDiagnostics.setEnabled(true);
+                    diagnosticsStatus.setText(getString(R.string.ynotify_export_failed_detail, message));
                     Toast.makeText(MainActivity.this, R.string.ynotify_diagnostics_export_failed, Toast.LENGTH_LONG).show();
                 }
             });
@@ -155,13 +349,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupHistoryRepair() {
-        b.btnHistoryRepair.setOnClickListener(v -> {
-            b.btnHistoryRepair.setEnabled(false);
-            b.repairStatus.setText(R.string.ynotify_repair_scanning);
+        btnHistoryRepair.setOnClickListener(v -> {
+            btnHistoryRepair.setEnabled(false);
+            repairStatus.setText(R.string.ynotify_repair_scanning);
             HistoryRepairEngine.repairAsync(this, report -> {
                 if (isFinishing()) return;
-                b.btnHistoryRepair.setEnabled(true);
-                b.repairStatus.setText(HistoryRepairText.summary(this, report));
+                btnHistoryRepair.setEnabled(true);
+                repairStatus.setText(HistoryRepairText.summary(this, report));
             });
         });
     }
@@ -195,22 +389,22 @@ public class MainActivity extends AppCompatActivity {
                 : R.string.ynotify_notification_listener);
         if (!granted) {
             if (legacySuiteNotification) {
-                b.btnNotificationAccess.setText(R.string.ynotify_migrate_suite_notification);
+                btnNotificationAccess.setText(R.string.ynotify_migrate_suite_notification);
             } else if (otherNotificationHost) {
-                b.btnNotificationAccess.setText(suiteHost
+                btnNotificationAccess.setText(suiteHost
                         ? R.string.ynotify_enable_suite_notification
                         : R.string.ynotify_enable_current_notification);
             } else {
-                b.btnNotificationAccess.setText(suiteHost
+                btnNotificationAccess.setText(suiteHost
                         ? R.string.ynotify_enable_suite_notification
                         : R.string.ynotify_enable_notification);
             }
         } else if (connected) {
-            b.btnNotificationAccess.setText(otherNotificationHost
+            btnNotificationAccess.setText(otherNotificationHost
                     ? getString(R.string.ynotify_connected_other_enabled, notificationName)
                     : getString(R.string.ynotify_connected_name, notificationName));
         } else {
-            b.btnNotificationAccess.setText(R.string.ynotify_authorized_reconnecting);
+            btnNotificationAccess.setText(R.string.ynotify_authorized_reconnecting);
         }
 
         boolean a11yGranted = ServiceGrantStatus.accessibilityEnabled(this);
@@ -222,22 +416,22 @@ public class MainActivity extends AppCompatActivity {
                 : R.string.ynotify_ui_capture);
         if (!a11yGranted) {
             if (legacySuiteA11y) {
-                b.btnAccessibility.setText(R.string.ynotify_migrate_suite_accessibility);
+                btnAccessibility.setText(R.string.ynotify_migrate_suite_accessibility);
             } else if (otherA11yHost) {
-                b.btnAccessibility.setText(suiteHost
+                btnAccessibility.setText(suiteHost
                         ? R.string.ynotify_enable_suite_accessibility
                         : R.string.ynotify_enable_current_ui_capture);
             } else {
-                b.btnAccessibility.setText(suiteHost
+                btnAccessibility.setText(suiteHost
                         ? R.string.ynotify_enable_suite_accessibility
                         : R.string.ynotify_enable_ui_capture);
             }
         } else if (a11yConnected) {
-            b.btnAccessibility.setText(otherA11yHost
+            btnAccessibility.setText(otherA11yHost
                     ? getString(R.string.ynotify_connected_other_enabled, a11yName)
                     : getString(R.string.ynotify_connected_name, a11yName));
         } else {
-            b.btnAccessibility.setText(R.string.ynotify_authorized_waiting);
+            btnAccessibility.setText(R.string.ynotify_authorized_waiting);
         }
 
         long lastEvent = ListenerStateStore.lastEvent(this);
@@ -291,41 +485,41 @@ public class MainActivity extends AppCompatActivity {
                     : getString(R.string.ynotify_last_error, lastError));
         }
         status.append("\n\n").append(YNotifyApp.runtimeStatus(this));
-        b.runtimeStatus.setText(status.toString());
+        runtimeStatus.setText(status.toString());
 
-        if (mode == R.id.nav_settings) b.captureStatus.setVisibility(View.VISIBLE);
-        else if (mode == R.id.nav_timeline) b.captureStatus.setVisibility((connected && a11yConnected) ? View.GONE : View.VISIBLE);
-        else b.captureStatus.setVisibility(View.GONE);
+        if (mode == R.id.nav_settings) captureStatus.setVisibility(View.VISIBLE);
+        else if (mode == R.id.nav_timeline) captureStatus.setVisibility((connected && a11yConnected) ? View.GONE : View.VISIBLE);
+        else captureStatus.setVisibility(View.GONE);
     }
 
     private void renderMode() {
         boolean settings = mode == R.id.nav_settings;
         boolean apps = mode == R.id.nav_apps;
-        b.settingsPanel.setVisibility(settings ? View.VISIBLE : View.GONE);
-        b.list.setVisibility(settings ? View.GONE : View.VISIBLE);
-        b.searchBox.setVisibility(settings ? View.GONE : View.VISIBLE);
-        b.filterScroll.setVisibility(mode == R.id.nav_timeline ? View.VISIBLE : View.GONE);
-        b.runtimeStatus.setVisibility(settings ? View.VISIBLE : View.GONE);
+        settingsPanel.setVisibility(settings ? View.VISIBLE : View.GONE);
+        list.setVisibility(settings ? View.GONE : View.VISIBLE);
+        searchBox.setVisibility(settings ? View.GONE : View.VISIBLE);
+        filterScroll.setVisibility(mode == R.id.nav_timeline ? View.VISIBLE : View.GONE);
+        runtimeStatus.setVisibility(settings ? View.VISIBLE : View.GONE);
         updatePermissionStatus();
         if (apps) {
-            b.toolbar.setTitle(R.string.ynotify_apps_title);
-            b.searchBox.setHint(R.string.ynotify_search_apps);
-            b.list.setAdapter(appAdapter);
+            toolbar.setTitle(R.string.ynotify_apps_title);
+            searchEdit.setHint(R.string.ynotify_search_apps);
+            list.setAdapter(appAdapter);
             observeApps();
         } else if (!settings) {
-            b.toolbar.setTitle(R.string.ynotify_app_name);
-            b.searchBox.setHint(R.string.ynotify_search_timeline);
-            b.list.setAdapter(eventAdapter);
+            toolbar.setTitle(R.string.ynotify_app_name);
+            searchEdit.setHint(R.string.ynotify_search_timeline);
+            list.setAdapter(eventAdapter);
             observeTimeline();
         } else {
-            b.toolbar.setTitle(R.string.ynotify_settings_title);
+            toolbar.setTitle(R.string.ynotify_settings_title);
         }
     }
 
     private void observeTimeline() {
         if (mode != R.id.nav_timeline) return;
         if (eventSource != null) eventSource.removeObservers(this);
-        String q = b.searchEdit.getText() == null ? "" : b.searchEdit.getText().toString().trim();
+        String q = searchEdit.getText() == null ? "" : searchEdit.getText().toString().trim();
 
         if (!q.isEmpty()) {
             String fts = SearchQuery.fts(q);
@@ -377,20 +571,22 @@ public class MainActivity extends AppCompatActivity {
         appSource = NotifyDatabase.get(this).eventDao().observeApps();
         appSource.observe(this, list -> {
             appAdapter.submit(list);
-            appAdapter.setQuery(b.searchEdit.getText() == null ? "" : b.searchEdit.getText().toString());
+            appAdapter.setQuery(searchEdit.getText() == null ? "" : searchEdit.getText().toString());
         });
     }
 
-    private String typeForChip(int id) {
-        if (id == R.id.chip_notification) return EventTypes.NOTIFICATION;
-        if (id == R.id.chip_heads_up) return FILTER_HEADS_UP;
-        if (id == R.id.chip_bubble) return FILTER_BUBBLE;
-        if (id == R.id.chip_full_screen) return FILTER_FULL_SCREEN;
-        if (id == R.id.chip_toast) return EventTypes.TOAST;
-        if (id == R.id.chip_dialog) return EventTypes.DIALOG;
-        if (id == R.id.chip_popup) return EventTypes.POPUP;
-        if (id == R.id.chip_snackbar) return EventTypes.SNACKBAR;
-        return FILTER_ALL;
+    private String typeForFilterIndex(int index) {
+        return switch (index) {
+            case 1 -> EventTypes.NOTIFICATION;
+            case 2 -> FILTER_HEADS_UP;
+            case 3 -> FILTER_BUBBLE;
+            case 4 -> FILTER_FULL_SCREEN;
+            case 5 -> EventTypes.TOAST;
+            case 6 -> EventTypes.DIALOG;
+            case 7 -> EventTypes.POPUP;
+            case 8 -> EventTypes.SNACKBAR;
+            default -> FILTER_ALL;
+        };
     }
 
     private SharedPreferences retentionPreferences() {
@@ -407,10 +603,22 @@ public class MainActivity extends AppCompatActivity {
     private void setupRetention() {
         SharedPreferences prefs = retentionPreferences();
         int days = prefs.getInt("retention_days", 90);
-        int check = days == 7 ? R.id.retention_7 : days == 30 ? R.id.retention_30 : days == 0 ? R.id.retention_forever : R.id.retention_90;
-        b.retentionGroup.check(check);
-        b.retentionGroup.setOnCheckedChangeListener((group, id) -> {
-            int d = id == R.id.retention_7 ? 7 : id == R.id.retention_30 ? 30 : id == R.id.retention_forever ? 0 : 90;
+        RadioButton selected = days == 7
+                ? retention7
+                : days == 30
+                ? retention30
+                : days == 0
+                ? retentionForever
+                : retention90;
+        retentionGroup.check(selected.getId());
+        retentionGroup.setOnCheckedChangeListener((group, id) -> {
+            int d = id == retention7.getId()
+                    ? 7
+                    : id == retention30.getId()
+                    ? 30
+                    : id == retentionForever.getId()
+                    ? 0
+                    : 90;
             retentionPreferences().edit().putInt("retention_days", d).apply();
             EventStore.cleanup(this, d);
         });
