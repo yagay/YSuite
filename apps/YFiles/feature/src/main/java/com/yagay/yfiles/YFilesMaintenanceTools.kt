@@ -4,9 +4,6 @@ import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YPrimaryButton
+import com.yagay.yui.YSecondaryButton
+import com.yagay.yui.YTextField
 import com.yagay.yui.YSection
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YStatusLine
@@ -362,7 +362,7 @@ fun YFilesMaintenanceToolsCard(context: Context) {
             title = stringResource(R.string.yfiles_maintenance_title),
             subtitle = stringResource(R.string.yfiles_maintenance_summary),
         ) {
-            OutlinedTextField(
+            YTextField(
                 value = targetPath,
                 onValueChange = {
                     targetPath = it
@@ -370,35 +370,39 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                     renamePlan = emptyList()
                     compareResult = null
                 },
+                label = stringResource(R.string.yfiles_maintenance_path),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_maintenance_path)) },
                 singleLine = true,
             )
 
             Text(stringResource(R.string.yfiles_maintenance_text_editor))
             YHorizontalActions {
-                OutlinedButton(onClick = {
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_load_text),
+                    onClick = {
                     runIo({ YFilesMaintenanceBackend.loadText(targetPath) }) {
                         editorText = it
                         editorLoaded = true
                     }
-                }, enabled = !busy && targetPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_maintenance_load_text))
-                }
-                Button(onClick = {
+                },
+                    enabled = !busy && targetPath.isNotBlank(),
+                )
+                YPrimaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_save_text),
+                    onClick = {
                     runIo({ YFilesMaintenanceBackend.saveText(targetPath, editorText) }) {
                         outputText = context.getString(R.string.yfiles_maintenance_saved)
                     }
-                }, enabled = !busy && editorLoaded) {
-                    Text(stringResource(R.string.yfiles_maintenance_save_text))
-                }
+                },
+                    enabled = !busy && editorLoaded,
+                )
             }
             if (editorLoaded) {
-                OutlinedTextField(
+                YTextField(
                     value = editorText,
                     onValueChange = { editorText = it },
+                    label = stringResource(R.string.yfiles_maintenance_utf8_content),
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.yfiles_maintenance_utf8_content)) },
                     minLines = 5,
                     maxLines = 14,
                 )
@@ -412,7 +416,9 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                 onCheckedChange = { keepNewest = it },
             )
             YHorizontalActions {
-                Button(onClick = {
+                YPrimaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_clean_duplicates),
+                    onClick = {
                     runIo({ YFilesMaintenanceBackend.cleanupDuplicates(targetPath, keepNewest, trashStore) }) { result ->
                         outputText = context.getString(
                             R.string.yfiles_maintenance_cleanup_result,
@@ -420,14 +426,16 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                             result.failed,
                         )
                     }
-                }, enabled = !busy && targetPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_maintenance_clean_duplicates))
-                }
-                OutlinedButton(onClick = {
+                },
+                    enabled = !busy && targetPath.isNotBlank(),
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_scan_empty),
+                    onClick = {
                     runIo({ YFilesMaintenanceBackend.scanEmptyTrees(targetPath) }) { emptyTrees = it }
-                }, enabled = !busy && targetPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_maintenance_scan_empty))
-                }
+                },
+                    enabled = !busy && targetPath.isNotBlank(),
+                )
             }
             if (emptyTrees.isNotEmpty()) {
                 YStatusLine(
@@ -436,7 +444,9 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                     YStatusTone.Warning,
                 )
                 emptyTrees.take(5).forEach { Text(it) }
-                OutlinedButton(onClick = {
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_trash_empty),
+                    onClick = {
                     runIo({ YFilesMaintenanceBackend.cleanupEmptyTrees(targetPath, trashStore) }) { result ->
                         outputText = context.getString(
                             R.string.yfiles_maintenance_cleanup_result,
@@ -445,24 +455,24 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                         )
                         emptyTrees = emptyList()
                     }
-                }, enabled = !busy) {
-                    Text(stringResource(R.string.yfiles_maintenance_trash_empty))
-                }
+                },
+                    enabled = !busy,
+                )
             }
 
             Text(stringResource(R.string.yfiles_maintenance_bulk_rename))
-            OutlinedTextField(
+            YTextField(
                 value = findText,
                 onValueChange = { findText = it; renamePlan = emptyList() },
+                label = stringResource(R.string.yfiles_maintenance_find),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_maintenance_find)) },
                 singleLine = true,
             )
-            OutlinedTextField(
+            YTextField(
                 value = replaceText,
                 onValueChange = { replaceText = it; renamePlan = emptyList() },
+                label = stringResource(R.string.yfiles_maintenance_replace),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_maintenance_replace)) },
                 singleLine = true,
             )
             YSwitchItem(
@@ -471,21 +481,25 @@ fun YFilesMaintenanceToolsCard(context: Context) {
                 onCheckedChange = { regexRename = it; renamePlan = emptyList() },
             )
             YHorizontalActions {
-                OutlinedButton(onClick = {
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_preview_rename),
+                    onClick = {
                     runIo({ YFilesMaintenanceBackend.planRename(targetPath, findText, replaceText, regexRename) }) {
                         renamePlan = it
                     }
-                }, enabled = !busy && targetPath.isNotBlank() && findText.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_maintenance_preview_rename))
-                }
-                Button(onClick = {
+                },
+                    enabled = !busy && targetPath.isNotBlank() && findText.isNotBlank(),
+                )
+                YPrimaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_execute_rename),
+                    onClick = {
                     runIo({ YFilesMaintenanceBackend.executeRename(renamePlan) }) { count ->
                         outputText = context.getString(R.string.yfiles_maintenance_renamed, count)
                         renamePlan = emptyList()
                     }
-                }, enabled = !busy && renamePlan.isNotEmpty()) {
-                    Text(stringResource(R.string.yfiles_maintenance_execute_rename))
-                }
+                },
+                    enabled = !busy && renamePlan.isNotEmpty(),
+                )
             }
             renamePlan.take(8).forEach { plan ->
                 Text(
@@ -501,44 +515,50 @@ fun YFilesMaintenanceToolsCard(context: Context) {
             }
 
             Text(stringResource(R.string.yfiles_maintenance_split_join))
-            OutlinedTextField(
+            YTextField(
                 value = partSize,
                 onValueChange = { value -> partSize = value.filter { it.isDigit() }.take(4) },
+                label = stringResource(R.string.yfiles_maintenance_part_size),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_maintenance_part_size)) },
                 singleLine = true,
             )
             YHorizontalActions {
-                Button(onClick = {
+                YPrimaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_split),
+                    onClick = {
                     val size = partSize.toIntOrNull() ?: 256
                     runIo({ YFilesMaintenanceBackend.splitFile(targetPath, size) }) { parts ->
                         outputText = context.getString(R.string.yfiles_maintenance_parts_created, parts.size)
                     }
-                }, enabled = !busy && targetPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_maintenance_split))
-                }
-                OutlinedButton(onClick = {
+                },
+                    enabled = !busy && targetPath.isNotBlank(),
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_maintenance_join),
+                    onClick = {
                     runIo({ YFilesMaintenanceBackend.joinParts(targetPath) }) { file ->
                         outputText = context.getString(R.string.yfiles_maintenance_joined, file.absolutePath)
                     }
-                }, enabled = !busy && targetPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_maintenance_join))
-                }
+                },
+                    enabled = !busy && targetPath.isNotBlank(),
+                )
             }
 
             Text(stringResource(R.string.yfiles_maintenance_compare))
-            OutlinedTextField(
+            YTextField(
                 value = secondPath,
                 onValueChange = { secondPath = it; compareResult = null },
+                label = stringResource(R.string.yfiles_maintenance_second_path),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_maintenance_second_path)) },
                 singleLine = true,
             )
-            OutlinedButton(onClick = {
+            YSecondaryButton(
+                text = stringResource(R.string.yfiles_maintenance_compare_now),
+                onClick = {
                 runIo({ YFilesMaintenanceBackend.compare(targetPath, secondPath) }) { compareResult = it }
-            }, enabled = !busy && targetPath.isNotBlank() && secondPath.isNotBlank()) {
-                Text(stringResource(R.string.yfiles_maintenance_compare_now))
-            }
+            },
+                enabled = !busy && targetPath.isNotBlank() && secondPath.isNotBlank(),
+            )
             compareResult?.let { result ->
                 YStatusLine(
                     stringResource(R.string.yfiles_maintenance_compare_result),

@@ -9,9 +9,6 @@ import android.system.Os
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YPrimaryButton
+import com.yagay.yui.YSecondaryButton
+import com.yagay.yui.YTextField
 import com.yagay.yui.YSection
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
@@ -343,10 +343,11 @@ fun YFilesPowerToolsCard(context: Context) {
             title = stringResource(R.string.yfiles_power_cleanup_title),
             subtitle = stringResource(R.string.yfiles_power_cleanup_summary),
         ) {
-            Button(
+            YPrimaryButton(
+                text = stringResource(R.string.yfiles_power_scan_storage),
                 onClick = { runIo(YFilesPowerBackend::scanStorage) { scan = it } },
                 enabled = !busy,
-            ) { Text(stringResource(R.string.yfiles_power_scan_storage)) }
+            )
             scan?.let { result ->
                 YStatusLine(
                     stringResource(R.string.yfiles_power_scanned),
@@ -367,14 +368,15 @@ fun YFilesPowerToolsCard(context: Context) {
                     val file = File(candidate.path)
                     YHorizontalActions {
                         Text(file.name.ifBlank { candidate.path })
-                        OutlinedButton(
+                        YSecondaryButton(
+                            text = stringResource(R.string.move_to_recycle_bin),
                             onClick = {
                                 runIo({ trashStore.moveToTrash(file.toEntry()) }) {
                                     scan = scan?.copy(candidates = scan!!.candidates.filterNot { it.path == candidate.path })
                                 }
                             },
                             enabled = !busy,
-                        ) { Text(stringResource(R.string.move_to_recycle_bin)) }
+                        )
                     }
                 }
                 if (result.truncated) Text(stringResource(R.string.yfiles_power_scan_truncated))
@@ -385,86 +387,112 @@ fun YFilesPowerToolsCard(context: Context) {
             title = stringResource(R.string.yfiles_power_lab_title),
             subtitle = stringResource(R.string.yfiles_power_lab_summary),
         ) {
-            OutlinedTextField(
+            YTextField(
                 value = toolPath,
                 onValueChange = { toolPath = it; preview = null; checksumText = null; linuxInfo = null; apkDetails = null },
+                label = stringResource(R.string.yfiles_power_path),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_power_path)) },
                 singleLine = true,
             )
             YHorizontalActions {
-                OutlinedButton(onClick = { runIo({ YFilesPowerBackend.textPreview(toolPath) }) { preview = it } }, enabled = !busy && toolPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_power_text_preview))
-                }
-                OutlinedButton(onClick = { runIo({ YFilesPowerBackend.hexPreview(toolPath) }) { preview = it } }, enabled = !busy && toolPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_power_hex_preview))
-                }
-                OutlinedButton(onClick = {
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_text_preview),
+                    onClick = { runIo({ YFilesPowerBackend.textPreview(toolPath) }) { preview = it } },
+                    enabled = !busy && toolPath.isNotBlank(),
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_hex_preview),
+                    onClick = { runIo({ YFilesPowerBackend.hexPreview(toolPath) }) { preview = it } },
+                    enabled = !busy && toolPath.isNotBlank(),
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_checksums),
+                    onClick = {
                     runIo({ YFilesPowerBackend.checksums(toolPath) }) { map ->
                         checksumText = map.entries.joinToString("\n") { "${it.key}: ${it.value}" }
                     }
-                }, enabled = !busy && toolPath.isNotBlank()) { Text(stringResource(R.string.yfiles_power_checksums)) }
+                },
+                    enabled = !busy && toolPath.isNotBlank(),
+                )
             }
             YHorizontalActions {
-                OutlinedButton(onClick = { runIo({ YFilesPowerBackend.linuxInfo(toolPath) }) { linuxInfo = it } }, enabled = !busy && toolPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_power_linux_info))
-                }
-                OutlinedButton(onClick = {
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_linux_info),
+                    onClick = { runIo({ YFilesPowerBackend.linuxInfo(toolPath) }) { linuxInfo = it } },
+                    enabled = !busy && toolPath.isNotBlank(),
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_copy_path),
+                    onClick = {
                     context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("path", toolPath))
                     lastOutput = toolPath
-                }, enabled = toolPath.isNotBlank()) { Text(stringResource(R.string.yfiles_power_copy_path)) }
-                OutlinedButton(onClick = { runIo({ YFilesPowerBackend.inspectApk(context, toolPath) }) { apkDetails = it } }, enabled = !busy && toolPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_power_apk_info))
-                }
+                },
+                    enabled = toolPath.isNotBlank(),
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_apk_info),
+                    onClick = { runIo({ YFilesPowerBackend.inspectApk(context, toolPath) }) { apkDetails = it } },
+                    enabled = !busy && toolPath.isNotBlank(),
+                )
             }
             apkDetails?.let { details ->
                 YStatusLine(details.label, details.packageName, YStatusTone.Good)
                 Text(stringResource(R.string.yfiles_power_apk_version, details.versionName, details.versionCode))
-                OutlinedButton(onClick = { runIo({ YFilesPowerBackend.installApk(context, toolPath) }) }, enabled = !busy) {
-                    Text(stringResource(R.string.yfiles_power_install_apk))
-                }
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_install_apk),
+                    onClick = { runIo({ YFilesPowerBackend.installApk(context, toolPath) }) },
+                    enabled = !busy,
+                )
             }
             preview?.let { Text(it) }
             checksumText?.let { Text(it) }
             linuxInfo?.let { Text(it) }
 
-            OutlinedTextField(
+            YTextField(
                 value = chmodMode,
                 onValueChange = { chmodMode = it.take(4) },
+                label = stringResource(R.string.yfiles_power_chmod_mode),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_power_chmod_mode)) },
                 singleLine = true,
             )
-            OutlinedTextField(
+            YTextField(
                 value = linkPath,
                 onValueChange = { linkPath = it },
+                label = stringResource(R.string.yfiles_power_link_path),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_power_link_path)) },
                 singleLine = true,
             )
             YHorizontalActions {
-                OutlinedButton(onClick = { runIo({ YFilesPowerBackend.chmod(toolPath, chmodMode) }) { linuxInfo = null } }, enabled = !busy && toolPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_power_apply_chmod))
-                }
-                OutlinedButton(onClick = { runIo({ YFilesPowerBackend.createSymlink(toolPath, linkPath) }) { lastOutput = linkPath } }, enabled = !busy && toolPath.isNotBlank() && linkPath.isNotBlank()) {
-                    Text(stringResource(R.string.yfiles_power_create_symlink))
-                }
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_apply_chmod),
+                    onClick = { runIo({ YFilesPowerBackend.chmod(toolPath, chmodMode) }) { linuxInfo = null } },
+                    enabled = !busy && toolPath.isNotBlank(),
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_create_symlink),
+                    onClick = { runIo({ YFilesPowerBackend.createSymlink(toolPath, linkPath) }) { lastOutput = linkPath } },
+                    enabled = !busy && toolPath.isNotBlank() && linkPath.isNotBlank(),
+                )
             }
 
-            OutlinedTextField(
+            YTextField(
                 value = password,
                 onValueChange = { password = it },
+                label = stringResource(R.string.yfiles_power_password),
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.yfiles_power_password)) },
                 singleLine = true,
             )
             YHorizontalActions {
-                Button(onClick = { runIo({ YFilesPowerBackend.encrypt(toolPath, password) }) { lastOutput = it.absolutePath } }, enabled = !busy && toolPath.isNotBlank() && password.length >= 6) {
-                    Text(stringResource(R.string.yfiles_power_encrypt))
-                }
-                OutlinedButton(onClick = { runIo({ YFilesPowerBackend.decrypt(toolPath, password) }) { lastOutput = it.absolutePath } }, enabled = !busy && toolPath.isNotBlank() && password.length >= 6) {
-                    Text(stringResource(R.string.yfiles_power_decrypt))
-                }
+                YPrimaryButton(
+                    text = stringResource(R.string.yfiles_power_encrypt),
+                    onClick = { runIo({ YFilesPowerBackend.encrypt(toolPath, password) }) { lastOutput = it.absolutePath } },
+                    enabled = !busy && toolPath.isNotBlank() && password.length >= 6,
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.yfiles_power_decrypt),
+                    onClick = { runIo({ YFilesPowerBackend.decrypt(toolPath, password) }) { lastOutput = it.absolutePath } },
+                    enabled = !busy && toolPath.isNotBlank() && password.length >= 6,
+                )
             }
             lastOutput?.let { Text(stringResource(R.string.yfiles_power_output, it)) }
             error?.let { Text(it) }
