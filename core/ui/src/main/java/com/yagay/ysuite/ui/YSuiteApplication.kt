@@ -12,7 +12,6 @@ import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
 import kotlinx.coroutines.flow.map
 
-@Composable
 const val YSUITE_EXTRA_INITIAL_FEATURE_ID =
     "com.yagay.ysuite.extra.INITIAL_FEATURE_ID"
 
