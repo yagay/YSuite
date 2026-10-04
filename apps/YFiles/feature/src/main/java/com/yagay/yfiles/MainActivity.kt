@@ -4,9 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +41,7 @@ import com.yagay.yui.YPageScaffold
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YSearchField
+import com.yagay.yui.YTextField
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
@@ -711,7 +709,7 @@ class MainActivity : YComposeActivity() {
                             },
                             trailing = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
+                                    YCheckboxControl(
                                         checked = selectedForBatch,
                                         onCheckedChange = { YFilesBatchSelectionState.toggle(entry) },
                                         enabled = !operationBusy,
@@ -727,18 +725,19 @@ class MainActivity : YComposeActivity() {
         }
 
         if (newFolderDialog) {
-            AlertDialog(
+            YFormDialog(
+                title = stringResource(R.string.new_folder),
                 onDismissRequest = { if (!operationBusy) newFolderDialog = false },
-                title = { Text(stringResource(R.string.new_folder)) },
-                text = {
-                    OutlinedTextField(
-                        value = newFolderName,
-                        onValueChange = { newFolderName = it },
-                        label = { Text(stringResource(R.string.folder_name)) },
-                    )
-                },
-                confirmButton = {
-                    YPrimaryActionButton(
+                actions = listOf(
+                    YActionSpec(
+                        label = stringResource(R.string.yfiles_cancel),
+                        enabled = !operationBusy,
+                        onClick = { newFolderDialog = false },
+                    ),
+                    YActionSpec(
+                        label = stringResource(R.string.create),
+                        enabled = newFolderName.isNotBlank() && !operationBusy,
+                        style = YActionStyle.PRIMARY,
                         onClick = {
                             operationBusy = true
                             lifecycleScope.launch {
@@ -758,30 +757,31 @@ class MainActivity : YComposeActivity() {
                                 operationBusy = false
                             }
                         },
-                        enabled = newFolderName.isNotBlank() && !operationBusy,
-                    ) { Text(stringResource(R.string.create)) }
-                },
-                dismissButton = {
-                    YSecondaryActionButton(onClick = { newFolderDialog = false }, enabled = !operationBusy) {
-                        Text(stringResource(R.string.yfiles_cancel))
-                    }
-                },
-            )
+                    ),
+                ),
+            ) {
+                YTextField(
+                    value = newFolderName,
+                    onValueChange = { newFolderName = it },
+                    label = stringResource(R.string.folder_name),
+                )
+            }
         }
 
         if (newFileDialog) {
-            AlertDialog(
+            YFormDialog(
+                title = stringResource(R.string.new_file),
                 onDismissRequest = { if (!operationBusy) newFileDialog = false },
-                title = { Text(stringResource(R.string.new_file)) },
-                text = {
-                    OutlinedTextField(
-                        value = newFileName,
-                        onValueChange = { newFileName = it },
-                        label = { Text(stringResource(R.string.file_name)) },
-                    )
-                },
-                confirmButton = {
-                    YPrimaryActionButton(
+                actions = listOf(
+                    YActionSpec(
+                        label = stringResource(R.string.yfiles_cancel),
+                        enabled = !operationBusy,
+                        onClick = { newFileDialog = false },
+                    ),
+                    YActionSpec(
+                        label = stringResource(R.string.create),
+                        enabled = newFileName.isNotBlank() && !operationBusy,
+                        style = YActionStyle.PRIMARY,
                         onClick = {
                             operationBusy = true
                             lifecycleScope.launch {
@@ -801,30 +801,31 @@ class MainActivity : YComposeActivity() {
                                 operationBusy = false
                             }
                         },
-                        enabled = newFileName.isNotBlank() && !operationBusy,
-                    ) { Text(stringResource(R.string.create)) }
-                },
-                dismissButton = {
-                    YSecondaryActionButton(onClick = { newFileDialog = false }, enabled = !operationBusy) {
-                        Text(stringResource(R.string.yfiles_cancel)) }
-                },
-            )
+                    ),
+                ),
+            ) {
+                YTextField(
+                    value = newFileName,
+                    onValueChange = { newFileName = it },
+                    label = stringResource(R.string.file_name),
+                )
+            }
         }
 
         renameTarget?.let { entry ->
-            AlertDialog(
+            YFormDialog(
+                title = stringResource(R.string.rename),
                 onDismissRequest = { renameTarget = null },
-                title = { Text(stringResource(R.string.rename)) },
-                text = {
-                    OutlinedTextField(
-                        value = renameValue,
-                        onValueChange = { renameValue = it },
-                        label = { Text(stringResource(R.string.new_name)) },
-                        singleLine = true,
-                    )
-                },
-                confirmButton = {
-                    YPrimaryActionButton(
+                actions = listOf(
+                    YActionSpec(
+                        label = stringResource(R.string.yfiles_cancel),
+                        enabled = !operationBusy,
+                        onClick = { renameTarget = null },
+                    ),
+                    YActionSpec(
+                        label = stringResource(R.string.rename),
+                        enabled = renameValue.isNotBlank() && !operationBusy,
+                        style = YActionStyle.PRIMARY,
                         onClick = {
                             operationBusy = true
                             lifecycleScope.launch {
@@ -839,23 +840,31 @@ class MainActivity : YComposeActivity() {
                                 operationBusy = false
                             }
                         },
-                        enabled = renameValue.isNotBlank() && !operationBusy,
-                    ) { Text(stringResource(R.string.rename)) }
-                },
-                dismissButton = {
-                    YSecondaryActionButton(onClick = { renameTarget = null }, enabled = !operationBusy) {
-                        Text(stringResource(R.string.yfiles_cancel)) }
-                },
-            )
+                    ),
+                ),
+            ) {
+                YTextField(
+                    value = renameValue,
+                    onValueChange = { renameValue = it },
+                    label = stringResource(R.string.new_name),
+                )
+            }
         }
 
         deleteTarget?.let { entry ->
-            AlertDialog(
+            YFormDialog(
+                title = stringResource(R.string.confirm_delete),
                 onDismissRequest = { deleteTarget = null },
-                title = { Text(stringResource(R.string.confirm_delete)) },
-                text = { Text(stringResource(R.string.confirm_delete_summary, entry.name)) },
-                confirmButton = {
-                    YPrimaryActionButton(
+                actions = listOf(
+                    YActionSpec(
+                        label = stringResource(R.string.yfiles_cancel),
+                        enabled = !operationBusy,
+                        onClick = { deleteTarget = null },
+                    ),
+                    YActionSpec(
+                        label = stringResource(R.string.delete),
+                        enabled = !operationBusy,
+                        style = YActionStyle.DANGER,
                         onClick = {
                             operationBusy = true
                             lifecycleScope.launch {
@@ -868,46 +877,46 @@ class MainActivity : YComposeActivity() {
                                 operationBusy = false
                             }
                         },
-                        enabled = !operationBusy,
-                    ) { Text(stringResource(R.string.delete)) }
-                },
-                dismissButton = {
-                    YSecondaryActionButton(onClick = { deleteTarget = null }, enabled = !operationBusy) {
-                        Text(stringResource(R.string.yfiles_cancel)) }
-                },
-            )
+                    ),
+                ),
+            ) {
+                Text(stringResource(R.string.confirm_delete_summary, entry.name))
+            }
         }
 
         propertyDialog?.let { properties ->
-            AlertDialog(
+            YFormDialog(
+                title = stringResource(R.string.properties),
                 onDismissRequest = { propertyDialog = null },
-                title = { Text(stringResource(R.string.properties)) },
-                text = {
-                    Text(
-                        buildString {
-                            appendLine(properties.name)
-                            appendLine(properties.path)
-                            appendLine()
-                            appendLine(getString(R.string.size) + ": " + formatBytes(properties.size))
-                            appendLine(
-                                getString(R.string.modified) + ": " +
-                                    DateFormat.getDateTimeInstance().format(Date(properties.modified))
-                            )
-                            properties.childCount?.let {
-                                appendLine(getString(R.string.children) + ": " + it)
-                            }
-                            appendLine(
-                                getString(R.string.permissions) + ": " +
-                                    "R=${properties.readable} W=${properties.writable} X=${properties.executable}"
-                            )
-                            append(getString(R.string.hidden) + ": " + properties.hidden)
-                        },
-                    )
-                },
-                confirmButton = {
-                    YPrimaryActionButton(onClick = { propertyDialog = null }) { Text(stringResource(R.string.close)) }
-                },
-            )
+                actions = listOf(
+                    YActionSpec(
+                        label = stringResource(R.string.close),
+                        style = YActionStyle.PRIMARY,
+                        onClick = { propertyDialog = null },
+                    ),
+                ),
+            ) {
+                Text(
+                    buildString {
+                        appendLine(properties.name)
+                        appendLine(properties.path)
+                        appendLine()
+                        appendLine(getString(R.string.size) + ": " + formatBytes(properties.size))
+                        appendLine(
+                            getString(R.string.modified) + ": " +
+                                DateFormat.getDateTimeInstance().format(Date(properties.modified))
+                        )
+                        properties.childCount?.let {
+                            appendLine(getString(R.string.children) + ": " + it)
+                        }
+                        appendLine(
+                            getString(R.string.permissions) + ": " +
+                                "R=${properties.readable} W=${properties.writable} X=${properties.executable}"
+                        )
+                        append(getString(R.string.hidden) + ": " + properties.hidden)
+                    },
+                )
+            }
         }
     }
 
