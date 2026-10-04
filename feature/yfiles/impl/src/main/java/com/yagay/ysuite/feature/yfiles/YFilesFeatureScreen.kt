@@ -7,13 +7,17 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -38,6 +42,7 @@ import com.yagay.ysuite.designsystem.component.YSuiteSwitchItem
 import com.yagay.ysuite.designsystem.component.YSuiteTextEditorDialog
 import com.yagay.ysuite.designsystem.component.YSuiteTextFormDialog
 import com.yagay.ysuite.designsystem.component.YSuiteTextInputDialog
+import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.feature.yfiles.api.YFileNode
 import com.yagay.ysuite.feature.yfiles.api.YFileProviderKind
 import com.yagay.ysuite.feature.yfiles.api.YFileRef
@@ -45,8 +50,20 @@ import com.yagay.ysuite.feature.yfiles.api.YFileSort
 import com.yagay.ysuite.feature.yfiles.api.YFileType
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.CapabilityStatus
-import com.yagay.ysuite.ui.YSuiteLazyListPage
-import com.yagay.ysuite.ui.YSuitePageState
+import com.yagay.ysuite.productui.ProductAdaptiveInfo
+import com.yagay.ysuite.productui.filemanager.YFileBreadcrumbBar
+import com.yagay.ysuite.productui.filemanager.YFileEntryRow
+import com.yagay.ysuite.productui.filemanager.YFileManagerScaffold
+import com.yagay.ysuite.productui.filemanager.YFileProductItemKind
+import com.yagay.ysuite.productui.filemanager.YFileProductSource
+import com.yagay.ysuite.productui.filemanager.YFileProductSourceKind
+import com.yagay.ysuite.productui.filemanager.YFileSearchCommandBar
+import com.yagay.ysuite.productui.filemanager.YFileSectionSwitcher
+import com.yagay.ysuite.productui.filemanager.YFileSelectionBar
+import com.yagay.ysuite.productui.filemanager.YFileSourcePane
+import com.yagay.ysuite.productui.settings.YSettingsSurface
+import com.yagay.ysuite.productui.tool.YToolSurface
+import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 import java.text.DateFormat
 
 @Composable
@@ -55,34 +72,21 @@ fun YFilesFeatureScreen(
     logger: YSuiteLogger,
 ) {
     val browser: YFilesViewModel = viewModel(
-        factory = BrowserFactory(
-            environment,
-            logger,
-        ),
+        factory = BrowserFactory(environment, logger),
     )
     val tools: YFilesToolsViewModel = viewModel(
-        factory = ToolsFactory(
-            environment,
-            logger,
-        ),
+        factory = ToolsFactory(environment, logger),
     )
-    val state by browser.state
-        .collectAsStateWithLifecycle()
-    val toolState by tools.state
-        .collectAsStateWithLifecycle()
+    val state by browser.state.collectAsStateWithLifecycle()
+    val toolState by tools.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    var confirmDelete by rememberSaveable {
-        mutableStateOf(false)
-    }
-    var confirmEmptyTrash by rememberSaveable {
-        mutableStateOf(false)
-    }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var confirmEmptyTrash by rememberSaveable { mutableStateOf(false) }
 
     val treeLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts
-                .StartActivityForResult(),
+            ActivityResultContracts.StartActivityForResult(),
         ) { result ->
             val data = result.data
             val uri = data?.data
@@ -94,144 +98,72 @@ fun YFilesFeatureScreen(
             }
         }
 
-    LaunchedEffect(
-        toolState.mutationVersion,
-    ) {
+    LaunchedEffect(toolState.mutationVersion) {
         if (toolState.mutationVersion > 0) {
             browser.refresh()
         }
     }
 
-    val pageState =
-        if (
-            state.tab == YFilesTab.Files &&
-            state.mode ==
-                YFilesBrowserMode.Directory &&
-            state.loading &&
-            state.entries.isEmpty()
-        ) {
-            YSuitePageState.Loading(
-                stringResource(
-                    R.string.yfiles_loading,
-                ),
+    when (state.tab) {
+        YFilesTab.Files ->
+            YFilesBrowserSurface(
+                state = state,
+                browser = browser,
+                onDelete = { confirmDelete = true },
+                onEmptyTrash = { confirmEmptyTrash = true },
             )
-        } else {
-            YSuitePageState.Content
-        }
-
-    YSuiteLazyListPage(
-        title = stringResource(
-            R.string.yfiles_title,
-        ),
-        subtitle = stringResource(
-            R.string.yfiles_summary,
-        ),
-        state = pageState,
-        onRetry = browser::refresh,
-        header = {
-            item {
-                YSuiteFilterBar(
-                    options = listOf(
-                        YSuiteFilterOption(
-                            YFilesTab.Files.name,
-                            stringResource(
-                                R.string
-                                    .yfiles_tab_files,
-                            ),
-                        ),
-                        YSuiteFilterOption(
-                            YFilesTab.Tools.name,
-                            stringResource(
-                                R.string
-                                    .yfiles_tab_tools,
-                            ),
-                        ),
-                        YSuiteFilterOption(
-                            YFilesTab.Settings.name,
-                            stringResource(
-                                R.string
-                                    .yfiles_tab_settings,
-                            ),
-                        ),
-                    ),
-                    selectedId =
-                        state.tab.name,
-                    onSelected = {
-                        browser.setTab(
-                            YFilesTab.valueOf(it),
-                        )
-                    },
-                )
+        YFilesTab.Tools ->
+            YToolSurface(
+                title = stringResource(R.string.yfiles_tab_tools),
+                navigationIcon = { YSuiteHostNavigationButton() },
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement =
+                        Arrangement.spacedBy(YSuiteSpacing.Small),
+                ) {
+                    toolsContent(
+                        browserState = state,
+                        toolState = toolState,
+                        tools = tools,
+                    )
+                }
             }
-        },
-    ) {
-        when (state.tab) {
-            YFilesTab.Files ->
-                filesContent(
-                    state = state,
-                    browser = browser,
-                    onDelete = {
-                        confirmDelete = true
-                    },
-                    onEmptyTrash = {
-                        confirmEmptyTrash = true
-                    },
-                )
-            YFilesTab.Tools ->
-                toolsContent(
-                    browserState = state,
-                    toolState = toolState,
-                    tools = tools,
-                )
-            YFilesTab.Settings ->
-                settingsContent(
-                    state = state,
-                    environment = environment,
-                    browser = browser,
-                    allFilesGranted =
-                        Environment
-                            .isExternalStorageManager(),
-                    onOpenAllFilesSettings = {
-                        val intent = Intent(
-                            Settings
-                                .ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                            Uri.parse(
-                                "package:" +
-                                    context.packageName,
-                            ),
-                        )
-                        context.startActivity(
-                            intent,
-                        )
-                    },
-                    onAddSaf = {
-                        val intent = Intent(
-                            Intent
-                                .ACTION_OPEN_DOCUMENT_TREE,
-                        ).addFlags(
-                            Intent
-                                .FLAG_GRANT_READ_URI_PERMISSION or
-                                Intent
-                                    .FLAG_GRANT_WRITE_URI_PERMISSION or
-                                Intent
-                                    .FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
-                        )
-                        treeLauncher.launch(
-                            intent,
-                        )
-                    },
-                )
-        }
-
-        if (state.error != null) {
-            item {
-                YSuiteStatusBadge(
-                    text = state.error.orEmpty(),
-                    tone =
-                        YSuiteStatusTone.Error,
-                )
+        YFilesTab.Settings ->
+            YSettingsSurface(
+                title = stringResource(R.string.yfiles_tab_settings),
+                navigationIcon = { YSuiteHostNavigationButton() },
+            ) {
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(YSuiteSpacing.Large),
+                ) {
+                    YFilesSettingsContent(
+                        state = state,
+                        environment = environment,
+                        browser = browser,
+                        allFilesGranted =
+                            Environment.isExternalStorageManager(),
+                        onOpenAllFilesSettings = {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                Uri.parse("package:" + context.packageName),
+                            )
+                            context.startActivity(intent)
+                        },
+                        onAddSaf = {
+                            val intent = Intent(
+                                Intent.ACTION_OPEN_DOCUMENT_TREE,
+                            ).addFlags(
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
+                            )
+                            treeLauncher.launch(intent)
+                        },
+                    )
+                }
             }
-        }
     }
 
     namePromptDialog(
@@ -246,701 +178,586 @@ fun YFilesFeatureScreen(
 
     if (confirmDelete) {
         YSuiteConfirmDialog(
-            title = stringResource(
-                R.string.yfiles_delete_title,
-            ),
-            message = stringResource(
-                R.string.yfiles_delete_message,
-            ),
-            confirmText = stringResource(
-                R.string.yfiles_confirm,
-            ),
-            dismissText = stringResource(
-                R.string.yfiles_cancel,
-            ),
+            title = stringResource(R.string.yfiles_delete_title),
+            message = stringResource(R.string.yfiles_delete_message),
+            confirmText = stringResource(R.string.yfiles_confirm),
+            dismissText = stringResource(R.string.yfiles_cancel),
             onConfirm = {
                 confirmDelete = false
-                browser
-                    .deleteSelectedPermanently()
+                browser.deleteSelectedPermanently()
             },
-            onDismiss = {
-                confirmDelete = false
-            },
+            onDismiss = { confirmDelete = false },
         )
     }
 
     if (confirmEmptyTrash) {
         YSuiteConfirmDialog(
-            title = stringResource(
-                R.string
-                    .yfiles_empty_trash_title,
-            ),
-            message = stringResource(
-                R.string
-                    .yfiles_empty_trash_message,
-            ),
-            confirmText = stringResource(
-                R.string.yfiles_confirm,
-            ),
-            dismissText = stringResource(
-                R.string.yfiles_cancel,
-            ),
+            title = stringResource(R.string.yfiles_empty_trash_title),
+            message = stringResource(R.string.yfiles_empty_trash_message),
+            confirmText = stringResource(R.string.yfiles_confirm),
+            dismissText = stringResource(R.string.yfiles_cancel),
             onConfirm = {
                 confirmEmptyTrash = false
                 browser.emptyTrash()
             },
-            onDismiss = {
-                confirmEmptyTrash = false
-            },
+            onDismiss = { confirmEmptyTrash = false },
         )
     }
 }
 
-private fun LazyListScope.filesContent(
+@Composable
+private fun YFilesBrowserSurface(
     state: YFilesUiState,
     browser: YFilesViewModel,
     onDelete: () -> Unit,
     onEmptyTrash: () -> Unit,
 ) {
-    item {
+    val directory = state.directory
+    val isFavorite =
+        directory != null &&
+            state.places.favorites.any { it.ref == directory }
+
+    YFileManagerScaffold(
+        title = stringResource(R.string.yfiles_title),
+        navigationIcon = { YSuiteHostNavigationButton() },
+        breadcrumb = {
+            YFileBreadcrumbBar(
+                path = directory?.path
+                    ?: stringResource(R.string.yfiles_mode_directory),
+                providerLabel = directory?.providerId
+                    ?: state.activeProviderId.orEmpty(),
+                favorite = isFavorite,
+                onUp = browser::parent,
+                onRefresh = browser::refresh,
+                onFavorite = browser::toggleFavorite,
+            )
+        },
+        commandBar = {
+            YFilesCommandBar(
+                state = state,
+                browser = browser,
+            )
+        },
+        sourcePane = {
+            YFilesSourcePane(
+                state = state,
+                browser = browser,
+            )
+        },
+        detailPane =
+            state.focused?.let { node ->
+                { _: ProductAdaptiveInfo ->
+                    YFilesDetailPane(
+                        node = node,
+                        browser = browser,
+                    )
+                }
+            },
+        selectionBar =
+            if (state.selected.isNotEmpty()) {
+                {
+                    YFileSelectionBar(
+                        countLabel = stringResource(
+                            R.string.yfiles_selected_count,
+                            state.selected.size,
+                        ),
+                        copyLabel = stringResource(R.string.yfiles_copy),
+                        moveLabel = stringResource(R.string.yfiles_move),
+                        trashLabel = stringResource(R.string.yfiles_move_to_bin),
+                        deleteLabel = stringResource(R.string.yfiles_delete_permanently),
+                        clearLabel = stringResource(R.string.yfiles_clear_selection),
+                        onCopy = browser::prepareCopy,
+                        onMove = browser::prepareMove,
+                        onTrash = browser::moveSelectedToTrash,
+                        onDelete = onDelete,
+                        onClear = browser::clearSelection,
+                    )
+                }
+            } else {
+                null
+            },
+        bottomBar = {
+            YFileSectionSwitcher(
+                filesLabel = stringResource(R.string.yfiles_tab_files),
+                toolsLabel = stringResource(R.string.yfiles_tab_tools),
+                settingsLabel = stringResource(R.string.yfiles_tab_settings),
+                selectedId = "files",
+                onSelect = { id ->
+                    when (id) {
+                        "tools" -> browser.setTab(YFilesTab.Tools)
+                        "settings" -> browser.setTab(YFilesTab.Settings)
+                    }
+                },
+            )
+        },
+    ) { adaptive ->
+        YFilesMainContent(
+            state = state,
+            browser = browser,
+            adaptive = adaptive,
+            onEmptyTrash = onEmptyTrash,
+        )
+    }
+}
+
+@Composable
+private fun YFilesCommandBar(
+    state: YFilesUiState,
+    browser: YFilesViewModel,
+) {
+    Column(
+        verticalArrangement =
+            Arrangement.spacedBy(YSuiteSpacing.XSmall),
+    ) {
+        if (state.mode == YFilesBrowserMode.Directory) {
+            YFileSearchCommandBar(
+                query = state.query,
+                searchLabel = stringResource(R.string.yfiles_search),
+                showHiddenLabel = stringResource(R.string.yfiles_show_hidden),
+                recursiveLabel = stringResource(R.string.yfiles_recursive),
+                showHidden = state.showHidden,
+                recursive = state.recursive,
+                onQueryChange = browser::setQuery,
+                onShowHiddenChange = browser::setShowHidden,
+                onRecursiveChange = browser::setRecursive,
+            )
+            YSuiteFilterBar(
+                options = listOf(
+                    YSuiteFilterOption(
+                        YFileSort.Name.name,
+                        stringResource(R.string.yfiles_sort_name),
+                    ),
+                    YSuiteFilterOption(
+                        YFileSort.Modified.name,
+                        stringResource(R.string.yfiles_sort_modified),
+                    ),
+                    YSuiteFilterOption(
+                        YFileSort.Size.name,
+                        stringResource(R.string.yfiles_sort_size),
+                    ),
+                    YSuiteFilterOption(
+                        YFileSort.Type.name,
+                        stringResource(R.string.yfiles_sort_type),
+                    ),
+                ),
+                selectedId = state.sort.name,
+                onSelected = { browser.setSort(YFileSort.valueOf(it)) },
+            )
+        }
+
         YSuiteFilterBar(
             options = listOf(
                 YSuiteFilterOption(
-                    YFilesBrowserMode
-                        .Directory.name,
-                    stringResource(
-                        R.string
-                            .yfiles_mode_directory,
-                    ),
+                    YFilesBrowserMode.Directory.name,
+                    stringResource(R.string.yfiles_mode_directory),
                 ),
                 YSuiteFilterOption(
-                    YFilesBrowserMode
-                        .Favorites.name,
-                    stringResource(
-                        R.string
-                            .yfiles_mode_favorites,
-                    ),
+                    YFilesBrowserMode.Favorites.name,
+                    stringResource(R.string.yfiles_mode_favorites),
                 ),
                 YSuiteFilterOption(
-                    YFilesBrowserMode
-                        .Recent.name,
-                    stringResource(
-                        R.string
-                            .yfiles_mode_recent,
-                    ),
+                    YFilesBrowserMode.Recent.name,
+                    stringResource(R.string.yfiles_mode_recent),
                 ),
                 YSuiteFilterOption(
-                    YFilesBrowserMode
-                        .Trash.name,
-                    stringResource(
-                        R.string
-                            .yfiles_mode_trash,
-                    ),
+                    YFilesBrowserMode.Trash.name,
+                    stringResource(R.string.yfiles_mode_trash),
                 ),
             ),
             selectedId = state.mode.name,
             onSelected = {
-                browser.setMode(
-                    YFilesBrowserMode
-                        .valueOf(it),
-                )
+                browser.setMode(YFilesBrowserMode.valueOf(it))
             },
         )
     }
+}
 
+@Composable
+private fun YFilesSourcePane(
+    state: YFilesUiState,
+    browser: YFilesViewModel,
+) {
+    YFileSourcePane(
+        sources =
+            state.providers.map { provider ->
+                YFileProductSource(
+                    id = provider.id,
+                    label = providerLabel(provider.kind),
+                    kind = provider.kind.toProductSourceKind(),
+                )
+            },
+        selectedSourceId = state.activeProviderId,
+        browserLabel = stringResource(R.string.yfiles_mode_directory),
+        favoritesLabel = stringResource(R.string.yfiles_mode_favorites),
+        recentLabel = stringResource(R.string.yfiles_mode_recent),
+        trashLabel = stringResource(R.string.yfiles_mode_trash),
+        activeSectionId = state.mode.productSectionId(),
+        onSourceSelected = browser::selectProvider,
+        onSectionSelected = { section ->
+            browser.setMode(
+                when (section) {
+                    "favorites" -> YFilesBrowserMode.Favorites
+                    "recent" -> YFilesBrowserMode.Recent
+                    "trash" -> YFilesBrowserMode.Trash
+                    else -> YFilesBrowserMode.Directory
+                },
+            )
+        },
+    )
+}
+
+@Composable
+private fun YFilesMainContent(
+    state: YFilesUiState,
+    browser: YFilesViewModel,
+    adaptive: ProductAdaptiveInfo,
+    onEmptyTrash: () -> Unit,
+) {
     when (state.mode) {
         YFilesBrowserMode.Directory ->
-            directoryContent(
-                state,
-                browser,
-                onDelete,
+            YFilesDirectoryList(
+                state = state,
+                browser = browser,
+                showInlineDetails = !adaptive.isExpanded,
             )
         YFilesBrowserMode.Favorites ->
-            savedLocations(
-                titleRes =
-                    R.string
-                        .yfiles_mode_favorites,
-                emptyRes =
-                    R.string
-                        .yfiles_no_favorites,
-                locations =
-                    state.places.favorites,
+            YFilesSavedList(
+                locations = state.places.favorites,
+                emptyText = stringResource(R.string.yfiles_no_favorites),
                 browser = browser,
             )
         YFilesBrowserMode.Recent ->
-            savedLocations(
-                titleRes =
-                    R.string.yfiles_mode_recent,
-                emptyRes =
-                    R.string.yfiles_no_recent,
-                locations =
-                    state.places.recent,
+            YFilesSavedList(
+                locations = state.places.recent,
+                emptyText = stringResource(R.string.yfiles_no_recent),
                 browser = browser,
             )
         YFilesBrowserMode.Trash ->
-            trashContent(
-                state,
-                browser,
-                onEmptyTrash,
+            YFilesTrashList(
+                state = state,
+                browser = browser,
+                onEmptyTrash = onEmptyTrash,
             )
     }
 }
 
-private fun LazyListScope.directoryContent(
+@Composable
+private fun YFilesDirectoryList(
     state: YFilesUiState,
     browser: YFilesViewModel,
-    onDelete: () -> Unit,
+    showInlineDetails: Boolean,
 ) {
-    item {
-        YSuiteSection(
-            title = stringResource(
-                R.string.yfiles_sources,
-            ),
-        ) {
-            YSuiteFilterBar(
-                options =
-                    state.providers.map {
-                        YSuiteFilterOption(
-                            id = it.id,
-                            label =
-                                providerLabel(
-                                    it.kind,
-                                ),
-                        )
-                    },
-                selectedId =
-                    state.activeProviderId,
-                onSelected =
-                    browser::selectProvider,
-            )
-        }
-    }
-
-    state.directory?.let { directory ->
-        item {
-            val isFavorite =
-                state.places.favorites
-                    .any {
-                        it.ref == directory
-                    }
-            YSuiteSection(
-                title = stringResource(
-                    R.string.yfiles_location,
-                ),
-            ) {
-                YSuiteListItem(
-                    title = directory.path,
-                    subtitle =
-                        directory.providerId,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string.yfiles_parent,
-                    ),
-                    onClick = browser::parent,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string.yfiles_refresh,
-                    ),
-                    onClick = browser::refresh,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        if (isFavorite) {
-                            R.string
-                                .yfiles_remove_favorite
-                        } else {
-                            R.string
-                                .yfiles_add_favorite
-                        },
-                    ),
-                    onClick =
-                        browser::toggleFavorite,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string
-                            .yfiles_new_folder,
-                    ),
-                    onClick =
-                        browser
-                            ::beginCreateDirectory,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string.yfiles_new_file,
-                    ),
-                    onClick =
-                        browser::beginCreateFile,
-                )
-            }
-        }
-
-        item {
-            YSuiteSection(
-                title = stringResource(
-                    R.string.yfiles_search,
-                ),
-            ) {
-                YSuiteSearchField(
-                    value = state.query,
-                    onValueChange =
-                        browser::setQuery,
-                    label = stringResource(
-                        R.string.yfiles_search,
-                    ),
-                )
-                YSuiteSwitchItem(
-                    title = stringResource(
-                        R.string
-                            .yfiles_recursive,
-                    ),
-                    checked = state.recursive,
-                    onCheckedChange =
-                        browser::setRecursive,
-                )
-                YSuiteSwitchItem(
-                    title = stringResource(
-                        R.string
-                            .yfiles_show_hidden,
-                    ),
-                    checked =
-                        state.showHidden,
-                    onCheckedChange =
-                        browser::setShowHidden,
-                )
-                YSuiteFilterBar(
-                    options = listOf(
-                        YSuiteFilterOption(
-                            YFileSort.Name.name,
-                            stringResource(
-                                R.string
-                                    .yfiles_sort_name,
-                            ),
-                        ),
-                        YSuiteFilterOption(
-                            YFileSort
-                                .Modified.name,
-                            stringResource(
-                                R.string
-                                    .yfiles_sort_modified,
-                            ),
-                        ),
-                        YSuiteFilterOption(
-                            YFileSort.Size.name,
-                            stringResource(
-                                R.string
-                                    .yfiles_sort_size,
-                            ),
-                        ),
-                        YSuiteFilterOption(
-                            YFileSort.Type.name,
-                            stringResource(
-                                R.string
-                                    .yfiles_sort_type,
-                            ),
-                        ),
-                    ),
-                    selectedId =
-                        state.sort.name,
-                    onSelected = {
-                        browser.setSort(
-                            YFileSort.valueOf(it),
-                        )
-                    },
-                )
-                YSuiteFilterBar(
-                    options = listOf(
-                        YSuiteFilterOption(
-                            "asc",
-                            stringResource(
-                                R.string
-                                    .yfiles_ascending,
-                            ),
-                        ),
-                        YSuiteFilterOption(
-                            "desc",
-                            stringResource(
-                                R.string
-                                    .yfiles_descending,
-                            ),
-                        ),
-                    ),
-                    selectedId =
-                        if (
-                            state.descending
-                        ) {
-                            "desc"
-                        } else {
-                            "asc"
-                        },
-                    onSelected = {
-                        browser.setDescending(
-                            it == "desc",
-                        )
-                    },
-                )
-            }
-        }
-    }
-
-    if (state.selected.isNotEmpty()) {
-        item {
-            YSuiteSection(
-                title = stringResource(
-                    R.string
-                        .yfiles_selected_count,
-                    state.selected.size,
-                ),
-            ) {
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string.yfiles_copy,
-                    ),
-                    onClick =
-                        browser::prepareCopy,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string.yfiles_move,
-                    ),
-                    onClick =
-                        browser::prepareMove,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string
-                            .yfiles_move_to_bin,
-                    ),
-                    onClick =
-                        browser
-                            ::moveSelectedToTrash,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string
-                            .yfiles_delete_permanently,
-                    ),
-                    onClick = onDelete,
-                )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string
-                            .yfiles_clear_selection,
-                    ),
-                    onClick =
-                        browser::clearSelection,
-                )
-            }
-        }
-    }
-
-    state.clipboard?.let { clipboard ->
-        item {
-            YSuiteSection(
-                title = stringResource(
-                    if (clipboard.move) {
-                        R.string
-                            .yfiles_clipboard_move
-                    } else {
-                        R.string
-                            .yfiles_clipboard_copy
-                    },
-                    clipboard.refs.size,
-                ),
-            ) {
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string
-                            .yfiles_paste_here,
-                    ),
-                    onClick =
-                        browser::pasteHere,
-                )
-            }
-        }
-    }
-
-    state.progress?.let { progress ->
-        item {
-            YSuiteStatusBadge(
-                text = stringResource(
-                    R.string.yfiles_progress,
-                    progress.currentName,
-                    formatBytes(
-                        progress.completedBytes,
-                    ),
-                ),
-                tone =
-                    YSuiteStatusTone.Neutral,
-            )
-        }
-    }
-
-    state.operationResult?.let { result ->
-        item {
-            YSuiteStatusBadge(
-                text = stringResource(
-                    R.string
-                        .yfiles_operation_result,
-                    result.succeeded,
-                    result.skipped,
-                    result.failed,
-                ),
-                tone =
-                    if (result.failed == 0) {
-                        YSuiteStatusTone.Positive
-                    } else {
-                        YSuiteStatusTone.Warning
-                    },
-            )
-        }
-    }
-
-    item {
-        YSuiteSectionHeader(
-            title = stringResource(
-                R.string.yfiles_files,
-            ),
-        )
-    }
-
-    if (
-        !state.loading &&
-        state.entries.isEmpty()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
     ) {
-        item {
-            YSuiteListItem(
-                title = stringResource(
-                    R.string.yfiles_empty,
-                ),
+        if (state.loading && state.entries.isEmpty()) {
+            item {
+                YSuiteListItem(
+                    title = stringResource(R.string.yfiles_loading),
+                )
+            }
+        } else if (state.entries.isEmpty()) {
+            item {
+                YSuiteListItem(
+                    title = stringResource(R.string.yfiles_empty),
+                )
+            }
+        }
+
+        items(
+            items = state.entries,
+            key = { it.ref.providerId + "|" + it.ref.path },
+        ) { node ->
+            val selected = node.ref in state.selected
+            YFileEntryRow(
+                title = node.name,
+                subtitle = nodeSubtitle(node),
+                kind = node.productItemKind(),
+                selected = selected,
+                onOpen = { browser.open(node) },
+                onToggleSelection = {
+                    browser.toggleSelection(node)
+                },
             )
         }
-    }
 
-    items(
-        items = state.entries,
-        key = {
-            it.ref.providerId +
-                "|" +
-                it.ref.path
-        },
-    ) { node ->
-        val selected =
-            node.ref in state.selected
-        YSuiteListItem(
-            title = node.name,
-            subtitle =
-                nodeSubtitle(node),
-            modifier = Modifier.clickable {
-                browser.open(node)
-            },
-            trailing = {
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        if (selected) {
-                            R.string
-                                .yfiles_unselect
-                        } else {
-                            R.string
-                                .yfiles_select
-                        },
-                    ),
-                    onClick = {
-                        browser
-                            .toggleSelection(
-                                node,
-                            )
-                    },
-                )
-            },
-        )
-    }
-
-    state.focused?.let { node ->
-        item {
-            YSuiteSection(
-                title = stringResource(
-                    R.string.yfiles_details,
-                ),
-            ) {
-                YSuiteListItem(
-                    title = node.name,
-                    subtitle =
-                        nodeTypeLabel(
-                            node.type,
-                        ),
-                )
-                YSuiteListItem(
+        state.clipboard?.let { clipboard ->
+            item {
+                YSuiteSection(
                     title = stringResource(
-                        R.string.yfiles_provider,
+                        if (clipboard.move) {
+                            R.string.yfiles_clipboard_move
+                        } else {
+                            R.string.yfiles_clipboard_copy
+                        },
+                        clipboard.refs.size,
                     ),
-                    subtitle =
-                        node.ref.providerId,
-                )
-                node.sizeBytes?.let {
-                    YSuiteListItem(
-                        title =
-                            stringResource(
-                                R.string
-                                    .yfiles_size,
-                            ),
-                        subtitle =
-                            formatBytes(it),
+                ) {
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.yfiles_paste_here),
+                        onClick = browser::pasteHere,
                     )
                 }
-                node.modifiedAtMillis
-                    ?.let {
-                        YSuiteListItem(
-                            title =
-                                stringResource(
-                                    R.string
-                                        .yfiles_modified,
-                                ),
-                            subtitle =
-                                formatDate(it),
-                        )
-                    }
-                YSuiteListItem(
-                    title = stringResource(
-                        R.string.yfiles_access,
-                    ),
-                    subtitle =
-                        stringResource(
-                            R.string
-                                .yfiles_access_value,
-                            yesNo(
-                                node.readable,
-                            ),
-                            yesNo(
-                                node.writable,
-                            ),
-                            yesNo(
-                                node.executable,
-                            ),
-                        ),
-                )
-                YSuiteSecondaryButton(
+            }
+        }
+
+        state.progress?.let { progress ->
+            item {
+                YSuiteStatusBadge(
                     text = stringResource(
-                        R.string.yfiles_rename,
+                        R.string.yfiles_progress,
+                        progress.currentName,
+                        formatBytes(progress.completedBytes),
                     ),
-                    onClick = {
-                        browser.beginRename(
-                            node,
-                        )
-                    },
+                    tone = YSuiteStatusTone.Neutral,
                 )
-                YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string.yfiles_close,
-                    ),
-                    onClick = {
-                        browser.focus(null)
-                    },
+            }
+        }
+
+        state.error?.let { error ->
+            item {
+                YSuiteStatusBadge(
+                    text = error,
+                    tone = YSuiteStatusTone.Error,
                 )
+            }
+        }
+
+        if (showInlineDetails) {
+            state.focused?.let { node ->
+                item {
+                    YFilesDetailPane(
+                        node = node,
+                        browser = browser,
+                    )
+                }
             }
         }
     }
 }
 
-private fun LazyListScope.savedLocations(
-    titleRes: Int,
-    emptyRes: Int,
+@Composable
+private fun YFilesSavedList(
     locations: List<YFileLocationRecord>,
+    emptyText: String,
     browser: YFilesViewModel,
 ) {
-    item {
-        YSuiteSectionHeader(
-            title = stringResource(titleRes),
-        )
-    }
-    if (locations.isEmpty()) {
-        item {
-            YSuiteListItem(
-                title =
-                    stringResource(emptyRes),
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        if (locations.isEmpty()) {
+            item {
+                YSuiteListItem(title = emptyText)
+            }
+        }
+        items(
+            items = locations,
+            key = { it.ref.providerId + "|" + it.ref.path },
+        ) { location ->
+            YFileEntryRow(
+                title = location.label,
+                subtitle = location.ref.path,
+                kind = YFileProductItemKind.Folder,
+                selected = false,
+                onOpen = { browser.navigateSaved(location) },
+                onToggleSelection = { browser.navigateSaved(location) },
             )
         }
     }
-    items(
-        items = locations,
-        key = {
-            it.ref.providerId +
-                "|" +
-                it.ref.path
-        },
-    ) { location ->
-        YSuiteListItem(
-            title = location.label,
-            subtitle =
-                location.ref.providerId +
-                    " · " +
-                    location.ref.path,
-            modifier = Modifier.clickable {
-                browser.navigateSaved(
-                    location,
-                )
-            },
-        )
-    }
 }
 
-private fun LazyListScope.trashContent(
+@Composable
+private fun YFilesTrashList(
     state: YFilesUiState,
     browser: YFilesViewModel,
     onEmptyTrash: () -> Unit,
 ) {
-    item {
-        YSuiteSectionHeader(
-            title = stringResource(
-                R.string.yfiles_mode_trash,
-            ),
-        )
-    }
-    if (state.trashRecords.isEmpty()) {
-        item {
-            YSuiteListItem(
-                title = stringResource(
-                    R.string.yfiles_no_trash,
-                ),
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        if (state.trashRecords.isEmpty()) {
+            item {
+                YSuiteListItem(
+                    title = stringResource(R.string.yfiles_no_trash),
+                )
+            }
+        }
+        items(
+            items = state.trashRecords,
+            key = { it.id },
+        ) { record ->
+            YFileEntryRow(
+                title = record.originalName,
+                subtitle = record.originalParent.path,
+                kind = YFileProductItemKind.File,
+                selected = false,
+                onOpen = { browser.restoreTrash(record.id) },
+                onToggleSelection = { browser.restoreTrash(record.id) },
             )
         }
-    }
-    items(
-        items = state.trashRecords,
-        key = { it.id },
-    ) { record ->
-        YSuiteListItem(
-            title = record.originalName,
-            subtitle =
-                record.originalParent.path,
-            trailing = {
+        if (state.trashRecords.isNotEmpty()) {
+            item {
                 YSuiteSecondaryButton(
-                    text = stringResource(
-                        R.string.yfiles_restore,
-                    ),
-                    onClick = {
-                        browser.restoreTrash(
-                            record.id,
-                        )
-                    },
+                    text = stringResource(R.string.yfiles_empty_trash),
+                    onClick = onEmptyTrash,
                 )
-            },
-        )
+            }
+        }
     }
-    if (state.trashRecords.isNotEmpty()) {
-        item {
+}
+
+@Composable
+private fun YFilesDetailPane(
+    node: YFileNode,
+    browser: YFilesViewModel,
+) {
+    Column(
+        modifier = Modifier.padding(YSuiteSpacing.Medium),
+        verticalArrangement =
+            Arrangement.spacedBy(YSuiteSpacing.Small),
+    ) {
+        YSuiteSection(
+            title = stringResource(R.string.yfiles_details),
+        ) {
+            YSuiteListItem(
+                title = node.name,
+                subtitle = nodeTypeLabel(node.type),
+            )
+            YSuiteListItem(
+                title = stringResource(R.string.yfiles_provider),
+                subtitle = node.ref.providerId,
+            )
+            node.sizeBytes?.let {
+                YSuiteListItem(
+                    title = stringResource(R.string.yfiles_size),
+                    subtitle = formatBytes(it),
+                )
+            }
+            node.modifiedAtMillis?.let {
+                YSuiteListItem(
+                    title = stringResource(R.string.yfiles_modified),
+                    subtitle = formatDate(it),
+                )
+            }
             YSuiteSecondaryButton(
-                text = stringResource(
-                    R.string
-                        .yfiles_empty_trash,
-                ),
-                onClick = onEmptyTrash,
+                text = stringResource(R.string.yfiles_rename),
+                onClick = { browser.beginRename(node) },
+            )
+            YSuiteSecondaryButton(
+                text = stringResource(R.string.yfiles_close),
+                onClick = { browser.focus(null) },
             )
         }
     }
 }
+
+@Composable
+private fun YFilesSettingsContent(
+    state: YFilesUiState,
+    environment: YFilesEnvironment,
+    browser: YFilesViewModel,
+    allFilesGranted: Boolean,
+    onOpenAllFilesSettings: () -> Unit,
+    onAddSaf: () -> Unit,
+) {
+    YSuiteSection(
+        title = stringResource(R.string.yfiles_settings_access),
+    ) {
+        YSuiteListItem(
+            title = stringResource(R.string.yfiles_all_files_access),
+            subtitle = stringResource(
+                if (allFilesGranted) {
+                    R.string.yfiles_granted
+                } else {
+                    R.string.yfiles_not_granted
+                },
+            ),
+        )
+        if (!allFilesGranted) {
+            YSuiteSecondaryButton(
+                text = stringResource(R.string.yfiles_open_settings),
+                onClick = onOpenAllFilesSettings,
+            )
+        }
+        YSuiteListItem(
+            title = stringResource(R.string.yfiles_root_access),
+            subtitle = rootStatusText(state.rootStatus),
+        )
+        YSuiteSecondaryButton(
+            text = stringResource(R.string.yfiles_refresh_root),
+            onClick = browser::refreshRootStatus,
+        )
+    }
+
+    YSuiteSection(
+        title = stringResource(R.string.yfiles_saf),
+    ) {
+        YSuiteSecondaryButton(
+            text = stringResource(R.string.yfiles_add_saf),
+            onClick = onAddSaf,
+        )
+        val trees = environment.documentTrees.trees()
+        if (trees.isEmpty()) {
+            YSuiteListItem(
+                title = stringResource(R.string.yfiles_no_saf),
+            )
+        } else {
+            trees.forEach { tree ->
+                YSuiteListItem(
+                    title = tree.toString(),
+                    trailing = {
+                        YSuiteSecondaryButton(
+                            text = stringResource(R.string.yfiles_remove_saf),
+                            onClick = {
+                                browser.removeDocumentTree(tree)
+                            },
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    YFileSectionSwitcher(
+        filesLabel = stringResource(R.string.yfiles_tab_files),
+        toolsLabel = stringResource(R.string.yfiles_tab_tools),
+        settingsLabel = stringResource(R.string.yfiles_tab_settings),
+        selectedId = "settings",
+        onSelect = { id ->
+            when (id) {
+                "files" -> browser.setTab(YFilesTab.Files)
+                "tools" -> browser.setTab(YFilesTab.Tools)
+            }
+        },
+    )
+}
+
+private fun YFilesBrowserMode.productSectionId(): String =
+    when (this) {
+        YFilesBrowserMode.Directory -> "browser"
+        YFilesBrowserMode.Favorites -> "favorites"
+        YFilesBrowserMode.Recent -> "recent"
+        YFilesBrowserMode.Trash -> "trash"
+    }
+
+private fun YFileProviderKind.toProductSourceKind(): YFileProductSourceKind =
+    when (this) {
+        YFileProviderKind.Local -> YFileProductSourceKind.Local
+        YFileProviderKind.Document -> YFileProductSourceKind.Document
+        YFileProviderKind.Root -> YFileProductSourceKind.Root
+        YFileProviderKind.Archive -> YFileProductSourceKind.Archive
+        YFileProviderKind.Remote -> YFileProductSourceKind.Remote
+    }
+
+private fun YFileNode.productItemKind(): YFileProductItemKind =
+    when {
+        type == YFileType.Directory ->
+            YFileProductItemKind.Folder
+        type == YFileType.SymbolicLink ->
+            YFileProductItemKind.Link
+        name.endsWith(".zip", ignoreCase = true) ->
+            YFileProductItemKind.Archive
+        type == YFileType.File ->
+            YFileProductItemKind.File
+        else ->
+            YFileProductItemKind.Other
+    }
 
 private fun LazyListScope.toolsContent(
     browserState: YFilesUiState,
