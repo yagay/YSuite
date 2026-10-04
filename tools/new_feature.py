@@ -50,6 +50,7 @@ def main():
         impl_package / f"{cls}FeatureUiRegistration.kt",
         base / "impl" / "src/main/res/values/strings.xml",
         base / "impl" / "src/main/res/values-zh-rCN/strings.xml",
+        ROOT / "docs/migrations" / f"{feature}.md",
     ]
 
     if args.dry_run:
@@ -175,6 +176,37 @@ object {cls}FeatureUiRegistration : YSuiteFeatureUiRegistration {{
 </resources>
 """
 
+    migration_doc = f"""# Feature migration: {cls}
+
+## Scope
+
+Describe the user-visible behaviours being reimplemented.
+
+## Clean-room implementation
+
+Describe the new implementation. Do not paste or transplant old source.
+
+## UI
+
+List shared YSuite page contracts and design-system components.
+
+## Platform capabilities
+
+List shared Root, Hook, logging, permissions or diagnostics APIs used.
+
+## Localization
+
+English and Simplified Chinese resources are maintained together.
+
+## Tests
+
+List business/state tests and regression coverage.
+
+## Standalone
+
+Confirm the feature builds through the generic standalone host.
+"""
+
     contents = {
         planned[0]: api_build,
         planned[1]: impl_build,
@@ -184,6 +216,7 @@ object {cls}FeatureUiRegistration : YSuiteFeatureUiRegistration {{
         planned[5]: registration,
         planned[6]: strings_en,
         planned[7]: strings_zh,
+        planned[8]: migration_doc,
     }
 
     for path, content in contents.items():

@@ -21,7 +21,7 @@ def main():
     args = parser.parse_args()
 
     feature = normalize(args.name)
-    if feature in {"template", "settings"}:
+    if feature in {"template", "settings", "system"}:
         raise SystemExit(f"Protected framework feature: {feature}")
 
     base = ROOT / "feature" / feature
@@ -32,6 +32,10 @@ def main():
         raise SystemExit("Refusing to remove without --yes")
 
     shutil.rmtree(base)
+
+    migration_doc = ROOT / "docs/migrations" / f"{feature}.md"
+    if migration_doc.exists():
+        migration_doc.unlink()
 
     settings = ROOT / "settings.gradle.kts"
     settings_text = settings.read_text(encoding="utf-8")

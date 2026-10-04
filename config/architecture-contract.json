@@ -1,0 +1,58 @@
+{
+  "foundation_modules": {
+    ":core:common": [],
+    ":core:model": [],
+    ":core:resources": [],
+    ":core:designsystem": [],
+    ":core:ui": [
+      ":core:designsystem",
+      ":core:navigation",
+      ":core:permissions:api",
+      ":core:resources",
+      ":core:runtime",
+      ":core:settings"
+    ],
+    ":core:navigation": [
+      ":core:model"
+    ],
+    ":core:presentation": [],
+    ":core:runtime": [],
+    ":core:settings": [],
+    ":core:diagnostics": [],
+    ":core:logging:api": [],
+    ":core:logging:android": [
+      ":core:logging:api"
+    ],
+    ":core:permissions:api": [],
+    ":core:permissions:android": [
+      ":core:permissions:api"
+    ],
+    ":core:platform:api": [
+      ":core:common"
+    ],
+    ":core:platform:android": [
+      ":core:common",
+      ":core:platform:api"
+    ]
+  },
+  "framework_features": [
+    "template",
+    "settings",
+    "system"
+  ],
+  "required_roots": [
+    "app",
+    "core",
+    "feature",
+    "host",
+    "config",
+    "docs",
+    "tools"
+  ],
+  "forbidden_legacy_roots": [
+    "apps",
+    "libs/yui",
+    "suite",
+    "standalone"
+  ]
+}

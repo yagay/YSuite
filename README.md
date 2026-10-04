@@ -25,4 +25,7 @@ This branch intentionally does **not** reuse the legacy YSuite feature/UI source
 - CI architecture, localization and full-build verification
 - Unit tests for navigation and diagnostics
 
+The foundation topology is now frozen by CI. New production features must pass the clean-room
+migration audit before they can be integrated.
+
 No legacy YSuite feature has been migrated.

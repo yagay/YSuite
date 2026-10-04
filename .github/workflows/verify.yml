@@ -18,9 +18,15 @@ jobs:
         run: python tools/verify_architecture.py
       - name: Verify localization parity
         run: python tools/verify_localization.py
+      - name: Verify frozen foundation
+        run: python tools/verify_foundation_contract.py
+      - name: Audit feature migrations
+        run: python tools/verify_feature_migration.py
       - name: Verify feature tooling
         run: |
-          python -m py_compile             tools/new_feature.py             tools/remove_feature.py             tools/verify_standalone_config.py
+          python -m py_compile             tools/new_feature.py             tools/remove_feature.py             tools/verify_standalone_config.py \
+            tools/verify_foundation_contract.py \
+            tools/verify_feature_migration.py
           python tools/new_feature.py ci_probe --dry-run
           python tools/verify_standalone_config.py
 
