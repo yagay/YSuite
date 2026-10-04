@@ -22,7 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private object YFilesBatchSelectionState {
+internal object YFilesBatchSelectionState {
     val selected = mutableStateMapOf<String, FileEntry>()
     var pendingMode by mutableStateOf<FileTransferMode?>(null)
 
