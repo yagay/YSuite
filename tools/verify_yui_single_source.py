@@ -19,12 +19,7 @@ YUI_CATALOG = YUI_ROOT / "YCatalog.kt"
 GENERATED_TOKENS = YUI_ROOT / "YGeneratedTokens.kt"
 NEW_FEATURE = ROOT / "tools/new_feature.py"
 TOKEN_GENERATOR = ROOT / "tools/generate_yui_tokens.py"
-YFLOAT_APP_UI = ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppUi.java"
 
-LEGACY_ADAPTERS = {
-    Path("apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppUi.java"),
-    Path("apps/YFloat/feature/src/main/java/com/yagay/YFloat/UiTokens.java"),
-}
 FORBIDDEN_NAMES = {
     "AppUi.java", "AppUi.kt", "UiTokens.java", "UiTokens.kt", "DesignTokens.java", "DesignTokens.kt",
     "FeatureTheme.kt", "FeatureTheme.java", "AppTheme.kt", "AppTheme.java",
@@ -68,7 +63,7 @@ MODULE_UI = {
         Path("apps/YFiles/feature/src/main/java/com/yagay/yfiles/MainActivity.kt"),
         ("YPageScaffold", "YPageRole.BROWSER", "YPageRole.MANAGER", "YPageRole.SETTINGS", "YPageList"),
     ),
-    "YFloat": (Path("apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppUi.java"), ("com.yagay.yui", "YViewLayout")),
+    "YFloat": (Path("apps/YFloat/feature/src/main/java/com/yagay/YFloat/MainActivity.java"), ("com.yagay.yui.YViewLayout",)),
     "YMiniGuard": (Path("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java"), ("YViewLayout",)),
     "YNFC": (Path("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt"), ("YManagerScaffold", "YPageList")),
     "YNotify": (Path("apps/YNotify/feature/src/main/res/layout/activity_main.xml"), ("Widget.YUI.", "TextAppearance.YUI.")),
@@ -133,8 +128,7 @@ def main() -> None:
         if not path.is_file() or path.name not in FORBIDDEN_NAMES:
             continue
         relative = path.relative_to(ROOT)
-        if relative not in LEGACY_ADAPTERS:
-            offenders.append(str(relative))
+        offenders.append(str(relative))
     if offenders:
         fail("feature-local UI systems are forbidden; use libs/yui instead: " + ", ".join(sorted(offenders)))
 
@@ -176,16 +170,9 @@ def main() -> None:
             + ", ".join(sorted(legacy_shells))
         )
 
-    yfloat = read(YFLOAT_APP_UI)
-    if "YViewLayout.fixedScreen" not in yfloat or "YView." not in yfloat:
-        fail("YFloat AppUi must remain a thin shared-YUI compatibility adapter")
-    # Exact attr match only. colorPrimaryContainer is valid and must not be rejected.
-    if re.search(r"com\.google\.android\.material\.R\.attr\.colorPrimary\b(?!Container)", yfloat):
-        fail("YFloat compatibility adapter must not reference the unavailable Material colorPrimary attr")
-    if "setMinHeight(dp(c, 40))" in yfloat or "setMinimumHeight(dp(c, 40))" in yfloat:
-        fail("YFloat compatibility actions must preserve the 48dp YUI touch target")
 
-    print("yui-single-source: OK modules=11 roles=active adaptive=yes forms=yes interactions=yes catalog=yes tokens=generated")
+
+    print("yui-single-source: OK modules=11 roles=active adaptive=yes forms=yes interactions=yes catalog=yes tokens=generated local-ui-frameworks=forbidden")
 
 
 if __name__ == "__main__":
