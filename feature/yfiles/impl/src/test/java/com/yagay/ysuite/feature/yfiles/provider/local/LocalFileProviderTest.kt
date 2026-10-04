@@ -143,7 +143,12 @@ class LocalFileProviderTest {
             )
 
             assertTrue(
-                moved is Outcome.Failure,
+                moved is Outcome.Success,
+            )
+            moved as Outcome.Success
+            assertEquals(
+                "two (1).txt",
+                moved.value.name,
             )
         } finally {
             root.deleteRecursively()
