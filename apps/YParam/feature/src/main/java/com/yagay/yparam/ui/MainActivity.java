@@ -88,7 +88,7 @@ public final class MainActivity extends AppCompatActivity implements YParamApp.S
                 false,
                 (button, checked) -> applyFilter());
 
-        progress = new ProgressBar(this);
+        progress = YViewLayout.progressIndicator(this);
         filters.addView(
                 progress,
                 new LinearLayout.LayoutParams(

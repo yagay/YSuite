@@ -180,16 +180,15 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     }
 
     private void addField(String key, String label, String defaultValue, String current, String hint) {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
+        LinearLayout box = YViewLayout.settingBlock(this);
         box.addView(text(label, 15, true));
         box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
         LinearLayout row = horizontal();
-        EditText edit = new EditText(this);
-        edit.setSingleLine(true);
-        edit.setHint(hint);
-        edit.setText(current == null ? "" : current);
+        EditText edit = YViewLayout.textInput(
+                this,
+                hint,
+                current == null ? "" : current,
+                true);
         row.addView(edit, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         Button clear = button(R.string.yparam_restore);
         clear.setOnClickListener(v -> edit.setText(""));
@@ -204,9 +203,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     }
 
     private Spinner addChoiceField(String key, String label, String defaultValue, String current, String hint, String[] presets) {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
+        LinearLayout box = YViewLayout.settingBlock(this);
         box.addView(text(label, 15, true));
         box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
 
@@ -215,10 +212,11 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         System.arraycopy(presets, 0, options, 1, presets.length);
         options[options.length - 1] = getString(R.string.yparam_custom);
 
-        EditText custom = new EditText(this);
-        custom.setSingleLine(true);
-        custom.setHint(hint);
-        custom.setText(current == null ? "" : current);
+        EditText custom = YViewLayout.textInput(
+                this,
+                hint,
+                current == null ? "" : current,
+                true);
 
         int selected = 0;
         if (current != null && !current.isBlank()) {
@@ -258,9 +256,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     }
 
     private Spinner addSpinner(String label, String defaultValue, String[] options, int selected) {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
+        LinearLayout box = YViewLayout.settingBlock(this);
         box.addView(text(label, 15, true));
         box.addView(text(getString(R.string.yparam_default_real_value, defaultValue), 12, false));
         Spinner s = YViewLayout.spinnerControl(
@@ -469,14 +465,12 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
 
     private void section(int resId) { YViewLayout.sectionHeader(root, getString(resId)); }
     private TextView text(String s, int sp, boolean bold) {
-        TextView v = new TextView(this);
-        v.setText(s);
-        if (bold) YView.styleItemTitle(v);
-        else YView.styleCaption(v);
-        return v;
+        return bold
+                ? YViewLayout.text(this, s, sp, true)
+                : YViewLayout.caption(this, s, sp);
     }
     private Button button(int resId) { return YViewLayout.secondaryButton(this, getString(resId)); }
-    private LinearLayout horizontal() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.HORIZONTAL); l.setGravity(Gravity.CENTER_VERTICAL); return l; }
+    private LinearLayout horizontal() { return YViewLayout.buttonRow(this); }
     private LinearLayout.LayoutParams weight() { return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); }
     private int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
     private void toast(int resId) { toast(getString(resId)); }
