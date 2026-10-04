@@ -117,16 +117,30 @@ fun YFilesFeatureScreen(
                 title = stringResource(R.string.yfiles_tab_tools),
                 navigationIcon = { YSuiteHostNavigationButton() },
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement =
-                        Arrangement.spacedBy(YSuiteSpacing.Small),
-                ) {
-                    toolsContent(
-                        browserState = state,
-                        toolState = toolState,
-                        tools = tools,
+                Column(modifier = Modifier.fillMaxSize()) {
+                    YFileSectionSwitcher(
+                        filesLabel = stringResource(R.string.yfiles_tab_files),
+                        toolsLabel = stringResource(R.string.yfiles_tab_tools),
+                        settingsLabel = stringResource(R.string.yfiles_tab_settings),
+                        selectedId = "tools",
+                        onSelect = { id ->
+                            when (id) {
+                                "files" -> browser.setTab(YFilesTab.Files)
+                                "settings" -> browser.setTab(YFilesTab.Settings)
+                            }
+                        },
                     )
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement =
+                            Arrangement.spacedBy(YSuiteSpacing.Small),
+                    ) {
+                        toolsContent(
+                            browserState = state,
+                            toolState = toolState,
+                            tools = tools,
+                        )
+                    }
                 }
             }
         YFilesTab.Settings ->

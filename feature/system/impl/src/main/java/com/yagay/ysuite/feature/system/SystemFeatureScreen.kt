@@ -25,7 +25,8 @@ import com.yagay.ysuite.permissions.api.PermissionStatus
 import com.yagay.ysuite.platform.api.CapabilityKind
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.PlatformCapabilityMonitor
-import com.yagay.ysuite.ui.YSuiteDashboardPage
+import com.yagay.ysuite.productui.dashboard.YDashboardSurface
+import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 import com.yagay.ysuite.ui.rememberYSuitePermissionRequester
 
 @Composable
@@ -52,9 +53,9 @@ fun SystemFeatureScreen(
         onResult = model::applyPermissionResult,
     )
 
-    YSuiteDashboardPage(
+    YDashboardSurface(
         title = stringResource(R.string.system_title),
-        subtitle = stringResource(R.string.system_summary),
+        navigationIcon = { YSuiteHostNavigationButton() },
     ) { _ ->
         YSuiteSection(
             title = stringResource(R.string.system_platform),
