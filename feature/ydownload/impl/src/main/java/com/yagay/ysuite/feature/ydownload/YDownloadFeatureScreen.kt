@@ -2,6 +2,7 @@ package com.yagay.ysuite.feature.ydownload
 
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -99,6 +100,26 @@ fun YDownloadFeatureScreen(
                     ),
                 )
             }
+        }
+
+    val downloadFolderLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val flags =
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            runCatching {
+                context.contentResolver
+                    .takePersistableUriPermission(
+                        uri,
+                        flags,
+                    )
+            }
+            model.updateDestinationTreeUri(
+                uri.toString(),
+            )
         }
 
     val tabs =
@@ -297,6 +318,13 @@ fun YDownloadFeatureScreen(
                     cookies = draft.cookies,
                     username = draft.username,
                     password = draft.password,
+                    destinationText =
+                        draft.destinationTreeUri
+                            ?: state.settings.defaultTreeUri
+                            ?: stringResource(
+                                R.string
+                                    .ydownload_default_folder_system,
+                            ),
                     metadataText =
                         metadataText(
                             totalBytes =
@@ -342,6 +370,19 @@ fun YDownloadFeatureScreen(
                         stringResource(
                             R.string.ydownload_password,
                         ),
+                    destination =
+                        stringResource(
+                            R.string.ydownload_save_folder,
+                        ),
+                    chooseFolder =
+                        stringResource(
+                            R.string.ydownload_choose_folder,
+                        ),
+                    useDefaultFolder =
+                        stringResource(
+                            R.string
+                                .ydownload_use_default_folder,
+                        ),
                     fetch =
                         stringResource(
                             R.string.ydownload_fetch,
@@ -372,6 +413,12 @@ fun YDownloadFeatureScreen(
                 model::updateUsername,
             onPasswordChange =
                 model::updatePassword,
+            onChooseFolder = {
+                downloadFolderLauncher.launch(null)
+            },
+            onUseDefaultFolder = {
+                model.updateDestinationTreeUri(null)
+            },
             onFetch = model::fetchMetadata,
             onAddQueue = model::addToQueue,
             onStart = model::addAndStart,
@@ -557,6 +604,17 @@ private fun YDownloadItem.properties():
                     R.string.ydownload_property_mime,
                 ),
                 mimeType.ifBlank { "--" },
+            ),
+        )
+        add(
+            QdmDownloadProperty(
+                stringResource(
+                    R.string.ydownload_property_save_folder,
+                ),
+                destinationTreeUri
+                    ?: stringResource(
+                        R.string.ydownload_default_folder_system,
+                    ),
             ),
         )
         add(

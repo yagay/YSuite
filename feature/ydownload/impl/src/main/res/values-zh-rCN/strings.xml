@@ -58,6 +58,9 @@
     <string name="ydownload_default_folder">默认保存目录</string>
     <string name="ydownload_default_folder_system">Download/YDownload</string>
     <string name="ydownload_use_system_folder">恢复系统默认目录</string>
+    <string name="ydownload_save_folder">保存目录</string>
+    <string name="ydownload_choose_folder">选择</string>
+    <string name="ydownload_use_default_folder">使用默认目录</string>
     <string name="ydownload_max_concurrent">最大同时下载数</string>
     <string name="ydownload_speed_limit">全局速度限制</string>
     <string name="ydownload_unlimited">不限速</string>
@@ -90,6 +93,7 @@
     <string name="ydownload_property_size">大小</string>
     <string name="ydownload_property_downloaded">已下载</string>
     <string name="ydownload_property_mime">MIME 类型</string>
+    <string name="ydownload_property_save_folder">保存目录</string>
     <string name="ydownload_property_resumable">断点续传</string>
     <string name="ydownload_property_added">添加时间</string>
     <string name="ydownload_property_completed">完成时间</string>

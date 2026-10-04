@@ -58,6 +58,9 @@
     <string name="ydownload_default_folder">Default save folder</string>
     <string name="ydownload_default_folder_system">Download/YDownload</string>
     <string name="ydownload_use_system_folder">Use system default folder</string>
+    <string name="ydownload_save_folder">Save folder</string>
+    <string name="ydownload_choose_folder">Choose</string>
+    <string name="ydownload_use_default_folder">Use default folder</string>
     <string name="ydownload_max_concurrent">Maximum concurrent downloads</string>
     <string name="ydownload_speed_limit">Global speed limit</string>
     <string name="ydownload_unlimited">Unlimited</string>
@@ -90,6 +93,7 @@
     <string name="ydownload_property_size">Size</string>
     <string name="ydownload_property_downloaded">Downloaded</string>
     <string name="ydownload_property_mime">MIME type</string>
+    <string name="ydownload_property_save_folder">Save folder</string>
     <string name="ydownload_property_resumable">Resumable</string>
     <string name="ydownload_property_added">Added</string>
     <string name="ydownload_property_completed">Completed</string>

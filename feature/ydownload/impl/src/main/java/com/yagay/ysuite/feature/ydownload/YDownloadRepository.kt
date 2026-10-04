@@ -68,6 +68,10 @@ class YDownloadRepository(
                     put(COL_COOKIES, request.cookies)
                     put(COL_USERNAME, request.username)
                     put(COL_PASSWORD, request.password)
+                    put(
+                        COL_DESTINATION_TREE_URI,
+                        request.destinationTreeUri,
+                    )
                 }
                 helper.writableDatabase.insertOrThrow(
                     TABLE,
@@ -304,6 +308,8 @@ class YDownloadRepository(
             cookies = nullableString(COL_COOKIES),
             username = nullableString(COL_USERNAME),
             password = nullableString(COL_PASSWORD),
+            destinationTreeUri =
+                nullableString(COL_DESTINATION_TREE_URI),
         )
 
     private fun Cursor.string(name: String): String =
@@ -356,7 +362,8 @@ class YDownloadRepository(
                     $COL_USER_AGENT TEXT,
                     $COL_COOKIES TEXT,
                     $COL_USERNAME TEXT,
-                    $COL_PASSWORD TEXT
+                    $COL_PASSWORD TEXT,
+                    $COL_DESTINATION_TREE_URI TEXT
                 )
                 """.trimIndent(),
             )
@@ -366,12 +373,19 @@ class YDownloadRepository(
             db: SQLiteDatabase,
             oldVersion: Int,
             newVersion: Int,
-        ) = Unit
+        ) {
+            if (oldVersion < 2) {
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_DESTINATION_TREE_URI TEXT",
+                )
+            }
+        }
     }
 
     private companion object {
         const val DB_NAME = "ydownload.db"
-        const val DB_VERSION = 1
+        const val DB_VERSION = 2
         const val TABLE = "downloads"
         const val COL_ID = "id"
         const val COL_URL = "url"
@@ -393,6 +407,8 @@ class YDownloadRepository(
         const val COL_COOKIES = "cookies"
         const val COL_USERNAME = "username"
         const val COL_PASSWORD = "password"
+        const val COL_DESTINATION_TREE_URI =
+            "destination_tree_uri"
 
         val ALL_COLUMNS = arrayOf(
             COL_ID,
@@ -415,6 +431,7 @@ class YDownloadRepository(
             COL_COOKIES,
             COL_USERNAME,
             COL_PASSWORD,
+            COL_DESTINATION_TREE_URI,
         )
     }
 }

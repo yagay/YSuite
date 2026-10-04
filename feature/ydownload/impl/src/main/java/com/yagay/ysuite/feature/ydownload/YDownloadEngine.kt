@@ -442,7 +442,8 @@ class YDownloadEngine(
         item: YDownloadItem,
     ): Uri {
         val customTree =
-            settings.settings.value.defaultTreeUri
+            item.destinationTreeUri
+                ?: settings.settings.value.defaultTreeUri
         if (!customTree.isNullOrBlank()) {
             val treeUri = Uri.parse(customTree)
             val parent =

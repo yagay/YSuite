@@ -7,11 +7,12 @@ Upstream license: Apache-2.0
 ## Scope
 
 YDownload is the YSuite download manager. It implements persistent HTTP/HTTPS download tasks,
-metadata probing, public Download/YDownload output, optional SAF destination folders, Range-based
-resume, foreground background execution, queueing, search, state tabs, pause/resume/cancel/retry,
+metadata probing, public Download/YDownload output, global and per-task SAF destination folders,
+Range-based resume, foreground background execution, queueing, search, state tabs, pause/resume/cancel/retry,
 completion opening, task removal, batch URL import and clipboard import.
 
-The integrated settings page controls the default save folder, maximum concurrent downloads,
+The add-download dialog can override the save folder per task and persists that choice with the
+task. The integrated settings page controls the default save folder, maximum concurrent downloads,
 global bandwidth limit, Wi-Fi-only mode, download notifications and default User-Agent. These values
 are wired into the engine/runtime rather than being presentation-only settings.
 

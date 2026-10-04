@@ -40,6 +40,7 @@ data class YDownloadItem(
     val cookies: String?,
     val username: String?,
     val password: String?,
+    val destinationTreeUri: String? = null,
 ) {
     val progress: Float?
         get() =
@@ -62,6 +63,7 @@ data class YDownloadRequest(
     val cookies: String? = null,
     val username: String? = null,
     val password: String? = null,
+    val destinationTreeUri: String? = null,
 )
 
 data class YDownloadMetadata(

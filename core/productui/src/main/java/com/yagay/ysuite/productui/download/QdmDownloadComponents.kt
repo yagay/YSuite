@@ -443,6 +443,7 @@ data class QdmAddDownloadModel(
     val cookies: String,
     val username: String,
     val password: String,
+    val destinationText: String,
     val metadataText: String?,
     val loading: Boolean,
     val error: String?,
@@ -457,6 +458,9 @@ data class QdmAddDownloadLabels(
     val cookies: String,
     val username: String,
     val password: String,
+    val destination: String,
+    val chooseFolder: String,
+    val useDefaultFolder: String,
     val fetch: String,
     val addQueue: String,
     val start: String,
@@ -474,6 +478,8 @@ fun QdmAddDownloadDialog(
     onCookiesChange: (String) -> Unit,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
+    onChooseFolder: () -> Unit,
+    onUseDefaultFolder: () -> Unit,
     onFetch: () -> Unit,
     onAddQueue: () -> Unit,
     onStart: () -> Unit,
@@ -576,6 +582,44 @@ fun QdmAddDownloadDialog(
                         color =
                             MaterialTheme.colorScheme.error,
                     )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            YSuiteSpacing.Small,
+                        ),
+                    verticalAlignment =
+                        Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = labels.destination,
+                            style =
+                                MaterialTheme.typography.labelSmall,
+                            color =
+                                MaterialTheme.colorScheme
+                                    .onSurfaceVariant,
+                        )
+                        Text(
+                            text = model.destinationText,
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onChooseFolder,
+                    ) {
+                        Text(labels.chooseFolder)
+                    }
+                }
+                TextButton(
+                    onClick = onUseDefaultFolder,
+                ) {
+                    Text(labels.useDefaultFolder)
                 }
 
                 OutlinedTextField(

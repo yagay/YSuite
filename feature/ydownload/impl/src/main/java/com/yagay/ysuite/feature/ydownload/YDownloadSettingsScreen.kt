@@ -103,7 +103,7 @@ fun YDownloadSettingsScreen(
                 settings.maxConcurrentDownloads
                     .toString(),
             choices =
-                (1..5).map { value ->
+                (1..10).map { value ->
                     ComposeSettingsChoice(
                         id = value.toString(),
                         label = value.toString(),

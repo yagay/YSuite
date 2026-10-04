@@ -44,6 +44,7 @@ data class YDownloadAddDraft(
     val cookies: String = "",
     val username: String = "",
     val password: String = "",
+    val destinationTreeUri: String? = null,
     val loading: Boolean = false,
     val error: String? = null,
 )
@@ -249,6 +250,11 @@ class YDownloadViewModel(
             copy(password = value)
         }
 
+    fun updateDestinationTreeUri(value: String?) =
+        updateDraft {
+            copy(destinationTreeUri = value)
+        }
+
     fun fetchMetadata() {
         fetchJob?.cancel()
         fetchMetadataInternal()
@@ -387,6 +393,9 @@ class YDownloadViewModel(
                         userAgent =
                             state.value.settings
                                 .defaultUserAgent,
+                        destinationTreeUri =
+                            state.value.settings
+                                .defaultTreeUri,
                     ),
                 queued = true,
             )
@@ -422,8 +431,30 @@ class YDownloadViewModel(
     }
 
     fun redownload(id: String) {
-        item(id)?.let {
-            showAddDialog(it.url)
+        val source = item(id) ?: return
+        fetchJob?.cancel()
+        mutableState.update { current ->
+            current.copy(
+                addDialogVisible = true,
+                addDraft =
+                    YDownloadAddDraft(
+                        url = source.url,
+                        fileName = source.fileName,
+                        mimeType = source.mimeType,
+                        totalBytes = source.totalBytes,
+                        supportsRanges = source.supportsRanges,
+                        referer = source.referer.orEmpty(),
+                        userAgent =
+                            source.userAgent
+                                ?: current.settings
+                                    .defaultUserAgent,
+                        cookies = source.cookies.orEmpty(),
+                        username = source.username.orEmpty(),
+                        password = source.password.orEmpty(),
+                        destinationTreeUri =
+                            source.destinationTreeUri,
+                    ),
+            )
         }
     }
 
@@ -504,9 +535,10 @@ class YDownloadViewModel(
     }
 
     fun openFolder(id: String) {
-        if (item(id) == null) return
+        val item = item(id) ?: return
         val customTree =
-            state.value.settings.defaultTreeUri
+            item.destinationTreeUri
+                ?: state.value.settings.defaultTreeUri
         val uri =
             customTree?.let(Uri::parse)
                 ?: Uri.parse(
@@ -618,6 +650,10 @@ class YDownloadViewModel(
                                 draft.password.takeIf(
                                     String::isNotBlank,
                                 ),
+                            destinationTreeUri =
+                                draft.destinationTreeUri
+                                    ?: state.value.settings
+                                        .defaultTreeUri,
                         ),
                     queued = !startNow,
                 )
