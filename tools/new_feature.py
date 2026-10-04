@@ -5,6 +5,45 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
+PRODUCTS = {
+    "Dashboard": (
+        "com.yagay.ysuite.productui.dashboard.YDashboardSurface",
+        "YDashboardSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
+    ),
+    "FileManager": (
+        "com.yagay.ysuite.productui.filemanager.YFileManagerScaffold",
+        "YFileManagerScaffold(title = title, navigationIcon = { YSuiteHostNavigationButton() }, breadcrumb = {}, content = { _ -> body() })",
+    ),
+    "Browser": (
+        "com.yagay.ysuite.productui.browser.YBrowserWorkspace",
+        "YBrowserWorkspace(navigationIcon = { YSuiteHostNavigationButton() }, addressBar = {}, content = { _ -> body() })",
+    ),
+    "Settings": (
+        "com.yagay.ysuite.productui.settings.YSettingsSurface",
+        "YSettingsSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
+    ),
+    "LogViewer": (
+        "com.yagay.ysuite.productui.logs.YLogViewerSurface",
+        "YLogViewerSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, filters = {}, content = { _ -> body() })",
+    ),
+    "DownloadManager": (
+        "com.yagay.ysuite.productui.manager.YDownloadManagerSurface",
+        "YDownloadManagerSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, filterBar = {}, content = { _ -> body() })",
+    ),
+    "TaskManager": (
+        "com.yagay.ysuite.productui.manager.YTaskManagerSurface",
+        "YTaskManagerSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, filters = {}, content = { _ -> body() })",
+    ),
+    "AutomationStudio": (
+        "com.yagay.ysuite.productui.automation.YAutomationStudioSurface",
+        "YAutomationStudioSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, library = {}, editor = { _ -> body() })",
+    ),
+    "Tool": (
+        "com.yagay.ysuite.productui.tool.YToolSurface",
+        "YToolSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
+    ),
+}
+
 def normalize(raw: str) -> str:
     value = re.sub(r"[^a-z0-9]+", "", raw.lower())
     if not value:
@@ -20,14 +59,23 @@ def write(path: Path, content: str):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Create a clean YSuite feature api/impl pair."
+        description="Create a YSuite feature with an explicit product UI."
     )
     parser.add_argument("name")
+    parser.add_argument(
+        "--product",
+        required=True,
+        choices=sorted(PRODUCTS),
+        help="Required product-level UI contract.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     feature = normalize(args.name)
     cls = class_name(feature)
+    product = args.product
+    surface_import, surface_call = PRODUCTS[product]
+
     base = ROOT / "feature" / feature
     if base.exists():
         raise SystemExit(f"Feature already exists: {feature}")
@@ -54,6 +102,7 @@ def main():
     ]
 
     if args.dry_run:
+        print(f"product={product}")
         print("\n".join(str(path.relative_to(ROOT)) for path in planned))
         return
 
@@ -116,18 +165,18 @@ object {cls}FeatureContract : FeatureRegistration {{
 
     screen = f"""package com.yagay.ysuite.feature.{feature}
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.yagay.ysuite.designsystem.component.YSuiteListItem
 import com.yagay.ysuite.designsystem.component.YSuiteSection
-import com.yagay.ysuite.ui.YSuiteDashboardPage
+import {surface_import}
+import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 
 @Composable
 fun {cls}FeatureScreen() {{
-    YSuiteDashboardPage(
-        title = stringResource(R.string.{feature}_title),
-        subtitle = stringResource(R.string.{feature}_summary),
-    ) {{ _ ->
+    val title = stringResource(R.string.{feature}_title)
+    {surface_call.replace("body()", f"""Column {{
         YSuiteSection(
             title = stringResource(R.string.{feature}_section),
         ) {{
@@ -135,7 +184,7 @@ fun {cls}FeatureScreen() {{
                 title = stringResource(R.string.{feature}_ready),
             )
         }}
-    }}
+    }}""")}
 }}
 """
 
@@ -144,10 +193,12 @@ fun {cls}FeatureScreen() {{
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.yagay.ysuite.feature.{feature}.api.{cls}FeatureContract
+import com.yagay.ysuite.productui.ProductSurfaceKind
 import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
 
 object {cls}FeatureUiRegistration : YSuiteFeatureUiRegistration {{
     override val contract = {cls}FeatureContract
+    override val productSurface = ProductSurfaceKind.{product}
 
     @Composable
     override fun label(): String =
@@ -164,7 +215,7 @@ object {cls}FeatureUiRegistration : YSuiteFeatureUiRegistration {{
     <string name="{feature}_title">{cls}</string>
     <string name="{feature}_summary">YSuite feature module.</string>
     <string name="{feature}_section">Overview</string>
-    <string name="{feature}_ready">Feature scaffold ready</string>
+    <string name="{feature}_ready">Product surface scaffold ready</string>
 </resources>
 """
 
@@ -172,23 +223,21 @@ object {cls}FeatureUiRegistration : YSuiteFeatureUiRegistration {{
     <string name="{feature}_title">{cls}</string>
     <string name="{feature}_summary">YSuite 功能模块。</string>
     <string name="{feature}_section">概览</string>
-    <string name="{feature}_ready">功能骨架已就绪</string>
+    <string name="{feature}_ready">产品级页面骨架已就绪</string>
 </resources>
 """
 
     migration_doc = f"""# Feature migration: {cls}
 
+Product surface: {product}
+
 ## Scope
 
-Describe the user-visible behaviours being reimplemented.
+Describe the product workflow being implemented.
 
-## Clean-room implementation
+## Product UI
 
-Describe the new implementation. Do not paste or transplant old source.
-
-## UI
-
-List shared YSuite page contracts and design-system components.
+Use the required {product} surface. Do not replace it with a generic page.
 
 ## Platform capabilities
 
@@ -200,7 +249,7 @@ English and Simplified Chinese resources are maintained together.
 
 ## Tests
 
-List business/state tests and regression coverage.
+List business/state tests and product UI regression coverage.
 
 ## Standalone
 
@@ -244,7 +293,9 @@ Confirm the feature builds through the generic standalone host.
             f"com.yagay.ysuite.{feature}.standalone\n"
         )
 
-    print(f"Created feature:{feature}:api and feature:{feature}:impl")
+    print(
+        f"Created feature:{feature} with ProductSurfaceKind.{product}"
+    )
 
 if __name__ == "__main__":
     main()

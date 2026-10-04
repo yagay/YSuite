@@ -6,6 +6,7 @@
     ":core:designsystem": [],
     ":core:ui": [
       ":core:designsystem",
+      ":core:productui",
       ":core:navigation",
       ":core:permissions:api",
       ":core:resources",
@@ -33,6 +34,9 @@
     ":core:platform:android": [
       ":core:common",
       ":core:platform:api"
+    ],
+    ":core:productui": [
+      ":core:designsystem"
     ]
   },
   "framework_features": [

@@ -20,6 +20,26 @@ pure_api_roots = (
     "feature/",
 )
 
+generic_feature_page_symbols = (
+    "YSuiteDashboardPage",
+    "YSuiteListPage",
+    "YSuiteDetailPage",
+    "YSuiteSettingsPage",
+    "YSuiteLazyListPage",
+)
+
+product_surface_requirements = {
+    "Dashboard": "YDashboardSurface",
+    "FileManager": "YFileManagerScaffold",
+    "Browser": "YBrowserWorkspace",
+    "Settings": "YSettingsSurface",
+    "LogViewer": "YLogViewerSurface",
+    "DownloadManager": "YDownloadManagerSurface",
+    "TaskManager": "YTaskManagerSurface",
+    "AutomationStudio": "YAutomationStudioSurface",
+    "Tool": "YToolSurface",
+}
+
 android_adapter_packages = (
     "com.yagay.ysuite.platform.android",
     "com.yagay.ysuite.logging.android",
@@ -40,6 +60,13 @@ for path in ROOT.rglob("*"):
     text = path.read_text(encoding="utf-8", errors="ignore")
 
     if rel.startswith("feature/") and "/impl/" in rel:
+        for generic_symbol in generic_feature_page_symbols:
+            if generic_symbol in text:
+                violations.append(
+                    f"{rel}: generic feature page is forbidden: "
+                    f"{generic_symbol}; use a product surface"
+                )
+
         if "androidx.compose.material3." in text:
             violations.append(
                 f"{rel}: feature imports Material3 directly; "
@@ -130,6 +157,39 @@ for gradle in ROOT.glob("feature/*/impl/build.gradle.kts"):
                 f"{rel}: feature implementation dependency is forbidden: "
                 f"{dependency}"
             )
+
+for registration in ROOT.glob(
+    "feature/*/impl/src/main/java/**/**FeatureUiRegistration.kt"
+):
+    rel = registration.relative_to(ROOT).as_posix()
+    text = registration.read_text(encoding="utf-8", errors="ignore")
+
+    match = re.search(
+        r"override\s+val\s+productSurface\s*=\s*"
+        r"ProductSurfaceKind\.([A-Za-z]+)",
+        text,
+    )
+    if match is None:
+        violations.append(
+            f"{rel}: feature must explicitly declare productSurface"
+        )
+        continue
+
+    kind = match.group(1)
+    required = product_surface_requirements.get(kind)
+    if required is None:
+        continue
+
+    feature_root = registration.parents[5]
+    feature_sources = "\n".join(
+        source.read_text(encoding="utf-8", errors="ignore")
+        for source in feature_root.rglob("*.kt")
+    )
+    if required not in feature_sources:
+        violations.append(
+            f"{rel}: ProductSurfaceKind.{kind} requires "
+            f"{required} in the feature implementation"
+        )
 
 if violations:
     print("\n".join(sorted(set(violations))))
