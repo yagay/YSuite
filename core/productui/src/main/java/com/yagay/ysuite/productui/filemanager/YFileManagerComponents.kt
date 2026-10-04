@@ -1,18 +1,20 @@
 package com.yagay.ysuite.productui.filemanager
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Delete
@@ -29,17 +31,26 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,6 +82,11 @@ enum class YFileProductSourceKind {
     Remote,
 }
 
+data class FileExplorerSortOption(
+    val id: String,
+    val label: String,
+)
+
 @Composable
 fun YFileBreadcrumbBar(
     path: String,
@@ -96,7 +112,7 @@ fun YFileBreadcrumbBar(
             horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.XSmall),
         ) {
             IconButton(onClick = onUp) {
-                Icon(Icons.Default.ArrowUpward, contentDescription = null)
+                Icon(Icons.Default.ArrowBack, contentDescription = null)
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -109,6 +125,8 @@ fun YFileBreadcrumbBar(
                     text = providerLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             IconButton(onClick = onFavorite) {
@@ -127,97 +145,134 @@ fun YFileBreadcrumbBar(
 }
 
 @Composable
-fun YFileSearchCommandBar(
+fun FileExplorerSearchBar(
     query: String,
     searchLabel: String,
-    showHiddenLabel: String,
-    recursiveLabel: String,
-    showHidden: Boolean,
-    recursive: Boolean,
     onQueryChange: (String) -> Unit,
-    onShowHiddenChange: (Boolean) -> Unit,
-    onRecursiveChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
         modifier = modifier
             .fillMaxWidth()
             .padding(
                 horizontal = YSuiteSpacing.Small,
                 vertical = YSuiteSpacing.XSmall,
             ),
-        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.XSmall),
-    ) {
-        TextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            placeholder = { Text(searchLabel) },
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = null)
-            },
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            YFileToggleChip(
-                label = showHiddenLabel,
-                checked = showHidden,
-                onCheckedChange = onShowHiddenChange,
+        singleLine = true,
+        placeholder = { Text(searchLabel) },
+        leadingIcon = {
+            Icon(Icons.Default.Search, contentDescription = null)
+        },
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    )
+}
+
+@Composable
+fun RowScope.FileExplorerTopActions(
+    sortOptions: List<FileExplorerSortOption>,
+    selectedSortId: String,
+    onSortSelected: (String) -> Unit,
+    showHidden: Boolean,
+    showHiddenLabel: String,
+    onShowHiddenChange: (Boolean) -> Unit,
+    recursive: Boolean,
+    recursiveLabel: String,
+    onRecursiveChange: (Boolean) -> Unit,
+) {
+    var sortExpanded by remember { mutableStateOf(false) }
+    var optionsExpanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { sortExpanded = true }) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Sort,
+                contentDescription = null,
             )
-            YFileToggleChip(
-                label = recursiveLabel,
-                checked = recursive,
-                onCheckedChange = onRecursiveChange,
+        }
+        DropdownMenu(
+            expanded = sortExpanded,
+            onDismissRequest = { sortExpanded = false },
+        ) {
+            sortOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text =
+                                if (option.id == selectedSortId) {
+                                    "✓ " + option.label
+                                } else {
+                                    option.label
+                                },
+                        )
+                    },
+                    onClick = {
+                        sortExpanded = false
+                        onSortSelected(option.id)
+                    },
+                )
+            }
+        }
+    }
+
+    Box {
+        IconButton(onClick = { optionsExpanded = true }) {
+            Icon(
+                imageVector =
+                    if (showHidden) Icons.Default.Visibility
+                    else Icons.Default.VisibilityOff,
+                contentDescription = null,
+            )
+        }
+        DropdownMenu(
+            expanded = optionsExpanded,
+            onDismissRequest = { optionsExpanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(showHiddenLabel) },
+                leadingIcon = {
+                    Checkbox(
+                        checked = showHidden,
+                        onCheckedChange = null,
+                    )
+                },
+                onClick = {
+                    onShowHiddenChange(!showHidden)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(recursiveLabel) },
+                leadingIcon = {
+                    Checkbox(
+                        checked = recursive,
+                        onCheckedChange = null,
+                    )
+                },
+                onClick = {
+                    onRecursiveChange(!recursive)
+                },
             )
         }
     }
 }
 
 @Composable
-private fun YFileToggleChip(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+fun FileExplorerBackButton(
+    contentDescription: String?,
+    onClick: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier.clickable {
-            onCheckedChange(!checked)
-        },
-        color =
-            if (checked) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.extraLarge,
-    ) {
-        Row(
-            modifier = Modifier.padding(
-                horizontal = YSuiteSpacing.Small,
-                vertical = YSuiteSpacing.XSmall,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.XSmall),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-            )
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-            )
-        }
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = contentDescription,
+        )
     }
 }
 
@@ -229,9 +284,13 @@ fun YFileSourcePane(
     favoritesLabel: String,
     recentLabel: String,
     trashLabel: String,
+    toolsLabel: String,
+    settingsLabel: String,
     activeSectionId: String,
     onSourceSelected: (String) -> Unit,
     onSectionSelected: (String) -> Unit,
+    onToolsSelected: () -> Unit,
+    onSettingsSelected: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -274,6 +333,28 @@ fun YFileSourcePane(
             icon = Icons.Default.Delete,
             selected = activeSectionId == "trash",
             onClick = { onSectionSelected("trash") },
+        )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = YSuiteSpacing.XSmall),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        ) {
+            Box(modifier = Modifier.size(width = 1.dp, height = 1.dp))
+        }
+
+        YFileSourceRow(
+            label = toolsLabel,
+            icon = Icons.Default.Build,
+            selected = false,
+            onClick = onToolsSelected,
+        )
+        YFileSourceRow(
+            label = settingsLabel,
+            icon = Icons.Default.Settings,
+            selected = false,
+            onClick = onSettingsSelected,
         )
     }
 }
@@ -390,8 +471,9 @@ fun YFileEntryRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun YFileSelectionBar(
+fun FileExplorerSelectionTopBar(
     countLabel: String,
     copyLabel: String,
     moveLabel: String,
@@ -403,92 +485,32 @@ fun YFileSelectionBar(
     onTrash: () -> Unit,
     onDelete: () -> Unit,
     onClear: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        tonalElevation = 4.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(YSuiteSpacing.Small),
-            horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = countLabel,
-                style = MaterialTheme.typography.labelLarge,
-            )
-            YFileAction(copyLabel, Icons.Default.ContentCopy, onCopy)
-            YFileAction(moveLabel, Icons.Default.ContentCut, onMove)
-            YFileAction(trashLabel, Icons.Default.Delete, onTrash)
-            YFileAction(deleteLabel, Icons.Default.Warning, onDelete)
-            YFileAction(clearLabel, Icons.Default.MoreVert, onClear)
-        }
-    }
-}
-
-@Composable
-private fun YFileAction(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
-    FilledTonalButton(onClick = onClick) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(label)
-    }
-}
-
-@Composable
-fun YFileSectionSwitcher(
-    filesLabel: String,
-    toolsLabel: String,
-    settingsLabel: String,
-    selectedId: String,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(YSuiteSpacing.XSmall),
-            horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.XSmall),
-        ) {
-            listOf(
-                "files" to filesLabel,
-                "tools" to toolsLabel,
-                "settings" to settingsLabel,
-            ).forEach { (id, label) ->
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onSelect(id) },
-                    color =
-                        if (selectedId == id) MaterialTheme.colorScheme.primaryContainer
-                        else Color.Transparent,
-                    shape = MaterialTheme.shapes.medium,
-                ) {
-                    Text(
-                        text = label,
-                        modifier = Modifier.padding(YSuiteSpacing.Small),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
+    TopAppBar(
+        title = { Text(countLabel) },
+        navigationIcon = {
+            IconButton(onClick = onClear) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = clearLabel,
+                )
             }
-        }
-    }
+        },
+        actions = {
+            IconButton(onClick = onCopy) {
+                Icon(Icons.Default.ContentCopy, contentDescription = copyLabel)
+            }
+            IconButton(onClick = onMove) {
+                Icon(Icons.Default.ContentCut, contentDescription = moveLabel)
+            }
+            IconButton(onClick = onTrash) {
+                Icon(Icons.Default.Delete, contentDescription = trashLabel)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Warning, contentDescription = deleteLabel)
+            }
+        },
+    )
 }
 
 private fun YFileProductItemKind.icon(): ImageVector =
