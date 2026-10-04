@@ -43,6 +43,7 @@ import com.yagay.yui.YViewFilterBar;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewPage;
 import com.yagay.yui.YViewSection;
+import com.yagay.yui.YViewRadioGroup;
 import com.yagay.YNotify.util.DiagnosticsExporter;
 import com.yagay.YNotify.util.SearchQuery;
 import com.yagay.YNotify.util.ServiceGrantStatus;
@@ -141,8 +142,7 @@ public class MainActivity extends AppCompatActivity {
                 null);
         toolbar = page.toolbar;
 
-        LinearLayout main = new LinearLayout(this);
-        main.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout main = YViewLayout.contentColumn(this, false);
         page.content.addView(main, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -197,13 +197,7 @@ public class MainActivity extends AppCompatActivity {
         main.addView(list, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        LinearLayout settingsRoot = new LinearLayout(this);
-        settingsRoot.setOrientation(LinearLayout.VERTICAL);
-        settingsRoot.setPadding(
-                YView.screenHorizontal(this),
-                YView.screenVertical(this),
-                YView.screenHorizontal(this),
-                YView.sectionGap(this));
+        LinearLayout settingsRoot = YViewLayout.contentColumn(this, true);
         settingsPanel = YViewLayout.scrollPage(this, settingsRoot);
         settingsPanel.setVisibility(View.GONE);
         main.addView(settingsPanel, new LinearLayout.LayoutParams(
@@ -213,8 +207,7 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 getString(R.string.ynotify_runtime_status),
                 null);
-        runtimeStatus = new TextView(this);
-        YView.styleBody(runtimeStatus);
+        runtimeStatus = YViewLayout.text(this, "", 14, false);
         runtimeStatus.setTextIsSelectable(true);
         runtime.body.addView(runtimeStatus);
         YViewLayout.addSection(settingsRoot, runtime);
@@ -229,9 +222,10 @@ public class MainActivity extends AppCompatActivity {
         diagnostics.body.addView(btnExportDiagnostics, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        diagnosticsStatus = new TextView(this);
-        diagnosticsStatus.setText(R.string.ynotify_diagnostics_location);
-        YView.styleCaption(diagnosticsStatus);
+        diagnosticsStatus = YViewLayout.caption(
+                this,
+                getString(R.string.ynotify_diagnostics_location),
+                13);
         diagnostics.body.addView(diagnosticsStatus);
         YViewLayout.addSection(settingsRoot, diagnostics);
 
@@ -245,9 +239,10 @@ public class MainActivity extends AppCompatActivity {
         repair.body.addView(btnHistoryRepair, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        repairStatus = new TextView(this);
-        repairStatus.setText(R.string.ynotify_not_scanned);
-        YView.styleCaption(repairStatus);
+        repairStatus = YViewLayout.caption(
+                this,
+                getString(R.string.ynotify_not_scanned),
+                13);
         repair.body.addView(repairStatus);
         YViewLayout.addSection(settingsRoot, repair);
 
@@ -255,15 +250,19 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 getString(R.string.ynotify_retention),
                 null);
-        retentionGroup = new RadioGroup(this);
-        retention7 = radio(getString(R.string.ynotify_days_7));
-        retention30 = radio(getString(R.string.ynotify_days_30));
-        retention90 = radio(getString(R.string.ynotify_days_90));
-        retentionForever = radio(getString(R.string.ynotify_forever));
-        retentionGroup.addView(retention7);
-        retentionGroup.addView(retention30);
-        retentionGroup.addView(retention90);
-        retentionGroup.addView(retentionForever);
+        YViewRadioGroup retentionChoices = YViewLayout.radioGroup(
+                this,
+                new String[] {
+                        getString(R.string.ynotify_days_7),
+                        getString(R.string.ynotify_days_30),
+                        getString(R.string.ynotify_days_90),
+                        getString(R.string.ynotify_forever)
+                });
+        retentionGroup = retentionChoices.group;
+        retention7 = retentionChoices.buttons.get(0);
+        retention30 = retentionChoices.buttons.get(1);
+        retention90 = retentionChoices.buttons.get(2);
+        retentionForever = retentionChoices.buttons.get(3);
         retention.body.addView(retentionGroup);
         btnClearAll = YViewLayout.secondaryButton(
                 this,
@@ -273,22 +272,17 @@ public class MainActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         YViewLayout.addSection(settingsRoot, retention);
 
-        TextView scope = new TextView(this);
-        scope.setText(R.string.ynotify_scope_help);
-        YView.styleBody(scope);
+        TextView scope = YViewLayout.text(
+                this,
+                getString(R.string.ynotify_scope_help),
+                14,
+                false);
         settingsRoot.addView(scope);
 
         bottomNav = YViewLayout.bottomNavigation(this, R.menu.bottom_nav);
         page.root.addView(bottomNav, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-    }
-
-    private RadioButton radio(String label) {
-        RadioButton button = new RadioButton(this);
-        button.setId(View.generateViewId());
-        button.setText(label);
-        return button;
     }
 
     private void openNotificationListenerSettings() {

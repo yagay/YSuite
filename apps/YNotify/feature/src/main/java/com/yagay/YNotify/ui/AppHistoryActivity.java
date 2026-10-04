@@ -46,13 +46,7 @@ public class AppHistoryActivity extends AppCompatActivity {
         page.toolbar.setNavigationContentDescription(R.string.ynotify_back);
         page.toolbar.setNavigationOnClickListener(v -> finish());
 
-        LinearLayout body = new LinearLayout(this);
-        body.setOrientation(LinearLayout.VERTICAL);
-        body.setPadding(
-                YView.screenHorizontal(this),
-                YView.controlGap(this),
-                YView.screenHorizontal(this),
-                YView.sectionGap(this));
+        LinearLayout body = YViewLayout.contentColumn(this, true);
         page.content.addView(body, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));

@@ -57,24 +57,16 @@ public class EventDetailActivity extends AppCompatActivity {
         page.toolbar.setNavigationContentDescription(R.string.ynotify_back);
         page.toolbar.setNavigationOnClickListener(v -> finish());
 
-        LinearLayout body = new LinearLayout(this);
-        body.setOrientation(LinearLayout.VERTICAL);
-        body.setPadding(
-                YView.screenHorizontal(this),
-                YView.sectionGap(this),
-                YView.screenHorizontal(this),
-                YView.sectionGap(this));
+        LinearLayout body = YViewLayout.contentColumn(this, true);
         ScrollView scroll = YViewLayout.scrollPage(this, body);
         page.content.addView(scroll, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
-        app = new TextView(this);
-        YView.styleSectionTitle(app);
+        app = YViewLayout.text(this, "", 16, true);
         body.addView(app);
 
-        meta = new TextView(this);
-        YView.styleCaption(meta);
+        meta = YViewLayout.caption(this, "", 13);
         meta.setTextIsSelectable(true);
         meta.setPadding(0, YView.controlGap(this), 0, 0);
         body.addView(meta);
@@ -98,12 +90,11 @@ public class EventDetailActivity extends AppCompatActivity {
 
     private TextView addDetailSection(LinearLayout body, int titleRes, boolean monospace) {
         YViewLayout.sectionHeader(body, getString(titleRes), null);
-        TextView value = new TextView(this);
+        TextView value = monospace
+                ? YViewLayout.caption(this, "", 13)
+                : YViewLayout.text(this, "", 14, false);
         if (monospace) {
-            YView.styleCaption(value);
             value.setTypeface(Typeface.MONOSPACE);
-        } else {
-            YView.styleBody(value);
         }
         value.setTextIsSelectable(true);
         body.addView(value, new LinearLayout.LayoutParams(
