@@ -16,8 +16,11 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
+import android.widget.ImageView
 import android.widget.CompoundButton
 import android.widget.LinearLayout
+import android.widget.ListView
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
@@ -53,6 +56,15 @@ class YViewPage(
     @JvmField val root: LinearLayout,
     @JvmField val toolbar: MaterialToolbar,
     @JvmField val content: FrameLayout,
+)
+
+class YViewListRow(
+    @JvmField val root: LinearLayout,
+    @JvmField val copy: LinearLayout,
+    @JvmField val title: TextView,
+    @JvmField val subtitle: TextView,
+    @JvmField val icon: ImageView?,
+    @JvmField val trailing: LinearLayout,
 )
 
 class YViewFilterBar(
@@ -422,6 +434,66 @@ object YViewLayout {
 
     @JvmStatic
     fun listIconSize(context: Context): Int = YView.dimen(context, R.dimen.yui_touch_target)
+
+    @JvmStatic
+    @JvmOverloads
+    fun listItem(context: Context, withIcon: Boolean = false): YViewListRow {
+        val row = listRow(context)
+        val icon = if (withIcon) {
+            ImageView(context).also {
+                val size = listIconSize(context)
+                row.addView(it, LinearLayout.LayoutParams(size, size))
+            }
+        } else null
+        val copy = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val title = listTitle(context)
+        val subtitle = listSubtitle(context)
+        copy.addView(title)
+        copy.addView(subtitle)
+        row.addView(
+            copy,
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = if (withIcon) listGap(context) else 0
+            },
+        )
+        val trailing = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        row.addView(
+            trailing,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        return YViewListRow(row, copy, title, subtitle, icon, trailing)
+    }
+
+    @JvmStatic
+    fun checkBoxControl(
+        context: Context,
+        checked: Boolean,
+        listener: CompoundButton.OnCheckedChangeListener?,
+    ): MaterialCheckBox = MaterialCheckBox(context).apply {
+        isUseMaterialThemeColors = true
+        isChecked = checked
+        minimumHeight = YView.touchTarget(context)
+        if (listener != null) setOnCheckedChangeListener(listener)
+    }
+
+    @JvmStatic
+    fun progressIndicator(context: Context): ProgressBar = ProgressBar(context).apply {
+        isIndeterminate = true
+    }
+
+    @JvmStatic
+    fun listView(context: Context): ListView = ListView(context).apply {
+        dividerHeight = maxOf(1, dp(context, 1))
+        setBackgroundColor(Color.TRANSPARENT)
+    }
 
     @JvmStatic
     @JvmOverloads
