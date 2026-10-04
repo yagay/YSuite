@@ -37,7 +37,7 @@ import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.productui.ProductAdaptiveBox
 import com.yagay.ysuite.productui.ProductSurfaceKind
-import com.yagay.ysuite.productui.dashboard.YDashboardSurface
+import com.yagay.ysuite.productui.dashboard.NiaDashboardSurface
 import com.yagay.ysuite.resources.R
 import com.yagay.ysuite.runtime.FeatureLifecycleEvent
 import kotlinx.coroutines.launch
@@ -217,7 +217,7 @@ private fun YSuiteFeatureDashboard(
     features: List<YSuiteFeatureUiRegistration>,
     onSelect: (String) -> Unit,
 ) {
-    YDashboardSurface(
+    NiaDashboardSurface(
         title = stringResource(R.string.home_title),
         navigationIcon = { YSuiteHostNavigationButton() },
     ) {
