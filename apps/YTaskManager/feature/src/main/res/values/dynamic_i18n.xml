@@ -1,5 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="ytm_cpu_core_label">CPU %1$d</string>
-    <string name="ytm_milliseconds">%1$d ms</string>
-</resources>

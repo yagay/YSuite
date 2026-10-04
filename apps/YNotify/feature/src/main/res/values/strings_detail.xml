@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="ynotify_redact_app">Record metadata only and do not save message text</string>
-    <string name="ynotify_title_label">Title</string>
-    <string name="ynotify_full_content">Full content</string>
-</resources>

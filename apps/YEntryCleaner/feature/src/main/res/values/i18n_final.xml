@@ -1,6 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="yentry_status_warning">Warning</string>
-    <string name="yentry_status_status">Status</string>
-    <string name="yentry_status_error">Error</string>
-</resources>

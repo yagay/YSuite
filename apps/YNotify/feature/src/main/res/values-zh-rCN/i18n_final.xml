@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="ynotify_repair_failed">修复失败：%1$s</string>
-    <string name="ynotify_repair_summary">扫描 %1$d 条记录。纠正事件类型 %2$d 条。归类 SystemUI %3$d 条。纠正通知子类型 %4$d 条。关联横幅 %5$d 条。关联跨应用横幅 %6$d 条。合并重复通知 %7$d 条。</string>
-    <string name="ynotify_repair_ambiguous">%1$d 条记录证据不足。</string>
-    <string name="ynotify_repair_rechecked">重新检查了 %1$d 条历史合并。</string>
-    <string name="ynotify_repair_protected">保留了 %1$d 条手动分类。</string>
-</resources>

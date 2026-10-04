@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="ycore_dynamic_d74afaa590e9">Root operation failed</string>
-    <string name="ycore_dynamic_dfca1061baa0">Root operation timed out</string>
-    <string name="ycore_dynamic_f2f3e9803ccb">Not connected</string>
-    <string name="ycore_xposed_connected_api">Connected, API %1$d</string>
-</resources>

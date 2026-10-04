@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="ydiag_export_marks">问题标记: %1$s</string>
-    <string name="ydiag_opencv_failed">OpenCV 初始化失败: %1$s</string>
-    <string name="ydiag_root_unavailable">本次会话 Root 不可用。
-</string>
-    <string name="ydiag_size_mb">%1$d MB</string>
-</resources>

@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="ynotify_repair_failed">Repair failed: %1$s</string>
-    <string name="ynotify_repair_summary">Scanned %1$d records. Corrected event type for %2$d records. Classified %3$d SystemUI records. Corrected notification subtype for %4$d records. Linked %5$d heads-up records. Linked %6$d cross-app heads-up records. Merged %7$d duplicate notifications.</string>
-    <string name="ynotify_repair_ambiguous">%1$d records had insufficient evidence.</string>
-    <string name="ynotify_repair_rechecked">Rechecked %1$d previous merges.</string>
-    <string name="ynotify_repair_protected">Preserved %1$d manual classifications.</string>
-</resources>

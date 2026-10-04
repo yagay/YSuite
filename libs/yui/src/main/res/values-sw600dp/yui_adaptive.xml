@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Shared wide-screen override. Base token stays 16dp on compact windows. -->
-    <dimen name="yui_screen_horizontal">24dp</dimen>
-</resources>

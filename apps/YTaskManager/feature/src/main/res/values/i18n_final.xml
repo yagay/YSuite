@@ -1,6 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="ytm_root_granted">Root granted</string>
-    <string name="ytm_root_denied">Root unavailable or denied</string>
-    <string name="ytm_root_required">Root permission is required</string>
-</resources>

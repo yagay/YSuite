@@ -1,1 +1,0 @@
--keep class com.yagay.yfiles.YFilesSuiteRuntime { public static ** get(android.content.Context); }

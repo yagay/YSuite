@@ -1,6 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="yentry_status_warning">警告</string>
-    <string name="yentry_status_status">状态</string>
-    <string name="yentry_status_error">错误</string>
-</resources>

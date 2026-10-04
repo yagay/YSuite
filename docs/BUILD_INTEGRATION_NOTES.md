@@ -1,1 +1,0 @@
-YSuite expects the YFloat and YNotify submodules to point at revisions that support the shared accessibility host. When updating either feature, keep the YSuite gitlinks synchronized before building the merged APK.

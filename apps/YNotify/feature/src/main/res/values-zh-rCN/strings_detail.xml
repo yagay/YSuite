@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="ynotify_redact_app">只记录元数据，不保存正文</string>
-    <string name="ynotify_title_label">标题</string>
-    <string name="ynotify_full_content">完整内容</string>
-</resources>

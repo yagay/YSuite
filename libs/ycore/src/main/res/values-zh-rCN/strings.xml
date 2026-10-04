@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="ycore_not_connected">未连接</string>
-    <string name="ycore_connected_api">已连接 · API %1$d</string>
-    <string name="ycore_root_operation_failed">Root 操作失败</string>
-    <string name="ycore_root_operation_timed_out">Root 操作超时</string>
-</resources>

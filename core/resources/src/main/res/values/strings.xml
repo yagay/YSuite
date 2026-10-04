@@ -1,0 +1,10 @@
+<resources>
+    <string name="architecture_ready">Clean architecture ready</string>
+    <string name="architecture_ready_summary">The app shell, design system, navigation contracts and localization foundation are isolated and ready for features.</string>
+    <string name="design_system">Unified design system</string>
+    <string name="design_system_summary">Themes, spacing, typography and reusable controls come from one shared module.</string>
+    <string name="localization">Multilingual by default</string>
+    <string name="localization_summary">English and Simplified Chinese are built in, with one centralized locale controller.</string>
+    <string name="feature_boundary">Feature isolation</string>
+    <string name="feature_boundary_summary">Future features will plug into contracts instead of depending directly on each other.</string>
+</resources>

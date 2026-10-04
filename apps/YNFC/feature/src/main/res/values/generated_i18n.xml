@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="ynfc_generated_0065097e6886">Unable to write the log file</string>
-    <string name="ynfc_generated_460c85ddef5d">System</string>
-    <string name="ynfc_generated_c1b48c1ed75d">Unable to create the log file in Download</string>
-    <string name="ynfc_generated_d592225d23cd">Root access failed. Grant this app permission in your Root manager.</string>
-    <string name="ynfc_generated_d925f905dbc7">Status</string>
-</resources>

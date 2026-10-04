@@ -1,6 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="ytm_root_granted">已授予 Root</string>
-    <string name="ytm_root_denied">Root 不可用或未授权</string>
-    <string name="ytm_root_required">需要 Root 权限</string>
-</resources>
