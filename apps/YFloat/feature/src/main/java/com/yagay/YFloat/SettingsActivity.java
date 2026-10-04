@@ -1,5 +1,7 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewSection;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -42,14 +44,14 @@ public class SettingsActivity extends AppCompatActivity {
             case SECTION_PRIVILEGE -> root = PrivilegeSettingsPanel.build(this, fs);
             default -> root = buildHomePage();
         }
-        setContentView(AppUi.scrollPage(this, root));
+        setContentView(YViewLayout.scrollPage(this, root));
     }
 
     private LinearLayout buildHomePage() {
-        LinearLayout root = AppUi.pageRoot(this,
+        LinearLayout root = YViewLayout.pageRoot(this,
                 getString(R.string.yfloat_settings_title),
                 getString(R.string.yfloat_settings_desc));
-        AppUi.Section categories = AppUi.section(this,
+        YViewSection categories = YViewLayout.section(this,
                 getString(R.string.yfloat_settings_categories), null);
         addCategory(categories.body,
                 getString(R.string.yfloat_float_icon_settings),
@@ -69,12 +71,12 @@ public class SettingsActivity extends AppCompatActivity {
         addCategory(categories.body,
                 getString(R.string.yfloat_settings_actions),
                 getString(R.string.yfloat_settings_actions_desc), SECTION_ACTIONS);
-        AppUi.addSection(root, categories);
+        YViewLayout.addSection(root, categories);
         return root;
     }
 
     private void addCategory(LinearLayout parent, String title, String subtitle, int section) {
-        AppUi.addRow(parent, AppUi.navRow(this, title, subtitle,
+        YViewLayout.addRow(parent, YViewLayout.navRow(this, title, subtitle,
                 () -> startActivity(intent(this, section))));
     }
 

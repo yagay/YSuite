@@ -1,5 +1,6 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YViewLayout;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -46,37 +47,37 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setPadding(AppUi.dp(this, 28), AppUi.dp(this, 28),
-                AppUi.dp(this, 28), AppUi.dp(this, 28));
+        root.setPadding(YViewLayout.dp(this, 28), YViewLayout.dp(this, 28),
+                YViewLayout.dp(this, 28), YViewLayout.dp(this, 28));
         root.setBackgroundColor(Color.rgb(
                 SecureCaptureProbePolicy.MARKER_RED,
                 SecureCaptureProbePolicy.MARKER_GREEN,
                 SecureCaptureProbePolicy.MARKER_BLUE));
 
-        TextView title = AppUi.text(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_5c13aa73bf0a), 20, true);
+        TextView title = YViewLayout.text(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_5c13aa73bf0a), 20, true);
         title.setTextColor(Color.WHITE);
         root.addView(title, new LinearLayout.LayoutParams(-2, -2));
 
-        status = AppUi.caption(this,
+        status = YViewLayout.caption(this,
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_436814f4594d),
                 14);
         status.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
-        statusLp.topMargin = AppUi.dp(this, 16);
+        statusLp.topMargin = YViewLayout.dp(this, 16);
         root.addView(status, statusLp);
 
-        LinearLayout buttons = AppUi.buttonRow(this);
-        retry = AppUi.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_3c2358b2ec16));
+        LinearLayout buttons = YViewLayout.buttonRow(this);
+        retry = YViewLayout.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_3c2358b2ec16));
         retry.setEnabled(false);
         retry.setOnClickListener(v -> runProbe());
         buttons.addView(retry, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        MaterialButton close = AppUi.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_11d024154013));
+        MaterialButton close = YViewLayout.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_11d024154013));
         close.setOnClickListener(v -> finish());
         buttons.addView(close, new LinearLayout.LayoutParams(0, -2, 1f));
 
         LinearLayout.LayoutParams buttonsLp = new LinearLayout.LayoutParams(-1, -2);
-        buttonsLp.topMargin = AppUi.dp(this, 18);
+        buttonsLp.topMargin = YViewLayout.dp(this, 18);
         root.addView(buttons, buttonsLp);
         return root;
     }
