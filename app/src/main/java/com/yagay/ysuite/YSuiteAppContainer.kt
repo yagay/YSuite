@@ -8,9 +8,6 @@ import com.yagay.ysuite.diagnostics.DiagnosticStatus
 import com.yagay.ysuite.feature.settings.SettingsFeatureUiRegistration
 import com.yagay.ysuite.feature.system.SystemFeatureUiRegistration
 import com.yagay.ysuite.feature.template.TemplateFeatureUiRegistration
-import com.yagay.ysuite.feature.yfiles.LocalYFilesPlacesRepository
-import com.yagay.ysuite.feature.yfiles.LocalYFilesRepository
-import com.yagay.ysuite.feature.yfiles.YFilesFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
 import com.yagay.ysuite.logging.api.InMemoryLogStore
@@ -76,12 +73,6 @@ class YSuiteAppContainer(
                 logger = logger,
                 permissionChecker = permissions,
                 permissionCatalog = permissionCatalog,
-            ),
-            YFilesFeatureUiRegistration(
-                repository = LocalYFilesRepository(),
-                placesRepository =
-                    LocalYFilesPlacesRepository(context),
-                logger = logger,
             ),
             TemplateFeatureUiRegistration,
             SettingsFeatureUiRegistration(settings),

@@ -43,7 +43,4 @@ include(":feature:settings:impl")
 include(":feature:system:api")
 include(":feature:system:impl")
 
-include(":feature:yfiles:api")
-include(":feature:yfiles:impl")
-
 include(":host:standalone")
