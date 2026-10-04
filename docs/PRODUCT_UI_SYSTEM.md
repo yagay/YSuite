@@ -1,56 +1,42 @@
 # YSuite Product UI System
 
-YSuite separates visual consistency from product structure.
+YSuite standardizes visual language, not product-page geometry.
 
-## Layer 1: design system
+## Layer 1 — unified YSuite design system
 
-`core:designsystem` owns theme, typography, colors, spacing, shapes, icons, buttons, dialogs and small reusable controls.
+`core:designsystem` owns only:
+- Material theme and semantic colors
+- typography
+- spacing
+- shapes
+- icons
+- dialogs / sheets / snackbars
+- motion
+- light/dark behavior
+- localization conventions
 
-It does **not** decide how a file manager, browser, settings screen or automation editor is structured.
+## Layer 2 — upstream product layouts
 
-## Layer 2: product UI
+`core:productui` adapts mature open-source products while preserving their information architecture:
 
-`core:productui` owns product-grade interaction structures:
+- `NiaDashboardSurface` — Android Now in Android
+- `FileExplorerWorkspace` — SysAdminDoc/FileExplorer
+- `YueBrowserWorkspace` — Yue-Browser
+- `ComposeSettingsSurface` — Compose-Settings
+- `LogcatReaderWorkspace` — LogcatReader
+- `QdmDownloadWorkspace` — QDM-Android
+- `ComposeTodoTaskWorkspace` — Compose-ToDo
+- `OpenTaskerWorkspace` — OpenTasker
+- `LibCheckerWorkspace` — LibChecker
+- `NiaToolSurface` / `NiaDetailSurface` — Now in Android bounded-content conventions
+- `FileExplorerPreviewSurface` — FileExplorer preview/fullscreen convention
 
-- `YFileManagerScaffold` — sources, breadcrumb, command bar, file pane, selection bar, optional detail pane.
-- `YBrowserWorkspace` — address bar, tabs, browser toolbar, optional wide tab sidebar, content.
-- `YSettingsSurface` — category navigation and readable preference content.
-- `YDashboardSurface` — dashboard/overview content at adaptive widths.
-- `YLogViewerSurface` — filters + log stream + optional details pane.
-- `YDownloadManagerSurface` — queues/history/filtering/selection actions.
-- `YTaskManagerSurface` — filters + task collection + optional details pane.
-- `YAutomationStudioSurface` — library + editor + inspector on expanded screens.
-- `YEntityManagerSurface` — collection navigation + entity list + optional inspector for apps/components/rules.
-- `YToolSurface` — focused parameter/form/utility workflows.
-- `YDetailSurface` — one focused entity/result/editor with readable-width content.
-- `YFullscreenSurface` — edge-to-edge preview/media/terminal experiences with content-owned chrome.
+The upstream page workflow remains recognizable after applying YSuite theme tokens.
 
-A feature chooses one product surface. It must not fall back to a generic page because a generic page is easier to wire.
+## Hard rule
 
-## Open-source references
+Feature modules may not use the previous YSuite-authored generic product surfaces. CI rejects them.
 
-Architecture and design-system separation:
-- Android Now in Android (Apache-2.0)
-- Android Adaptive Apps Samples (Apache-2.0)
+When a feature is created, `--product` selects the mature upstream page family. A feature may add domain-specific behavior inside that page family, but may not replace the page with a generic card/list composition.
 
-File-manager interaction references:
-- XFiles (GPL-3.0-only): dual-pane/tree workflow, breadcrumb, selection toolbar, root/archive product behavior. Reference only; do not copy GPL source into YSuite unless YSuite adopts a compatible license.
-- Material Files (GPL-3.0): breadcrumb, storage/root/archive/NAS UX. Reference only.
-- MTExplorer (MIT): dual-pane context actions and manager/editor workflow.
-
-Settings:
-- Compose-Settings (MIT): dedicated settings groups, switches, radios, sliders and segmented preference patterns.
-
-Browser:
-- Solara (MPL-2.0): browser-owned tabs/address workspace and responsive navigation concepts. Reference architecture/interactions unless license obligations are intentionally accepted.
-
-## Non-negotiable rule
-
-Shared design does not imply shared page geometry.
-
-A file manager must look and behave like a file manager.
-A browser must look and behave like a browser.
-A settings page must look and behave like settings.
-An automation editor must look and behave like an automation studio.
-
-The product surface is part of the feature contract and is validated by CI.
+See `UPSTREAM_PRODUCT_BASES.md` and `THIRD_PARTY_NOTICES.md`.

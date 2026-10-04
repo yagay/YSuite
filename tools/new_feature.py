@@ -7,52 +7,52 @@ ROOT = Path(__file__).resolve().parents[1]
 
 PRODUCTS = {
     "Dashboard": (
-        "com.yagay.ysuite.productui.dashboard.YDashboardSurface",
-        "YDashboardSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
+        "com.yagay.ysuite.productui.dashboard.NiaDashboardSurface",
+        "NiaDashboardSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
     ),
     "FileManager": (
-        "com.yagay.ysuite.productui.filemanager.YFileManagerScaffold",
-        "YFileManagerScaffold(title = title, navigationIcon = { YSuiteHostNavigationButton() }, breadcrumb = {}, content = { _ -> body() })",
+        "com.yagay.ysuite.productui.filemanager.FileExplorerWorkspace",
+        "FileExplorerWorkspace(title = title, navigationIcon = { YSuiteHostNavigationButton() }, drawerContent = { _, _ -> }, breadcrumb = {}, content = { _ -> body() })",
     ),
     "Browser": (
-        "com.yagay.ysuite.productui.browser.YBrowserWorkspace",
-        "YBrowserWorkspace(navigationIcon = { YSuiteHostNavigationButton() }, addressBar = {}, content = { _ -> body() })",
+        "com.yagay.ysuite.productui.browser.YueBrowserWorkspace",
+        "YueBrowserWorkspace(navigationIcon = { YSuiteHostNavigationButton() }, addressBar = {}, content = { _ -> body() })",
     ),
     "Settings": (
-        "com.yagay.ysuite.productui.settings.YSettingsSurface",
-        "YSettingsSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
+        "com.yagay.ysuite.productui.settings.ComposeSettingsSurface",
+        "ComposeSettingsSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
     ),
     "LogViewer": (
-        "com.yagay.ysuite.productui.logs.YLogViewerSurface",
-        "YLogViewerSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, filters = {}, content = { _ -> body() })",
+        "com.yagay.ysuite.productui.logs.LogcatReaderWorkspace",
+        "LogcatReaderWorkspace(title = title, navigationIcon = { YSuiteHostNavigationButton() }, search = {}, filters = {}, content = { _ -> body() })",
     ),
     "DownloadManager": (
-        "com.yagay.ysuite.productui.manager.YDownloadManagerSurface",
-        "YDownloadManagerSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, filterBar = {}, content = { _ -> body() })",
+        "com.yagay.ysuite.productui.download.QdmDownloadWorkspace",
+        "QdmDownloadWorkspace(title = title, tabs = emptyList(), selectedTabId = \"\", onTabSelected = {}, navigationIcon = { YSuiteHostNavigationButton() }, content = { _, _ -> body() })",
     ),
     "TaskManager": (
-        "com.yagay.ysuite.productui.manager.YTaskManagerSurface",
-        "YTaskManagerSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, filters = {}, content = { _ -> body() })",
+        "com.yagay.ysuite.productui.task.ComposeTodoTaskWorkspace",
+        "ComposeTodoTaskWorkspace(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
     ),
     "AutomationStudio": (
-        "com.yagay.ysuite.productui.automation.YAutomationStudioSurface",
-        "YAutomationStudioSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, library = {}, editor = { _ -> body() })",
+        "com.yagay.ysuite.productui.automation.OpenTaskerWorkspace",
+        "OpenTaskerWorkspace(title = title, navigationIcon = { YSuiteHostNavigationButton() }, library = {}, editor = { _ -> body() })",
     ),
     "EntityManager": (
-        "com.yagay.ysuite.productui.manager.YEntityManagerSurface",
-        "YEntityManagerSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
+        "com.yagay.ysuite.productui.entity.LibCheckerWorkspace",
+        "LibCheckerWorkspace(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
     ),
     "Tool": (
-        "com.yagay.ysuite.productui.tool.YToolSurface",
-        "YToolSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
+        "com.yagay.ysuite.productui.tool.NiaToolSurface",
+        "NiaToolSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }) { _ -> body() }",
     ),
     "Detail": (
-        "com.yagay.ysuite.productui.detail.YDetailSurface",
-        "YDetailSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
+        "com.yagay.ysuite.productui.detail.NiaDetailSurface",
+        "NiaDetailSurface(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
     ),
     "Fullscreen": (
-        "com.yagay.ysuite.productui.fullscreen.YFullscreenSurface",
-        "YFullscreenSurface(content = { _ -> body() })",
+        "com.yagay.ysuite.productui.fullscreen.FileExplorerPreviewSurface",
+        "FileExplorerPreviewSurface(content = { _ -> body() })",
     ),
 }
 

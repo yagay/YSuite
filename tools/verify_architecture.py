@@ -28,19 +28,34 @@ generic_feature_page_symbols = (
     "YSuiteLazyListPage",
 )
 
+legacy_product_surface_symbols = (
+    "YFileManagerScaffold",
+    "YBrowserWorkspace",
+    "YSettingsSurface",
+    "YDashboardSurface",
+    "YLogViewerSurface",
+    "YDownloadManagerSurface",
+    "YTaskManagerSurface",
+    "YAutomationStudioSurface",
+    "YEntityManagerSurface",
+    "YToolSurface",
+    "YDetailSurface",
+    "YFullscreenSurface",
+)
+
 product_surface_requirements = {
-    "Dashboard": "YDashboardSurface",
-    "FileManager": "YFileManagerScaffold",
-    "Browser": "YBrowserWorkspace",
-    "Settings": "YSettingsSurface",
-    "LogViewer": "YLogViewerSurface",
-    "DownloadManager": "YDownloadManagerSurface",
-    "TaskManager": "YTaskManagerSurface",
-    "AutomationStudio": "YAutomationStudioSurface",
-    "EntityManager": "YEntityManagerSurface",
-    "Tool": "YToolSurface",
-    "Detail": "YDetailSurface",
-    "Fullscreen": "YFullscreenSurface",
+    "Dashboard": "NiaDashboardSurface",
+    "FileManager": "FileExplorerWorkspace",
+    "Browser": "YueBrowserWorkspace",
+    "Settings": "ComposeSettingsSurface",
+    "LogViewer": "LogcatReaderWorkspace",
+    "DownloadManager": "QdmDownloadWorkspace",
+    "TaskManager": "ComposeTodoTaskWorkspace",
+    "AutomationStudio": "OpenTaskerWorkspace",
+    "EntityManager": "LibCheckerWorkspace",
+    "Tool": "NiaToolSurface",
+    "Detail": "NiaDetailSurface",
+    "Fullscreen": "FileExplorerPreviewSurface",
 }
 
 android_adapter_packages = (
@@ -68,6 +83,13 @@ for path in ROOT.rglob("*"):
                 violations.append(
                     f"{rel}: generic feature page is forbidden: "
                     f"{generic_symbol}; use a product surface"
+                )
+
+        for legacy_surface in legacy_product_surface_symbols:
+            if legacy_surface in text:
+                violations.append(
+                    f"{rel}: legacy YSuite-authored product surface is forbidden: "
+                    f"{legacy_surface}; use the mapped upstream product layout"
                 )
 
         if "androidx.compose.material3." in text:
