@@ -1,0 +1,36 @@
+<resources>
+    <string name="yfiles_title">YFiles</string>
+    <string name="yfiles_summary">基于 YSuite 全新统一架构重新实现的文件浏览。</string>
+    <string name="yfiles_location">位置</string>
+    <string name="yfiles_search">搜索文件</string>
+    <string name="yfiles_show_hidden">显示隐藏文件</string>
+    <string name="yfiles_recursive">搜索子文件夹</string>
+    <string name="yfiles_sort">排序</string>
+    <string name="yfiles_sort_name">名称</string>
+    <string name="yfiles_sort_modified">修改时间</string>
+    <string name="yfiles_sort_size">大小</string>
+    <string name="yfiles_sort_type">类型</string>
+    <string name="yfiles_ascending">升序</string>
+    <string name="yfiles_descending">降序</string>
+    <string name="yfiles_parent">上一级</string>
+    <string name="yfiles_refresh">刷新</string>
+    <string name="yfiles_files">文件</string>
+    <string name="yfiles_folder">文件夹</string>
+    <string name="yfiles_file">文件</string>
+    <string name="yfiles_select">选择</string>
+    <string name="yfiles_unselect">取消选择</string>
+    <string name="yfiles_selected_count">已选择 %1$d 项</string>
+    <string name="yfiles_details">详情</string>
+    <string name="yfiles_path">路径</string>
+    <string name="yfiles_size">大小</string>
+    <string name="yfiles_modified">修改时间</string>
+    <string name="yfiles_access">访问权限</string>
+    <string name="yfiles_access_value">读取 %1$s · 写入 %2$s · 执行 %3$s</string>
+    <string name="yfiles_yes">是</string>
+    <string name="yfiles_no">否</string>
+    <string name="yfiles_children">子项</string>
+    <string name="yfiles_empty">当前文件夹没有匹配项目。</string>
+    <string name="yfiles_loading">正在读取文件…</string>
+    <string name="yfiles_error">无法读取这个位置。</string>
+    <string name="yfiles_retry">重试</string>
+</resources>

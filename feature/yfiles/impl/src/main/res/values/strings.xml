@@ -1,0 +1,36 @@
+<resources>
+    <string name="yfiles_title">YFiles</string>
+    <string name="yfiles_summary">Clean file browsing built on the shared YSuite architecture.</string>
+    <string name="yfiles_location">Location</string>
+    <string name="yfiles_search">Search files</string>
+    <string name="yfiles_show_hidden">Show hidden files</string>
+    <string name="yfiles_recursive">Search subfolders</string>
+    <string name="yfiles_sort">Sort</string>
+    <string name="yfiles_sort_name">Name</string>
+    <string name="yfiles_sort_modified">Modified</string>
+    <string name="yfiles_sort_size">Size</string>
+    <string name="yfiles_sort_type">Type</string>
+    <string name="yfiles_ascending">Ascending</string>
+    <string name="yfiles_descending">Descending</string>
+    <string name="yfiles_parent">Parent</string>
+    <string name="yfiles_refresh">Refresh</string>
+    <string name="yfiles_files">Files</string>
+    <string name="yfiles_folder">Folder</string>
+    <string name="yfiles_file">File</string>
+    <string name="yfiles_select">Select</string>
+    <string name="yfiles_unselect">Unselect</string>
+    <string name="yfiles_selected_count">%1$d selected</string>
+    <string name="yfiles_details">Details</string>
+    <string name="yfiles_path">Path</string>
+    <string name="yfiles_size">Size</string>
+    <string name="yfiles_modified">Modified</string>
+    <string name="yfiles_access">Access</string>
+    <string name="yfiles_access_value">Read %1$s · Write %2$s · Execute %3$s</string>
+    <string name="yfiles_yes">Yes</string>
+    <string name="yfiles_no">No</string>
+    <string name="yfiles_children">Children</string>
+    <string name="yfiles_empty">This folder has no matching items.</string>
+    <string name="yfiles_loading">Loading files…</string>
+    <string name="yfiles_error">Unable to read this location.</string>
+    <string name="yfiles_retry">Retry</string>
+</resources>
