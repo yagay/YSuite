@@ -2,10 +2,16 @@ package com.yagay.yui
 
 import android.app.Activity
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -14,6 +20,8 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class YViewScreen internal constructor(
@@ -22,6 +30,11 @@ class YViewScreen internal constructor(
 )
 
 enum class YViewStatusTone { Neutral, Good, Warning, Error }
+
+class YViewSection(
+    @JvmField val card: MaterialCardView,
+    @JvmField val body: LinearLayout,
+)
 
 /** Java/View compatibility renderer backed by the generated YUI geometry resources. */
 object YViewLayout {
@@ -346,17 +359,230 @@ object YViewLayout {
         background = YView.fieldBackground(context)
     }
 
-    @JvmStatic fun primaryButton(context: Context, text: String): Button =
+    @JvmStatic fun primaryButton(context: Context, text: String): MaterialButton =
         MaterialButton(context).apply {
             this.text = text
             YView.stylePrimaryButton(this)
         }
 
-    @JvmStatic fun secondaryButton(context: Context, text: String): Button =
+    @JvmStatic fun secondaryButton(context: Context, text: String): MaterialButton =
         MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
             this.text = text
             YView.styleSecondaryButton(this)
         }
+
+    /** Unified normal-screen View helpers. Feature modules must not own another UI utility layer. */
+    @JvmStatic
+    @JvmOverloads
+    fun pageRoot(context: Context, title: String, subtitle: String? = null): LinearLayout =
+        fixedScreen(context, title, subtitle)
+
+    @JvmStatic
+    fun scrollPage(context: Context, content: View): ScrollView = ScrollView(context).apply {
+        isFillViewport = true
+        clipToPadding = false
+        setBackgroundColor(YView.background(context))
+        addView(content, ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun section(context: Context, title: String? = null, subtitle: String? = null): YViewSection {
+        val card = MaterialCardView(context).apply {
+            setCardBackgroundColor(Color.TRANSPARENT)
+            radius = 0f
+            strokeWidth = 0
+            cardElevation = 0f
+            useCompatPadding = false
+        }
+        val holder = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        card.addView(holder, MaterialCardView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        if (!title.isNullOrBlank() || !subtitle.isNullOrBlank()) {
+            val header = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                val p = YView.cardPadding(context)
+                setPadding(p, p, p, YView.controlGap(context))
+            }
+            if (!title.isNullOrBlank()) {
+                header.addView(TextView(context).apply {
+                    text = title
+                    YView.styleSectionTitle(this)
+                }, matchWrap())
+            }
+            if (!subtitle.isNullOrBlank()) {
+                header.addView(caption(context, subtitle, 12.5f).apply {
+                    setPadding(0, maxOf(1, YView.controlGap(context) / 4), 0, 0)
+                }, matchWrap())
+            }
+            holder.addView(header, matchWrap())
+        }
+        val body = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, maxOf(1, YView.controlGap(context) / 3))
+        }
+        holder.addView(body, matchWrap())
+        return YViewSection(card, body)
+    }
+
+    @JvmStatic
+    fun addSection(root: LinearLayout, section: YViewSection) {
+        root.addView(section.card, matchWrap())
+        root.addView(
+            divider(root.context),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                maxOf(1, dp(root.context, 1)),
+            ).apply {
+                topMargin = YView.controlGap(root.context)
+                bottomMargin = YView.sectionGap(root.context)
+            },
+        )
+    }
+
+    @JvmStatic
+    fun addRow(parent: LinearLayout, row: View) {
+        parent.addView(row, matchWrap())
+    }
+
+    @JvmStatic
+    fun navRow(context: Context, title: String, subtitle: String?, action: Runnable?): View =
+        navigationRow(context, title, subtitle) { action?.run() }
+
+    @JvmStatic
+    fun switchRow(
+        context: Context,
+        title: String,
+        subtitle: String?,
+        checked: Boolean,
+        listener: CompoundButton.OnCheckedChangeListener?,
+    ): SwitchMaterial {
+        val row = baseRow(context, subtitle.isNullOrBlank()).apply { background = rowBackground(context) }
+        val copy = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(text(context, title, 15f, false), matchWrap())
+            if (!subtitle.isNullOrBlank()) {
+                addView(caption(context, subtitle, 12.5f).apply {
+                    setPadding(0, dp(context, 3), dp(context, 10), 0)
+                }, matchWrap())
+            }
+        }
+        row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        return SwitchMaterial(context).apply {
+            isUseMaterialThemeColors = true
+            isChecked = checked
+            minHeight = 0
+            minimumHeight = 0
+            if (listener != null) setOnCheckedChangeListener(listener)
+            row.addView(this, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+    }
+
+    @JvmStatic
+    fun switchContainer(toggle: SwitchMaterial): LinearLayout = toggle.parent as LinearLayout
+
+    @JvmStatic
+    fun baseRow(context: Context): LinearLayout = baseRow(context, false)
+
+    private fun baseRow(context: Context, compact: Boolean): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        val horizontal = YView.cardPadding(context)
+        val vertical = if (compact) 0 else maxOf(1, YView.controlGap(context) / 2)
+        setPadding(horizontal, vertical, horizontal, vertical)
+        minimumHeight = YView.touchTarget(context) + if (compact) 0 else maxOf(0, YView.controlGap(context) / 2)
+    }
+
+    @JvmStatic
+    fun settingBlock(context: Context): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        val p = YView.cardPadding(context)
+        setPadding(p, YView.controlGap(context), p, YView.controlGap(context))
+    }
+
+    @JvmStatic
+    fun sliderBlock(context: Context): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        val p = YView.cardPadding(context)
+        setPadding(p, maxOf(1, YView.controlGap(context) / 2), p, maxOf(1, YView.controlGap(context) / 3))
+    }
+
+    @JvmStatic
+    fun buttonRow(context: Context): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        val p = YView.cardPadding(context)
+        setPadding(p, maxOf(1, YView.controlGap(context) / 2), p, maxOf(1, YView.controlGap(context) / 2))
+    }
+
+    @JvmStatic
+    fun text(context: Context, value: String?, sp: Float, bold: Boolean): TextView = TextView(context).apply {
+        text = value.orEmpty()
+        if (bold) YView.styleStrongBody(this) else YView.styleBody(this)
+    }
+
+    @JvmStatic
+    fun caption(context: Context, value: String?, sp: Float): TextView = TextView(context).apply {
+        text = value.orEmpty()
+        YView.styleCaption(this)
+        setLineSpacing(0f, 1.08f)
+    }
+
+    @JvmStatic
+    fun statusPill(context: Context, value: String?, positive: Boolean): TextView =
+        text(context, value, 12f, true).apply {
+            setTextColor(if (positive) success(context) else warning(context))
+            gravity = Gravity.CENTER
+            setPadding(
+                YView.controlGap(context),
+                maxOf(1, YView.controlGap(context) / 2),
+                YView.controlGap(context),
+                maxOf(1, YView.controlGap(context) / 2),
+            )
+            background = rounded(context, if (positive) successSurface(context) else warningSurface(context), 999)
+        }
+
+    @JvmStatic
+    fun compactButton(context: Context, value: String): MaterialButton = secondaryButton(context, value).apply {
+        minHeight = YView.buttonHeight(context)
+        minimumHeight = YView.buttonHeight(context)
+        minimumWidth = 0
+        setPadding(YView.controlGap(context), 0, YView.controlGap(context), 0)
+    }
+
+    @JvmStatic
+    fun styleInput(context: Context, input: EditText) {
+        YView.styleBody(input)
+        input.setTextColor(textPrimary(context))
+        input.setHintTextColor(textSecondary(context))
+        val p = YView.controlGap(context)
+        input.setPadding(p, p, p, p)
+        input.background = YView.fieldBackground(context)
+    }
+
+    @JvmStatic
+    fun rowBackground(context: Context) = RippleDrawable(
+        ColorStateList.valueOf(YView.color(context, android.R.attr.colorControlHighlight, 0x12000000)),
+        ColorDrawable(Color.TRANSPARENT),
+        null,
+    )
+
+    @JvmStatic
+    fun divider(context: Context): View = View(context).apply { setBackgroundColor(YView.outline(context)) }
+
+    @JvmStatic
+    fun rounded(context: Context, color: Int, radiusDp: Int) = GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        setColor(color)
+        cornerRadius = dp(context, radiusDp).toFloat()
+    }
+
+    @JvmStatic fun textPrimary(context: Context): Int = YView.onSurface(context)
+    @JvmStatic fun textSecondary(context: Context): Int = YView.onSurfaceVariant(context)
+    @JvmStatic fun success(context: Context): Int = YView.success(context)
+    @JvmStatic fun warning(context: Context): Int = YView.warning(context)
+    @JvmStatic fun successSurface(context: Context): Int = YView.successContainer(context)
+    @JvmStatic fun warningSurface(context: Context): Int = YView.warningContainer(context)
 
     @JvmStatic
     fun actionRow(parent: LinearLayout): LinearLayout {
