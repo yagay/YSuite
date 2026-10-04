@@ -9,7 +9,7 @@ Normal feature screens keep business content in `apps/*/feature`, while shared p
 - `YPageTemplate` owns content width, row density, card emphasis and app-bar prominence for each page role.
 - `YPageScaffold` and role-specific scaffolds render those templates.
 - `YAppShell` uses the official Material 3 Adaptive Navigation Suite for top-level navigation.
-- `YNavigationSuite` is only a migration compatibility alias.
+- `YNavigationSuite` is only a library-level compatibility alias; feature modules are CI-enforced to use `YAppShell`.
 - `YPageList`, list/detail and supporting-pane helpers own responsive layout.
 - `YTheme`, semantic colors, shapes and generated tokens own Material 3 styling.
 - `YViewLayout` and `Theme.YUI` are the compatibility layer for Java/View/XML features.

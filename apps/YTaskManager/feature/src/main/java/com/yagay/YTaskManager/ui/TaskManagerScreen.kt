@@ -80,7 +80,7 @@ import com.yagay.yui.YFeatureEmpty
 import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YIcons
 import com.yagay.yui.YNavigationSpec
-import com.yagay.yui.YNavigationSuite
+import com.yagay.yui.YAppShell
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YSettingSwitch
 import com.yagay.yui.YStatusPill
@@ -115,7 +115,7 @@ fun TaskManagerApp(viewModel: MainViewModel) {
         YNavigationSpec("network", stringResource(R.string.ytm_network), YIcons.Network),
     )
 
-    YNavigationSuite(
+    YAppShell(
         selectedKey = when (page) {
             HomePage.PROCESSES -> "processes"
             HomePage.RESOURCES -> "resources"

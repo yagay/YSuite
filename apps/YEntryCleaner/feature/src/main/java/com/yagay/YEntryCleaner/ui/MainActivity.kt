@@ -29,7 +29,7 @@ import com.yagay.YEntryCleaner.data.readBackupText
 import com.yagay.yui.YComposeActivity
 import com.yagay.yui.YFeatureCustomScaffold
 import com.yagay.yui.YNavigationSpec
-import com.yagay.yui.YNavigationSuite
+import com.yagay.yui.YAppShell
 import com.yagay.yui.YPageRole
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -140,7 +140,7 @@ class MainActivity : YComposeActivity() {
             )
         }
 
-        YNavigationSuite(
+        YAppShell(
             selectedKey = state.destination.name,
             items = navigation,
             onSelected = { item ->

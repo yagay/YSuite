@@ -12,11 +12,12 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SwitchCompat
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class YViewScreen internal constructor(
-    val view: ScrollView,
+    val view: View,
     val content: LinearLayout,
 )
 
@@ -53,6 +54,26 @@ object YViewLayout {
     @JvmStatic
     @JvmOverloads
     fun screen(context: Context, title: String, subtitle: String? = null): YViewScreen {
+        val shell = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            YView.applyRoot(this)
+        }
+        val toolbar = MaterialToolbar(context).apply {
+            this.title = title
+            this.subtitle = subtitle
+            setBackgroundColor(YView.surface(context))
+            setTitleTextColor(YView.onSurface(context))
+            setSubtitleTextColor(YView.onSurfaceVariant(context))
+            setContentInsetsRelative(screenH(context), screenH(context))
+            minimumHeight = YView.dimen(context, R.dimen.yui_toolbar_height)
+        }
+        shell.addView(
+            toolbar,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
         val scroll = ScrollView(context).apply {
             isFillViewport = true
             clipToPadding = false
@@ -62,9 +83,22 @@ object YViewLayout {
             orientation = LinearLayout.VERTICAL
             setPadding(screenH(context), screenV(context), screenH(context), dp(context, 28))
         }
-        scroll.addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        header(root, title, subtitle)
-        return YViewScreen(scroll, root)
+        scroll.addView(
+            root,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        shell.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            ),
+        )
+        return YViewScreen(shell, root)
     }
 
     @JvmStatic

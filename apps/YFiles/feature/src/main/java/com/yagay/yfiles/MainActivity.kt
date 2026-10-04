@@ -36,6 +36,8 @@ import com.yagay.yui.YTabSpec
 import com.yagay.yui.YToggleFilterBar
 import com.yagay.yui.YActionGroup
 import com.yagay.yui.YSectionHeader
+import com.yagay.yui.YBreadcrumbBar
+import com.yagay.yui.YBreadcrumbSegment
 import com.yagay.yui.YPageList
 import com.yagay.yui.YPageRole
 import com.yagay.yui.YPageScaffold
@@ -354,9 +356,27 @@ class MainActivity : YComposeActivity() {
 
                 if (page == 0) {
                     item {
-                        YSectionHeader(
-                            title = stringResource(R.string.location),
-                            subtitle = path,
+                        YSectionHeader(title = stringResource(R.string.location))
+                        YBreadcrumbBar(
+                            segments = buildList {
+                                add(
+                                    YBreadcrumbSegment("/", "/") {
+                                        path = "/"
+                                        query = ""
+                                    },
+                                )
+                                var current = ""
+                                path.trim('/').split('/').filter { it.isNotBlank() }.forEach { segment ->
+                                    current += "/$segment"
+                                    val target = current
+                                    add(
+                                        YBreadcrumbSegment(target, segment) {
+                                            path = target
+                                            query = ""
+                                        },
+                                    )
+                                }
+                            },
                         )
                     }
                     item {

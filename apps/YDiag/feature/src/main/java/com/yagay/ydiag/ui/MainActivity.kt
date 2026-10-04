@@ -69,7 +69,7 @@ import com.yagay.yui.YFeatureSectionHeader
 import com.yagay.yui.YFeatureStat
 import com.yagay.yui.YIcons
 import com.yagay.yui.YNavigationSpec
-import com.yagay.yui.YNavigationSuite
+import com.yagay.yui.YAppShell
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YSecondaryButton
@@ -134,7 +134,7 @@ private fun YDiagRoot(vm: YDiagViewModel = viewModel()) {
         YNavigationSpec("settings", stringResource(R.string.ydiag_tab_settings), YIcons.Settings),
     )
 
-    YNavigationSuite(
+    YAppShell(
         selectedKey = navigation[tab].key,
         items = navigation,
         onSelected = { item ->
