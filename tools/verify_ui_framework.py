@@ -133,7 +133,7 @@ def main() -> None:
     require(yminiguard, "YViewLayout.install(", "YMiniGuard main screen")
     require(yminiguard, "YViewLayout.switchRow(", "YMiniGuard main screen")
     require(yminiguard, "YViewLayout.navigationRow(", "YMiniGuard app-list navigation")
-    require(yentry, "YFeatureCustomScaffold(", "YEntryCleaner main screen")
+    require(yentry, "YCustomScaffold(", "YEntryCleaner main screen")
     require(yentry, "YAppShell(", "YEntryCleaner main navigation")
     require(yparam, "YViewLayout.installFixed(", "YParam main screen")
     require(yparam, "YViewLayout.searchField(", "YParam main screen")
