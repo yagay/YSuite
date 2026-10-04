@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,14 +22,18 @@ for path in ROOT.rglob("*"):
 
     text = path.read_text(encoding="utf-8", errors="ignore")
 
-    if rel.startswith("feature/") and "androidx.compose.material3." in text:
-        violations.append(f"{rel}: feature imports Material3 directly; use core design system")
+    if rel.startswith("feature/") and "/impl/" in rel:
+        if "androidx.compose.material3." in text:
+            violations.append(f"{rel}: feature imports Material3 directly; use core design system")
+        if "com.google.android.material." in text:
+            violations.append(f"{rel}: feature imports Material Views directly; use core design system")
+        for field in ("title", "subtitle", "label", "message", "text"):
+            if re.search(rf"\b{field}\s*=\s*\"[^\"]+\"", text):
+                violations.append(f"{rel}: hardcoded user-visible {field}; use string resources")
 
-    if rel.startswith("feature/") and "com.google.android.material." in text:
-        violations.append(f"{rel}: feature imports Material Views directly; use core design system")
-
-    if rel.startswith("feature/") and "/impl/" in rel and "feature." in text and ".impl" in text:
-        violations.append(f"{rel}: feature implementation must not depend on another feature implementation")
+    if rel.startswith("feature/") and "/api/" in rel:
+        if re.search(r"\b(android|androidx)\.", text):
+            violations.append(f"{rel}: feature API must remain framework-neutral")
 
     if rel.startswith("app/") and "androidx.compose.material3." in text:
         violations.append(f"{rel}: app must render through core:ui")
@@ -42,11 +47,23 @@ for path in ROOT.rglob("*"):
     if rel.startswith("core/designsystem/") and "com.yagay.ysuite.ui" in text:
         violations.append(f"{rel}: design system must not depend on core:ui")
 
-    if rel.startswith("core/ui/") and "feature." in text:
+    if rel.startswith("core/ui/") and "com.yagay.ysuite.feature." in text:
         violations.append(f"{rel}: core:ui must not depend on features")
 
+    if rel.startswith("core/platform/api/") and re.search(r"\b(android|androidx)\.", text):
+        violations.append(f"{rel}: platform API must remain framework-neutral")
+
+for gradle in ROOT.glob("feature/*/impl/build.gradle.kts"):
+    rel = gradle.relative_to(ROOT).as_posix()
+    text = gradle.read_text(encoding="utf-8", errors="ignore")
+    own_feature = gradle.parts[-3]
+    for match in re.finditer(r'project\(\"(:feature:[^\"]+:impl)\"\)', text):
+        dependency = match.group(1)
+        if dependency != f":feature:{own_feature}:impl":
+            violations.append(f"{rel}: feature implementation dependency is forbidden: {dependency}")
+
 if violations:
-    print("\n".join(violations))
+    print("\n".join(sorted(set(violations))))
     sys.exit(1)
 
 print("Architecture boundaries OK")

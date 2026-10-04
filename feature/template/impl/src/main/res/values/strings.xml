@@ -1,0 +1,7 @@
+<resources>
+    <string name="template_title">Feature template</string>
+    <string name="template_summary">Reference implementation for every future YSuite feature.</string>
+    <string name="template_section">Standard settings section</string>
+    <string name="template_toggle">Example setting</string>
+    <string name="template_toggle_summary">Uses the shared page, state, ViewModel and design-system contracts.</string>
+</resources>

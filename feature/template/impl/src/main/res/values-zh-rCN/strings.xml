@@ -1,0 +1,7 @@
+<resources>
+    <string name="template_title">功能模板</string>
+    <string name="template_summary">以后所有 YSuite 功能模块的标准参考实现。</string>
+    <string name="template_section">标准设置分组</string>
+    <string name="template_toggle">示例设置</string>
+    <string name="template_toggle_summary">使用统一页面、状态、ViewModel 和设计系统契约。</string>
+</resources>

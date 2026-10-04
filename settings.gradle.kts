@@ -17,10 +17,22 @@ dependencyResolutionManagement {
 rootProject.name = "YSuiteNext"
 
 include(":app")
+
 include(":core:common")
 include(":core:model")
-include(":core:platform")
 include(":core:resources")
 include(":core:designsystem")
 include(":core:ui")
 include(":core:navigation")
+include(":core:presentation")
+include(":core:settings")
+include(":core:logging")
+include(":core:permissions")
+include(":core:diagnostics")
+include(":core:platform:api")
+include(":core:platform:android")
+
+include(":feature:template:api")
+include(":feature:template:impl")
+
+include(":host:standalone")

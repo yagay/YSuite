@@ -8,17 +8,23 @@ errors = []
 
 def string_keys(path: Path):
     root = ET.parse(path).getroot()
-    return {node.attrib["name"] for node in root if node.tag in {"string", "plurals", "string-array"} and "name" in node.attrib}
+    return {
+        node.attrib["name"]
+        for node in root
+        if node.tag in {"string", "plurals", "string-array"} and "name" in node.attrib
+    }
 
-for zh in ROOT.rglob("src/main/res/values-zh-rCN/strings.xml"):
-    default = zh.parent.parent / "values" / "strings.xml"
-    if not default.exists():
-        errors.append(f"{zh.relative_to(ROOT)}: missing default values/strings.xml")
+for default in ROOT.rglob("src/main/res/values/strings.xml"):
+    zh = default.parent.parent / "values-zh-rCN" / "strings.xml"
+    if not zh.exists():
+        errors.append(f"{default.relative_to(ROOT)}: missing Simplified Chinese strings.xml")
         continue
+
     base_keys = string_keys(default)
     zh_keys = string_keys(zh)
     missing = sorted(base_keys - zh_keys)
     extra = sorted(zh_keys - base_keys)
+
     if missing:
         errors.append(f"{zh.relative_to(ROOT)}: missing keys: {', '.join(missing)}")
     if extra:
