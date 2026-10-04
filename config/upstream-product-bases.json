@@ -1,0 +1,53 @@
+{
+  "policy": "upstream-first",
+  "products": {
+    "Dashboard": {
+      "repo": "android/nowinandroid",
+      "license": "Apache-2.0"
+    },
+    "FileManager": {
+      "repo": "SysAdminDoc/FileExplorer",
+      "license": "MIT"
+    },
+    "Browser": {
+      "repo": "fazza-abiyyu/Yue-Browser",
+      "license": "Apache-2.0"
+    },
+    "Settings": {
+      "repo": "alorma/Compose-Settings",
+      "license": "MIT"
+    },
+    "LogViewer": {
+      "repo": "darshanparajuli/LogcatReader",
+      "license": "MIT"
+    },
+    "DownloadManager": {
+      "repo": "PBhadoo/QDM-Android",
+      "license": "Apache-2.0"
+    },
+    "TaskManager": {
+      "repo": "wisnukurniawan/Compose-ToDo",
+      "license": "Apache-2.0"
+    },
+    "AutomationStudio": {
+      "repo": "SysAdminDoc/OpenTasker",
+      "license": "MIT"
+    },
+    "EntityManager": {
+      "repo": "LibChecker/LibChecker",
+      "license": "Apache-2.0"
+    },
+    "Tool": {
+      "repo": "android/nowinandroid",
+      "license": "Apache-2.0"
+    },
+    "Detail": {
+      "repo": "android/nowinandroid",
+      "license": "Apache-2.0"
+    },
+    "Fullscreen": {
+      "repo": "SysAdminDoc/FileExplorer",
+      "license": "MIT"
+    }
+  }
+}

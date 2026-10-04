@@ -1,10 +1,40 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import json
 import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 violations = []
+
+upstream_path = ROOT / "config/upstream-product-bases.json"
+if not upstream_path.exists():
+    print("Missing config/upstream-product-bases.json")
+    sys.exit(1)
+upstream_config = json.loads(upstream_path.read_text(encoding="utf-8"))
+upstream_products = upstream_config.get("products", {})
+required_product_kinds = {
+    "Dashboard",
+    "FileManager",
+    "Browser",
+    "Settings",
+    "LogViewer",
+    "DownloadManager",
+    "TaskManager",
+    "AutomationStudio",
+    "EntityManager",
+    "Tool",
+    "Detail",
+    "Fullscreen",
+}
+missing_upstream = sorted(required_product_kinds - set(upstream_products))
+if missing_upstream:
+    print("Missing upstream product bases: " + ", ".join(missing_upstream))
+    sys.exit(1)
+for kind, spec in upstream_products.items():
+    if not spec.get("repo") or not spec.get("license"):
+        print(f"Invalid upstream product base for {kind}")
+        sys.exit(1)
 
 legacy_roots = ["apps", "libs/yui", "suite", "standalone"]
 for legacy in legacy_roots:
@@ -234,6 +264,14 @@ for registration in ROOT.glob(
         violations.append(
             f"{rel}: ProductSurfaceKind.{kind} requires "
             f"{required} in the feature implementation"
+        )
+
+app_container = ROOT / "app/src/main/java/com/yagay/ysuite/YSuiteAppContainer.kt"
+if app_container.exists():
+    app_container_text = app_container.read_text(encoding="utf-8", errors="ignore")
+    if "TemplateFeatureUiRegistration" in app_container_text:
+        violations.append(
+            "app/YSuiteAppContainer.kt: template feature must not ship in the product registry"
         )
 
 if violations:
