@@ -20,11 +20,11 @@ import com.yagay.YNFC.CardModel
 import com.yagay.YNFC.R
 import com.yagay.YNFC.RuntimeStatus
 import com.yagay.YNFC.StatusTone
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSecondaryButton
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 
 @Composable
@@ -144,18 +144,18 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
         else -> StatusTone.WARNING
     }
 
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.ynfc_runtime_status),
         subtitle = stringResource(R.string.ynfc_runtime_status_desc),
     ) {
-        YStatusRow(
+        YStatusLine(
             label = stringResource(R.string.ynfc_nfc_hook),
             value = "pid=${status.currentPid} · runtimePid=${status.runtimePid} · hookBuild=${status.hookBuild}/${BuildConfig.HOOK_BUILD} · hookPid=${status.hookPid}",
             tone = if (hookReady) YStatusTone.Good else YStatusTone.Error,
         )
-        YStatusRow(stringResource(R.string.ynfc_simulation_status), simulationDetail, simulationTone.toYUiTone())
-        YStatusRow(stringResource(R.string.ynfc_command), commandDisplay, commandTone.toYUiTone())
-        YStatusRow(
+        YStatusLine(stringResource(R.string.ynfc_simulation_status), simulationDetail, simulationTone.toYUiTone())
+        YStatusLine(stringResource(R.string.ynfc_command), commandDisplay, commandTone.toYUiTone())
+        YStatusLine(
             stringResource(R.string.ynfc_rf_status),
             "effective=${status.effectiveState} · op=${status.operationState} · confidence=${status.verificationConfidence} · accepted=${status.rfAccepted} · uid=${status.rfUid ?: "-"}",
             rfTone.toYUiTone(),
@@ -211,7 +211,7 @@ fun ReadCardPanel(
     onSave: (CardModel) -> Unit,
     onClear: () -> Unit,
 ) {
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.ynfc_read_card),
         subtitle = when {
             simulationActive -> stringResource(R.string.ynfc_read_disabled_during_sim)
@@ -236,13 +236,13 @@ fun ReadCardPanel(
                 YPrimaryButton(stringResource(R.string.ynfc_enter_read), onStartRead, Modifier.fillMaxWidth())
             }
             else -> {
-                YStatusRow(
+                YStatusLine(
                     stringResource(R.string.ynfc_read_status),
                     stringResource(R.string.ynfc_read_success),
                     YStatusTone.Good,
                 )
                 CardDetails(card)
-                YActionRow {
+                YHorizontalActions {
                     YPrimaryButton(stringResource(R.string.ynfc_save_card), { onSave(card) }, Modifier.weight(1f))
                     YSecondaryButton(
                         stringResource(R.string.ynfc_read_again),
@@ -303,7 +303,7 @@ fun CardItem(
     onStop: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    YFeatureCard(
+    YSection(
         title = card.name,
         subtitle = stringResource(R.string.ynfc_card_uid_subtitle, card.uid),
         detail = if (expanded) {

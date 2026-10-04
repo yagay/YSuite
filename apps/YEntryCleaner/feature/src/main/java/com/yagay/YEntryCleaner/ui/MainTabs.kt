@@ -17,9 +17,9 @@ import com.yagay.YEntryCleaner.domain.IntentKind
 import com.yagay.YEntryCleaner.domain.OpenPreset
 import com.yagay.YEntryCleaner.domain.matchesBrowserHost
 import com.yagay.YEntryCleaner.domain.matchesOpenPreset
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureEmpty
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSection
+import com.yagay.yui.YEmptyMessage
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -349,7 +349,7 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
         }
         if (!state.loading && shownGroups.isEmpty()) {
             item {
-                YFeatureEmpty(
+                YEmptyMessage(
                     message = stringResource(R.string.no_matching_components),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
@@ -382,7 +382,7 @@ private fun SummaryRow(
     } else {
         stringResource(R.string.rules_typed_help, presetTitle)
     }
-    YFeatureCard(
+    YSection(
         title = if (presetTitle == null) {
             stringResource(R.string.app_list_count, groupCount)
         } else {
@@ -392,12 +392,12 @@ private fun SummaryRow(
         detail = usageText,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        YStatusRow(
+        YStatusLine(
             label = stringResource(R.string.rules_summary_mode),
             value = modeText
         )
         if (state.displayMode == DisplayMode.SHOW_ALL) {
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.rules_summary_status),
                 value = stringResource(
                     if (state.runtime.ready) R.string.rules_pause_confirmed else R.string.rules_pause_pending
@@ -405,13 +405,13 @@ private fun SummaryRow(
                 tone = if (state.runtime.ready) YStatusTone.Good else YStatusTone.Warning
             )
         } else if (state.displayMode == DisplayMode.SHOW_SELECTED) {
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.rules_summary_status),
                 value = stringResource(R.string.rules_show_selected_empty)
             )
         }
         if (state.error != null) {
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.rules_summary_status),
                 value = stringResource(R.string.rules_refresh_incomplete),
                 tone = YStatusTone.Error

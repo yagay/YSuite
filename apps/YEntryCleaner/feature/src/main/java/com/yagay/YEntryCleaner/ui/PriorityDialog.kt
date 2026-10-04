@@ -44,9 +44,9 @@ import com.yagay.YEntryCleaner.domain.matchesOpenPreset
 import com.yagay.YEntryCleaner.domain.matchesBrowserHost
 import com.yagay.YEntryCleaner.domain.priorityAppGroups
 import com.yagay.YEntryCleaner.domain.priorityCandidates
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureEmpty
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSection
+import com.yagay.yui.YEmptyMessage
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import kotlin.math.roundToInt
 
@@ -336,7 +336,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                     else -> YStatusTone.Good
                 }
                 val hasReset = typedOpenPreset != null && hasExplicitOpenPriority || deepLinkHost != null && hasExplicitDeepLinkPriority
-                YFeatureCard(
+                YSection(
                     title = if (presetTitle == null) stringResource(R.string.app_list_count, groups.size)
                     else stringResource(R.string.app_list_count_type, groups.size, presetTitle),
                     subtitle = stringResource(R.string.priority_intro),
@@ -355,36 +355,36 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                         }
                     }
                 ) {
-                    YStatusRow(
+                    YStatusLine(
                         label = stringResource(R.string.priority_summary_source),
                         value = sourceText,
                         tone = if (inheritsOpenPriority || inheritsDeepLinkPriority) YStatusTone.Good else YStatusTone.Neutral
                     )
-                    YStatusRow(
+                    YStatusLine(
                         label = stringResource(R.string.priority_summary_scope),
                         value = sourceHelp
                     )
-                    YStatusRow(
+                    YStatusLine(
                         label = stringResource(R.string.priority_summary_compatibility),
                         value = compatibility,
                         tone = compatibilityTone
                     )
                     if (hiddenSavedCount > 0) {
-                        YStatusRow(
+                        YStatusLine(
                             label = stringResource(R.string.priority_summary_saved),
                             value = stringResource(R.string.priority_hidden_saved, hiddenSavedCount),
                             tone = YStatusTone.Warning
                         )
                     }
                     if (rankedRaw.size >= 200) {
-                        YStatusRow(
+                        YStatusLine(
                             label = stringResource(R.string.priority_summary_limit),
                             value = stringResource(R.string.priority_limit_reached),
                             tone = YStatusTone.Error
                         )
                     }
                     if (state.error != null) {
-                        YStatusRow(
+                        YStatusLine(
                             label = stringResource(R.string.priority_summary_status),
                             value = stringResource(R.string.rules_refresh_incomplete),
                             tone = YStatusTone.Error
@@ -528,7 +528,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
 
             if (!state.loading && groups.isEmpty()) {
                 item(key = "empty") {
-                    YFeatureEmpty(
+                    YEmptyMessage(
                         message = stringResource(
                             when {
                                 state.query.isNotBlank() -> R.string.priority_empty_search

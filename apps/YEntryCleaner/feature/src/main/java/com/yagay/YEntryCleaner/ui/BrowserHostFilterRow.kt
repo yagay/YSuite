@@ -23,7 +23,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.BrowserLinkConfig
 import com.yagay.YEntryCleaner.domain.normalizeBrowserHost
-import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YSettingRow
 
@@ -130,7 +130,7 @@ fun BrowserHostFilterMenu(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
             if (visibleHosts.isEmpty()) {
-                YFeatureEmpty(
+                YEmptyMessage(
                     message = stringResource(R.string.browser_domain_search_empty),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
@@ -223,7 +223,7 @@ fun BrowserHostDialog(
                     )
                 }
                 if (hosts.isEmpty()) {
-                    YFeatureEmpty(message = stringResource(R.string.browser_hosts_empty))
+                    YEmptyMessage(message = stringResource(R.string.browser_hosts_empty))
                 } else {
                     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
                         items(hosts, key = { it }) { host ->

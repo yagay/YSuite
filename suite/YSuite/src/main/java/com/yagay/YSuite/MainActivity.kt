@@ -22,15 +22,15 @@ import com.yagay.suite.core.SuiteCapability
 import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
-import com.yagay.yui.YActionRow
+import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YComposeActivity
-import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YSection
 import com.yagay.yui.YDashboardScaffold
 import com.yagay.yui.YPageList
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSecondaryButton
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -244,7 +244,7 @@ private fun RuntimeEnvironmentCard(
     onNotificationListener: () -> Unit,
     onExport: () -> Unit,
 ) {
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.runtime_environment_title),
         subtitle = stringResource(R.string.runtime_environment_subtitle),
         detail = stringResource(
@@ -253,7 +253,7 @@ private fun RuntimeEnvironmentCard(
             SuiteXposedServiceBroker.listenerCount(),
         ),
     ) {
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.capability_root),
             when (rootAvailable) {
                 true -> stringResource(R.string.status_authorized)
@@ -266,12 +266,12 @@ private fun RuntimeEnvironmentCard(
                 null -> YStatusTone.Neutral
             },
         )
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.capability_lsposed),
             if (xposedConnected) stringResource(R.string.status_connected) else stringResource(R.string.status_not_connected),
             if (xposedConnected) YStatusTone.Good else YStatusTone.Warning,
         )
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.capability_accessibility),
             when {
                 permissions.accessibilityConnected -> stringResource(R.string.status_connected)
@@ -284,17 +284,17 @@ private fun RuntimeEnvironmentCard(
                 else -> YStatusTone.Error
             },
         )
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.capability_overlay),
             if (permissions.overlayGranted) stringResource(R.string.status_authorized) else stringResource(R.string.status_not_authorized),
             if (permissions.overlayGranted) YStatusTone.Good else YStatusTone.Warning,
         )
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.capability_notifications),
             if (permissions.notificationsGranted) stringResource(R.string.status_authorized) else stringResource(R.string.status_not_authorized),
             if (permissions.notificationsGranted) YStatusTone.Good else YStatusTone.Warning,
         )
-        YStatusRow(
+        YStatusLine(
             stringResource(R.string.capability_notification_listener),
             when {
                 permissions.notificationListenerConnected -> stringResource(R.string.status_connected)
@@ -319,14 +319,14 @@ private fun RuntimeEnvironmentCard(
         if (permissions.otherNotificationListenerHostEnabled) {
             HostWarning(stringResource(R.string.warning_other_notification_host))
         }
-        YActionRow {
+        YHorizontalActions {
             YSecondaryButton(
                 text = if (permissions.accessibilityEnabled) stringResource(R.string.accessibility_settings) else stringResource(R.string.enable_accessibility),
                 onClick = onAccessibility,
             )
             YSecondaryButton(text = stringResource(R.string.overlay_settings), onClick = onOverlay)
         }
-        YActionRow {
+        YHorizontalActions {
             YSecondaryButton(
                 text = if (permissions.notificationListenerGranted) stringResource(R.string.notification_listener_settings) else stringResource(R.string.enable_notification_listener),
                 onClick = onNotificationListener,
@@ -366,7 +366,7 @@ private fun FeatureCard(
         .takeIf { it.isNotEmpty() }
         ?.joinToString(" + ")
 
-    YFeatureCard(
+    YSection(
         title = localizedName,
         subtitle = localizedDescription,
         detail = capabilities?.let { stringResource(R.string.shared_capabilities, it) },
@@ -387,7 +387,7 @@ private fun FeatureCard(
                 standalone.installed -> YStatusTone.Good
                 else -> YStatusTone.Warning
             }
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.standalone_app),
                 value = standaloneValue,
                 tone = standaloneTone,
@@ -404,7 +404,7 @@ private fun FeatureCard(
                     standalone.launcherHidden -> stringResource(R.string.status_hidden)
                     else -> stringResource(R.string.status_visible)
                 }
-                YStatusRow(
+                YStatusLine(
                     label = stringResource(R.string.launcher_entry),
                     value = launcherValue,
                     tone = when {
@@ -413,7 +413,7 @@ private fun FeatureCard(
                         else -> YStatusTone.Neutral
                     },
                 )
-                YSettingSwitch(
+                YSwitchItem(
                     title = stringResource(R.string.manage_standalone),
                     subtitle = if (standalone.launcherAliasSupported) {
                         stringResource(R.string.manage_standalone_summary)
@@ -431,7 +431,7 @@ private fun FeatureCard(
         }
 
         if (feature.requiresRoot && rootAvailable != true) {
-            YStatusRow(
+            YStatusLine(
                 stringResource(R.string.capability_root),
                 when (rootAvailable) {
                     false -> stringResource(R.string.status_unavailable_or_unauthorized)
@@ -442,20 +442,20 @@ private fun FeatureCard(
             )
         }
         if (feature.requiresHook && !xposedConnected) {
-            YStatusRow(
+            YStatusLine(
                 stringResource(R.string.capability_lsposed),
                 stringResource(R.string.status_not_connected),
                 YStatusTone.Warning,
             )
         }
 
-        YSettingSwitch(
+        YSwitchItem(
             title = stringResource(R.string.enable_feature),
             subtitle = stringResource(R.string.enable_feature_summary),
             checked = isEnabled,
             onCheckedChange = onEnabledChange,
         )
-        YActionRow {
+        YHorizontalActions {
             YPrimaryButton(
                 text = stringResource(R.string.open_feature),
                 onClick = onOpen,
@@ -467,7 +467,7 @@ private fun FeatureCard(
             )
         }
         if (feature.standaloneEnabled && standalone?.installed == true) {
-            YActionRow {
+            YHorizontalActions {
                 if (standalone.launchable) {
                     YSecondaryButton(
                         text = stringResource(R.string.open_standalone),

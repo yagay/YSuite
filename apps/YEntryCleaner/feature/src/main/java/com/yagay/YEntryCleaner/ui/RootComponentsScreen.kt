@@ -31,10 +31,10 @@ import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.data.CleanupKind
 import com.yagay.YEntryCleaner.data.RootComponent
 import com.yagay.YEntryCleaner.domain.AppTypeFilter
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureEmpty
-import com.yagay.yui.YFeatureSectionHeader
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSection
+import com.yagay.yui.YEmptyMessage
+import com.yagay.yui.YSectionHeader
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 
 private fun componentAppSelectionRank(items: List<RootComponent>): Int {
@@ -107,7 +107,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
         item(key = "title") {
-            YFeatureSectionHeader(
+            YSectionHeader(
                 title = stringResource(R.string.root_screen_title),
                 subtitle = stringResource(R.string.root_filter_help),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -203,13 +203,13 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
             }
         }
         item(key = "summary") {
-            YFeatureCard(
+            YSection(
                 title = stringResource(R.string.root_summary, groups.size, visible.size),
                 subtitle = stringResource(R.string.root_selection_semantics),
                 detail = stringResource(R.string.root_change_semantics),
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
-                YStatusRow(
+                YStatusLine(
                     label = stringResource(R.string.view_filter),
                     value = stringResource(
                         when (kind) {
@@ -222,9 +222,9 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                     tone = YStatusTone.Neutral,
                 )
                 if (scan.warning.isNotBlank()) {
-                    YStatusRow(stringResource(R.string.yentry_status_warning), scan.warning, YStatusTone.Error)
+                    YStatusLine(stringResource(R.string.yentry_status_warning), scan.warning, YStatusTone.Error)
                 }
-                message?.let { YStatusRow(stringResource(R.string.yentry_status_status), it, YStatusTone.Neutral) }
+                message?.let { YStatusLine(stringResource(R.string.yentry_status_status), it, YStatusTone.Neutral) }
             }
         }
 
@@ -380,7 +380,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
             }
         }
         if (visible.isEmpty() && !busy) {
-            item { YFeatureEmpty(stringResource(R.string.root_no_components)) }
+            item { YEmptyMessage(stringResource(R.string.root_no_components)) }
         }
     }
 }

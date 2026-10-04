@@ -53,7 +53,7 @@ import com.yagay.ydiag.model.LoadLevel
 import com.yagay.ydiag.model.Recommendation
 import com.yagay.ydiag.model.Severity
 import com.yagay.ydiag.service.MonitorState
-import com.yagay.yui.YActionRow
+import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YSectionHeader
 import com.yagay.yui.YPageList
@@ -61,12 +61,12 @@ import com.yagay.yui.YListItem
 import com.yagay.yui.YFilterBar
 import com.yagay.yui.YCheckboxItem
 import com.yagay.yui.YComposeActivity
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YSection
+import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YPageRole
 import com.yagay.yui.YPageScaffold
-import com.yagay.yui.YFeatureSectionHeader
-import com.yagay.yui.YFeatureStat
+import com.yagay.yui.YSectionHeader
+import com.yagay.yui.YMetricCard
 import com.yagay.yui.YIcons
 import com.yagay.yui.YNavigationSpec
 import com.yagay.yui.YAppShell
@@ -232,7 +232,7 @@ private fun MonitorScreen(
             )
         }
         item {
-            YFeatureCard(
+            YSection(
                 title = if (monitor.running) stringResource(R.string.ydiag_running) else stringResource(R.string.ydiag_not_started),
                 subtitle = if (selected.isEmpty()) stringResource(R.string.ydiag_select_to_start)
                 else stringResource(R.string.ydiag_selected_processes, selected.size, monitor.processCount),
@@ -270,9 +270,9 @@ private fun MonitorScreen(
 
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                YFeatureStat(stringResource(R.string.ydiag_errors), monitor.errorCount.toString(), Modifier.weight(1f), YStatusTone.Error)
-                YFeatureStat(stringResource(R.string.ydiag_warnings), monitor.warningCount.toString(), Modifier.weight(1f), YStatusTone.Warning)
-                YFeatureStat(stringResource(R.string.ydiag_events), monitor.eventCount.toString(), Modifier.weight(1f))
+                YMetricCard(stringResource(R.string.ydiag_errors), monitor.errorCount.toString(), Modifier.weight(1f), YStatusTone.Error)
+                YMetricCard(stringResource(R.string.ydiag_warnings), monitor.warningCount.toString(), Modifier.weight(1f), YStatusTone.Warning)
+                YMetricCard(stringResource(R.string.ydiag_events), monitor.eventCount.toString(), Modifier.weight(1f))
             }
         }
 
@@ -289,7 +289,7 @@ private fun MonitorScreen(
 
         if (monitor.recentIssues.isEmpty()) {
             item {
-                YFeatureEmpty(
+                YEmptyMessage(
                     if (monitor.running) stringResource(R.string.ydiag_no_issue_running)
                     else stringResource(R.string.ydiag_no_issue_idle),
                 )
@@ -318,7 +318,7 @@ private fun MonitorScreen(
         }
 
         item {
-            YActionRow {
+            YHorizontalActions {
                 YSecondaryButton(stringResource(R.string.ydiag_export_full), onExport, Modifier.weight(1f))
                 if (monitor.running) YSecondaryButton(stringResource(R.string.ydiag_stop), onStop, Modifier.weight(1f))
             }
@@ -337,7 +337,7 @@ private fun HistoryScreen(history: List<HistoryItem>, onExport: (HistoryItem) ->
                 subtitle = stringResource(R.string.ydiag_history_desc),
             )
         }
-        if (history.isEmpty()) item { YFeatureEmpty(stringResource(R.string.ydiag_no_history)) }
+        if (history.isEmpty()) item { YEmptyMessage(stringResource(R.string.ydiag_no_history)) }
         items(history, key = { it.meta.id }) { item ->
             YListItem(
                 title = item.meta.targetPackages.joinToString().ifBlank { stringResource(R.string.ydiag_unknown_target) },
@@ -430,7 +430,7 @@ private fun SettingsScreen(
             )
         }
         item {
-            YFeatureCard(title = stringResource(R.string.ydiag_activation_strategy)) {
+            YSection(title = stringResource(R.string.ydiag_activation_strategy)) {
                 ActivationModeRow(
                     activationMode == Preferences.ACTIVATION_AUTO,
                     stringResource(R.string.ydiag_activation_auto),
@@ -450,7 +450,7 @@ private fun SettingsScreen(
         }
         item { YSectionHeader(stringResource(R.string.ydiag_export_location)) }
         item {
-            YFeatureCard(title = stringResource(R.string.ydiag_package_directory)) {
+            YSection(title = stringResource(R.string.ydiag_package_directory)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(selected = exportMode == "download", onClick = { onExportMode("download") })
                     Column {
@@ -474,7 +474,7 @@ private fun SettingsScreen(
             }
         }
         item {
-            YFeatureCard(
+            YSection(
                 title = stringResource(R.string.ydiag_log_segment_limit),
                 subtitle = stringResource(R.string.ydiag_log_segment_desc),
             ) {
@@ -571,7 +571,7 @@ private fun AppPickerDialog(
                 )
                 Spacer(Modifier.height(8.dp))
                 if (visible.isEmpty()) {
-                    YFeatureEmpty(stringResource(R.string.ydiag_no_filtered_apps))
+                    YEmptyMessage(stringResource(R.string.ydiag_no_filtered_apps))
                 } else {
                     LazyColumn(Modifier.height(480.dp)) {
                         items(visible, key = { it.packageName }) { app ->

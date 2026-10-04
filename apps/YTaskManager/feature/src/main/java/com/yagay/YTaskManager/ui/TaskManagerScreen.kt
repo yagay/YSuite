@@ -68,7 +68,7 @@ import com.yagay.YTaskManager.model.ProcessKind
 import com.yagay.YTaskManager.model.ProcessSort
 import com.yagay.YTaskManager.model.TaskManagerUiState
 import com.yagay.yui.YDimens
-import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YSection
 import com.yagay.yui.YToggleFilterBar
 import com.yagay.yui.YStatusStrip
 import com.yagay.yui.YStatusSpec
@@ -76,15 +76,15 @@ import com.yagay.yui.YPageList
 import com.yagay.yui.YListItem
 import com.yagay.yui.YFilterSpec
 import com.yagay.yui.YFilterBar
-import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YIcons
 import com.yagay.yui.YNavigationSpec
 import com.yagay.yui.YAppShell
 import com.yagay.yui.YSearchField
-import com.yagay.yui.YSettingSwitch
+import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YStatusPill
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 import java.text.DateFormat
 import java.util.Date
@@ -276,7 +276,7 @@ private fun FilterSection(
     onSystem: (Boolean) -> Unit,
     onLinux: (Boolean) -> Unit,
 ) {
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.ytm_process_filter),
         subtitle = stringResource(R.string.ytm_process_filter_desc),
         modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
@@ -353,7 +353,7 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
     }
 
     if (filtered.isEmpty()) {
-        YFeatureEmpty(
+        YEmptyMessage(
             message = stringResource(R.string.ytm_no_processes),
             modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
         )
@@ -477,14 +477,14 @@ private fun NetworkPage(state: TaskManagerUiState) {
         compact = true,
     ) {
         item {
-            YFeatureCard(
+            YSection(
                 title = stringResource(R.string.ytm_realtime_speed),
                 subtitle = stringResource(R.string.ytm_realtime_speed_desc),
                 detail = stringResource(R.string.ytm_backend_detail, network.backend),
             )
         }
         if (network.entries.isEmpty()) {
-            item { YFeatureEmpty(stringResource(R.string.ytm_no_traffic)) }
+            item { YEmptyMessage(stringResource(R.string.ytm_no_traffic)) }
         } else {
             items(network.entries, key = { it.uid }) { entry ->
                 NetworkRow(entry)
@@ -526,7 +526,7 @@ private fun NetworkRow(entry: NetworkEntry) {
 
 @Composable
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
-    YFeatureCard(
+    YSection(
         title = title,
         modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
         content = content,
@@ -535,7 +535,7 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun MetricLine(label: String, value: String) {
-    YStatusRow(label = label, value = value)
+    YStatusLine(label = label, value = value)
 }
 
 @Composable
@@ -735,7 +735,7 @@ private fun SettingsDialog(
 
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    YSettingSwitch(title = label, checked = checked, onCheckedChange = onCheckedChange)
+    YSwitchItem(title = label, checked = checked, onCheckedChange = onCheckedChange)
 }
 
 @Composable

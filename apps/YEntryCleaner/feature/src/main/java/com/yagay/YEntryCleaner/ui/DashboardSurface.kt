@@ -16,13 +16,13 @@ import androidx.compose.ui.unit.dp
 import com.yagay.YEntryCleaner.BuildConfig
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.DisplayMode
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
 import com.yagay.yui.YDimens
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
-import com.yagay.yui.YSettingSwitch
-import com.yagay.yui.YStatusRow
+import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
 
 /**
@@ -66,7 +66,7 @@ internal fun UnifiedDashboardTabContent(
     ) {
         RuntimePanel(state, vm)
 
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.dashboard_global_mode),
             subtitle = stringResource(R.string.dashboard_global_mode_help),
             trailing = {
@@ -92,41 +92,41 @@ internal fun UnifiedDashboardTabContent(
                 }
             }
         ) {
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.dashboard_global_mode),
                 value = stringResource(state.displayMode.titleRes())
             )
         }
 
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.dashboard_sync_status),
             subtitle = stringResource(R.string.dashboard_sync_help)
         ) {
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.dashboard_sync_status),
                 value = state.syncStatus,
                 tone = if (state.runtime.ready) YStatusTone.Good else YStatusTone.Warning
             )
         }
 
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.dashboard_runtime_hits),
             subtitle = stringResource(R.string.dashboard_hits_help)
         ) {
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.dashboard_module_status),
                 value = stringResource(if (state.runtime.ready) R.string.dashboard_ack_confirmed else R.string.dashboard_ack_missing),
                 tone = if (state.runtime.ready) YStatusTone.Good else YStatusTone.Warning
             )
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.capability_filtering),
                 value = state.runtime.queryHits.toString()
             )
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.capability_visibility),
                 value = state.runtime.visibilityHits.toString()
             )
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.capability_ordering),
                 value = state.runtime.orderingHits.toString()
             )
@@ -135,8 +135,8 @@ internal fun UnifiedDashboardTabContent(
             }
         }
 
-        YFeatureCard(title = stringResource(R.string.dashboard_data_backup)) {
-            YActionRow {
+        YSection(title = stringResource(R.string.dashboard_data_backup)) {
+            YHorizontalActions {
                 YPrimaryActionButton(onClick = onRestore, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.dashboard_restore_json))
                 }
@@ -151,12 +151,12 @@ internal fun UnifiedDashboardTabContent(
             vm.refreshModuleStatus()
         }
 
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.dashboard_app_visibility),
             subtitle = stringResource(R.string.dashboard_app_visibility_help),
             detail = stringResource(R.string.dashboard_app_visibility_warning)
         ) {
-            YStatusRow(
+            YStatusLine(
                 label = stringResource(R.string.dashboard_app_visibility),
                 value = state.hiddenFromApps.size.toString()
             )
@@ -165,13 +165,13 @@ internal fun UnifiedDashboardTabContent(
             }
         }
 
-        YFeatureCard(
+        YSection(
             title = stringResource(R.string.dashboard_diagnostics),
             subtitle = stringResource(R.string.dashboard_scan_disclaimer),
             detail = stringResource(R.string.diagnostic_export_help)
         ) {
             state.error?.let {
-                YStatusRow(
+                YStatusLine(
                     label = stringResource(R.string.rules_summary_status),
                     value = it,
                     tone = YStatusTone.Error
@@ -185,19 +185,19 @@ internal fun UnifiedDashboardTabContent(
                 Text(stringResource(if (checkingFile) R.string.dashboard_inspecting_file else R.string.dashboard_inspect_file))
             }
             fileCheckStatus?.let {
-                YStatusRow(
+                YStatusLine(
                     label = stringResource(R.string.dashboard_inspect_file),
                     value = it
                 )
             }
-            YSettingSwitch(
+            YSwitchItem(
                 title = stringResource(R.string.diagnostic_mode),
                 subtitle = stringResource(R.string.diagnostic_mode_help),
                 checked = state.diagnosticMode,
                 onCheckedChange = vm::setDiagnosticMode
             )
             if (state.diagnosticMode) {
-                YStatusRow(
+                YStatusLine(
                     label = stringResource(R.string.diagnostic_mode),
                     value = stringResource(R.string.diagnostic_enabled_help),
                     tone = YStatusTone.Warning
@@ -242,7 +242,7 @@ private fun DashboardModuleStatusCard(state: MainState, onClick: () -> Unit) {
         state.runtime.ready -> YStatusTone.Good
         else -> YStatusTone.Warning
     }
-    YFeatureCard(
+    YSection(
         title = stringResource(R.string.dashboard_module_status),
         subtitle = stringResource(titleRes),
         detail = state.syncStatus,
@@ -251,7 +251,7 @@ private fun DashboardModuleStatusCard(state: MainState, onClick: () -> Unit) {
             Icon(Icons.Rounded.ExpandMore, contentDescription = stringResource(R.string.module_view_status))
         }
     ) {
-        YStatusRow(
+        YStatusLine(
             label = stringResource(R.string.dashboard_module_status),
             value = if (state.runtime.ready) stringResource(R.string.module_system_confirmed)
             else stringResource(R.string.module_check_status),

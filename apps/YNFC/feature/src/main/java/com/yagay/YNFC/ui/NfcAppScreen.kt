@@ -38,12 +38,12 @@ import com.yagay.YNFC.R
 import com.yagay.YNFC.RuntimeStatus
 import com.yagay.YNFC.RuntimeStatusViewModel
 import com.yagay.YNFC.RuntimeText
-import com.yagay.yui.YActionRow
-import com.yagay.yui.YFeatureCard
-import com.yagay.yui.YFeatureEmpty
+import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YSection
+import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YPageList
-import com.yagay.yui.YFeatureSectionHeader
+import com.yagay.yui.YSectionHeader
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSecondaryButton
 
@@ -114,14 +114,14 @@ fun NfcAppScreen(
                 )
             }
             item {
-                YFeatureSectionHeader(
+                YSectionHeader(
                     title = stringResource(R.string.ynfc_saved_cards, cards.size),
                     subtitle = stringResource(R.string.ynfc_saved_cards_desc),
                 )
             }
             if (cards.isEmpty()) {
                 item {
-                    YFeatureEmpty(stringResource(R.string.ynfc_no_saved_cards))
+                    YEmptyMessage(stringResource(R.string.ynfc_no_saved_cards))
                 }
             } else {
                 items(cards, key = { it.uid }) { card ->
@@ -149,7 +149,7 @@ fun NfcAppScreen(
                 }
             }
             item {
-                YFeatureCard(
+                YSection(
                     title = stringResource(R.string.ynfc_log_display),
                     subtitle = if (logsEnabled) {
                         stringResource(R.string.ynfc_log_enabled)
@@ -170,7 +170,7 @@ fun NfcAppScreen(
             }
             if (logsEnabled) {
                 item {
-                    YFeatureCard(
+                    YSection(
                         title = stringResource(R.string.ynfc_diagnostic_logs),
                         subtitle = stringResource(R.string.ynfc_diagnostic_logs_desc),
                     ) {
@@ -208,7 +208,7 @@ fun NfcAppScreen(
                                 }
                             }
                         }
-                        YActionRow {
+                        YHorizontalActions {
                             YPrimaryButton(
                                 text = if (diagnosticRunning) {
                                     stringResource(R.string.ynfc_saving)
