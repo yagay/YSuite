@@ -59,6 +59,7 @@ import com.yagay.ysuite.productui.filemanager.FileExplorerDetailRow
 import com.yagay.ysuite.productui.filemanager.FileExplorerDetailsSheet
 import com.yagay.ysuite.productui.filemanager.FileExplorerSearchBar
 import com.yagay.ysuite.productui.filemanager.FileExplorerSelectionTopBar
+import com.yagay.ysuite.productui.filemanager.FileExplorerNewFolderFab
 import com.yagay.ysuite.productui.filemanager.FileExplorerSortOption
 import com.yagay.ysuite.productui.filemanager.FileExplorerToolAction
 import com.yagay.ysuite.productui.filemanager.FileExplorerToolGroup
@@ -328,6 +329,22 @@ private fun YFilesBrowserSurface(
             )
         },
         detailPane = detailContent,
+        floatingActionButton =
+            if (
+                state.mode == YFilesBrowserMode.Directory &&
+                directory != null &&
+                state.selected.isEmpty()
+            ) {
+                {
+                    FileExplorerNewFolderFab(
+                        contentDescription =
+                            stringResource(R.string.yfiles_new_folder),
+                        onClick = browser::beginCreateDirectory,
+                    )
+                }
+            } else {
+                null
+            },
         selectionTopBar =
             if (state.selected.isNotEmpty()) {
                 {

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
@@ -47,6 +48,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -347,6 +349,21 @@ fun RowScope.FileExplorerTopActions(
                 onClick = { onRecursiveChange(!recursive) },
             )
         }
+    }
+}
+
+@Composable
+fun FileExplorerNewFolderFab(
+    contentDescription: String?,
+    onClick: () -> Unit,
+) {
+    FloatingActionButton(
+        onClick = onClick,
+    ) {
+        Icon(
+            imageVector = Icons.Default.CreateNewFolder,
+            contentDescription = contentDescription,
+        )
     }
 }
 
