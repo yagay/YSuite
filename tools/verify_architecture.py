@@ -211,6 +211,25 @@ for registration in ROOT.glob(
         source.read_text(encoding="utf-8", errors="ignore")
         for source in feature_root.rglob("*.kt")
     )
+
+    product_forbidden_symbols = {
+        "FileManager": (
+            "YSuiteFilterBar",
+            "YFileSectionSwitcher",
+            "YFileManagerScaffold",
+        ),
+        "Settings": (
+            "YSuiteFilterBar",
+            "YSettingsSurface",
+        ),
+    }
+    for forbidden_symbol in product_forbidden_symbols.get(kind, ()):
+        if forbidden_symbol in feature_sources:
+            violations.append(
+                f"{rel}: ProductSurfaceKind.{kind} cannot use "
+                f"{forbidden_symbol}; preserve the upstream product hierarchy"
+            )
+
     if required not in feature_sources:
         violations.append(
             f"{rel}: ProductSurfaceKind.{kind} requires "
