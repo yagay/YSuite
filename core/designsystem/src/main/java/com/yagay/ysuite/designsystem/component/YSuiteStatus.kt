@@ -6,7 +6,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+import androidx.compose.ui.unit.dp
 
 enum class YSuiteStatusTone {
     Positive,
@@ -16,7 +16,7 @@ enum class YSuiteStatusTone {
 }
 
 @Composable
-fun YSuiteStatusBadge(
+fun YSuiteStatusPill(
     text: String,
     tone: YSuiteStatusTone,
     modifier: Modifier = Modifier,
@@ -32,7 +32,7 @@ fun YSuiteStatusBadge(
             MaterialTheme.colorScheme.errorContainer to
                 MaterialTheme.colorScheme.onErrorContainer
         YSuiteStatusTone.Neutral ->
-            MaterialTheme.colorScheme.surfaceVariant to
+            MaterialTheme.colorScheme.surfaceContainerHighest to
                 MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -40,14 +40,14 @@ fun YSuiteStatusBadge(
         modifier = modifier,
         color = colors.first,
         contentColor = colors.second,
-        shape = MaterialTheme.shapes.small,
+        shape = MaterialTheme.shapes.extraLarge,
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(
-                horizontal = YSuiteSpacing.Small,
-                vertical = YSuiteSpacing.XSmall,
+                horizontal = 11.dp,
+                vertical = 6.dp,
             ),
         )
     }

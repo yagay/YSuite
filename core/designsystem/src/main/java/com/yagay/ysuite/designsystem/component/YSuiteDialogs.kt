@@ -3,8 +3,9 @@ package com.yagay.ysuite.designsystem.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
@@ -25,16 +26,17 @@ fun YSuiteConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         title = { Text(title) },
         text = { Text(message) },
         confirmButton = {
-            YSuitePrimaryButton(
+            YSuitePrimaryAction(
                 text = confirmText,
                 onClick = onConfirm,
             )
         },
         dismissButton = {
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = dismissText,
                 onClick = onDismiss,
             )
@@ -55,23 +57,25 @@ fun YSuiteTextInputDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         title = { Text(title) },
         text = {
-            OutlinedTextField(
+            TextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
                 label = { Text(label) },
+                shape = MaterialTheme.shapes.medium,
             )
         },
         confirmButton = {
-            YSuitePrimaryButton(
+            YSuitePrimaryAction(
                 text = confirmText,
                 onClick = onConfirm,
             )
         },
         dismissButton = {
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = dismissText,
                 onClick = onDismiss,
             )
@@ -91,23 +95,25 @@ fun YSuiteTextEditorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         title = { Text(title) },
         text = {
-            OutlinedTextField(
+            TextField(
                 value = value,
                 onValueChange = onValueChange,
                 minLines = 8,
                 maxLines = 18,
+                shape = MaterialTheme.shapes.medium,
             )
         },
         confirmButton = {
-            YSuitePrimaryButton(
+            YSuitePrimaryAction(
                 text = confirmText,
                 onClick = onConfirm,
             )
         },
         dismissButton = {
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = dismissText,
                 onClick = onDismiss,
             )
@@ -124,45 +130,38 @@ fun YSuiteTextFormDialog(
     onValueChange: (String, String) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    extraContent:
-        (@Composable () -> Unit)? = null,
+    extraContent: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         title = { Text(title) },
         text = {
             Column(
-                verticalArrangement =
-                    Arrangement.spacedBy(
-                        YSuiteSpacing.Small,
-                    ),
+                verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
             ) {
                 fields.forEach { field ->
-                    OutlinedTextField(
+                    TextField(
                         value = field.value,
                         onValueChange = {
-                            onValueChange(
-                                field.id,
-                                it,
-                            )
+                            onValueChange(field.id, it)
                         },
                         singleLine = true,
-                        label = {
-                            Text(field.label)
-                        },
+                        label = { Text(field.label) },
+                        shape = MaterialTheme.shapes.medium,
                     )
                 }
                 extraContent?.invoke()
             }
         },
         confirmButton = {
-            YSuitePrimaryButton(
+            YSuitePrimaryAction(
                 text = confirmText,
                 onClick = onConfirm,
             )
         },
         dismissButton = {
-            YSuiteSecondaryButton(
+            YSuiteActionButton(
                 text = dismissText,
                 onClick = onDismiss,
             )
