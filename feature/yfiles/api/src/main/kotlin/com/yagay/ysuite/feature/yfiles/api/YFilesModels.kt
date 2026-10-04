@@ -18,7 +18,12 @@ data class YFileNode(
     val type: YFileType,
     val sizeBytes: Long? = null,
     val modifiedAtMillis: Long? = null,
+    val mimeType: String? = null,
     val hidden: Boolean = false,
+    val readable: Boolean = true,
+    val writable: Boolean = false,
+    val executable: Boolean = false,
+    val posixMode: Int? = null,
 )
 
 enum class YFileProviderKind {
@@ -39,7 +44,9 @@ enum class YFileCapability {
     Delete,
     Copy,
     Move,
-    Observe,
+    PosixMode,
+    SymbolicLink,
+    ArchiveMount,
 }
 
 data class YFileProviderDescriptor(
@@ -48,9 +55,62 @@ data class YFileProviderDescriptor(
     val capabilities: Set<YFileCapability>,
 )
 
+enum class YFileSort {
+    Name,
+    Modified,
+    Size,
+    Type,
+}
+
 data class YFileQuery(
     val text: String = "",
     val recursive: Boolean = false,
     val showHidden: Boolean = false,
-    val maxResults: Int = 500,
+    val sort: YFileSort = YFileSort.Name,
+    val descending: Boolean = false,
+    val maxResults: Int = 2_000,
+)
+
+enum class YFileConflictStrategy {
+    Rename,
+    Replace,
+    Skip,
+}
+
+data class YFileChunk(
+    val data: ByteArray,
+    val eof: Boolean,
+)
+
+data class YFileOperationProgress(
+    val currentName: String,
+    val completedBytes: Long,
+    val totalBytes: Long?,
+    val completedItems: Int,
+    val totalItems: Int,
+)
+
+data class YFileFailure(
+    val ref: YFileRef?,
+    val code: String,
+    val message: String,
+)
+
+data class YFileBatchResult(
+    val succeeded: Int,
+    val skipped: Int,
+    val failures: List<YFileFailure>,
+) {
+    val failed: Int
+        get() = failures.size
+}
+
+data class YFileClipboard(
+    val refs: List<YFileRef>,
+    val move: Boolean,
+)
+
+data class YFileLocation(
+    val ref: YFileRef,
+    val label: String,
 )

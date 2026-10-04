@@ -21,11 +21,15 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:presentation"))
     implementation(project(":core:logging:api"))
+    implementation(project(":core:platform:api"))
+
+    implementation(libs.androidx.core.ktx)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)

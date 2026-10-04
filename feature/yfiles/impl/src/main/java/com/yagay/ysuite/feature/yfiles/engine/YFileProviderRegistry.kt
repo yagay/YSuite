@@ -16,11 +16,8 @@ class YFileProviderRegistry(
         require(providers.isNotEmpty()) {
             "At least one file provider is required"
         }
-
-        val grouped = providers.groupBy {
-            it.descriptor.id
-        }
-        val duplicates = grouped
+        val duplicates = providers
+            .groupBy { it.descriptor.id }
             .filterValues { it.size > 1 }
             .keys
         require(duplicates.isEmpty()) {
