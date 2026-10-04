@@ -130,7 +130,7 @@ def main() -> None:
     require(yminiguard, "YViewLayout.switchRow(", "YMiniGuard main screen")
     require(yminiguard, "YViewLayout.navigationRow(", "YMiniGuard app-list navigation")
     require(yentry, "YFeatureCustomScaffold(", "YEntryCleaner main screen")
-    require(yentry, "YNavigationSuite(", "YEntryCleaner main navigation")
+    require(yentry, "YAppShell(", "YEntryCleaner main navigation")
     require(yparam, "YViewLayout.installFixed(", "YParam main screen")
     require(yparam, "YViewLayout.searchField(", "YParam main screen")
     require(yparam, "YViewLayout.switchRow(", "YParam main screen")
@@ -143,7 +143,7 @@ def main() -> None:
     require(ynfc_components, "YStatusRow(", "YNFC content components")
 
     require(ytask, "YManagerScaffold(", "YTaskManager main screen")
-    require(ytask, "YNavigationSuite(", "YTaskManager main navigation")
+    require(ytask, "YAppShell(", "YTaskManager main navigation")
     require(ytask, "YSearchField(", "YTaskManager filter section")
     require(ytask, "YStatusStrip(", "YTaskManager status section")
     require(ytask, "YToggleFilterBar(", "YTaskManager type filters")
@@ -155,7 +155,7 @@ def main() -> None:
 
     require(ydiag, "YComposeActivity", "YDiag activity")
     require(ydiag, "YPageScaffold(", "YDiag main screen")
-    require(ydiag, "YNavigationSuite(", "YDiag main navigation")
+    require(ydiag, "YAppShell(", "YDiag main navigation")
     require(ydiag, "YPageList(", "YDiag page bodies")
     require(ydiag, "YSectionHeader(", "YDiag sections")
     require(ydiag, "YListItem(", "YDiag list rows")
