@@ -185,7 +185,7 @@ def main() -> None:
     require(yparam_detail, "YViewLayout.sectionHeader(", "YParam AppDetail")
     require(yparam_detail, "YViewLayout.setStatus(", "YParam AppDetail")
     require(ypower_detail, "YViewLayout.sectionHeader(", "YPower AppDetail")
-    require(ypower_detail, "YViewLayout.listRow(", "YPower AppDetail toggles")
+    require(ypower_detail, "YViewLayout.checkBoxRow(", "YPower AppDetail toggles")
     require(ypower_recommended, "YViewLayout.emptyState(", "YPower RecommendedApps")
     require(ypower_diag, "YViewLayout.install(", "YPower Diagnostic")
     require(ypower_diag, "YViewLayout.card(", "YPower Diagnostic")
