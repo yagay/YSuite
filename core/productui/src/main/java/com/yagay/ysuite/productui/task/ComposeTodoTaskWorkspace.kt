@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.task
 
+import com.yagay.ysuite.productui.ProductLayoutTokens
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -10,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.YSuiteProductPage
 
@@ -40,7 +41,7 @@ fun ComposeTodoTaskWorkspace(
                 Surface(
                     modifier =
                         Modifier
-                            .width(240.dp)
+                            .width(ProductLayoutTokens.TaskCategoryPaneWidth)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme
@@ -56,7 +57,7 @@ fun ComposeTodoTaskWorkspace(
                 Surface(
                     modifier =
                         Modifier
-                            .width(360.dp)
+                            .width(ProductLayoutTokens.TaskDetailPaneWidth)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme
