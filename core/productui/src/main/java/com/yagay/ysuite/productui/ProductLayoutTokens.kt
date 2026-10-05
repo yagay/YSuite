@@ -1,6 +1,7 @@
 package com.yagay.ysuite.productui
 
 import androidx.compose.ui.unit.dp
+import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 
 /**
  * Product-layout geometry shared by mature workspace adaptations.
@@ -13,10 +14,10 @@ object ProductLayoutTokens {
     val ToolContentMaxWidth = 880.dp
     val DetailContentMaxWidth = 900.dp
 
-    val SettingsContentMaxWidth = 760.dp
+    val SettingsContentMaxWidth = YSuiteLayoutTokens.DetailMaxWidth
     val SettingsCategoryPaneWidth = 264.dp
 
-    val FileLocationPaneWidth = 280.dp
+    val FileLocationPaneWidth = YSuiteLayoutTokens.NavigationPaneWidth
     val FileDetailPaneWidth = 360.dp
 
     val BrowserTabPaneWidth = 248.dp
