@@ -199,6 +199,35 @@ for path in ROOT.rglob("*"):
             f"{rel}: core:ui must not depend on features"
         )
 
+product_ui_root = (
+    ROOT
+    / "core/productui/src/main/java/com/yagay/ysuite/productui"
+)
+product_chrome = product_ui_root / "ProductChrome.kt"
+if not product_chrome.exists():
+    violations.append(
+        "core:productui must provide ProductChrome.kt"
+    )
+else:
+    for product_file in product_ui_root.rglob("*.kt"):
+        if product_file == product_chrome:
+            continue
+        product_text = product_file.read_text(
+            encoding="utf-8",
+            errors="ignore",
+        )
+        rel = product_file.relative_to(ROOT).as_posix()
+        if re.search(r"\\bTopAppBar\\s*\\(", product_text):
+            violations.append(
+                f"{rel}: product workspace owns TopAppBar directly; "
+                "use YSuiteProductTopBar"
+            )
+        if re.search(r"\\bScaffold\\s*\\(", product_text):
+            violations.append(
+                f"{rel}: product workspace owns Scaffold directly; "
+                "use YSuiteProductScaffold"
+            )
+
 for gradle in ROOT.glob("feature/*/impl/build.gradle.kts"):
     rel = gradle.relative_to(ROOT).as_posix()
     text = gradle.read_text(encoding="utf-8", errors="ignore")

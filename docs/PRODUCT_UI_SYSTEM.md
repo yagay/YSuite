@@ -33,6 +33,20 @@ YSuite standardizes visual language, not product-page geometry.
 
 The upstream page workflow remains recognizable after applying YSuite theme tokens.
 
+## Shared outer chrome
+
+All normal product workspaces share the same YSuite-owned outer chrome:
+
+- `YSuiteProductTopBar` owns app-bar color, title/navigation treatment and the separator.
+- `YSuiteProductScaffold` owns the page background and edge-to-edge system-bar insets.
+- Mature upstream layouts still own their internal information architecture, panes, tabs, filters,
+  queues, browser controls and content density.
+- Browser and fullscreen product types may intentionally omit the standard app bar when their
+  upstream product model owns the complete screen.
+
+This keeps YFiles, YDownload, Settings, System and the home dashboard visually part of one app
+without flattening them into one generic page template.
+
 ## Hard rule
 
 Feature modules may not use the previous YSuite-authored generic product surfaces. CI rejects them.

@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.tool
 
+import com.yagay.ysuite.productui.YSuiteProductTopBar
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +31,7 @@ fun NiaToolSurface(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
+        YSuiteProductTopBar(
             title = { Text(title) },
             navigationIcon = navigationIcon,
             actions = actions,

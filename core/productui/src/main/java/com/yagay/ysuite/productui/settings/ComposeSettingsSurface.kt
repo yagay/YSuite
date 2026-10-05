@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.settings
 
+import com.yagay.ysuite.productui.YSuiteProductTopBar
+
 /*
  * Interaction structure adapted from alorma/Compose-Settings (MIT).
  * Original project: https://github.com/alorma/Compose-Settings
@@ -30,7 +32,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,7 +65,7 @@ fun ComposeSettingsSurface(
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                TopAppBar(
+                YSuiteProductTopBar(
                     title = { Text(title) },
                     navigationIcon = navigationIcon,
                     actions = actions,

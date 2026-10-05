@@ -1,5 +1,8 @@
 package com.yagay.ysuite.productui.filemanager
 
+import com.yagay.ysuite.productui.YSuiteProductTopBar
+import com.yagay.ysuite.productui.YSuiteProductScaffold
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,10 +22,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -162,7 +163,7 @@ private fun BrowserScaffold(
     floatingActionButton: (@Composable () -> Unit)?,
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
-    Scaffold(
+    YSuiteProductScaffold(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
@@ -170,7 +171,7 @@ private fun BrowserScaffold(
                 if (selectionTopBar != null) {
                     selectionTopBar()
                 } else {
-                    TopAppBar(
+                    YSuiteProductTopBar(
                         title = { Text(title) },
                         navigationIcon = navigationIcon,
                         actions = actions,

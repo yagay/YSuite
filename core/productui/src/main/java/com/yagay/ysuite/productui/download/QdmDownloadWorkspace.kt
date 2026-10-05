@@ -1,5 +1,8 @@
 package com.yagay.ysuite.productui.download
 
+import com.yagay.ysuite.productui.YSuiteProductTopBar
+import com.yagay.ysuite.productui.YSuiteProductScaffold
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,12 +23,10 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -86,11 +87,11 @@ fun QdmDownloadWorkspace(
     var menuExpanded by remember { mutableStateOf(false) }
     var fabExpanded by remember { mutableStateOf(false) }
 
-    Scaffold(
+    YSuiteProductScaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             Column {
-                TopAppBar(
+                YSuiteProductTopBar(
                     title = {
                         if (searchActive) {
                             OutlinedTextField(
