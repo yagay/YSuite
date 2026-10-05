@@ -5,6 +5,10 @@ plugins {
 
 android {
     namespace = "com.yagay.ysuite.feature.yfiles"
+
+    buildFeatures {
+        aidl = true
+    }
     compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig { minSdk = libs.versions.minSdk.get().toInt() }
     buildFeatures { compose = true }
@@ -33,6 +37,26 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.okhttp)
+    implementation(libs.androidx.documentfile)
+    implementation(libs.coil.compose)
+    implementation(libs.commons.compress)
+    implementation(libs.zip4j)
+    implementation(libs.junrar)
+    implementation(libs.xz)
+    implementation(libs.zstd.jni)
+    implementation(libs.sshj)
+    implementation(libs.smbj)
+    implementation(libs.commons.net)
+    implementation(libs.sardine.android) {
+        exclude(group = "xpp3", module = "xpp3")
+    }
+    implementation(libs.bouncycastle.prov)
+    implementation(libs.bouncycastle.pkix)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.work.runtime)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.core)

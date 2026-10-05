@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 
 class YFilesArchiveController(
     private val engine: YFilesEngine,
-    private val provider: ZipArchiveProvider,
+    private val provider: UniversalArchiveProvider,
     private val cacheDirectory: File,
 ) {
     suspend fun mount(
@@ -35,13 +35,16 @@ class YFilesArchiveController(
                 ) {
                     File(source.path)
                 } else {
-                    materialize(source)
+                    materialize(
+                        source,
+                        node.name,
+                    )
                 }
             Outcome.Success(
                 provider.mount(
                     file = localFile,
                     displayName = node.name,
-                    temporary =
+                    temporarySource =
                         source.providerId !=
                             LocalFileProvider.PROVIDER_ID,
                 ),
@@ -64,17 +67,39 @@ class YFilesArchiveController(
 
     private suspend fun materialize(
         source: YFileRef,
+        displayName: String,
     ): File =
         withContext(Dispatchers.IO) {
             require(
                 cacheDirectory.mkdirs() ||
                     cacheDirectory.isDirectory,
             )
+            val suffix =
+                displayName
+                    .lowercase()
+                    .let { name ->
+                        when {
+                            name.endsWith(".tar.gz") ->
+                                ".tar.gz"
+                            name.endsWith(".tar.bz2") ->
+                                ".tar.bz2"
+                            name.endsWith(".tar.xz") ->
+                                ".tar.xz"
+                            name.endsWith(".tar.zst") ->
+                                ".tar.zst"
+                            else ->
+                                "." +
+                                    name.substringAfterLast(
+                                        '.',
+                                        "bin",
+                                    )
+                        }
+                    }
             val target = File(
                 cacheDirectory,
                 "archive-" +
                     UUID.randomUUID() +
-                    ".zip",
+                    suffix,
             )
             FileOutputStream(target).use {
                 output ->

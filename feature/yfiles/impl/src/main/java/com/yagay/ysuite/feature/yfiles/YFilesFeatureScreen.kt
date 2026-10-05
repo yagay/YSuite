@@ -10,6 +10,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,6 +52,11 @@ import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.filemanager.YFileBreadcrumbBar
 import com.yagay.ysuite.productui.filemanager.YFileEntryRow
 import com.yagay.ysuite.productui.filemanager.FileExplorerBackButton
+import com.yagay.ysuite.productui.filemanager.FileExplorerBrowserTabs
+import com.yagay.ysuite.productui.filemanager.FileExplorerBrowserTab
+import com.yagay.ysuite.productui.filemanager.FileExplorerGrid
+import com.yagay.ysuite.productui.filemanager.FileExplorerGridEntry
+import com.yagay.ysuite.productui.filemanager.FileExplorerViewControls
 import com.yagay.ysuite.productui.filemanager.FileExplorerDetailRow
 import com.yagay.ysuite.productui.filemanager.FileExplorerDetailsSheet
 import com.yagay.ysuite.productui.filemanager.FileExplorerSearchBar
@@ -67,6 +74,7 @@ import com.yagay.ysuite.productui.filemanager.YFileProductSourceKind
 import com.yagay.ysuite.productui.filemanager.YFileSourcePane
 import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsLink
+import com.yagay.ysuite.productui.settings.ComposeSettingsSwitch
 import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
 import java.io.File
 import java.net.URLConnection
@@ -78,14 +86,43 @@ fun YFilesFeatureScreen(
     logger: YSuiteLogger,
 ) {
     val browser: YFilesViewModel = viewModel(
-        factory = BrowserFactory(environment, logger),
+        key = "yfiles-primary",
+        factory = BrowserFactory(
+            environment,
+            logger,
+            "primary",
+        ),
     )
+    val secondaryBrowser: YFilesViewModel =
+        viewModel(
+            key = "yfiles-secondary",
+            factory =
+                BrowserFactory(
+                    environment,
+                    logger,
+                    "secondary",
+                ),
+        )
     val tools: YFilesToolsViewModel = viewModel(
         factory = ToolsFactory(environment, logger),
     )
     val state by browser.state.collectAsStateWithLifecycle()
+    val secondaryState by
+        secondaryBrowser.state
+            .collectAsStateWithLifecycle()
     val toolState by tools.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val advanced: YFilesAdvancedViewModel =
+        viewModel(
+            factory =
+                AdvancedFactory(
+                    context,
+                    environment,
+                    logger,
+                ),
+        )
+    val advancedState by
+        advanced.state.collectAsStateWithLifecycle()
 
     BackHandler(enabled = browser.canHandleBack()) {
         browser.navigateBack()
@@ -119,8 +156,21 @@ fun YFilesFeatureScreen(
             YFilesBrowserSurface(
                 state = state,
                 browser = browser,
+                secondaryState = secondaryState,
+                secondaryBrowser =
+                    secondaryBrowser,
                 onDelete = { confirmDelete = true },
                 onEmptyTrash = { confirmEmptyTrash = true },
+            )
+        YFilesTab.Transfers ->
+            YFilesTransfersSurface(
+                state = advancedState,
+                advanced = advanced,
+                onBack = {
+                    browser.setTab(
+                        YFilesTab.Files,
+                    )
+                },
             )
         YFilesTab.Tools ->
             FileExplorerUtilitySurface(
@@ -144,6 +194,12 @@ fun YFilesFeatureScreen(
                         browserState = state,
                         toolState = toolState,
                         tools = tools,
+                    )
+                    advancedToolsContent(
+                        browserState = state,
+                        advancedState =
+                            advancedState,
+                        advanced = advanced,
                     )
                 }
             }
@@ -173,6 +229,9 @@ fun YFilesFeatureScreen(
                         )
                         context.startActivity(intent)
                     },
+                    advancedState =
+                        advancedState,
+                    advanced = advanced,
                     onAddSaf = {
                         val intent = Intent(
                             Intent.ACTION_OPEN_DOCUMENT_TREE,
@@ -230,8 +289,11 @@ fun YFilesFeatureScreen(
 private fun YFilesBrowserSurface(
     state: YFilesUiState,
     browser: YFilesViewModel,
+    secondaryState: YFilesUiState,
+    secondaryBrowser: YFilesViewModel,
     onDelete: () -> Unit,
     onEmptyTrash: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val directory = state.directory
     val isFavorite =
@@ -292,6 +354,20 @@ private fun YFilesBrowserSurface(
                     stringResource(R.string.yfiles_recursive),
                 onRecursiveChange = browser::setRecursive,
             )
+            FileExplorerViewControls(
+                grid =
+                    state.viewMode ==
+                        YFilesViewMode.Grid,
+                dualPane =
+                    state.dualPaneEnabled,
+                gridLabel = "Grid view",
+                listLabel = "List view",
+                dualPaneLabel = "Dual pane",
+                onToggleView =
+                    browser::toggleViewMode,
+                onToggleDualPane =
+                    browser::toggleDualPane,
+            )
         },
         drawerContent = { _, closeDrawer ->
             YFilesSourcePane(
@@ -315,6 +391,27 @@ private fun YFilesBrowserSurface(
                 onNavigatePath = browser::navigatePath,
                 onRefresh = browser::refresh,
                 onFavorite = browser::toggleFavorite,
+            )
+        },
+        tabs = {
+            FileExplorerBrowserTabs(
+                tabs =
+                    state.browserTabs.map {
+                        FileExplorerBrowserTab(
+                            it.id,
+                            it.title,
+                        )
+                    },
+                activeTabId =
+                    state.activeBrowserTabId,
+                addLabel = "New tab",
+                closeLabel = "Close tab",
+                onSelect =
+                    browser::selectBrowserTab,
+                onClose =
+                    browser::closeBrowserTab,
+                onAdd =
+                    browser::addBrowserTab,
             )
         },
         commandBar = {
@@ -367,13 +464,49 @@ private fun YFilesBrowserSurface(
                 null
             },
     ) { adaptive ->
-        YFilesMainContent(
-            state = state,
-            browser = browser,
-            adaptive = adaptive,
-            context = LocalContext.current,
-            onEmptyTrash = onEmptyTrash,
-        )
+        if (
+            state.dualPaneEnabled &&
+            state.mode ==
+                YFilesBrowserMode.Directory
+        ) {
+            Row(
+                modifier =
+                    Modifier.fillMaxSize(),
+            ) {
+                YFilesMainContent(
+                    state = state,
+                    browser = browser,
+                    adaptive = adaptive,
+                    context =
+                        LocalContext.current,
+                    onEmptyTrash =
+                        onEmptyTrash,
+                    modifier =
+                        Modifier.weight(1f),
+                )
+                YFilesMainContent(
+                    state = secondaryState,
+                    browser =
+                        secondaryBrowser,
+                    adaptive = adaptive,
+                    context =
+                        LocalContext.current,
+                    onEmptyTrash = {},
+                    modifier =
+                        Modifier.weight(1f),
+                )
+            }
+        } else {
+            YFilesMainContent(
+                state = state,
+                browser = browser,
+                adaptive = adaptive,
+                context =
+                    LocalContext.current,
+                onEmptyTrash =
+                    onEmptyTrash,
+            )
+        }
     }
 }
 
@@ -401,16 +534,41 @@ private fun YFilesSourcePane(
         sources =
             state.providers
                 .filter { provider ->
-                    provider.kind != YFileProviderKind.Root ||
-                        state.rootStatus == CapabilityStatus.Available
+                    when (provider.id) {
+                        "root" ->
+                            state.rootStatus ==
+                                CapabilityStatus
+                                    .Available
+                        "shizuku" ->
+                            state.shizukuStatus ==
+                                CapabilityStatus
+                                    .Available
+                        else -> true
+                    }
                 }
                 .map { provider ->
-                YFileProductSource(
-                    id = provider.id,
-                    label = providerLabel(provider.kind),
-                    kind = provider.kind.toProductSourceKind(),
-                )
-            },
+                    YFileProductSource(
+                        id = provider.id,
+                        label =
+                            when (provider.id) {
+                                "shizuku" ->
+                                    "Shizuku"
+                                "collections" ->
+                                    "Collections"
+                                "remote" ->
+                                    "Network"
+                                "cloud" ->
+                                    "Cloud"
+                                else ->
+                                    providerLabel(
+                                        provider.kind,
+                                    )
+                            },
+                        kind =
+                            provider.kind
+                                .toProductSourceKind(),
+                    )
+                },
         selectedSourceId = state.activeProviderId,
         browserLabel = stringResource(R.string.yfiles_mode_directory),
         favoritesLabel = stringResource(R.string.yfiles_mode_favorites),
@@ -459,6 +617,7 @@ private fun YFilesMainContent(
                 state = state,
                 browser = browser,
                 context = context,
+                modifier = modifier,
             )
         YFilesBrowserMode.Favorites ->
             YFilesSavedList(
@@ -499,9 +658,92 @@ private fun YFilesDirectoryList(
     state: YFilesUiState,
     browser: YFilesViewModel,
     context: Context,
+    modifier: Modifier = Modifier,
 ) {
+    if (
+        state.viewMode ==
+            YFilesViewMode.Grid &&
+        state.entries.isNotEmpty()
+    ) {
+        FileExplorerGrid(
+            entries =
+                state.entries.map {
+                    node ->
+                    FileExplorerGridEntry(
+                        id =
+                            node.ref.providerId +
+                                "|" +
+                                node.ref.path,
+                        title = node.name,
+                        subtitle =
+                            node.sizeBytes
+                                ?.let(
+                                    ::formatBytes,
+                                ),
+                        kind =
+                            node.productItemKind(),
+                        selected =
+                            node.ref in
+                                state.selected,
+                    )
+                },
+            selectionMode =
+                state.selected
+                    .isNotEmpty(),
+            onOpen = { id ->
+                val node =
+                    state.entries
+                        .firstOrNull {
+                            it.ref.providerId +
+                                "|" +
+                                it.ref.path ==
+                                id
+                        }
+                        ?: return@FileExplorerGrid
+                if (
+                    node.type ==
+                        YFileType.Directory ||
+                    (
+                        node.type ==
+                            YFileType.File &&
+                        com.yagay.ysuite.feature
+                            .yfiles.provider.archive
+                            .UniversalArchiveProvider
+                            .isSupported(
+                                node.name,
+                            )
+                        )
+                ) {
+                    browser.open(node)
+                } else if (
+                    !openExternalFile(
+                        context,
+                        node,
+                    )
+                ) {
+                    browser.focus(node)
+                }
+            },
+            onToggleSelection = {
+                id ->
+                state.entries
+                    .firstOrNull {
+                        it.ref.providerId +
+                            "|" +
+                            it.ref.path ==
+                            id
+                    }?.let(
+                        browser::toggleSelection,
+                    )
+            },
+            modifier =
+                modifier.fillMaxSize(),
+        )
+        return
+    }
+
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
     ) {
         if (state.loading && state.entries.isEmpty()) {
             item {
@@ -533,7 +775,8 @@ private fun YFilesDirectoryList(
                         node.type == YFileType.Directory ||
                         (
                             node.type == YFileType.File &&
-                            node.name.endsWith(".zip", ignoreCase = true)
+                            com.yagay.ysuite.feature.yfiles.provider.archive.UniversalArchiveProvider
+                                .isSupported(node.name)
                         )
                     ) {
                         browser.open(node)
@@ -718,6 +961,10 @@ private fun YFilesSettingsContent(
     state: YFilesUiState,
     environment: YFilesEnvironment,
     browser: YFilesViewModel,
+    advancedState:
+        YFilesAdvancedUiState,
+    advanced:
+        YFilesAdvancedViewModel,
     allFilesGranted: Boolean,
     onOpenAllFilesSettings: () -> Unit,
     onAddSaf: () -> Unit,
@@ -771,6 +1018,12 @@ private fun YFilesSettingsContent(
         }
     }
 
+    YFilesAdvancedSettingsContent(
+        state = advancedState,
+        advanced = advanced,
+        browserState = state,
+        browser = browser,
+    )
 }
 
 private fun YFilesBrowserMode.productSectionId(): String =
@@ -796,7 +1049,8 @@ private fun YFileNode.productItemKind(): YFileProductItemKind =
             YFileProductItemKind.Folder
         type == YFileType.SymbolicLink ->
             YFileProductItemKind.Link
-        name.endsWith(".zip", ignoreCase = true) ->
+        com.yagay.ysuite.feature.yfiles.provider.archive.UniversalArchiveProvider
+            .isSupported(name) ->
             YFileProductItemKind.Archive
         type == YFileType.File ->
             YFileProductItemKind.File
@@ -1896,6 +2150,7 @@ private class BrowserFactory(
     private val environment:
         YFilesEnvironment,
     private val logger: YSuiteLogger,
+    private val workspaceId: String,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(
@@ -1904,6 +2159,7 @@ private class BrowserFactory(
         YFilesViewModel(
             environment,
             logger,
+            workspaceId,
         ) as T
 }
 
@@ -1917,6 +2173,24 @@ private class ToolsFactory(
         modelClass: Class<T>,
     ): T =
         YFilesToolsViewModel(
+            environment,
+            logger,
+        ) as T
+}
+
+
+private class AdvancedFactory(
+    private val context: Context,
+    private val environment:
+        YFilesEnvironment,
+    private val logger: YSuiteLogger,
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(
+        modelClass: Class<T>,
+    ): T =
+        YFilesAdvancedViewModel(
+            context,
             environment,
             logger,
         ) as T

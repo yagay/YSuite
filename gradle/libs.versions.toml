@@ -14,6 +14,18 @@ datastore = "1.2.1"
 coroutines = "1.10.2"
 junit = "4.13.2"
 okhttp = "4.12.0"
+coil = "3.3.0"
+commonsCompress = "1.28.0"
+zip4j = "2.11.6"
+junrar = "7.6.0"
+sshj = "0.40.0"
+smbj = "0.13.0"
+commonsNet = "3.13.0"
+sardine = "0.9"
+bouncycastle = "1.84"
+shizuku = "13.1.5"
+biometric = "1.1.0"
+workmanager = "2.10.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -35,6 +47,23 @@ androidx-compose-material-icons-extended = { module = "androidx.compose.material
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+androidx-documentfile = { module = "androidx.documentfile:documentfile", version = "1.0.1" }
+commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
+zip4j = { module = "net.lingala.zip4j:zip4j", version.ref = "zip4j" }
+junrar = { module = "com.github.junrar:junrar", version.ref = "junrar" }
+xz = { module = "org.tukaani:xz", version = "1.10" }
+zstd-jni = { module = "com.github.luben:zstd-jni", version = "1.5.6-4" }
+sshj = { module = "com.hierynomus:sshj", version.ref = "sshj" }
+smbj = { module = "com.hierynomus:smbj", version.ref = "smbj" }
+commons-net = { module = "commons-net:commons-net", version.ref = "commonsNet" }
+sardine-android = { module = "com.github.thegrizzlylabs:sardine-android", version.ref = "sardine" }
+bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
+androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
+androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "workmanager" }
 junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]

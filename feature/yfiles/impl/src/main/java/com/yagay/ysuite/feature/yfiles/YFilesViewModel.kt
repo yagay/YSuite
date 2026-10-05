@@ -12,6 +12,7 @@ import com.yagay.ysuite.feature.yfiles.api.YFileQuery
 import com.yagay.ysuite.feature.yfiles.api.YFileRef
 import com.yagay.ysuite.feature.yfiles.api.YFileSort
 import com.yagay.ysuite.feature.yfiles.api.YFileType
+import com.yagay.ysuite.feature.yfiles.provider.archive.UniversalArchiveProvider
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.presentation.YSuiteViewModel
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 
 enum class YFilesTab {
     Files,
+    Transfers,
     Tools,
     Settings,
 }
@@ -63,6 +65,12 @@ data class YFilesUiState(
     val showHidden: Boolean = false,
     val sort: YFileSort = YFileSort.Name,
     val descending: Boolean = false,
+    val viewMode: YFilesViewMode = YFilesViewMode.List,
+    val browserTabs: List<YFilesBrowserTabRecord> = emptyList(),
+    val activeBrowserTabId: String? = null,
+    val dualPaneEnabled: Boolean = false,
+    val savedSearches: List<YFilesSavedSearch> = emptyList(),
+    val taggedRefs: Map<YFileRef, Set<String>> = emptyMap(),
     val selected: Set<YFileRef> = emptySet(),
     val focused: YFileNode? = null,
     val clipboard: YFileClipboard? = null,
@@ -78,6 +86,8 @@ data class YFilesUiState(
     val progress: YFileOperationProgress? = null,
     val rootStatus: CapabilityStatus =
         CapabilityStatus.Unavailable,
+    val shizukuStatus: CapabilityStatus =
+        CapabilityStatus.Unavailable,
     val loading: Boolean = true,
     val error: String? = null,
 )
@@ -85,9 +95,19 @@ data class YFilesUiState(
 class YFilesViewModel(
     private val environment: YFilesEnvironment,
     private val logger: YSuiteLogger,
+    private val workspaceId: String = "primary",
 ) : YSuiteViewModel<YFilesUiState, Nothing>(
     initialState = YFilesUiState(
         providers = environment.engine.providers,
+        dualPaneEnabled =
+            environment.workspace
+                .dualPaneEnabled(),
+        savedSearches =
+            environment.workspace
+                .savedSearches(),
+        taggedRefs =
+            environment.workspace
+                .allTaggedRefs(),
     ),
 ) {
     private var loadJob: Job? = null
@@ -95,21 +115,51 @@ class YFilesViewModel(
     init {
         refreshPlaces()
         refreshRootStatus()
-        val initial =
-            environment.engine.providers
-                .firstOrNull {
-                    it.id == "local"
-                }
-                ?: environment.engine.providers
-                    .firstOrNull()
-        if (initial != null) {
-            selectProvider(initial.id)
-        } else {
+        refreshShizukuStatus()
+
+        val restoredTabs =
+            environment.workspace
+                .tabs(workspaceId)
+        val restoredActiveId =
+            environment.workspace
+                .activeTabId(workspaceId)
+        val restoredActive =
+            restoredTabs.firstOrNull {
+                it.id == restoredActiveId
+            } ?: restoredTabs.firstOrNull()
+
+        if (restoredActive != null) {
             updateState {
                 it.copy(
-                    loading = false,
-                    error = NO_PROVIDER_MESSAGE,
+                    browserTabs =
+                        restoredTabs,
+                    activeBrowserTabId =
+                        restoredActive.id,
                 )
+            }
+            navigate(
+                ref = restoredActive.ref,
+                label = restoredActive.title,
+                syncTab = false,
+            )
+        } else {
+            val initial =
+                environment.engine.providers
+                    .firstOrNull {
+                        it.id == "local"
+                    }
+                    ?: environment.engine.providers
+                        .firstOrNull()
+            if (initial != null) {
+                selectProvider(initial.id)
+            } else {
+                updateState {
+                    it.copy(
+                        loading = false,
+                        error =
+                            NO_PROVIDER_MESSAGE,
+                    )
+                }
             }
         }
     }
@@ -201,10 +251,10 @@ class YFilesViewModel(
                 )
             node.type ==
                 YFileType.File &&
-                node.name.endsWith(
-                    ".zip",
-                    ignoreCase = true,
-                ) ->
+                UniversalArchiveProvider
+                    .isSupported(
+                        node.name,
+                    ) ->
                 mountArchive(node)
             else ->
                 updateState {
@@ -287,6 +337,7 @@ class YFilesViewModel(
         updateState {
             it.copy(showHidden = value)
         }
+        persistDirectoryPreference()
         refresh()
     }
 
@@ -294,6 +345,7 @@ class YFilesViewModel(
         updateState {
             it.copy(sort = value)
         }
+        persistDirectoryPreference()
         refresh()
     }
 
@@ -301,7 +353,270 @@ class YFilesViewModel(
         updateState {
             it.copy(descending = value)
         }
+        persistDirectoryPreference()
         refresh()
+    }
+
+    fun setViewMode(
+        value: YFilesViewMode,
+    ) {
+        updateState {
+            it.copy(viewMode = value)
+        }
+        persistDirectoryPreference()
+    }
+
+    fun toggleViewMode() {
+        setViewMode(
+            if (
+                state.value.viewMode ==
+                    YFilesViewMode.List
+            ) {
+                YFilesViewMode.Grid
+            } else {
+                YFilesViewMode.List
+            },
+        )
+    }
+
+    fun setDualPaneEnabled(
+        enabled: Boolean,
+    ) {
+        environment.workspace
+            .setDualPaneEnabled(enabled)
+        updateState {
+            it.copy(
+                dualPaneEnabled = enabled,
+            )
+        }
+    }
+
+    fun toggleDualPane() =
+        setDualPaneEnabled(
+            !state.value.dualPaneEnabled,
+        )
+
+    fun addBrowserTab() {
+        val current =
+            state.value.directory ?: return
+        val title =
+            current.path
+                .trimEnd('/')
+                .substringAfterLast('/')
+                .ifBlank {
+                    current.providerId
+                }
+        val tab =
+            YFilesBrowserTabRecord(
+                title = title,
+                ref = current,
+            )
+        val tabs =
+            state.value.browserTabs + tab
+        environment.workspace.saveTabs(
+            workspaceId,
+            tabs,
+            tab.id,
+        )
+        updateState {
+            it.copy(
+                browserTabs = tabs,
+                activeBrowserTabId =
+                    tab.id,
+            )
+        }
+    }
+
+    fun selectBrowserTab(id: String) {
+        val tab =
+            state.value.browserTabs
+                .firstOrNull {
+                    it.id == id
+                } ?: return
+        environment.workspace.saveTabs(
+            workspaceId,
+            state.value.browserTabs,
+            id,
+        )
+        updateState {
+            it.copy(
+                activeBrowserTabId = id,
+            )
+        }
+        navigate(
+            ref = tab.ref,
+            label = tab.title,
+            syncTab = false,
+        )
+    }
+
+    fun closeBrowserTab(id: String) {
+        val current = state.value
+        if (current.browserTabs.size <= 1) {
+            return
+        }
+        val index =
+            current.browserTabs
+                .indexOfFirst {
+                    it.id == id
+                }
+        if (index < 0) return
+        val tabs =
+            current.browserTabs
+                .filterNot {
+                    it.id == id
+                }
+        val next =
+            if (
+                current.activeBrowserTabId ==
+                    id
+            ) {
+                tabs.getOrNull(
+                    index.coerceAtMost(
+                        tabs.lastIndex,
+                    ),
+                ) ?: tabs.last()
+            } else {
+                tabs.firstOrNull {
+                    it.id ==
+                        current
+                            .activeBrowserTabId
+                } ?: tabs.first()
+            }
+        environment.workspace.saveTabs(
+            workspaceId,
+            tabs,
+            next.id,
+        )
+        updateState {
+            it.copy(
+                browserTabs = tabs,
+                activeBrowserTabId =
+                    next.id,
+            )
+        }
+        if (
+            current.activeBrowserTabId ==
+                id
+        ) {
+            navigate(
+                ref = next.ref,
+                label = next.title,
+                syncTab = false,
+            )
+        }
+    }
+
+    fun moveBrowserTab(
+        id: String,
+        delta: Int,
+    ) {
+        val tabs =
+            state.value.browserTabs
+                .toMutableList()
+        val index =
+            tabs.indexOfFirst {
+                it.id == id
+            }
+        if (index < 0) return
+        val target =
+            (index + delta)
+                .coerceIn(
+                    0,
+                    tabs.lastIndex,
+                )
+        if (target == index) return
+        val tab = tabs.removeAt(index)
+        tabs.add(target, tab)
+        environment.workspace.saveTabs(
+            workspaceId,
+            tabs,
+            state.value.activeBrowserTabId,
+        )
+        updateState {
+            it.copy(browserTabs = tabs)
+        }
+    }
+
+    fun setTags(
+        ref: YFileRef,
+        raw: String,
+    ) {
+        val tags =
+            raw.split(',', ';', '\n')
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .toSet()
+        environment.workspace
+            .setTags(ref, tags)
+        updateState {
+            it.copy(
+                taggedRefs =
+                    environment.workspace
+                        .allTaggedRefs(),
+            )
+        }
+    }
+
+    fun saveCurrentSearch(
+        name: String,
+    ) {
+        val current = state.value
+        val root = current.directory ?: return
+        if (
+            name.isBlank() ||
+            current.query.isBlank()
+        ) {
+            return
+        }
+        environment.workspace.saveSearch(
+            YFilesSavedSearch(
+                name = name.trim(),
+                root = root,
+                query = current.query,
+                recursive = current.recursive,
+                showHidden =
+                    current.showHidden,
+            ),
+        )
+        updateState {
+            it.copy(
+                savedSearches =
+                    environment.workspace
+                        .savedSearches(),
+            )
+        }
+    }
+
+    fun runSavedSearch(
+        search: YFilesSavedSearch,
+    ) {
+        navigate(
+            ref = search.root,
+            label = search.name,
+        )
+        updateState {
+            it.copy(
+                query = search.query,
+                recursive =
+                    search.recursive,
+                showHidden =
+                    search.showHidden,
+            )
+        }
+        refresh()
+    }
+
+    fun deleteSavedSearch(id: String) {
+        environment.workspace
+            .deleteSearch(id)
+        updateState {
+            it.copy(
+                savedSearches =
+                    environment.workspace
+                        .savedSearches(),
+            )
+        }
     }
 
     fun selectAll() {
@@ -529,53 +844,20 @@ class YFilesViewModel(
             state.value.directory ?: return
 
         viewModelScope.launch {
-            updateState {
-                it.copy(progress = null)
-            }
-            val listener:
-                (YFileOperationProgress) -> Unit =
-                { progress ->
-                    updateState {
-                        it.copy(
-                            progress = progress,
-                        )
-                    }
-                }
-
-            val result =
-                if (clipboard.move) {
-                    environment.engine
-                        .moveBatch(
-                            sources =
-                                clipboard.refs,
-                            destinationDirectory =
-                                destination,
-                            onProgress = listener,
-                        )
-                } else {
-                    environment.engine
-                        .copyBatch(
-                            sources =
-                                clipboard.refs,
-                            destinationDirectory =
-                                destination,
-                            onProgress = listener,
-                        )
-                }
-
+            environment.transfers.enqueue(
+                sources = clipboard.refs,
+                destination = destination,
+                move = clipboard.move,
+            )
             updateState {
                 it.copy(
-                    clipboard =
-                        if (clipboard.move) {
-                            null
-                        } else {
-                            clipboard
-                        },
-                    operationResult = result,
+                    clipboard = null,
+                    selected = emptySet(),
                     progress = null,
+                    tab =
+                        YFilesTab.Transfers,
                 )
             }
-            refresh()
         }
     }
 
@@ -690,6 +972,23 @@ class YFilesViewModel(
         }
     }
 
+    fun refreshShizukuStatus() {
+        viewModelScope.launch {
+            val status =
+                runCatching {
+                    environment.shizukuGateway
+                        .status()
+                }.getOrDefault(
+                    CapabilityStatus.Error,
+                )
+            updateState {
+                it.copy(
+                    shizukuStatus = status,
+                )
+            }
+        }
+    }
+
     fun refreshRootStatus() {
         viewModelScope.launch {
             val status =
@@ -724,6 +1023,7 @@ class YFilesViewModel(
     private fun navigate(
         ref: YFileRef,
         label: String,
+        syncTab: Boolean = true,
     ) {
         val canNavigateUp =
             when (
@@ -735,8 +1035,40 @@ class YFilesViewModel(
                 is Outcome.Failure ->
                     false
             }
-        updateState {
-            it.copy(
+        val preference =
+            environment.workspace
+                .directoryPreference(ref)
+        updateState { current ->
+            val tabs =
+                if (syncTab) {
+                    syncTab(
+                        current.browserTabs,
+                        current.activeBrowserTabId,
+                        ref,
+                        label,
+                    )
+                } else {
+                    current.browserTabs
+                }
+            val activeId =
+                if (
+                    syncTab &&
+                    current.activeBrowserTabId ==
+                        null
+                ) {
+                    tabs.lastOrNull()?.id
+                } else {
+                    current.activeBrowserTabId
+                }
+            if (syncTab) {
+                environment.workspace
+                    .saveTabs(
+                        workspaceId,
+                        tabs,
+                        activeId,
+                    )
+            }
+            current.copy(
                 mode =
                     YFilesBrowserMode.Directory,
                 activeProviderId =
@@ -748,6 +1080,16 @@ class YFilesViewModel(
                 selected = emptySet(),
                 focused = null,
                 error = null,
+                viewMode =
+                    preference.viewMode,
+                sort = preference.sort,
+                descending =
+                    preference.descending,
+                showHidden =
+                    preference.showHidden,
+                browserTabs = tabs,
+                activeBrowserTabId =
+                    activeId,
             )
         }
         val snapshot =
@@ -760,6 +1102,61 @@ class YFilesViewModel(
             it.copy(places = snapshot)
         }
         refresh()
+    }
+
+    private fun persistDirectoryPreference() {
+        val current = state.value
+        val directory =
+            current.directory ?: return
+        environment.workspace
+            .saveDirectoryPreference(
+                directory,
+                YFilesDirectoryPreference(
+                    viewMode =
+                        current.viewMode,
+                    sort = current.sort,
+                    descending =
+                        current.descending,
+                    showHidden =
+                        current.showHidden,
+                ),
+            )
+    }
+
+    private fun syncTab(
+        tabs: List<YFilesBrowserTabRecord>,
+        activeId: String?,
+        ref: YFileRef,
+        label: String,
+    ): List<YFilesBrowserTabRecord> {
+        if (
+            tabs.isEmpty() ||
+            activeId == null
+        ) {
+            return listOf(
+                YFilesBrowserTabRecord(
+                    title = label,
+                    ref = ref,
+                ),
+            )
+        }
+        return tabs.map { tab ->
+            if (tab.id == activeId) {
+                tab.copy(
+                    title =
+                        label.ifBlank {
+                            ref.path
+                                .substringAfterLast('/')
+                                .ifBlank {
+                                    ref.providerId
+                                }
+                        },
+                    ref = ref,
+                )
+            } else {
+                tab
+            }
+        }
     }
 
     private fun mountArchive(
