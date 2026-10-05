@@ -1,6 +1,7 @@
 package com.yagay.ysuite.feature.yfiles
 
 import com.yagay.ysuite.ui.YSuiteFeatureBackHandler
+import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 
 import android.content.Context
 import android.content.Intent
@@ -314,7 +315,7 @@ private fun YFilesBrowserSurface(
 
     FileExplorerWorkspace(
         title = stringResource(R.string.yfiles_title),
-        navigationIcon = null,
+        navigationIcon = { YSuiteHostNavigationButton() },
         actions = {
             FileExplorerTopActions(
                 sortOptions = listOf(
