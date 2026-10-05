@@ -15,6 +15,7 @@ data class DiagnosticFinding(
     val owner: String = "core",
     val category: String = "runtime",
     val recommendation: String? = null,
+    val metadata: Map<String, String> = emptyMap(),
     val timestampMillis: Long =
         System.currentTimeMillis(),
 )
