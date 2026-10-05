@@ -155,7 +155,7 @@ fun ComposeSettingsSwitch(
             Switch(
                 checked = checked,
                 enabled = enabled,
-                onCheckedChange = onCheckedChange,
+                onCheckedChange = null,
             )
         },
         modifier = Modifier.toggleable(
