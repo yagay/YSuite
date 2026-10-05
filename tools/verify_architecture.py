@@ -152,7 +152,19 @@ for path in ROOT.rglob("*"):
                     f"{rel}: feature must depend on API, not Android adapter: "
                     f"{adapter}"
                 )
-        for field in ("title", "subtitle", "label", "message", "text"):
+        for field in (
+            "title",
+            "subtitle",
+            "label",
+            "message",
+            "text",
+            "gridLabel",
+            "listLabel",
+            "dualPaneLabel",
+            "addLabel",
+            "closeLabel",
+            "contentDescription",
+        ):
             if re.search(
                 rf'\b{field}\s*=\s*"[^"]+"',
                 text,
@@ -243,6 +255,64 @@ else:
                 f"{rel}: product workspace bypasses YSuiteProductPage; "
                 "use canonical page chrome slots"
             )
+
+        if (
+            "YSuiteProductPage(" in product_text
+            and not re.search(
+                r"YSuiteProductPage\(\s*"
+                r"surfaceKind\s*=\s*ProductSurfaceKind\.",
+                product_text,
+                re.DOTALL,
+            )
+        ):
+            violations.append(
+                f"{rel}: YSuiteProductPage must declare a page-level "
+                "ProductSurfaceKind"
+            )
+
+        if (
+            rel.endswith("browser/YueBrowserWorkspace.kt")
+            and "ProductSurfaceScope(ProductSurfaceKind.Browser)"
+            not in product_text
+        ):
+            violations.append(
+                f"{rel}: browser workspace must expose Browser surface context"
+            )
+
+        if (
+            rel.endswith(
+                "fullscreen/FileExplorerPreviewSurface.kt"
+            )
+            and "ProductSurfaceScope(ProductSurfaceKind.Fullscreen)"
+            not in product_text
+        ):
+            violations.append(
+                f"{rel}: fullscreen workspace must expose Fullscreen "
+                "surface context"
+            )
+
+pane_adaptive_required = (
+    "settings/ComposeSettingsSurface.kt",
+    "logs/LogcatReaderWorkspace.kt",
+    "task/ComposeTodoTaskWorkspace.kt",
+    "automation/OpenTaskerWorkspace.kt",
+    "entity/LibCheckerWorkspace.kt",
+    "filemanager/FileExplorerWorkspace.kt",
+    "browser/YueBrowserWorkspace.kt",
+)
+for suffix in pane_adaptive_required:
+    pane_file = product_ui_root / suffix
+    if not pane_file.exists():
+        continue
+    pane_text = pane_file.read_text(
+        encoding="utf-8",
+        errors="ignore",
+    )
+    if "ProductPaneAdaptiveBox(" not in pane_text:
+        violations.append(
+            f"{pane_file.relative_to(ROOT).as_posix()}: "
+            "pane-owning workspace must classify its local content pane"
+        )
 
 for gradle in ROOT.glob("feature/*/impl/build.gradle.kts"):
     rel = gradle.relative_to(ROOT).as_posix()
