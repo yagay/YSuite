@@ -7,6 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.productui.ProductAdaptiveBox
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
+import com.yagay.ysuite.productui.ProductSurfaceKind
+import com.yagay.ysuite.productui.ProductSurfaceScope
 
 /**
  * Edge-to-edge preview/media/editor host aligned with FileExplorer's preview workflow.
@@ -18,10 +20,12 @@ fun FileExplorerPreviewSurface(
     overlay: @Composable BoxScope.(ProductAdaptiveInfo) -> Unit = {},
     content: @Composable BoxScope.(ProductAdaptiveInfo) -> Unit,
 ) {
-    ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            content(adaptive)
-            overlay(adaptive)
+    ProductSurfaceScope(ProductSurfaceKind.Fullscreen) {
+        ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                content(adaptive)
+                overlay(adaptive)
+            }
         }
     }
 }
