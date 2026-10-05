@@ -1,6 +1,5 @@
 package com.yagay.ysuite.feature.yfiles.provider.archive
 
-import android.webkit.MimeTypeMap
 import com.github.junrar.Archive
 import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.feature.yfiles.api.YFileCapability
@@ -17,6 +16,7 @@ import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.net.URLConnection
 import java.util.UUID
 import java.util.zip.ZipFile
 import kotlinx.coroutines.Dispatchers
@@ -796,9 +796,9 @@ class UniversalArchiveProvider(
             if (directory) {
                 "inode/directory"
             } else {
-                MimeTypeMap.getSingleton()
-                    .getMimeTypeFromExtension(
-                        file.extension.lowercase(),
+                URLConnection
+                    .guessContentTypeFromName(
+                        file.name,
                     )
                     ?: "application/octet-stream"
             }
