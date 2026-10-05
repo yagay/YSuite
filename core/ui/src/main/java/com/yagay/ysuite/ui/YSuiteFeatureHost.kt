@@ -84,7 +84,7 @@ fun YSuiteFeatureHost(
             registry.findById(id) ?: return
         val route = target.contract.startRoute.value
         if (route == currentRoute) return
-        backStack = backStack + route
+        backStack = listOf(HOME_ROUTE, route)
     }
 
     fun navigateBack() {
@@ -125,12 +125,8 @@ fun YSuiteFeatureHost(
                         LocalYSuiteHostNavigation provides
                             YSuiteHostNavigationState(
                                 icon =
-                                    if (selectedId == HOME_ROUTE) {
-                                        YSuiteHostNavigationIcon.None
-                                    } else {
-                                        YSuiteHostNavigationIcon.Back
-                                    },
-                                onClick = ::navigateBack,
+                                    YSuiteHostNavigationIcon.None,
+                                onClick = {},
                             ),
                     ) {
                         FeatureDestination(
@@ -195,23 +191,15 @@ fun YSuiteFeatureHost(
                 },
             ) {
                 val navState =
-                    if (selectedId == HOME_ROUTE) {
-                        YSuiteHostNavigationState(
-                            icon =
-                                YSuiteHostNavigationIcon.Menu,
-                            onClick = {
-                                scope.launch {
-                                    drawerState.open()
-                                }
-                            },
-                        )
-                    } else {
-                        YSuiteHostNavigationState(
-                            icon =
-                                YSuiteHostNavigationIcon.Back,
-                            onClick = ::navigateBack,
-                        )
-                    }
+                    YSuiteHostNavigationState(
+                        icon =
+                            YSuiteHostNavigationIcon.Menu,
+                        onClick = {
+                            scope.launch {
+                                drawerState.open()
+                            }
+                        },
+                    )
 
                 ProductAdaptiveRoot(
                     modifier = Modifier.fillMaxSize(),
