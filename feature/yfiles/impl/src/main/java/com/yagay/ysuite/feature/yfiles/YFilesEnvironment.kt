@@ -53,8 +53,7 @@ object YFilesEnvironmentFactory {
     fun create(
         context: Context,
         rootGateway: RootGateway,
-        shizukuGateway: ShizukuGateway =
-            UnavailableShizukuGateway,
+        shizukuGateway: ShizukuGateway,
     ): YFilesEnvironment {
         val appContext =
             context.applicationContext
@@ -238,7 +237,12 @@ object YFilesEnvironmentFactory {
             rootGateway =
                 UnavailableRootGateway,
             shizukuGateway =
-                UnavailableShizukuGateway,
+                UnavailableShizukuGateway(
+                    context.getString(
+                        R.string
+                            .yfiles_msg_shizuku_unavailable_host,
+                    ),
+                ),
         )
 }
 
@@ -261,8 +265,9 @@ private object UnavailableRootGateway :
 }
 
 
-private object UnavailableShizukuGateway :
-    ShizukuGateway {
+private class UnavailableShizukuGateway(
+    private val unavailableMessage: String,
+) : ShizukuGateway {
     override suspend fun status():
         CapabilityStatus =
         CapabilityStatus.Unavailable
@@ -276,7 +281,6 @@ private object UnavailableShizukuGateway :
     ): Outcome<RootResult> =
         Outcome.Failure(
             code = "shizuku_unavailable",
-            message =
-                "Shizuku is unavailable in this host",
+            message = unavailableMessage,
         )
 }

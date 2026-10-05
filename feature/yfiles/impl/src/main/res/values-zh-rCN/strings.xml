@@ -277,4 +277,5 @@
     <string name="yfiles_msg_collection_virtual">智能集合是虚拟视图，请编辑底层原文件</string>
     <string name="yfiles_msg_shizuku_permission_required">需要 Shizuku 权限</string>
     <string name="yfiles_msg_shizuku_timeout">Shizuku 命令执行超时</string>
+    <string name="yfiles_msg_shizuku_unavailable_host">当前宿主无法使用 Shizuku</string>
 </resources>

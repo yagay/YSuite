@@ -277,4 +277,5 @@
     <string name="yfiles_msg_collection_virtual">Smart collections are virtual; edit the underlying file instead</string>
     <string name="yfiles_msg_shizuku_permission_required">Shizuku permission is required</string>
     <string name="yfiles_msg_shizuku_timeout">Shizuku command timed out</string>
+    <string name="yfiles_msg_shizuku_unavailable_host">Shizuku is unavailable in this host</string>
 </resources>
