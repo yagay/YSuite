@@ -12,17 +12,18 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * Shared outer chrome for every normal YSuite product workspace.
+ * The single normal-screen chrome owner for YSuite product UI.
  *
- * Product workspaces keep their upstream information architecture, while app-bar treatment,
- * background and edge-to-edge scaffold behavior remain identical across the suite.
- * Browser/fullscreen products may omit this chrome when the product model owns the whole screen.
+ * Product workspaces keep their mature product-specific information architecture, but do not
+ * create their own app-level Scaffold/TopAppBar/insets. Browser and fullscreen products may own
+ * their full surface intentionally.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,4 +76,59 @@ fun YSuiteProductScaffold(
         containerColor = MaterialTheme.colorScheme.background,
         content = content,
     )
+}
+
+/**
+ * Canonical page host for normal YSuite product screens.
+ *
+ * It owns the page Scaffold, system-bar insets and app bar. Product-specific tabs, breadcrumbs,
+ * search/filter rows and panes are supplied as slots below the common top bar.
+ */
+@Composable
+fun YSuiteProductPage(
+    title: String,
+    modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    headerContent: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    content: @Composable (ProductAdaptiveInfo) -> Unit,
+) {
+    YSuiteProductScaffold(
+        modifier = modifier,
+        topBar = {
+            Column {
+                YSuiteProductTopBar(
+                    title = { Text(title) },
+                    navigationIcon = navigationIcon,
+                    actions = actions,
+                )
+                headerContent()
+            }
+        },
+        bottomBar = bottomBar,
+        floatingActionButton = floatingActionButton,
+    ) { padding ->
+        ProductAdaptiveBox(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .then(
+                        Modifier,
+                    ),
+        ) { adaptive ->
+            androidx.compose.foundation.layout.Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .then(
+                            androidx.compose.ui.Modifier
+                                .padding(padding),
+                        ),
+            ) {
+                content(adaptive)
+            }
+        }
+    }
 }
