@@ -5,7 +5,6 @@ import android.app.TimePickerDialog
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -32,6 +31,7 @@ import com.yagay.ysuite.productui.download.QdmDownloadProperty
 import com.yagay.ysuite.productui.download.QdmDownloadRowModel
 import com.yagay.ysuite.productui.download.QdmDownloadTab
 import com.yagay.ysuite.productui.download.QdmDownloadWorkspace
+import com.yagay.ysuite.ui.YSuiteFeatureBackHandler
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 import java.text.DateFormat
 import java.util.Calendar
@@ -61,7 +61,7 @@ fun YDownloadFeatureScreen(
         model.state.collectAsStateWithLifecycle()
 
     if (state.page == YDownloadPage.Settings) {
-        BackHandler(onBack = model::backToMain)
+        YSuiteFeatureBackHandler(onBack = model::backToMain)
         YDownloadSettingsScreen(
             settings = state.settings,
             onBack = model::backToMain,
