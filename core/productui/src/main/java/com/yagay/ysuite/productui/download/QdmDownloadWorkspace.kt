@@ -1,5 +1,6 @@
 package com.yagay.ysuite.productui.download
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
 import com.yagay.ysuite.productui.YSuiteProductPage
 
 import androidx.compose.foundation.layout.Column
@@ -84,6 +85,7 @@ fun QdmDownloadWorkspace(
     var fabExpanded by remember { mutableStateOf(false) }
 
     YSuiteProductPage(
+        surfaceKind = ProductSurfaceKind.DownloadManager,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
