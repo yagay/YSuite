@@ -296,5 +296,4 @@ fun QdmDownloadWorkspace(
     ) { adaptive ->
         content(adaptive, selectedTabId)
     }
-    }
-}
+ }
