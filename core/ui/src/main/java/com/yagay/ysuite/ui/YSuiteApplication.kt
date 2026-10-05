@@ -21,16 +21,19 @@ fun YSuiteApplication(
     singleFeature: Boolean = false,
     initialFeatureId: String? = null,
 ) {
-    val settings by settingsRepository.settings
-        .collectAsStateWithLifecycle(
-            initialValue = AppSettings(),
+    val loadedSettings by settingsRepository.settings
+        .collectAsStateWithLifecycle<AppSettings?>(
+            initialValue = null,
         )
+    val settings = loadedSettings ?: AppSettings()
     val context = LocalContext.current
 
-    LaunchedEffect(settings.languageTag) {
+    LaunchedEffect(loadedSettings?.languageTag) {
+        val resolved = loadedSettings
+            ?: return@LaunchedEffect
         LocaleController.applyLanguageTag(
             context = context,
-            languageTag = settings.languageTag,
+            languageTag = resolved.languageTag,
         )
     }
 
