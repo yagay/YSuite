@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.filemanager
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import com.yagay.ysuite.productui.ProductLayoutTokens
 
 import com.yagay.ysuite.productui.YSuiteProductPage
@@ -159,6 +161,7 @@ private fun BrowserScaffold(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     YSuiteProductPage(
+        surfaceKind = ProductSurfaceKind.FileManager,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
