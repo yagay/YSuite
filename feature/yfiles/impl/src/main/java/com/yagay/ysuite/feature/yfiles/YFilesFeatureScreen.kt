@@ -50,6 +50,7 @@ import com.yagay.ysuite.feature.yfiles.api.YFileType
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
+import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
 import com.yagay.ysuite.productui.filemanager.YFileBreadcrumbBar
 import com.yagay.ysuite.productui.filemanager.YFileEntryRow
 import com.yagay.ysuite.productui.filemanager.FileExplorerBackButton
@@ -476,28 +477,38 @@ private fun YFilesBrowserSurface(
                 modifier =
                     Modifier.fillMaxSize(),
             ) {
-                YFilesMainContent(
-                    state = state,
-                    browser = browser,
-                    adaptive = adaptive,
-                    context =
-                        LocalContext.current,
-                    onEmptyTrash =
-                        onEmptyTrash,
+                ProductPaneAdaptiveBox(
                     modifier =
-                        Modifier.weight(1f),
-                )
-                YFilesMainContent(
-                    state = secondaryState,
-                    browser =
-                        secondaryBrowser,
-                    adaptive = adaptive,
-                    context =
-                        LocalContext.current,
-                    onEmptyTrash = {},
+                        Modifier
+                            .weight(1f)
+                            .fillMaxSize(),
+                ) { paneAdaptive ->
+                    YFilesMainContent(
+                        state = state,
+                        browser = browser,
+                        adaptive = paneAdaptive,
+                        context =
+                            LocalContext.current,
+                        onEmptyTrash =
+                            onEmptyTrash,
+                    )
+                }
+                ProductPaneAdaptiveBox(
                     modifier =
-                        Modifier.weight(1f),
-                )
+                        Modifier
+                            .weight(1f)
+                            .fillMaxSize(),
+                ) { paneAdaptive ->
+                    YFilesMainContent(
+                        state = secondaryState,
+                        browser =
+                            secondaryBrowser,
+                        adaptive = paneAdaptive,
+                        context =
+                            LocalContext.current,
+                        onEmptyTrash = {},
+                    )
+                }
             }
         } else {
             YFilesMainContent(
