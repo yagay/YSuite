@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.automation
 
+import com.yagay.ysuite.productui.ProductLayoutTokens
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -10,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.YSuiteProductPage
 
@@ -38,7 +39,7 @@ fun OpenTaskerWorkspace(
                 Surface(
                     modifier =
                         Modifier
-                            .width(300.dp)
+                            .width(ProductLayoutTokens.AutomationLibraryPaneWidth)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme
@@ -53,7 +54,7 @@ fun OpenTaskerWorkspace(
                     Surface(
                         modifier =
                             Modifier
-                                .width(360.dp)
+                                .width(ProductLayoutTokens.AutomationInspectorPaneWidth)
                                 .fillMaxHeight(),
                         color =
                             MaterialTheme.colorScheme
