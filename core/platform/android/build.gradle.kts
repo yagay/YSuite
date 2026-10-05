@@ -17,4 +17,6 @@ dependencies {
     api(project(":core:platform:api"))
     implementation(project(":core:common"))
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
 }

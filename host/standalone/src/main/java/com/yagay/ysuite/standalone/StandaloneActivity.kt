@@ -53,11 +53,15 @@ class StandaloneActivity : AppCompatActivity() {
                     BuildConfig.FEATURE_REGISTRATION_CLASS,
                 )
 
+        val platform =
+            DefaultPlatformServices.create()
+
         (registration as? YSuiteStandaloneAwareRegistration)
             ?.bindStandaloneDependencies(
                 YSuiteStandaloneDependencies(
-                    rootGateway =
-                        DefaultPlatformServices.create().root,
+                    rootGateway = platform.root,
+                    shizukuGateway =
+                        platform.shizuku,
                 ),
             )
 

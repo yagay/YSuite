@@ -53,8 +53,6 @@ dependencies {
     }
     implementation(libs.bouncycastle.prov)
     implementation(libs.bouncycastle.pkix)
-    implementation(libs.shizuku.api)
-    implementation(libs.shizuku.provider)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.work.runtime)
 

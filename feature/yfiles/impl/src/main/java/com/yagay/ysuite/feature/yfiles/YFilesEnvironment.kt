@@ -14,7 +14,6 @@ import com.yagay.ysuite.feature.yfiles.provider.remote.RemoteFileProvider
 import com.yagay.ysuite.feature.yfiles.provider.remote.YFilesNetworkStore
 import com.yagay.ysuite.feature.yfiles.provider.collection.MediaCollectionProvider
 import com.yagay.ysuite.feature.yfiles.provider.shizuku.ShizukuFileProvider
-import com.yagay.ysuite.feature.yfiles.provider.shizuku.ShizukuShellGateway
 import com.yagay.ysuite.feature.yfiles.provider.cloud.CloudFileProvider
 import com.yagay.ysuite.feature.yfiles.provider.cloud.YFilesCloudStore
 import com.yagay.ysuite.feature.yfiles.plugin.YFilesPluginRegistry
@@ -22,6 +21,7 @@ import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
 import com.yagay.ysuite.platform.api.RootResult
+import com.yagay.ysuite.platform.api.ShizukuGateway
 
 data class YFilesEnvironment(
     val engine: DefaultYFilesEngine,
@@ -38,7 +38,7 @@ data class YFilesEnvironment(
     val security: YFilesSecurityService,
     val preview: YFilesPreviewService,
     val rootTools: YFilesRootToolsService,
-    val shizukuGateway: ShizukuShellGateway,
+    val shizukuGateway: ShizukuGateway,
     val cloudStore: YFilesCloudStore,
     val cloudProvider: CloudFileProvider,
     val plugins: YFilesPluginRegistry,
@@ -51,6 +51,8 @@ object YFilesEnvironmentFactory {
     fun create(
         context: Context,
         rootGateway: RootGateway,
+        shizukuGateway: ShizukuGateway =
+            UnavailableShizukuGateway,
     ): YFilesEnvironment {
         val appContext =
             context.applicationContext
@@ -93,8 +95,6 @@ object YFilesEnvironmentFactory {
                 appContext,
                 networkStore,
             )
-        val shizukuGateway =
-            ShizukuShellGateway(appContext)
         val collectionProvider =
             MediaCollectionProvider(
                 appContext,
@@ -227,8 +227,11 @@ object YFilesEnvironmentFactory {
         context: Context,
     ): YFilesEnvironment =
         create(
-            context,
-            UnavailableRootGateway,
+            context = context,
+            rootGateway =
+                UnavailableRootGateway,
+            shizukuGateway =
+                UnavailableShizukuGateway,
         )
 }
 
@@ -248,4 +251,25 @@ private object UnavailableRootGateway :
 
     private const val ROOT_UNAVAILABLE_MESSAGE =
         "Root is unavailable in this host"
+}
+
+
+private object UnavailableShizukuGateway :
+    ShizukuGateway {
+    override suspend fun status():
+        CapabilityStatus =
+        CapabilityStatus.Unavailable
+
+    override fun requestPermission(
+        requestCode: Int,
+    ): Boolean = false
+
+    override suspend fun execute(
+        request: RootRequest,
+    ): Outcome<RootResult> =
+        Outcome.Failure(
+            code = "shizuku_unavailable",
+            message =
+                "Shizuku is unavailable in this host",
+        )
 }

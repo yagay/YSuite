@@ -81,6 +81,8 @@ class YSuiteAppContainer(
                 environment = YFilesEnvironmentFactory.create(
                     context = context,
                     rootGateway = platform.root,
+                    shizukuGateway =
+                        platform.shizuku,
                 ),
                 logger = logger,
             ),
