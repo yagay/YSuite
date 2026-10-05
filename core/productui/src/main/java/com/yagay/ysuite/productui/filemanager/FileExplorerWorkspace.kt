@@ -1,15 +1,12 @@
 package com.yagay.ysuite.productui.filemanager
 
-import com.yagay.ysuite.productui.YSuiteProductTopBar
-import com.yagay.ysuite.productui.YSuiteProductScaffold
+import com.yagay.ysuite.productui.YSuiteProductPage
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -21,7 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -70,7 +66,6 @@ fun FileExplorerWorkspace(
                 }
 
                 BrowserScaffold(
-                    adaptive = adaptive,
                     title = title,
                     modifier = Modifier.weight(1f),
                     navigationIcon = { navigationIcon?.invoke() },
@@ -110,7 +105,6 @@ fun FileExplorerWorkspace(
                 },
             ) {
                 BrowserScaffold(
-                    adaptive = adaptive,
                     title = title,
                     navigationIcon = {
                         Row {
@@ -147,7 +141,6 @@ fun FileExplorerWorkspace(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BrowserScaffold(
-    adaptive: ProductAdaptiveInfo,
     title: String,
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit,
@@ -161,38 +154,24 @@ private fun BrowserScaffold(
     floatingActionButton: (@Composable () -> Unit)?,
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
-    YSuiteProductScaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            Column {
-                if (selectionTopBar != null) {
-                    selectionTopBar()
-                } else {
-                    YSuiteProductTopBar(
-                        title = { Text(title) },
-                        navigationIcon = navigationIcon,
-                        actions = actions,
-                    )
-                }
-                statusBanner()
-                tabs()
-                breadcrumb()
-                commandBar()
-            }
+    YSuiteProductPage(
+        title = title,
+        modifier = modifier,
+        navigationIcon = navigationIcon,
+        actions = actions,
+        topBarOverride = selectionTopBar,
+        headerContent = {
+            statusBanner()
+            tabs()
+            breadcrumb()
+            commandBar()
         },
         bottomBar = bottomBar,
         floatingActionButton = {
-            if (floatingActionButton != null) {
-                floatingActionButton()
-            }
+            floatingActionButton?.invoke()
         },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            content(adaptive)
-        }
+    ) { adaptive ->
+        content(adaptive)
     }
+
 }
