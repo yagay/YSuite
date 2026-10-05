@@ -40,6 +40,11 @@ internal fun YFilesTransfersSurface(
     advanced: YFilesAdvancedViewModel,
     onBack: () -> Unit,
 ) {
+    val transferLabel =
+        stringResource(R.string.yfiles_adv_transfer)
+    val speedLimitLabel =
+        stringResource(R.string.yfiles_adv_speed_limit)
+
     FileExplorerUtilitySurface(
         title = stringResource(R.string.yfiles_adv_transfers),
         navigationIcon = {
@@ -69,14 +74,31 @@ internal fun YFilesTransfersSurface(
                 items = state.transfers,
                 key = { it.id },
             ) { task ->
+                val operationLabel =
+                    when (task.operation) {
+                        YFilesTransferOperation.Copy ->
+                            stringResource(R.string.yfiles_copy)
+                        YFilesTransferOperation.Move ->
+                            stringResource(R.string.yfiles_move)
+                    }
+                val stateLabel =
+                    when (task.state) {
+                        YFilesTransferState.Pending ->
+                            stringResource(R.string.yfiles_adv_state_pending)
+                        YFilesTransferState.Running ->
+                            stringResource(R.string.yfiles_adv_state_running)
+                        YFilesTransferState.Paused ->
+                            stringResource(R.string.yfiles_adv_state_paused)
+                        YFilesTransferState.Completed ->
+                            stringResource(R.string.yfiles_adv_state_completed)
+                        YFilesTransferState.Failed ->
+                            stringResource(R.string.yfiles_adv_state_failed)
+                        YFilesTransferState.Cancelled ->
+                            stringResource(R.string.yfiles_adv_state_cancelled)
+                    }
+
                 FileExplorerToolGroup(
-                    title =
-                        when (task.operation) {
-                            YFilesTransferOperation.Copy ->
-                                "Copy"
-                            YFilesTransferOperation.Move ->
-                                "Move"
-                        },
+                    title = operationLabel,
                 ) {
                     YSuiteListItem(
                         title =
@@ -87,13 +109,11 @@ internal fun YFilesTransfersSurface(
                                     ?.substringAfterLast('/')
                                     .orEmpty()
                                     .ifBlank {
-                                        "Transfer"
+                                        transferLabel
                                     },
                         subtitle =
                             buildString {
-                                append(
-                                    task.state.name,
-                                )
+                                append(stateLabel)
                                 append(" • ")
                                 append(
                                     task.completedItems,
@@ -123,7 +143,9 @@ internal fun YFilesTransfersSurface(
                                         .speedLimitBytesPerSecond >
                                     0L
                                 ) {
-                                    append(" • limit ")
+                                    append(" • ")
+                                    append(speedLimitLabel)
+                                    append(" ")
                                     append(
                                         formatBytes(
                                             task.speedLimitBytesPerSecond,
