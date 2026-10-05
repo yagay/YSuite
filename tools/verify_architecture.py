@@ -228,6 +228,22 @@ else:
                 "use YSuiteProductScaffold"
             )
 
+        if "YSuiteProductScaffold(" in product_text:
+            violations.append(
+                f"{rel}: product workspace bypasses YSuiteProductPage; "
+                "the canonical page host must own Scaffold/insets"
+            )
+        if (
+            "YSuiteProductTopBar(" in product_text
+            and not rel.endswith(
+                "filemanager/YFileManagerComponents.kt"
+            )
+        ):
+            violations.append(
+                f"{rel}: product workspace bypasses YSuiteProductPage; "
+                "use canonical page chrome slots"
+            )
+
 for gradle in ROOT.glob("feature/*/impl/build.gradle.kts"):
     rel = gradle.relative_to(ROOT).as_posix()
     text = gradle.read_text(encoding="utf-8", errors="ignore")
