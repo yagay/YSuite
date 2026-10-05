@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.automation
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import com.yagay.ysuite.productui.ProductLayoutTokens
 
 import androidx.compose.foundation.layout.Box
@@ -30,6 +32,7 @@ fun OpenTaskerWorkspace(
     inspector: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
 ) {
     YSuiteProductPage(
+        surfaceKind = ProductSurfaceKind.AutomationStudio,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
