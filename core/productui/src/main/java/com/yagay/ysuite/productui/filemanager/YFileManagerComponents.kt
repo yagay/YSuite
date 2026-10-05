@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.filemanager
 
+import com.yagay.ysuite.productui.YSuiteProductTopBar
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -59,7 +61,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -595,7 +596,7 @@ fun FileExplorerSelectionTopBar(
     onDelete: () -> Unit,
     onClear: () -> Unit,
 ) {
-    TopAppBar(
+    YSuiteProductTopBar(
         title = { Text(countLabel) },
         navigationIcon = {
             IconButton(onClick = onClear) {
