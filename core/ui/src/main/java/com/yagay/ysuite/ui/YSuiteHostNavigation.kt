@@ -1,5 +1,6 @@
 package com.yagay.ysuite.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
@@ -56,4 +57,22 @@ fun YSuiteHostNavigationButton() {
                 )
             }
     }
+}
+
+/**
+ * Shared feature-level back handler.
+ *
+ * Feature implementations use this wrapper instead of depending directly on activity-compose.
+ * Because feature content is composed after the host handler, enabled feature handlers consume
+ * internal-page back before the YSuite host pops the feature destination.
+ */
+@Composable
+fun YSuiteFeatureBackHandler(
+    enabled: Boolean = true,
+    onBack: () -> Unit,
+) {
+    BackHandler(
+        enabled = enabled,
+        onBack = onBack,
+    )
 }
