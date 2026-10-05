@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.dashboard
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import com.yagay.ysuite.productui.ProductLayoutTokens
 
 import androidx.compose.foundation.layout.RowScope
@@ -21,6 +23,7 @@ fun NiaDashboardSurface(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     YSuiteBoundedProductPage(
+        surfaceKind = ProductSurfaceKind.Dashboard,
         title = title,
         maxContentWidth = ProductLayoutTokens.DashboardContentMaxWidth,
         modifier = modifier,
