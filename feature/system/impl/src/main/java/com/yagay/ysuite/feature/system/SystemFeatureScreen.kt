@@ -635,22 +635,27 @@ private fun DiagnosticSection(
                     ),
             )
             findings.forEach { finding ->
+                val recommendation =
+                    diagnosticRecommendationText(
+                        finding.recommendation,
+                    )
                 val subtitle =
                     buildString {
-                        append(finding.owner)
-                        append(" · ")
-                        append(finding.summary)
-                        finding.recommendation
-                            ?.takeIf(
-                                String::isNotBlank,
-                            )
-                            ?.let {
-                                append("\n")
-                                append(it)
-                            }
+                        append(
+                            diagnosticSummaryText(
+                                finding,
+                            ),
+                        )
+                        recommendation?.let {
+                            append("\n")
+                            append(it)
+                        }
                     }
                 YSuiteListItem(
-                    title = finding.id,
+                    title =
+                        diagnosticTitle(
+                            finding,
+                        ),
                     subtitle = subtitle,
                     trailing = {
                         YSuiteStatusBadge(
@@ -669,6 +674,124 @@ private fun DiagnosticSection(
         }
     }
 }
+
+@Composable
+private fun diagnosticTitle(
+    finding: DiagnosticFinding,
+): String =
+    when (finding.category) {
+        "capability" ->
+            when (
+                finding.metadata["kind"]
+                    ?.let {
+                        runCatching {
+                            CapabilityKind.valueOf(it)
+                        }.getOrNull()
+                    }
+            ) {
+                CapabilityKind.Normal ->
+                    stringResource(
+                        R.string.system_normal,
+                    )
+                CapabilityKind.Shizuku ->
+                    stringResource(
+                        R.string.system_shizuku,
+                    )
+                CapabilityKind.Root ->
+                    stringResource(
+                        R.string.system_root,
+                    )
+                CapabilityKind.Hooks ->
+                    stringResource(
+                        R.string.system_hooks,
+                    )
+                null ->
+                    stringResource(
+                        R.string.system_platform,
+                    )
+            }
+        "permissions" ->
+            stringResource(
+                R.string.system_permissions,
+            )
+        "filesystem" ->
+            stringResource(
+                R.string
+                    .system_diagnostic_provider_title,
+                finding.metadata["providerId"]
+                    .orEmpty(),
+            )
+        else ->
+            finding.id
+    }
+
+@Composable
+private fun diagnosticSummaryText(
+    finding: DiagnosticFinding,
+): String =
+    when (finding.category) {
+        "capability" ->
+            diagnosticStatusText(
+                finding.status,
+            )
+        "permissions" ->
+            stringResource(
+                R.string
+                    .system_diagnostic_permissions_summary,
+                finding.metadata["declaredCount"]
+                    ?.toIntOrNull()
+                    ?: 0,
+                finding.metadata["deniedCount"]
+                    ?.toIntOrNull()
+                    ?: 0,
+            )
+        "filesystem" ->
+            stringResource(
+                R.string
+                    .system_diagnostic_provider_summary,
+                finding.metadata["capabilityCount"]
+                    ?.toIntOrNull()
+                    ?: 0,
+            )
+        else ->
+            finding.summary
+    }
+
+@Composable
+private fun diagnosticRecommendationText(
+    key: String?,
+): String? =
+    when (key) {
+        "review_permissions" ->
+            stringResource(
+                R.string
+                    .system_diagnostic_recommend_review_permissions,
+            )
+        "grant_shizuku" ->
+            stringResource(
+                R.string
+                    .system_diagnostic_recommend_grant_shizuku,
+            )
+        "start_shizuku" ->
+            stringResource(
+                R.string
+                    .system_diagnostic_recommend_start_shizuku,
+            )
+        "grant_root" ->
+            stringResource(
+                R.string
+                    .system_diagnostic_recommend_grant_root,
+            )
+        "enable_hooks" ->
+            stringResource(
+                R.string
+                    .system_diagnostic_recommend_enable_hooks,
+            )
+        null, "" ->
+            null
+        else ->
+            key
+    }
 
 @Composable
 private fun capabilityStatusText(
