@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.tool
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import com.yagay.ysuite.productui.ProductLayoutTokens
 
 import androidx.compose.foundation.layout.RowScope
@@ -21,6 +23,7 @@ fun NiaToolSurface(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     YSuiteBoundedProductPage(
+        surfaceKind = ProductSurfaceKind.Tool,
         title = title,
         maxContentWidth = ProductLayoutTokens.ToolContentMaxWidth,
         modifier = modifier,
