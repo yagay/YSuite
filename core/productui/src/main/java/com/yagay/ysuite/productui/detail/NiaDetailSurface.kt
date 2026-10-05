@@ -6,8 +6,6 @@ import com.yagay.ysuite.productui.ProductLayoutTokens
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
@@ -33,7 +31,7 @@ fun NiaDetailSurface(
         actions = actions,
     ) { adaptive ->
         androidx.compose.foundation.layout.Box(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize(),
         ) {
             content(adaptive)
         }
