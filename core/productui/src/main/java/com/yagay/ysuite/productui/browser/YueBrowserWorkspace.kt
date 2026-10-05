@@ -1,6 +1,7 @@
 package com.yagay.ysuite.productui.browser
 
 import com.yagay.ysuite.productui.ProductLayoutTokens
+import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,8 +53,13 @@ fun YueBrowserWorkspace(
                     toolbar()
                 }
                 tabStrip()
-                Box(modifier = Modifier.weight(1f)) {
-                    content(adaptive)
+                ProductPaneAdaptiveBox(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                ) { paneAdaptive ->
+                    content(paneAdaptive)
                 }
                 bottomBar()
             }
