@@ -29,9 +29,7 @@ fun YSuiteSectionHeader(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement =
             Arrangement.spacedBy(
                 YSuiteSpacing.XSmall,
@@ -104,7 +102,10 @@ fun YSuiteListItem(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
         verticalAlignment =
             Alignment.CenterVertically,
         horizontalArrangement =
