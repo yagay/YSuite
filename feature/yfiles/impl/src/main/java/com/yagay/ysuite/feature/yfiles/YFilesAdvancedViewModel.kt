@@ -322,7 +322,9 @@ class YFilesAdvancedViewModel(
                     environment.networkStore
                         .profiles(),
                 message =
-                    "Network connection saved",
+                    appContext.getString(
+                        R.string.yfiles_msg_network_saved,
+                    ),
                 error = null,
             )
         }
@@ -352,7 +354,9 @@ class YFilesAdvancedViewModel(
             updateState {
                 it.copy(
                     message =
-                        "Connection succeeded",
+                        appContext.getString(
+                            R.string.yfiles_msg_connection_succeeded,
+                        ),
                 )
             }
         }
@@ -473,7 +477,9 @@ class YFilesAdvancedViewModel(
                     environment.cloudStore
                         .profiles(),
                 message =
-                    "Cloud account saved",
+                    appContext.getString(
+                        R.string.yfiles_msg_cloud_saved,
+                    ),
                 error = null,
             )
         }
@@ -511,7 +517,9 @@ class YFilesAdvancedViewModel(
                 current ->
                 current.copy(
                     message =
-                        "Cloud connection succeeded",
+                        appContext.getString(
+                            R.string.yfiles_msg_cloud_succeeded,
+                        ),
                 )
             }
         }
@@ -540,7 +548,9 @@ class YFilesAdvancedViewModel(
                     environment.shareServerStore
                         .settings(),
                 message =
-                    "Share server settings saved",
+                    appContext.getString(
+                        R.string.yfiles_msg_share_saved,
+                    ),
             )
         }
     }
@@ -620,9 +630,12 @@ class YFilesAdvancedViewModel(
                             }
                         },
                 message =
-                    "Plugin protocol " +
-                        inspected
-                            .protocolVersion,
+                    appContext.getString(
+                        R.string.yfiles_msg_plugin_protocol,
+                        inspected.protocolVersion
+                            ?.toString()
+                            .orEmpty(),
+                    ),
             )
         }
     }
@@ -648,7 +661,9 @@ class YFilesAdvancedViewModel(
             current ->
             current.copy(
                 message =
-                    "Encrypted volume mounted",
+                    appContext.getString(
+                        R.string.yfiles_msg_volume_mounted,
+                    ),
             )
         }
     }
@@ -668,7 +683,9 @@ class YFilesAdvancedViewModel(
             current ->
             current.copy(
                 message =
-                    "Encrypted volume unmounted",
+                    appContext.getString(
+                        R.string.yfiles_msg_volume_unmounted,
+                    ),
             )
         }
     }
@@ -815,7 +832,9 @@ class YFilesAdvancedViewModel(
             current ->
             current.copy(
                 message =
-                    "Encrypted file created",
+                    appContext.getString(
+                        R.string.yfiles_msg_encrypted_created,
+                    ),
             )
         }
     }
@@ -839,7 +858,9 @@ class YFilesAdvancedViewModel(
             current ->
             current.copy(
                 message =
-                    "File decrypted",
+                    appContext.getString(
+                        R.string.yfiles_msg_file_decrypted,
+                    ),
             )
         }
     }
@@ -856,7 +877,9 @@ class YFilesAdvancedViewModel(
                 current ->
                 current.copy(
                     message =
-                        "Best-effort secure delete completed",
+                        appContext.getString(
+                            R.string.yfiles_msg_secure_delete_done,
+                        ),
                 )
             }
         }
@@ -915,7 +938,9 @@ class YFilesAdvancedViewModel(
             current ->
             current.copy(
                 message =
-                    "Vault item restored",
+                    appContext.getString(
+                        R.string.yfiles_msg_vault_restored,
+                    ),
             )
         }
     }

@@ -66,7 +66,9 @@ class YFilesAutomationReceiver :
                         intent,
                         success = false,
                         message =
-                            "YFiles automation is disabled",
+                            appContext.getString(
+                                R.string.yfiles_msg_automation_disabled,
+                            ),
                     )
                     return@launch
                 }
@@ -115,7 +117,9 @@ class YFilesAutomationReceiver :
                             intent,
                             success = true,
                             message =
-                                "Transfer queued",
+                                appContext.getString(
+                                    R.string.yfiles_msg_transfer_queued,
+                                ),
                             taskId = taskId,
                         )
                     }
@@ -161,7 +165,9 @@ class YFilesAutomationReceiver :
                                     intent,
                                     success = true,
                                     message =
-                                        "Archive created",
+                                        appContext.getString(
+                                            R.string.yfiles_msg_archive_created,
+                                        ),
                                 )
                             is com.yagay.ysuite
                                 .common.Outcome
@@ -181,7 +187,9 @@ class YFilesAutomationReceiver :
                             intent,
                             success = false,
                             message =
-                                "Unsupported YFiles automation action",
+                                appContext.getString(
+                                    R.string.yfiles_msg_automation_unsupported,
+                                ),
                         )
                 }
             } catch (error: Throwable) {

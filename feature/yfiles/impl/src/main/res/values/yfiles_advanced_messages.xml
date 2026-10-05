@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfiles_adv_gocryptfs">gocryptfs</string>
+    <string name="yfiles_adv_encfs">EncFS</string>
+    <string name="yfiles_adv_fusermount">fusermount</string>
+    <string name="yfiles_msg_network_saved">Network connection saved</string>
+    <string name="yfiles_msg_connection_succeeded">Connection succeeded</string>
+    <string name="yfiles_msg_cloud_saved">Cloud account saved</string>
+    <string name="yfiles_msg_cloud_succeeded">Cloud connection succeeded</string>
+    <string name="yfiles_msg_share_saved">Share server settings saved</string>
+    <string name="yfiles_msg_plugin_protocol">Plugin protocol %1$s</string>
+    <string name="yfiles_msg_volume_mounted">Encrypted volume mounted</string>
+    <string name="yfiles_msg_volume_unmounted">Encrypted volume unmounted</string>
+    <string name="yfiles_msg_encrypted_created">Encrypted file created</string>
+    <string name="yfiles_msg_file_decrypted">File decrypted</string>
+    <string name="yfiles_msg_secure_delete_done">Best-effort secure delete completed</string>
+    <string name="yfiles_msg_vault_restored">Vault item restored</string>
+    <string name="yfiles_msg_automation_disabled">YFiles automation is disabled</string>
+    <string name="yfiles_msg_transfer_queued">Transfer queued</string>
+    <string name="yfiles_msg_archive_created">Archive created</string>
+    <string name="yfiles_msg_automation_unsupported">Unsupported YFiles automation action</string>
+    <string name="yfiles_msg_no_root_module_manager">No supported root module manager was found</string>
+    <string name="yfiles_msg_unsupported_volume_type">Unsupported encrypted volume type</string>
+    <string name="yfiles_msg_secure_delete_local_only">Secure overwrite is only available for local files</string>
+    <string name="yfiles_msg_archive_read_only">Archive is read-only</string>
+    <string name="yfiles_msg_unknown_collection">Unknown smart collection</string>
+    <string name="yfiles_msg_collection_virtual">Smart collections are virtual; edit the underlying file instead</string>
+    <string name="yfiles_msg_shizuku_permission_required">Shizuku permission is required</string>
+    <string name="yfiles_msg_shizuku_timeout">Shizuku command timed out</string>
+</resources>

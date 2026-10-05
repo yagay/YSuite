@@ -58,6 +58,7 @@ object YFilesEnvironmentFactory {
             DocumentTreeStore(appContext)
         val archiveProvider =
             UniversalArchiveProvider(
+                appContext,
                 java.io.File(
                     appContext.cacheDir,
                     "yfiles-archive-mounts",
@@ -92,6 +93,7 @@ object YFilesEnvironmentFactory {
             ShizukuShellGateway(appContext)
         val collectionProvider =
             MediaCollectionProvider(
+                appContext,
                 appContext.contentResolver,
             )
         val shizukuProvider =
@@ -194,6 +196,7 @@ object YFilesEnvironmentFactory {
             preview = preview,
             rootTools =
                 YFilesRootToolsService(
+                    appContext,
                     rootGateway,
                 ),
             shizukuGateway =

@@ -78,7 +78,9 @@ class ShizukuShellGateway(
                             code =
                                 "shizuku_permission_required",
                             message =
-                                "Shizuku permission is required",
+                                context.getString(
+                                    R.string.yfiles_msg_shizuku_permission_required,
+                                ),
                         )
                 }
                 val clazz =
@@ -116,7 +118,9 @@ class ShizukuShellGateway(
                             code =
                                 "shizuku_timeout",
                             message =
-                                "Shizuku command timed out",
+                                context.getString(
+                                    R.string.yfiles_msg_shizuku_timeout,
+                                ),
                             retryable = true,
                         )
                 }

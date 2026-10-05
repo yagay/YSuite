@@ -1,5 +1,6 @@
 package com.yagay.ysuite.feature.yfiles
 
+import android.content.Context
 import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
@@ -37,8 +38,11 @@ data class YEncryptedVolumeSupport(
 )
 
 class YFilesRootToolsService(
+    context: Context,
     private val root: RootGateway,
 ) {
+    private val appContext =
+        context.applicationContext
     suspend fun securityInfo(
         path: String,
     ): Outcome<YRootFileSecurityInfo> =
@@ -263,7 +267,9 @@ class YFilesRootToolsService(
                                 code =
                                     "root_module_manager_missing",
                                 message =
-                                    "No supported root module manager was found",
+                                    appContext.getString(
+                                        R.string.yfiles_msg_no_root_module_manager,
+                                    ),
                             )
                 }
             rootUnit(
@@ -323,7 +329,9 @@ class YFilesRootToolsService(
                         code =
                             "encrypted_volume_type",
                         message =
-                            "Unsupported encrypted volume type",
+                            appContext.getString(
+                                R.string.yfiles_msg_unsupported_volume_type,
+                            ),
                     )
             }
         return rootUnit(

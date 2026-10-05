@@ -1,6 +1,7 @@
 package com.yagay.ysuite.feature.yfiles.provider.collection
 
 import android.content.ContentResolver
+import android.content.Context
 import android.provider.MediaStore
 import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.feature.yfiles.api.YFileCapability
@@ -18,8 +19,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class MediaCollectionProvider(
+    context: Context,
     private val resolver: ContentResolver,
 ) : YFileProvider {
+    private val appContext =
+        context.applicationContext
     override val descriptor =
         YFileProviderDescriptor(
             id = PROVIDER_ID,
@@ -89,7 +93,10 @@ class MediaCollectionProvider(
         val label = collections.firstOrNull { it.first == ref.path }?.second
             ?: return Outcome.Failure(
                 code = "collection_not_found",
-                message = "Unknown smart collection",
+                message =
+                    appContext.getString(
+                        com.yagay.ysuite.feature.yfiles.R.string.yfiles_msg_unknown_collection,
+                    ),
             )
         return Outcome.Success(
             YFileNode(
@@ -245,7 +252,9 @@ class MediaCollectionProvider(
         Outcome.Failure(
             code = "collection_read_only",
             message =
-                "Smart collections are virtual; edit the underlying file instead",
+                appContext.getString(
+                    com.yagay.ysuite.feature.yfiles.R.string.yfiles_msg_collection_virtual,
+                ),
         )
 
     companion object {

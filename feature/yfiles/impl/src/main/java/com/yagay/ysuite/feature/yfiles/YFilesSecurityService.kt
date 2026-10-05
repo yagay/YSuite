@@ -123,7 +123,9 @@ class YFilesSecurityService(
                         code =
                             "secure_delete_unsupported",
                         message =
-                            "Secure overwrite is only available for local files",
+                            appContext.getString(
+                                R.string.yfiles_msg_secure_delete_local_only,
+                            ),
                     )
             }
             try {

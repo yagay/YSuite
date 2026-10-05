@@ -236,7 +236,14 @@ fun repositoryException(
         provider = provider,
         operation = operation,
         kind = kind,
-        message = "$provider ${operation.name.lowercase()}: ${message.trim().take(MAX_ERROR_MESSAGE_LENGTH)}",
+        message =
+            provider +
+                " " +
+                operation.name.lowercase() +
+                ": " +
+                message.trim().take(
+                    MAX_ERROR_MESSAGE_LENGTH,
+                ),
         retryable = retryable,
         statusCode = statusCode,
     ),
@@ -250,7 +257,7 @@ fun unsupportedRepositoryOperation(
     provider = provider,
     operation = operation,
     kind = RepositoryErrorKind.UNSUPPORTED,
-    message = "operation is not supported",
+    message = UNSUPPORTED_MESSAGE,
     retryable = false,
 )
 
@@ -261,7 +268,7 @@ fun notConnectedRepositoryException(
     provider = provider,
     operation = operation,
     kind = RepositoryErrorKind.TRANSPORT,
-    message = "provider is not connected",
+    message = NOT_CONNECTED_MESSAGE,
     retryable = true,
 )
 
@@ -331,6 +338,11 @@ fun <T> Result<T>.mapRepositoryFailure(
     onSuccess = { Result.success(it) },
     onFailure = { error -> Result.failure(error.asRepositoryException(provider, operation)) },
 )
+
+private const val UNSUPPORTED_MESSAGE =
+    "operation is not supported"
+private const val NOT_CONNECTED_MESSAGE =
+    "provider is not connected"
 
 private const val MAX_ERROR_MESSAGE_LENGTH = 256
 

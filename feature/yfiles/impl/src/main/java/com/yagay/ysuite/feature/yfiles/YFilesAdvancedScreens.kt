@@ -7,14 +7,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.yagay.ysuite.designsystem.component.YSuiteFormField
 import com.yagay.ysuite.designsystem.component.YSuiteListItem
 import com.yagay.ysuite.designsystem.component.YSuiteStatusBadge
@@ -42,10 +41,10 @@ internal fun YFilesTransfersSurface(
     onBack: () -> Unit,
 ) {
     FileExplorerUtilitySurface(
-        title = "Transfers",
+        title = stringResource(R.string.yfiles_adv_transfers),
         navigationIcon = {
             FileExplorerBackButton(
-                contentDescription = "Files",
+                contentDescription = stringResource(R.string.yfiles_tab_files),
                 onClick = onBack,
             )
         },
@@ -60,9 +59,9 @@ internal fun YFilesTransfersSurface(
             if (state.transfers.isEmpty()) {
                 item {
                     YSuiteListItem(
-                        title = "No transfers",
+                        title = stringResource(R.string.yfiles_adv_no_transfers),
                         subtitle =
-                            "Copy and move operations will appear here.",
+                            stringResource(R.string.yfiles_adv_no_transfers_subtitle),
                     )
                 }
             }
@@ -138,7 +137,7 @@ internal fun YFilesTransfersSurface(
                         YFilesTransferState.Pending,
                         YFilesTransferState.Running ->
                             FileExplorerToolAction(
-                                text = "Pause",
+                                text = stringResource(R.string.yfiles_adv_pause),
                                 onClick = {
                                     advanced.pauseTransfer(
                                         task.id,
@@ -147,7 +146,7 @@ internal fun YFilesTransfersSurface(
                             )
                         YFilesTransferState.Paused ->
                             FileExplorerToolAction(
-                                text = "Resume",
+                                text = stringResource(R.string.yfiles_adv_resume),
                                 onClick = {
                                     advanced.resumeTransfer(
                                         task.id,
@@ -156,7 +155,7 @@ internal fun YFilesTransfersSurface(
                             )
                         YFilesTransferState.Failed ->
                             FileExplorerToolAction(
-                                text = "Retry",
+                                text = stringResource(R.string.yfiles_adv_retry),
                                 onClick = {
                                     advanced.retryTransfer(
                                         task.id,
@@ -172,7 +171,7 @@ internal fun YFilesTransfersSurface(
                         YFilesTransferState.Cancelled
                     ) {
                         FileExplorerToolAction(
-                            text = "Cancel",
+                            text = stringResource(R.string.yfiles_adv_cancel),
                             onClick = {
                                 advanced.cancelTransfer(
                                     task.id,
@@ -181,7 +180,7 @@ internal fun YFilesTransfersSurface(
                         )
                     }
                     FileExplorerToolAction(
-                        text = "Move up",
+                        text = stringResource(R.string.yfiles_adv_move_up),
                         onClick = {
                             advanced.moveTransferUp(
                                 task.id,
@@ -189,7 +188,7 @@ internal fun YFilesTransfersSurface(
                         },
                     )
                     FileExplorerToolAction(
-                        text = "Move down",
+                        text = stringResource(R.string.yfiles_adv_move_down),
                         onClick = {
                             advanced.moveTransferDown(
                                 task.id,
@@ -197,7 +196,7 @@ internal fun YFilesTransfersSurface(
                         },
                     )
                     FileExplorerToolAction(
-                        text = "Remove from history",
+                        text = stringResource(R.string.yfiles_adv_remove_history),
                         onClick = {
                             advanced.removeTransfer(
                                 task.id,
@@ -242,17 +241,17 @@ internal fun LazyListScope.advancedToolsContent(
 
     item {
         FileExplorerToolGroup(
-            title = "Advanced",
+            title = stringResource(R.string.yfiles_adv_advanced),
         ) {
             if (file != null) {
                 FileExplorerToolAction(
-                    text = "Document preview",
+                    text = stringResource(R.string.yfiles_adv_document_preview),
                     onClick = {
                         advanced.preview(file)
                     },
                 )
                 FileExplorerToolAction(
-                    text = "Hex viewer / editor",
+                    text = stringResource(R.string.yfiles_adv_hex_editor),
                     onClick = {
                         advanced.loadHex(
                             file.ref,
@@ -260,7 +259,7 @@ internal fun LazyListScope.advancedToolsContent(
                     },
                 )
                 FileExplorerToolAction(
-                    text = "All checksums",
+                    text = stringResource(R.string.yfiles_adv_all_checksums),
                     onClick = {
                         advanced.checksums(
                             file.ref,
@@ -274,7 +273,7 @@ internal fun LazyListScope.advancedToolsContent(
                     )
                 ) {
                     FileExplorerToolAction(
-                        text = "APK Analyzer",
+                        text = stringResource(R.string.yfiles_adv_apk_analyzer),
                         onClick = {
                             advanced.analyzeApk(
                                 file.ref,
@@ -284,7 +283,7 @@ internal fun LazyListScope.advancedToolsContent(
                 }
                 if (directory != null) {
                     FileExplorerToolAction(
-                        text = "Encrypt file",
+                        text = stringResource(R.string.yfiles_adv_encrypt_file),
                         onClick = {
                             advanced.encrypt(
                                 file.ref,
@@ -299,7 +298,7 @@ internal fun LazyListScope.advancedToolsContent(
                         )
                     ) {
                         FileExplorerToolAction(
-                            text = "Decrypt file",
+                            text = stringResource(R.string.yfiles_adv_decrypt_file),
                             onClick = {
                                 advanced.decrypt(
                                     file.ref,
@@ -310,7 +309,7 @@ internal fun LazyListScope.advancedToolsContent(
                     }
                 }
                 FileExplorerToolAction(
-                    text = "Add to encrypted vault",
+                    text = stringResource(R.string.yfiles_adv_add_vault),
                     onClick = {
                         advanced.vaultAdd(
                             file.ref,
@@ -320,7 +319,7 @@ internal fun LazyListScope.advancedToolsContent(
                 )
                 FileExplorerToolAction(
                     text =
-                        "Watch file integrity",
+                        stringResource(R.string.yfiles_adv_watch_integrity),
                     onClick = {
                         advanced.watchIntegrity(
                             file.ref,
@@ -333,7 +332,7 @@ internal fun LazyListScope.advancedToolsContent(
                 ) {
                     FileExplorerToolAction(
                         text =
-                            "Best-effort secure delete",
+                            stringResource(R.string.yfiles_adv_secure_delete),
                         onClick = {
                             advanced.secureDelete(
                                 file.ref,
@@ -347,7 +346,7 @@ internal fun LazyListScope.advancedToolsContent(
                 ) {
                     FileExplorerToolAction(
                         text =
-                            "SELinux / mount info",
+                            stringResource(R.string.yfiles_adv_selinux_mount_info),
                         onClick = {
                             advanced.rootSecurityInfo(
                                 file.ref.path,
@@ -358,28 +357,28 @@ internal fun LazyListScope.advancedToolsContent(
             } else {
                 YSuiteListItem(
                     title =
-                        "Select one file for advanced tools",
+                        stringResource(R.string.yfiles_adv_select_one_file),
                 )
             }
 
             FileExplorerToolAction(
-                text = "Installed apps",
+                text = stringResource(R.string.yfiles_adv_installed_apps),
                 onClick =
                     advanced::loadInstalledApps,
             )
             FileExplorerToolAction(
-                text = "Root modules",
+                text = stringResource(R.string.yfiles_adv_root_modules),
                 onClick =
                     advanced::loadRootModules,
             )
             FileExplorerToolAction(
-                text = "Integrity scan",
+                text = stringResource(R.string.yfiles_adv_integrity_scan),
                 onClick =
                     advanced::scanIntegrity,
             )
             FileExplorerToolAction(
                 text =
-                    "Probe encrypted volumes",
+                    stringResource(R.string.yfiles_adv_probe_encrypted_volumes),
                 onClick =
                     advanced::probeEncryptedVolumes,
             )
@@ -390,12 +389,12 @@ internal fun LazyListScope.advancedToolsContent(
         preview ->
         item {
             FileExplorerToolGroup(
-                title = "Preview",
+                title = stringResource(R.string.yfiles_adv_preview),
             ) {
                 preview.imagePath?.let {
                     YSuiteListItem(
                         title =
-                            "Rendered PDF preview",
+                            stringResource(R.string.yfiles_adv_rendered_pdf_preview),
                         subtitle = it,
                     )
                 }
@@ -412,7 +411,7 @@ internal fun LazyListScope.advancedToolsContent(
                 }
                 preview.pageCount?.let {
                     YSuiteListItem(
-                        title = "Pages",
+                        title = stringResource(R.string.yfiles_adv_pages),
                         subtitle =
                             it.toString(),
                     )
@@ -425,20 +424,21 @@ internal fun LazyListScope.advancedToolsContent(
         page ->
         item {
             FileExplorerToolGroup(
-                title = "Hex",
+                title = stringResource(R.string.yfiles_adv_hex),
             ) {
                 YSuiteListItem(
                     title =
-                        "Offset 0x" +
-                            page.offset
-                                .toString(16),
+                        stringResource(
+                            R.string.yfiles_adv_offset_hex,
+                            page.offset.toString(16),
+                        ),
                     subtitle =
                         page.formatted,
                 )
                 advancedState.hexRef
                     ?.let { ref ->
                         FileExplorerToolAction(
-                            text = "Next page",
+                            text = stringResource(R.string.yfiles_adv_next_page),
                             onClick = {
                                 advanced.loadHex(
                                     ref,
@@ -456,7 +456,7 @@ internal fun LazyListScope.advancedToolsContent(
         checksums ->
         item {
             FileExplorerToolGroup(
-                title = "Checksums",
+                title = stringResource(R.string.yfiles_adv_checksums),
             ) {
                 checksums.values
                     .forEach {
@@ -474,7 +474,7 @@ internal fun LazyListScope.advancedToolsContent(
         apk ->
         item {
             FileExplorerToolGroup(
-                title = "APK Analyzer",
+                title = stringResource(R.string.yfiles_adv_apk_analyzer),
             ) {
                 YSuiteListItem(
                     title =
@@ -490,29 +490,22 @@ internal fun LazyListScope.advancedToolsContent(
                         ),
                 )
                 YSuiteListItem(
-                    title = "SDK",
+                    title = stringResource(R.string.yfiles_adv_sdk),
                     subtitle =
-                        "min " +
-                            (
-                                apk.minSdk
-                                    ?.toString()
-                                    ?: "?"
-                                ) +
-                            " • target " +
-                            (
-                                apk.targetSdk
-                                    ?.toString()
-                                    ?: "?"
-                                ),
+                        stringResource(
+                            R.string.yfiles_adv_sdk_summary,
+                            apk.minSdk?.toString() ?: "?",
+                            apk.targetSdk?.toString() ?: "?",
+                        ),
                 )
                 YSuiteListItem(
-                    title = "DEX methods",
+                    title = stringResource(R.string.yfiles_adv_dex_methods),
                     subtitle =
                         apk.dexMethodCount
                             .toString(),
                 )
                 YSuiteListItem(
-                    title = "Permissions",
+                    title = stringResource(R.string.yfiles_adv_permissions),
                     subtitle =
                         apk.permissions
                             .joinToString(
@@ -530,10 +523,10 @@ internal fun LazyListScope.advancedToolsContent(
                         ->
                         YSuiteListItem(
                             title =
-                                "Signer " +
-                                    (
-                                        index + 1
-                                        ),
+                                stringResource(
+                                    R.string.yfiles_adv_signer,
+                                    index + 1,
+                                ),
                             subtitle = value,
                         )
                     }
@@ -547,7 +540,7 @@ internal fun LazyListScope.advancedToolsContent(
     ) {
         item {
             FileExplorerToolGroup(
-                title = "Installed apps",
+                title = stringResource(R.string.yfiles_adv_installed_apps),
             ) {
                 advancedState.installedApps
                     .take(100)
@@ -558,10 +551,11 @@ internal fun LazyListScope.advancedToolsContent(
                             subtitle =
                                 app.packageName +
                                     (
-                                        if (
-                                            app.system
-                                        ) {
-                                            " • system"
+                                        if (app.system) {
+                                            " • " +
+                                                stringResource(
+                                                    R.string.yfiles_adv_system,
+                                                )
                                         } else {
                                             ""
                                         }
@@ -578,7 +572,7 @@ internal fun LazyListScope.advancedToolsContent(
     ) {
         item {
             FileExplorerToolGroup(
-                title = "Encrypted vault",
+                title = stringResource(R.string.yfiles_adv_encrypted_vault),
             ) {
                 advancedState.vaultEntries
                     .forEach {
@@ -594,8 +588,10 @@ internal fun LazyListScope.advancedToolsContent(
                         if (directory != null) {
                             FileExplorerToolAction(
                                 text =
-                                    "Restore " +
+                                    stringResource(
+                                        R.string.yfiles_adv_restore,
                                         entry.originalName,
+                                    ),
                                 onClick = {
                                     advanced.vaultRestore(
                                         entry.id,
@@ -606,7 +602,7 @@ internal fun LazyListScope.advancedToolsContent(
                         }
                         FileExplorerToolAction(
                             text =
-                                "Delete vault item",
+                                stringResource(R.string.yfiles_adv_delete_vault_item),
                             onClick = {
                                 advanced.vaultDelete(
                                     entry.id,
@@ -624,7 +620,7 @@ internal fun LazyListScope.advancedToolsContent(
     ) {
         item {
             FileExplorerToolGroup(
-                title = "Integrity",
+                title = stringResource(R.string.yfiles_adv_integrity),
             ) {
                 advancedState.integrityResults
                     .forEach {
@@ -646,7 +642,7 @@ internal fun LazyListScope.advancedToolsContent(
     ) {
         item {
             FileExplorerToolGroup(
-                title = "Root modules",
+                title = stringResource(R.string.yfiles_adv_root_modules),
             ) {
                 advancedState.rootModules
                     .forEach {
@@ -663,13 +659,13 @@ internal fun LazyListScope.advancedToolsContent(
                         )
                         FileExplorerToolAction(
                             text =
-                                if (
-                                    module.disabled
-                                ) {
-                                    "Enable module"
-                                } else {
-                                    "Disable module"
-                                },
+                                stringResource(
+                                    if (module.disabled) {
+                                        R.string.yfiles_adv_enable_module
+                                    } else {
+                                        R.string.yfiles_adv_disable_module
+                                    },
+                                ),
                             onClick = {
                                 advanced
                                     .setRootModuleEnabled(
@@ -680,14 +676,13 @@ internal fun LazyListScope.advancedToolsContent(
                         )
                         FileExplorerToolAction(
                             text =
-                                if (
-                                    module
-                                        .removeOnReboot
-                                ) {
-                                    "Cancel removal"
-                                } else {
-                                    "Remove on reboot"
-                                },
+                                stringResource(
+                                    if (module.removeOnReboot) {
+                                        R.string.yfiles_adv_cancel_removal
+                                    } else {
+                                        R.string.yfiles_adv_remove_on_reboot
+                                    },
+                                ),
                             onClick = {
                                 advanced
                                     .markRootModuleRemoval(
@@ -708,20 +703,24 @@ internal fun LazyListScope.advancedToolsContent(
             item {
                 FileExplorerToolGroup(
                     title =
-                        "Root security",
+                        stringResource(R.string.yfiles_adv_root_security),
                 ) {
                     YSuiteListItem(
                         title =
-                            "SELinux context",
+                            stringResource(R.string.yfiles_adv_selinux_context),
                         subtitle =
                             info.selinuxContext
-                                ?: "Unavailable",
+                                ?: stringResource(
+                                    R.string.yfiles_adv_unavailable,
+                                ),
                     )
                     YSuiteListItem(
-                        title = "Mount",
+                        title = stringResource(R.string.yfiles_adv_mount),
                         subtitle =
                             info.mountLine
-                                ?: "Unavailable",
+                                ?: stringResource(
+                                    R.string.yfiles_adv_unavailable,
+                                ),
                     )
                 }
             }
@@ -733,22 +732,22 @@ internal fun LazyListScope.advancedToolsContent(
             item {
                 FileExplorerToolGroup(
                     title =
-                        "Encrypted volumes",
+                        stringResource(R.string.yfiles_adv_encrypted_volumes),
                 ) {
                     YSuiteListItem(
-                        title = "gocryptfs",
+                        title = stringResource(R.string.yfiles_adv_gocryptfs),
                         subtitle =
                             support.gocryptfs
                                 .toString(),
                     )
                     YSuiteListItem(
-                        title = "EncFS",
+                        title = stringResource(R.string.yfiles_adv_encfs),
                         subtitle =
                             support.encfs
                                 .toString(),
                     )
                     YSuiteListItem(
-                        title = "fusermount",
+                        title = stringResource(R.string.yfiles_adv_fusermount),
                         subtitle =
                             support.fusermount
                                 .toString(),
@@ -870,12 +869,12 @@ internal fun YFilesAdvancedSettingsContent(
         }
 
     ComposeSettingsGroup(
-        title = "File manager",
+        title = stringResource(R.string.yfiles_adv_file_manager),
     ) {
         ComposeSettingsSwitch(
-            title = "Dual pane",
+            title = stringResource(R.string.yfiles_adv_dual_pane),
             subtitle =
-                "Two independent browser panes",
+                stringResource(R.string.yfiles_adv_dual_pane_subtitle),
             checked =
                 browserState
                     .dualPaneEnabled,
@@ -883,11 +882,12 @@ internal fun YFilesAdvancedSettingsContent(
                 browser::setDualPaneEnabled,
         )
         ComposeSettingsLink(
-            title = "Transfers",
+            title = stringResource(R.string.yfiles_adv_transfers),
             subtitle =
-                state.transfers.size
-                    .toString() +
-                    " task(s)",
+                stringResource(
+                    R.string.yfiles_adv_transfer_count,
+                    state.transfers.size,
+                ),
             onClick = {
                 browser.setTab(
                     YFilesTab.Transfers,
@@ -895,7 +895,7 @@ internal fun YFilesAdvancedSettingsContent(
             },
         )
         ComposeSettingsLink(
-            title = "Shizuku access",
+            title = stringResource(R.string.yfiles_adv_shizuku_access),
             subtitle =
                 browserState
                     .shizukuStatus
@@ -910,7 +910,7 @@ internal fun YFilesAdvancedSettingsContent(
     }
 
     ComposeSettingsGroup(
-        title = "Network connections",
+        title = stringResource(R.string.yfiles_adv_network_connections),
     ) {
         state.networkProfiles
             .forEach {
@@ -932,7 +932,7 @@ internal fun YFilesAdvancedSettingsContent(
                 )
             }
         ComposeSettingsLink(
-            title = "Add SMB / SFTP / FTP / WebDAV",
+            title = stringResource(R.string.yfiles_adv_add_network),
             onClick = {
                 advanced
                     .beginNetworkProfile()
@@ -941,16 +941,16 @@ internal fun YFilesAdvancedSettingsContent(
     }
 
     ComposeSettingsGroup(
-        title = "Cloud accounts",
+        title = stringResource(R.string.yfiles_adv_cloud_accounts),
     ) {
         if (
             state.cloudProfiles.isEmpty()
         ) {
             ComposeSettingsLink(
                 title =
-                    "No cloud accounts configured",
+                    stringResource(R.string.yfiles_adv_no_cloud),
                 subtitle =
-                    "Google Drive, Dropbox and OneDrive require an OAuth access token.",
+                    stringResource(R.string.yfiles_adv_no_cloud_subtitle),
                 enabled = false,
                 onClick = {},
             )
@@ -971,7 +971,7 @@ internal fun YFilesAdvancedSettingsContent(
                 )
             }
         ComposeSettingsLink(
-            title = "Add cloud account",
+            title = stringResource(R.string.yfiles_adv_add_cloud),
             onClick = {
                 advanced
                     .beginCloudProfile()
@@ -980,18 +980,17 @@ internal fun YFilesAdvancedSettingsContent(
     }
 
     ComposeSettingsGroup(
-        title = "LAN sharing",
+        title = stringResource(R.string.yfiles_adv_lan_sharing),
     ) {
         ComposeSettingsLink(
             title =
-                if (
-                    state.shareServerState
-                        .running
-                ) {
-                    "Stop share server"
-                } else {
-                    "Start share server"
-                },
+                stringResource(
+                    if (state.shareServerState.running) {
+                        R.string.yfiles_adv_stop_share
+                    } else {
+                        R.string.yfiles_adv_start_share
+                    },
+                ),
             subtitle =
                 state.shareServerSettings
                     ?.let {
@@ -1044,7 +1043,7 @@ internal fun YFilesAdvancedSettingsContent(
             },
         )
         ComposeSettingsLink(
-            title = "Share server settings",
+            title = stringResource(R.string.yfiles_adv_share_settings),
             onClick = {
                 shareDialog = true
             },
@@ -1052,13 +1051,13 @@ internal fun YFilesAdvancedSettingsContent(
     }
 
     ComposeSettingsGroup(
-        title = "Automation",
+        title = stringResource(R.string.yfiles_adv_automation),
     ) {
         ComposeSettingsSwitch(
             title =
-                "Tasker / Automate broadcast API",
+                stringResource(R.string.yfiles_adv_automation_api),
             subtitle =
-                "Disabled by default. Enable only if you intentionally use external automation.",
+                stringResource(R.string.yfiles_adv_automation_subtitle),
             checked =
                 state.automationEnabled,
             onCheckedChange =
@@ -1067,17 +1066,17 @@ internal fun YFilesAdvancedSettingsContent(
     }
 
     ComposeSettingsGroup(
-        title = "Plugins",
+        title = stringResource(R.string.yfiles_adv_plugins),
     ) {
         ComposeSettingsLink(
-            title = "Refresh plugins",
+            title = stringResource(R.string.yfiles_adv_refresh_plugins),
             onClick =
                 advanced::refreshPlugins,
         )
         if (state.plugins.isEmpty()) {
             ComposeSettingsLink(
                 title =
-                    "No YFiles plugins found",
+                    stringResource(R.string.yfiles_adv_no_plugins),
                 enabled = false,
                 onClick = {},
             )
@@ -1110,52 +1109,52 @@ internal fun YFilesAdvancedSettingsContent(
         draft ->
         YSuiteTextFormDialog(
             title =
-                "Network connection",
+                stringResource(R.string.yfiles_adv_network_connection),
             fields =
                 listOf(
                     YSuiteFormField(
                         "name",
-                        "Name",
+                        stringResource(R.string.yfiles_adv_name),
                         draft.name,
                     ),
                     YSuiteFormField(
                         "host",
-                        "Host",
+                        stringResource(R.string.yfiles_adv_host),
                         draft.host,
                     ),
                     YSuiteFormField(
                         "port",
-                        "Port",
+                        stringResource(R.string.yfiles_adv_port),
                         draft.port,
                     ),
                     YSuiteFormField(
                         "username",
-                        "Username",
+                        stringResource(R.string.yfiles_adv_username),
                         draft.username,
                     ),
                     YSuiteFormField(
                         "password",
-                        "Password",
+                        stringResource(R.string.yfiles_adv_password),
                         draft.password,
                     ),
                     YSuiteFormField(
                         "shareName",
-                        "SMB share",
+                        stringResource(R.string.yfiles_adv_smb_share),
                         draft.shareName,
                     ),
                     YSuiteFormField(
                         "remotePath",
-                        "Remote path",
+                        stringResource(R.string.yfiles_adv_remote_path),
                         draft.remotePath,
                     ),
                     YSuiteFormField(
                         "privateKeyPath",
-                        "SFTP private key path",
+                        stringResource(R.string.yfiles_adv_sftp_key),
                         draft.privateKeyPath,
                     ),
                 ),
-            confirmText = "Save",
-            dismissText = "Cancel",
+            confirmText = stringResource(R.string.yfiles_adv_save),
+            dismissText = stringResource(R.string.yfiles_adv_cancel),
             onValueChange =
                 advanced::updateNetworkDraft,
             onConfirm =
@@ -1163,14 +1162,12 @@ internal fun YFilesAdvancedSettingsContent(
             onDismiss =
                 advanced::cancelNetworkDraft,
             extraContent = {
-                Text(
-                    text =
-                        "Protocol: " +
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.yfiles_adv_protocol,
                             draft.protocol.name,
-                    style =
-                        MaterialTheme
-                            .typography
-                            .bodyMedium,
+                        ),
                 )
                 YFilesNetworkProtocol.entries
                     .forEach {
@@ -1198,7 +1195,7 @@ internal fun YFilesAdvancedSettingsContent(
                         )
                     }
                 YSuiteSwitchItem(
-                    title = "TLS",
+                    title = stringResource(R.string.yfiles_adv_tls),
                     checked = draft.useTls,
                     onCheckedChange = {
                         advanced
@@ -1209,14 +1206,14 @@ internal fun YFilesAdvancedSettingsContent(
                     },
                 )
                 FileExplorerToolAction(
-                    text = "Test connection",
+                    text = stringResource(R.string.yfiles_adv_test_connection),
                     onClick =
                         advanced::testNetworkProfile,
                 )
                 draft.id?.let {
                     FileExplorerToolAction(
                         text =
-                            "Delete connection",
+                            stringResource(R.string.yfiles_adv_delete_connection),
                         onClick = {
                             advanced
                                 .deleteNetworkProfile(
@@ -1234,22 +1231,22 @@ internal fun YFilesAdvancedSettingsContent(
     state.cloudDraft?.let {
         draft ->
         YSuiteTextFormDialog(
-            title = "Cloud account",
+            title = stringResource(R.string.yfiles_adv_cloud_account),
             fields =
                 listOf(
                     YSuiteFormField(
                         "name",
-                        "Name",
+                        stringResource(R.string.yfiles_adv_name),
                         draft.name,
                     ),
                     YSuiteFormField(
                         "token",
-                        "OAuth access token",
+                        stringResource(R.string.yfiles_adv_oauth_token),
                         draft.accessToken,
                     ),
                 ),
-            confirmText = "Save",
-            dismissText = "Cancel",
+            confirmText = stringResource(R.string.yfiles_adv_save),
+            dismissText = stringResource(R.string.yfiles_adv_cancel),
             onValueChange =
                 advanced::updateCloudDraft,
             onConfirm =
@@ -1257,14 +1254,12 @@ internal fun YFilesAdvancedSettingsContent(
             onDismiss =
                 advanced::cancelCloudDraft,
             extraContent = {
-                Text(
-                    text =
-                        "Provider: " +
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.yfiles_adv_provider,
                             draft.kind.name,
-                    style =
-                        MaterialTheme
-                            .typography
-                            .bodyMedium,
+                        ),
                 )
                 YFilesCloudKind.entries
                     .forEach {
@@ -1292,14 +1287,14 @@ internal fun YFilesAdvancedSettingsContent(
                         )
                     }
                 FileExplorerToolAction(
-                    text = "Test account",
+                    text = stringResource(R.string.yfiles_adv_test_account),
                     onClick =
                         advanced::testCloudProfile,
                 )
                 draft.id?.let {
                     FileExplorerToolAction(
                         text =
-                            "Delete account",
+                            stringResource(R.string.yfiles_adv_delete_account),
                         onClick = {
                             advanced
                                 .deleteCloudProfile(
@@ -1317,37 +1312,37 @@ internal fun YFilesAdvancedSettingsContent(
     if (shareDialog) {
         YSuiteTextFormDialog(
             title =
-                "Share server settings",
+                stringResource(R.string.yfiles_adv_share_settings),
             fields =
                 listOf(
                     YSuiteFormField(
                         "root",
-                        "Shared root",
+                        stringResource(R.string.yfiles_adv_shared_root),
                         shareRoot,
                     ),
                     YSuiteFormField(
                         "username",
-                        "Username",
+                        stringResource(R.string.yfiles_adv_username),
                         shareUser,
                     ),
                     YSuiteFormField(
                         "password",
-                        "Password",
+                        stringResource(R.string.yfiles_adv_password),
                         sharePassword,
                     ),
                     YSuiteFormField(
                         "httpPort",
-                        "HTTP port",
+                        stringResource(R.string.yfiles_adv_http_port),
                         shareHttpPort,
                     ),
                     YSuiteFormField(
                         "ftpPort",
-                        "FTP port",
+                        stringResource(R.string.yfiles_adv_ftp_port),
                         shareFtpPort,
                     ),
                 ),
-            confirmText = "Save",
-            dismissText = "Cancel",
+            confirmText = stringResource(R.string.yfiles_adv_save),
+            dismissText = stringResource(R.string.yfiles_adv_cancel),
             onValueChange = {
                 field,
                 value,
@@ -1400,23 +1395,23 @@ internal fun YFilesAdvancedSettingsContent(
             },
             extraContent = {
                 YSuiteSwitchItem(
-                    title = "Allow LAN access",
+                    title = stringResource(R.string.yfiles_adv_allow_lan),
                     subtitle =
-                        "Off keeps the server on localhost only.",
+                        stringResource(R.string.yfiles_adv_allow_lan_subtitle),
                     checked = shareLan,
                     onCheckedChange = {
                         shareLan = it
                     },
                 )
                 YSuiteSwitchItem(
-                    title = "HTTP server",
+                    title = stringResource(R.string.yfiles_adv_http_server),
                     checked = shareHttp,
                     onCheckedChange = {
                         shareHttp = it
                     },
                 )
                 YSuiteSwitchItem(
-                    title = "FTP server",
+                    title = stringResource(R.string.yfiles_adv_ftp_server),
                     checked = shareFtp,
                     onCheckedChange = {
                         shareFtp = it
@@ -1448,7 +1443,7 @@ SHA-256 " +
         },
     )
     ComposeSettingsLink(
-        title = "Inspect plugin",
+        title = stringResource(R.string.yfiles_adv_inspect_plugin),
         subtitle =
             plugin.protocolVersion
                 ?.let {
