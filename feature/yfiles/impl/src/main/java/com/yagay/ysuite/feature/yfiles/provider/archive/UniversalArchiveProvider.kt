@@ -1,6 +1,5 @@
 package com.yagay.ysuite.feature.yfiles.provider.archive
 
-import android.content.Context
 import android.webkit.MimeTypeMap
 import com.github.junrar.Archive
 import com.yagay.ysuite.common.Outcome
@@ -27,11 +26,10 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.CompressorStreamFactory
 
 class UniversalArchiveProvider(
-    context: Context,
     private val cacheDirectory: File,
+    private val readOnlyMessage: String =
+        DEFAULT_READ_ONLY_MESSAGE,
 ) : YFileProvider {
-    private val appContext =
-        context.applicationContext
     private data class Mount(
         val id: String,
         val source: File,
@@ -933,13 +931,12 @@ class UniversalArchiveProvider(
     private fun <T> readOnly(): Outcome<T> =
         Outcome.Failure(
             code = "archive_read_only",
-            message =
-                appContext.getString(
-                    com.yagay.ysuite.feature.yfiles.R.string.yfiles_msg_archive_read_only,
-                ),
+            message = readOnlyMessage,
         )
 
     companion object {
+        private const val DEFAULT_READ_ONLY_MESSAGE =
+            "Archive is read-only"
         const val PROVIDER_ID = "archive"
         private const val VIRTUAL_ROOT =
             "archive://virtual-root"

@@ -58,11 +58,15 @@ object YFilesEnvironmentFactory {
             DocumentTreeStore(appContext)
         val archiveProvider =
             UniversalArchiveProvider(
-                appContext,
-                java.io.File(
-                    appContext.cacheDir,
-                    "yfiles-archive-mounts",
-                ),
+                cacheDirectory =
+                    java.io.File(
+                        appContext.cacheDir,
+                        "yfiles-archive-mounts",
+                    ),
+                readOnlyMessage =
+                    appContext.getString(
+                        R.string.yfiles_msg_archive_read_only,
+                    ),
             )
         val networkStore =
             YFilesNetworkStore(appContext)

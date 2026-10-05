@@ -4,7 +4,7 @@ import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.feature.yfiles.engine.DefaultYFilesEngine
 import com.yagay.ysuite.feature.yfiles.engine.YFileProviderRegistry
 import com.yagay.ysuite.feature.yfiles.provider.archive.YFilesArchiveController
-import com.yagay.ysuite.feature.yfiles.provider.archive.ZipArchiveProvider
+import com.yagay.ysuite.feature.yfiles.provider.archive.UniversalArchiveProvider
 import com.yagay.ysuite.feature.yfiles.provider.local.LocalFileProvider
 import java.nio.file.Files
 import kotlinx.coroutines.runBlocking
@@ -28,7 +28,10 @@ class YFilesToolsServiceTest {
             val local = LocalFileProvider(
                 root.absolutePath,
             )
-            val archive = ZipArchiveProvider()
+            val archive =
+                UniversalArchiveProvider(
+                    cache.resolve("archive-mounts"),
+                )
             val engine = DefaultYFilesEngine(
                 YFileProviderRegistry(
                     listOf(local, archive),
