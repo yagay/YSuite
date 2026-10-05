@@ -1,6 +1,7 @@
 package com.yagay.ysuite.productui.settings
 
 import com.yagay.ysuite.productui.ProductLayoutTokens
+import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
 
 /*
  * Interaction structure adapted from alorma/Compose-Settings (MIT).
@@ -69,34 +70,42 @@ fun ComposeSettingsSurface(
                     categoryPane(adaptive)
                 }
             }
-            Box(
+            ProductPaneAdaptiveBox(
                 modifier =
                     Modifier
                         .weight(1f)
                         .fillMaxHeight(),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxHeight()
-                            .widthIn(max = ProductLayoutTokens.SettingsContentMaxWidth)
-                            .fillMaxWidth()
-                            .verticalScroll(
-                                rememberScrollState(),
-                            )
-                            .padding(
-                                horizontal =
-                                    YSuiteSpacing.Medium,
-                                vertical =
-                                    YSuiteSpacing.Large,
-                            ),
-                    verticalArrangement =
-                        Arrangement.spacedBy(
-                            YSuiteSpacing.Large,
-                        ),
+            ) { paneAdaptive ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter,
                 ) {
-                    content(adaptive)
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxHeight()
+                                .widthIn(
+                                    max =
+                                        ProductLayoutTokens
+                                            .SettingsContentMaxWidth,
+                                )
+                                .fillMaxWidth()
+                                .verticalScroll(
+                                    rememberScrollState(),
+                                )
+                                .padding(
+                                    horizontal =
+                                        YSuiteSpacing.Medium,
+                                    vertical =
+                                        YSuiteSpacing.Large,
+                                ),
+                        verticalArrangement =
+                            Arrangement.spacedBy(
+                                YSuiteSpacing.Large,
+                            ),
+                    ) {
+                        content(paneAdaptive)
+                    }
                 }
             }
         }
