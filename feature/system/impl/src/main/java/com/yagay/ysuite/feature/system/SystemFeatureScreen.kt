@@ -1,5 +1,6 @@
 package com.yagay.ysuite.feature.system
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -88,6 +89,12 @@ fun SystemFeatureScreen(
             onResult =
                 model::applyPermissionResult,
         )
+
+    BackHandler(
+        enabled = state.page == SystemPage.Logs,
+    ) {
+        model.backToOverview()
+    }
 
     when (state.page) {
         SystemPage.Overview ->
