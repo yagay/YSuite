@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -255,24 +256,52 @@ private fun PermanentNavigationPane(
     selectedId: String,
     onSelect: (String) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .width(YSuiteLayoutTokens.NavigationPaneWidth)
-            .fillMaxHeight()
-            .verticalScroll(rememberScrollState())
-            .padding(YSuiteSpacing.Medium),
-        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+    Surface(
+        modifier =
+            Modifier
+                .width(
+                    YSuiteLayoutTokens
+                        .NavigationPaneWidth,
+                )
+                .fillMaxHeight(),
+        color =
+            MaterialTheme.colorScheme
+                .surfaceContainerLow,
     ) {
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(YSuiteSpacing.Small),
-        )
-        NavigationItems(
-            features = features,
-            selectedId = selectedId,
-            onSelect = onSelect,
-        )
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .verticalScroll(
+                        rememberScrollState(),
+                    )
+                    .padding(
+                        YSuiteSpacing.Medium,
+                    ),
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    YSuiteSpacing.Small,
+                ),
+        ) {
+            Text(
+                text =
+                    stringResource(
+                        R.string.app_name,
+                    ),
+                style =
+                    MaterialTheme.typography
+                        .headlineSmall,
+                modifier =
+                    Modifier.padding(
+                        YSuiteSpacing.Small,
+                    ),
+            )
+            NavigationItems(
+                features = features,
+                selectedId = selectedId,
+                onSelect = onSelect,
+            )
+        }
     }
 }
 
