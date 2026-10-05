@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.task
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import com.yagay.ysuite.productui.ProductLayoutTokens
 
 import androidx.compose.foundation.layout.Box
@@ -31,6 +33,7 @@ fun ComposeTodoTaskWorkspace(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     YSuiteProductPage(
+        surfaceKind = ProductSurfaceKind.TaskManager,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
