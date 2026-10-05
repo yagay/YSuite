@@ -370,6 +370,8 @@ private fun YFilesBrowserSurface(
                     browser::toggleDualPane,
             )
         },
+        drawerContentDescription =
+            stringResource(R.string.yfiles_sources),
         drawerContent = { _, closeDrawer ->
             YFilesSourcePane(
                 state = state,
