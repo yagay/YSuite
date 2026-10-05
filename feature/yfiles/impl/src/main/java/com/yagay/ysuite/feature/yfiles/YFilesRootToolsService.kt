@@ -45,14 +45,16 @@ class YFilesRootToolsService(
         context.applicationContext
     suspend fun securityInfo(
         path: String,
-    ): Outcome<YRootFileSecurityInfo> =
-        rootText(
-            """
-            p=${quote(path)}
-            ctx=$(ls -Zd -- "$p" 2>/dev/null | awk '{print $1}')
-            mnt=$(mount 2>/dev/null | awk -v p="$p" 'index(p,$3)==1 { if(length($3)>best){best=length($3); line=$0} } END{print line}')
-            printf '%s\n%s\n' "$ctx" "$mnt"
-            """.trimIndent(),
+    ): Outcome<YRootFileSecurityInfo> {
+        val command =
+            "ls -Zd -- " +
+                quote(path) +
+                " 2>/dev/null | awk '{print \$1}'; " +
+                "mount 2>/dev/null | awk -v p=" +
+                quote(path) +
+                " 'index(p,\$3)==1 { if(length(\$3)>best){best=length(\$3); line=\$0} } END{print line}'"
+        return rootText(
+            command,
             "root_security_info_failed",
         ) { stdout ->
             val lines = stdout.lines()
@@ -61,18 +63,14 @@ class YFilesRootToolsService(
                 selinuxContext =
                     lines.getOrNull(0)
                         ?.trim()
-                        ?.takeIf {
-                            it.isNotBlank()
-                        },
+                        ?.takeIf { it.isNotBlank() },
                 mountLine =
                     lines.getOrNull(1)
                         ?.trim()
-                        ?.takeIf {
-                            it.isNotBlank()
-                        },
+                        ?.takeIf { it.isNotBlank() },
             )
         }
-
+    }
     suspend fun remount(
         mountPoint: String,
         writable: Boolean,
@@ -92,92 +90,59 @@ class YFilesRootToolsService(
         )
 
     suspend fun modules():
-        Outcome<List<YRootModule>> =
-        rootText(
-            """
-            manager=unknown
-            command -v magisk >/dev/null 2>&1 && manager=magisk
-            command -v ksud >/dev/null 2>&1 && manager=kernelsu
-            command -v apd >/dev/null 2>&1 && manager=apatch
-            base=/data/adb/modules
-            [ -d "$base" ] || exit 0
-            for d in "$base"/*; do
-              [ -d "$d" ] || continue
-              id=$(basename "$d")
-              name=$(sed -n 's/^name=//p' "$d/module.prop" 2>/dev/null | head -n1)
-              version=$(sed -n 's/^version=//p' "$d/module.prop" 2>/dev/null | head -n1)
-              author=$(sed -n 's/^author=//p' "$d/module.prop" 2>/dev/null | head -n1)
-              description=$(sed -n 's/^description=//p' "$d/module.prop" 2>/dev/null | head -n1)
-              [ -e "$d/disable" ] && disabled=1 || disabled=0
-              [ -e "$d/remove" ] && remove=1 || remove=0
-              printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$manager" "$id" "$name" "$version" "$author" "$description" "$disabled" "$remove"
-            done
-            """.trimIndent(),
+        Outcome<List<YRootModule>> {
+        val command =
+            listOf(
+                "manager=unknown",
+                "command -v magisk >/dev/null 2>&1 && manager=magisk",
+                "command -v ksud >/dev/null 2>&1 && manager=kernelsu",
+                "command -v apd >/dev/null 2>&1 && manager=apatch",
+                "base=/data/adb/modules",
+                "[ -d \"\$base\" ] || exit 0",
+                "for d in \"\$base\"/*; do",
+                "  [ -d \"\$d\" ] || continue",
+                "  id=\$(basename \"\$d\")",
+                "  name=\$(sed -n 's/^name=//p' \"\$d/module.prop\" 2>/dev/null | head -n1)",
+                "  version=\$(sed -n 's/^version=//p' \"\$d/module.prop\" 2>/dev/null | head -n1)",
+                "  author=\$(sed -n 's/^author=//p' \"\$d/module.prop\" 2>/dev/null | head -n1)",
+                "  description=\$(sed -n 's/^description=//p' \"\$d/module.prop\" 2>/dev/null | head -n1)",
+                "  [ -e \"\$d/disable\" ] && disabled=1 || disabled=0",
+                "  [ -e \"\$d/remove\" ] && remove=1 || remove=0",
+                "  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \"\$manager\" \"\$id\" \"\$name\" \"\$version\" \"\$author\" \"\$description\" \"\$disabled\" \"\$remove\"",
+                "done",
+            ).joinToString("\n")
+        return rootText(
+            command,
             "root_modules_failed",
         ) { stdout ->
             stdout.lineSequence()
-                .filter {
-                    it.isNotBlank()
-                }
+                .filter { it.isNotBlank() }
                 .mapNotNull { line ->
-                    val parts =
-                        line.split(
-                            '\t',
-                            limit = 8,
-                        )
+                    val parts = line.split('\t', limit = 8)
                     if (parts.size < 8) {
                         return@mapNotNull null
                     }
                     YRootModule(
                         id = parts[1],
-                        name =
-                            parts[2]
-                                .ifBlank {
-                                    parts[1]
-                                },
-                        version =
-                            parts[3]
-                                .takeIf {
-                                    it.isNotBlank()
-                                },
-                        author =
-                            parts[4]
-                                .takeIf {
-                                    it.isNotBlank()
-                                },
-                        description =
-                            parts[5]
-                                .takeIf {
-                                    it.isNotBlank()
-                                },
-                        disabled =
-                            parts[6] == "1",
-                        removeOnReboot =
-                            parts[7] == "1",
+                        name = parts[2].ifBlank { parts[1] },
+                        version = parts[3].takeIf { it.isNotBlank() },
+                        author = parts[4].takeIf { it.isNotBlank() },
+                        description = parts[5].takeIf { it.isNotBlank() },
+                        disabled = parts[6] == "1",
+                        removeOnReboot = parts[7] == "1",
                         manager =
-                            when (
-                                parts[0]
-                                    .lowercase()
-                            ) {
-                                "magisk" ->
-                                    YRootModuleManager
-                                        .Magisk
-                                "kernelsu" ->
-                                    YRootModuleManager
-                                        .KernelSU
-                                "apatch" ->
-                                    YRootModuleManager
-                                        .APatch
-                                else ->
-                                    YRootModuleManager
-                                        .Unknown
+                            when (parts[0].lowercase()) {
+                                "magisk" -> YRootModuleManager.Magisk
+                                "kernelsu" -> YRootModuleManager.KernelSU
+                                "apatch" -> YRootModuleManager.APatch
+                                else -> YRootModuleManager.Unknown
                             },
                     )
-                }.sortedBy {
-                    it.name.lowercase()
-                }.toList()
+                }
+                .sortedBy { it.name.lowercase() }
+                .toList()
         }
-
+    }
     suspend fun setModuleEnabled(
         id: String,
         enabled: Boolean,
@@ -229,7 +194,9 @@ class YFilesRootToolsService(
     suspend fun installModule(
         zipPath: String,
     ): Outcome<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext<Outcome<Unit>>(
+            Dispatchers.IO,
+        ) {
             val manager =
                 when (
                     val probe =

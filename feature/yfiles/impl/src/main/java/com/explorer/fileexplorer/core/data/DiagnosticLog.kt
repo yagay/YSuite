@@ -1,6 +1,8 @@
 package com.explorer.fileexplorer.core.data
 
 import com.explorer.fileexplorer.core.model.RepositoryError
+import com.explorer.fileexplorer.core.model.RepositoryErrorKind
+import com.explorer.fileexplorer.core.model.RepositoryOperation
 import java.util.ArrayDeque
 
 data class DiagnosticEntry(
@@ -28,6 +30,32 @@ class DiagnosticLog {
                 timestampMillis =
                     System.currentTimeMillis(),
             ),
+        )
+    }
+
+    @Synchronized
+    fun log(
+        provider: String,
+        operation: String,
+        error: Throwable,
+        context: String? = null,
+    ) {
+        log(
+            error =
+                RepositoryError(
+                    provider = provider,
+                    operation =
+                        RepositoryOperation.DELETE,
+                    kind =
+                        RepositoryErrorKind.UNKNOWN,
+                    message =
+                        operation +
+                            ": " +
+                            (error.message
+                                ?: error.javaClass.simpleName),
+                    retryable = true,
+                ),
+            context = context,
         )
     }
 

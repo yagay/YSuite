@@ -508,12 +508,11 @@ internal fun LazyListScope.advancedToolsContent(
                     title = stringResource(R.string.yfiles_adv_permissions),
                     subtitle =
                         apk.permissions
-                            .joinToString(
-                                "
-",
-                            )
+                            .joinToString("\n")
                             .ifBlank {
-                                "None declared"
+                                stringResource(
+                                    R.string.yfiles_adv_none_declared,
+                                )
                             },
                 )
                 apk.signingSha256
@@ -1431,8 +1430,7 @@ private fun PluginSetting(
         title = plugin.label,
         subtitle =
             plugin.packageName +
-                "
-SHA-256 " +
+                "\nSHA-256 " +
                 plugin.certificateSha256,
         checked = plugin.approved,
         onCheckedChange = {
@@ -1447,9 +1445,11 @@ SHA-256 " +
         subtitle =
             plugin.protocolVersion
                 ?.let {
-                    "Protocol $it • " +
-                        plugin.capabilities
-                            .joinToString()
+                    stringResource(
+                        R.string.yfiles_adv_plugin_protocol,
+                        it,
+                        plugin.capabilities.joinToString(),
+                    )
                 },
         onClick = {
             advanced.inspectPlugin(

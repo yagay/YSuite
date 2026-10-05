@@ -116,7 +116,9 @@ class YFilesSecurityService(
         ref: YFileRef,
         passes: Int = 1,
     ): Outcome<Unit> =
-        withContext(Dispatchers.IO) {
+        withContext<Outcome<Unit>>(
+            Dispatchers.IO,
+        ) {
             if (ref.providerId != "local") {
                 return@withContext
                     Outcome.Failure(
@@ -676,7 +678,9 @@ class YFilesSecurityService(
     private suspend fun sha256(
         ref: YFileRef,
     ): Outcome<String> =
-        withContext(Dispatchers.IO) {
+        withContext<Outcome<String>>(
+            Dispatchers.IO,
+        ) {
             try {
                 val digest =
                     MessageDigest.getInstance(

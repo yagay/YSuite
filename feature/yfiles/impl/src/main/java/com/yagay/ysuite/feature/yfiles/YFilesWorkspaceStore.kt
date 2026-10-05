@@ -152,43 +152,45 @@ class YFilesWorkspaceStore(
                 all.optJSONObject(
                     refKey(ref),
                 )
-                    ?: return@runCatching
-                    YFilesDirectoryPreference()
-            YFilesDirectoryPreference(
-                viewMode =
-                    runCatching {
-                        YFilesViewMode.valueOf(
-                            item.optString(
-                                "viewMode",
-                                YFilesViewMode
-                                    .List.name,
-                            ),
-                        )
-                    }.getOrDefault(
-                        YFilesViewMode.List,
-                    ),
-                sort =
-                    runCatching {
-                        YFileSort.valueOf(
-                            item.optString(
-                                "sort",
-                                YFileSort.Name.name,
-                            ),
-                        )
-                    }.getOrDefault(
-                        YFileSort.Name,
-                    ),
-                descending =
-                    item.optBoolean(
-                        "descending",
-                        false,
-                    ),
-                showHidden =
-                    item.optBoolean(
-                        "showHidden",
-                        false,
-                    ),
-            )
+            if (item == null) {
+                YFilesDirectoryPreference()
+            } else {
+                YFilesDirectoryPreference(
+                    viewMode =
+                        runCatching {
+                            YFilesViewMode.valueOf(
+                                item.optString(
+                                    "viewMode",
+                                    YFilesViewMode
+                                        .List.name,
+                                ),
+                            )
+                        }.getOrDefault(
+                            YFilesViewMode.List,
+                        ),
+                    sort =
+                        runCatching {
+                            YFileSort.valueOf(
+                                item.optString(
+                                    "sort",
+                                    YFileSort.Name.name,
+                                ),
+                            )
+                        }.getOrDefault(
+                            YFileSort.Name,
+                        ),
+                    descending =
+                        item.optBoolean(
+                            "descending",
+                            false,
+                        ),
+                    showHidden =
+                        item.optBoolean(
+                            "showHidden",
+                            false,
+                        ),
+                )
+            }
         }.getOrDefault(
             YFilesDirectoryPreference(),
         )

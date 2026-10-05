@@ -149,7 +149,7 @@ class YFilesAutomationReceiver :
                         val result =
                             environment.tools
                                 .createZip(
-                                    sources =
+                                    refs =
                                         sources,
                                     destination =
                                         destination,

@@ -293,7 +293,9 @@ class YFilesPreviewService(
                                 .getInstance("SHA-512"),
                     )
                 var offset = 0L
-                while (true) {
+                var failure: Outcome.Failure? = null
+                var done = false
+                while (!done && failure == null) {
                     when (
                         val chunk =
                             engine.read(
@@ -303,45 +305,35 @@ class YFilesPreviewService(
                             )
                     ) {
                         is Outcome.Failure ->
-                            return@withContext
-                                chunk
+                            failure = chunk
                         is Outcome.Success -> {
                             digests.values
                                 .forEach {
                                     it.update(
-                                        chunk.value
-                                            .data,
+                                        chunk.value.data,
                                     )
                                 }
                             offset +=
-                                chunk.value
-                                    .data.size
-                            if (
-                                chunk.value.eof
-                            ) {
-                                break
-                            }
+                                chunk.value.data.size
+                            done = chunk.value.eof
                         }
                     }
                 }
-                Outcome.Success(
-                    YChecksumSet(
-                        digests.mapValues {
-                            (_, digest) ->
-                            digest.digest()
-                                .joinToString(
-                                    "",
-                                ) {
-                                    "%02x"
-                                        .format(it)
-                                }
-                        },
-                    ),
-                )
+                failure
+                    ?: Outcome.Success(
+                        YChecksumSet(
+                            digests.mapValues {
+                                (_, digest) ->
+                                digest.digest()
+                                    .joinToString("") {
+                                        "%02x".format(it)
+                                    }
+                            },
+                        ),
+                    )
             } catch (error: Throwable) {
                 Outcome.Failure(
-                    code =
-                        "checksum_failed",
+                    code = "checksum_failed",
                     message =
                         error.message
                             ?: "Unable to calculate checksums",

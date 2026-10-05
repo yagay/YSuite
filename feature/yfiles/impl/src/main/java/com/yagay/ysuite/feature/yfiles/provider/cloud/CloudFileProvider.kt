@@ -142,8 +142,7 @@ class CloudFileProvider(
         withContext(Dispatchers.IO) {
             try {
                 if (ref.path == VIRTUAL_ROOT) {
-                    return@withContext
-                        Outcome.Success(
+                    Outcome.Success(
                             YFileNode(
                                 ref = root(),
                                 name = "Cloud",
@@ -152,7 +151,7 @@ class CloudFileProvider(
                                         .Directory,
                             ),
                         )
-                }
+                } else {
                 val parsed = parse(ref)
                 val profile =
                     store.profile(
@@ -164,17 +163,18 @@ class CloudFileProvider(
                     parsed.remoteId ==
                     profileRoot(profile)
                 ) {
-                    return@withContext
-                        Outcome.Success(
-                            profileNode(profile),
-                        )
+                    Outcome.Success(
+                        profileNode(profile),
+                    )
+                } else {
+                    Outcome.Success(
+                        metadata(
+                            profile,
+                            parsed.remoteId,
+                        ),
+                    )
                 }
-                Outcome.Success(
-                    metadata(
-                        profile,
-                        parsed.remoteId,
-                    ),
-                )
+                }
             } catch (error: Throwable) {
                 failure(
                     "cloud_stat_failed",
@@ -626,39 +626,39 @@ class CloudFileProvider(
                         ),
                     )
                 }
-                RandomAccessFile(
-                    cache,
-                    "r",
-                ).use { file ->
-                    if (
-                        offset >= file.length()
-                    ) {
-                        return@use
+                val chunk =
+                    RandomAccessFile(
+                        cache,
+                        "r",
+                    ).use { file ->
+                        if (
+                            offset >= file.length()
+                        ) {
                             YFileChunk(
                                 ByteArray(0),
                                 true,
                             )
+                        } else {
+                            file.seek(offset)
+                            val buffer =
+                                ByteArray(maxBytes)
+                            val count =
+                                file.read(buffer)
+                            if (count <= 0) {
+                                YFileChunk(
+                                    ByteArray(0),
+                                    true,
+                                )
+                            } else {
+                                YFileChunk(
+                                    buffer.copyOf(count),
+                                    offset + count >=
+                                        file.length(),
+                                )
+                            }
+                        }
                     }
-                    file.seek(offset)
-                    val buffer =
-                        ByteArray(maxBytes)
-                    val count =
-                        file.read(buffer)
-                    if (count <= 0) {
-                        YFileChunk(
-                            ByteArray(0),
-                            true,
-                        )
-                    } else {
-                        YFileChunk(
-                            buffer.copyOf(count),
-                            offset + count >=
-                                file.length(),
-                        )
-                    }
-                }.let {
-                    Outcome.Success(it)
-                }
+                Outcome.Success(chunk)
             } catch (error: Throwable) {
                 failure(
                     "cloud_read_failed",

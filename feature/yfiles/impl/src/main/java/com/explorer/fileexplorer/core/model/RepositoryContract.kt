@@ -75,6 +75,15 @@ enum class RepositoryOperationCost {
     HIGH,
 }
 
+enum class RepositoryProviderKind {
+    LOCAL,
+    SAF,
+    NETWORK,
+    CLOUD,
+    PLUGIN,
+    UNKNOWN,
+}
+
 data class RepositoryOperationSemantics(
     val consistency: RepositoryConsistency,
     val cost: RepositoryOperationCost,

@@ -3,6 +3,7 @@ package com.yagay.ysuite.feature.yfiles.provider.shizuku
 import android.content.Context
 import android.content.pm.PackageManager
 import com.yagay.ysuite.common.Outcome
+import com.yagay.ysuite.feature.yfiles.R
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
@@ -67,7 +68,9 @@ class ShizukuShellGateway(
     override suspend fun execute(
         request: RootRequest,
     ): Outcome<RootResult> =
-        withContext(Dispatchers.IO) {
+        withContext<Outcome<RootResult>>(
+            Dispatchers.IO,
+        ) {
             try {
                 if (
                     status() !=
