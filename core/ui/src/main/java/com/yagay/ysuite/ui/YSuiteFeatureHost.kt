@@ -36,7 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
-import com.yagay.ysuite.productui.ProductAdaptiveBox
+import com.yagay.ysuite.productui.ProductAdaptiveRoot
 import com.yagay.ysuite.productui.dashboard.NiaDashboardSurface
 import com.yagay.ysuite.resources.R
 import com.yagay.ysuite.runtime.FeatureLifecycleEvent
@@ -103,7 +103,7 @@ fun YSuiteFeatureHost(
         navigateBack()
     }
 
-    ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
+    ProductAdaptiveRoot(modifier = modifier.fillMaxSize()) { adaptive ->
         if (adaptive.isExpanded) {
             Row(modifier = Modifier.fillMaxSize()) {
                 PermanentNavigationPane(
