@@ -278,4 +278,17 @@
     <string name="yfiles_msg_shizuku_permission_required">Shizuku permission is required</string>
     <string name="yfiles_msg_shizuku_timeout">Shizuku command timed out</string>
     <string name="yfiles_msg_shizuku_unavailable_host">Shizuku is unavailable in this host</string>
+    <string name="yfiles_view_grid">Grid view</string>
+    <string name="yfiles_view_list">List view</string>
+    <string name="yfiles_dual_pane">Dual pane</string>
+    <string name="yfiles_new_tab">New tab</string>
+    <string name="yfiles_close_tab">Close tab</string>
+    <string name="yfiles_adv_transfer">Transfer</string>
+    <string name="yfiles_adv_speed_limit">limit</string>
+    <string name="yfiles_adv_state_pending">Pending</string>
+    <string name="yfiles_adv_state_running">Running</string>
+    <string name="yfiles_adv_state_paused">Paused</string>
+    <string name="yfiles_adv_state_completed">Completed</string>
+    <string name="yfiles_adv_state_failed">Failed</string>
+    <string name="yfiles_adv_state_cancelled">Cancelled</string>
 </resources>
