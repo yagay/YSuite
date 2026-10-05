@@ -40,4 +40,12 @@
     <string name="system_status_warning">Warning</string>
     <string name="system_status_unknown">Unknown</string>
     <string name="system_refreshing">Refreshing…</string>
+    <string name="system_diagnostic_permissions_summary">%1$d declared · %2$d denied</string>
+    <string name="system_diagnostic_provider_title">%1$s provider</string>
+    <string name="system_diagnostic_provider_summary">%1$d capabilities</string>
+    <string name="system_diagnostic_recommend_review_permissions">Review denied permissions.</string>
+    <string name="system_diagnostic_recommend_grant_shizuku">Grant Shizuku permission.</string>
+    <string name="system_diagnostic_recommend_start_shizuku">Start Shizuku for privileged non-root access.</string>
+    <string name="system_diagnostic_recommend_grant_root">Grant root only when protected system access is required.</string>
+    <string name="system_diagnostic_recommend_enable_hooks">Enable the YSuite module in LSPosed when hook features are used.</string>
 </resources>
