@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.entity
 
+import com.yagay.ysuite.productui.ProductLayoutTokens
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -10,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.YSuiteProductPage
 
@@ -43,7 +44,7 @@ fun LibCheckerWorkspace(
                 Surface(
                     modifier =
                         Modifier
-                            .width(248.dp)
+                            .width(ProductLayoutTokens.EntityNavigationPaneWidth)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme
@@ -59,7 +60,7 @@ fun LibCheckerWorkspace(
                 Surface(
                     modifier =
                         Modifier
-                            .width(380.dp)
+                            .width(ProductLayoutTokens.EntityDetailPaneWidth)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme
