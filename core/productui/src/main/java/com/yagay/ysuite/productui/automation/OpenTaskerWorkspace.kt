@@ -1,28 +1,22 @@
 package com.yagay.ysuite.productui.automation
 
-import com.yagay.ysuite.productui.YSuiteProductTopBar
-
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.yagay.ysuite.productui.ProductAdaptiveBox
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
+import com.yagay.ysuite.productui.YSuiteProductPage
 
 /**
  * Profiles/tasks/editor split aligned with SysAdminDoc/OpenTasker (MIT).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OpenTaskerWorkspace(
     title: String,
@@ -33,44 +27,44 @@ fun OpenTaskerWorkspace(
     editor: @Composable (ProductAdaptiveInfo) -> Unit,
     inspector: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        YSuiteProductTopBar(
-            title = { Text(title) },
-            navigationIcon = navigationIcon,
-            actions = actions,
-        )
-        ProductAdaptiveBox(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxSize(),
-        ) { adaptive ->
-            if (adaptive.isExpanded) {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    Surface(
-                        modifier = Modifier
+    YSuiteProductPage(
+        title = title,
+        modifier = modifier,
+        navigationIcon = navigationIcon,
+        actions = actions,
+    ) { adaptive ->
+        if (adaptive.isExpanded) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                Surface(
+                    modifier =
+                        Modifier
                             .width(300.dp)
                             .fillMaxHeight(),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    ) {
-                        library(adaptive)
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        editor(adaptive)
-                    }
-                    if (inspector != null) {
-                        Surface(
-                            modifier = Modifier
+                    color =
+                        MaterialTheme.colorScheme
+                            .surfaceContainerLow,
+                ) {
+                    library(adaptive)
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    editor(adaptive)
+                }
+                if (inspector != null) {
+                    Surface(
+                        modifier =
+                            Modifier
                                 .width(360.dp)
                                 .fillMaxHeight(),
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        ) {
-                            inspector(adaptive)
-                        }
+                        color =
+                            MaterialTheme.colorScheme
+                                .surfaceContainerLow,
+                    ) {
+                        inspector(adaptive)
                     }
                 }
-            } else {
-                editor(adaptive)
             }
+        } else {
+            editor(adaptive)
         }
     }
 }
