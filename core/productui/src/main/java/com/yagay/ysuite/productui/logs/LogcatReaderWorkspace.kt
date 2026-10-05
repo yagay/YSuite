@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.logs
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import com.yagay.ysuite.productui.ProductLayoutTokens
 
 import androidx.compose.foundation.layout.Box
@@ -31,6 +33,7 @@ fun LogcatReaderWorkspace(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     YSuiteProductPage(
+        surfaceKind = ProductSurfaceKind.LogViewer,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
