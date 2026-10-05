@@ -10,6 +10,7 @@ import com.yagay.ysuite.resources.LocaleController
 import com.yagay.ysuite.settings.AppSettings
 import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
+import kotlinx.coroutines.flow.map
 
 const val YSUITE_EXTRA_INITIAL_FEATURE_ID =
     "com.yagay.ysuite.extra.INITIAL_FEATURE_ID"
@@ -22,7 +23,8 @@ fun YSuiteApplication(
     initialFeatureId: String? = null,
 ) {
     val loadedSettings by settingsRepository.settings
-        .collectAsStateWithLifecycle<AppSettings?>(
+        .map<AppSettings, AppSettings?> { it }
+        .collectAsStateWithLifecycle(
             initialValue = null,
         )
     val settings = loadedSettings ?: AppSettings()
