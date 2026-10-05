@@ -194,55 +194,54 @@ class YFilesRootToolsService(
     suspend fun installModule(
         zipPath: String,
     ): Outcome<Unit> =
-        withContext<Outcome<Unit>>(
-            Dispatchers.IO,
-        ) {
-            val manager =
-                when (
-                    val probe =
-                        execute(
-                            """
-                            if command -v magisk >/dev/null 2>&1; then echo magisk
-                            elif command -v ksud >/dev/null 2>&1; then echo kernelsu
-                            elif command -v apd >/dev/null 2>&1; then echo apatch
-                            else echo none
-                            fi
-                            """.trimIndent(),
+        withContext(Dispatchers.IO) {
+            val probe =
+                execute(
+                    """
+                    if command -v magisk >/dev/null 2>&1; then echo magisk
+                    elif command -v ksud >/dev/null 2>&1; then echo kernelsu
+                    elif command -v apd >/dev/null 2>&1; then echo apatch
+                    else echo none
+                    fi
+                    """.trimIndent(),
+                )
+            when (probe) {
+                is Outcome.Failure ->
+                    probe
+                is Outcome.Success -> {
+                    val command =
+                        when (
+                            probe.value.stdout
+                                .trim()
+                        ) {
+                            "magisk" ->
+                                "magisk --install-module " +
+                                    quote(zipPath)
+                            "kernelsu" ->
+                                "ksud module install " +
+                                    quote(zipPath)
+                            "apatch" ->
+                                "apd module install " +
+                                    quote(zipPath)
+                            else -> null
+                        }
+                    if (command == null) {
+                        Outcome.Failure(
+                            code =
+                                "root_module_manager_missing",
+                            message =
+                                appContext.getString(
+                                    R.string.yfiles_msg_no_root_module_manager,
+                                ),
                         )
-                ) {
-                    is Outcome.Success ->
-                        probe.value.stdout
-                            .trim()
-                    is Outcome.Failure ->
-                        return@withContext
-                            probe
+                    } else {
+                        rootUnit(
+                            command,
+                            "root_module_install_failed",
+                        )
+                    }
                 }
-            val command =
-                when (manager) {
-                    "magisk" ->
-                        "magisk --install-module " +
-                            quote(zipPath)
-                    "kernelsu" ->
-                        "ksud module install " +
-                            quote(zipPath)
-                    "apatch" ->
-                        "apd module install " +
-                            quote(zipPath)
-                    else ->
-                        return@withContext
-                            Outcome.Failure(
-                                code =
-                                    "root_module_manager_missing",
-                                message =
-                                    appContext.getString(
-                                        R.string.yfiles_msg_no_root_module_manager,
-                                    ),
-                            )
-                }
-            rootUnit(
-                command,
-                "root_module_install_failed",
-            )
+            }
         }
 
     suspend fun encryptedVolumeSupport():

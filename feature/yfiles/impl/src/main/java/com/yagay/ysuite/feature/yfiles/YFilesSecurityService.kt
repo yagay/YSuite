@@ -116,12 +116,9 @@ class YFilesSecurityService(
         ref: YFileRef,
         passes: Int = 1,
     ): Outcome<Unit> =
-        withContext<Outcome<Unit>>(
-            Dispatchers.IO,
-        ) {
+        withContext(Dispatchers.IO) {
             if (ref.providerId != "local") {
-                return@withContext
-                    Outcome.Failure(
+                Outcome.Failure(
                         code =
                             "secure_delete_unsupported",
                         message =
@@ -129,7 +126,7 @@ class YFilesSecurityService(
                                 R.string.yfiles_msg_secure_delete_local_only,
                             ),
                     )
-            }
+            } else {
             try {
                 val file = File(ref.path)
                 require(file.isFile) {
@@ -180,6 +177,7 @@ class YFilesSecurityService(
                             ?: "Secure delete failed",
                     cause = error,
                 )
+            }
             }
         }
 
@@ -678,16 +676,16 @@ class YFilesSecurityService(
     private suspend fun sha256(
         ref: YFileRef,
     ): Outcome<String> =
-        withContext<Outcome<String>>(
-            Dispatchers.IO,
-        ) {
+        withContext(Dispatchers.IO) {
             try {
                 val digest =
                     MessageDigest.getInstance(
                         "SHA-256",
                     )
                 var offset = 0L
-                while (true) {
+                var failure: Outcome.Failure? = null
+                var done = false
+                while (!done && failure == null) {
                     when (
                         val chunk =
                             engine.read(
@@ -701,25 +699,20 @@ class YFilesSecurityService(
                                 chunk.value.data,
                             )
                             offset +=
-                                chunk.value
-                                    .data.size
-                            if (
-                                chunk.value.eof
-                            ) {
-                                break
-                            }
+                                chunk.value.data.size
+                            done = chunk.value.eof
                         }
                         is Outcome.Failure ->
-                            return@withContext
-                                chunk
+                            failure = chunk
                     }
                 }
-                Outcome.Success(
-                    digest.digest()
-                        .joinToString("") {
-                            "%02x".format(it)
-                        },
-                )
+                failure
+                    ?: Outcome.Success(
+                        digest.digest()
+                            .joinToString("") {
+                                "%02x".format(it)
+                            },
+                    )
             } catch (error: Throwable) {
                 Outcome.Failure(
                     code = "hash_failed",

@@ -68,55 +68,51 @@ class ShizukuShellGateway(
     override suspend fun execute(
         request: RootRequest,
     ): Outcome<RootResult> =
-        withContext<Outcome<RootResult>>(
-            Dispatchers.IO,
-        ) {
+        withContext(Dispatchers.IO) {
             try {
                 if (
                     status() !=
                     CapabilityStatus.Available
                 ) {
-                    return@withContext
-                        Outcome.Failure(
-                            code =
-                                "shizuku_permission_required",
-                            message =
-                                context.getString(
-                                    R.string.yfiles_msg_shizuku_permission_required,
-                                ),
+                    Outcome.Failure(
+                        code =
+                            "shizuku_permission_required",
+                        message =
+                            context.getString(
+                                R.string.yfiles_msg_shizuku_permission_required,
+                            ),
+                    )
+                } else {
+                    val clazz =
+                        Class.forName(
+                            "rikka.shizuku.Shizuku",
                         )
-                }
-                val clazz =
-                    Class.forName(
-                        "rikka.shizuku.Shizuku",
-                    )
-                val method =
-                    clazz.methods.firstOrNull {
-                        it.name == "newProcess" &&
-                            it.parameterTypes.size ==
-                                3
-                    } ?: error(
-                        "This Shizuku version does not expose process execution",
-                    )
-                val process =
-                    method.invoke(
-                        null,
-                        arrayOf(
-                            "sh",
-                            "-c",
-                            request.command,
-                        ),
-                        null,
-                        null,
-                    ) as Process
-                val finished =
-                    process.waitFor(
-                        request.timeoutMillis,
-                        TimeUnit.MILLISECONDS,
-                    )
-                if (!finished) {
-                    process.destroyForcibly()
-                    return@withContext
+                    val method =
+                        clazz.methods.firstOrNull {
+                            it.name == "newProcess" &&
+                                it.parameterTypes.size ==
+                                    3
+                        } ?: error(
+                            "This Shizuku version does not expose process execution",
+                        )
+                    val process =
+                        method.invoke(
+                            null,
+                            arrayOf(
+                                "sh",
+                                "-c",
+                                request.command,
+                            ),
+                            null,
+                            null,
+                        ) as Process
+                    val finished =
+                        process.waitFor(
+                            request.timeoutMillis,
+                            TimeUnit.MILLISECONDS,
+                        )
+                    if (!finished) {
+                        process.destroyForcibly()
                         Outcome.Failure(
                             code =
                                 "shizuku_timeout",
@@ -126,23 +122,29 @@ class ShizukuShellGateway(
                                 ),
                             retryable = true,
                         )
+                    } else {
+                        val stdout =
+                            process.inputStream
+                                .bufferedReader()
+                                .use {
+                                    it.readText()
+                                }
+                        val stderr =
+                            process.errorStream
+                                .bufferedReader()
+                                .use {
+                                    it.readText()
+                                }
+                        Outcome.Success(
+                            RootResult(
+                                exitCode =
+                                    process.exitValue(),
+                                stdout = stdout,
+                                stderr = stderr,
+                            ),
+                        )
+                    }
                 }
-                val stdout =
-                    process.inputStream
-                        .bufferedReader()
-                        .use { it.readText() }
-                val stderr =
-                    process.errorStream
-                        .bufferedReader()
-                        .use { it.readText() }
-                Outcome.Success(
-                    RootResult(
-                        exitCode =
-                            process.exitValue(),
-                        stdout = stdout,
-                        stderr = stderr,
-                    ),
-                )
             } catch (error: Throwable) {
                 Outcome.Failure(
                     code =
@@ -155,4 +157,5 @@ class ShizukuShellGateway(
                 )
             }
         }
+
 }
