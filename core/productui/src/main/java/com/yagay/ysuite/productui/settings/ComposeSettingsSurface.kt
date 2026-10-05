@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.settings
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import com.yagay.ysuite.productui.ProductLayoutTokens
 import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
 
@@ -51,6 +53,7 @@ fun ComposeSettingsSurface(
     content: @Composable ColumnScope.(ProductAdaptiveInfo) -> Unit,
 ) {
     YSuiteProductPage(
+        surfaceKind = ProductSurfaceKind.Settings,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
