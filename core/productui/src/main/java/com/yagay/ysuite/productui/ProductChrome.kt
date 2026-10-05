@@ -95,6 +95,8 @@ fun YSuiteProductPage(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    titleContent: (@Composable () -> Unit)? = null,
+    topBarOverride: (@Composable () -> Unit)? = null,
     headerContent: @Composable () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
@@ -104,11 +106,15 @@ fun YSuiteProductPage(
         modifier = modifier,
         topBar = {
             Column {
-                YSuiteProductTopBar(
-                    title = { Text(title) },
-                    navigationIcon = navigationIcon,
-                    actions = actions,
-                )
+                if (topBarOverride != null) {
+                    topBarOverride()
+                } else {
+                    YSuiteProductTopBar(
+                        title = titleContent ?: { Text(title) },
+                        navigationIcon = navigationIcon,
+                        actions = actions,
+                    )
+                }
                 headerContent()
             }
         },
