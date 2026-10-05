@@ -40,4 +40,12 @@
     <string name="system_status_warning">警告</string>
     <string name="system_status_unknown">未知</string>
     <string name="system_refreshing">正在刷新…</string>
+    <string name="system_diagnostic_permissions_summary">已声明 %1$d 项 · 未授权 %2$d 项</string>
+    <string name="system_diagnostic_provider_title">%1$s Provider</string>
+    <string name="system_diagnostic_provider_summary">%1$d 项能力</string>
+    <string name="system_diagnostic_recommend_review_permissions">检查未授权的权限。</string>
+    <string name="system_diagnostic_recommend_grant_shizuku">授予 Shizuku 权限。</string>
+    <string name="system_diagnostic_recommend_start_shizuku">如需非 Root 特权访问，请启动 Shizuku。</string>
+    <string name="system_diagnostic_recommend_grant_root">仅在需要访问受保护系统功能时授予 Root。</string>
+    <string name="system_diagnostic_recommend_enable_hooks">使用 Hook 功能时，请在 LSPosed 中启用 YSuite 模块。</string>
 </resources>
