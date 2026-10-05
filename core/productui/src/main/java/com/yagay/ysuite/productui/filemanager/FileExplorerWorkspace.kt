@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -44,6 +44,7 @@ fun FileExplorerWorkspace(
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     drawerContent: @Composable (ProductAdaptiveInfo, closeDrawer: () -> Unit) -> Unit,
+    drawerContentDescription: String? = null,
     breadcrumb: @Composable () -> Unit,
     tabs: @Composable () -> Unit = {},
     statusBanner: @Composable () -> Unit = {},
@@ -118,8 +119,9 @@ fun FileExplorerWorkspace(
                                 },
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = null,
+                                    imageVector = Icons.Default.Storage,
+                                    contentDescription =
+                                        drawerContentDescription,
                                 )
                             }
                         }
