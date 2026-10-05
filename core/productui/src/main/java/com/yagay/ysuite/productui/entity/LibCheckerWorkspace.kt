@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.entity
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import com.yagay.ysuite.productui.ProductLayoutTokens
 
 import androidx.compose.foundation.layout.Box
@@ -33,6 +35,7 @@ fun LibCheckerWorkspace(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     YSuiteProductPage(
+        surfaceKind = ProductSurfaceKind.EntityManager,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
