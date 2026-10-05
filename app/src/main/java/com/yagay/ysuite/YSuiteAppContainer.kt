@@ -12,10 +12,12 @@ import com.yagay.ysuite.feature.yfiles.YFilesFeatureUiRegistration
 import com.yagay.ysuite.feature.ydownload.YDownloadEnvironmentFactory
 import com.yagay.ysuite.feature.ydownload.YDownloadFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
+import com.yagay.ysuite.logging.android.AndroidLogcatCollector
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
 import com.yagay.ysuite.logging.api.InMemoryLogStore
 import com.yagay.ysuite.permissions.android.AndroidPermissionCatalog
 import com.yagay.ysuite.permissions.android.AndroidPermissionChecker
+import com.yagay.ysuite.permissions.api.PermissionStatus
 import com.yagay.ysuite.platform.android.DefaultPlatformServices
 import com.yagay.ysuite.platform.api.CapabilityKind
 import com.yagay.ysuite.platform.api.CapabilityStatus
@@ -26,92 +28,246 @@ import com.yagay.ysuite.ui.YSuiteFeatureRegistry
 class YSuiteAppContainer(
     context: Context,
 ) {
-    val settings = DataStoreAppSettingsRepository(context)
+    val settings =
+        DataStoreAppSettingsRepository(context)
 
     val logStore = InMemoryLogStore()
-    val logger = CompositeYSuiteLogger(
-        listOf(
-            AndroidLogSink(),
-            logStore,
-        ),
-    )
-
-    val permissions = AndroidPermissionChecker(context)
-    val permissionCatalog = AndroidPermissionCatalog(context)
-    val platform = DefaultPlatformServices.create()
-    val capabilityMonitor = PlatformCapabilityMonitor(platform)
-
-    val diagnostics = DiagnosticCenter().apply {
-        register(
-            owner = "platform",
-            checks = listOf(
-                DiagnosticCheck {
-                    val snapshot = capabilityMonitor.probe()
-                    val status = snapshot[CapabilityKind.Root]
-                    DiagnosticFinding(
-                        id = "root",
-                        status = status.toDiagnosticStatus(),
-                        summary = status.name,
-                    )
-                },
-                DiagnosticCheck {
-                    val snapshot = capabilityMonitor.probe()
-                    val status = snapshot[CapabilityKind.Hooks]
-                    DiagnosticFinding(
-                        id = "hooks",
-                        status = status.toDiagnosticStatus(),
-                        summary = status.name,
-                    )
-                },
+    val logger =
+        CompositeYSuiteLogger(
+            listOf(
+                AndroidLogSink(),
+                logStore,
             ),
         )
-    }
+    val logCollector =
+        AndroidLogcatCollector()
 
-    val featureRegistry = YSuiteFeatureRegistry(
-        listOf(
-            SystemFeatureUiRegistration(
-                capabilityMonitor = capabilityMonitor,
-                diagnosticCenter = diagnostics,
-                logStore = logStore,
-                logger = logger,
-                permissionChecker = permissions,
-                permissionCatalog = permissionCatalog,
-            ),
-            YFilesFeatureUiRegistration(
-                environment = YFilesEnvironmentFactory.create(
-                    context = context,
-                    rootGateway = platform.root,
-                    shizukuGateway =
-                        platform.shizuku,
+    val permissions =
+        AndroidPermissionChecker(context)
+    val permissionCatalog =
+        AndroidPermissionCatalog(context)
+
+    val platform =
+        DefaultPlatformServices.create()
+    val capabilityMonitor =
+        PlatformCapabilityMonitor(platform)
+
+    val yFilesEnvironment =
+        YFilesEnvironmentFactory.create(
+            context = context,
+            rootGateway = platform.root,
+            shizukuGateway =
+                platform.shizuku,
+        )
+
+    val diagnostics =
+        DiagnosticCenter().apply {
+            replace(
+                owner = "platform",
+                checks =
+                    CapabilityKind.entries.map {
+                        kind ->
+                        DiagnosticCheck {
+                            val status =
+                                capabilityMonitor
+                                    .probe()[kind]
+                            DiagnosticFinding(
+                                id =
+                                    "capability_" +
+                                        kind.name
+                                            .lowercase(),
+                                status =
+                                    status
+                                        .toDiagnosticStatus(),
+                                summary =
+                                    status.name,
+                                category =
+                                    "capability",
+                                recommendation =
+                                    capabilityRecommendation(
+                                        kind,
+                                        status,
+                                    ),
+                            )
+                        }
+                    },
+            )
+
+            replace(
+                owner = "permissions",
+                checks =
+                    listOf(
+                        DiagnosticCheck {
+                            val requirements =
+                                permissionCatalog
+                                    .requirements()
+                            val result =
+                                permissions.snapshot(
+                                    requirements,
+                                )
+                            val denied =
+                                result.statuses
+                                    .count {
+                                        it.value ==
+                                            PermissionStatus.Denied
+                                    }
+                            DiagnosticFinding(
+                                id =
+                                    "declared_permissions",
+                                status =
+                                    if (denied == 0) {
+                                        DiagnosticStatus.Pass
+                                    } else {
+                                        DiagnosticStatus.Warning
+                                    },
+                                summary =
+                                    requirements.size
+                                        .toString() +
+                                        " declared · " +
+                                        denied +
+                                        " denied",
+                                category =
+                                    "permissions",
+                                recommendation =
+                                    if (denied > 0) {
+                                        "Review denied permissions in System."
+                                    } else {
+                                        null
+                                    },
+                            )
+                        },
+                    ),
+            )
+
+            replace(
+                owner = "yfiles",
+                checks =
+                    yFilesEnvironment
+                        .providerCatalog
+                        .descriptors
+                        .map { descriptor ->
+                            DiagnosticCheck {
+                                DiagnosticFinding(
+                                    id =
+                                        "provider_" +
+                                            descriptor.id,
+                                    status =
+                                        DiagnosticStatus.Pass,
+                                    summary =
+                                        buildString {
+                                            append(
+                                                descriptor.kind.name,
+                                            )
+                                            append(" · ")
+                                            append(
+                                                descriptor.accessMode.name,
+                                            )
+                                            append(" · ")
+                                            append(
+                                                descriptor.capabilities.size,
+                                            )
+                                            append(
+                                                " capabilities",
+                                            )
+                                        },
+                                    details =
+                                        descriptor.capabilities
+                                            .sortedBy {
+                                                it.name
+                                            }
+                                            .joinToString {
+                                                it.name
+                                            },
+                                    category =
+                                        "filesystem",
+                                )
+                            }
+                        },
+            )
+        }
+
+    val featureRegistry =
+        YSuiteFeatureRegistry(
+            listOf(
+                SystemFeatureUiRegistration(
+                    capabilityMonitor =
+                        capabilityMonitor,
+                    platformServices =
+                        platform,
+                    diagnosticCenter =
+                        diagnostics,
+                    logStore = logStore,
+                    logCollector =
+                        logCollector,
+                    logger = logger,
+                    permissionChecker =
+                        permissions,
+                    permissionCatalog =
+                        permissionCatalog,
                 ),
-                logger = logger,
-            ),
-            YDownloadFeatureUiRegistration(
-                environment = YDownloadEnvironmentFactory.create(
-                    context = context,
+                YFilesFeatureUiRegistration(
+                    environment =
+                        yFilesEnvironment,
                     logger = logger,
                 ),
-                logger = logger,
+                YDownloadFeatureUiRegistration(
+                    environment =
+                        YDownloadEnvironmentFactory
+                            .create(
+                                context = context,
+                                logger = logger,
+                            ),
+                    logger = logger,
+                ),
+                SettingsFeatureUiRegistration(
+                    settings,
+                ),
             ),
-            SettingsFeatureUiRegistration(settings),
-        ),
-    )
+        )
 
     init {
         logger.debug(
             tag = "YSuite/App",
-            message = "Composition root initialized",
+            message =
+                "Composition root initialized",
         )
     }
 }
 
-private fun CapabilityStatus.toDiagnosticStatus(): DiagnosticStatus =
+private fun CapabilityStatus.toDiagnosticStatus():
+    DiagnosticStatus =
     when (this) {
-        CapabilityStatus.Available -> DiagnosticStatus.Pass
+        CapabilityStatus.Available ->
+            DiagnosticStatus.Pass
         CapabilityStatus.PermissionRequired ->
             DiagnosticStatus.Warning
         CapabilityStatus.Unavailable ->
             DiagnosticStatus.Warning
         CapabilityStatus.Error ->
             DiagnosticStatus.Failure
+    }
+
+private fun capabilityRecommendation(
+    kind: CapabilityKind,
+    status: CapabilityStatus,
+): String? =
+    when {
+        status ==
+            CapabilityStatus.Available ->
+            null
+        kind ==
+            CapabilityKind.Shizuku &&
+            status ==
+            CapabilityStatus.PermissionRequired ->
+            "Grant Shizuku access from System."
+        kind ==
+            CapabilityKind.Shizuku ->
+            "Start Shizuku if privileged non-root access is needed."
+        kind ==
+            CapabilityKind.Root ->
+            "Grant root only to features that need protected system access."
+        kind ==
+            CapabilityKind.Hooks ->
+            "Enable the YSuite module in LSPosed when hook features are installed."
+        else -> null
     }

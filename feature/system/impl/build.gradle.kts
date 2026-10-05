@@ -25,11 +25,13 @@ dependencies {
     implementation(project(":core:permissions:api"))
     implementation(project(":core:platform:api"))
     implementation(project(":core:runtime"))
+    implementation(project(":core:productui"))
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 }
