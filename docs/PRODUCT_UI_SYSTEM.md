@@ -33,19 +33,25 @@ YSuite standardizes visual language, not product-page geometry.
 
 The upstream page workflow remains recognizable after applying YSuite theme tokens.
 
-## Shared outer chrome
+## Shared Compose page host
 
-All normal product workspaces share the same YSuite-owned outer chrome:
+All normal product workspaces run inside one YSuite-owned page lifecycle:
 
-- `YSuiteProductTopBar` owns app-bar color, title/navigation treatment and the separator.
-- `YSuiteProductScaffold` owns the page background and edge-to-edge system-bar insets.
-- Mature upstream layouts still own their internal information architecture, panes, tabs, filters,
-  queues, browser controls and content density.
-- Browser and fullscreen product types may intentionally omit the standard app bar when their
-  upstream product model owns the complete screen.
+- `YSuiteProductPage` is the canonical normal-screen host.
+- `YSuiteProductScaffold` and `YSuiteProductTopBar` are implementation primitives owned by
+  `ProductChrome.kt`; product workspaces must not call them directly.
+- The host owns app-bar treatment, page background, edge-to-edge system-bar insets, bottom bars and
+  floating actions.
+- `ProductAdaptiveRoot` classifies the window once at the YSuite host. Nested workspaces reuse the
+  same `ProductAdaptiveInfo` instead of changing layout class after a navigation pane consumes width.
+- Product workspaces keep their mature internal information architecture: file panes, download tabs,
+  settings groups, log filters, entity inspectors and other domain-specific content.
+- YFiles selection mode replaces only the shared top-bar slot; it does not create another Scaffold.
+- Browser and fullscreen product types may intentionally omit normal page chrome when the upstream
+  product model owns the complete screen.
 
-This keeps YFiles, YDownload, Settings, System and the home dashboard visually part of one app
-without flattening them into one generic page template.
+This makes YSuite one Compose application with multiple product structures, rather than several
+independent Compose applications embedded beside each other.
 
 ## Hard rule
 
