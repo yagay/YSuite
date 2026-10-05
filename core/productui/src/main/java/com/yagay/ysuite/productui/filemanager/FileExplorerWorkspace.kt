@@ -26,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.productui.ProductAdaptiveBox
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
+import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
 import kotlinx.coroutines.launch
 
 /**
@@ -173,8 +174,12 @@ private fun BrowserScaffold(
         floatingActionButton = {
             floatingActionButton?.invoke()
         },
-    ) { adaptive ->
-        content(adaptive)
+    ) { _ ->
+        ProductPaneAdaptiveBox(
+            modifier = Modifier.fillMaxSize(),
+        ) { paneAdaptive ->
+            content(paneAdaptive)
+        }
     }
 
 }
