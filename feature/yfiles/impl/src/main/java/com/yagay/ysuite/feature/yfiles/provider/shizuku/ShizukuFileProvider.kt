@@ -11,14 +11,14 @@ import com.yagay.ysuite.feature.yfiles.api.YFileQuery
 import com.yagay.ysuite.feature.yfiles.api.YFileRef
 import com.yagay.ysuite.feature.yfiles.api.YFileSort
 import com.yagay.ysuite.feature.yfiles.api.YFileType
-import com.yagay.ysuite.platform.api.RootGateway
+import com.yagay.ysuite.platform.api.ShizukuGateway
 import com.yagay.ysuite.platform.api.RootRequest
 import java.io.File
 import java.util.ArrayDeque
 import java.util.Base64
 
 class ShizukuFileProvider(
-    private val gateway: RootGateway,
+    private val gateway: ShizukuGateway,
 ) : YFileProvider {
     override val descriptor =
         YFileProviderDescriptor(
