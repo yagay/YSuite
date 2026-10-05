@@ -13,6 +13,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
+import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
 import com.yagay.ysuite.productui.YSuiteProductPage
 
 /**
@@ -50,8 +51,13 @@ fun ComposeTodoTaskWorkspace(
                     categories(adaptive)
                 }
             }
-            Box(modifier = Modifier.weight(1f)) {
-                content(adaptive)
+            ProductPaneAdaptiveBox(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+            ) { paneAdaptive ->
+                content(paneAdaptive)
             }
             if (adaptive.isExpanded && detailPane != null) {
                 Surface(
