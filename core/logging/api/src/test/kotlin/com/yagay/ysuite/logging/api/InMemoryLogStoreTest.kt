@@ -18,6 +18,40 @@ class InMemoryLogStoreTest {
         )
     }
 
+    @Test
+    fun queryFiltersBySourceLevelAndText() {
+        val store = InMemoryLogStore()
+
+        store.write(
+            record("network ready"),
+        )
+        store.write(
+            LogRecord(
+                timestampMillis = 2L,
+                level = LogLevel.Error,
+                tag = "system",
+                message = "network failed",
+                source = LogSource.Logcat,
+            ),
+        )
+
+        val result =
+            store.query(
+                LogQuery(
+                    text = "failed",
+                    levels =
+                        setOf(LogLevel.Error),
+                    sources =
+                        setOf(LogSource.Logcat),
+                ),
+            )
+
+        assertEquals(
+            listOf("network failed"),
+            result.map(LogRecord::message),
+        )
+    }
+
     private fun record(message: String) =
         LogRecord(
             timestampMillis = 1L,

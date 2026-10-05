@@ -13,7 +13,7 @@ Use: adaptive navigation and dashboard/application layout conventions.
 Repository: SysAdminDoc/FileExplorer  
 License: MIT  
 Copyright (c) 2025 SysAdminDoc  
-Use: file-manager workspace conventions including navigation locations, breadcrumbs, selection mode and large-screen pane structure.
+Use: file-manager workspace conventions plus provider/repository capability architecture for local, SAF, Root, Shizuku, archive, network and cloud storage.
 
 ## Compose-Settings
 
@@ -60,3 +60,18 @@ Use: application/entity collection, navigation and detail workflow.
 Repository: wisnukurniawan/Compose-ToDo  
 License: Apache License 2.0  
 Use: task collection and detail workflow conventions.
+
+
+## Shizuku
+
+Repository: RikkaApps/Shizuku  
+License: Apache License 2.0  
+Use: Android privileged-service API used by the shared platform capability layer for optional non-root elevated access.
+
+## Research-only references
+
+The following projects were reviewed for product and architecture ideas only. Their source code is not copied, linked, or distributed as part of YSuite:
+
+- dev2ex/twig — GPL-3.0 — unified filesystem/provider architecture research.
+- F0x1d/LogFox — GPL-3.0 — Logcat, filtering, crash/ANR and privileged logging workflow research.
+- App Manager / AppManagerNG — GPL family — system-management feature coverage research.

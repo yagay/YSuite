@@ -7,4 +7,6 @@ kotlin { jvmToolchain(17) }
 dependencies {
     api(project(":core:common"))
     api(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.junit)
 }

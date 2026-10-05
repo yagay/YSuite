@@ -9,6 +9,10 @@
       "repo": "SysAdminDoc/FileExplorer",
       "license": "MIT"
     },
+    "PlatformPrivilege": {
+      "repo": "RikkaApps/Shizuku",
+      "license": "Apache-2.0"
+    },
     "Browser": {
       "repo": "fazza-abiyyu/Yue-Browser",
       "license": "Apache-2.0"
@@ -48,6 +52,16 @@
     "Fullscreen": {
       "repo": "SysAdminDoc/FileExplorer",
       "license": "MIT"
+    }
+  },
+  "research_only": {
+    "UnifiedFileSystem": {
+      "repo": "dev2ex/twig",
+      "license": "GPL-3.0"
+    },
+    "AdvancedLogcat": {
+      "repo": "F0x1d/LogFox",
+      "license": "GPL-3.0"
     }
   }
 }
