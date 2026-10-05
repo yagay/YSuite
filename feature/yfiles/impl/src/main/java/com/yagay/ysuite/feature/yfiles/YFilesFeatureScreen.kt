@@ -549,20 +549,9 @@ private fun YFilesSourcePane(
                     YFileProductSource(
                         id = provider.id,
                         label =
-                            when (provider.id) {
-                                "shizuku" ->
-                                    "Shizuku"
-                                "collections" ->
-                                    "Collections"
-                                "remote" ->
-                                    "Network"
-                                "cloud" ->
-                                    "Cloud"
-                                else ->
-                                    providerLabel(
-                                        provider.kind,
-                                    )
-                            },
+                            providerLabel(
+                                provider.kind,
+                            ),
                         kind =
                             provider.kind
                                 .toProductSourceKind(),
@@ -1039,8 +1028,11 @@ private fun YFileProviderKind.toProductSourceKind(): YFileProductSourceKind =
         YFileProviderKind.Local -> YFileProductSourceKind.Local
         YFileProviderKind.Document -> YFileProductSourceKind.Document
         YFileProviderKind.Root -> YFileProductSourceKind.Root
+        YFileProviderKind.Shizuku -> YFileProductSourceKind.Root
         YFileProviderKind.Archive -> YFileProductSourceKind.Archive
         YFileProviderKind.Remote -> YFileProductSourceKind.Remote
+        YFileProviderKind.Cloud -> YFileProductSourceKind.Remote
+        YFileProviderKind.Collection -> YFileProductSourceKind.Local
     }
 
 private fun YFileNode.productItemKind(): YFileProductItemKind =
@@ -1999,6 +1991,11 @@ private fun providerLabel(
                 R.string
                     .yfiles_provider_root,
             )
+        YFileProviderKind.Shizuku ->
+            stringResource(
+                R.string
+                    .yfiles_provider_shizuku,
+            )
         YFileProviderKind.Archive ->
             stringResource(
                 R.string
@@ -2008,6 +2005,16 @@ private fun providerLabel(
             stringResource(
                 R.string
                     .yfiles_provider_remote,
+            )
+        YFileProviderKind.Cloud ->
+            stringResource(
+                R.string
+                    .yfiles_provider_cloud,
+            )
+        YFileProviderKind.Collection ->
+            stringResource(
+                R.string
+                    .yfiles_provider_collection,
             )
     }
 

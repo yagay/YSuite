@@ -27,7 +27,7 @@ class MediaCollectionProvider(
     override val descriptor =
         YFileProviderDescriptor(
             id = PROVIDER_ID,
-            kind = YFileProviderKind.Local,
+            kind = YFileProviderKind.Collection,
             capabilities = setOf(
                 YFileCapability.Browse,
                 YFileCapability.Search,

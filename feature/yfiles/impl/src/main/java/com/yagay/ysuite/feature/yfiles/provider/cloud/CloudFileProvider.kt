@@ -42,7 +42,7 @@ class CloudFileProvider(
     override val descriptor =
         YFileProviderDescriptor(
             id = PROVIDER_ID,
-            kind = YFileProviderKind.Remote,
+            kind = YFileProviderKind.Cloud,
             capabilities = setOf(
                 YFileCapability.Browse,
                 YFileCapability.Search,

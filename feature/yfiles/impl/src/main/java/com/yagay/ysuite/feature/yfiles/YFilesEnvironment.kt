@@ -4,6 +4,7 @@ import android.content.Context
 import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.feature.yfiles.engine.DefaultYFilesEngine
 import com.yagay.ysuite.feature.yfiles.engine.YFileProviderRegistry
+import com.yagay.ysuite.feature.yfiles.api.YFileProviderCatalog
 import com.yagay.ysuite.feature.yfiles.provider.archive.YFilesArchiveController
 import com.yagay.ysuite.feature.yfiles.provider.archive.UniversalArchiveProvider
 import com.yagay.ysuite.feature.yfiles.provider.document.DocumentFileProvider
@@ -25,6 +26,7 @@ import com.yagay.ysuite.platform.api.ShizukuGateway
 
 data class YFilesEnvironment(
     val engine: DefaultYFilesEngine,
+    val providerCatalog: YFileProviderCatalog,
     val documentTrees: DocumentTreeStore,
     val archives: YFilesArchiveController,
     val places: YFilesPlacesStore,
@@ -104,7 +106,7 @@ object YFilesEnvironmentFactory {
             ShizukuFileProvider(
                 shizukuGateway,
             )
-        val engine = DefaultYFilesEngine(
+        val providerRegistry =
             YFileProviderRegistry(
                 listOf(
                     LocalFileProvider(),
@@ -122,8 +124,11 @@ object YFilesEnvironmentFactory {
                     shizukuProvider,
                     cloudProvider,
                 ),
-            ),
-        )
+            )
+        val engine =
+            DefaultYFilesEngine(
+                providerRegistry,
+            )
         val archives =
             YFilesArchiveController(
                 engine = engine,
@@ -175,6 +180,8 @@ object YFilesEnvironmentFactory {
 
         return YFilesEnvironment(
             engine = engine,
+            providerCatalog =
+                providerRegistry,
             documentTrees = documentTrees,
             archives = archives,
             places =

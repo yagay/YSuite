@@ -30,9 +30,44 @@ enum class YFileProviderKind {
     Local,
     Document,
     Root,
+    Shizuku,
     Archive,
     Remote,
+    Cloud,
+    Collection,
 }
+
+enum class YFileProviderAccessMode {
+    Direct,
+    Granted,
+    Root,
+    Shizuku,
+    Archive,
+    Network,
+    Cloud,
+    Virtual,
+}
+
+fun YFileProviderKind.defaultAccessMode():
+    YFileProviderAccessMode =
+    when (this) {
+        YFileProviderKind.Local ->
+            YFileProviderAccessMode.Direct
+        YFileProviderKind.Document ->
+            YFileProviderAccessMode.Granted
+        YFileProviderKind.Root ->
+            YFileProviderAccessMode.Root
+        YFileProviderKind.Shizuku ->
+            YFileProviderAccessMode.Shizuku
+        YFileProviderKind.Archive ->
+            YFileProviderAccessMode.Archive
+        YFileProviderKind.Remote ->
+            YFileProviderAccessMode.Network
+        YFileProviderKind.Cloud ->
+            YFileProviderAccessMode.Cloud
+        YFileProviderKind.Collection ->
+            YFileProviderAccessMode.Virtual
+    }
 
 enum class YFileCapability {
     Browse,
@@ -53,7 +88,29 @@ data class YFileProviderDescriptor(
     val id: String,
     val kind: YFileProviderKind,
     val capabilities: Set<YFileCapability>,
-)
+    val accessMode: YFileProviderAccessMode =
+        kind.defaultAccessMode(),
+    val readOnly: Boolean =
+        YFileCapability.Write !in capabilities,
+) {
+    fun supports(
+        capability: YFileCapability,
+    ): Boolean =
+        capability in capabilities
+}
+
+data class YFileProviderCapabilityMatrix(
+    val providerId: String,
+    val kind: YFileProviderKind,
+    val accessMode: YFileProviderAccessMode,
+    val readOnly: Boolean,
+    val supported: Set<YFileCapability>,
+) {
+    fun supports(
+        capability: YFileCapability,
+    ): Boolean =
+        capability in supported
+}
 
 enum class YFileSort {
     Name,

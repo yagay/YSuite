@@ -2,35 +2,44 @@ package com.yagay.ysuite.feature.yfiles.engine
 
 import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.feature.yfiles.api.YFileProvider
+import com.yagay.ysuite.feature.yfiles.api.YFileProviderCapabilityMatrix
+import com.yagay.ysuite.feature.yfiles.api.YFileProviderCatalog
 import com.yagay.ysuite.feature.yfiles.api.YFileProviderDescriptor
 import com.yagay.ysuite.feature.yfiles.api.YFileRef
 
 class YFileProviderRegistry(
     providers: List<YFileProvider>,
-) {
+) : YFileProviderCatalog {
     private val providersById: Map<String, YFileProvider>
 
-    val descriptors: List<YFileProviderDescriptor>
+    override val descriptors:
+        List<YFileProviderDescriptor>
 
     init {
         require(providers.isNotEmpty()) {
             "At least one file provider is required"
         }
-        val duplicates = providers
-            .groupBy { it.descriptor.id }
-            .filterValues { it.size > 1 }
-            .keys
+        val duplicates =
+            providers
+                .groupBy { it.descriptor.id }
+                .filterValues { it.size > 1 }
+                .keys
         require(duplicates.isEmpty()) {
             "Duplicate file provider ids: " +
-                duplicates.sorted().joinToString()
+                duplicates.sorted()
+                    .joinToString()
         }
 
-        providersById = providers.associateBy {
-            it.descriptor.id
-        }
-        descriptors = providers
-            .map(YFileProvider::descriptor)
-            .sortedBy(YFileProviderDescriptor::id)
+        providersById =
+            providers.associateBy {
+                it.descriptor.id
+            }
+        descriptors =
+            providers
+                .map(YFileProvider::descriptor)
+                .sortedBy(
+                    YFileProviderDescriptor::id,
+                )
     }
 
     fun provider(
@@ -42,7 +51,8 @@ class YFileProviderRegistry(
         } else {
             Outcome.Failure(
                 code = "provider_not_found",
-                message = PROVIDER_NOT_FOUND_MESSAGE,
+                message =
+                    PROVIDER_NOT_FOUND_MESSAGE,
             )
         }
     }
@@ -51,6 +61,47 @@ class YFileProviderRegistry(
         ref: YFileRef,
     ): Outcome<YFileProvider> =
         provider(ref.providerId)
+
+    override fun descriptor(
+        providerId: String,
+    ): Outcome<YFileProviderDescriptor> =
+        when (
+            val provider =
+                provider(providerId)
+        ) {
+            is Outcome.Success ->
+                Outcome.Success(
+                    provider.value.descriptor,
+                )
+            is Outcome.Failure ->
+                provider
+        }
+
+    override fun capabilityMatrix(
+        providerId: String,
+    ): Outcome<YFileProviderCapabilityMatrix> =
+        when (
+            val descriptor =
+                descriptor(providerId)
+        ) {
+            is Outcome.Success ->
+                Outcome.Success(
+                    descriptor.value.let {
+                        YFileProviderCapabilityMatrix(
+                            providerId = it.id,
+                            kind = it.kind,
+                            accessMode =
+                                it.accessMode,
+                            readOnly =
+                                it.readOnly,
+                            supported =
+                                it.capabilities,
+                        )
+                    },
+                )
+            is Outcome.Failure ->
+                descriptor
+        }
 
     companion object {
         private const val PROVIDER_NOT_FOUND_MESSAGE =

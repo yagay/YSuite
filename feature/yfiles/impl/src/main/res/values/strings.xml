@@ -1,6 +1,6 @@
 <resources>
     <string name="yfiles_title">YFiles</string>
-    <string name="yfiles_summary">Unified provider-based file manager for local, SAF, Root and ZIP storage.</string>
+    <string name="yfiles_summary">Unified FileSystem/provider architecture for local, SAF, Root, Shizuku, archives, network, cloud and smart collections.</string>
     <string name="yfiles_tab_files">Files</string>
     <string name="yfiles_tab_tools">Tools</string>
     <string name="yfiles_tab_settings">Settings</string>
@@ -12,8 +12,11 @@
     <string name="yfiles_provider_local">Local</string>
     <string name="yfiles_provider_document">SAF</string>
     <string name="yfiles_provider_root">Root</string>
+    <string name="yfiles_provider_shizuku">Shizuku</string>
     <string name="yfiles_provider_archive">Archives</string>
-    <string name="yfiles_provider_remote">Remote</string>
+    <string name="yfiles_provider_remote">Network</string>
+    <string name="yfiles_provider_cloud">Cloud</string>
+    <string name="yfiles_provider_collection">Collections</string>
     <string name="yfiles_location">Location</string>
     <string name="yfiles_parent">Parent</string>
     <string name="yfiles_refresh">Refresh</string>

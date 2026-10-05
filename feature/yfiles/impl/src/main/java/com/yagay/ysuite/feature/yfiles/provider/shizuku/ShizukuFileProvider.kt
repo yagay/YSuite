@@ -23,7 +23,7 @@ class ShizukuFileProvider(
     override val descriptor =
         YFileProviderDescriptor(
             id = PROVIDER_ID,
-            kind = YFileProviderKind.Root,
+            kind = YFileProviderKind.Shizuku,
             capabilities = setOf(
                 YFileCapability.Browse,
                 YFileCapability.Search,

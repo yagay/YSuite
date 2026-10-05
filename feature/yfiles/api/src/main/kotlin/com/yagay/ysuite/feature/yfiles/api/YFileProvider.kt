@@ -90,3 +90,16 @@ interface YFileProvider {
             message = "Provider capability is unavailable",
         )
 }
+
+
+interface YFileProviderCatalog {
+    val descriptors: List<YFileProviderDescriptor>
+
+    fun descriptor(
+        providerId: String,
+    ): Outcome<YFileProviderDescriptor>
+
+    fun capabilityMatrix(
+        providerId: String,
+    ): Outcome<YFileProviderCapabilityMatrix>
+}
