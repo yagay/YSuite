@@ -362,9 +362,12 @@ private fun YFilesBrowserSurface(
                         YFilesViewMode.Grid,
                 dualPane =
                     state.dualPaneEnabled,
-                gridLabel = "Grid view",
-                listLabel = "List view",
-                dualPaneLabel = "Dual pane",
+                gridLabel =
+                    stringResource(R.string.yfiles_view_grid),
+                listLabel =
+                    stringResource(R.string.yfiles_view_list),
+                dualPaneLabel =
+                    stringResource(R.string.yfiles_dual_pane),
                 onToggleView =
                     browser::toggleViewMode,
                 onToggleDualPane =
@@ -408,8 +411,10 @@ private fun YFilesBrowserSurface(
                     },
                 activeTabId =
                     state.activeBrowserTabId,
-                addLabel = "New tab",
-                closeLabel = "Close tab",
+                addLabel =
+                    stringResource(R.string.yfiles_new_tab),
+                closeLabel =
+                    stringResource(R.string.yfiles_close_tab),
                 onSelect =
                     browser::selectBrowserTab,
                 onClose =
