@@ -106,7 +106,7 @@ fun YSuiteFeatureHost(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val permanentNavigation =
-            maxWidth > YSuiteLayoutTokens.MediumMaxWidth
+            maxWidth >= YSuiteLayoutTokens.ExpandedBreakpoint
 
         if (permanentNavigation) {
             Row(modifier = Modifier.fillMaxSize()) {
