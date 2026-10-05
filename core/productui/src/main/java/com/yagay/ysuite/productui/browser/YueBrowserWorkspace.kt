@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.browser
 
+import com.yagay.ysuite.productui.ProductLayoutTokens
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.productui.ProductAdaptiveBox
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 
@@ -35,7 +36,7 @@ fun YueBrowserWorkspace(
             if (adaptive.isExpanded && wideTabPane != null) {
                 Surface(
                     modifier = Modifier
-                        .width(248.dp)
+                        .width(ProductLayoutTokens.BrowserTabPaneWidth)
                         .fillMaxHeight(),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                 ) {
