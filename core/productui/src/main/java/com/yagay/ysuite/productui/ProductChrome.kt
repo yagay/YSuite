@@ -91,6 +91,7 @@ fun YSuiteProductScaffold(
  */
 @Composable
 fun YSuiteProductPage(
+    surfaceKind: ProductSurfaceKind,
     title: String,
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
@@ -102,8 +103,9 @@ fun YSuiteProductPage(
     floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
-    YSuiteProductScaffold(
-        modifier = modifier,
+    ProductSurfaceScope(surfaceKind) {
+        YSuiteProductScaffold(
+            modifier = modifier,
         topBar = {
             Column {
                 if (topBarOverride != null) {
@@ -134,6 +136,7 @@ fun YSuiteProductPage(
             }
         }
     }
+    }
 }
 
 /**
@@ -141,6 +144,7 @@ fun YSuiteProductPage(
  */
 @Composable
 fun YSuiteBoundedProductPage(
+    surfaceKind: ProductSurfaceKind,
     title: String,
     maxContentWidth: Dp,
     modifier: Modifier = Modifier,
@@ -149,6 +153,7 @@ fun YSuiteBoundedProductPage(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     YSuiteProductPage(
+        surfaceKind = surfaceKind,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
