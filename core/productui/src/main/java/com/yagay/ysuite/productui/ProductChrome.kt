@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -17,7 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
 /**
  * The single normal-screen chrome owner for YSuite product UI.
@@ -119,6 +123,41 @@ fun YSuiteProductPage(
         ) { adaptive ->
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier.fillMaxSize(),
+            ) {
+                content(adaptive)
+            }
+        }
+    }
+}
+
+/**
+ * Shared bounded-content variant used by dashboards, tools and detail screens.
+ */
+@Composable
+fun YSuiteBoundedProductPage(
+    title: String,
+    maxContentWidth: Dp,
+    modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    content: @Composable (ProductAdaptiveInfo) -> Unit,
+) {
+    YSuiteProductPage(
+        title = title,
+        modifier = modifier,
+        navigationIcon = navigationIcon,
+        actions = actions,
+    ) { adaptive ->
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            androidx.compose.foundation.layout.Box(
+                modifier =
+                    Modifier
+                        .widthIn(max = maxContentWidth)
+                        .fillMaxSize()
+                        .padding(YSuiteSpacing.Large),
             ) {
                 content(adaptive)
             }
