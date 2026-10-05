@@ -84,9 +84,14 @@ class YSuiteAppContainer(
                                 category =
                                     "capability",
                                 recommendation =
-                                    capabilityRecommendation(
+                                    capabilityRecommendationKey(
                                         kind,
                                         status,
+                                    ),
+                                metadata =
+                                    mapOf(
+                                        "kind" to kind.name,
+                                        "status" to status.name,
                                     ),
                             )
                         }
@@ -130,10 +135,17 @@ class YSuiteAppContainer(
                                     "permissions",
                                 recommendation =
                                     if (denied > 0) {
-                                        "Review denied permissions in System."
+                                        "review_permissions"
                                     } else {
                                         null
                                     },
+                                metadata =
+                                    mapOf(
+                                        "declaredCount" to
+                                            requirements.size.toString(),
+                                        "deniedCount" to
+                                            denied.toString(),
+                                    ),
                             )
                         },
                     ),
@@ -180,6 +192,13 @@ class YSuiteAppContainer(
                                             },
                                     category =
                                         "filesystem",
+                                    metadata =
+                                        mapOf(
+                                            "providerId" to descriptor.id,
+                                            "capabilityCount" to
+                                                descriptor.capabilities.size
+                                                    .toString(),
+                                        ),
                                 )
                             }
                         },
@@ -247,7 +266,7 @@ private fun CapabilityStatus.toDiagnosticStatus():
             DiagnosticStatus.Failure
     }
 
-private fun capabilityRecommendation(
+private fun capabilityRecommendationKey(
     kind: CapabilityKind,
     status: CapabilityStatus,
 ): String? =
@@ -259,15 +278,15 @@ private fun capabilityRecommendation(
             CapabilityKind.Shizuku &&
             status ==
             CapabilityStatus.PermissionRequired ->
-            "Grant Shizuku access from System."
+            "grant_shizuku"
         kind ==
             CapabilityKind.Shizuku ->
-            "Start Shizuku if privileged non-root access is needed."
+            "start_shizuku"
         kind ==
             CapabilityKind.Root ->
-            "Grant root only to features that need protected system access."
+            "grant_root"
         kind ==
             CapabilityKind.Hooks ->
-            "Enable the YSuite module in LSPosed when hook features are installed."
+            "enable_hooks"
         else -> null
     }
