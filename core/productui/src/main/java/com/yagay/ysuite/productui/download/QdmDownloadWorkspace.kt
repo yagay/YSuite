@@ -1,12 +1,9 @@
 package com.yagay.ysuite.productui.download
 
-import com.yagay.ysuite.productui.YSuiteProductTopBar
-import com.yagay.ysuite.productui.YSuiteProductScaffold
+import com.yagay.ysuite.productui.YSuiteProductPage
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -35,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
-import com.yagay.ysuite.productui.ProductAdaptiveBox
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 
 data class QdmDownloadTab(
@@ -87,140 +83,137 @@ fun QdmDownloadWorkspace(
     var menuExpanded by remember { mutableStateOf(false) }
     var fabExpanded by remember { mutableStateOf(false) }
 
-    YSuiteProductScaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            Column {
-                YSuiteProductTopBar(
-                    title = {
-                        if (searchActive) {
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = onSearchQueryChange,
-                                placeholder = {
-                                    Text(searchPlaceholder)
-                                },
-                                singleLine = true,
-                            )
-                        } else {
-                            Text(title)
-                        }
+    YSuiteProductPage(
+        title = title,
+        modifier = modifier,
+        navigationIcon = navigationIcon,
+        titleContent = {
+            if (searchActive) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = {
+                        Text(searchPlaceholder)
                     },
-                    navigationIcon = navigationIcon,
-                    actions = {
-                        if (searchActive) {
-                            IconButton(onClick = onToggleSearch) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription =
-                                        closeSearchContentDescription,
-                                )
-                            }
-                        } else {
-                            IconButton(onClick = onToggleSearch) {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription = searchPlaceholder,
-                                )
-                            }
-                            if (
-                                onSettings != null &&
-                                menuLabels != null
-                            ) {
-                                IconButton(onClick = onSettings) {
-                                    Icon(
-                                        Icons.Default.Settings,
-                                        contentDescription =
-                                            menuLabels.settings,
-                                    )
-                                }
-                            }
-                            if (
-                                menuLabels != null &&
-                                (
-                                    onSortDate != null ||
-                                    onSortName != null ||
-                                    onClearCompleted != null
-                                )
-                            ) {
-                                androidx.compose.foundation.layout.Box {
-                                    IconButton(
-                                        onClick = {
-                                            menuExpanded = true
-                                        },
-                                    ) {
-                                        Icon(
-                                            Icons.Default.MoreVert,
-                                            contentDescription = null,
-                                        )
-                                    }
-                                    DropdownMenu(
-                                        expanded = menuExpanded,
-                                        onDismissRequest = {
-                                            menuExpanded = false
-                                        },
-                                    ) {
-                                        if (onSortDate != null) {
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Text(menuLabels.sortDate)
-                                                },
-                                                onClick = {
-                                                    menuExpanded = false
-                                                    onSortDate()
-                                                },
-                                            )
-                                        }
-                                        if (onSortName != null) {
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Text(menuLabels.sortName)
-                                                },
-                                                onClick = {
-                                                    menuExpanded = false
-                                                    onSortName()
-                                                },
-                                            )
-                                        }
-                                        if (onClearCompleted != null) {
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Text(
-                                                        menuLabels
-                                                            .clearCompleted,
-                                                    )
-                                                },
-                                                onClick = {
-                                                    menuExpanded = false
-                                                    onClearCompleted()
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            actions()
-                        }
-                    },
+                    singleLine = true,
                 )
-                if (tabs.isNotEmpty()) {
-                    val selectedIndex =
-                        tabs.indexOfFirst {
-                            it.id == selectedTabId
-                        }.coerceAtLeast(0)
-                    ScrollableTabRow(
-                        selectedTabIndex = selectedIndex,
-                    ) {
-                        tabs.forEach { tab ->
-                            Tab(
-                                selected =
-                                    tab.id == selectedTabId,
-                                onClick = {
-                                    onTabSelected(tab.id)
-                                },
-                                text = { Text(tab.label) },
+            } else {
+                Text(title)
+            }
+        },
+        actions = {
+            if (searchActive) {
+                IconButton(onClick = onToggleSearch) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription =
+                            closeSearchContentDescription,
+                    )
+                }
+            } else {
+                IconButton(onClick = onToggleSearch) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = searchPlaceholder,
+                    )
+                }
+                if (
+                    onSettings != null &&
+                    menuLabels != null
+                ) {
+                    IconButton(onClick = onSettings) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription =
+                                menuLabels.settings,
+                        )
+                    }
+                }
+                if (
+                    menuLabels != null &&
+                    (
+                        onSortDate != null ||
+                            onSortName != null ||
+                            onClearCompleted != null
+                    )
+                ) {
+                    androidx.compose.foundation.layout.Box {
+                        IconButton(
+                            onClick = {
+                                menuExpanded = true
+                            },
+                        ) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = null,
                             )
                         }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = {
+                                menuExpanded = false
+                            },
+                        ) {
+                            if (onSortDate != null) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(menuLabels.sortDate)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onSortDate()
+                                    },
+                                )
+                            }
+                            if (onSortName != null) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(menuLabels.sortName)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onSortName()
+                                    },
+                                )
+                            }
+                            if (onClearCompleted != null) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            menuLabels
+                                                .clearCompleted,
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onClearCompleted()
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+                actions()
+            }
+        },
+        headerContent = {
+            if (tabs.isNotEmpty()) {
+                val selectedIndex =
+                    tabs.indexOfFirst {
+                        it.id == selectedTabId
+                    }.coerceAtLeast(0)
+                ScrollableTabRow(
+                    selectedTabIndex = selectedIndex,
+                ) {
+                    tabs.forEach { tab ->
+                        Tab(
+                            selected =
+                                tab.id == selectedTabId,
+                            onClick = {
+                                onTabSelected(tab.id)
+                            },
+                            text = { Text(tab.label) },
+                        )
                     }
                 }
             }
@@ -283,7 +276,7 @@ fun QdmDownloadWorkspace(
                             fabLabels != null &&
                             (
                                 onPasteClipboard != null ||
-                                onImportFile != null
+                                    onImportFile != null
                             )
                         ) {
                             fabExpanded = !fabExpanded
@@ -300,13 +293,8 @@ fun QdmDownloadWorkspace(
                 }
             }
         },
-    ) { padding ->
-        ProductAdaptiveBox(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) { adaptive ->
-            content(adaptive, selectedTabId)
-        }
+    ) { adaptive ->
+        content(adaptive, selectedTabId)
+    }
     }
 }
