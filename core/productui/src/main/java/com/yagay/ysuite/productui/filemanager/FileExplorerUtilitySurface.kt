@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.filemanager
 
+import com.yagay.ysuite.productui.ProductSurfaceKind
+
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,6 +20,7 @@ fun FileExplorerUtilitySurface(
     content: @Composable () -> Unit,
 ) {
     YSuiteProductPage(
+        surfaceKind = ProductSurfaceKind.Tool,
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
