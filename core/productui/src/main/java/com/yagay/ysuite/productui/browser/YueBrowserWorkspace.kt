@@ -2,6 +2,8 @@ package com.yagay.ysuite.productui.browser
 
 import com.yagay.ysuite.productui.ProductLayoutTokens
 import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
+import com.yagay.ysuite.productui.ProductSurfaceKind
+import com.yagay.ysuite.productui.ProductSurfaceScope
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,8 +34,9 @@ fun YueBrowserWorkspace(
     bottomBar: @Composable () -> Unit = {},
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
-    ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
-        Row(modifier = Modifier.fillMaxSize()) {
+    ProductSurfaceScope(ProductSurfaceKind.Browser) {
+        ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
+            Row(modifier = Modifier.fillMaxSize()) {
             if (adaptive.isExpanded && wideTabPane != null) {
                 Surface(
                     modifier = Modifier
@@ -64,5 +67,6 @@ fun YueBrowserWorkspace(
                 bottomBar()
             }
         }
+    }
     }
 }
