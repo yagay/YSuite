@@ -278,4 +278,17 @@
     <string name="yfiles_msg_shizuku_permission_required">需要 Shizuku 权限</string>
     <string name="yfiles_msg_shizuku_timeout">Shizuku 命令执行超时</string>
     <string name="yfiles_msg_shizuku_unavailable_host">当前宿主无法使用 Shizuku</string>
+    <string name="yfiles_view_grid">网格视图</string>
+    <string name="yfiles_view_list">列表视图</string>
+    <string name="yfiles_dual_pane">双栏</string>
+    <string name="yfiles_new_tab">新建标签页</string>
+    <string name="yfiles_close_tab">关闭标签页</string>
+    <string name="yfiles_adv_transfer">传输</string>
+    <string name="yfiles_adv_speed_limit">限速</string>
+    <string name="yfiles_adv_state_pending">等待中</string>
+    <string name="yfiles_adv_state_running">传输中</string>
+    <string name="yfiles_adv_state_paused">已暂停</string>
+    <string name="yfiles_adv_state_completed">已完成</string>
+    <string name="yfiles_adv_state_failed">失败</string>
+    <string name="yfiles_adv_state_cancelled">已取消</string>
 </resources>
