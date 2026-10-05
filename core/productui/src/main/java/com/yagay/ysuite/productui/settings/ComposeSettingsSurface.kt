@@ -1,7 +1,5 @@
 package com.yagay.ysuite.productui.settings
 
-import com.yagay.ysuite.productui.YSuiteProductTopBar
-
 /*
  * Interaction structure adapted from alorma/Compose-Settings (MIT).
  * Original project: https://github.com/alorma/Compose-Settings
@@ -24,7 +22,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -38,10 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
-import com.yagay.ysuite.productui.ProductAdaptiveBox
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
+import com.yagay.ysuite.productui.YSuiteProductPage
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ComposeSettingsSurface(
     title: String,
@@ -51,46 +47,54 @@ fun ComposeSettingsSurface(
     categoryPane: (@Composable (ProductAdaptiveInfo) -> Unit)? = null,
     content: @Composable ColumnScope.(ProductAdaptiveInfo) -> Unit,
 ) {
-    ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
+    YSuiteProductPage(
+        title = title,
+        modifier = modifier,
+        navigationIcon = navigationIcon,
+        actions = actions,
+    ) { adaptive ->
         Row(modifier = Modifier.fillMaxSize()) {
             if (adaptive.isExpanded && categoryPane != null) {
                 Surface(
-                    modifier = Modifier
-                        .width(264.dp)
-                        .fillMaxHeight(),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier =
+                        Modifier
+                            .width(264.dp)
+                            .fillMaxHeight(),
+                    color =
+                        MaterialTheme.colorScheme
+                            .surfaceContainerLow,
                 ) {
                     categoryPane(adaptive)
                 }
             }
-
-            Column(modifier = Modifier.weight(1f)) {
-                YSuiteProductTopBar(
-                    title = { Text(title) },
-                    navigationIcon = navigationIcon,
-                    actions = actions,
-                )
-                Box(
-                    modifier = Modifier
+            Box(
+                modifier =
+                    Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    Column(
-                        modifier = Modifier
+                        .fillMaxHeight(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                Column(
+                    modifier =
+                        Modifier
                             .fillMaxHeight()
                             .widthIn(max = 760.dp)
                             .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(
+                                rememberScrollState(),
+                            )
                             .padding(
-                                horizontal = YSuiteSpacing.Medium,
-                                vertical = YSuiteSpacing.Large,
+                                horizontal =
+                                    YSuiteSpacing.Medium,
+                                vertical =
+                                    YSuiteSpacing.Large,
                             ),
-                        verticalArrangement =
-                            Arrangement.spacedBy(YSuiteSpacing.Large),
-                    ) {
-                        content(adaptive)
-                    }
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            YSuiteSpacing.Large,
+                        ),
+                ) {
+                    content(adaptive)
                 }
             }
         }
