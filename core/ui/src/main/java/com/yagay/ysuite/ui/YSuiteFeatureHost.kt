@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -103,15 +104,23 @@ fun YSuiteFeatureHost(
         navigateBack()
     }
 
-    ProductAdaptiveRoot(modifier = modifier.fillMaxSize()) { adaptive ->
-        if (adaptive.isExpanded) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val permanentNavigation =
+            maxWidth > YSuiteLayoutTokens.MediumMaxWidth
+
+        if (permanentNavigation) {
             Row(modifier = Modifier.fillMaxSize()) {
                 PermanentNavigationPane(
                     features = features,
                     selectedId = selectedId,
                     onSelect = ::navigateTo,
                 )
-                Box(modifier = Modifier.weight(1f)) {
+                ProductAdaptiveRoot(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                ) {
                     CompositionLocalProvider(
                         LocalYSuiteHostNavigation provides
                             YSuiteHostNavigationState(
@@ -133,7 +142,10 @@ fun YSuiteFeatureHost(
                 }
             }
         } else {
-            val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+            val drawerState =
+                rememberDrawerState(
+                    initialValue = DrawerValue.Closed,
+                )
             val scope = rememberCoroutineScope()
 
             ModalNavigationDrawer(
@@ -141,23 +153,41 @@ fun YSuiteFeatureHost(
                 drawerContent = {
                     ModalDrawerSheet {
                         Column(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .verticalScroll(rememberScrollState())
-                                .padding(YSuiteSpacing.Medium),
-                            verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+                            modifier =
+                                Modifier
+                                    .fillMaxHeight()
+                                    .verticalScroll(
+                                        rememberScrollState(),
+                                    )
+                                    .padding(
+                                        YSuiteSpacing.Medium,
+                                    ),
+                            verticalArrangement =
+                                Arrangement.spacedBy(
+                                    YSuiteSpacing.Small,
+                                ),
                         ) {
                             Text(
-                                text = stringResource(R.string.app_name),
-                                style = MaterialTheme.typography.headlineSmall,
-                                modifier = Modifier.padding(YSuiteSpacing.Small),
+                                text =
+                                    stringResource(
+                                        R.string.app_name,
+                                    ),
+                                style =
+                                    MaterialTheme.typography
+                                        .headlineSmall,
+                                modifier =
+                                    Modifier.padding(
+                                        YSuiteSpacing.Small,
+                                    ),
                             )
                             NavigationItems(
                                 features = features,
                                 selectedId = selectedId,
                                 onSelect = {
                                     navigateTo(it)
-                                    scope.launch { drawerState.close() }
+                                    scope.launch {
+                                        drawerState.close()
+                                    }
                                 },
                             )
                         }
@@ -167,24 +197,35 @@ fun YSuiteFeatureHost(
                 val navState =
                     if (selectedId == HOME_ROUTE) {
                         YSuiteHostNavigationState(
-                            icon = YSuiteHostNavigationIcon.Menu,
-                            onClick = { scope.launch { drawerState.open() } },
+                            icon =
+                                YSuiteHostNavigationIcon.Menu,
+                            onClick = {
+                                scope.launch {
+                                    drawerState.open()
+                                }
+                            },
                         )
                     } else {
                         YSuiteHostNavigationState(
-                            icon = YSuiteHostNavigationIcon.Back,
+                            icon =
+                                YSuiteHostNavigationIcon.Back,
                             onClick = ::navigateBack,
                         )
                     }
 
-                CompositionLocalProvider(
-                    LocalYSuiteHostNavigation provides navState,
+                ProductAdaptiveRoot(
+                    modifier = Modifier.fillMaxSize(),
                 ) {
-                    FeatureDestination(
-                        selectedId = selectedId,
-                        registry = registry,
-                        onSelect = ::navigateTo,
-                    )
+                    CompositionLocalProvider(
+                        LocalYSuiteHostNavigation provides
+                            navState,
+                    ) {
+                        FeatureDestination(
+                            selectedId = selectedId,
+                            registry = registry,
+                            onSelect = ::navigateTo,
+                        )
+                    }
                 }
             }
         }
@@ -206,11 +247,16 @@ fun YSuiteSingleFeatureHost(
         }
     }
 
-    CompositionLocalProvider(
-        LocalYSuiteHostNavigation provides YSuiteHostNavigationState(),
+    ProductAdaptiveRoot(
+        modifier = modifier.fillMaxSize(),
     ) {
-        Box(modifier = modifier.fillMaxSize()) {
-            feature.Content()
+        CompositionLocalProvider(
+            LocalYSuiteHostNavigation provides
+                YSuiteHostNavigationState(),
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                feature.Content()
+            }
         }
     }
 }
