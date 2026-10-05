@@ -13,6 +13,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
+import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
 import com.yagay.ysuite.productui.YSuiteProductPage
 
 /**
@@ -47,8 +48,13 @@ fun OpenTaskerWorkspace(
                 ) {
                     library(adaptive)
                 }
-                Box(modifier = Modifier.weight(1f)) {
-                    editor(adaptive)
+                ProductPaneAdaptiveBox(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                ) { paneAdaptive ->
+                    editor(paneAdaptive)
                 }
                 if (inspector != null) {
                     Surface(
@@ -65,7 +71,11 @@ fun OpenTaskerWorkspace(
                 }
             }
         } else {
-            editor(adaptive)
+            ProductPaneAdaptiveBox(
+                modifier = Modifier.fillMaxSize(),
+            ) { paneAdaptive ->
+                editor(paneAdaptive)
+            }
         }
     }
 }
