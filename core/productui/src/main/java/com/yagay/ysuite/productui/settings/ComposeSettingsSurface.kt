@@ -38,7 +38,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.YSuiteProductPage
@@ -123,14 +122,17 @@ fun ComposeSettingsGroup(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
     ) {
         if (title != null) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.padding(
+                    horizontal = YSuiteSpacing.Medium,
+                    vertical = YSuiteSpacing.Small,
+                ),
             )
         }
         content()
