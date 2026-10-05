@@ -217,12 +217,12 @@ else:
             errors="ignore",
         )
         rel = product_file.relative_to(ROOT).as_posix()
-        if re.search(r"\\bTopAppBar\\s*\\(", product_text):
+        if re.search(r"\bTopAppBar\s*\(", product_text):
             violations.append(
                 f"{rel}: product workspace owns TopAppBar directly; "
                 "use YSuiteProductTopBar"
             )
-        if re.search(r"\\bScaffold\\s*\\(", product_text):
+        if re.search(r"\bScaffold\s*\(", product_text):
             violations.append(
                 f"{rel}: product workspace owns Scaffold directly; "
                 "use YSuiteProductScaffold"
