@@ -6,6 +6,10 @@ on:
       - rebuild/product-ui-system
   pull_request:
 
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   architecture:
     runs-on: ubuntu-latest
