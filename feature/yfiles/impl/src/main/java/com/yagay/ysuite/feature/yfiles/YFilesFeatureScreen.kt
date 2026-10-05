@@ -1,11 +1,12 @@
 package com.yagay.ysuite.feature.yfiles
 
+import com.yagay.ysuite.ui.YSuiteFeatureBackHandler
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.provider.Settings
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -123,7 +124,7 @@ fun YFilesFeatureScreen(
     val advancedState by
         advanced.state.collectAsStateWithLifecycle()
 
-    BackHandler(enabled = browser.canHandleBack()) {
+    YSuiteFeatureBackHandler(enabled = browser.canHandleBack()) {
         browser.navigateBack()
     }
 
