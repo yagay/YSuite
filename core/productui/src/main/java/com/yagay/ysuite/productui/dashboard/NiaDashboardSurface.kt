@@ -1,10 +1,11 @@
 package com.yagay.ysuite.productui.dashboard
 
+import com.yagay.ysuite.productui.ProductLayoutTokens
+
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.YSuiteBoundedProductPage
 
@@ -21,7 +22,7 @@ fun NiaDashboardSurface(
 ) {
     YSuiteBoundedProductPage(
         title = title,
-        maxContentWidth = 1280.dp,
+        maxContentWidth = ProductLayoutTokens.DashboardContentMaxWidth,
         modifier = modifier,
         navigationIcon = navigationIcon,
         actions = actions,
