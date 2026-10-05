@@ -1,11 +1,13 @@
 package com.yagay.ysuite.productui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 
 enum class ProductWidthClass {
     Compact,
@@ -15,28 +17,34 @@ enum class ProductWidthClass {
 
 data class ProductAdaptiveInfo(
     val widthClass: ProductWidthClass,
+    val windowWidthClass: ProductWidthClass = widthClass,
 ) {
     val isCompact: Boolean
         get() = widthClass == ProductWidthClass.Compact
 
     val isExpanded: Boolean
         get() = widthClass == ProductWidthClass.Expanded
+
+    val isWindowExpanded: Boolean
+        get() = windowWidthClass == ProductWidthClass.Expanded
 }
 
 private val LocalProductAdaptiveInfo =
     staticCompositionLocalOf<ProductAdaptiveInfo?> { null }
 
-private fun productWidthClass(widthDp: androidx.compose.ui.unit.Dp): ProductWidthClass =
+private fun productWidthClass(width: Dp): ProductWidthClass =
     when {
-        widthDp < 600.dp -> ProductWidthClass.Compact
-        widthDp < 840.dp -> ProductWidthClass.Medium
-        else -> ProductWidthClass.Expanded
+        width < YSuiteLayoutTokens.CompactBreakpoint ->
+            ProductWidthClass.Compact
+        width < YSuiteLayoutTokens.ExpandedBreakpoint ->
+            ProductWidthClass.Medium
+        else ->
+            ProductWidthClass.Expanded
     }
 
 /**
- * Computes the product width class exactly once for one YSuite window and provides it to every
- * nested product workspace. Feature layouts therefore do not reclassify themselves after host
- * navigation panes or drawers change their local constraints.
+ * Classifies the feature viewport once after host navigation has been laid out.
+ * Nested workspaces inherit this as their window-level classification.
  */
 @Composable
 fun ProductAdaptiveRoot(
@@ -44,9 +52,11 @@ fun ProductAdaptiveRoot(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
+        val widthClass = productWidthClass(maxWidth)
         val adaptive =
             ProductAdaptiveInfo(
-                widthClass = productWidthClass(maxWidth),
+                widthClass = widthClass,
+                windowWidthClass = widthClass,
             )
         CompositionLocalProvider(
             LocalProductAdaptiveInfo provides adaptive,
@@ -57,8 +67,7 @@ fun ProductAdaptiveRoot(
 }
 
 /**
- * Reuses the host window classification when present. Standalone product previews still work
- * because they fall back to a local root calculation.
+ * Reads the feature-window classification without reclassifying for nested constraints.
  */
 @Composable
 fun ProductAdaptiveBox(
@@ -67,15 +76,39 @@ fun ProductAdaptiveBox(
 ) {
     val inherited = LocalProductAdaptiveInfo.current
     if (inherited != null) {
-        androidx.compose.foundation.layout.Box(
-            modifier = modifier,
-        ) {
+        Box(modifier = modifier) {
             content(inherited)
         }
     } else {
         ProductAdaptiveRoot(
             modifier = modifier,
             content = content,
+        )
+    }
+}
+
+/**
+ * Reclassifies only the local content pane while preserving the feature-window width class.
+ *
+ * Use this after fixed source/category/detail panes have consumed width. This prevents a workspace
+ * from treating a 600dp center pane as Expanded merely because the overall feature viewport was
+ * wider than 840dp.
+ */
+@Composable
+fun ProductPaneAdaptiveBox(
+    modifier: Modifier = Modifier,
+    content: @Composable (ProductAdaptiveInfo) -> Unit,
+) {
+    val inherited = LocalProductAdaptiveInfo.current
+    BoxWithConstraints(modifier = modifier) {
+        val localClass = productWidthClass(maxWidth)
+        content(
+            ProductAdaptiveInfo(
+                widthClass = localClass,
+                windowWidthClass =
+                    inherited?.windowWidthClass
+                        ?: localClass,
+            ),
         )
     }
 }
