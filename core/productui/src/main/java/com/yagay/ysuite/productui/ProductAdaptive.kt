@@ -32,7 +32,7 @@ data class ProductAdaptiveInfo(
 private val LocalProductAdaptiveInfo =
     staticCompositionLocalOf<ProductAdaptiveInfo?> { null }
 
-private fun productWidthClass(width: Dp): ProductWidthClass =
+internal fun classifyProductWidth(width: Dp): ProductWidthClass =
     when {
         width < YSuiteLayoutTokens.CompactBreakpoint ->
             ProductWidthClass.Compact
@@ -52,7 +52,7 @@ fun ProductAdaptiveRoot(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
-        val widthClass = productWidthClass(maxWidth)
+        val widthClass = classifyProductWidth(maxWidth)
         val adaptive =
             ProductAdaptiveInfo(
                 widthClass = widthClass,
@@ -101,7 +101,7 @@ fun ProductPaneAdaptiveBox(
 ) {
     val inherited = LocalProductAdaptiveInfo.current
     BoxWithConstraints(modifier = modifier) {
-        val localClass = productWidthClass(maxWidth)
+        val localClass = classifyProductWidth(maxWidth)
         content(
             ProductAdaptiveInfo(
                 widthClass = localClass,
