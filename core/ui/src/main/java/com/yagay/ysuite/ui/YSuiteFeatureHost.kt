@@ -77,14 +77,14 @@ fun YSuiteFeatureHost(
 
     fun navigateTo(id: String) {
         if (id == HOME_ROUTE) {
-            backStack = listOf(HOME_ROUTE)
+            backStack = topLevelDestinationStack(HOME_ROUTE, null)
             return
         }
         val target =
             registry.findById(id) ?: return
         val route = target.contract.startRoute.value
         if (route == currentRoute) return
-        backStack = listOf(HOME_ROUTE, route)
+        backStack = topLevelDestinationStack(HOME_ROUTE, route)
     }
 
     fun navigateBack() {
