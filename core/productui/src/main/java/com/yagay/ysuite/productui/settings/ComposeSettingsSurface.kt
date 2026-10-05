@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.settings
 
+import com.yagay.ysuite.productui.ProductLayoutTokens
+
 /*
  * Interaction structure adapted from alorma/Compose-Settings (MIT).
  * Original project: https://github.com/alorma/Compose-Settings
@@ -58,7 +60,7 @@ fun ComposeSettingsSurface(
                 Surface(
                     modifier =
                         Modifier
-                            .width(264.dp)
+                            .width(ProductLayoutTokens.SettingsCategoryPaneWidth)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme
@@ -78,7 +80,7 @@ fun ComposeSettingsSurface(
                     modifier =
                         Modifier
                             .fillMaxHeight()
-                            .widthIn(max = 760.dp)
+                            .widthIn(max = ProductLayoutTokens.SettingsContentMaxWidth)
                             .fillMaxWidth()
                             .verticalScroll(
                                 rememberScrollState(),
