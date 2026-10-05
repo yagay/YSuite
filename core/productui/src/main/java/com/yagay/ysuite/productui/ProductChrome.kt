@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -114,18 +115,10 @@ fun YSuiteProductPage(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .then(
-                        Modifier,
-                    ),
+                    .padding(padding),
         ) { adaptive ->
             androidx.compose.foundation.layout.Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .then(
-                            androidx.compose.ui.Modifier
-                                .padding(padding),
-                        ),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 content(adaptive)
             }
