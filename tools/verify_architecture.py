@@ -314,6 +314,75 @@ for suffix in pane_adaptive_required:
             "pane-owning workspace must classify its local content pane"
         )
 
+yfiles_utility = (
+    ROOT
+    / "core/productui/src/main/java/com/yagay/ysuite/productui/"
+    "filemanager/FileExplorerUtilitySurface.kt"
+)
+if yfiles_utility.exists():
+    utility_text = yfiles_utility.read_text(
+        encoding="utf-8",
+        errors="ignore",
+    )
+    if "NiaToolSurface(" not in utility_text:
+        violations.append(
+            "FileExplorerUtilitySurface must use canonical NiaToolSurface geometry"
+        )
+    if "YSuiteProductPage(" in utility_text:
+        violations.append(
+            "FileExplorerUtilitySurface must not bypass canonical Tool geometry"
+        )
+
+yfiles_components = (
+    ROOT
+    / "core/productui/src/main/java/com/yagay/ysuite/productui/"
+    "filemanager/YFileManagerComponents.kt"
+)
+if yfiles_components.exists():
+    yfiles_component_text = yfiles_components.read_text(
+        encoding="utf-8",
+        errors="ignore",
+    )
+    if "fun FileExplorerToolGroup" in yfiles_component_text and (
+        "YSuiteSection(" not in yfiles_component_text
+    ):
+        violations.append(
+            "FileExplorerToolGroup must reuse YSuiteSection"
+        )
+    if "fun FileExplorerToolAction" in yfiles_component_text and (
+        "YSuiteListItem(" not in yfiles_component_text
+    ):
+        violations.append(
+            "FileExplorerToolAction must reuse YSuiteListItem"
+        )
+    if "fun FileExplorerBackButton" in yfiles_component_text:
+        violations.append(
+            "YFiles must use shared YSuite back navigation"
+        )
+
+yfiles_advanced = (
+    ROOT
+    / "feature/yfiles/impl/src/main/java/com/yagay/ysuite/feature/yfiles/"
+    "YFilesAdvancedScreens.kt"
+)
+if yfiles_advanced.exists():
+    advanced_text = yfiles_advanced.read_text(
+        encoding="utf-8",
+        errors="ignore",
+    )
+    for raw_status in (
+        "result.status.name",
+        "browserState.shizukuStatus.name",
+        "support.gocryptfs.toString()",
+        "support.encfs.toString()",
+        "support.fusermount.toString()",
+    ):
+        if raw_status in advanced_text:
+            violations.append(
+                "YFiles advanced UI exposes raw technical state: "
+                + raw_status
+            )
+
 for gradle in ROOT.glob("feature/*/impl/build.gradle.kts"):
     rel = gradle.relative_to(ROOT).as_posix()
     text = gradle.read_text(encoding="utf-8", errors="ignore")
