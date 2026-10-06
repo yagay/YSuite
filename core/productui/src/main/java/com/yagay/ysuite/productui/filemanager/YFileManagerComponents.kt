@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -365,19 +364,6 @@ fun FileExplorerNewFolderFab(
     ) {
         Icon(
             imageVector = Icons.Default.CreateNewFolder,
-            contentDescription = contentDescription,
-        )
-    }
-}
-
-@Composable
-fun FileExplorerBackButton(
-    contentDescription: String?,
-    onClick: () -> Unit,
-) {
-    IconButton(onClick = onClick) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = contentDescription,
         )
     }
