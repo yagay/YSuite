@@ -291,4 +291,11 @@
     <string name="yfiles_adv_state_completed">已完成</string>
     <string name="yfiles_adv_state_failed">失败</string>
     <string name="yfiles_adv_state_cancelled">已取消</string>
+    <string name="yfiles_adv_integrity_unchanged">未变化</string>
+    <string name="yfiles_adv_integrity_changed">已变化</string>
+    <string name="yfiles_adv_integrity_missing">文件缺失</string>
+    <string name="yfiles_adv_integrity_unreadable">无法读取</string>
+    <string name="yfiles_adv_cloud_google_drive">Google Drive</string>
+    <string name="yfiles_adv_cloud_dropbox">Dropbox</string>
+    <string name="yfiles_adv_cloud_onedrive">OneDrive</string>
 </resources>
