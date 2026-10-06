@@ -291,4 +291,11 @@
     <string name="yfiles_adv_state_completed">Completed</string>
     <string name="yfiles_adv_state_failed">Failed</string>
     <string name="yfiles_adv_state_cancelled">Cancelled</string>
+    <string name="yfiles_adv_integrity_unchanged">Unchanged</string>
+    <string name="yfiles_adv_integrity_changed">Changed</string>
+    <string name="yfiles_adv_integrity_missing">Missing</string>
+    <string name="yfiles_adv_integrity_unreadable">Unreadable</string>
+    <string name="yfiles_adv_cloud_google_drive">Google Drive</string>
+    <string name="yfiles_adv_cloud_dropbox">Dropbox</string>
+    <string name="yfiles_adv_cloud_onedrive">OneDrive</string>
 </resources>
