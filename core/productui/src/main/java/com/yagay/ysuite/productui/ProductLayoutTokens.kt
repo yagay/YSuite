@@ -6,29 +6,29 @@ import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 /**
  * Product-layout geometry shared by mature workspace adaptations.
  *
- * Product types may use different pane widths, but the values live here so responsive behavior
- * remains reviewable and consistent instead of being scattered through feature/workspace code.
+ * Product types can still differ structurally, but side panes use a small, reviewable set of
+ * canonical widths so moving between products does not cause visible pane-width jumps.
  */
 object ProductLayoutTokens {
     val DashboardContentMaxWidth = 1280.dp
     val ToolContentMaxWidth = 880.dp
     val DetailContentMaxWidth = 900.dp
-
     val SettingsContentMaxWidth = YSuiteLayoutTokens.DetailMaxWidth
-    val SettingsCategoryPaneWidth = 264.dp
 
-    val FileLocationPaneWidth = YSuiteLayoutTokens.NavigationPaneWidth
-    val FileDetailPaneWidth = 360.dp
+    val NavigationPaneWidth = YSuiteLayoutTokens.NavigationPaneWidth
+    val CompactSidePaneWidth = 240.dp
+    val DetailPaneWidth = 360.dp
 
-    val BrowserTabPaneWidth = 248.dp
-    val LogDetailPaneWidth = 380.dp
+    val SettingsCategoryPaneWidth = NavigationPaneWidth
+    val FileLocationPaneWidth = NavigationPaneWidth
+    val BrowserTabPaneWidth = CompactSidePaneWidth
+    val TaskCategoryPaneWidth = CompactSidePaneWidth
+    val AutomationLibraryPaneWidth = NavigationPaneWidth
+    val EntityNavigationPaneWidth = NavigationPaneWidth
 
-    val TaskCategoryPaneWidth = 240.dp
-    val TaskDetailPaneWidth = 360.dp
-
-    val AutomationLibraryPaneWidth = 300.dp
-    val AutomationInspectorPaneWidth = 360.dp
-
-    val EntityNavigationPaneWidth = 248.dp
-    val EntityDetailPaneWidth = 380.dp
+    val FileDetailPaneWidth = DetailPaneWidth
+    val LogDetailPaneWidth = DetailPaneWidth
+    val TaskDetailPaneWidth = DetailPaneWidth
+    val AutomationInspectorPaneWidth = DetailPaneWidth
+    val EntityDetailPaneWidth = DetailPaneWidth
 }
