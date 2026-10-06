@@ -1,5 +1,7 @@
 package com.yagay.ysuite.feature.yfiles
 
+import com.yagay.ysuite.ui.YSuiteBackNavigationButton
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,7 +28,6 @@ import com.yagay.ysuite.feature.yfiles.api.YFileType
 import com.yagay.ysuite.feature.yfiles.plugin.YFilesPluginDescriptor
 import com.yagay.ysuite.feature.yfiles.provider.cloud.YFilesCloudKind
 import com.yagay.ysuite.feature.yfiles.provider.remote.YFilesNetworkProtocol
-import com.yagay.ysuite.productui.filemanager.FileExplorerBackButton
 import com.yagay.ysuite.productui.filemanager.FileExplorerToolAction
 import com.yagay.ysuite.productui.filemanager.FileExplorerToolGroup
 import com.yagay.ysuite.productui.filemanager.FileExplorerUtilitySurface
@@ -48,8 +49,7 @@ internal fun YFilesTransfersSurface(
     FileExplorerUtilitySurface(
         title = stringResource(R.string.yfiles_adv_transfers),
         navigationIcon = {
-            FileExplorerBackButton(
-                contentDescription = stringResource(R.string.yfiles_tab_files),
+            YSuiteBackNavigationButton(
                 onClick = onBack,
             )
         },
