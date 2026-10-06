@@ -1,15 +1,15 @@
 package com.yagay.ysuite.productui.filemanager
 
-import com.yagay.ysuite.productui.ProductSurfaceKind
-
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.yagay.ysuite.productui.YSuiteProductPage
+import com.yagay.ysuite.productui.tool.NiaToolSurface
 
 /**
  * FileExplorer-style secondary screen for analyzer/tools workflows.
- * Keeps file-manager content semantics while sharing the YSuite page host.
+ *
+ * Utility pages keep their file-manager content while using the same bounded Tool geometry as
+ * every other YSuite tool page.
  */
 @Composable
 fun FileExplorerUtilitySurface(
@@ -19,8 +19,7 @@ fun FileExplorerUtilitySurface(
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable () -> Unit,
 ) {
-    YSuiteProductPage(
-        surfaceKind = ProductSurfaceKind.Tool,
+    NiaToolSurface(
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
