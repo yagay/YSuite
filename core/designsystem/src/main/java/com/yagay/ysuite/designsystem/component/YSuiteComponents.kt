@@ -59,7 +59,7 @@ fun YSuiteSectionHeader(
 fun YSuiteSection(
     title: String,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
