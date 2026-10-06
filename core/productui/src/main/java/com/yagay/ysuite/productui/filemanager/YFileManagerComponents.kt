@@ -74,6 +74,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yagay.ysuite.designsystem.component.YSuiteListItem
+import com.yagay.ysuite.designsystem.component.YSuiteSection
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
 enum class YFileProductItemKind {
@@ -663,18 +665,11 @@ fun FileExplorerToolGroup(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
-        content()
-    }
+    YSuiteSection(
+        title = title,
+        modifier = modifier,
+        content = content,
+    )
 }
 
 @Composable
@@ -683,18 +678,23 @@ fun FileExplorerToolAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ListItem(
-        headlineContent = { Text(text) },
-        trailingContent = {
+    YSuiteListItem(
+        title = text,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+        trailing = {
             Text(
                 text = "›",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style =
+                    MaterialTheme.typography
+                        .titleMedium,
+                color =
+                    MaterialTheme.colorScheme
+                        .onSurfaceVariant,
             )
         },
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
     )
 }
 
