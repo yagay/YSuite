@@ -76,6 +76,7 @@ fun YSuiteSection(
                         MaterialTheme.colorScheme
                             .surfaceContainerLow,
                 ),
+            shape = MaterialTheme.shapes.large,
         ) {
             Column(
                 modifier = Modifier
