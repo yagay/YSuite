@@ -388,7 +388,7 @@ private fun ProductFeatureTile(
         shape = MaterialTheme.shapes.large,
     ) {
         Column(
-            modifier = Modifier.padding(YSuiteSpacing.Large),
+            modifier = Modifier.padding(YSuiteSpacing.Medium),
             verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
         ) {
             Text(
