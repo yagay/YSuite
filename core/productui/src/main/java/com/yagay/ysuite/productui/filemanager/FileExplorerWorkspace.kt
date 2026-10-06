@@ -112,24 +112,24 @@ fun FileExplorerWorkspace(
                 BrowserScaffold(
                     title = title,
                     navigationIcon = {
-                        Row {
-                            if (navigationIcon != null) {
-                                navigationIcon()
-                            }
-                            IconButton(
-                                onClick = {
-                                    scope.launch { drawerState.open() }
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Storage,
-                                    contentDescription =
-                                        drawerContentDescription,
-                                )
-                            }
-                        }
+                        navigationIcon?.invoke()
                     },
-                    actions = actions,
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    drawerState.open()
+                                }
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Storage,
+                                contentDescription =
+                                    drawerContentDescription,
+                            )
+                        }
+                        actions()
+                    },
                     breadcrumb = breadcrumb,
                     tabs = tabs,
                     statusBanner = statusBanner,
