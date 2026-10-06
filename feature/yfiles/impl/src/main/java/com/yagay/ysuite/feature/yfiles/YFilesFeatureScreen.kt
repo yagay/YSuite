@@ -1,5 +1,6 @@
 package com.yagay.ysuite.feature.yfiles
 
+import com.yagay.ysuite.ui.YSuiteBackNavigationButton
 import com.yagay.ysuite.ui.YSuiteFeatureBackHandler
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 
@@ -53,7 +54,6 @@ import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
 import com.yagay.ysuite.productui.filemanager.YFileBreadcrumbBar
 import com.yagay.ysuite.productui.filemanager.YFileEntryRow
-import com.yagay.ysuite.productui.filemanager.FileExplorerBackButton
 import com.yagay.ysuite.productui.filemanager.FileExplorerBrowserTabs
 import com.yagay.ysuite.productui.filemanager.FileExplorerBrowserTab
 import com.yagay.ysuite.productui.filemanager.FileExplorerGrid
@@ -178,11 +178,11 @@ fun YFilesFeatureScreen(
             FileExplorerUtilitySurface(
                 title = stringResource(R.string.yfiles_tab_tools),
                 navigationIcon = {
-                    FileExplorerBackButton(
-                        contentDescription =
-                            stringResource(R.string.yfiles_tab_files),
+                    YSuiteBackNavigationButton(
                         onClick = {
-                            browser.setTab(YFilesTab.Files)
+                            browser.setTab(
+                                YFilesTab.Files,
+                            )
                         },
                     )
                 },
@@ -209,11 +209,11 @@ fun YFilesFeatureScreen(
             ComposeSettingsSurface(
                 title = stringResource(R.string.yfiles_tab_settings),
                 navigationIcon = {
-                    FileExplorerBackButton(
-                        contentDescription =
-                            stringResource(R.string.yfiles_tab_files),
+                    YSuiteBackNavigationButton(
                         onClick = {
-                            browser.setTab(YFilesTab.Files)
+                            browser.setTab(
+                                YFilesTab.Files,
+                            )
                         },
                     )
                 },
