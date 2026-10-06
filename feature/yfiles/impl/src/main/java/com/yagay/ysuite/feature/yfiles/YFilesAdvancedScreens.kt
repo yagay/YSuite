@@ -34,6 +34,7 @@ import com.yagay.ysuite.productui.filemanager.FileExplorerUtilitySurface
 import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsLink
 import com.yagay.ysuite.productui.settings.ComposeSettingsSwitch
+import com.yagay.ysuite.platform.api.CapabilityStatus
 
 @Composable
 internal fun YFilesTransfersSurface(
@@ -650,7 +651,9 @@ internal fun LazyListScope.advancedToolsContent(
                             title =
                                 result.watch.ref.path,
                             subtitle =
-                                result.status.name,
+                                integrityStatusLabel(
+                                    result.status,
+                                ),
                         )
                     }
             }
@@ -758,20 +761,23 @@ internal fun LazyListScope.advancedToolsContent(
                     YSuiteListItem(
                         title = stringResource(R.string.yfiles_adv_gocryptfs),
                         subtitle =
-                            support.gocryptfs
-                                .toString(),
+                            availabilityLabel(
+                                support.gocryptfs,
+                            ),
                     )
                     YSuiteListItem(
                         title = stringResource(R.string.yfiles_adv_encfs),
                         subtitle =
-                            support.encfs
-                                .toString(),
+                            availabilityLabel(
+                                support.encfs,
+                            ),
                     )
                     YSuiteListItem(
                         title = stringResource(R.string.yfiles_adv_fusermount),
                         subtitle =
-                            support.fusermount
-                                .toString(),
+                            availabilityLabel(
+                                support.fusermount,
+                            ),
                     )
                 }
             }
@@ -796,6 +802,84 @@ internal fun LazyListScope.advancedToolsContent(
         }
     }
 }
+
+@Composable
+private fun integrityStatusLabel(
+    status: YIntegrityStatus,
+): String =
+    when (status) {
+        YIntegrityStatus.Unchanged ->
+            stringResource(
+                R.string.yfiles_adv_integrity_unchanged,
+            )
+        YIntegrityStatus.Changed ->
+            stringResource(
+                R.string.yfiles_adv_integrity_changed,
+            )
+        YIntegrityStatus.Missing ->
+            stringResource(
+                R.string.yfiles_adv_integrity_missing,
+            )
+        YIntegrityStatus.Unreadable ->
+            stringResource(
+                R.string.yfiles_adv_integrity_unreadable,
+            )
+    }
+
+@Composable
+private fun availabilityLabel(
+    available: Boolean,
+): String =
+    stringResource(
+        if (available) {
+            R.string.yfiles_available
+        } else {
+            R.string.yfiles_unavailable
+        },
+    )
+
+@Composable
+private fun capabilityStatusLabel(
+    status: CapabilityStatus,
+): String =
+    stringResource(
+        when (status) {
+            CapabilityStatus.Available ->
+                R.string.yfiles_available
+            CapabilityStatus.Unavailable ->
+                R.string.yfiles_unavailable
+            CapabilityStatus.PermissionRequired ->
+                R.string.yfiles_permission_required
+            CapabilityStatus.Error ->
+                R.string.yfiles_status_error
+        },
+    )
+
+private fun networkProtocolLabel(
+    protocol: YFilesNetworkProtocol,
+): String =
+    when (protocol) {
+        YFilesNetworkProtocol.SMB -> "SMB"
+        YFilesNetworkProtocol.SFTP -> "SFTP"
+        YFilesNetworkProtocol.FTP -> "FTP"
+        YFilesNetworkProtocol.FTPS -> "FTPS"
+        YFilesNetworkProtocol.WebDAV -> "WebDAV"
+    }
+
+@Composable
+private fun cloudKindLabel(
+    kind: YFilesCloudKind,
+): String =
+    stringResource(
+        when (kind) {
+            YFilesCloudKind.GoogleDrive ->
+                R.string.yfiles_adv_cloud_google_drive
+            YFilesCloudKind.Dropbox ->
+                R.string.yfiles_adv_cloud_dropbox
+            YFilesCloudKind.OneDrive ->
+                R.string.yfiles_adv_cloud_onedrive
+        },
+    )
 
 @Composable
 internal fun YFilesAdvancedSettingsContent(
@@ -918,9 +1002,9 @@ internal fun YFilesAdvancedSettingsContent(
         ComposeSettingsLink(
             title = stringResource(R.string.yfiles_adv_shizuku_access),
             subtitle =
-                browserState
-                    .shizukuStatus
-                    .name,
+                capabilityStatusLabel(
+                    browserState.shizukuStatus,
+                ),
             onClick = {
                 advanced
                     .requestShizukuPermission()
@@ -939,7 +1023,9 @@ internal fun YFilesAdvancedSettingsContent(
                 ComposeSettingsLink(
                     title = profile.name,
                     subtitle =
-                        profile.protocol.name +
+                        networkProtocolLabel(
+                            profile.protocol,
+                        ) +
                             " • " +
                             profile.host +
                             ":" +
@@ -982,7 +1068,9 @@ internal fun YFilesAdvancedSettingsContent(
                 ComposeSettingsLink(
                     title = profile.name,
                     subtitle =
-                        profile.kind.name,
+                        cloudKindLabel(
+                            profile.kind,
+                        ),
                     onClick = {
                         advanced
                             .beginCloudProfile(
@@ -1020,7 +1108,7 @@ internal fun YFilesAdvancedSettingsContent(
                                 it.httpEnabled
                             ) {
                                 append(
-                                    "HTTP :",
+                                    "HTTP:",
                                 )
                                 append(
                                     it.httpPort,
@@ -1035,7 +1123,7 @@ internal fun YFilesAdvancedSettingsContent(
                                     append(" • ")
                                 }
                                 append(
-                                    "FTP :",
+                                    "FTP:",
                                 )
                                 append(
                                     it.ftpPort,
@@ -1187,7 +1275,9 @@ internal fun YFilesAdvancedSettingsContent(
                     title =
                         stringResource(
                             R.string.yfiles_adv_protocol,
-                            draft.protocol.name,
+                            networkProtocolLabel(
+                                draft.protocol,
+                            ),
                         ),
                 )
                 YFilesNetworkProtocol.entries
@@ -1205,7 +1295,9 @@ internal fun YFilesAdvancedSettingsContent(
                                         ""
                                     }
                                     ) +
-                                    protocol.name,
+                                    networkProtocolLabel(
+                                        protocol,
+                                    ),
                             onClick = {
                                 advanced
                                     .updateNetworkDraft(
@@ -1279,7 +1371,9 @@ internal fun YFilesAdvancedSettingsContent(
                     title =
                         stringResource(
                             R.string.yfiles_adv_provider,
-                            draft.kind.name,
+                            cloudKindLabel(
+                                draft.kind,
+                            ),
                         ),
                 )
                 YFilesCloudKind.entries
@@ -1297,7 +1391,9 @@ internal fun YFilesAdvancedSettingsContent(
                                         ""
                                     }
                                     ) +
-                                    kind.name,
+                                    cloudKindLabel(
+                                        kind,
+                                    ),
                             onClick = {
                                 advanced
                                     .updateCloudDraft(
