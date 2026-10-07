@@ -18,7 +18,7 @@ object YNfcRuntimeBridge {
         val result = linkedMapOf<String, String>()
         runCatching {
             context.contentResolver.query(
-                ConfigProvider.URI,
+                ConfigProvider.uri(context),
                 null,
                 null,
                 null,
@@ -40,7 +40,7 @@ object YNfcRuntimeBridge {
         card: YNfcCard?,
     ): Long =
         context.contentResolver.call(
-            ConfigProvider.URI,
+            ConfigProvider.uri(context),
             ConfigProvider.METHOD_PUBLISH_COMMAND,
             null,
             Bundle().apply {
@@ -75,7 +75,7 @@ object YNfcRuntimeBridge {
         pid: Int,
     ) {
         context.contentResolver.call(
-            ConfigProvider.URI,
+            ConfigProvider.uri(context),
             ConfigProvider.METHOD_CONFIRM_STOCK_RESTART,
             null,
             Bundle().apply {
