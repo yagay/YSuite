@@ -13,6 +13,7 @@ import com.yagay.ysuite.feature.ydownload.api.YDownloadChunk
 import com.yagay.ysuite.feature.ydownload.api.YDownloadItem
 import com.yagay.ysuite.feature.ydownload.api.YDownloadState
 import com.yagay.ysuite.logging.api.YSuiteLogger
+import com.yagay.ysuite.platform.api.HookGateway
 import java.io.FileOutputStream
 import java.net.ConnectException
 import java.net.SocketException
@@ -44,6 +45,7 @@ class YDownloadEngine(
     private val settings: YDownloadSettingsRepository,
     private val client: OkHttpClient,
     private val logger: YSuiteLogger,
+    private val hookGateway: HookGateway,
 ) {
     private val appContext =
         context.applicationContext
@@ -72,6 +74,7 @@ class YDownloadEngine(
             context = appContext,
             repository = repository,
             logger = logger,
+            hookGateway = hookGateway,
         )
 
     fun start(id: String) {
