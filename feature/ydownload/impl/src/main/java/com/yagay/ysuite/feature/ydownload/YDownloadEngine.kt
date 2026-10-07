@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import com.yagay.ysuite.feature.ydownload.api.YDownloadBackend
 import com.yagay.ysuite.feature.ydownload.api.YDownloadChunk
 import com.yagay.ysuite.feature.ydownload.api.YDownloadItem
 import com.yagay.ysuite.feature.ydownload.api.YDownloadState
@@ -66,6 +67,12 @@ class YDownloadEngine(
         >()
     private val bandwidthLimiter =
         GlobalBandwidthLimiter()
+    private val systemBridge =
+        YDownloadSystemBridge(
+            context = appContext,
+            repository = repository,
+            logger = logger,
+        )
 
     fun start(id: String) {
         scope.launch {
@@ -132,7 +139,16 @@ class YDownloadEngine(
                     scope.launch(
                         start = CoroutineStart.LAZY,
                     ) {
-                        runDownload(item.id)
+                        if (
+                            item.backend ==
+                            YDownloadBackend.System
+                        ) {
+                            runSystemDownload(
+                                item.id,
+                            )
+                        } else {
+                            runDownload(item.id)
+                        }
                     }
                 activeJobs[id] = job
                 job.start()
@@ -166,6 +182,28 @@ class YDownloadEngine(
     }
 
     suspend fun pause(id: String) {
+        val item =
+            repository.find(id)
+        if (
+            item?.backend ==
+            YDownloadBackend.System &&
+            item.systemId != null
+        ) {
+            activeJobs.remove(id)
+                ?.cancelAndJoin()
+            if (!systemBridge.pause(item)) {
+                repository.updateState(
+                    id = id,
+                    state =
+                        YDownloadState.Paused,
+                    error =
+                        "System DownloadProvider pause is unavailable",
+                    queued = false,
+                )
+            }
+            pumpQueue()
+            return
+        }
         cancelCalls(id)
         activeJobs.remove(id)
             ?.cancelAndJoin()
@@ -178,6 +216,19 @@ class YDownloadEngine(
     }
 
     suspend fun cancel(id: String) {
+        val item =
+            repository.find(id)
+        if (
+            item?.backend ==
+            YDownloadBackend.System &&
+            item.systemId != null
+        ) {
+            activeJobs.remove(id)
+                ?.cancelAndJoin()
+            systemBridge.cancel(item)
+            pumpQueue()
+            return
+        }
         cancelCalls(id)
         activeJobs.remove(id)
             ?.cancelAndJoin()
@@ -198,6 +249,13 @@ class YDownloadEngine(
             ?.cancelAndJoin()
 
         if (
+            item.backend ==
+            YDownloadBackend.System
+        ) {
+            systemBridge.remove(item)
+        }
+
+        if (
             deleteFile ||
             item.state != YDownloadState.Completed
         ) {
@@ -214,6 +272,41 @@ class YDownloadEngine(
 
     fun hasActiveDownloads(): Boolean =
         activeJobs.values.any { it.isActive }
+
+    private suspend fun runSystemDownload(
+        id: String,
+    ) {
+        try {
+            val item =
+                repository.find(id)
+                    ?: return
+            systemBridge.run(item)
+        } catch (
+            cancelled:
+                CancellationException,
+        ) {
+            throw cancelled
+        } catch (error: Throwable) {
+            repository.updateState(
+                id = id,
+                state =
+                    YDownloadState.Failed,
+                error =
+                    error.message
+                        ?: error.javaClass
+                            .simpleName,
+                queued = false,
+            )
+            logger.error(
+                TAG,
+                "System download failed: " + id,
+                error,
+            )
+        } finally {
+            activeJobs.remove(id)
+            pumpQueue()
+        }
+    }
 
     private suspend fun runDownload(
         id: String,
