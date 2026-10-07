@@ -2,6 +2,8 @@ package com.yagay.YFloat.hook;
 
 import android.util.Log;
 
+import com.yagay.ysuite.runtime.RuntimeOwnerGate;
+
 import io.github.libxposed.api.XposedModule;
 import io.github.libxposed.api.XposedModuleInterface;
 
@@ -11,11 +13,24 @@ public final class YFloatModule extends XposedModule {
     private LsposedRuntimeProvider runtimeProvider;
     private boolean googleCtsInspectorInstalled;
     private String processName = "";
+    private String moduleHostPackage = "";
 
     @Override
     public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param) {
         super.onModuleLoaded(param);
         processName = param.getProcessName() == null ? "" : param.getProcessName();
+        try {
+            if (getModuleApplicationInfo() != null
+                    && getModuleApplicationInfo().packageName != null) {
+                moduleHostPackage =
+                        getModuleApplicationInfo().packageName;
+            }
+        } catch (Throwable ignored) {
+            moduleHostPackage = "";
+        }
+        RuntimeOwnerGate.announce(
+                "yfloat",
+                moduleHostPackage);
         runtimeProvider = new LsposedRuntimeProvider(this, processName);
         runtimeProvider.start();
         log(Log.INFO, TAG, "Module loaded in " + processName
@@ -26,6 +41,11 @@ public final class YFloatModule extends XposedModule {
     @Override
     public void onSystemServerStarting(XposedModuleInterface.SystemServerStartingParam param) {
         super.onSystemServerStarting(param);
+        if (!RuntimeOwnerGate.shouldRun(
+                "yfloat",
+                moduleHostPackage)) {
+            return;
+        }
         LsposedRuntimeProvider provider = runtimeProvider;
         if (provider == null) {
             log(Log.ERROR, TAG, "system_server provider missing");
@@ -41,6 +61,11 @@ public final class YFloatModule extends XposedModule {
     @Override
     public void onPackageReady(XposedModuleInterface.PackageReadyParam param) {
         super.onPackageReady(param);
+        if (!RuntimeOwnerGate.shouldRun(
+                "yfloat",
+                moduleHostPackage)) {
+            return;
+        }
         if (googleCtsInspectorInstalled || !GOOGLE_PACKAGE.equals(param.getPackageName())) return;
         LsposedRuntimeProvider provider = runtimeProvider;
         if (provider == null) return;
