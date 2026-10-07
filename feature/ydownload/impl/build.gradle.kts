@@ -16,6 +16,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:runtime"))
     implementation(project(":feature:ydownload:api"))
     implementation(project(":core:ui"))
     implementation(project(":core:designsystem"))
