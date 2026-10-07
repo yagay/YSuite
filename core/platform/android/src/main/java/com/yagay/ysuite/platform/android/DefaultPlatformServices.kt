@@ -490,16 +490,13 @@ private fun collectProcess(
 }
 
 object DefaultPlatformServices {
-    fun create(): PlatformServices {
-        AndroidLibXposedHookGateway
-            .ensureRegistered()
-        return PlatformServices(
+    fun create(): PlatformServices =
+        PlatformServices(
             root = SuRootGateway,
             shizuku = AndroidShizukuGateway,
             hooks =
                 AndroidLibXposedHookGateway,
         )
-    }
 }
 
 private const val THREAD_JOIN_MILLIS = 1_000L

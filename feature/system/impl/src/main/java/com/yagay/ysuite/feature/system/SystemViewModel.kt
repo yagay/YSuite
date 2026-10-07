@@ -18,7 +18,9 @@ import com.yagay.ysuite.platform.api.CapabilitySnapshot
 import com.yagay.ysuite.platform.api.PlatformCapabilityMonitor
 import com.yagay.ysuite.platform.api.PlatformServices
 import com.yagay.ysuite.presentation.YSuiteViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class SystemPage {
     Overview,
@@ -61,6 +63,13 @@ data class SystemUiState(
     }
 }
 
+private data class SystemRefreshSnapshot(
+    val capabilities: CapabilitySnapshot,
+    val permissions: List<PermissionRequirement>,
+    val permissionResult: PermissionResult,
+    val diagnostics: List<DiagnosticFinding>,
+)
+
 class SystemViewModel(
     private val capabilityMonitor:
         PlatformCapabilityMonitor,
@@ -90,10 +99,20 @@ class SystemViewModel(
                 }
             }
         }
-        refresh()
+        refreshInternal(
+            includeDiagnostics = false,
+        )
     }
 
     fun refresh() {
+        refreshInternal(
+            includeDiagnostics = true,
+        )
+    }
+
+    private fun refreshInternal(
+        includeDiagnostics: Boolean,
+    ) {
         if (state.value.refreshing) return
 
         updateState {
@@ -106,27 +125,52 @@ class SystemViewModel(
 
         viewModelScope.launch {
             try {
-                val permissions =
-                    permissionCatalog
-                        .requirements()
-                val permissionResult =
-                    permissionChecker
-                        .snapshot(permissions)
-                val capabilities =
-                    capabilityMonitor.probe()
-                val diagnostics =
-                    diagnosticCenter.runAll()
+                val snapshot =
+                    withContext(Dispatchers.IO) {
+                        val permissions =
+                            permissionCatalog
+                                .requirements()
+                        val permissionResult =
+                            permissionChecker
+                                .snapshot(permissions)
+                        val capabilities =
+                            capabilityMonitor.probe()
+                        val diagnostics =
+                            if (includeDiagnostics) {
+                                diagnosticCenter
+                                    .runAll()
+                                    .findings
+                            } else {
+                                emptyList()
+                            }
+                        SystemRefreshSnapshot(
+                            capabilities =
+                                capabilities,
+                            permissions =
+                                permissions,
+                            permissionResult =
+                                permissionResult,
+                            diagnostics =
+                                diagnostics,
+                        )
+                    }
 
                 updateState {
                     it.copy(
                         capabilities =
-                            capabilities,
+                            snapshot.capabilities,
                         permissions =
-                            permissions,
+                            snapshot.permissions,
                         permissionResult =
-                            permissionResult,
+                            snapshot.permissionResult,
                         diagnostics =
-                            diagnostics.findings,
+                            if (
+                                includeDiagnostics
+                            ) {
+                                snapshot.diagnostics
+                            } else {
+                                it.diagnostics
+                            },
                     )
                 }
 
