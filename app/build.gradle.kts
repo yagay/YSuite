@@ -24,6 +24,18 @@ android {
 }
 
 dependencies {
+    implementation(project(":feature:yfloat:api"))
+    implementation(project(":feature:yentrycleaner:api"))
+    implementation(project(":feature:yminiguard:api"))
+    implementation(project(":feature:ynfc:api"))
+    implementation(project(":feature:ynotify:api"))
+    implementation(project(":feature:ypower:api"))
+    implementation(project(":feature:ydiag:api"))
+    implementation(project(":feature:yparam:api"))
+    implementation(project(":feature:ytaskmanager:api"))
+    implementation(project(":feature:ydownload:api"))
+    implementation(project(":feature:system:api"))
+    implementation(project(":feature:settings:api"))
     implementation(project(":core:ui"))
     implementation(project(":core:settings"))
     implementation(project(":core:logging:api"))
