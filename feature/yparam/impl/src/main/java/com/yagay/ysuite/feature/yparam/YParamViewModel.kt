@@ -29,6 +29,8 @@ data class YParamUiState(
     val selectedPackage: String? = null,
     val draft: YParamOverrides = YParamOverrides(),
     val defaults: YParamDefaults? = null,
+    val baseline: String? = null,
+    val diagnostics: YParamDiagnostics? = null,
     val hookStatus: CapabilityStatus = CapabilityStatus.Unavailable,
     val saving: Boolean = false,
     val message: String? = null,
@@ -86,16 +88,28 @@ class YParamViewModel(
                 selectedPackage = null,
                 draft = YParamOverrides(),
                 defaults = null,
+                baseline = null,
+                diagnostics = null,
                 message = null,
             )
             return
         }
         val value = repository.read(packageName)
         val defaults = repository.defaults(packageName)
+        val baseline =
+            repository.baseline(packageName)
+        val diagnostics =
+            runCatching {
+                repository.diagnostics(
+                    packageName,
+                )
+            }.getOrNull()
         mutableState.value = mutableState.value.copy(
             selectedPackage = packageName,
             draft = value,
             defaults = defaults,
+            baseline = baseline,
+            diagnostics = diagnostics,
             message = null,
         )
     }
@@ -186,8 +200,16 @@ class YParamViewModel(
             runCatching {
                 val payload =
                     withContext(Dispatchers.IO) {
-                        repository.save(packageName, value)
-                        repository.hookPayload(value)
+                        repository.ensureBaseline(
+                            packageName,
+                        )
+                        repository.save(
+                            packageName,
+                            value,
+                        )
+                        repository.hookPayload(
+                            value,
+                        )
                     }
                 val configResult =
                     environment.hookGateway
