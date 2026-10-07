@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.webkit.WebView
+import com.yagay.ysuite.runtime.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 class YDiagModule : XposedModule() {
     private var processName = ""
+    private var moduleHostPackage = ""
     private var packageName = ""
     private val installed = ConcurrentHashMap.newKeySet<String>()
     private val hits = ConcurrentHashMap<String, AtomicLong>()
@@ -42,12 +44,34 @@ class YDiagModule : XposedModule() {
         param: XposedModuleInterface.ModuleLoadedParam,
     ) {
         processName = param.processName
-        Log.i(TAG, "MODULE_LOADED process=" + processName)
+        moduleHostPackage =
+            runCatching {
+                getModuleApplicationInfo()
+                    ?.packageName
+                    .orEmpty()
+            }.getOrDefault("")
+        RuntimeOwnerGate.announce(
+            "ydiag",
+            moduleHostPackage,
+        )
+        Log.i(
+            TAG,
+            "MODULE_LOADED process=" +
+                processName +
+                " host=" +
+                moduleHostPackage,
+        )
     }
 
     override fun onPackageReady(
         param: XposedModuleInterface.PackageReadyParam,
     ) {
+        if (
+            !RuntimeOwnerGate.shouldRun(
+                "ydiag",
+                moduleHostPackage,
+            )
+        ) return
         packageName = param.packageName
         registerListener()
         refreshConfiguration("package_ready")
@@ -56,6 +80,12 @@ class YDiagModule : XposedModule() {
     override fun onSystemServerStarting(
         param: XposedModuleInterface.SystemServerStartingParam,
     ) {
+        if (
+            !RuntimeOwnerGate.shouldRun(
+                "ydiag",
+                moduleHostPackage,
+            )
+        ) return
         packageName = "system"
         registerListener()
         refreshConfiguration("system_server_ready")
