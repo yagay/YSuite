@@ -35,7 +35,7 @@ data class YEntryCleanerUiState(
     val statusToken: String? = null,
 )
 
-class YEntryCleanerViewModel(
+internal class YEntryCleanerViewModel(
     private val repository:
         YEntryCleanerRepository,
 ) : ViewModel() {
