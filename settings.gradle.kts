@@ -51,5 +51,7 @@ include(":feature:ydownload:api")
 include(":feature:ydownload:impl")
 include(":feature:ytaskmanager:api")
 include(":feature:ytaskmanager:impl")
+include(":feature:yparam:api")
+include(":feature:yparam:impl")
 
 include(":host:standalone")

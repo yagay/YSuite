@@ -13,6 +13,8 @@ import com.yagay.ysuite.feature.ydownload.YDownloadEnvironmentFactory
 import com.yagay.ysuite.feature.ydownload.YDownloadFeatureUiRegistration
 import com.yagay.ysuite.feature.ytaskmanager.YTaskManagerEnvironmentFactory
 import com.yagay.ysuite.feature.ytaskmanager.YTaskManagerFeatureUiRegistration
+import com.yagay.ysuite.feature.yparam.YParamEnvironmentFactory
+import com.yagay.ysuite.feature.yparam.YParamFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
 import com.yagay.ysuite.logging.android.AndroidLogcatCollector
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
@@ -245,6 +247,14 @@ class YSuiteAppContainer(
                         YTaskManagerEnvironmentFactory.create(
                             context = context,
                             rootGateway = platform.root,
+                            hookGateway = platform.hooks,
+                            logger = logger,
+                        ),
+                ),
+                YParamFeatureUiRegistration(
+                    environment =
+                        YParamEnvironmentFactory.create(
+                            context = context,
                             hookGateway = platform.hooks,
                             logger = logger,
                         ),

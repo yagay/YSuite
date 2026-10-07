@@ -39,6 +39,7 @@ dependencies {
     implementation(project(":feature:yfiles:impl"))
     implementation(project(":feature:ydownload:impl"))
     implementation(project(":feature:ytaskmanager:impl"))
+    implementation(project(":feature:yparam:impl"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
