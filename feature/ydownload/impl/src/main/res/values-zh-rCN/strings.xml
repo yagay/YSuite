@@ -133,4 +133,8 @@
     <string name="ydownload_default_backend_desc">系统后端使用 Android DownloadProvider；私有后端保留 YDownload 分段、自定义目录和单任务限速能力。</string>
     <string name="ydownload_backend_system">系统 DownloadManager</string>
     <string name="ydownload_backend_private">YDownload 私有引擎</string>
+    <string name="ydownload_pause_all">暂停全部活动任务</string>
+    <string name="ydownload_resume_all">恢复全部暂停任务</string>
+    <string name="ydownload_retry_failed">重试失败任务</string>
+    <string name="ydownload_clear_finished">清理已完成和已取消</string>
 </resources>
