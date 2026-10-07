@@ -272,6 +272,36 @@ class YNotifyViewModel(
                         ?.contains(
                             needle,
                             ignoreCase = true,
+                        ) == true ||
+                    event.subText
+                        ?.contains(
+                            needle,
+                            ignoreCase = true,
+                        ) == true ||
+                    event.summaryText
+                        ?.contains(
+                            needle,
+                            ignoreCase = true,
+                        ) == true ||
+                    event.channelName
+                        ?.contains(
+                            needle,
+                            ignoreCase = true,
+                        ) == true ||
+                    event.messagesJson
+                        ?.contains(
+                            needle,
+                            ignoreCase = true,
+                        ) == true ||
+                    event.actionsJson
+                        ?.contains(
+                            needle,
+                            ignoreCase = true,
+                        ) == true ||
+                    event.rawExtras
+                        ?.contains(
+                            needle,
+                            ignoreCase = true,
                         ) == true
             typeMatch &&
                 packageMatch &&
