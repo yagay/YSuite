@@ -12,7 +12,7 @@ The design system is shared. Product structure comes from mature open-source And
 | Settings | alorma/Compose-Settings | MIT | SettingsGroup, switch/menu/choice semantics and grouping |
 | Log viewer | darshanparajuli/LogcatReader | MIT | search + app/tag/level filters + log stream/details |
 | Download manager | PBhadoo/QDM-Android | Apache-2.0 | state tabs, task rows, progress, state-dependent actions |
-| Task manager | wisnukurniawan/Compose-ToDo | Apache-2.0 | collection/filter/detail task workflow |
+| Task/process manager | RohitKushvaha01/TaskManager | Apache-2.0 | resources/processes split, resource navigation, process search/filtering and focused process details |
 | Automation | SysAdminDoc/OpenTasker | MIT | profile/task/action library + editor + inspector workflow |
 | App/entity manager | LibChecker/LibChecker | Apache-2.0 | app/entity collection, filtering, navigation rail, detail workflow |
 
