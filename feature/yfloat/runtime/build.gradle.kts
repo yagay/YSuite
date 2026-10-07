@@ -19,6 +19,7 @@ android {
     }
 }
 dependencies {
+    implementation(project(":core:runtime"))
     implementation(project(":feature:yfloat:ppocr"))
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
