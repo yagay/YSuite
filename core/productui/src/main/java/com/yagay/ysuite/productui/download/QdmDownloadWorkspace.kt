@@ -45,6 +45,10 @@ data class QdmDownloadMenuLabels(
     val sortName: String,
     val clearCompleted: String,
     val settings: String,
+    val pauseAll: String? = null,
+    val resumeAll: String? = null,
+    val retryFailed: String? = null,
+    val clearFinished: String? = null,
 )
 
 data class QdmDownloadFabLabels(
@@ -77,6 +81,10 @@ fun QdmDownloadWorkspace(
     onSortDate: (() -> Unit)? = null,
     onSortName: (() -> Unit)? = null,
     onClearCompleted: (() -> Unit)? = null,
+    onPauseAll: (() -> Unit)? = null,
+    onResumeAll: (() -> Unit)? = null,
+    onRetryFailed: (() -> Unit)? = null,
+    onClearFinished: (() -> Unit)? = null,
     onPasteClipboard: (() -> Unit)? = null,
     onImportFile: (() -> Unit)? = null,
     content: @Composable (ProductAdaptiveInfo, String) -> Unit,
@@ -136,7 +144,11 @@ fun QdmDownloadWorkspace(
                     (
                         onSortDate != null ||
                             onSortName != null ||
-                            onClearCompleted != null
+                            onClearCompleted != null ||
+                            onPauseAll != null ||
+                            onResumeAll != null ||
+                            onRetryFailed != null ||
+                            onClearFinished != null
                     )
                 ) {
                     androidx.compose.foundation.layout.Box {
@@ -189,6 +201,62 @@ fun QdmDownloadWorkspace(
                                     onClick = {
                                         menuExpanded = false
                                         onClearCompleted()
+                                    },
+                                )
+                            }
+                            if (
+                                onPauseAll != null &&
+                                menuLabels.pauseAll != null
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(menuLabels.pauseAll)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onPauseAll()
+                                    },
+                                )
+                            }
+                            if (
+                                onResumeAll != null &&
+                                menuLabels.resumeAll != null
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(menuLabels.resumeAll)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onResumeAll()
+                                    },
+                                )
+                            }
+                            if (
+                                onRetryFailed != null &&
+                                menuLabels.retryFailed != null
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(menuLabels.retryFailed)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onRetryFailed()
+                                    },
+                                )
+                            }
+                            if (
+                                onClearFinished != null &&
+                                menuLabels.clearFinished != null
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(menuLabels.clearFinished)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onClearFinished()
                                     },
                                 )
                             }
