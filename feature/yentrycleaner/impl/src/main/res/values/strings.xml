@@ -31,4 +31,25 @@
     <string name="yentry_priority_down">Priority down</string>
     <string name="yentry_component_changed">Component state verified.</string>
     <string name="yentry_component_failed">Component change could not be verified.</string>
+
+    <string name="yentry_runtime">Runtime</string>
+    <string name="yentry_root_ready">Root ready</string>
+    <string name="yentry_root_missing">Root unavailable</string>
+    <string name="yentry_hook_ready">LSPosed Hook ready</string>
+    <string name="yentry_hook_missing">LSPosed Hook unavailable</string>
+    <string name="yentry_open_mime">Open-with MIME type</string>
+    <string name="yentry_discover_hosts">Discover App Links</string>
+    <string name="yentry_hosts_discovered">App Link hosts discovered.</string>
+    <string name="yentry_export_backup">Export rules backup</string>
+    <string name="yentry_import_backup">Import rules backup</string>
+    <string name="yentry_backup_exported">Rules backup exported to Downloads/YSuite.</string>
+    <string name="yentry_backup_restored">Rules backup restored and synchronized.</string>
+    <string name="yentry_backup_failed">Backup operation failed.</string>
+    <string name="yentry_disable_visible">Disable visible</string>
+    <string name="yentry_enable_visible">Enable visible</string>
+    <string name="yentry_invert_visible">Invert visible</string>
+    <string name="yentry_components_changed">Visible component states updated.</string>
+    <string name="yentry_components_partial">Some component changes failed.</string>
+    <string name="yentry_rules_hidden">Visible resolver rules hidden.</string>
+    <string name="yentry_rules_shown">Visible resolver rules restored.</string>
 </resources>
