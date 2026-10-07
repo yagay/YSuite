@@ -4,3 +4,4 @@ com.yagay.YFloat.hook.YFloatModule
 com.yagay.ysuite.feature.yminiguard.runtime.GuardModule
 com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryResolverModule
 com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryComponentGuardModule
+com.yagay.ysuite.feature.ydiag.runtime.YDiagModule

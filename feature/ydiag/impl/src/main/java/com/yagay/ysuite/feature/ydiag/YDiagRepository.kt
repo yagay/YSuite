@@ -54,18 +54,55 @@ internal class YDiagRepository(
 
     suspend fun hookStatus(): CapabilityStatus = hooks.status()
 
+    private suspend fun configureHook(
+        packageName: String,
+        optionIds: Set<String>,
+    ): Outcome<Unit> {
+        val targetWrite =
+            hooks.writeConfig(
+                "ydiag",
+                "targets",
+                packageName,
+            )
+        if (targetWrite is Outcome.Failure) return targetWrite
+        val optionsWrite =
+            hooks.writeConfig(
+                "ydiag",
+                "options",
+                optionIds.sorted().joinToString("\n"),
+            )
+        if (optionsWrite is Outcome.Failure) return optionsWrite
+        return hooks.reload(setOf(packageName))
+    }
+
     suspend fun collect(
         packageName: String,
         optionIds: Set<String>,
     ): List<YDiagEvent> {
         val result = mutableListOf<YDiagEvent>()
+        val hookOptions =
+            optionIds.intersect(
+                setOf(
+                    "hook_health",
+                    "lifecycle",
+                    "intent",
+                    "method_trace",
+                    "stack_trace",
+                    "webview",
+                    "network",
+                    "file_io",
+                ),
+            )
+        if (hookOptions.isNotEmpty()) {
+            configureHook(packageName, optionIds)
+        }
         optionIds.forEach { optionId ->
             val event =
                 when (optionId) {
                     "lsposed_status", "hook_health",
                     "lifecycle", "intent", "method_trace",
                     "stack_trace" ->
-                        hookEvent(optionId)
+                        hookEvent(packageName, optionId)
                     else ->
                         commandEvent(
                             optionId = optionId,
@@ -150,11 +187,42 @@ internal class YDiagRepository(
     }
 
     private suspend fun hookEvent(
+        packageName: String,
         optionId: String,
     ): YDiagEvent {
         val status =
             runCatching { hooks.status() }
                 .getOrDefault(CapabilityStatus.Error)
+        val detail =
+            if (
+                status == CapabilityStatus.Available &&
+                optionId != "lsposed_status"
+            ) {
+                val pkg = shellQuote(packageName)
+                when (
+                    val outcome =
+                        root.execute(
+                            RootRequest(
+                                command =
+                                    "logcat -d -v threadtime -t 1200 2>/dev/null " +
+                                        "| grep -F 'YDiag.Hook' | grep -F " +
+                                        pkg +
+                                        " | tail -n 400",
+                                timeoutMillis = 8_000L,
+                            ),
+                        )
+                ) {
+                    is Outcome.Success ->
+                        outcome.value.stdout.ifBlank {
+                            "hook_ready_no_events"
+                        }
+                    is Outcome.Failure ->
+                        "hook_log_unavailable:" +
+                            outcome.error.code
+                }
+            } else {
+                "hook_status:" + status.name
+            }
         return YDiagEvent(
             id = eventId(optionId),
             timestampMillis = System.currentTimeMillis(),
@@ -166,20 +234,7 @@ internal class YDiagRepository(
                     YDiagSeverity.Warning
                 },
             title = optionId,
-            detail =
-                "Hook status: " +
-                    status.name +
-                    if (
-                        optionId !in
-                            setOf(
-                                "lsposed_status",
-                                "hook_health",
-                            )
-                    ) {
-                        "\nDeep hook stream requires the shared Hook adapter."
-                    } else {
-                        ""
-                    },
+            detail = detail,
         )
     }
 

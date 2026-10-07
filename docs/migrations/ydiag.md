@@ -16,7 +16,7 @@ the LogcatReader product hierarchy while YSuite owns all diagnostic options and 
 
 ## Platform capabilities
 
-Root collectors go exclusively through `RootGateway`; Hook-aware options use `HookGateway`.
+Root collectors go exclusively through `RootGateway`; Hook-aware options use `HookGateway`; `feature/ydiag/runtime` provides the API-102 target-process lifecycle, Intent, WebView, network, file, method and stack trace hooks.
 No direct process execution or Xposed API is present in the feature.
 
 ## Localization

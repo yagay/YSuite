@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":feature:yparam:impl"))
     implementation(project(":feature:yparam:runtime"))
     implementation(project(":feature:ydiag:impl"))
+    implementation(project(":feature:ydiag:runtime"))
     implementation(project(":feature:ypower:impl"))
     implementation(project(":feature:ynotify:impl"))
     implementation(project(":feature:ynfc:runtime"))
