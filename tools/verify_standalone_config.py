@@ -8,6 +8,42 @@ CONFIG = ROOT / "config/standalone-features.properties"
 errors = []
 ids = set()
 
+HOOK_FEATURES = {
+    "yfiles",
+    "ydownload",
+    "yparam",
+    "ydiag",
+    "ypower",
+    "ynotify",
+    "ynfc",
+    "yfloat",
+    "yminiguard",
+    "yentrycleaner",
+}
+
+
+def list_field(raw: str) -> list[str]:
+    return [item.strip() for item in raw.split(";") if item.strip()]
+
+
+def module_path(module: str) -> Path:
+    return ROOT / module.lstrip(":").replace(":", "/")
+
+
+def class_exists(class_name: str, roots: list[Path]) -> bool:
+    package_name, _, simple_name = class_name.rpartition(".")
+    for root in roots:
+        for suffix in (".kt", ".java"):
+            for source in root.rglob(simple_name + suffix):
+                text = source.read_text(encoding="utf-8", errors="ignore")
+                if re.search(
+                    rf"\bpackage\s+{re.escape(package_name)}\b",
+                    text,
+                ):
+                    return True
+    return False
+
+
 if not CONFIG.exists():
     errors.append("Missing config/standalone-features.properties")
 else:
@@ -20,11 +56,22 @@ else:
             continue
 
         parts = line.split("|")
-        if len(parts) != 4:
-            errors.append(f"line {number}: expected 4 fields")
+        if len(parts) != 7:
+            errors.append(f"line {number}: expected 7 fields")
             continue
 
-        feature_id, module, registration_class, application_id = parts
+        (
+            feature_id,
+            module,
+            registration_class,
+            application_id,
+            runtime_raw,
+            xposed_raw,
+            scope_raw,
+        ) = parts
+        runtime_modules = list_field(runtime_raw)
+        xposed_classes = list_field(xposed_raw)
+        scopes = list_field(scope_raw)
 
         if feature_id in ids:
             errors.append(f"line {number}: duplicate id {feature_id}")
@@ -33,13 +80,31 @@ else:
         if not module.startswith(":feature:") or not module.endswith(":impl"):
             errors.append(f"line {number}: invalid impl module {module}")
 
-        module_path = ROOT / module.lstrip(":").replace(":", "/")
-        if not module_path.exists():
+        impl_path = module_path(module)
+        if not impl_path.exists():
             errors.append(
                 f"line {number}: module path does not exist: "
-                f"{module_path.relative_to(ROOT)}"
+                f"{impl_path.relative_to(ROOT)}"
             )
             continue
+
+        runtime_paths = []
+        for runtime_module in runtime_modules:
+            if (
+                not runtime_module.startswith(":feature:")
+                or not runtime_module.endswith(":runtime")
+            ):
+                errors.append(
+                    f"line {number}: invalid runtime module {runtime_module}"
+                )
+                continue
+            path = module_path(runtime_module)
+            runtime_paths.append(path)
+            if not path.exists():
+                errors.append(
+                    f"line {number}: runtime module path does not exist: "
+                    f"{path.relative_to(ROOT)}"
+                )
 
         if not registration_class.startswith(
             "com.yagay.ysuite.feature."
@@ -53,9 +118,9 @@ else:
             simple_name = package_parts[-1]
             relative_package = Path(*package_parts)
             source_candidates = [
-                module_path / "src/main/java" /
+                impl_path / "src/main/java" /
                 relative_package.with_suffix(".kt"),
-                module_path / "src/main/kotlin" /
+                impl_path / "src/main/kotlin" /
                 relative_package.with_suffix(".kt"),
             ]
 
@@ -85,6 +150,24 @@ else:
         if not application_id.endswith(".standalone"):
             errors.append(
                 f"line {number}: application id must end in .standalone"
+            )
+
+        if feature_id in HOOK_FEATURES and not xposed_classes:
+            errors.append(
+                f"line {number}: hook feature {feature_id} has no xposed init class"
+            )
+
+        search_roots = [impl_path, *runtime_paths]
+        for class_name in xposed_classes:
+            if not class_exists(class_name, search_roots):
+                errors.append(
+                    f"line {number}: xposed init class not found in selected "
+                    f"modules: {class_name}"
+                )
+
+        if len(scopes) != len(set(scopes)):
+            errors.append(
+                f"line {number}: duplicate xposed scope entries"
             )
 
 if errors:
