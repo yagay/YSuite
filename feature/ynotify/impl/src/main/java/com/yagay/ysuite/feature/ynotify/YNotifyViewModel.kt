@@ -76,6 +76,8 @@ data class YNotifyUiState(
             storedEventCount = 0,
         ),
     val exportUri: String? = null,
+    val retentionDays: Int = 30,
+    val policyVersion: Int = 0,
 )
 
 class YNotifyViewModel(
@@ -89,6 +91,11 @@ class YNotifyViewModel(
         mutableState.asStateFlow()
 
     init {
+        mutableState.value =
+            mutableState.value.copy(
+                retentionDays =
+                    store.retentionDays(),
+            )
         viewModelScope.launch {
             store.observeEvents().collect {
                 mutableState.value =
@@ -287,6 +294,44 @@ class YNotifyViewModel(
                     mutableState.value
                         .selectedEventId
             }
+
+    fun isPaused(packageName: String): Boolean =
+        store.isPaused(packageName)
+
+    fun isRedacted(packageName: String): Boolean =
+        store.isRedacted(packageName)
+
+    fun togglePaused(packageName: String) {
+        store.setPaused(
+            packageName,
+            !store.isPaused(packageName),
+        )
+        mutableState.value =
+            mutableState.value.copy(
+                policyVersion =
+                    mutableState.value.policyVersion + 1,
+            )
+    }
+
+    fun toggleRedacted(packageName: String) {
+        store.setRedacted(
+            packageName,
+            !store.isRedacted(packageName),
+        )
+        mutableState.value =
+            mutableState.value.copy(
+                policyVersion =
+                    mutableState.value.policyVersion + 1,
+            )
+    }
+
+    fun setRetentionDays(days: Int) {
+        store.setRetentionDays(days)
+        mutableState.value =
+            mutableState.value.copy(
+                retentionDays = days,
+            )
+    }
 
     fun clear() {
         store.clear()

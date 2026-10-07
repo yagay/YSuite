@@ -18,6 +18,8 @@ internal class YNotifyDatabase(
     null,
     DATABASE_VERSION,
 ) {
+    private val crypto = YNotifyCrypto()
+
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             """
@@ -73,10 +75,15 @@ internal class YNotifyDatabase(
     }
 
     fun upsert(event: YNotifyEvent) {
+        val values = event.toValues().apply {
+            put("title", crypto.encrypt(event.title))
+            put("text_value", crypto.encrypt(event.text))
+            put("full_text", crypto.encrypt(event.fullText))
+        }
         writableDatabase.insertWithOnConflict(
             "events",
             null,
-            event.toValues(),
+            values,
             SQLiteDatabase.CONFLICT_REPLACE,
         )
         invalidations.tryEmit(Unit)
@@ -174,11 +181,11 @@ internal class YNotifyDatabase(
                         packageName = cursor.getString(packageIndex),
                         appLabel = cursor.getString(labelIndex),
                         title =
-                            cursor.getStringOrNull(titleIndex),
+                            crypto.decrypt(cursor.getStringOrNull(titleIndex)),
                         text =
-                            cursor.getStringOrNull(textIndex),
+                            crypto.decrypt(cursor.getStringOrNull(textIndex)),
                         fullText =
-                            cursor.getStringOrNull(fullTextIndex),
+                            crypto.decrypt(cursor.getStringOrNull(fullTextIndex)),
                         postedAt = cursor.getLong(postedIndex),
                         updatedAt = cursor.getLong(updatedIndex),
                         removedAt =
@@ -227,6 +234,17 @@ internal class YNotifyDatabase(
         ).use {
             if (it.moveToFirst()) it.getInt(0) else 0
         }
+
+    fun prune(retentionDays: Int) {
+        if (retentionDays <= 0) return
+        val cutoff = System.currentTimeMillis() - retentionDays * 86_400_000L
+        val removed = writableDatabase.delete(
+            "events",
+            "posted_at < ?",
+            arrayOf(cutoff.toString()),
+        )
+        if (removed > 0) invalidations.tryEmit(Unit)
+    }
 
     fun clear() {
         writableDatabase.delete("events", null, null)

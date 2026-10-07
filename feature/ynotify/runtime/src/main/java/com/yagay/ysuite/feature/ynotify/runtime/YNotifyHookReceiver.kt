@@ -40,11 +40,20 @@ class YNotifyHookReceiver : BroadcastReceiver() {
             "system_ui" -> YNotifyEventType.SystemUi
             else -> YNotifyEventType.OtherUi
         }
-        if (text.isBlank() || pkg == context.packageName) return
+        if (
+            text.isBlank() ||
+            pkg == context.packageName ||
+            YNotifyCapturePolicy.isPaused(context, pkg)
+        ) return
         val label = runCatching {
             val info = context.packageManager.getApplicationInfo(pkg, 0)
             context.packageManager.getApplicationLabel(info).toString()
         }.getOrDefault(pkg)
+        val redacted =
+            YNotifyCapturePolicy.isRedacted(
+                context,
+                pkg,
+            )
         database.upsert(
             YNotifyEvent(
                 id = 0L,
@@ -54,8 +63,8 @@ class YNotifyHookReceiver : BroadcastReceiver() {
                 packageName = pkg,
                 appLabel = label,
                 title = null,
-                text = text,
-                fullText = text,
+                text = if (redacted) null else text,
+                fullText = if (redacted) null else text,
                 postedAt = time,
                 updatedAt = now,
                 removedAt = null,

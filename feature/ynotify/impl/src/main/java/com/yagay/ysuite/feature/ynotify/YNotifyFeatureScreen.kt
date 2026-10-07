@@ -172,6 +172,55 @@ fun YNotifyFeatureScreen() {
                                     )
                                 },
                         )
+                        Row(
+                            horizontalArrangement =
+                                Arrangement.spacedBy(
+                                    YSuiteSpacing.Small,
+                                ),
+                        ) {
+                            YSuiteSecondaryButton(
+                                text =
+                                    stringResource(
+                                        if (
+                                            model.isPaused(
+                                                selectedPackage,
+                                            )
+                                        ) {
+                                            R.string
+                                                .ynotify_resume_capture
+                                        } else {
+                                            R.string
+                                                .ynotify_pause_capture
+                                        },
+                                    ),
+                                onClick = {
+                                    model.togglePaused(
+                                        selectedPackage,
+                                    )
+                                },
+                            )
+                            YSuiteSecondaryButton(
+                                text =
+                                    stringResource(
+                                        if (
+                                            model.isRedacted(
+                                                selectedPackage,
+                                            )
+                                        ) {
+                                            R.string
+                                                .ynotify_show_content
+                                        } else {
+                                            R.string
+                                                .ynotify_redact_content
+                                        },
+                                    ),
+                                onClick = {
+                                    model.toggleRedacted(
+                                        selectedPackage,
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
                 RuntimeControls(
@@ -286,6 +335,33 @@ private fun RuntimeControls(
             onClick =
                 model::openAccessibility,
         )
+    }
+    Row(
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                YSuiteSpacing.Small,
+            ),
+    ) {
+        listOf(7, 30, 90, 0).forEach { days ->
+            YSuiteSecondaryButton(
+                text =
+                    if (days == 0) {
+                        stringResource(
+                            R.string
+                                .ynotify_retention_forever,
+                        )
+                    } else {
+                        stringResource(
+                            R.string
+                                .ynotify_retention_days,
+                            days,
+                        )
+                    },
+                onClick = {
+                    model.setRetentionDays(days)
+                },
+            )
+        }
     }
 }
 

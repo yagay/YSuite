@@ -33,7 +33,10 @@ class YNotifyAccessibilityService :
         val packageName =
             event.packageName?.toString()
                 .orEmpty()
-        if (packageName == packageName()) return
+        if (
+            packageName == packageName() ||
+            YNotifyCapturePolicy.isPaused(this, packageName)
+        ) return
         val className =
             event.className?.toString()
                 .orEmpty()
@@ -97,6 +100,11 @@ class YNotifyAccessibilityService :
                 text.hashCode() +
                 ":" +
                 now / 1000L
+        val redacted =
+            YNotifyCapturePolicy.isRedacted(
+                this,
+                packageName,
+            )
         val record =
             YNotifyEvent(
                 id = 0L,
@@ -106,8 +114,8 @@ class YNotifyAccessibilityService :
                 packageName = packageName,
                 appLabel = label,
                 title = null,
-                text = text,
-                fullText = text,
+                text = if (redacted) null else text,
+                fullText = if (redacted) null else text,
                 postedAt = now,
                 updatedAt = now,
                 removedAt = null,

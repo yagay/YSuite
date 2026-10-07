@@ -109,14 +109,23 @@ class YNotifyNotificationListenerService :
         sbn: StatusBarNotification,
         rankingMap: RankingMap?,
     ) {
-        if (sbn.packageName == packageName) return
+        if (
+            sbn.packageName == packageName ||
+            YNotifyCapturePolicy.isPaused(this, sbn.packageName)
+        ) return
         executor.execute {
             runCatching {
-                database.upsert(
-                    parse(
-                        sbn,
-                        rankingMap,
-                    ),
+                var event = parse(sbn, rankingMap)
+                if (YNotifyCapturePolicy.isRedacted(this, sbn.packageName)) {
+                    event = event.copy(
+                        title = "•••",
+                        text = null,
+                        fullText = null,
+                    )
+                }
+                database.upsert(event)
+                database.prune(
+                    YNotifyCapturePolicy.retentionDays(this),
                 )
             }
         }
@@ -135,17 +144,18 @@ class YNotifyNotificationListenerService :
                 ?: extras.getCharSequence(
                     Notification.EXTRA_TITLE,
                 )
-        val fullText =
-            extras.getCharSequence(
-                Notification.EXTRA_BIG_TEXT,
-            )
-                ?: extras.getCharSequence(
-                    Notification.EXTRA_TEXT,
-                )
         val text =
             extras.getCharSequence(
                 Notification.EXTRA_TEXT,
             )
+        val fullText =
+            collectRichText(notification)
+                .ifBlank {
+                    extras.getCharSequence(
+                        Notification.EXTRA_BIG_TEXT,
+                    )?.toString()
+                        ?: text?.toString().orEmpty()
+                }
         val progress =
             extras.getInt(
                 Notification.EXTRA_PROGRESS,
@@ -298,5 +308,35 @@ class YNotifyNotificationListenerService :
                 YNotifyDatabase
                     .CLASSIFICATION_VERSION,
         )
+    }
+    private fun collectRichText(
+        notification: Notification,
+    ): String {
+        val extras = notification.extras
+        val values = linkedSetOf<String>()
+        fun add(value: CharSequence?) {
+            value?.toString()?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?.let(values::add)
+        }
+        add(extras.getCharSequence(Notification.EXTRA_BIG_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))
+        extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+            ?.forEach(::add)
+        listOf(
+            Notification.EXTRA_MESSAGES,
+            Notification.EXTRA_HISTORIC_MESSAGES,
+        ).forEach { key ->
+            extras.getParcelableArray(key)
+                ?.forEach { parcelable ->
+                    @Suppress("DEPRECATION")
+                    val bundle = parcelable as? android.os.Bundle
+                    add(bundle?.getCharSequence("text"))
+                    add(bundle?.getCharSequence("sender"))
+                }
+        }
+        return values.joinToString("\n")
     }
 }

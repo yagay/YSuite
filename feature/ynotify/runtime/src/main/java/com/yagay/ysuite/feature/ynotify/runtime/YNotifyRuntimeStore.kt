@@ -48,6 +48,53 @@ class YNotifyRuntimeStore(
             storedEventCount = database.count(),
         )
 
+    fun isPaused(packageName: String): Boolean =
+        YNotifyCapturePolicy.isPaused(
+            applicationContext,
+            packageName,
+        )
+
+    fun setPaused(
+        packageName: String,
+        value: Boolean,
+    ) {
+        YNotifyCapturePolicy.setPaused(
+            applicationContext,
+            packageName,
+            value,
+        )
+    }
+
+    fun isRedacted(packageName: String): Boolean =
+        YNotifyCapturePolicy.isRedacted(
+            applicationContext,
+            packageName,
+        )
+
+    fun setRedacted(
+        packageName: String,
+        value: Boolean,
+    ) {
+        YNotifyCapturePolicy.setRedacted(
+            applicationContext,
+            packageName,
+            value,
+        )
+    }
+
+    fun retentionDays(): Int =
+        YNotifyCapturePolicy.retentionDays(
+            applicationContext,
+        )
+
+    fun setRetentionDays(days: Int) {
+        YNotifyCapturePolicy.setRetentionDays(
+            applicationContext,
+            days,
+        )
+        database.prune(days)
+    }
+
     fun clear() {
         database.clear()
     }

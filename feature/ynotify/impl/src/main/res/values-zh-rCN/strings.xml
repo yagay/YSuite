@@ -55,4 +55,10 @@
     <string name="ynotify_app_filter">已筛选应用 · 点击清除</string>
     <string name="ynotify_no_apps">还没有已记录历史的应用。</string>
     <string name="ynotify_app_summary">%1$d 条记录 · 最近 %2$s</string>
+    <string name="ynotify_pause_capture">暂停记录</string>
+    <string name="ynotify_resume_capture">恢复记录</string>
+    <string name="ynotify_redact_content">隐藏内容</string>
+    <string name="ynotify_show_content">记录内容</string>
+    <string name="ynotify_retention_days">%1$d 天</string>
+    <string name="ynotify_retention_forever">永久</string>
 </resources>

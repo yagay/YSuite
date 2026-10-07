@@ -54,4 +54,10 @@
     <string name="ynotify_kind_silent">Silent</string>
     <string name="ynotify_kind_standard">Standard</string>
     <string name="ynotify_kind_unknown">Unknown</string>
+    <string name="ynotify_pause_capture">Pause recording</string>
+    <string name="ynotify_resume_capture">Resume recording</string>
+    <string name="ynotify_redact_content">Redact content</string>
+    <string name="ynotify_show_content">Store content</string>
+    <string name="ynotify_retention_days">%1$d days</string>
+    <string name="ynotify_retention_forever">Forever</string>
 </resources>
