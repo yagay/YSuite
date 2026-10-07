@@ -82,4 +82,5 @@
     <string name="ytask_kill_confirm_message">Kill %1$s immediately?</string>
     <string name="ytask_confirm">Confirm</string>
     <string name="ytask_cancel">Cancel</string>
+    <string name="ytask_history">History</string>
 </resources>
