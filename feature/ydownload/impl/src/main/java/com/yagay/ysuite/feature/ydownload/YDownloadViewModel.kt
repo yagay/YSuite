@@ -79,6 +79,7 @@ class YDownloadViewModel(
     private val systemPatch =
         YDownloadSystemPatchStore(
             appContext,
+            environment.hookGateway,
         )
     private val mutableState =
         MutableStateFlow(
