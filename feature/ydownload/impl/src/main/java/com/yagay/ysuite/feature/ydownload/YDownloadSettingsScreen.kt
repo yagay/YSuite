@@ -75,6 +75,8 @@ fun YDownloadSettingsScreen(
             YSuiteBackNavigationButton(onBack)
         },
     ) {
+        YDownloadBackendSettingsContent()
+
         ComposeSettingsGroup(
             title =
                 stringResource(
