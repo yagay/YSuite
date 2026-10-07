@@ -75,4 +75,7 @@
     <string name="yparam_diag_locale">语言 / 时区</string>
     <string name="yparam_diag_locale_value">%1$s · %2$s</string>
     <string name="yparam_baseline_snapshot">首次修改基线</string>
+    <string name="yparam_reset">已恢复应用默认值</string>
+    <string name="yparam_reset_hook_write_failed">恢复失败：无法清除 Hook 配置。</string>
+    <string name="yparam_reset_hook_unavailable">已保存恢复状态；Hook 无法热重载，请重启目标应用后生效。</string>
 </resources>
