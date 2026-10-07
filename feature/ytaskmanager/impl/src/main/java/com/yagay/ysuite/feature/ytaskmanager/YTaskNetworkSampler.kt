@@ -23,30 +23,63 @@ internal class YTaskNetworkSampler(
                 """
                 echo __NETSTATS__
                 dumpsys netstats 2>/dev/null || true
+                echo __CONNECTIVITY__
+                dumpsys connectivity trafficcontroller 2>/dev/null || true
+                echo __NETD__
+                dumpsys netd trafficcontroller 2>/dev/null || true
                 echo __QTAGUID__
                 cat /proc/net/xt_qtaguid/stats 2>/dev/null || true
                 """.trimIndent(),
                 12_000L,
             )
-        val modern =
+        val netstats =
             parseNetstats(
                 raw.substringAfter("__NETSTATS__", "")
-                    .substringBefore("__QTAGUID__", ""),
+                    .substringBefore("__CONNECTIVITY__", ""),
             )
+        val connectivity =
+            if (netstats.isEmpty()) {
+                parseNetstats(
+                    raw.substringAfter("__CONNECTIVITY__", "")
+                        .substringBefore("__NETD__", ""),
+                )
+            } else {
+                emptyMap()
+            }
+        val netd =
+            if (netstats.isEmpty() && connectivity.isEmpty()) {
+                parseNetstats(
+                    raw.substringAfter("__NETD__", "")
+                        .substringBefore("__QTAGUID__", ""),
+                )
+            } else {
+                emptyMap()
+            }
         val legacy =
-            if (modern.isEmpty()) {
+            if (
+                netstats.isEmpty() &&
+                connectivity.isEmpty() &&
+                netd.isEmpty()
+            ) {
                 parseQtaguid(raw.substringAfter("__QTAGUID__", ""))
             } else {
                 emptyMap()
             }
         val backend =
             when {
-                modern.isNotEmpty() -> "Root netstats eBPF"
+                netstats.isNotEmpty() -> "Root netstats eBPF"
+                connectivity.isNotEmpty() -> "Root connectivity eBPF"
+                netd.isNotEmpty() -> "Root netd eBPF"
                 legacy.isNotEmpty() -> "Root qtaguid"
                 else -> "No cross-UID counters"
             }
         val counters =
-            if (modern.isNotEmpty()) modern else legacy
+            when {
+                netstats.isNotEmpty() -> netstats
+                connectivity.isNotEmpty() -> connectivity
+                netd.isNotEmpty() -> netd
+                else -> legacy
+            }
 
         if (previousBackend.isNotBlank() && previousBackend != backend) {
             previous = emptyMap()
