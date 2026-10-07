@@ -2,6 +2,7 @@ package com.yagay.ysuite.feature.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -12,6 +13,7 @@ import com.yagay.ysuite.productui.settings.ComposeSettingsChoiceGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
 import com.yagay.ysuite.productui.settings.ComposeSettingsSwitch
+import com.yagay.ysuite.resources.LocaleController
 import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
@@ -20,6 +22,7 @@ import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 fun SettingsFeatureScreen(
     repository: AppSettingsRepository,
 ) {
+    val context = LocalContext.current
     val viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModelFactory(repository),
     )
@@ -116,8 +119,16 @@ fun SettingsFeatureScreen(
                 ),
             ),
             onSelected = { selected ->
+                val languageTag =
+                    selected.takeUnless {
+                        it == "system"
+                    }
                 viewModel.setLanguageTag(
-                    selected.takeUnless { it == "system" },
+                    languageTag,
+                )
+                LocaleController.applyLanguageTag(
+                    context = context,
+                    languageTag = languageTag,
                 )
             },
         )
