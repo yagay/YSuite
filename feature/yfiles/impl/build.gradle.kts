@@ -29,7 +29,6 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     compileOnly(libs.libxposed.api)
-    implementation(libs.libxposed.service)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
