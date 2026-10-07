@@ -82,4 +82,5 @@
     <string name="ytask_kill_confirm_message">立即结束 %1$s？</string>
     <string name="ytask_confirm">确认</string>
     <string name="ytask_cancel">取消</string>
+    <string name="ytask_history">历史曲线</string>
 </resources>
