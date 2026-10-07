@@ -10,6 +10,8 @@ import android.view.ViewGroup;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.yagay.ysuite.runtime.RuntimeOwnerGate;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -26,10 +28,20 @@ public final class YNotifyModule extends XposedModule {
     private static final Map<Object,PendingUiEvent>PENDING=Collections.synchronizedMap(new WeakHashMap<>());
     private static final ConcurrentHashMap<String,Long>RECENT_UI=new ConcurrentHashMap<>();
     private volatile SharedPreferences runtimePrefs;
-    @Override public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param){try{runtimePrefs=getRemotePreferences(YNotifyXposedRuntime.GROUP);}catch(Throwable ignored){}}
+    private volatile String moduleHostPackage="";
+    @Override public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param){
+        try{
+            if(getModuleApplicationInfo()!=null&&getModuleApplicationInfo().packageName!=null){
+                moduleHostPackage=getModuleApplicationInfo().packageName;
+            }
+        }catch(Throwable ignored){moduleHostPackage="";}
+        RuntimeOwnerGate.announce("ynotify",moduleHostPackage);
+        try{runtimePrefs=getRemotePreferences(YNotifyXposedRuntime.GROUP);}catch(Throwable ignored){}
+    }
     @Override public void onPackageReady(XposedModuleInterface.PackageReadyParam param){
         String pkg=param.getPackageName();
         if(!param.isFirstPackage()||pkg==null||pkg.equals(hostPackage()))return;
+        if(!RuntimeOwnerGate.shouldRun("ynotify",moduleHostPackage))return;
         try{
             ClassLoader cl=param.getClassLoader();
             if("android".equals(pkg))installSystemServerHooks(cl);else{
