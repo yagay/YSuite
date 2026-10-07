@@ -6,6 +6,7 @@ import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Process
 import android.util.Log
+import com.yagay.ysuite.runtime.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -27,11 +28,22 @@ class YEntryResolverModule : XposedModule() {
     private val sliceAccessors = ConcurrentHashMap<Class<*>, SliceAccessor>()
     private lateinit var prefs: SharedPreferences
     @Volatile private var processName: String = ""
+    private var moduleHostPackage: String = ""
 
     override fun onModuleLoaded(
         param: XposedModuleInterface.ModuleLoadedParam,
     ) {
         processName = param.processName
+        moduleHostPackage =
+            runCatching {
+                getModuleApplicationInfo()
+                    ?.packageName
+                    .orEmpty()
+            }.getOrDefault("")
+        RuntimeOwnerGate.announce(
+            "yentrycleaner",
+            moduleHostPackage,
+        )
         prefs = getRemotePreferences(YEntryRuntimeBridge.GROUP)
         record("MODULE_LOADED")
     }
@@ -39,12 +51,24 @@ class YEntryResolverModule : XposedModule() {
     override fun onSystemServerStarting(
         param: XposedModuleInterface.SystemServerStartingParam,
     ) {
+        if (
+            !RuntimeOwnerGate.shouldRun(
+                "yentrycleaner",
+                moduleHostPackage,
+            )
+        ) return
         installQueryHooks(param.classLoader)
     }
 
     override fun onPackageReady(
         param: XposedModuleInterface.PackageReadyParam,
     ) {
+        if (
+            !RuntimeOwnerGate.shouldRun(
+                "yentrycleaner",
+                moduleHostPackage,
+            )
+        ) return
         if (
             param.packageName == "android" ||
             param.packageName == "com.android.intentresolver"
