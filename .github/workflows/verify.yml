@@ -28,7 +28,11 @@ jobs:
         run: python tools/verify_feature_migration.py
       - name: Verify feature tooling
         run: |
-          python -m py_compile             tools/new_feature.py             tools/remove_feature.py             tools/verify_standalone_config.py \
+          python -m py_compile \
+            tools/new_feature.py \
+            tools/remove_feature.py \
+            tools/verify_standalone_config.py \
+            tools/verify_standalone_apk.py \
             tools/verify_foundation_contract.py \
             tools/verify_feature_migration.py
           python tools/new_feature.py ci_probe --product Tool --dry-run
@@ -50,9 +54,25 @@ jobs:
       - name: Run Android lint
         run: gradle :app:lintDebug --stacktrace
       - name: Build YFiles standalone smoke
-        run: gradle :host:standalone:assembleDebug -PstandaloneFeature=yfiles --stacktrace
+        run: |
+          gradle :host:standalone:assembleDebug -PstandaloneFeature=yfiles --stacktrace
+          python tools/verify_standalone_apk.py yfiles \
+            "$(find host/standalone/build/outputs/apk/debug -name '*.apk' -print -quit)"
       - name: Build YDownload standalone smoke
-        run: gradle :host:standalone:assembleDebug -PstandaloneFeature=ydownload --stacktrace
+        run: |
+          gradle :host:standalone:assembleDebug -PstandaloneFeature=ydownload --stacktrace
+          python tools/verify_standalone_apk.py ydownload \
+            "$(find host/standalone/build/outputs/apk/debug -name '*.apk' -print -quit)"
+      - name: Build YParam standalone smoke
+        run: |
+          gradle :host:standalone:assembleDebug -PstandaloneFeature=yparam --stacktrace
+          python tools/verify_standalone_apk.py yparam \
+            "$(find host/standalone/build/outputs/apk/debug -name '*.apk' -print -quit)"
+      - name: Build YPower standalone smoke
+        run: |
+          gradle :host:standalone:assembleDebug -PstandaloneFeature=ypower --stacktrace
+          python tools/verify_standalone_apk.py ypower \
+            "$(find host/standalone/build/outputs/apk/debug -name '*.apk' -print -quit)"
       - name: Build YSuite Debug
         run: gradle :app:assembleDebug --stacktrace
       - name: Upload YSuite Debug APK
