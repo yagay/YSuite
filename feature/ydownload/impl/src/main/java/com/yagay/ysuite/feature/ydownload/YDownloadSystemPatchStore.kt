@@ -321,7 +321,7 @@ private object YDownloadPatchService :
             service ?: return Outcome.Failure(
                 code = "hook_service_unavailable",
                 message =
-                    "LSPosed service is not connected",
+                    ERROR_HOOK_SERVICE_UNAVAILABLE,
                 retryable = true,
             )
         val requested =
