@@ -4,10 +4,10 @@ import android.app.Application;
 import android.content.ContentValues;
 import android.content.pm.PackageInfo;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Build;
 
 import com.yagay.YNFC.BuildConfig;
+import com.yagay.YNFC.xposed.NfcInjectionModule;
 import com.yagay.YNFC.xposed.discovery.Capability;
 import com.yagay.YNFC.xposed.discovery.HookTarget;
 
@@ -16,7 +16,6 @@ import java.util.Map;
 
 /** Persists and validates the verified RF_CONFIG_WRITE target against the exact runtime. */
 public final class HookProfileStore {
-    private static final Uri CONFIG_URI = Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
     private static final int PROFILE_SCHEMA = 3;
 
     public void save(Application app, HookTarget target, String status) {
@@ -35,7 +34,7 @@ public final class HookProfileStore {
         v.put("rf_hook_score", target.score);
         v.put("rf_hook_source", target.source);
         v.put("rf_hook_fingerprint", target.fingerprint());
-        try { app.getContentResolver().insert(CONFIG_URI, v); } catch (Throwable ignored) { }
+        try { app.getContentResolver().insert(NfcInjectionModule.configUri(), v); } catch (Throwable ignored) { }
     }
 
     /** Returns only a profile verified by this hook/profile schema on the same system/NFC build. */
@@ -74,7 +73,7 @@ public final class HookProfileStore {
 
     private Map<String, String> read(Application app) {
         Map<String, String> out = new HashMap<>();
-        try (Cursor c = app.getContentResolver().query(CONFIG_URI, null, null, null, null)) {
+        try (Cursor c = app.getContentResolver().query(NfcInjectionModule.configUri(), null, null, null, null)) {
             if (c != null) while (c.moveToNext()) out.put(c.getString(0), c.getString(1));
         } catch (Throwable ignored) { }
         return out;
