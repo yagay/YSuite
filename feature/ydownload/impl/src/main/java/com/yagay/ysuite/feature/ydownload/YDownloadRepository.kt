@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.yagay.ysuite.feature.ydownload.api.YDownloadBackend
 import com.yagay.ysuite.feature.ydownload.api.YDownloadChunk
 import com.yagay.ysuite.feature.ydownload.api.YDownloadItem
 import com.yagay.ysuite.feature.ydownload.api.YDownloadRequest
@@ -52,6 +53,11 @@ class YDownloadRepository(
                         }
                 val values = ContentValues().apply {
                     put(COL_ID, id)
+                    put(
+                        COL_BACKEND,
+                        request.backend.name,
+                    )
+                    putNull(COL_SYSTEM_ID)
                     put(COL_URL, request.url)
                     put(COL_FILE_NAME, request.fileName)
                     putNull(COL_OUTPUT_URI)
@@ -118,6 +124,80 @@ class YDownloadRepository(
         withContext(Dispatchers.IO) {
             mutex.withLock { queryOne(id) }
         }
+
+    suspend fun bindSystemDownload(
+        id: String,
+        systemId: Long,
+    ) {
+        updateColumns(
+            id,
+            ContentValues().apply {
+                put(
+                    COL_BACKEND,
+                    YDownloadBackend.System.name,
+                )
+                put(COL_SYSTEM_ID, systemId)
+                put(
+                    COL_STATE,
+                    YDownloadState.Connecting.name,
+                )
+                put(COL_QUEUED, 0)
+                putNull(COL_ERROR)
+            },
+        )
+    }
+
+    suspend fun updateSystemSnapshot(
+        id: String,
+        state: YDownloadState,
+        downloadedBytes: Long,
+        totalBytes: Long,
+        speedBytesPerSecond: Long,
+        etaSeconds: Long,
+        outputUri: String?,
+        error: String?,
+    ) {
+        updateColumns(
+            id,
+            ContentValues().apply {
+                put(COL_STATE, state.name)
+                put(
+                    COL_DOWNLOADED_BYTES,
+                    downloadedBytes.coerceAtLeast(0L),
+                )
+                put(COL_TOTAL_BYTES, totalBytes)
+                put(
+                    COL_SPEED,
+                    speedBytesPerSecond
+                        .coerceAtLeast(0L),
+                )
+                put(COL_ETA, etaSeconds)
+                put(COL_OUTPUT_URI, outputUri)
+                put(COL_ERROR, error)
+                put(COL_QUEUED, 0)
+                if (
+                    state ==
+                    YDownloadState.Completed
+                ) {
+                    put(
+                        COL_COMPLETED_AT,
+                        System.currentTimeMillis(),
+                    )
+                }
+            },
+        )
+    }
+
+    suspend fun clearSystemDownload(
+        id: String,
+    ) {
+        updateColumns(
+            id,
+            ContentValues().apply {
+                putNull(COL_SYSTEM_ID)
+            },
+        )
+    }
 
     suspend fun setOutputUri(
         id: String,
@@ -360,6 +440,16 @@ class YDownloadRepository(
     private fun Cursor.toItem(): YDownloadItem =
         YDownloadItem(
             id = string(COL_ID),
+            backend =
+                runCatching {
+                    YDownloadBackend.valueOf(
+                        string(COL_BACKEND),
+                    )
+                }.getOrDefault(
+                    YDownloadBackend.Private,
+                ),
+            systemId =
+                nullableLong(COL_SYSTEM_ID),
             url = string(COL_URL),
             fileName = string(COL_FILE_NAME),
             outputUri = nullableString(COL_OUTPUT_URI),
@@ -434,6 +524,8 @@ class YDownloadRepository(
                 """
                 CREATE TABLE $TABLE (
                     $COL_ID TEXT PRIMARY KEY,
+                    $COL_BACKEND TEXT NOT NULL DEFAULT 'Private',
+                    $COL_SYSTEM_ID INTEGER,
                     $COL_URL TEXT NOT NULL,
                     $COL_FILE_NAME TEXT NOT NULL,
                     $COL_OUTPUT_URI TEXT,
@@ -497,14 +589,26 @@ class YDownloadRepository(
                         "$COL_CHUNKS TEXT",
                 )
             }
+            if (oldVersion < 4) {
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_BACKEND TEXT NOT NULL DEFAULT 'Private'",
+                )
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_SYSTEM_ID INTEGER",
+                )
+            }
         }
     }
 
     private companion object {
         const val DB_NAME = "ydownload.db"
-        const val DB_VERSION = 3
+        const val DB_VERSION = 4
         const val TABLE = "downloads"
         const val COL_ID = "id"
+        const val COL_BACKEND = "backend"
+        const val COL_SYSTEM_ID = "system_id"
         const val COL_URL = "url"
         const val COL_FILE_NAME = "file_name"
         const val COL_OUTPUT_URI = "output_uri"
@@ -592,6 +696,8 @@ class YDownloadRepository(
 
         val ALL_COLUMNS = arrayOf(
             COL_ID,
+            COL_BACKEND,
+            COL_SYSTEM_ID,
             COL_URL,
             COL_FILE_NAME,
             COL_OUTPUT_URI,
