@@ -64,4 +64,22 @@
     <string name="ytask_kill">Kill process</string>
     <string name="ytask_force_stop">Force stop app</string>
     <string name="ytask_unavailable">Unavailable</string>
+
+    <string name="ytask_sort_cpu">CPU</string>
+    <string name="ytask_auto_refresh_on">Auto refresh ✓</string>
+    <string name="ytask_auto_refresh_off">Auto refresh off</string>
+    <string name="ytask_refresh_500">500 ms</string>
+    <string name="ytask_refresh_800">800 ms</string>
+    <string name="ytask_refresh_1000">1 s</string>
+    <string name="ytask_refresh_2000">2 s</string>
+    <string name="ytask_pinned">Pinned</string>
+    <string name="ytask_pin">Pin</string>
+    <string name="ytask_unpin">Unpin</string>
+    <string name="ytask_started">Started</string>
+    <string name="ytask_shared_uid_packages">Shared UID packages</string>
+    <string name="ytask_parent_pid">Parent PID</string>
+    <string name="ytask_kill_confirm_title">Kill process?</string>
+    <string name="ytask_kill_confirm_message">Kill %1$s immediately?</string>
+    <string name="ytask_confirm">Confirm</string>
+    <string name="ytask_cancel">Cancel</string>
 </resources>
