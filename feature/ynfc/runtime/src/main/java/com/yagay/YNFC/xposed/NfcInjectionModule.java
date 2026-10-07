@@ -131,7 +131,7 @@ public class NfcInjectionModule extends XposedModule {
                 + " process=" + param.getProcessName());
     }
 
-    static Uri configUri() {
+    public static Uri configUri() {
         return CONFIG_URI;
     }
 
