@@ -87,15 +87,23 @@ class YSuiteAppContainer(
     val logCollector =
         AndroidLogcatCollector()
 
-    val permissions =
-        AndroidPermissionChecker(context)
-    val permissionCatalog =
-        AndroidPermissionCatalog(context)
+    val permissions by
+        lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            AndroidPermissionChecker(context)
+        }
+    val permissionCatalog by
+        lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            AndroidPermissionCatalog(context)
+        }
 
-    val platform =
-        DefaultPlatformServices.create()
-    val capabilityMonitor =
-        PlatformCapabilityMonitor(platform)
+    val platform by
+        lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            DefaultPlatformServices.create()
+        }
+    val capabilityMonitor by
+        lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            PlatformCapabilityMonitor(platform)
+        }
 
     val yFilesEnvironment by
         lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
@@ -115,8 +123,9 @@ class YSuiteAppContainer(
             )
         }
 
-    val diagnostics =
-        DiagnosticCenter().apply {
+    val diagnostics by
+        lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            DiagnosticCenter().apply {
             replace(
                 owner = "platform",
                 checks =
@@ -249,6 +258,7 @@ class YSuiteAppContainer(
                         },
                     ),
             )
+        }
         }
 
     val featureRegistry =
