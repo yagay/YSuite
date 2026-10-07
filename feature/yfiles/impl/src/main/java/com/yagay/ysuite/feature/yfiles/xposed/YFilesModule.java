@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.util.Log;
 
+import com.yagay.ysuite.runtime.RuntimeOwnerGate;
+
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
@@ -29,12 +31,24 @@ public final class YFilesModule extends XposedModule {
             "com.google.android.gms",
             "com.android.vending"
     );
+    private String moduleHostPackage = "";
     private final ConcurrentHashMap<String, Boolean> installed = new ConcurrentHashMap<>();
 
     @Override
     public void onModuleLoaded(ModuleLoadedParam param) {
         try {
-            log(Log.INFO, TAG, "Loaded in " + param.getProcessName());
+            if (getModuleApplicationInfo() != null
+                    && getModuleApplicationInfo().packageName != null) {
+                moduleHostPackage =
+                        getModuleApplicationInfo().packageName;
+            }
+        } catch (Throwable ignored) {
+            moduleHostPackage = "";
+        }
+        RuntimeOwnerGate.announce("yfiles", moduleHostPackage);
+        try {
+            log(Log.INFO, TAG, "Loaded in " + param.getProcessName()
+                    + " host=" + moduleHostPackage);
         } catch (Throwable ignored) {}
     }
 
@@ -42,6 +56,7 @@ public final class YFilesModule extends XposedModule {
     public void onPackageReady(PackageReadyParam param) {
         try {
             if (!param.isFirstPackage()) return;
+            if (!RuntimeOwnerGate.shouldRun("yfiles", moduleHostPackage)) return;
             String pkg = param.getPackageName();
             if (pkg == null || pkg.startsWith("com.yagay.ysuite")) return;
 
