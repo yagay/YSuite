@@ -46,6 +46,7 @@ dependencies {
     implementation(project(":feature:ynotify:impl"))
     implementation(project(":feature:ynfc:runtime"))
     implementation(project(":feature:ynfc:impl"))
+    implementation(project(":feature:yfloat:runtime"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

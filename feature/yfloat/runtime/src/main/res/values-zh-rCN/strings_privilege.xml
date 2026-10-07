@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfloat_priv_title">高级权限</string>
+    <string name="yfloat_priv_desc">Root 和 LSPosed 都是可选增强层。关闭增强后，普通 Android 和无障碍路径仍保持可用。</string>
+    <string name="yfloat_priv_master_title">增强模式总开关</string>
+    <string name="yfloat_priv_master_desc">关闭后保留各子开关选择，运行时只使用普通 Android 和无障碍实现。</string>
+    <string name="yfloat_priv_enable_enhanced">启用增强模式</string>
+    <string name="yfloat_priv_enable_enhanced_desc">允许已经接入且单独启用的增强 Provider 参与后端选择。</string>
+    <string name="yfloat_priv_active_mode">当前生效模式</string>
+    <string name="yfloat_priv_root_desc">进入设置页不会自动申请 Root。只有真正执行 Root 功能或主动检测授权时才调用 su。</string>
+    <string name="yfloat_priv_use_root">使用 Root 功能</string>
+    <string name="yfloat_priv_use_root_desc">允许已接入的 Root 增强功能参与后端选择。</string>
+    <string name="yfloat_priv_root_screenshot">Root 截图增强</string>
+    <string name="yfloat_priv_root_screenshot_desc">仅在增强模式和 Root 功能同时开启时生效。否则截图继续使用普通后端。</string>
+    <string name="yfloat_priv_root_status">Root 状态</string>
+    <string name="yfloat_priv_check_root">检测 Root 授权</string>
+    <string name="yfloat_priv_checking_root">正在检测 Root 授权。Root 管理器可能会弹出授权窗口。</string>
+    <string name="yfloat_priv_root_granted">Root 已授权。</string>
+    <string name="yfloat_priv_root_unavailable">Root 不可用或未授权。</string>
+    <string name="yfloat_priv_root_note">Root 截图需要同时开启增强模式、Root 功能和 Root 截图增强。缺少任意一项都不会调用 Root 截图。</string>
+
+    <string name="yfloat_priv_google_title">Google App 管理</string>
+    <string name="yfloat_priv_google_desc">Root 可以停止 Google App 以及 search、interactor、googleapp 等同包进程。普通停止不会禁用应用；冻结会禁用 Google App，直到手动恢复。</string>
+    <string name="yfloat_priv_google_status">Google App 状态</string>
+    <string name="yfloat_priv_google_stop">停止 Google</string>
+    <string name="yfloat_priv_refresh_status">刷新状态</string>
+    <string name="yfloat_priv_root_required">请先开启增强模式和 Root 功能。</string>
+    <string name="yfloat_priv_google_stopping">正在使用 Root 停止 Google App 和残留同包进程。</string>
+    <string name="yfloat_priv_google_stopped">Google 已停止。</string>
+    <string name="yfloat_priv_google_stop_failed">停止 Google 失败。</string>
+    <string name="yfloat_priv_google_freeze">冻结 Google</string>
+    <string name="yfloat_priv_google_freeze_confirm">冻结 Google App？</string>
+    <string name="yfloat_priv_google_freeze_message">冻结后 Google 搜索、Assistant 和 Google 圈画都会不可用，直到在这里选择“恢复并启动”。</string>
+    <string name="yfloat_priv_cancel">取消</string>
+    <string name="yfloat_priv_freeze">冻结</string>
+    <string name="yfloat_priv_google_freezing">正在冻结 Google App。</string>
+    <string name="yfloat_priv_google_frozen">Google 已冻结。</string>
+    <string name="yfloat_priv_google_freeze_failed">冻结 Google 失败。</string>
+    <string name="yfloat_priv_google_restore">恢复并启动</string>
+    <string name="yfloat_priv_google_restoring">正在恢复并启动 Google App。</string>
+    <string name="yfloat_priv_google_restored">Google 已恢复。</string>
+    <string name="yfloat_priv_google_restore_failed">恢复 Google 失败。</string>
+    <string name="yfloat_priv_google_note">停止 Google 会执行 Root force-stop，清理 com.google.android.googlequicksearchbox 残留进程，再次 force-stop，不会禁用应用。需要长期阻止系统重新拉起时请使用“冻结 Google”。恢复按钮会重新启用并显式启动 Google 一次，以清除 force-stop 的 stopped 状态。</string>
+
+    <string name="yfloat_priv_lsposed_desc">API 102 Remote Preferences 会把应用开关同步到 system_server 和 SystemUI。安全窗口截图只在 YFloat 的短时截图授权期间改变系统捕获行为。</string>
+    <string name="yfloat_priv_enable_lsposed">启用 LSPosed Provider</string>
+    <string name="yfloat_priv_enable_lsposed_desc">允许已经接入的 LSPosed 功能使用跨进程配置。具体功能仍由各自开关控制。</string>
+    <string name="yfloat_priv_google_circle">启用 Google 圈画</string>
+    <string name="yfloat_priv_google_circle_desc">开启后 YFloat 的圈画动作使用 Google Circle to Search。只处理 YFloat 主动发起并带会话标记的 Google 圈画，系统 Home 或手势条原生 Google 圈画不受影响。Google App 需要加入 LSPosed 作用域并加载当前模块版本。</string>
+    <string name="yfloat_priv_secure_screenshot">LSPosed 安全窗口截图增强</string>
+    <string name="yfloat_priv_secure_screenshot_desc">只在 YFloat 截图时建立短时授权。需要增强模式、LSPosed Provider 和 system_server 已实际加载模块。不会永久移除 FLAG_SECURE。</string>
+    <string name="yfloat_priv_lsposed_status">LSPosed 实际状态</string>
+    <string name="yfloat_priv_reading_lsposed">正在读取 LSPosed 框架和 Hook 代际状态。</string>
+    <string name="yfloat_priv_reload_hooks">重载已变化 Hook</string>
+    <string name="yfloat_priv_reload_requires_root">热重载 Google 和 SystemUI Hook 需要启用增强模式和 Root 功能。</string>
+    <string name="yfloat_priv_reloading_hooks">正在重新加载发生变化的 Google 和 SystemUI Hook。</string>
+    <string name="yfloat_priv_reload_running">Hook 重载任务正在执行。</string>
+    <string name="yfloat_priv_test_secure_capture">测试安全截图</string>
+    <string name="yfloat_priv_lsposed_note">Hook 变化与普通应用代码变化分开判断。UI、OCR、弹窗、设置等普通更新不会重启目标。Google Hook 变化只重启 Google 进程；SystemUI Hook 变化只重启 SystemUI；只有 system_server Hook 变化才需要重启手机。推荐作用域：system、com.android.systemui、com.google.android.googlequicksearchbox。</string>
+
+    <string name="yfloat_priv_fallback_title">失败回退</string>
+    <string name="yfloat_priv_fallback_desc">增强后端失败时回到普通方法，避免 Root 或 Hook 失败影响基础功能。</string>
+    <string name="yfloat_priv_fallback_switch">增强方法失败时回退普通方法</string>
+    <string name="yfloat_priv_fallback_switch_desc">例如 Root 截图失败后重新尝试无障碍截图，或 LSPosed 授权建立失败时使用普通截图。</string>
+
+    <string name="yfloat_priv_root_management_disabled">Root 管理未启用。请先开启增强模式和 Root 功能。</string>
+    <string name="yfloat_priv_google_reading">正在读取 Google App 状态。</string>
+    <string name="yfloat_priv_google_running_note">Google App 和至少一个同包进程正在运行。</string>
+    <string name="yfloat_priv_google_stopped_note">Google App 已停止，当前没有同包进程运行。</string>
+    <string name="yfloat_priv_google_frozen_note">Google App 已被 disable-user 冻结。</string>
+    <string name="yfloat_priv_google_unknown_note">无法确定 Google App 状态。</string>
+
+    <string name="yfloat_priv_lsposed_selected_unavailable">LSPosed 已选择，但 Provider 未就绪。</string>
+    <string name="yfloat_priv_enhanced_enabled">增强总开关已开启。</string>
+    <string name="yfloat_priv_enhanced_disabled">增强总开关已关闭。</string>
+    <string name="yfloat_priv_root_not_checked">尚未检测。只有点击按钮后才会检测，不会自动调用 su。</string>
+    <string name="yfloat_priv_provider_root_allowed">当前 Provider：允许使用 Root。</string>
+    <string name="yfloat_priv_provider_root_disallowed">当前 Provider：不允许使用 Root。</string>
+    <string name="yfloat_priv_root_last_granted">已授权。上次检测：%1$s。</string>
+    <string name="yfloat_priv_root_last_denied">未授权或不可用。上次检测：%1$s。</string>
+
+    <string name="yfloat_priv_framework_disconnected">框架服务：未连接</string>
+    <string name="yfloat_priv_config_unavailable">配置通道：不可用</string>
+    <string name="yfloat_priv_system_unknown">系统框架：未知。SystemUI：未知</string>
+    <string name="yfloat_priv_restart_hint">如果刚启用模块，请重启目标进程或设备后再刷新。</string>
+    <string name="yfloat_priv_scope_line">作用域：system %1$s，SystemUI %2$s，Google App %3$s</string>
+    <string name="yfloat_priv_loaded_line">实际加载：系统框架 %1$s，SystemUI %2$s</string>
+    <string name="yfloat_priv_remote_line">配置通道：%1$s。Provider %2$s</string>
+    <string name="yfloat_priv_secure_line">安全窗口截图：%1$s。短时授权：%2$s</string>
+    <string name="yfloat_priv_google_line">Google 圈画：%1$s。Hook：%2$s</string>
+    <string name="yfloat_priv_google_hook_changed">代码有变化，需要热重载</string>
+    <string name="yfloat_priv_google_hook_loaded">已加载，可以继续使用</string>
+    <string name="yfloat_priv_google_hook_not_running">未运行</string>
+    <string name="yfloat_priv_process_none">已加载进程：无</string>
+    <string name="yfloat_priv_process_line">已加载进程：%1$s</string>
+    <string name="yfloat_priv_framework_connected">框架服务：已连接 %1$s%2$s。API %3$d</string>
+    <string name="yfloat_priv_enabled">已启用</string>
+    <string name="yfloat_priv_disabled">未启用</string>
+    <string name="yfloat_priv_loaded">已加载</string>
+    <string name="yfloat_priv_not_loaded">未加载</string>
+    <string name="yfloat_priv_synced">已同步</string>
+    <string name="yfloat_priv_unavailable">不可用</string>
+    <string name="yfloat_priv_active">进行中</string>
+    <string name="yfloat_priv_idle">空闲</string>
+</resources>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfloat_icon_page_desc">只保留与悬浮图标外观、位置和显示有关的设置。</string>
+    <string name="yfloat_appearance_section">外观</string>
+    <string name="yfloat_opacity">透明度</string>
+    <string name="yfloat_icon_size">图标大小</string>
+    <string name="yfloat_choose_custom_icon">选择自定义图片或 GIF</string>
+    <string name="yfloat_choose_slideshow_icons">选择轮播图片</string>
+    <string name="yfloat_slideshow_interval">轮播间隔</string>
+    <string name="yfloat_position_display_section">位置与显示</string>
+    <string name="yfloat_edge_visible_ratio">贴边后可见比例</string>
+    <string name="yfloat_show_both_sides">左右两侧同时显示</string>
+    <string name="yfloat_show_both_sides_desc">屏幕两侧都保留悬浮图标。</string>
+    <string name="yfloat_auto_snap">自动吸边</string>
+    <string name="yfloat_auto_snap_desc">拖动结束后自动贴近最近的屏幕边缘。</string>
+    <string name="yfloat_edge_recall">边缘滑入唤回</string>
+    <string name="yfloat_edge_recall_desc">隐藏后可从屏幕边缘向内滑动恢复图标。</string>
+    <string name="yfloat_show_on_lock_screen">锁屏仍显示</string>
+    <string name="yfloat_click_under_icon">点击图标时点击下方屏幕</string>
+    <string name="yfloat_click_under_icon_desc">用于需要穿透式点击的场景。</string>
+    <string name="yfloat_position_save_note">普通拖动只临时移动图标。执行“移动图标位置”动作后，下一次拖动才会保存新位置。</string>
+
+    <string name="yfloat_gesture_page_desc">把判定阈值和视觉反馈分开，调节时更容易找到。</string>
+    <string name="yfloat_tap_hold_section">点击与长按</string>
+    <string name="yfloat_long_press_time">长按时间</string>
+    <string name="yfloat_double_tap_interval">双击间隔</string>
+    <string name="yfloat_tap_max_duration">短按最大持续时间</string>
+    <string name="yfloat_gesture_start_distance">手势启动距离</string>
+    <string name="yfloat_swipe_distance_section">滑动距离</string>
+    <string name="yfloat_down_swipe_split">下滑长短分界</string>
+    <string name="yfloat_side_swipe_split">侧滑长短分界</string>
+    <string name="yfloat_feedback_trail_section">反馈与轨迹</string>
+    <string name="yfloat_vibration_feedback">震动反馈</string>
+    <string name="yfloat_show_gesture_trail">显示手势轨迹</string>
+    <string name="yfloat_trail_opacity">轨迹透明度</string>
+    <string name="yfloat_trail_width">轨迹宽度</string>
+    <string name="yfloat_trail_gradient">轨迹颜色渐变</string>
+    <string name="yfloat_trail_colors">轨迹颜色</string>
+    <string name="yfloat_trail_colors_hint">例如 #FFFFFF,#42A5F5</string>
+
+    <string name="yfloat_capture_page_desc">普通截图 OCR 与 YFloat 原生圈画 OCR 分开设置。Google 圈画设置位于高级权限的 LSPosed 部分。</string>
+    <string name="yfloat_capture_section">截图</string>
+    <string name="yfloat_capture_section_desc">状态栏与导航栏范围同时作用于普通截图、OCR 区域截图和圈画模式。</string>
+    <string name="yfloat_keep_float_in_screenshot">截图保留悬浮图标</string>
+    <string name="yfloat_capture_status_bar">截取状态栏</string>
+    <string name="yfloat_capture_status_bar_desc">关闭后普通截图和圈画都会排除当前可见的状态栏区域。</string>
+    <string name="yfloat_capture_navigation_bar">截取按键导航栏</string>
+    <string name="yfloat_capture_navigation_bar_desc">关闭后普通截图和圈画都会排除导航栏。开启后两者都会保留导航栏区域。</string>
+    <string name="yfloat_prefer_accessibility_screenshot">优先无障碍截图</string>
+    <string name="yfloat_prefer_accessibility_screenshot_desc">普通截图后端。Root 和 LSPosed 增强截图在高级权限中单独配置。</string>
+    <string name="yfloat_circle_border_section">圈画激活提示</string>
+    <string name="yfloat_circle_border_desc">边框圆角会根据当前设备和屏幕方向自动适配。它只用于提示激活状态，YFloat 截图时会自动隐藏。</string>
+    <string name="yfloat_native_circle_ocr_section">YFloat 圈画 OCR</string>
+    <string name="yfloat_native_circle_ocr_desc">以下 OCR 设置只用于 YFloat 原生圈画。Google 模式使用 Google 自己的识别、圈选和目标分析。</string>
+    <string name="yfloat_ocr_result_section">OCR 结果</string>
+    <string name="yfloat_ocr_result_desc">这里的 OCR 引擎只控制普通截图 OCR，不再控制圈画模式。</string>
+    <string name="yfloat_show_original_selection">显示原选区图片</string>
+    <string name="yfloat_show_text">显示文字</string>
+    <string name="yfloat_collapse_results">结果默认折叠</string>
+    <string name="yfloat_local_models_section">本地 PP-OCRv6 模型</string>
+    <string name="yfloat_local_models_desc">Tiny 适合整屏快速索引或轻量校正，Small 更均衡，Medium 精度最高但更慢。选择 PP 模型作为圈画整屏或校正引擎前，请先下载对应模型。Tiny 约 7 MB，Small 约 32 MB，Medium 约 139 MB。</string>
+    <string name="yfloat_local_models_unavailable">本地模型管理暂不可用。ML Kit 仍可正常使用。</string>
+    <string name="yfloat_recognition_languages_section">识别语言</string>
+    <string name="yfloat_recognition_languages_desc">普通截图 OCR 与圈画识别共用语言选择。ML Kit 会按启用语言选择识别器，简体和繁體共用中文识别支持，至少保留一种语言。</string>
+
+    <string name="yfloat_environment_page_desc">与当前应用、键盘和屏幕环境有关的行为。</string>
+    <string name="yfloat_display_behavior_section">显示行为</string>
+    <string name="yfloat_avoid_keyboard">键盘出现时避让图标</string>
+    <string name="yfloat_quick_move_entry">Quick Move 和智能屏幕入口</string>
+    <string name="yfloat_hide_by_app_section">按应用隐藏</string>
+    <string name="yfloat_hide_by_app_desc">输入包名，使用逗号、空格或换行分隔。</string>
+    <string name="yfloat_package_list_hint">com.example.game\ncom.example.bank</string>
+</resources>

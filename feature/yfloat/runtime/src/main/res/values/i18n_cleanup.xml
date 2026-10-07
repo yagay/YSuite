@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="yfloat_capture_probe_success">Passed: secure-window content is present in the screenshot Bitmap. Matched %1$d of %2$d samples. Bitmap width %3$d, height %4$d.</string>
+    <string name="yfloat_capture_probe_failure">Failed: the screenshot API returned data, but the FLAG_SECURE test-page marker colors were not captured. Matched %1$d of %2$d samples. This usually means the system_server hook point does not match the current OxygenOS version, or the secure layer is still filtered further downstream.</string>
+    <string name="yfloat_app_name">YFloat</string>
+</resources>

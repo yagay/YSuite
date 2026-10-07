@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfloat_hook_reload_failed">Hook reload failed.</string>
+    <string name="yfloat_hook_google_reloaded">Google Hook hot-reloaded.</string>
+    <string name="yfloat_hook_systemui_reloaded">SystemUI Hook hot-reloaded.</string>
+    <string name="yfloat_hook_no_changes">Google and SystemUI Hooks have no changes and do not need reloading.</string>
+    <string name="yfloat_hook_system_reboot_required">system_server Hook changed. Reboot the device to load it.</string>
+    <string name="yfloat_hook_google_reload_requires_root">Google Hook changed. Automatic hot reload requires enhanced mode and Root features.</string>
+    <string name="yfloat_hook_google_reload_timeout">Reloading Google Hook timed out.</string>
+    <string name="yfloat_hook_reload_requires_root">Hook code changed. Reloading Google and SystemUI requires enhanced mode and Root features.</string>
+    <string name="yfloat_hook_reload_timeout">Reloading Hooks timed out.</string>
+    <string name="yfloat_hook_status_unknown">Hook status unknown</string>
+    <string name="yfloat_hook_generation_summary">Hook generation: Google %1$s. SystemUI %2$s. system_server %3$s.</string>
+    <string name="yfloat_hook_state_reload">reload required</string>
+    <string name="yfloat_hook_state_current">current</string>
+    <string name="yfloat_hook_state_reboot">reboot required</string>
+</resources>

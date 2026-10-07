@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="yfloat_dimension_dp">%1$d dp</string>
+    <string name="yfloat_circle_correction_disabled">Circle correction is disabled</string>
+    <string name="yfloat_ocr_model_missing">%1$s is not downloaded</string>
+    <string name="yfloat_mlkit_ocr_empty">ML Kit full-screen OCR returned no text</string>
+    <string name="yfloat_ppocr_empty">PP-OCR returned no text</string>
+    <string name="yfloat_ppocr_failed">PP-OCR failed</string>
+    <string name="yfloat_invalid_ocr_bitmap">Invalid Circle OCR bitmap</string>
+    <string name="yfloat_ocr_off">Off</string>
+</resources>

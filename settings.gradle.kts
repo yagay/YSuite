@@ -64,5 +64,7 @@ include(":feature:ynotify:impl")
 include(":feature:ynfc:api")
 include(":feature:ynfc:runtime")
 include(":feature:ynfc:impl")
+include(":feature:yfloat:ppocr")
+include(":feature:yfloat:runtime")
 
 include(":host:standalone")

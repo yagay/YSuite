@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfloat_priv_title">Advanced permissions</string>
+    <string name="yfloat_priv_desc">Root and LSPosed are optional enhancement layers. Standard Android and accessibility paths remain available when enhancements are disabled.</string>
+    <string name="yfloat_priv_master_title">Enhancement master switch</string>
+    <string name="yfloat_priv_master_desc">When disabled, individual selections are retained, but runtime uses only standard Android and accessibility implementations.</string>
+    <string name="yfloat_priv_enable_enhanced">Enable enhanced mode</string>
+    <string name="yfloat_priv_enable_enhanced_desc">Allows integrated and individually enabled enhanced providers to participate in backend selection.</string>
+    <string name="yfloat_priv_active_mode">Active mode</string>
+    <string name="yfloat_priv_root_desc">Opening this page never requests Root automatically. su is invoked only when a Root feature is used or authorization is explicitly checked.</string>
+    <string name="yfloat_priv_use_root">Use Root features</string>
+    <string name="yfloat_priv_use_root_desc">Allow integrated Root enhancements to participate in backend selection.</string>
+    <string name="yfloat_priv_root_screenshot">Root screenshot enhancement</string>
+    <string name="yfloat_priv_root_screenshot_desc">Effective only when enhanced mode and Root features are both enabled. Otherwise screenshots continue using standard backends.</string>
+    <string name="yfloat_priv_root_status">Root status</string>
+    <string name="yfloat_priv_check_root">Check Root authorization</string>
+    <string name="yfloat_priv_checking_root">Checking Root authorization. The Root manager may show an authorization dialog.</string>
+    <string name="yfloat_priv_root_granted">Root authorized.</string>
+    <string name="yfloat_priv_root_unavailable">Root is unavailable or not authorized.</string>
+    <string name="yfloat_priv_root_note">Root screenshots require enhanced mode, Root features, and Root screenshot enhancement to be enabled. Root screenshots are not invoked if any requirement is missing.</string>
+
+    <string name="yfloat_priv_google_title">Google App management</string>
+    <string name="yfloat_priv_google_desc">Root can stop Google App and same-package processes such as search, interactor, and googleapp. Normal stop does not disable the app. Freeze disables Google App until it is restored manually.</string>
+    <string name="yfloat_priv_google_status">Google App status</string>
+    <string name="yfloat_priv_google_stop">Stop Google</string>
+    <string name="yfloat_priv_refresh_status">Refresh status</string>
+    <string name="yfloat_priv_root_required">Enable enhanced mode and Root features first.</string>
+    <string name="yfloat_priv_google_stopping">Stopping Google App and remaining same-package processes with Root.</string>
+    <string name="yfloat_priv_google_stopped">Google stopped.</string>
+    <string name="yfloat_priv_google_stop_failed">Failed to stop Google.</string>
+    <string name="yfloat_priv_google_freeze">Freeze Google</string>
+    <string name="yfloat_priv_google_freeze_confirm">Freeze Google App?</string>
+    <string name="yfloat_priv_google_freeze_message">Google Search, Assistant, and Google screen recognition will be unavailable until Restore and launch is selected here.</string>
+    <string name="yfloat_priv_cancel">Cancel</string>
+    <string name="yfloat_priv_freeze">Freeze</string>
+    <string name="yfloat_priv_google_freezing">Freezing Google App.</string>
+    <string name="yfloat_priv_google_frozen">Google frozen.</string>
+    <string name="yfloat_priv_google_freeze_failed">Failed to freeze Google.</string>
+    <string name="yfloat_priv_google_restore">Restore and launch</string>
+    <string name="yfloat_priv_google_restoring">Restoring and launching Google App.</string>
+    <string name="yfloat_priv_google_restored">Google restored.</string>
+    <string name="yfloat_priv_google_restore_failed">Failed to restore Google.</string>
+    <string name="yfloat_priv_google_note">Stop Google performs Root force-stop, clears remaining com.google.android.googlequicksearchbox processes, then force-stops again without disabling the app. Use Freeze Google to prevent long-term system relaunch. Restore and launch re-enables Google and launches it once to clear the force-stop stopped state.</string>
+
+    <string name="yfloat_priv_lsposed_desc">API 102 Remote Preferences synchronizes app switches to system_server and SystemUI. Secure-window screenshots change system capture behavior only during YFloat’s short capture lease.</string>
+    <string name="yfloat_priv_enable_lsposed">Enable LSPosed Provider</string>
+    <string name="yfloat_priv_enable_lsposed_desc">Allows integrated LSPosed features to use cross-process configuration. Each feature still has its own switch.</string>
+    <string name="yfloat_priv_google_circle">Enable Google screen recognition</string>
+    <string name="yfloat_priv_google_circle_desc">YFloat’s screen-recognition action uses Google Circle to Search when enabled. Only sessions initiated by YFloat with its session marker are handled. Native Google activation from Home or the gesture bar is unchanged. Google App must be in the LSPosed scope and load the current module version.</string>
+    <string name="yfloat_priv_secure_screenshot">LSPosed secure-window screenshot enhancement</string>
+    <string name="yfloat_priv_secure_screenshot_desc">Creates a short authorization only while YFloat captures. Requires enhanced mode, LSPosed Provider, and an actually loaded system_server module. FLAG_SECURE is never removed permanently.</string>
+    <string name="yfloat_priv_lsposed_status">LSPosed runtime status</string>
+    <string name="yfloat_priv_reading_lsposed">Reading LSPosed framework and Hook generation state.</string>
+    <string name="yfloat_priv_reload_hooks">Reload changed Hooks</string>
+    <string name="yfloat_priv_reload_requires_root">Reloading Google and SystemUI Hooks requires enhanced mode and Root features.</string>
+    <string name="yfloat_priv_reloading_hooks">Reloading changed Google and SystemUI Hooks.</string>
+    <string name="yfloat_priv_reload_running">A Hook reload task is already running.</string>
+    <string name="yfloat_priv_test_secure_capture">Test secure screenshot</string>
+    <string name="yfloat_priv_lsposed_note">Hook changes and ordinary app-code changes are evaluated separately. UI, OCR, dialogs, settings, and other ordinary updates never restart targets. Google Hook changes restart only Google processes. SystemUI Hook changes restart only SystemUI. Only system_server Hook changes require a device reboot. Recommended scope: system, com.android.systemui, and com.google.android.googlequicksearchbox.</string>
+
+    <string name="yfloat_priv_fallback_title">Failure fallback</string>
+    <string name="yfloat_priv_fallback_desc">Fall back to standard methods when an enhanced backend fails so Root or Hook failures do not affect basic functionality.</string>
+    <string name="yfloat_priv_fallback_switch">Use standard methods when enhancement fails</string>
+    <string name="yfloat_priv_fallback_switch_desc">For example, retry an accessibility screenshot after a Root screenshot fails, or use a standard screenshot if an LSPosed lease cannot be established.</string>
+
+    <string name="yfloat_priv_root_management_disabled">Root management is disabled. Enable enhanced mode and Root features first.</string>
+    <string name="yfloat_priv_google_reading">Reading Google App status.</string>
+    <string name="yfloat_priv_google_running_note">Google App and at least one same-package process are running.</string>
+    <string name="yfloat_priv_google_stopped_note">Google App is stopped and no same-package process is currently running.</string>
+    <string name="yfloat_priv_google_frozen_note">Google App is frozen by disable-user.</string>
+    <string name="yfloat_priv_google_unknown_note">Unable to determine Google App status.</string>
+
+    <string name="yfloat_priv_lsposed_selected_unavailable">LSPosed is selected, but the Provider is not ready.</string>
+    <string name="yfloat_priv_enhanced_enabled">Enhancement master switch is enabled.</string>
+    <string name="yfloat_priv_enhanced_disabled">Enhancement master switch is disabled.</string>
+    <string name="yfloat_priv_root_not_checked">Not checked yet. Root is checked only after the button is pressed and su is never invoked automatically.</string>
+    <string name="yfloat_priv_provider_root_allowed">Current provider: Root use is allowed.</string>
+    <string name="yfloat_priv_provider_root_disallowed">Current provider: Root use is not allowed.</string>
+    <string name="yfloat_priv_root_last_granted">Authorized. Last checked %1$s.</string>
+    <string name="yfloat_priv_root_last_denied">Not authorized or unavailable. Last checked %1$s.</string>
+
+    <string name="yfloat_priv_framework_disconnected">Framework service: not connected</string>
+    <string name="yfloat_priv_config_unavailable">Configuration channel: unavailable</string>
+    <string name="yfloat_priv_system_unknown">System framework: unknown. SystemUI: unknown</string>
+    <string name="yfloat_priv_restart_hint">If the module was just enabled, restart the target process or device and refresh again.</string>
+    <string name="yfloat_priv_scope_line">Scope: system %1$s, SystemUI %2$s, Google App %3$s</string>
+    <string name="yfloat_priv_loaded_line">Actually loaded: system framework %1$s, SystemUI %2$s</string>
+    <string name="yfloat_priv_remote_line">Configuration channel: %1$s. Provider %2$s</string>
+    <string name="yfloat_priv_secure_line">Secure-window screenshots: %1$s. Short authorization: %2$s</string>
+    <string name="yfloat_priv_google_line">Google screen recognition: %1$s. Hook: %2$s</string>
+    <string name="yfloat_priv_google_hook_changed">code changed, reload required</string>
+    <string name="yfloat_priv_google_hook_loaded">loaded and ready</string>
+    <string name="yfloat_priv_google_hook_not_running">not running</string>
+    <string name="yfloat_priv_process_none">Loaded processes: none</string>
+    <string name="yfloat_priv_process_line">Loaded processes: %1$s</string>
+    <string name="yfloat_priv_framework_connected">Framework service: connected to %1$s%2$s. API %3$d</string>
+    <string name="yfloat_priv_enabled">enabled</string>
+    <string name="yfloat_priv_disabled">disabled</string>
+    <string name="yfloat_priv_loaded">loaded</string>
+    <string name="yfloat_priv_not_loaded">not loaded</string>
+    <string name="yfloat_priv_synced">synchronized</string>
+    <string name="yfloat_priv_unavailable">unavailable</string>
+    <string name="yfloat_priv_active">active</string>
+    <string name="yfloat_priv_idle">idle</string>
+</resources>

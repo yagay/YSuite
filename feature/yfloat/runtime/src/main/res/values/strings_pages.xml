@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yfloat_icon_page_desc">Settings related to floating-icon appearance, position, and visibility.</string>
+    <string name="yfloat_appearance_section">Appearance</string>
+    <string name="yfloat_opacity">Opacity</string>
+    <string name="yfloat_icon_size">Icon size</string>
+    <string name="yfloat_choose_custom_icon">Choose custom image or GIF</string>
+    <string name="yfloat_choose_slideshow_icons">Choose slideshow images</string>
+    <string name="yfloat_slideshow_interval">Slideshow interval</string>
+    <string name="yfloat_position_display_section">Position and visibility</string>
+    <string name="yfloat_edge_visible_ratio">Visible ratio after docking</string>
+    <string name="yfloat_show_both_sides">Show on both sides</string>
+    <string name="yfloat_show_both_sides_desc">Keep a floating icon on both sides of the screen.</string>
+    <string name="yfloat_auto_snap">Snap to edge automatically</string>
+    <string name="yfloat_auto_snap_desc">Move the icon to the nearest screen edge when dragging ends.</string>
+    <string name="yfloat_edge_recall">Recall by swiping from the edge</string>
+    <string name="yfloat_edge_recall_desc">After hiding, swipe inward from the screen edge to restore the icon.</string>
+    <string name="yfloat_show_on_lock_screen">Show on lock screen</string>
+    <string name="yfloat_click_under_icon">Tap the screen below the icon</string>
+    <string name="yfloat_click_under_icon_desc">Useful when pass-through-style tapping is needed.</string>
+    <string name="yfloat_position_save_note">Normal dragging only moves the icon temporarily. After using the Move floating icon action, the next drag saves the new position.</string>
+
+    <string name="yfloat_gesture_page_desc">Timing thresholds and visual feedback are separated to make tuning easier.</string>
+    <string name="yfloat_tap_hold_section">Tap and long press</string>
+    <string name="yfloat_long_press_time">Long-press time</string>
+    <string name="yfloat_double_tap_interval">Double-tap interval</string>
+    <string name="yfloat_tap_max_duration">Maximum tap duration</string>
+    <string name="yfloat_gesture_start_distance">Gesture start distance</string>
+    <string name="yfloat_swipe_distance_section">Swipe distance</string>
+    <string name="yfloat_down_swipe_split">Short and long downward-swipe threshold</string>
+    <string name="yfloat_side_swipe_split">Short and long side-swipe threshold</string>
+    <string name="yfloat_feedback_trail_section">Feedback and trail</string>
+    <string name="yfloat_vibration_feedback">Vibration feedback</string>
+    <string name="yfloat_show_gesture_trail">Show gesture trail</string>
+    <string name="yfloat_trail_opacity">Trail opacity</string>
+    <string name="yfloat_trail_width">Trail width</string>
+    <string name="yfloat_trail_gradient">Use gradient trail colors</string>
+    <string name="yfloat_trail_colors">Trail colors</string>
+    <string name="yfloat_trail_colors_hint">Example: #FFFFFF,#42A5F5</string>
+
+    <string name="yfloat_capture_page_desc">Configure standard screenshot OCR and YFloat native region-recognition OCR separately. Google screen-recognition settings are under Advanced permissions, LSPosed.</string>
+    <string name="yfloat_capture_section">Screenshot</string>
+    <string name="yfloat_capture_section_desc">Status-bar and navigation-bar choices apply to standard screenshots, OCR region screenshots, and region-recognition mode.</string>
+    <string name="yfloat_keep_float_in_screenshot">Keep floating icon in screenshots</string>
+    <string name="yfloat_capture_status_bar">Capture status bar</string>
+    <string name="yfloat_capture_status_bar_desc">When disabled, standard screenshots and region recognition exclude the visible status-bar area.</string>
+    <string name="yfloat_capture_navigation_bar">Capture button navigation bar</string>
+    <string name="yfloat_capture_navigation_bar_desc">When disabled, standard screenshots and region recognition exclude the navigation bar. When enabled, both keep it.</string>
+    <string name="yfloat_prefer_accessibility_screenshot">Prefer accessibility screenshots</string>
+    <string name="yfloat_prefer_accessibility_screenshot_desc">Standard screenshot backend. Root and LSPosed screenshot enhancements are configured separately under Advanced permissions.</string>
+    <string name="yfloat_circle_border_section">Region-recognition activation indicator</string>
+    <string name="yfloat_circle_border_desc">Border corners adapt to the current device and orientation. The border only indicates active mode and is hidden automatically while YFloat captures the screen.</string>
+    <string name="yfloat_native_circle_ocr_section">YFloat region-recognition OCR</string>
+    <string name="yfloat_native_circle_ocr_desc">These OCR settings apply only to YFloat native region recognition. Google mode uses Google recognition, selection, and target analysis.</string>
+    <string name="yfloat_ocr_result_section">OCR results</string>
+    <string name="yfloat_ocr_result_desc">This OCR engine controls standard screenshot OCR and does not control region-recognition mode.</string>
+    <string name="yfloat_show_original_selection">Show original selected image</string>
+    <string name="yfloat_show_text">Show text</string>
+    <string name="yfloat_collapse_results">Collapse results by default</string>
+    <string name="yfloat_local_models_section">Local PP-OCRv6 models</string>
+    <string name="yfloat_local_models_desc">Tiny is suitable for fast full-screen indexing or lightweight correction. Small is balanced. Medium offers the highest accuracy but is slower. Download a PP model before selecting it for full-screen or correction use. Tiny is about 7 MB, Small about 32 MB, and Medium about 139 MB.</string>
+    <string name="yfloat_local_models_unavailable">Local model management is temporarily unavailable. ML Kit remains available.</string>
+    <string name="yfloat_recognition_languages_section">Recognition languages</string>
+    <string name="yfloat_recognition_languages_desc">Standard screenshot OCR and region recognition share this language selection. ML Kit chooses recognizers from enabled languages. Simplified and Traditional Chinese share Chinese recognition support. Keep at least one language enabled.</string>
+
+    <string name="yfloat_environment_page_desc">Behavior related to the current app, keyboard, and screen environment.</string>
+    <string name="yfloat_display_behavior_section">Display behavior</string>
+    <string name="yfloat_avoid_keyboard">Move icon away from keyboard</string>
+    <string name="yfloat_quick_move_entry">Quick Move and smart-screen entry</string>
+    <string name="yfloat_hide_by_app_section">Hide by app</string>
+    <string name="yfloat_hide_by_app_desc">Enter package names separated by commas, spaces, or new lines.</string>
+    <string name="yfloat_package_list_hint">com.example.game\ncom.example.bank</string>
+</resources>
