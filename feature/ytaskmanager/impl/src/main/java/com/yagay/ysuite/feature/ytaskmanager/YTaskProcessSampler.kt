@@ -219,12 +219,15 @@ internal class YTaskProcessSampler(
                     state = stat.state,
                     nice = stat.nice,
                     threads = threads,
+                    startTimeMillis =
+                        now - (elapsedSeconds * 1000.0).toLong(),
                     elapsedTimeMillis =
                         (elapsedSeconds * 1000.0).toLong(),
                     oomScoreAdj = oom,
                     isForeground = info != null && (oom ?: 1000) <= 0,
                     name = stat.name,
                     command = command,
+                    packageNames = packages,
                     packageName = packageName,
                     appLabel = label,
                     kind = kind,
