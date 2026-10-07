@@ -177,6 +177,7 @@ class ConfigProvider : ContentProvider() {
         const val KEY_SCOPE_PID = "scope_pid"
         const val KEY_RUNTIME_PID = "runtime_pid"
 
+        @JvmField
         val URI: Uri = Uri.parse("content://" + BuildConfig.CONFIG_AUTHORITY + "/settings")
     }
 }
