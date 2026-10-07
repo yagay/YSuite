@@ -310,8 +310,7 @@ fun YFloatFeatureScreen(
                 ),
             selected = s.fullOcrEngine,
             key =
-                FloatSettings
-                    .K_CIRCLE_FULL_OCR_ENGINE,
+                YFloatRuntimeBridge.K_CIRCLE_FULL_OCR_ENGINE,
             model = model,
         )
         engineGroup(
@@ -321,8 +320,7 @@ fun YFloatFeatureScreen(
                 ),
             selected = s.correctionEngine,
             key =
-                FloatSettings
-                    .K_CIRCLE_CORRECTION_ENGINE,
+                YFloatRuntimeBridge.K_CIRCLE_CORRECTION_ENGINE,
             model = model,
         )
 
@@ -386,8 +384,7 @@ fun YFloatFeatureScreen(
                 checked = s.secureScreenshot,
                 onCheckedChange = {
                     model.bool(
-                        FloatSettings
-                            .K_LSPOSED_SECURE_SCREENSHOT,
+                        YFloatRuntimeBridge.K_LSPOSED_SECURE_SCREENSHOT,
                         it,
                     )
                 },

@@ -29,7 +29,7 @@ data class YMiniGuardUiState(
     val diagnostics: String = "",
 )
 
-class YMiniGuardViewModel(
+internal class YMiniGuardViewModel(
     private val repository: YMiniGuardRepository,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(YMiniGuardUiState())

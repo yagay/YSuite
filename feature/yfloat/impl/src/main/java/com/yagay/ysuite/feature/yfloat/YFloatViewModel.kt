@@ -15,7 +15,7 @@ data class YFloatUiState(
     val statusToken: String? = null,
 )
 
-class YFloatViewModel(
+internal class YFloatViewModel(
     private val repository: YFloatRepository,
 ) : ViewModel() {
     private val mutableState =

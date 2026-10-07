@@ -147,13 +147,13 @@ internal class YFloatRepository(
         val writes =
             listOf(
                 YFloatRuntimeBridge.K_ENHANCED_MODE to
-                    fs.enhancedMode().toString(),
+                    fs.enhancedMode.toString(),
                 YFloatRuntimeBridge.K_LSPOSED_ENABLED to
-                    fs.lsposedEnabled().toString(),
+                    fs.lsposedEnabled.toString(),
                 YFloatRuntimeBridge.K_LSPOSED_SECURE_SCREENSHOT to
-                    fs.lsposedSecureScreenshot().toString(),
+                    fs.secureScreenshot.toString(),
                 YFloatRuntimeBridge.K_DIAGNOSTIC to
-                    fs.diagnosticLogging().toString(),
+                    fs.diagnosticLogging.toString(),
                 "updated_at" to
                     updatedAt.toString(),
             )
