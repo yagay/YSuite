@@ -222,11 +222,9 @@ internal class YPowerRepository(
     suspend fun hookStatus(): CapabilityStatus = hooks.status()
 
     suspend fun apply(profile: YPowerProfile): YPowerApplyResult {
-        if (root.status() != CapabilityStatus.Available) {
-            return YPowerApplyResult(
-                errors = listOf("root_unavailable"),
-            )
-        }
+        val rootAvailable =
+            root.status() ==
+                CapabilityStatus.Available
 
         val applied = mutableListOf<String>()
         val notes = mutableListOf<String>()
@@ -284,52 +282,58 @@ internal class YPowerRepository(
             }
         }
 
-        run(
-            "doze",
-            if (profile.dozeWhitelist) {
-                "cmd deviceidle whitelist +$pkg"
+        if (rootAvailable) {
+            run(
+                "doze",
+                if (profile.dozeWhitelist) {
+                    "cmd deviceidle whitelist +$pkg"
+                } else {
+                    "cmd deviceidle whitelist -$pkg"
+                },
+            )
+            if (profile.backgroundOps) {
+                run(
+                    "background_ops",
+                    "cmd appops set $pkg RUN_IN_BACKGROUND allow; " +
+                        "cmd appops set $pkg RUN_ANY_IN_BACKGROUND allow; " +
+                        "cmd appops set $pkg START_FOREGROUND allow",
+                )
             } else {
-                "cmd deviceidle whitelist -$pkg"
-            },
-        )
-        if (profile.backgroundOps) {
-            run(
-                "background_ops",
-                "cmd appops set $pkg RUN_IN_BACKGROUND allow; " +
-                    "cmd appops set $pkg RUN_ANY_IN_BACKGROUND allow; " +
-                    "cmd appops set $pkg START_FOREGROUND allow",
-            )
+                run(
+                    "background_ops_reset",
+                    "cmd appops set $pkg RUN_IN_BACKGROUND default; " +
+                        "cmd appops set $pkg RUN_ANY_IN_BACKGROUND default",
+                )
+            }
+            if (profile.standbyActive) {
+                run(
+                    "standby_active",
+                    "am set-inactive $pkg false; " +
+                        "am set-standby-bucket $pkg active",
+                )
+            }
+            if (profile.backgroundData) {
+                run(
+                    "background_data",
+                    "cmd netpolicy add " +
+                        "restrict-background-whitelist $uid",
+                )
+            }
+    
+            if (profile.autoGrantDangerous) {
+                dangerousPermissions(profile.packageName)
+                    .forEach { permission ->
+                        run(
+                            "grant:$permission",
+                            "pm grant --user current $pkg " +
+                                shellQuote(permission),
+                        )
+                    }
+            }
+    
+    
         } else {
-            run(
-                "background_ops_reset",
-                "cmd appops set $pkg RUN_IN_BACKGROUND default; " +
-                    "cmd appops set $pkg RUN_ANY_IN_BACKGROUND default",
-            )
-        }
-        if (profile.standbyActive) {
-            run(
-                "standby_active",
-                "am set-inactive $pkg false; " +
-                    "am set-standby-bucket $pkg active",
-            )
-        }
-        if (profile.backgroundData) {
-            run(
-                "background_data",
-                "cmd netpolicy add " +
-                    "restrict-background-whitelist $uid",
-            )
-        }
-
-        if (profile.autoGrantDangerous) {
-            dangerousPermissions(profile.packageName)
-                .forEach { permission ->
-                    run(
-                        "grant:$permission",
-                        "pm grant --user current $pkg " +
-                            shellQuote(permission),
-                    )
-                }
+            notes += "root_unavailable"
         }
 
         val hookConfig =
@@ -338,28 +342,71 @@ internal class YPowerRepository(
                 "profile:" + profile.packageName,
                 hookProfileJson(profile),
             )
+        var hookConfigReady = false
         when (hookConfig) {
-            is Outcome.Success ->
+            is Outcome.Success -> {
                 applied += "hook_profile_sync"
-            is Outcome.Failure ->
-                notes +=
+                hookConfigReady = true
+            }
+            is Outcome.Failure -> {
+                val message =
                     "hook_profile_sync:" +
                         hookConfig.error.code
+                if (
+                    profile.enabled &&
+                    profile.anyHookFeature
+                ) {
+                    errors += message
+                } else {
+                    notes += message
+                }
+            }
         }
 
-        if (profile.enabled && profile.anyHookFeature) {
+        var hookScopeReady =
+            !(
+                profile.enabled &&
+                    profile.anyHookFeature
+                )
+        if (
+            hookConfigReady &&
+            profile.enabled &&
+            profile.anyHookFeature
+        ) {
             when (
                 val reload =
                     hooks.reload(
                         setOf(profile.packageName),
                     )
             ) {
-                is Outcome.Success ->
+                is Outcome.Success -> {
                     applied += "hook_scope_reload"
+                    hookScopeReady = true
+                }
                 is Outcome.Failure ->
-                    notes +=
+                    errors +=
                         "hook_scope_reload:" +
                             reload.error.code
+            }
+        }
+
+        if (
+            hookConfigReady &&
+            hookScopeReady
+        ) {
+            if (rootAvailable) {
+                run(
+                    "hook_target_restart",
+                    "am force-stop " +
+                        pkg +
+                        " || true",
+                )
+            } else if (
+                profile.enabled &&
+                profile.anyHookFeature
+            ) {
+                notes +=
+                    "hook_target_restart_required"
             }
         }
 
@@ -412,6 +459,13 @@ internal class YPowerRepository(
         packageName: String,
         level: YPowerDiagnosticLevel,
     ): YPowerDiagnosticSessionState {
+        if (
+            root.status() !=
+            CapabilityStatus.Available
+        ) {
+            error("root_unavailable")
+        }
+
         val existing =
             diagnosticSessionState(packageName)
         if (existing.active) return existing
@@ -461,21 +515,50 @@ internal class YPowerRepository(
                 )
             is Outcome.Success -> Unit
         }
-        hooks.reload(setOf(packageName))
-
-        if (
-            root.status() ==
-            CapabilityStatus.Available
+        when (
+            val scope =
+                hooks.reload(
+                    setOf(packageName),
+                )
         ) {
-            root.execute(
-                RootRequest(
-                    command =
-                        "am force-stop " +
-                            shellQuote(packageName) +
-                            " || true",
-                    timeoutMillis = 8_000L,
-                ),
-            )
+            is Outcome.Failure ->
+                error(
+                    "hook_scope_reload:" +
+                        scope.error.code,
+                )
+            is Outcome.Success -> Unit
+        }
+
+        when (
+            val restart =
+                root.execute(
+                    RootRequest(
+                        command =
+                            "am force-stop " +
+                                shellQuote(
+                                    packageName,
+                                ) +
+                                " || true",
+                        timeoutMillis =
+                            8_000L,
+                    ),
+                )
+        ) {
+            is Outcome.Failure ->
+                error(
+                    "target_restart:" +
+                        restart.error.code,
+                )
+            is Outcome.Success ->
+                if (
+                    restart.value.exitCode !=
+                    0
+                ) {
+                    error(
+                        "target_restart_exit:" +
+                            restart.value.exitCode,
+                    )
+                }
         }
 
         val now = System.currentTimeMillis()
