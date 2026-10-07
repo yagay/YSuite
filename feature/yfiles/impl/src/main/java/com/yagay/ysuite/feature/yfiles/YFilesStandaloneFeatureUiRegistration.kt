@@ -8,6 +8,7 @@ import com.yagay.ysuite.feature.yfiles.api.YFilesFeatureContract
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
 import com.yagay.ysuite.logging.api.InMemoryLogStore
 import com.yagay.ysuite.logging.api.YSuiteLogger
+import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.ShizukuGateway
 import com.yagay.ysuite.productui.ProductSurfaceKind
@@ -23,6 +24,7 @@ object YFilesStandaloneFeatureUiRegistration :
 
     private var rootGateway: RootGateway? = null
     private var shizukuGateway: ShizukuGateway? = null
+    private var hookGateway: HookGateway? = null
 
     override fun bindStandaloneDependencies(
         dependencies: YSuiteStandaloneDependencies,
@@ -30,6 +32,7 @@ object YFilesStandaloneFeatureUiRegistration :
         rootGateway = dependencies.rootGateway
         shizukuGateway =
             dependencies.shizukuGateway
+        hookGateway = dependencies.hookGateway
     }
 
     private val logger: YSuiteLogger =
@@ -49,15 +52,18 @@ object YFilesStandaloneFeatureUiRegistration :
             LocalContext.current.applicationContext
         val gateway = rootGateway
         val shizuku = shizukuGateway
+        val hooks = hookGateway
         val environment =
             remember(
                 context,
                 gateway,
                 shizuku,
+                hooks,
             ) {
                 if (
                     gateway == null ||
-                    shizuku == null
+                    shizuku == null ||
+                    hooks == null
                 ) {
                     YFilesEnvironmentFactory.createWithoutRoot(context)
                 } else {
@@ -66,6 +72,7 @@ object YFilesStandaloneFeatureUiRegistration :
                         rootGateway = gateway,
                         shizukuGateway =
                             shizuku,
+                        hookGateway = hooks,
                     )
                 }
             }
