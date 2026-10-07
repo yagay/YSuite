@@ -59,4 +59,10 @@
     <string name="yparam_validation_latitude">纬度必须在 -90 到 90 之间。</string>
     <string name="yparam_validation_longitude">经度必须在 -180 到 180 之间。</string>
     <string name="yparam_validation_location">固定/随机定位需要填写纬度和经度。</string>
+
+    <string name="yparam_diagnostics">诊断信息</string>
+    <string name="yparam_diag_version">版本</string>
+    <string name="yparam_diag_version_value">%1$s (%2$d)</string>
+    <string name="yparam_diag_sdk">UID / SDK</string>
+    <string name="yparam_diag_permissions">声明权限数量</string>
 </resources>
