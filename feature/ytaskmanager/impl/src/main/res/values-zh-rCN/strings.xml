@@ -27,6 +27,7 @@
     <string name="ytask_cpu_info">CPU 信息</string>
     <string name="ytask_cpu_info_value">%1$s · %2$d 核 · 负载 %3$.2f</string>
     <string name="ytask_percent">%1$d%%</string>
+    <string name="ytask_percent_decimal">%1$.1f%%</string>
     <string name="ytask_abi">ABI</string>
     <string name="ytask_governor">CPU 调度器</string>
     <string name="ytask_temperature">温度</string>
@@ -40,8 +41,12 @@
     <string name="ytask_gpu">GPU</string>
     <string name="ytask_gpu_usage">GPU 使用率</string>
     <string name="ytask_gpu_frequency">GPU 频率</string>
+    <string name="ytask_gpu_min">最低 %1$s</string>
+    <string name="ytask_gpu_max">最高 %1$s</string>
     <string name="ytask_gpu_info">GPU 信息</string>
     <string name="ytask_vulkan">Vulkan</string>
+    <string name="ytask_vulkan_supported">支持 Vulkan</string>
+    <string name="ytask_vulkan_version">Vulkan %1$s</string>
     <string name="ytask_network_backend">流量统计后端</string>
     <string name="ytask_network_empty">没有 UID 流量数据；当前内核可能不提供 qtaguid。</string>
     <string name="ytask_network_summary">↓ %1$s · ↑ %2$s</string>

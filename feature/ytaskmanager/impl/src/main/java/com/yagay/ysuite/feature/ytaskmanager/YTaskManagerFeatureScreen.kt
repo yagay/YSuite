@@ -436,12 +436,16 @@ private fun ResourceContent(state: YTaskManagerUiState) {
                                     ::formatFrequency,
                                 ),
                             g.minHz?.let {
-                                "min " +
-                                    formatFrequency(it)
+                                stringResource(
+                                    R.string.ytask_gpu_min,
+                                    formatFrequency(it),
+                                )
                             },
                             g.maxHz?.let {
-                                "max " +
-                                    formatFrequency(it)
+                                stringResource(
+                                    R.string.ytask_gpu_max,
+                                    formatFrequency(it),
+                                )
                             },
                         ).joinToString(" · ")
                             .ifBlank {
@@ -478,9 +482,14 @@ private fun ResourceContent(state: YTaskManagerUiState) {
                         if (g.vulkanSupported) {
                             g.vulkanApiVersion
                                 ?.let {
-                                    "Vulkan $it"
+                                    stringResource(
+                                        R.string.ytask_vulkan_version,
+                                        it,
+                                    )
                                 }
-                                ?: "Vulkan"
+                                ?: stringResource(
+                                    R.string.ytask_vulkan_supported,
+                                )
                         } else {
                             stringResource(
                                 R.string.ytask_unavailable,
@@ -570,7 +579,8 @@ private fun ProcessDetail(
                         R.string.ytask_cpu_usage,
                     ),
                 subtitle =
-                    "%.1f%%".format(
+                    stringResource(
+                        R.string.ytask_percent_decimal,
                         process.cpuPercent,
                     ),
             )

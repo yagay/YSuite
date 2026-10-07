@@ -27,6 +27,7 @@
     <string name="ytask_cpu_info">CPU information</string>
     <string name="ytask_cpu_info_value">%1$s · %2$d cores · load %3$.2f</string>
     <string name="ytask_percent">%1$d%%</string>
+    <string name="ytask_percent_decimal">%1$.1f%%</string>
     <string name="ytask_abi">ABI</string>
     <string name="ytask_governor">CPU governor</string>
     <string name="ytask_temperature">Temperature</string>
@@ -40,8 +41,12 @@
     <string name="ytask_gpu">GPU</string>
     <string name="ytask_gpu_usage">GPU usage</string>
     <string name="ytask_gpu_frequency">GPU frequency</string>
+    <string name="ytask_gpu_min">min %1$s</string>
+    <string name="ytask_gpu_max">max %1$s</string>
     <string name="ytask_gpu_info">GPU information</string>
     <string name="ytask_vulkan">Vulkan</string>
+    <string name="ytask_vulkan_supported">Vulkan</string>
+    <string name="ytask_vulkan_version">Vulkan %1$s</string>
     <string name="ytask_network_backend">Traffic backend</string>
     <string name="ytask_network_empty">No UID traffic data. qtaguid may be unavailable on this kernel.</string>
     <string name="ytask_network_summary">↓ %1$s · ↑ %2$s</string>
