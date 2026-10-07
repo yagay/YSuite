@@ -251,17 +251,20 @@ class YDownloadEngine(
         activeJobs.remove(item.id)
             ?.cancelAndJoin()
 
+        val shouldDeletePayload =
+            deleteFile ||
+                item.state !=
+                    YDownloadState.Completed
+
         if (
             item.backend ==
-            YDownloadBackend.System
+                YDownloadBackend.System &&
+            shouldDeletePayload
         ) {
             systemBridge.remove(item)
         }
 
-        if (
-            deleteFile ||
-            item.state != YDownloadState.Completed
-        ) {
+        if (shouldDeletePayload) {
             item.outputUri
                 ?.let(Uri::parse)
                 ?.let { uri ->
