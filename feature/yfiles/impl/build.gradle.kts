@@ -28,6 +28,7 @@ dependencies {
     implementation(project(":core:platform:api"))
 
     implementation(libs.androidx.core.ktx)
+    compileOnly(libs.libxposed.api)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
