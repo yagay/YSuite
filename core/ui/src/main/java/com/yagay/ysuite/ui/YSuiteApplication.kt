@@ -10,7 +10,6 @@ import com.yagay.ysuite.resources.LocaleController
 import com.yagay.ysuite.settings.AppSettings
 import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
-import kotlinx.coroutines.flow.map
 
 const val YSUITE_EXTRA_INITIAL_FEATURE_ID =
     "com.yagay.ysuite.extra.INITIAL_FEATURE_ID"
@@ -22,20 +21,17 @@ fun YSuiteApplication(
     singleFeature: Boolean = false,
     initialFeatureId: String? = null,
 ) {
-    val loadedSettings by settingsRepository.settings
-        .map<AppSettings, AppSettings?> { it }
-        .collectAsStateWithLifecycle(
-            initialValue = null,
-        )
-    val settings = loadedSettings ?: AppSettings()
+    val settings by
+        settingsRepository.settings
+            .collectAsStateWithLifecycle(
+                initialValue = AppSettings(),
+            )
     val context = LocalContext.current
 
-    LaunchedEffect(loadedSettings?.languageTag) {
-        val resolved = loadedSettings
-            ?: return@LaunchedEffect
+    LaunchedEffect(settings.languageTag) {
         LocaleController.applyLanguageTag(
             context = context,
-            languageTag = resolved.languageTag,
+            languageTag = settings.languageTag,
         )
     }
 
