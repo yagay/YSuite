@@ -49,4 +49,10 @@
     <string name="ynotify_kind_silent">静默</string>
     <string name="ynotify_kind_standard">普通</string>
     <string name="ynotify_kind_unknown">未知</string>
+
+    <string name="ynotify_view_history">历史</string>
+    <string name="ynotify_view_apps">按应用</string>
+    <string name="ynotify_app_filter">已筛选应用 · 点击清除</string>
+    <string name="ynotify_no_apps">还没有已记录历史的应用。</string>
+    <string name="ynotify_app_summary">%1$d 条记录 · 最近 %2$s</string>
 </resources>
