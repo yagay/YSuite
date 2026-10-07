@@ -26,7 +26,7 @@ object YDownloadEnvironmentFactory {
         YDownloadRuntime.obtain(
             context = context.applicationContext,
             logger = logger,
-            hookGateway = hookBridge,
+            hookGateway = hookGateway,
         )
 }
 
