@@ -1,0 +1,34 @@
+<resources>
+    <string name="yentry_title">YEntryCleaner</string>
+    <string name="yentry_search">Search candidates</string>
+    <string name="yentry_share_text">Share text</string>
+    <string name="yentry_share_image">Share image</string>
+    <string name="yentry_open">Open with</string>
+    <string name="yentry_browser">Browser links</string>
+    <string name="yentry_tiles">QS Tiles</string>
+    <string name="yentry_shortcuts">Shortcuts</string>
+    <string name="yentry_widgets">Widgets</string>
+    <string name="yentry_historical">Historical / restricted</string>
+    <string name="yentry_filter_all">All</string>
+    <string name="yentry_filter_user">User</string>
+    <string name="yentry_filter_system">System</string>
+    <string name="yentry_filter_hidden">Hidden</string>
+    <string name="yentry_filter_locked">Locked</string>
+    <string name="yentry_browser_host">Browser host</string>
+    <string name="yentry_mode">Display mode</string>
+    <string name="yentry_hide_selected">Hide selected</string>
+    <string name="yentry_show_selected">Show selected only</string>
+    <string name="yentry_diagnostics">Runtime diagnostics</string>
+    <string name="yentry_hide_visible">Hide visible</string>
+    <string name="yentry_show_visible">Show visible</string>
+    <string name="yentry_empty">No matching candidates.</string>
+    <string name="yentry_locked">Locked</string>
+    <string name="yentry_locked_desc">Locked candidates are not changed by bulk operations.</string>
+    <string name="yentry_hidden">Hidden</string>
+    <string name="yentry_component_enabled">Component enabled</string>
+    <string name="yentry_component_protected">This component is protected from Root changes.</string>
+    <string name="yentry_priority_up">Priority up</string>
+    <string name="yentry_priority_down">Priority down</string>
+    <string name="yentry_component_changed">Component state verified.</string>
+    <string name="yentry_component_failed">Component change could not be verified.</string>
+</resources>

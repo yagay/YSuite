@@ -24,6 +24,8 @@ import com.yagay.ysuite.feature.ynfc.YNfcEnvironmentFactory
 import com.yagay.ysuite.feature.ynfc.YNfcFeatureUiRegistration
 import com.yagay.ysuite.feature.yminiguard.YMiniGuardEnvironmentFactory
 import com.yagay.ysuite.feature.yminiguard.YMiniGuardFeatureUiRegistration
+import com.yagay.ysuite.feature.yentrycleaner.YEntryCleanerEnvironmentFactory
+import com.yagay.ysuite.feature.yentrycleaner.YEntryCleanerFeatureUiRegistration
 import com.yagay.ysuite.feature.yfloat.YFloatEnvironmentFactory
 import com.yagay.ysuite.feature.yfloat.YFloatFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink

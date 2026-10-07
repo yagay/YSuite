@@ -1,0 +1,34 @@
+<resources>
+    <string name="yentry_title">YEntryCleaner</string>
+    <string name="yentry_search">搜索候选项</string>
+    <string name="yentry_share_text">分享文字</string>
+    <string name="yentry_share_image">分享图片</string>
+    <string name="yentry_open">打开方式</string>
+    <string name="yentry_browser">浏览器链接</string>
+    <string name="yentry_tiles">快捷设置磁贴</string>
+    <string name="yentry_shortcuts">快捷方式</string>
+    <string name="yentry_widgets">小部件</string>
+    <string name="yentry_historical">历史 / 受限</string>
+    <string name="yentry_filter_all">全部</string>
+    <string name="yentry_filter_user">用户</string>
+    <string name="yentry_filter_system">系统</string>
+    <string name="yentry_filter_hidden">已隐藏</string>
+    <string name="yentry_filter_locked">已锁定</string>
+    <string name="yentry_browser_host">浏览器域名</string>
+    <string name="yentry_mode">显示模式</string>
+    <string name="yentry_hide_selected">隐藏已选择</string>
+    <string name="yentry_show_selected">仅显示已选择</string>
+    <string name="yentry_diagnostics">运行时诊断</string>
+    <string name="yentry_hide_visible">隐藏当前可见</string>
+    <string name="yentry_show_visible">显示当前可见</string>
+    <string name="yentry_empty">没有匹配的候选项。</string>
+    <string name="yentry_locked">已锁定</string>
+    <string name="yentry_locked_desc">批量操作不会改变已锁定候选项。</string>
+    <string name="yentry_hidden">已隐藏</string>
+    <string name="yentry_component_enabled">组件已启用</string>
+    <string name="yentry_component_protected">此组件禁止执行 Root 修改。</string>
+    <string name="yentry_priority_up">提高优先级</string>
+    <string name="yentry_priority_down">降低优先级</string>
+    <string name="yentry_component_changed">组件状态已验证。</string>
+    <string name="yentry_component_failed">无法验证组件状态修改。</string>
+</resources>
