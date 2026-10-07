@@ -74,7 +74,7 @@ internal class YDiagRepository(
             context,
             android.content.Intent(
                 context,
-                com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService::class.java,
+                com.yagay.ysuite.feature.ydiag.runtime.com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService::class.java,
             ).apply {
                 action = com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.ACTION_START
                 putExtra(
@@ -93,7 +93,7 @@ internal class YDiagRepository(
         context.startService(
             android.content.Intent(
                 context,
-                YDiagMonitorService::class.java,
+                com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService::class.java,
             ).apply {
                 action = com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.ACTION_MARK
                 putExtra(
@@ -108,7 +108,7 @@ internal class YDiagRepository(
         context.startService(
             android.content.Intent(
                 context,
-                YDiagMonitorService::class.java,
+                com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService::class.java,
             ).apply {
                 action = com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.ACTION_STOP
             },
