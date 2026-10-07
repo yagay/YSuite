@@ -9,3 +9,4 @@ com.yagay.ysuite.feature.ypower.runtime.YPowerModule
 com.yagay.ysuite.feature.ynotify.runtime.YNotifyModule
 com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryComponentDiscoveryModule
 com.yagay.ysuite.feature.yfiles.xposed.YFilesModule
+com.yagay.ysuite.feature.ydownload.xposed.YDownloadModule
