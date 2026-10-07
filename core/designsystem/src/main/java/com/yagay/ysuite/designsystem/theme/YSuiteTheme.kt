@@ -9,6 +9,8 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -79,33 +81,57 @@ fun YSuiteTheme(
 ) {
     val view = LocalView.current
     val context = LocalContext.current
-    if (!view.isInEditMode) {
-        val activity = view.context as? Activity
-        activity?.window?.let { window ->
-            WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
-            }
-            if (Build.VERSION.SDK_INT >= 29) {
-                window.isStatusBarContrastEnforced = false
-                window.isNavigationBarContrastEnforced = false
+
+    SideEffect {
+        if (!view.isInEditMode) {
+            val activity =
+                view.context as? Activity
+            activity?.window?.let { window ->
+                WindowCompat
+                    .getInsetsController(
+                        window,
+                        view,
+                    )
+                    .apply {
+                        isAppearanceLightStatusBars =
+                            !darkTheme
+                        isAppearanceLightNavigationBars =
+                            !darkTheme
+                    }
+                if (Build.VERSION.SDK_INT >= 29) {
+                    window.isStatusBarContrastEnforced =
+                        false
+                    window.isNavigationBarContrastEnforced =
+                        false
+                }
             }
         }
     }
+
     val colorScheme =
-        if (
-            dynamicColorEnabled &&
-            Build.VERSION.SDK_INT >= 31
+        remember(
+            context,
+            darkTheme,
+            dynamicColorEnabled,
         ) {
-            if (darkTheme) {
-                dynamicDarkColorScheme(context)
+            if (
+                dynamicColorEnabled &&
+                Build.VERSION.SDK_INT >= 31
+            ) {
+                if (darkTheme) {
+                    dynamicDarkColorScheme(
+                        context,
+                    )
+                } else {
+                    dynamicLightColorScheme(
+                        context,
+                    )
+                }
+            } else if (darkTheme) {
+                DarkColors
             } else {
-                dynamicLightColorScheme(context)
+                LightColors
             }
-        } else if (darkTheme) {
-            DarkColors
-        } else {
-            LightColors
         }
 
     MaterialTheme(
