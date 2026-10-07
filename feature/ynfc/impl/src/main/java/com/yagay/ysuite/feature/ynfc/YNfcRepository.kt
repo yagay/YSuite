@@ -26,12 +26,22 @@ data class YNfcRuntimeSnapshot(
     val commandGeneration: Long = 0L,
     val handledGeneration: Long = Long.MIN_VALUE,
     val commandStatus: String = "IDLE",
+    val commandPid: Int = 0,
+    val consumedGeneration: Long = Long.MIN_VALUE,
+    val operationState: String = "IDLE",
     val effectiveState: String = "UNKNOWN",
     val verification: String = "NONE",
     val rfAccepted: Boolean = false,
     val rfStatus: String = "IDLE",
     val rfUid: String? = null,
     val rfError: String? = null,
+    val rfPid: Int = 0,
+    val rfGeneration: Long = 0L,
+    val controllerEpoch: Long = 0L,
+    val rfControllerEpoch: Long = 0L,
+    val refreshStatus: String = "",
+    val profileStatus: String = "",
+    val fullDiagStage: String = "",
 )
 
 internal class YNfcRepository(
@@ -85,46 +95,86 @@ internal class YNfcRepository(
             commandGeneration = map[YNfcRuntimeBridge.KEY_COMMAND_GENERATION]?.toLongOrNull() ?: 0L,
             handledGeneration = map[YNfcRuntimeBridge.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() ?: Long.MIN_VALUE,
             commandStatus = map[YNfcRuntimeBridge.KEY_COMMAND_STATUS] ?: "IDLE",
+            commandPid = map[YNfcRuntimeBridge.KEY_COMMAND_PID]?.toIntOrNull() ?: 0,
+            consumedGeneration = map[YNfcRuntimeBridge.KEY_COMMAND_CONSUMED_GENERATION]?.toLongOrNull() ?: Long.MIN_VALUE,
+            operationState = map[YNfcRuntimeBridge.KEY_OPERATION_STATE] ?: "IDLE",
             effectiveState = map[YNfcRuntimeBridge.KEY_EFFECTIVE_STATE] ?: "UNKNOWN",
             verification = map[YNfcRuntimeBridge.KEY_VERIFICATION_CONFIDENCE] ?: "NONE",
             rfAccepted = map[YNfcRuntimeBridge.KEY_RF_ACCEPTED].toBoolean(),
             rfStatus = map[YNfcRuntimeBridge.KEY_RF_STATUS] ?: "IDLE",
             rfUid = map[YNfcRuntimeBridge.KEY_RF_UID]?.takeIf { it.isNotBlank() },
             rfError = map[YNfcRuntimeBridge.KEY_RF_ERROR]?.takeIf { it.isNotBlank() },
+            rfPid = map[YNfcRuntimeBridge.KEY_RF_PID]?.toIntOrNull() ?: 0,
+            rfGeneration = map[YNfcRuntimeBridge.KEY_RF_GENERATION]?.toLongOrNull() ?: 0L,
+            controllerEpoch = map[YNfcRuntimeBridge.KEY_CONTROLLER_EPOCH]?.toLongOrNull() ?: 0L,
+            rfControllerEpoch = map[YNfcRuntimeBridge.KEY_RF_CONTROLLER_EPOCH]?.toLongOrNull() ?: 0L,
+            refreshStatus = map[YNfcRuntimeBridge.KEY_REFRESH_TRIGGER_STATUS].orEmpty(),
+            profileStatus = map[YNfcRuntimeBridge.KEY_PROFILE_STATUS].orEmpty(),
+            fullDiagStage = map[YNfcRuntimeBridge.KEY_FULL_DIAG_STAGE].orEmpty(),
         )
     }
 
     suspend fun apply(card: YNfcCard): Pair<YNfcRuntimeSnapshot, String> {
         val scope = hooks.reload(setOf("com.android.nfc"))
         if (scope is Outcome.Failure) return runtime() to "scope_failed"
+
+        var before = runtime()
+        if (!before.hookInstalled || before.hookBuild != EXPECTED_HOOK_BUILD) {
+            restartNfc("load_hook_build_" + EXPECTED_HOOK_BUILD)
+            before = waitForHook(12_000L)
+        }
+        if (!before.hookInstalled || before.hookBuild != EXPECTED_HOOK_BUILD) {
+            return before to "hook_not_ready"
+        }
+
         val generation = publish(true, card)
-        restartNfc("apply:" + generation)
-        val state = waitFor(generation, 12_000L)
-        val ok = state.commandStatus == "SUCCESS" &&
-            state.handledGeneration == generation &&
-            state.effectiveState == "ACTIVE" &&
-            state.verification == "VERIFIED" &&
-            state.rfAccepted &&
-            state.rfUid.equals(card.uid, true)
+        var state = waitFor(generation, 12_000L, card.uid, apply = true)
+        if (!isApplySuccess(state, generation, card.uid) &&
+            state.commandStatus == "RESTART_REQUIRED") {
+            restartNfc("apply_recovery:" + generation)
+            state = waitFor(generation, 8_000L, card.uid, apply = true)
+        }
         return state to when {
-            ok -> "apply_success"
+            isApplySuccess(state, generation, card.uid) -> "apply_success"
             !state.hookInstalled -> "hook_not_ready"
+            state.commandGeneration != generation -> "command_superseded"
             state.commandStatus == "FAILED" -> "apply_failed"
+            state.refreshStatus.contains("LIFECYCLE_REPLAY_WAIT") -> "waiting_rf"
             else -> "waiting_rf"
         }
     }
 
     suspend fun stop(): Pair<YNfcRuntimeSnapshot, String> {
         val generation = publish(false, null)
-        restartNfc("stop:" + generation)
-        val pid = execute("pidof com.android.nfc 2>/dev/null | awk '{print \$1}'", 5_000L)
-            .stdout.trim().lineSequence().firstOrNull()?.toIntOrNull() ?: 0
-        YNfcRuntimeBridge.confirmStockRestart(context, generation, pid)
-        val state = waitFor(generation, 4_000L)
-        val ok = state.commandStatus == "SUCCESS" &&
-            state.effectiveState == "STOCK" &&
-            state.verification == "VERIFIED"
-        return state to if (ok) "stop_success" else "stop_unconfirmed"
+        var state = waitFor(generation, 6_000L, null, apply = false)
+        if (isStopSuccess(state, generation)) {
+            return state to "stop_success"
+        }
+        if (state.commandGeneration != generation) {
+            return state to "command_superseded"
+        }
+
+        restartNfc("stop_fallback:" + generation)
+        waitForHook(12_000L)
+        state = waitFor(generation, 5_000L, null, apply = false)
+        if (!isStopSuccess(state, generation)) {
+            val pid = execute(
+                "pidof com.android.nfc 2>/dev/null | awk '{print \$1}'",
+                5_000L,
+            ).stdout.trim().lineSequence().firstOrNull()?.toIntOrNull() ?: 0
+            YNfcRuntimeBridge.confirmStockRestart(
+                context,
+                generation,
+                pid,
+            )
+            state = runtime()
+        }
+        return state to
+            if (isStopSuccess(state, generation)) {
+                "stop_success"
+            } else {
+                "stop_unconfirmed"
+            }
     }
 
     suspend fun diagnostics(): String {
@@ -147,9 +197,32 @@ internal class YNfcRepository(
             appendLine("Root=" + rootStatus + " Hook=" + hookStatus)
             appendLine("PID=" + runtime.currentPid + " HookBuild=" + runtime.hookBuild + "/40 installed=" + runtime.hookInstalled)
             appendLine("scope=" + runtime.scopeOk + " simulation=" + runtime.simulationEnabled + " uid=" + runtime.selectedUid)
-            appendLine("command=" + runtime.commandStatus + " generation=" + runtime.commandGeneration)
-            appendLine("effective=" + runtime.effectiveState + " verification=" + runtime.verification)
-            appendLine("rf=" + runtime.rfStatus + " accepted=" + runtime.rfAccepted + " uid=" + runtime.rfUid)
+            appendLine(
+                "command=" + runtime.commandStatus +
+                    " generation=" + runtime.commandGeneration +
+                    " consumed=" + runtime.consumedGeneration +
+                    " handled=" + runtime.handledGeneration +
+                    " pid=" + runtime.commandPid
+            )
+            appendLine(
+                "operation=" + runtime.operationState +
+                    " effective=" + runtime.effectiveState +
+                    " verification=" + runtime.verification
+            )
+            appendLine(
+                "rf=" + runtime.rfStatus +
+                    " accepted=" + runtime.rfAccepted +
+                    " uid=" + runtime.rfUid +
+                    " generation=" + runtime.rfGeneration +
+                    " pid=" + runtime.rfPid
+            )
+            appendLine(
+                "epoch=" + runtime.controllerEpoch +
+                    " rfEpoch=" + runtime.rfControllerEpoch +
+                    " refresh=" + runtime.refreshStatus +
+                    " profile=" + runtime.profileStatus +
+                    " stage=" + runtime.fullDiagStage
+            )
             runtime.rfError?.let { appendLine("rfError=" + it) }
             appendLine()
             append(details)
@@ -176,18 +249,103 @@ internal class YNfcRepository(
     private fun publish(enabled: Boolean, card: YNfcCard?): Long =
         YNfcRuntimeBridge.publish(context, enabled, card)
 
-    private suspend fun waitFor(generation: Long, timeout: Long): YNfcRuntimeSnapshot {
+    private suspend fun waitFor(
+        generation: Long,
+        timeout: Long,
+        uid: String?,
+        apply: Boolean,
+    ): YNfcRuntimeSnapshot {
         val end = System.currentTimeMillis() + timeout
         var last = runtime()
         while (System.currentTimeMillis() < end) {
             last = runtime()
-            if (last.commandGeneration == generation &&
+            if (
+                if (apply) {
+                    isApplySuccess(
+                        last,
+                        generation,
+                        uid.orEmpty(),
+                    )
+                } else {
+                    isStopSuccess(
+                        last,
+                        generation,
+                    )
+                }
+            ) return last
+            if (
+                last.commandGeneration == generation &&
                 last.handledGeneration == generation &&
-                last.commandStatus in setOf("SUCCESS", "FAILED")) return last
-            delay(150L)
+                last.commandStatus == "FAILED"
+            ) return last
+            if (
+                last.commandGeneration == generation &&
+                last.commandStatus == "RESTART_REQUIRED" &&
+                last.consumedGeneration == generation
+            ) return last
+            delay(100L)
         }
         return last
     }
+
+    private suspend fun waitForHook(
+        timeout: Long,
+    ): YNfcRuntimeSnapshot {
+        val end = System.currentTimeMillis() + timeout
+        var last = runtime()
+        while (System.currentTimeMillis() < end) {
+            last = runtime()
+            if (
+                last.hookInstalled &&
+                last.hookBuild ==
+                EXPECTED_HOOK_BUILD
+            ) return last
+            delay(100L)
+        }
+        return last
+    }
+
+    private fun isApplySuccess(
+        state: YNfcRuntimeSnapshot,
+        generation: Long,
+        uid: String,
+    ): Boolean =
+        state.commandGeneration == generation &&
+            state.consumedGeneration == generation &&
+            state.handledGeneration == generation &&
+            state.commandStatus == "SUCCESS" &&
+            state.currentPid > 0 &&
+            state.commandPid == state.currentPid &&
+            state.rfGeneration == generation &&
+            state.rfPid == state.currentPid &&
+            state.controllerEpoch > 0L &&
+            state.rfControllerEpoch ==
+                state.controllerEpoch &&
+            state.operationState == "IDLE" &&
+            state.effectiveState == "ACTIVE" &&
+            state.verification == "VERIFIED" &&
+            state.rfAccepted &&
+            state.rfUid.equals(
+                uid,
+                ignoreCase = true,
+            )
+
+    private fun isStopSuccess(
+        state: YNfcRuntimeSnapshot,
+        generation: Long,
+    ): Boolean =
+        state.commandGeneration == generation &&
+            state.handledGeneration == generation &&
+            state.commandStatus == "SUCCESS" &&
+            state.currentPid > 0 &&
+            state.commandPid == state.currentPid &&
+            state.rfGeneration == generation &&
+            state.rfPid == state.currentPid &&
+            state.operationState == "IDLE" &&
+            state.effectiveState == "STOCK" &&
+            state.verification == "VERIFIED" &&
+            state.rfAccepted
+
 
     private suspend fun restartNfc(reason: String) {
         execute(

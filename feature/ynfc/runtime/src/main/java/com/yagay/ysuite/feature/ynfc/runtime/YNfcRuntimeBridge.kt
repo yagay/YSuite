@@ -109,10 +109,20 @@ object YNfcRuntimeBridge {
     const val KEY_COMMAND_GENERATION = ConfigProvider.KEY_COMMAND_GENERATION
     const val KEY_COMMAND_HANDLED_GENERATION = ConfigProvider.KEY_COMMAND_HANDLED_GENERATION
     const val KEY_COMMAND_STATUS = ConfigProvider.KEY_COMMAND_STATUS
+    const val KEY_COMMAND_PID = ConfigProvider.KEY_COMMAND_PID
+    const val KEY_COMMAND_CONSUMED_GENERATION = "command_consumed_generation"
+    const val KEY_OPERATION_STATE = ConfigProvider.KEY_OPERATION_STATE
     const val KEY_EFFECTIVE_STATE = ConfigProvider.KEY_EFFECTIVE_STATE
     const val KEY_VERIFICATION_CONFIDENCE = ConfigProvider.KEY_VERIFICATION_CONFIDENCE
     const val KEY_RF_ACCEPTED = ConfigProvider.KEY_RF_ACCEPTED
     const val KEY_RF_STATUS = ConfigProvider.KEY_RF_STATUS
     const val KEY_RF_UID = ConfigProvider.KEY_RF_UID
     const val KEY_RF_ERROR = ConfigProvider.KEY_RF_ERROR
+    const val KEY_RF_PID = ConfigProvider.KEY_RF_PID
+    const val KEY_RF_GENERATION = ConfigProvider.KEY_RF_GENERATION
+    const val KEY_CONTROLLER_EPOCH = ConfigProvider.KEY_CONTROLLER_EPOCH
+    const val KEY_RF_CONTROLLER_EPOCH = ConfigProvider.KEY_RF_CONTROLLER_EPOCH
+    const val KEY_REFRESH_TRIGGER_STATUS = "refresh_trigger_status"
+    const val KEY_PROFILE_STATUS = "profile_status"
+    const val KEY_FULL_DIAG_STAGE = "full_diag_stage"
 }
