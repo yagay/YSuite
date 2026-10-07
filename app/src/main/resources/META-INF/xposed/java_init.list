@@ -1,3 +1,4 @@
 com.yagay.ysuite.feature.yparam.runtime.YParamXposedModule
 com.yagay.YNFC.xposed.NfcInjectionModule
 com.yagay.YFloat.hook.YFloatModule
+com.yagay.ysuite.feature.yminiguard.runtime.GuardModule

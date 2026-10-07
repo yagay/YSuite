@@ -45,6 +45,8 @@ dependencies {
     implementation(project(":feature:ypower:impl"))
     implementation(project(":feature:ynotify:impl"))
     implementation(project(":feature:ynfc:runtime"))
+    implementation(project(":feature:yminiguard:impl"))
+    implementation(project(":feature:yminiguard:runtime"))
     implementation(project(":feature:ynfc:impl"))
     implementation(project(":feature:yfloat:runtime"))
     implementation(project(":feature:yfloat:impl"))

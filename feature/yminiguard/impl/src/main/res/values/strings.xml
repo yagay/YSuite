@@ -1,0 +1,35 @@
+<resources>
+    <string name="yminiguard_title">YMiniGuard</string>
+    <string name="yminiguard_search">Search apps</string>
+    <string name="yminiguard_filter_all">All</string>
+    <string name="yminiguard_filter_protected">Protected</string>
+    <string name="yminiguard_filter_playback">Playback</string>
+    <string name="yminiguard_filter_force">OPlus support</string>
+    <string name="yminiguard_filter_user">User</string>
+    <string name="yminiguard_filter_system">System</string>
+    <string name="yminiguard_engine">System engine</string>
+    <string name="yminiguard_engine_summary">PID %1$d · %2$d hooks · %3$d active sessions</string>
+    <string name="yminiguard_hook">LSPosed</string>
+    <string name="yminiguard_ready">Ready</string>
+    <string name="yminiguard_not_ready">Not ready</string>
+    <string name="yminiguard_global">Guard policy</string>
+    <string name="yminiguard_master">Enable YMiniGuard</string>
+    <string name="yminiguard_importance_top">Keep protected process importance at TOP</string>
+    <string name="yminiguard_has_resumed">Preserve resumed state where OEM flexible window requires it</string>
+    <string name="yminiguard_block_remove_kill">Block remove-task/kill paths for protected sessions</string>
+    <string name="yminiguard_diagnostics">Detailed runtime diagnostics</string>
+    <string name="yminiguard_reload_engine">Reload engine</string>
+    <string name="yminiguard_collect_diagnostics">Collect diagnostics</string>
+    <string name="yminiguard_diagnostic_snapshot">Diagnostic snapshot</string>
+    <string name="yminiguard_no_apps">No matching apps.</string>
+    <string name="yminiguard_protected">Protected</string>
+    <string name="yminiguard_always_foreground">Always foreground / flexible-window keepalive</string>
+    <string name="yminiguard_always_foreground_desc">Track real OxygenOS/ColorOS FlexibleWindow state and preserve the selected task when minimized to the OEM edge handle.</string>
+    <string name="yminiguard_background_playback">Background playback keepalive</string>
+    <string name="yminiguard_background_playback_desc">Protect the app when focus moves away or the screen locks without creating a fake floating window.</string>
+    <string name="yminiguard_force_support">Force OPlus flexible-window support checks</string>
+    <string name="yminiguard_force_support_desc">Bypass OPlus flexible-window blacklist/support checks only for this selected app.</string>
+    <string name="yminiguard_synced">Configuration synchronized.</string>
+    <string name="yminiguard_reloaded">Engine reload requested.</string>
+    <string name="yminiguard_sync_failed">Unable to synchronize LSPosed configuration.</string>
+</resources>

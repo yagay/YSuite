@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name=".EngineStatusProvider"
+            android:authorities="${applicationId}.yminiguard.engine_status"
+            android:directBootAware="true"
+            android:exported="true" />
+    </application>
+</manifest>

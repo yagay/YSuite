@@ -1,0 +1,35 @@
+<resources>
+    <string name="yminiguard_title">YMiniGuard</string>
+    <string name="yminiguard_search">搜索应用</string>
+    <string name="yminiguard_filter_all">全部</string>
+    <string name="yminiguard_filter_protected">已保护</string>
+    <string name="yminiguard_filter_playback">后台播放</string>
+    <string name="yminiguard_filter_force">OPlus 支持</string>
+    <string name="yminiguard_filter_user">用户</string>
+    <string name="yminiguard_filter_system">系统</string>
+    <string name="yminiguard_engine">系统引擎</string>
+    <string name="yminiguard_engine_summary">PID %1$d · %2$d 个 Hook · %3$d 个活动会话</string>
+    <string name="yminiguard_hook">LSPosed</string>
+    <string name="yminiguard_ready">可用</string>
+    <string name="yminiguard_not_ready">未就绪</string>
+    <string name="yminiguard_global">守护策略</string>
+    <string name="yminiguard_master">启用 YMiniGuard</string>
+    <string name="yminiguard_importance_top">将受保护进程重要性保持为 TOP</string>
+    <string name="yminiguard_has_resumed">在厂商小窗需要时保留 resumed 状态</string>
+    <string name="yminiguard_block_remove_kill">阻止受保护会话的移除任务/杀进程路径</string>
+    <string name="yminiguard_diagnostics">详细运行诊断</string>
+    <string name="yminiguard_reload_engine">重载引擎</string>
+    <string name="yminiguard_collect_diagnostics">采集诊断</string>
+    <string name="yminiguard_diagnostic_snapshot">诊断快照</string>
+    <string name="yminiguard_no_apps">没有匹配的应用。</string>
+    <string name="yminiguard_protected">已保护</string>
+    <string name="yminiguard_always_foreground">始终前台 / 系统小窗保活</string>
+    <string name="yminiguard_always_foreground_desc">跟踪真实 OxygenOS/ColorOS FlexibleWindow 状态，在缩到系统边缘图标时保留所选任务。</string>
+    <string name="yminiguard_background_playback">后台播放保活</string>
+    <string name="yminiguard_background_playback_desc">切到后台或锁屏时保护应用，不创建假的悬浮窗口。</string>
+    <string name="yminiguard_force_support">强制 OPlus 小窗支持</string>
+    <string name="yminiguard_force_support_desc">仅对所选应用绕过 OPlus 小窗黑名单/支持检查。</string>
+    <string name="yminiguard_synced">配置已同步。</string>
+    <string name="yminiguard_reloaded">已请求引擎重载。</string>
+    <string name="yminiguard_sync_failed">无法同步 LSPosed 配置。</string>
+</resources>
