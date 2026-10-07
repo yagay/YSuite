@@ -125,6 +125,27 @@ class YDownloadRepository(
             mutex.withLock { queryOne(id) }
         }
 
+    suspend fun setBackend(
+        id: String,
+        backend: YDownloadBackend,
+    ) {
+        updateColumns(
+            id,
+            ContentValues().apply {
+                put(
+                    COL_BACKEND,
+                    backend.name,
+                )
+                if (
+                    backend !=
+                    YDownloadBackend.System
+                ) {
+                    putNull(COL_SYSTEM_ID)
+                }
+            },
+        )
+    }
+
     suspend fun bindSystemDownload(
         id: String,
         systemId: Long,
