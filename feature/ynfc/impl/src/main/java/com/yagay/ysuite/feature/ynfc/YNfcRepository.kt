@@ -366,3 +366,5 @@ internal class YNfcRepository(
             is Outcome.Failure -> error(result.error.message)
         }
 }
+
+private const val EXPECTED_HOOK_BUILD = 40
