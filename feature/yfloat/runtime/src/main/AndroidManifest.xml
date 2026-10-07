@@ -28,7 +28,7 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Persistent user-controlled floating gesture button" />
         </service>
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.yagay.YFloat.YFloatFileProvider"
             android:authorities="${applicationId}.yfloat.files"
             android:exported="false"
             android:grantUriPermissions="true">
