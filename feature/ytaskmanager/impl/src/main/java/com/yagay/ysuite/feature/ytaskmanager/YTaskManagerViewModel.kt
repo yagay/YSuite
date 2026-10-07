@@ -27,8 +27,12 @@ data class YTaskManagerUiState(
     val showUser: Boolean = true,
     val showSystem: Boolean = true,
     val showLinux: Boolean = false,
+    val autoRefresh: Boolean = true,
+    val refreshIntervalMs: Long = 800L,
+    val confirmKill: Boolean = true,
     val selectedPid: Int? = null,
     val selectedDetail: YTaskProcess? = null,
+    val pendingKillPid: Int? = null,
     val loading: Boolean = true,
     val error: String? = null,
 )
@@ -42,19 +46,47 @@ class YTaskManagerViewModel(
             environment.rootGateway,
             environment.logger,
         )
+    private val settings =
+        YTaskManagerSettings(
+            environment.applicationContext,
+        )
 
-    private val mutableState = MutableStateFlow(YTaskManagerUiState())
-    val state: StateFlow<YTaskManagerUiState> = mutableState.asStateFlow()
+    private val mutableState =
+        MutableStateFlow(
+            YTaskManagerUiState(
+                sort = settings.sort,
+                showUser = settings.showUser,
+                showSystem = settings.showSystem,
+                showLinux = settings.showLinux,
+                autoRefresh = settings.autoRefresh,
+                refreshIntervalMs = settings.refreshIntervalMs,
+                confirmKill = settings.confirmKill,
+            ),
+        )
+    val state: StateFlow<YTaskManagerUiState> =
+        mutableState.asStateFlow()
 
     private var monitor: Job? = null
 
     init {
-        monitor = viewModelScope.launch {
-            while (isActive) {
+        monitor =
+            viewModelScope.launch {
                 refreshInternal()
-                delay(2_000L)
+                while (isActive) {
+                    val current = mutableState.value
+                    if (current.autoRefresh) {
+                        delay(current.refreshIntervalMs)
+                        if (
+                            isActive &&
+                            mutableState.value.autoRefresh
+                        ) {
+                            refreshInternal()
+                        }
+                    } else {
+                        delay(250L)
+                    }
+                }
             }
-        }
     }
 
     fun refresh() {
@@ -62,24 +94,67 @@ class YTaskManagerViewModel(
     }
 
     fun setPage(value: YTaskPage) {
-        mutableState.value = mutableState.value.copy(page = value)
+        mutableState.value =
+            mutableState.value.copy(page = value)
     }
 
     fun setQuery(value: String) {
-        mutableState.value = mutableState.value.copy(query = value)
+        mutableState.value =
+            mutableState.value.copy(query = value)
     }
 
     fun setSort(value: YTaskProcessSort) {
-        mutableState.value = mutableState.value.copy(sort = value)
+        settings.sort = value
+        mutableState.value =
+            mutableState.value.copy(sort = value)
     }
 
     fun setKind(kind: YTaskProcessKind) {
         val old = mutableState.value
-        mutableState.value = when (kind) {
-            YTaskProcessKind.UserApp -> old.copy(showUser = !old.showUser)
-            YTaskProcessKind.SystemApp -> old.copy(showSystem = !old.showSystem)
-            YTaskProcessKind.Linux -> old.copy(showLinux = !old.showLinux)
-        }
+        mutableState.value =
+            when (kind) {
+                YTaskProcessKind.UserApp -> {
+                    val value = !old.showUser
+                    settings.showUser = value
+                    old.copy(showUser = value)
+                }
+                YTaskProcessKind.SystemApp -> {
+                    val value = !old.showSystem
+                    settings.showSystem = value
+                    old.copy(showSystem = value)
+                }
+                YTaskProcessKind.Linux -> {
+                    val value = !old.showLinux
+                    settings.showLinux = value
+                    old.copy(showLinux = value)
+                }
+            }
+    }
+
+    fun setAutoRefresh(value: Boolean) {
+        settings.autoRefresh = value
+        mutableState.value =
+            mutableState.value.copy(
+                autoRefresh = value,
+            )
+        if (value) refresh()
+    }
+
+    fun setRefreshInterval(value: Long) {
+        settings.refreshIntervalMs = value
+        mutableState.value =
+            mutableState.value.copy(
+                refreshIntervalMs =
+                    settings.refreshIntervalMs,
+            )
+    }
+
+    fun setConfirmKill(value: Boolean) {
+        settings.confirmKill = value
+        mutableState.value =
+            mutableState.value.copy(
+                confirmKill = value,
+            )
     }
 
     fun select(process: YTaskProcess?) {
@@ -102,10 +177,28 @@ class YTaskManagerViewModel(
                 ) {
                     mutableState.value =
                         mutableState.value.copy(
-                            selectedDetail = detail,
+                            selectedDetail =
+                                detail.copy(
+                                    isPinned =
+                                        settings.isPinned(
+                                            detail,
+                                        ),
+                                ),
                         )
                 }
             }
+        }
+    }
+
+    fun selectParent(process: YTaskProcess) {
+        if (process.ppid <= 0) return
+        val parent =
+            mutableState.value.snapshot.processes
+                .firstOrNull {
+                    it.pid == process.ppid
+                }
+        if (parent != null) {
+            select(parent)
         }
     }
 
@@ -125,43 +218,171 @@ class YTaskManagerViewModel(
     fun visibleProcesses(): List<YTaskProcess> {
         val state = mutableState.value
         val needle = state.query.trim()
-        val filtered = state.snapshot.processes.filter { process ->
-            val kindMatch = when (process.kind) {
-                YTaskProcessKind.UserApp -> state.showUser
-                YTaskProcessKind.SystemApp -> state.showSystem
-                YTaskProcessKind.Linux -> state.showLinux
+        val filtered =
+            state.snapshot.processes.filter { process ->
+                val kindMatch =
+                    when (process.kind) {
+                        YTaskProcessKind.UserApp ->
+                            state.showUser
+                        YTaskProcessKind.SystemApp ->
+                            state.showSystem
+                        YTaskProcessKind.Linux ->
+                            state.showLinux
+                    }
+                val textMatch =
+                    needle.isBlank() ||
+                        process.displayName.contains(
+                            needle,
+                            true,
+                        ) ||
+                        process.command.contains(
+                            needle,
+                            true,
+                        ) ||
+                        process.packageNames.any {
+                            it.contains(
+                                needle,
+                                true,
+                            )
+                        } ||
+                        process.pid.toString()
+                            .contains(needle)
+                kindMatch && textMatch
             }
-            val textMatch =
-                needle.isBlank() ||
-                    process.displayName.contains(needle, true) ||
-                    process.command.contains(needle, true) ||
-                    process.pid.toString().contains(needle)
-            kindMatch && textMatch
-        }
+
         return when (state.sort) {
-            YTaskProcessSort.Memory -> filtered.sortedByDescending { it.rssKb }
-            YTaskProcessSort.Cpu -> filtered.sortedByDescending { it.cpuPercent }
-            YTaskProcessSort.Download -> filtered.sortedByDescending { it.rxBytesPerSecond }
-            YTaskProcessSort.Upload -> filtered.sortedByDescending { it.txBytesPerSecond }
-            YTaskProcessSort.Name -> filtered.sortedBy { it.displayName.lowercase() }
-            YTaskProcessSort.Pid -> filtered.sortedBy { it.pid }
+            YTaskProcessSort.Memory ->
+                filtered.sortedWith(
+                    compareByDescending<YTaskProcess> {
+                        it.isPinned
+                    }.thenByDescending {
+                        it.rssKb
+                    },
+                )
+            YTaskProcessSort.Cpu ->
+                filtered.sortedWith(
+                    compareByDescending<YTaskProcess> {
+                        it.isPinned
+                    }.thenByDescending {
+                        it.cpuPercent
+                    },
+                )
+            YTaskProcessSort.Download ->
+                filtered.sortedWith(
+                    compareByDescending<YTaskProcess> {
+                        it.isPinned
+                    }.thenByDescending {
+                        it.rxBytesPerSecond
+                    },
+                )
+            YTaskProcessSort.Upload ->
+                filtered.sortedWith(
+                    compareByDescending<YTaskProcess> {
+                        it.isPinned
+                    }.thenByDescending {
+                        it.txBytesPerSecond
+                    },
+                )
+            YTaskProcessSort.Name ->
+                filtered.sortedWith(
+                    compareByDescending<YTaskProcess> {
+                        it.isPinned
+                    }.thenBy {
+                        it.displayName.lowercase()
+                    },
+                )
+            YTaskProcessSort.Pid ->
+                filtered.sortedWith(
+                    compareByDescending<YTaskProcess> {
+                        it.isPinned
+                    }.thenBy {
+                        it.pid
+                    },
+                )
         }
     }
 
+    fun togglePin(process: YTaskProcess) {
+        val pinned = settings.togglePin(process)
+        val state = mutableState.value
+        val processes =
+            state.snapshot.processes.map {
+                if (it.pid == process.pid) {
+                    it.copy(isPinned = pinned)
+                } else {
+                    it
+                }
+            }
+        mutableState.value =
+            state.copy(
+                snapshot =
+                    state.snapshot.copy(
+                        processes = processes,
+                    ),
+                selectedDetail =
+                    state.selectedDetail?.let {
+                        if (it.pid == process.pid) {
+                            it.copy(isPinned = pinned)
+                        } else {
+                            it
+                        }
+                    },
+            )
+    }
+
     fun kill(process: YTaskProcess) {
+        if (mutableState.value.confirmKill) {
+            mutableState.value =
+                mutableState.value.copy(
+                    pendingKillPid = process.pid,
+                )
+        } else {
+            performKill(process)
+        }
+    }
+
+    fun confirmKill() {
+        val pid =
+            mutableState.value.pendingKillPid
+                ?: return
+        val process =
+            mutableState.value.snapshot.processes
+                .firstOrNull { it.pid == pid }
+                ?: mutableState.value.selectedDetail
+                    ?.takeIf { it.pid == pid }
+        mutableState.value =
+            mutableState.value.copy(
+                pendingKillPid = null,
+            )
+        if (process != null) {
+            performKill(process)
+        }
+    }
+
+    fun cancelKill() {
+        mutableState.value =
+            mutableState.value.copy(
+                pendingKillPid = null,
+            )
+    }
+
+    private fun performKill(process: YTaskProcess) {
         viewModelScope.launch {
-            runCatching { repository.kill(process.pid) }
-                .onFailure { report(it) }
+            runCatching {
+                repository.kill(process.pid)
+            }.onFailure { report(it) }
             select(null)
             refreshInternal()
         }
     }
 
     fun forceStop(process: YTaskProcess) {
-        val packageName = process.packageName ?: return
+        val packageName =
+            process.packageName ?: return
         viewModelScope.launch {
-            runCatching { repository.forceStop(packageName) }
-                .onFailure { report(it) }
+            runCatching {
+                repository.forceStop(packageName)
+            }.onFailure { report(it) }
             select(null)
             refreshInternal()
         }
@@ -169,30 +390,82 @@ class YTaskManagerViewModel(
 
     private suspend fun refreshInternal() {
         val rootStatus =
-            runCatching { repository.rootStatus() }
-                .getOrDefault(CapabilityStatus.Error)
-        val hookStatus =
-            runCatching { environment.hookGateway.status() }
-                .getOrDefault(CapabilityStatus.Error)
-        if (rootStatus != CapabilityStatus.Available) {
-            mutableState.value = mutableState.value.copy(
-                rootStatus = rootStatus,
-                hookStatus = hookStatus,
-                loading = false,
+            runCatching {
+                repository.rootStatus()
+            }.getOrDefault(
+                CapabilityStatus.Error,
             )
-            return
-        }
-        runCatching { repository.snapshot() }
-            .onSuccess { snapshot ->
-                mutableState.value = mutableState.value.copy(
+        val hookStatus =
+            runCatching {
+                environment.hookGateway.status()
+            }.getOrDefault(
+                CapabilityStatus.Error,
+            )
+        if (
+            rootStatus !=
+            CapabilityStatus.Available
+        ) {
+            mutableState.value =
+                mutableState.value.copy(
                     rootStatus = rootStatus,
                     hookStatus = hookStatus,
-                    snapshot = snapshot,
+                    loading = false,
+                )
+            return
+        }
+        runCatching {
+            repository.snapshot()
+        }.onSuccess { snapshot ->
+            val pinnedProcesses =
+                snapshot.processes.map {
+                    it.copy(
+                        isPinned =
+                            settings.isPinned(it),
+                    )
+                }
+            val nextSnapshot =
+                snapshot.copy(
+                    processes = pinnedProcesses,
+                )
+            val selectedPid =
+                mutableState.value.selectedPid
+            val currentDetail =
+                mutableState.value.selectedDetail
+            val nextDetail =
+                if (selectedPid != null) {
+                    pinnedProcesses
+                        .firstOrNull {
+                            it.pid == selectedPid
+                        }?.let { fresh ->
+                            if (
+                                currentDetail != null &&
+                                currentDetail.pid ==
+                                fresh.pid
+                            ) {
+                                fresh.copy(
+                                    executablePath =
+                                        currentDetail
+                                            .executablePath,
+                                    cgroup =
+                                        currentDetail.cgroup,
+                                )
+                            } else {
+                                fresh
+                            }
+                        }
+                } else {
+                    null
+                }
+            mutableState.value =
+                mutableState.value.copy(
+                    rootStatus = rootStatus,
+                    hookStatus = hookStatus,
+                    snapshot = nextSnapshot,
+                    selectedDetail = nextDetail,
                     loading = false,
                     error = null,
                 )
-            }
-            .onFailure(::report)
+        }.onFailure(::report)
     }
 
     private fun report(error: Throwable) {
@@ -201,17 +474,30 @@ class YTaskManagerViewModel(
             "Collection failed",
             error,
         )
-        mutableState.value = mutableState.value.copy(
-            loading = false,
-            error = error.message ?: error.javaClass.simpleName,
-        )
+        mutableState.value =
+            mutableState.value.copy(
+                loading = false,
+                error =
+                    error.message
+                        ?: error.javaClass.simpleName,
+            )
+    }
+
+    override fun onCleared() {
+        monitor?.cancel()
+        super.onCleared()
     }
 
     class Factory(
-        private val environment: YTaskManagerEnvironment,
+        private val environment:
+            YTaskManagerEnvironment,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            YTaskManagerViewModel(environment) as T
+        override fun <T : ViewModel> create(
+            modelClass: Class<T>,
+        ): T =
+            YTaskManagerViewModel(
+                environment,
+            ) as T
     }
 }
