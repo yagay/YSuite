@@ -5,8 +5,8 @@ import android.content.Context
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
-import com.yagay.YNFC.CardModel
-import com.yagay.YNFC.ConfigProvider
+import com.yagay.ysuite.feature.ynfc.runtime.YNfcCard
+import com.yagay.ysuite.feature.ynfc.runtime.YNfcRuntimeBridge
 import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
@@ -41,20 +41,20 @@ internal class YNfcRepository(
 ) {
     private val cardPrefs = context.getSharedPreferences("ysuite_ynfc_cards", Context.MODE_PRIVATE)
 
-    fun cards(): List<CardModel> {
+    fun cards(): List<YNfcCard> {
         val raw = cardPrefs.getString("cards", null) ?: return emptyList()
         return runCatching {
             val array = JSONArray(raw)
             buildList {
                 for (i in 0 until array.length()) {
                     val o = array.getJSONObject(i)
-                    add(CardModel(o.optString("name"), o.optString("uid"), o.optString("sak", "08"), o.optString("atqa", "0400")))
+                    add(YNfcCard(o.optString("name"), o.optString("uid"), o.optString("sak", "08"), o.optString("atqa", "0400")))
                 }
             }
         }.getOrDefault(emptyList())
     }
 
-    fun saveCards(cards: List<CardModel>) {
+    fun saveCards(cards: List<YNfcCard>) {
         val array = JSONArray()
         cards.forEach { card ->
             array.put(JSONObject().apply {
@@ -73,33 +73,28 @@ internal class YNfcRepository(
     suspend fun runtime(): YNfcRuntimeSnapshot {
         val pid = execute("pidof com.android.nfc 2>/dev/null | awk '{print \$1}'", 5_000L)
             .stdout.trim().lineSequence().firstOrNull()?.toIntOrNull() ?: 0
-        val map = linkedMapOf<String, String>()
-        runCatching {
-            context.contentResolver.query(ConfigProvider.URI, null, null, null, null)?.use { cursor ->
-                while (cursor.moveToNext()) map[cursor.getString(0)] = cursor.getString(1)
-            }
-        }
+        val map = YNfcRuntimeBridge.queryState(context)
         return YNfcRuntimeSnapshot(
             currentPid = pid,
-            hookBuild = map[ConfigProvider.KEY_HOOK_BUILD]?.toIntOrNull() ?: 0,
-            hookInstalled = map[ConfigProvider.KEY_HOOK_INSTALLED].toBoolean() &&
-                map[ConfigProvider.KEY_HOOK_PID]?.toIntOrNull() == pid,
-            scopeOk = map[ConfigProvider.KEY_SCOPE_OK].toBoolean(),
-            simulationEnabled = map[ConfigProvider.KEY_SIMULATION_ENABLED].toBoolean(),
-            selectedUid = map[ConfigProvider.KEY_UID]?.takeIf { it.isNotBlank() },
-            commandGeneration = map[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull() ?: 0L,
-            handledGeneration = map[ConfigProvider.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() ?: Long.MIN_VALUE,
-            commandStatus = map[ConfigProvider.KEY_COMMAND_STATUS] ?: "IDLE",
-            effectiveState = map[ConfigProvider.KEY_EFFECTIVE_STATE] ?: "UNKNOWN",
-            verification = map[ConfigProvider.KEY_VERIFICATION_CONFIDENCE] ?: "NONE",
-            rfAccepted = map[ConfigProvider.KEY_RF_ACCEPTED].toBoolean(),
-            rfStatus = map[ConfigProvider.KEY_RF_STATUS] ?: "IDLE",
-            rfUid = map[ConfigProvider.KEY_RF_UID]?.takeIf { it.isNotBlank() },
-            rfError = map[ConfigProvider.KEY_RF_ERROR]?.takeIf { it.isNotBlank() },
+            hookBuild = map[YNfcRuntimeBridge.KEY_HOOK_BUILD]?.toIntOrNull() ?: 0,
+            hookInstalled = map[YNfcRuntimeBridge.KEY_HOOK_INSTALLED].toBoolean() &&
+                map[YNfcRuntimeBridge.KEY_HOOK_PID]?.toIntOrNull() == pid,
+            scopeOk = map[YNfcRuntimeBridge.KEY_SCOPE_OK].toBoolean(),
+            simulationEnabled = map[YNfcRuntimeBridge.KEY_SIMULATION_ENABLED].toBoolean(),
+            selectedUid = map[YNfcRuntimeBridge.KEY_UID]?.takeIf { it.isNotBlank() },
+            commandGeneration = map[YNfcRuntimeBridge.KEY_COMMAND_GENERATION]?.toLongOrNull() ?: 0L,
+            handledGeneration = map[YNfcRuntimeBridge.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() ?: Long.MIN_VALUE,
+            commandStatus = map[YNfcRuntimeBridge.KEY_COMMAND_STATUS] ?: "IDLE",
+            effectiveState = map[YNfcRuntimeBridge.KEY_EFFECTIVE_STATE] ?: "UNKNOWN",
+            verification = map[YNfcRuntimeBridge.KEY_VERIFICATION_CONFIDENCE] ?: "NONE",
+            rfAccepted = map[YNfcRuntimeBridge.KEY_RF_ACCEPTED].toBoolean(),
+            rfStatus = map[YNfcRuntimeBridge.KEY_RF_STATUS] ?: "IDLE",
+            rfUid = map[YNfcRuntimeBridge.KEY_RF_UID]?.takeIf { it.isNotBlank() },
+            rfError = map[YNfcRuntimeBridge.KEY_RF_ERROR]?.takeIf { it.isNotBlank() },
         )
     }
 
-    suspend fun apply(card: CardModel): Pair<YNfcRuntimeSnapshot, String> {
+    suspend fun apply(card: YNfcCard): Pair<YNfcRuntimeSnapshot, String> {
         val scope = hooks.reload(setOf("com.android.nfc"))
         if (scope is Outcome.Failure) return runtime() to "scope_failed"
         val generation = publish(true, card)
@@ -124,15 +119,7 @@ internal class YNfcRepository(
         restartNfc("stop:" + generation)
         val pid = execute("pidof com.android.nfc 2>/dev/null | awk '{print \$1}'", 5_000L)
             .stdout.trim().lineSequence().firstOrNull()?.toIntOrNull() ?: 0
-        context.contentResolver.call(
-            ConfigProvider.URI,
-            ConfigProvider.METHOD_CONFIRM_STOCK_RESTART,
-            null,
-            Bundle().apply {
-                putLong(ConfigProvider.EXTRA_GENERATION, generation)
-                putInt(ConfigProvider.EXTRA_PID, pid)
-            },
-        )
+        YNfcRuntimeBridge.confirmStockRestart(context, generation, pid)
         val state = waitFor(generation, 4_000L)
         val ok = state.commandStatus == "SUCCESS" &&
             state.effectiveState == "STOCK" &&
@@ -186,20 +173,8 @@ internal class YNfcRepository(
         return uri.toString()
     }
 
-    private fun publish(enabled: Boolean, card: CardModel?): Long =
-        context.contentResolver.call(
-            ConfigProvider.URI,
-            ConfigProvider.METHOD_PUBLISH_COMMAND,
-            null,
-            Bundle().apply {
-                putBoolean(ConfigProvider.EXTRA_ENABLED, enabled)
-                card?.let {
-                    putString(ConfigProvider.EXTRA_UID, it.uid)
-                    putString(ConfigProvider.EXTRA_SAK, it.sak)
-                    putString(ConfigProvider.EXTRA_ATQA, it.atqa)
-                }
-            },
-        )?.getLong(ConfigProvider.RESULT_GENERATION, 0L) ?: 0L
+    private fun publish(enabled: Boolean, card: YNfcCard?): Long =
+        YNfcRuntimeBridge.publish(context, enabled, card)
 
     private suspend fun waitFor(generation: Long, timeout: Long): YNfcRuntimeSnapshot {
         val end = System.currentTimeMillis() + timeout

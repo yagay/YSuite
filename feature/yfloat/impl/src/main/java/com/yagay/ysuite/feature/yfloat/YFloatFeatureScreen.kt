@@ -5,8 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yagay.YFloat.ActionId
-import com.yagay.YFloat.FloatSettings
+import com.yagay.ysuite.feature.yfloat.runtime.YFloatRuntimeBridge
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.productui.featurelayout.YFloatWorkspace
 import com.yagay.ysuite.productui.settings.ComposeSettingsChoice
@@ -115,7 +114,7 @@ fun YFloatFeatureScreen(
                 range = 10..100,
                 onValueChange = {
                     model.int(
-                        FloatSettings.K_ALPHA,
+                        YFloatRuntimeBridge.K_ALPHA,
                         it,
                     )
                 },
@@ -129,7 +128,7 @@ fun YFloatFeatureScreen(
                 range = 24..96,
                 onValueChange = {
                     model.int(
-                        FloatSettings.K_SIZE,
+                        YFloatRuntimeBridge.K_SIZE,
                         it,
                     )
                 },
@@ -143,7 +142,7 @@ fun YFloatFeatureScreen(
                 range = 10..100,
                 onValueChange = {
                     model.int(
-                        FloatSettings.K_SHOW_PERCENT,
+                        YFloatRuntimeBridge.K_SHOW_PERCENT,
                         it,
                     )
                 },
@@ -151,37 +150,37 @@ fun YFloatFeatureScreen(
             switch(
                 R.string.yfloat_both_sides,
                 s.bothSide,
-                FloatSettings.K_BOTH_SIDE,
+                YFloatRuntimeBridge.K_BOTH_SIDE,
                 model,
             )
             switch(
                 R.string.yfloat_snap,
                 s.snap,
-                FloatSettings.K_SNAP,
+                YFloatRuntimeBridge.K_SNAP,
                 model,
             )
             switch(
                 R.string.yfloat_show_lock,
                 s.showOnLock,
-                FloatSettings.K_SHOW_ON_LOCK,
+                YFloatRuntimeBridge.K_SHOW_ON_LOCK,
                 model,
             )
             switch(
                 R.string.yfloat_hide_fullscreen,
                 s.hideFullscreen,
-                FloatSettings.K_HIDE_FULLSCREEN,
+                YFloatRuntimeBridge.K_HIDE_FULLSCREEN,
                 model,
             )
             switch(
                 R.string.yfloat_ime_avoid,
                 s.imeAvoid,
-                FloatSettings.K_IME_AVOID,
+                YFloatRuntimeBridge.K_IME_AVOID,
                 model,
             )
             switch(
                 R.string.yfloat_quick_move,
                 s.quickMove,
-                FloatSettings.K_QUICK_MOVE,
+                YFloatRuntimeBridge.K_QUICK_MOVE,
                 model,
             )
         }
@@ -195,37 +194,37 @@ fun YFloatFeatureScreen(
             switch(
                 R.string.yfloat_vibrate,
                 s.vibrate,
-                FloatSettings.K_VIBRATE,
+                YFloatRuntimeBridge.K_VIBRATE,
                 model,
             )
             switch(
                 R.string.yfloat_track,
                 s.track,
-                FloatSettings.K_TRACK,
+                YFloatRuntimeBridge.K_TRACK,
                 model,
             )
             switch(
                 R.string.yfloat_long_drag,
                 s.longPressDrag,
-                FloatSettings.K_LONG_PRESS_DRAG,
+                YFloatRuntimeBridge.K_LONG_PRESS_DRAG,
                 model,
             )
         }
         actionGroup(
             R.string.yfloat_click_action,
-            FloatSettings.K_ACTION_CLICK,
+            YFloatRuntimeBridge.K_ACTION_CLICK,
             s.clickAction,
             model,
         )
         actionGroup(
             R.string.yfloat_double_action,
-            FloatSettings.K_ACTION_DOUBLE,
+            YFloatRuntimeBridge.K_ACTION_DOUBLE,
             s.doubleAction,
             model,
         )
         actionGroup(
             R.string.yfloat_long_action,
-            FloatSettings.K_ACTION_LONG,
+            YFloatRuntimeBridge.K_ACTION_LONG,
             s.longAction,
             model,
         )
@@ -239,25 +238,25 @@ fun YFloatFeatureScreen(
             switch(
                 R.string.yfloat_keep_status,
                 s.keepStatusBar,
-                FloatSettings.K_KEEP_STATUS_BAR,
+                YFloatRuntimeBridge.K_KEEP_STATUS_BAR,
                 model,
             )
             switch(
                 R.string.yfloat_keep_navigation,
                 s.keepNavigationBar,
-                FloatSettings.K_KEEP_NAVIGATION_BAR,
+                YFloatRuntimeBridge.K_KEEP_NAVIGATION_BAR,
                 model,
             )
             switch(
                 R.string.yfloat_accessibility_screenshot,
                 s.accessibilityScreenshot,
-                FloatSettings.K_ACCESSIBILITY_SCREENSHOT,
+                YFloatRuntimeBridge.K_ACCESSIBILITY_SCREENSHOT,
                 model,
             )
             switch(
                 R.string.yfloat_circle_border,
                 s.circleBorder,
-                FloatSettings.K_CIRCLE_BORDER_ENABLED,
+                YFloatRuntimeBridge.K_CIRCLE_BORDER_ENABLED,
                 model,
             )
             ComposeSettingsIntSlider(
@@ -269,7 +268,7 @@ fun YFloatFeatureScreen(
                 range = 1..8,
                 onValueChange = {
                     model.int(
-                        FloatSettings.K_CIRCLE_BORDER_WIDTH_DP,
+                        YFloatRuntimeBridge.K_CIRCLE_BORDER_WIDTH_DP,
                         it,
                     )
                 },
@@ -299,7 +298,7 @@ fun YFloatFeatureScreen(
                 ),
             onSelected = {
                 model.int(
-                    FloatSettings.K_CIRCLE_ENGINE,
+                    YFloatRuntimeBridge.K_CIRCLE_ENGINE,
                     it.toInt(),
                 )
             },
@@ -336,13 +335,13 @@ fun YFloatFeatureScreen(
             switch(
                 R.string.yfloat_enhanced_mode,
                 s.enhancedMode,
-                FloatSettings.K_ENHANCED_MODE,
+                YFloatRuntimeBridge.K_ENHANCED_MODE,
                 model,
             )
             switch(
                 R.string.yfloat_root_enabled,
                 s.rootEnabled,
-                FloatSettings.K_ROOT_ENABLED,
+                YFloatRuntimeBridge.K_ROOT_ENABLED,
                 model,
             )
             ComposeSettingsLink(
@@ -363,7 +362,7 @@ fun YFloatFeatureScreen(
             switch(
                 R.string.yfloat_lsposed_enabled,
                 s.lsposedEnabled,
-                FloatSettings.K_LSPOSED_ENABLED,
+                YFloatRuntimeBridge.K_LSPOSED_ENABLED,
                 model,
             )
             ComposeSettingsSwitch(
@@ -407,7 +406,7 @@ fun YFloatFeatureScreen(
             switch(
                 R.string.yfloat_diagnostic_logging,
                 s.diagnosticLogging,
-                FloatSettings.K_DIAGNOSTIC,
+                YFloatRuntimeBridge.K_DIAGNOSTIC,
                 model,
             )
         }
@@ -449,17 +448,17 @@ private fun actionGroup(
         selectedId = selected,
         choices =
             listOf(
-                ActionId.NONE,
-                ActionId.BACK,
-                ActionId.HOME,
-                ActionId.RECENTS,
-                ActionId.SCREENSHOT,
-                ActionId.REGION_SCREENSHOT,
-                ActionId.OCR,
-                ActionId.NOTIFICATIONS,
-                ActionId.HIDE,
-                ActionId.MOVE_ICON,
-                ActionId.AI_SCREEN,
+                YFloatRuntimeBridge.ACTION_NONE,
+                YFloatRuntimeBridge.ACTION_BACK,
+                YFloatRuntimeBridge.ACTION_HOME,
+                YFloatRuntimeBridge.ACTION_RECENTS,
+                YFloatRuntimeBridge.ACTION_SCREENSHOT,
+                YFloatRuntimeBridge.ACTION_REGION_SCREENSHOT,
+                YFloatRuntimeBridge.ACTION_OCR,
+                YFloatRuntimeBridge.ACTION_NOTIFICATIONS,
+                YFloatRuntimeBridge.ACTION_HIDE,
+                YFloatRuntimeBridge.ACTION_MOVE_ICON,
+                YFloatRuntimeBridge.ACTION_AI_SCREEN,
             ).map {
                 ComposeSettingsChoice(
                     it,
@@ -518,47 +517,47 @@ private fun engineGroup(
 @Composable
 private fun actionLabel(id: String): String =
     when (id) {
-        ActionId.NONE ->
+        YFloatRuntimeBridge.ACTION_NONE ->
             stringResource(
                 R.string.yfloat_action_none,
             )
-        ActionId.BACK ->
+        YFloatRuntimeBridge.ACTION_BACK ->
             stringResource(
                 R.string.yfloat_action_back,
             )
-        ActionId.HOME ->
+        YFloatRuntimeBridge.ACTION_HOME ->
             stringResource(
                 R.string.yfloat_action_home,
             )
-        ActionId.RECENTS ->
+        YFloatRuntimeBridge.ACTION_RECENTS ->
             stringResource(
                 R.string.yfloat_action_recents,
             )
-        ActionId.SCREENSHOT ->
+        YFloatRuntimeBridge.ACTION_SCREENSHOT ->
             stringResource(
                 R.string.yfloat_action_screenshot,
             )
-        ActionId.REGION_SCREENSHOT ->
+        YFloatRuntimeBridge.ACTION_REGION_SCREENSHOT ->
             stringResource(
                 R.string.yfloat_action_region,
             )
-        ActionId.OCR ->
+        YFloatRuntimeBridge.ACTION_OCR ->
             stringResource(
                 R.string.yfloat_action_ocr,
             )
-        ActionId.NOTIFICATIONS ->
+        YFloatRuntimeBridge.ACTION_NOTIFICATIONS ->
             stringResource(
                 R.string.yfloat_action_notifications,
             )
-        ActionId.HIDE ->
+        YFloatRuntimeBridge.ACTION_HIDE ->
             stringResource(
                 R.string.yfloat_action_hide,
             )
-        ActionId.MOVE_ICON ->
+        YFloatRuntimeBridge.ACTION_MOVE_ICON ->
             stringResource(
                 R.string.yfloat_action_move,
             )
-        ActionId.AI_SCREEN ->
+        YFloatRuntimeBridge.ACTION_AI_SCREEN ->
             stringResource(
                 R.string.yfloat_action_ai,
             )

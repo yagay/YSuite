@@ -2,7 +2,7 @@ package com.yagay.ysuite.feature.ynfc
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.yagay.YNFC.CardModel
+import com.yagay.ysuite.feature.ynfc.runtime.YNfcCard
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -13,7 +13,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 data class YNfcUiState(
-    val cards: List<CardModel> = emptyList(),
+    val cards: List<YNfcCard> = emptyList(),
     val runtime: YNfcRuntimeSnapshot = YNfcRuntimeSnapshot(),
     val rootStatus: CapabilityStatus = CapabilityStatus.Unavailable,
     val hookStatus: CapabilityStatus = CapabilityStatus.Unavailable,
@@ -34,17 +34,17 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
             }
         }
     }
-    fun saveCard(card: CardModel) {
+    fun saveCard(card: YNfcCard) {
         val cards = (mutableState.value.cards.filterNot { it.uid.equals(card.uid, true) } + card).sortedBy { it.name.lowercase() }
         repository.saveCards(cards)
         mutableState.value = mutableState.value.copy(cards = cards, statusToken = "card_saved")
     }
-    fun delete(card: CardModel) {
+    fun delete(card: YNfcCard) {
         val cards = mutableState.value.cards.filterNot { it.uid.equals(card.uid, true) }
         repository.saveCards(cards)
         mutableState.value = mutableState.value.copy(cards = cards)
     }
-    fun apply(card: CardModel) = operation("applying") { repository.apply(card) }
+    fun apply(card: YNfcCard) = operation("applying") { repository.apply(card) }
     fun stop() = operation("stopping") { repository.stop() }
     fun collectDiagnostics() {
         viewModelScope.launch {

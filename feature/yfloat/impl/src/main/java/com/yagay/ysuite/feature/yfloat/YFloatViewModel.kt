@@ -3,7 +3,7 @@ package com.yagay.ysuite.feature.yfloat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.yagay.YFloat.FloatSettings
+import com.yagay.ysuite.feature.yfloat.runtime.YFloatRuntimeBridge
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,10 +53,10 @@ class YFloatViewModel(
             if (
                 key in
                     setOf(
-                        FloatSettings.K_ENHANCED_MODE,
-                        FloatSettings.K_LSPOSED_ENABLED,
-                        FloatSettings.K_LSPOSED_SECURE_SCREENSHOT,
-                        FloatSettings.K_DIAGNOSTIC,
+                        YFloatRuntimeBridge.K_ENHANCED_MODE,
+                        YFloatRuntimeBridge.K_LSPOSED_ENABLED,
+                        YFloatRuntimeBridge.K_LSPOSED_SECURE_SCREENSHOT,
+                        YFloatRuntimeBridge.K_DIAGNOSTIC,
                     )
             ) {
                 viewModelScope.launch {

@@ -27,6 +27,15 @@
         <service android:name="com.yagay.YFloat.FloatService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Persistent user-controlled floating gesture button" />
         </service>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.yfloat.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/yfloat_file_paths" />
+        </provider>
         <provider android:name="com.yagay.YFloat.GoogleCtsBridgeProvider" android:authorities="${applicationId}.googlebridge" android:exported="true" android:grantUriPermissions="false" />
         <receiver android:name="com.yagay.YFloat.GoogleCtsBridgeReceiver" android:exported="true" />
         <receiver android:name="com.yagay.YFloat.GoogleCtsTraceReceiver" android:exported="true" />

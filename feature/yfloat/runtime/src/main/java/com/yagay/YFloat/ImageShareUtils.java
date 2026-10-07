@@ -9,6 +9,7 @@ import android.graphics.Rect;
 import android.net.Uri;
 import android.widget.ImageView;
 import android.widget.Toast;
+import androidx.core.content.FileProvider;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -115,8 +116,7 @@ public final class ImageShareUtils {
             out.flush();
         }
 
-        Uri uri = YFloatSuiteRuntime.sharedFileUri(outFile);
-        if (uri == null) throw new IllegalStateException("Host file-share capability is unavailable");
+        Uri uri = FileProvider.getUriForFile(app, app.getPackageName() + ".yfloat.files", outFile);
         return new SharedImage(outFile, uri);
     }
 

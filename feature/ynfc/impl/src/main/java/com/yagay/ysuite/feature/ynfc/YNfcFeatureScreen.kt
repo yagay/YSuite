@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yagay.YNFC.CardModel
+import com.yagay.ysuite.feature.ynfc.runtime.YNfcCard
 import com.yagay.ysuite.designsystem.component.YSuiteListItem
 import com.yagay.ysuite.designsystem.component.YSuitePrimaryButton
 import com.yagay.ysuite.designsystem.component.YSuiteSecondaryButton
@@ -37,7 +37,7 @@ fun YNfcFeatureScreen(environment: YNfcEnvironment) {
     val activity = LocalContext.current as? Activity
     val reader = remember(activity) { activity?.let(::YNfcReaderController) }
     var reading by remember { mutableStateOf(false) }
-    var scanned by remember { mutableStateOf<CardModel?>(null) }
+    var scanned by remember { mutableStateOf<YNfcCard?>(null) }
     DisposableEffect(reader) { onDispose { reader?.disable() } }
 
     YNfcWorkspace(
@@ -225,7 +225,7 @@ private fun RuntimeStatusBadge(ok: Boolean, okText: String, badText: String) {
 }
 
 @Composable
-private fun cardSummary(card: CardModel): String =
+private fun cardSummary(card: YNfcCard): String =
     stringResource(R.string.ynfc_card_summary, card.uid, card.sak, card.atqa)
 
 @Composable

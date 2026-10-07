@@ -4,13 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import com.yagay.YFloat.AccessibilityState
-import com.yagay.YFloat.FloatServiceState
-import com.yagay.YFloat.FloatSettings
-import com.yagay.YFloat.LsposedStatusManager
-import com.yagay.YFloat.PrivilegeManager
-import com.yagay.YFloat.YFloatRuntimeBootstrap
 import com.yagay.ysuite.common.Outcome
+import com.yagay.ysuite.feature.yfloat.runtime.YFloatRuntimeBridge
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
 
@@ -57,96 +52,81 @@ internal class YFloatRepository(
 ) {
     private val prefs =
         context.getSharedPreferences(
-            FloatSettings.PREF,
+            YFloatRuntimeBridge.PREF,
             Context.MODE_PRIVATE,
         )
 
     init {
-        YFloatRuntimeBootstrap.initialize(context)
+        YFloatRuntimeBridge.initialize(context)
     }
 
     suspend fun snapshot(): YFloatSnapshot {
-        val fs = FloatSettings(context)
-        val accessibility =
-            AccessibilityState.snapshot(context)
+        val fs = YFloatRuntimeBridge.snapshot(context)
         return YFloatSnapshot(
             serviceEnabled =
-                FloatServiceState.isEnabled(context),
+                fs.serviceEnabled,
             overlayPermission =
                 Settings.canDrawOverlays(context),
             accessibilityEnabled =
-                accessibility.hostEnabled,
+                fs.accessibilityEnabled,
             accessibilityConnected =
-                accessibility.connected,
+                fs.accessibilityConnected,
             hookStatus =
                 runCatching { hooks.status() }
                     .getOrDefault(
                         CapabilityStatus.Error,
                     ),
             rootGranted =
-                fs.rootLastGranted(),
+                fs.rootGranted,
             alphaPercent =
-                (fs.alpha() * 100f).toInt(),
-            sizeDp = fs.sizeDp(),
-            showPercent = fs.showPercentage(),
-            bothSide = fs.bothSide(),
-            snap = fs.snap(),
-            showOnLock = fs.showOnLock(),
+                fs.alphaPercent,
+            sizeDp = fs.sizeDp,
+            showPercent = fs.showPercent,
+            bothSide = fs.bothSide,
+            snap = fs.snap,
+            showOnLock = fs.showOnLock,
             hideFullscreen =
-                fs.hideWhenFullscreen(),
-            imeAvoid = fs.imeAvoid(),
-            quickMove = fs.quickMoveEnabled(),
-            vibrate = fs.vibrate(),
-            track = fs.track(),
+                fs.hideFullscreen,
+            imeAvoid = fs.imeAvoid,
+            quickMove = fs.quickMove,
+            vibrate = fs.vibrate,
+            track = fs.track,
             longPressDrag =
-                fs.longPressDragEnabled(),
+                fs.longPressDrag,
             clickAction =
-                fs.action(
-                    FloatSettings.K_ACTION_CLICK,
-                    "none",
-                ),
+                fs.clickAction,
             doubleAction =
-                fs.action(
-                    FloatSettings.K_ACTION_DOUBLE,
-                    "none",
-                ),
+                fs.doubleAction,
             longAction =
-                fs.action(
-                    FloatSettings.K_ACTION_LONG,
-                    "none",
-                ),
+                fs.longAction,
             keepStatusBar =
-                fs.keepStatusBarInScreenshot(),
+                fs.keepStatusBar,
             keepNavigationBar =
-                fs.keepNavigationBarInScreenshot(),
+                fs.keepNavigationBar,
             accessibilityScreenshot =
-                fs.accessibilityScreenshot(),
-            circleEngine = fs.circleEngine(),
+                fs.accessibilityScreenshot,
+            circleEngine = fs.circleEngine,
             circleBorder =
-                fs.circleBorderEnabled(),
+                fs.circleBorder,
             circleBorderWidthDp =
-                fs.circleBorderWidthDp(),
+                fs.circleBorderWidthDp,
             fullOcrEngine =
-                fs.circleFullOcrEngine(),
+                fs.fullOcrEngine,
             correctionEngine =
-                fs.circleCorrectionEngine(),
-            enhancedMode = fs.enhancedMode(),
-            rootEnabled = fs.rootEnabled(),
+                fs.correctionEngine,
+            enhancedMode = fs.enhancedMode,
+            rootEnabled = fs.rootEnabled,
             lsposedEnabled =
-                fs.lsposedEnabled(),
+                fs.lsposedEnabled,
             secureScreenshot =
-                fs.lsposedSecureScreenshot(),
+                fs.secureScreenshot,
             diagnosticLogging =
-                fs.diagnosticLogging(),
+                fs.diagnosticLogging,
         )
     }
 
     fun setService(enabled: Boolean) {
-        if (enabled) {
-            FloatServiceState.start(context)
-        } else {
-            FloatServiceState.stop(context)
-        }
+        YFloatRuntimeBridge.setService(context, enabled)
     }
 
     fun putBoolean(key: String, value: Boolean) {
@@ -162,17 +142,17 @@ internal class YFloatRepository(
     }
 
     suspend fun syncHooks(): Outcome<Unit> {
-        val fs = FloatSettings(context)
+        val fs = YFloatRuntimeBridge.snapshot(context)
         val updatedAt = System.currentTimeMillis()
         val writes =
             listOf(
-                FloatSettings.K_ENHANCED_MODE to
+                YFloatRuntimeBridge.K_ENHANCED_MODE to
                     fs.enhancedMode().toString(),
-                FloatSettings.K_LSPOSED_ENABLED to
+                YFloatRuntimeBridge.K_LSPOSED_ENABLED to
                     fs.lsposedEnabled().toString(),
-                FloatSettings.K_LSPOSED_SECURE_SCREENSHOT to
+                YFloatRuntimeBridge.K_LSPOSED_SECURE_SCREENSHOT to
                     fs.lsposedSecureScreenshot().toString(),
-                FloatSettings.K_DIAGNOSTIC to
+                YFloatRuntimeBridge.K_DIAGNOSTIC to
                     fs.diagnosticLogging().toString(),
                 "updated_at" to
                     updatedAt.toString(),
@@ -224,33 +204,10 @@ internal class YFloatRepository(
     fun checkRoot(
         callback: (Boolean) -> Unit,
     ) {
-        PrivilegeManager.checkRootAsync(context) {
-            callback(it.granted)
-        }
+        YFloatRuntimeBridge.checkRoot(context, callback)
     }
 
     fun lsposedSummary(): String {
-        val snapshot =
-            LsposedStatusManager.snapshot()
-        return buildString {
-            append(
-                if (snapshot.serviceConnected) {
-                    snapshot.frameworkName +
-                        " " +
-                        snapshot.frameworkVersion
-                } else {
-                    "Disconnected"
-                },
-            )
-            if (snapshot.apiVersion > 0) {
-                append(" · API ")
-                append(snapshot.apiVersion)
-            }
-            if (snapshot.runningProcesses.isNotEmpty()) {
-                append(" · ")
-                append(snapshot.runningProcesses.size)
-                append(" targets")
-            }
-        }
+        return YFloatRuntimeBridge.lsposedSummary()
     }
 }

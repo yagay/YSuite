@@ -3,11 +3,11 @@ import android.app.Activity
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.NfcA
-import com.yagay.YNFC.CardModel
+import com.yagay.ysuite.feature.ynfc.runtime.YNfcCard
 internal class YNfcReaderController(private val activity: Activity) {
     private val adapter = NfcAdapter.getDefaultAdapter(activity)
     private var enabled = false
-    fun enable(onCard: (CardModel) -> Unit): Result<Unit> = runCatching {
+    fun enable(onCard: (YNfcCard) -> Unit): Result<Unit> = runCatching {
         if (enabled) return@runCatching
         val nfc = adapter ?: error("NFC unavailable")
         nfc.enableReaderMode(
@@ -23,7 +23,7 @@ internal class YNfcReaderController(private val activity: Activity) {
         runCatching { adapter?.disableReaderMode(activity) }
         enabled = false
     }
-    private fun parse(tag: Tag): CardModel? {
+    private fun parse(tag: Tag): YNfcCard? {
         val uid = tag.id?.joinToString("") { "%02X".format(it) }?.uppercase().orEmpty()
         if (uid.isBlank()) return null
         var sak = "08"
@@ -34,6 +34,6 @@ internal class YNfcReaderController(private val activity: Activity) {
                 atqa = it.atqa.reversedArray().joinToString("") { b -> "%02X".format(b) }.uppercase()
             }
         }
-        return CardModel("Card " + uid.takeLast(4), uid, sak, atqa)
+        return YNfcCard("Card " + uid.takeLast(4), uid, sak, atqa)
     }
 }

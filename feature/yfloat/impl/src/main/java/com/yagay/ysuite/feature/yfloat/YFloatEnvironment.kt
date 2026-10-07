@@ -1,7 +1,7 @@
 package com.yagay.ysuite.feature.yfloat
 
 import android.content.Context
-import com.yagay.YFloat.compat.YFloatRuntimeHost
+import com.yagay.ysuite.feature.yfloat.runtime.YFloatRuntimeBridge
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.platform.api.RootGateway
@@ -20,7 +20,7 @@ object YFloatEnvironmentFactory {
         hookGateway: HookGateway,
         logger: YSuiteLogger,
     ): YFloatEnvironment {
-        YFloatRuntimeHost.install(rootGateway, logger)
+        YFloatRuntimeBridge.attachHost(rootGateway, logger)
         return YFloatEnvironment(
             context.applicationContext,
             rootGateway,
