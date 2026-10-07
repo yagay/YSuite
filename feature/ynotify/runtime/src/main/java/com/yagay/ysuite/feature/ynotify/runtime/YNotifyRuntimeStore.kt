@@ -48,6 +48,19 @@ class YNotifyRuntimeStore(
             storedEventCount = database.count(),
         )
 
+    fun search(
+        query: String,
+        limit: Int = 500,
+    ): List<YNotifyEvent> =
+        database.search(
+            query = query,
+            limit = limit,
+        )
+
+    fun appAggregates():
+        List<YNotifyAppAggregate> =
+        database.appAggregates()
+
     fun isPaused(packageName: String): Boolean =
         YNotifyCapturePolicy.isPaused(
             applicationContext,
