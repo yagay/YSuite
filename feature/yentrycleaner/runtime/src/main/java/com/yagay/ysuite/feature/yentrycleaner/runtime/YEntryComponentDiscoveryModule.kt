@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.content.pm.ResolveInfo
 import android.os.Binder
 import android.os.Process
+import com.yagay.ysuite.runtime.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -26,6 +27,7 @@ class YEntryComponentDiscoveryModule :
         val constructor: Constructor<*>,
     )
 
+    private var moduleHostPackage: String = ""
     private lateinit var prefs:
         SharedPreferences
     private val installed =
@@ -41,6 +43,16 @@ class YEntryComponentDiscoveryModule :
             XposedModuleInterface
                 .ModuleLoadedParam,
     ) {
+        moduleHostPackage =
+            runCatching {
+                getModuleApplicationInfo()
+                    ?.packageName
+                    .orEmpty()
+            }.getOrDefault("")
+        RuntimeOwnerGate.announce(
+            "yentrycleaner",
+            moduleHostPackage,
+        )
         prefs =
             getRemotePreferences(
                 YEntryRuntimeBridge.GROUP,
@@ -52,6 +64,12 @@ class YEntryComponentDiscoveryModule :
             XposedModuleInterface
                 .SystemServerStartingParam,
     ) {
+        if (
+            !RuntimeOwnerGate.shouldRun(
+                "yentrycleaner",
+                moduleHostPackage,
+            )
+        ) return
         installPackageManager(
             param.classLoader,
         )
