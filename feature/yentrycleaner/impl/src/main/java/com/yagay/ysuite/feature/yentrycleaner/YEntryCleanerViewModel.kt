@@ -1,10 +1,12 @@
 package com.yagay.ysuite.feature.yentrycleaner
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidate
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
+import com.yagay.ysuite.platform.api.CapabilityStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,8 +32,19 @@ data class YEntryCleanerUiState(
         YEntryAppFilter.All,
     val selectedId: String? = null,
     val browserHost: String = "example.com",
-    val displayMode: String = "HIDE_SELECTED",
+    val browserHosts: List<String> =
+        emptyList(),
+    val openMime: String =
+        "application/pdf",
+    val displayMode: String =
+        "HIDE_SELECTED",
     val diagnostic: Boolean = false,
+    val rootStatus: CapabilityStatus =
+        CapabilityStatus.Unavailable,
+    val hookStatus: CapabilityStatus =
+        CapabilityStatus.Unavailable,
+    val backupUri: String? = null,
+    val busy: Boolean = false,
     val statusToken: String? = null,
 )
 
@@ -44,17 +57,22 @@ internal class YEntryCleanerViewModel(
             YEntryCleanerUiState(
                 browserHost =
                     repository.browserHost(),
+                openMime =
+                    repository.openMime(),
                 displayMode =
                     repository.displayMode(),
                 diagnostic =
                     repository.diagnostic(),
             ),
         )
-    val state: StateFlow<YEntryCleanerUiState> =
+    val state:
+        StateFlow<YEntryCleanerUiState> =
         mutableState.asStateFlow()
 
     init {
         refresh()
+        refreshRuntime()
+        discoverBrowserHosts()
         viewModelScope.launch {
             repository.sync()
         }
@@ -86,8 +104,7 @@ internal class YEntryCleanerViewModel(
     fun visible(): List<YEntryCandidate> {
         val state = mutableState.value
         val q = state.query.trim()
-        return state.candidates.filter {
-            candidate ->
+        return state.candidates.filter { candidate ->
             val filterMatch =
                 when (state.filter) {
                     YEntryAppFilter.All -> true
@@ -103,12 +120,9 @@ internal class YEntryCleanerViewModel(
             filterMatch &&
                 (
                     q.isBlank() ||
-                        candidate.label
-                            .contains(q, true) ||
-                        candidate.packageName
-                            .contains(q, true) ||
-                        candidate.className
-                            .contains(q, true)
+                        candidate.label.contains(q, true) ||
+                        candidate.packageName.contains(q, true) ||
+                        candidate.className.contains(q, true)
                     )
         }
     }
@@ -161,6 +175,10 @@ internal class YEntryCleanerViewModel(
     ) {
         if (candidate.locked) return
         viewModelScope.launch {
+            mutableState.value =
+                mutableState.value.copy(
+                    busy = true,
+                )
             val ok =
                 withContext(Dispatchers.IO) {
                     repository.changeComponent(
@@ -170,6 +188,7 @@ internal class YEntryCleanerViewModel(
                 }
             mutableState.value =
                 mutableState.value.copy(
+                    busy = false,
                     statusToken =
                         if (ok) {
                             "component_changed"
@@ -182,12 +201,77 @@ internal class YEntryCleanerViewModel(
     }
 
     fun bulk(hidden: Boolean) {
-        val visible = visible()
+        val items = visible()
         viewModelScope.launch {
             repository.bulkHidden(
-                visible,
+                items,
                 hidden,
             )
+            mutableState.value =
+                mutableState.value.copy(
+                    statusToken =
+                        if (hidden) {
+                            "rules_hidden"
+                        } else {
+                            "rules_shown"
+                        },
+                )
+            refresh()
+        }
+    }
+
+    fun bulkComponents(enable: Boolean) {
+        val items = visible()
+        viewModelScope.launch {
+            mutableState.value =
+                mutableState.value.copy(
+                    busy = true,
+                )
+            val (changed, failed) =
+                withContext(Dispatchers.IO) {
+                    repository.bulkComponents(
+                        items,
+                        enable,
+                    )
+                }
+            mutableState.value =
+                mutableState.value.copy(
+                    busy = false,
+                    statusToken =
+                        if (failed == 0) {
+                            "components_changed:$changed"
+                        } else {
+                            "components_partial:$changed:$failed"
+                        },
+                )
+            refresh()
+        }
+    }
+
+    fun invertComponents() {
+        val items = visible()
+        viewModelScope.launch {
+            mutableState.value =
+                mutableState.value.copy(
+                    busy = true,
+                )
+            val (changed, failed) =
+                withContext(Dispatchers.IO) {
+                    repository
+                        .invertComponents(
+                            items,
+                        )
+                }
+            mutableState.value =
+                mutableState.value.copy(
+                    busy = false,
+                    statusToken =
+                        if (failed == 0) {
+                            "components_changed:$changed"
+                        } else {
+                            "components_partial:$changed:$failed"
+                        },
+                )
             refresh()
         }
     }
@@ -204,6 +288,105 @@ internal class YEntryCleanerViewModel(
             YEntrySurface.Browser
         ) {
             refresh()
+        }
+    }
+
+    fun discoverBrowserHosts() {
+        viewModelScope.launch {
+            val hosts =
+                withContext(Dispatchers.IO) {
+                    repository
+                        .discoverBrowserHosts()
+                }
+            mutableState.value =
+                mutableState.value.copy(
+                    browserHosts = hosts,
+                    statusToken =
+                        if (hosts.isNotEmpty()) {
+                            "hosts_discovered:" +
+                                hosts.size
+                        } else {
+                            mutableState.value
+                                .statusToken
+                        },
+                )
+        }
+    }
+
+    fun setOpenMime(value: String) {
+        repository.setOpenMime(value)
+        mutableState.value =
+            mutableState.value.copy(
+                openMime =
+                    repository.openMime(),
+            )
+        if (
+            mutableState.value.surface ==
+            YEntrySurface.Open
+        ) {
+            refresh()
+        }
+    }
+
+    fun exportBackup() {
+        viewModelScope.launch {
+            val uri =
+                runCatching {
+                    withContext(
+                        Dispatchers.IO,
+                    ) {
+                        repository
+                            .exportBackup()
+                    }
+                }.getOrNull()
+            mutableState.value =
+                mutableState.value.copy(
+                    backupUri = uri,
+                    statusToken =
+                        if (uri != null) {
+                            "backup_exported"
+                        } else {
+                            "backup_failed"
+                        },
+                )
+        }
+    }
+
+    fun importBackup(uri: Uri) {
+        viewModelScope.launch {
+            mutableState.value =
+                mutableState.value.copy(
+                    busy = true,
+                )
+            val ok =
+                runCatching {
+                    withContext(
+                        Dispatchers.IO,
+                    ) {
+                        repository
+                            .importBackup(uri)
+                    }
+                }.getOrDefault(false)
+            mutableState.value =
+                mutableState.value.copy(
+                    busy = false,
+                    browserHost =
+                        repository.browserHost(),
+                    openMime =
+                        repository.openMime(),
+                    displayMode =
+                        repository.displayMode(),
+                    diagnostic =
+                        repository.diagnostic(),
+                    statusToken =
+                        if (ok) {
+                            "backup_restored"
+                        } else {
+                            "backup_failed"
+                        },
+                )
+            refresh()
+            refreshRuntime()
         }
     }
 
@@ -235,12 +418,37 @@ internal class YEntryCleanerViewModel(
         syncAndRefresh()
     }
 
+    fun refreshRuntime() {
+        viewModelScope.launch {
+            val root =
+                runCatching {
+                    repository.rootStatus()
+                }.getOrDefault(
+                    CapabilityStatus.Error,
+                )
+            val hook =
+                runCatching {
+                    repository.hookStatus()
+                }.getOrDefault(
+                    CapabilityStatus.Error,
+                )
+            mutableState.value =
+                mutableState.value.copy(
+                    rootStatus = root,
+                    hookStatus = hook,
+                )
+        }
+    }
+
     fun refresh() {
-        val surface = mutableState.value.surface
+        val surface =
+            mutableState.value.surface
         viewModelScope.launch {
             val items =
                 withContext(Dispatchers.IO) {
-                    repository.candidates(surface)
+                    repository.candidates(
+                        surface,
+                    )
                 }
             mutableState.value =
                 mutableState.value.copy(
@@ -252,6 +460,7 @@ internal class YEntryCleanerViewModel(
     private fun syncAndRefresh() {
         viewModelScope.launch {
             repository.sync()
+            refreshRuntime()
             refresh()
         }
     }
