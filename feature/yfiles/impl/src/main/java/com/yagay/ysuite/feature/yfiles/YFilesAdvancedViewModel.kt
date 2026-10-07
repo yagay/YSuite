@@ -108,6 +108,7 @@ class YFilesAdvancedViewModel(
             systemPatch =
                 YFilesSystemPatchStore(
                     context,
+                    environment.hookGateway,
                 ).load(),
             plugins =
                 environment.plugins
@@ -122,6 +123,7 @@ class YFilesAdvancedViewModel(
     private val systemPatch =
         YFilesSystemPatchStore(
             appContext,
+            environment.hookGateway,
         )
 
     init {
