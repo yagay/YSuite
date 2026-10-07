@@ -31,4 +31,25 @@
     <string name="yentry_priority_down">降低优先级</string>
     <string name="yentry_component_changed">组件状态已验证。</string>
     <string name="yentry_component_failed">无法验证组件状态修改。</string>
+
+    <string name="yentry_runtime">运行环境</string>
+    <string name="yentry_root_ready">Root 可用</string>
+    <string name="yentry_root_missing">Root 不可用</string>
+    <string name="yentry_hook_ready">LSPosed Hook 可用</string>
+    <string name="yentry_hook_missing">LSPosed Hook 不可用</string>
+    <string name="yentry_open_mime">打开方式 MIME 类型</string>
+    <string name="yentry_discover_hosts">自动发现 App Links</string>
+    <string name="yentry_hosts_discovered">已发现 App Link 域名。</string>
+    <string name="yentry_export_backup">导出规则备份</string>
+    <string name="yentry_import_backup">导入规则备份</string>
+    <string name="yentry_backup_exported">规则备份已导出到 Downloads/YSuite。</string>
+    <string name="yentry_backup_restored">规则备份已恢复并同步。</string>
+    <string name="yentry_backup_failed">备份操作失败。</string>
+    <string name="yentry_disable_visible">禁用当前可见</string>
+    <string name="yentry_enable_visible">启用当前可见</string>
+    <string name="yentry_invert_visible">反选当前可见</string>
+    <string name="yentry_components_changed">当前可见组件状态已更新。</string>
+    <string name="yentry_components_partial">部分组件修改失败。</string>
+    <string name="yentry_rules_hidden">当前可见解析规则已隐藏。</string>
+    <string name="yentry_rules_shown">当前可见解析规则已恢复。</string>
 </resources>
