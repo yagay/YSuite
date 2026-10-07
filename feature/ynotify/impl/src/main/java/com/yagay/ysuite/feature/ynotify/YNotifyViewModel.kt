@@ -444,11 +444,10 @@ class YNotifyViewModel(
     }
 
     fun export() {
-        val events = mutableState.value.events
         viewModelScope.launch {
             val uri =
                 withContext(Dispatchers.IO) {
-                    store.export(events)
+                    store.export()
                 }
             mutableState.value =
                 mutableState.value.copy(
