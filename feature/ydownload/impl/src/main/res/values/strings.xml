@@ -116,4 +116,16 @@
     <string name="ydownload_property_task_speed_limit">Task speed limit</string>
     <string name="ydownload_property_custom_headers">Custom HTTP headers</string>
     <string name="ydownload_property_scheduled">Scheduled time</string>
+
+    <string name="ydownload_patch_title">System DownloadManager enhancement</string>
+    <string name="ydownload_patch_enabled">Enable DownloadManager patch</string>
+    <string name="ydownload_patch_enabled_desc">Enhance system DownloadManager requests without replacing DownloadProvider; failures keep the caller's original request.</string>
+    <string name="ydownload_patch_metered">Allow metered networks</string>
+    <string name="ydownload_patch_roaming">Allow roaming</string>
+    <string name="ydownload_patch_charging">Require charging</string>
+    <string name="ydownload_patch_idle">Require device idle</string>
+    <string name="ydownload_patch_completion_notification">Force completion notification</string>
+    <string name="ydownload_patch_scope">Configure recommended Hook scope</string>
+    <string name="ydownload_patch_scope_desc">%1$d DownloadManager caller apps detected</string>
+    <string name="ydownload_patch_sync">Sync DownloadManager patch</string>
 </resources>
