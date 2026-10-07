@@ -4,6 +4,9 @@ kotlin = "2.1.20"
 compileSdk = "37"
 targetSdk = "37"
 minSdk = "31"
+ndk = "27.2.12479018"
+cmake = "3.22.1"
+bytehook = "1.1.2"
 
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
@@ -69,6 +72,7 @@ androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref
 junit = { module = "junit:junit", version.ref = "junit" }
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposedApi" }
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposedService" }
+bytehook = { module = "com.bytedance:bytehook", version.ref = "bytehook" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

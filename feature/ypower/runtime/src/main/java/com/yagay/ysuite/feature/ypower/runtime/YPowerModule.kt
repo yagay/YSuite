@@ -60,7 +60,15 @@ class YPowerModule : XposedModule() {
     @Synchronized
     override fun onHotReloading(
         param: XposedModuleInterface.HotReloadingParam,
-    ): Boolean = true
+    ): Boolean {
+        runCatching {
+            YPowerNativeTraceBridge.disable()
+        }
+        runCatching {
+            YPowerNativeSocketTraceBridge.disable()
+        }
+        return true
+    }
 
     override fun onHotReloaded(
         param: XposedModuleInterface.HotReloadedParam,
@@ -466,6 +474,22 @@ class YPowerModule : XposedModule() {
     }
 
     private fun installNativeHooks() {
+        runCatching {
+            YPowerNativeTraceBridge.enable(
+                packageName,
+                profile.diagnosticSessionId,
+            )
+        }.onFailure {
+            Log.w(TAG, "native tracer unavailable", it)
+        }
+        runCatching {
+            YPowerNativeSocketTraceBridge.enable(
+                packageName,
+                profile.diagnosticSessionId,
+            )
+        }.onFailure {
+            Log.w(TAG, "native socket tracer unavailable", it)
+        }
         System::class.java.declaredMethods
             .filter {
                 it.name ==
@@ -621,7 +645,15 @@ class YPowerModule : XposedModule() {
             }
         Log.i(
             TAG,
-            "{\"package\":\"" +
+            "{\"ts\":" +
+                System.currentTimeMillis() +
+                ",\"sessionId\":\"" +
+                escape(profile.diagnosticSessionId) +
+                "\",\"pid\":" +
+                android.os.Process.myPid() +
+                ",\"tid\":" +
+                android.os.Process.myTid() +
+                ",\"package\":\"" +
                 escape(packageName) +
                 "\",\"process\":\"" +
                 escape(processName) +
@@ -675,6 +707,7 @@ class YPowerModule : XposedModule() {
         val traceNative: Boolean = false,
         val traceSyscalls: Boolean = false,
         val traceStacks: Boolean = true,
+        val diagnosticSessionId: String = "",
     ) {
         companion object {
             fun from(raw: String?): Profile {
@@ -753,6 +786,11 @@ class YPowerModule : XposedModule() {
                             value.optBoolean(
                                 "traceStacks",
                                 true,
+                            ),
+                        diagnosticSessionId =
+                            value.optString(
+                                "diagnosticSessionId",
+                                "",
                             ),
                     )
                 }.getOrDefault(Profile())

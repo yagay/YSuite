@@ -29,6 +29,7 @@ data class YPowerProfile(
     val traceNative: Boolean = false,
     val traceSyscalls: Boolean = false,
     val traceStacks: Boolean = true,
+    val diagnosticSessionId: String = "",
 ) {
     val anyHookFeature: Boolean
         get() =

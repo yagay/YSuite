@@ -142,6 +142,11 @@ internal class YPowerRepository(
                     ),
                 traceStacks =
                     value.optBoolean("traceStacks", true),
+                diagnosticSessionId =
+                    value.optString(
+                        "diagnosticSessionId",
+                        "",
+                    ),
             )
         }.getOrDefault(YPowerProfile(packageName))
     }
@@ -195,6 +200,10 @@ internal class YPowerRepository(
                 put("traceNative", profile.traceNative)
                 put("traceSyscalls", profile.traceSyscalls)
                 put("traceStacks", profile.traceStacks)
+                put(
+                    "diagnosticSessionId",
+                    profile.diagnosticSessionId,
+                )
             }.toString()
         check(
             prefs.edit()
@@ -526,6 +535,10 @@ internal class YPowerRepository(
             put("traceNative", profile.traceNative)
             put("traceSyscalls", profile.traceSyscalls)
             put("traceStacks", profile.traceStacks)
+            put(
+                "diagnosticSessionId",
+                profile.diagnosticSessionId,
+            )
         }.toString()
 
     private fun dangerousPermissions(
