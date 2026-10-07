@@ -11,5 +11,6 @@ android {
     }
 }
 dependencies {
+    implementation(libs.androidx.core.ktx)
     compileOnly(libs.libxposed.api)
 }

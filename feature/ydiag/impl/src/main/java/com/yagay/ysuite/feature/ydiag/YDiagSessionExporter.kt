@@ -19,11 +19,11 @@ internal object YDiagSessionExporter {
         events: List<YDiagEvent>,
     ): String {
         val prefs = context.getSharedPreferences(
-            YDiagMonitorService.PREFS,
+            com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.PREFS,
             Context.MODE_PRIVATE,
         )
         val dir = prefs.getString(
-            YDiagMonitorService.KEY_CURRENT,
+            com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.KEY_CURRENT,
             null,
         )?.let(::File)?.takeIf { it.isDirectory }
         val createdAt = System.currentTimeMillis()

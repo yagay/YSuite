@@ -57,13 +57,13 @@ internal class YDiagRepository(
     fun liveSessionActive(): Boolean {
         val path =
             context.getSharedPreferences(
-                YDiagMonitorService.PREFS,
+                com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.PREFS,
                 Context.MODE_PRIVATE,
             ).getString(
-                YDiagMonitorService.KEY_CURRENT,
+                com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.KEY_CURRENT,
                 null,
             )
-        return path?.let(::java.io.File)?.isDirectory == true
+        return path?.let { java.io.File(it).isDirectory } == true
     }
 
     fun startLiveSession(
@@ -74,15 +74,15 @@ internal class YDiagRepository(
             context,
             android.content.Intent(
                 context,
-                YDiagMonitorService::class.java,
+                com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService::class.java,
             ).apply {
-                action = YDiagMonitorService.ACTION_START
+                action = com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.ACTION_START
                 putExtra(
-                    YDiagMonitorService.EXTRA_PACKAGE,
+                    com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.EXTRA_PACKAGE,
                     packageName,
                 )
                 putStringArrayListExtra(
-                    YDiagMonitorService.EXTRA_OPTIONS,
+                    com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.EXTRA_OPTIONS,
                     ArrayList(optionIds),
                 )
             },
@@ -95,9 +95,9 @@ internal class YDiagRepository(
                 context,
                 YDiagMonitorService::class.java,
             ).apply {
-                action = YDiagMonitorService.ACTION_MARK
+                action = com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.ACTION_MARK
                 putExtra(
-                    YDiagMonitorService.EXTRA_NOTE,
+                    com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.EXTRA_NOTE,
                     note,
                 )
             },
@@ -110,7 +110,7 @@ internal class YDiagRepository(
                 context,
                 YDiagMonitorService::class.java,
             ).apply {
-                action = YDiagMonitorService.ACTION_STOP
+                action = com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.ACTION_STOP
             },
         )
     }

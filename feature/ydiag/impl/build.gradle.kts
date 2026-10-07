@@ -17,6 +17,7 @@ android {
 
 dependencies {
     implementation(project(":feature:ydiag:api"))
+    implementation(project(":feature:ydiag:runtime"))
     implementation(project(":core:common"))
     implementation(project(":core:ui"))
     implementation(project(":core:designsystem"))
