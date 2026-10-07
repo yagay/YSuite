@@ -235,7 +235,7 @@ internal class YTaskNetworkSampler(
                 }
                 val p =
                     line.split(
-                        Regex("\s+"),
+                        Regex("\\s+"),
                     )
                 if (p.size < 5) {
                     return@forEach
@@ -284,7 +284,7 @@ internal class YTaskNetworkSampler(
                 val p =
                     line.trim()
                         .split(
-                            Regex("\s+"),
+                            Regex("\\s+"),
                         )
                 if (
                     p.size < 8 ||

@@ -27,31 +27,31 @@ internal class YTaskProcessSampler(
                 """
                 HZ=$(getconf CLK_TCK 2>/dev/null || echo 100)
                 IFS=' ' read -r UP _ < /proc/uptime 2>/dev/null || UP=0
-                echo "__META__|$HZ|$UP"
+                echo "__META__|@HZ|@UP"
                 for p in /proc/[0-9]*; do
-                  pid=$(basename "$p")
-                  IFS= read -r statline < "$p/stat" 2>/dev/null || continue
+                  pid=$(basename "@p")
+                  IFS= read -r statline < "@p/stat" 2>/dev/null || continue
                   uid=-1
                   rss=0
                   vmsize=0
                   threads=0
                   while IFS= read -r line; do
-                    case "$line" in
-                      Uid:*) set -- $line; uid=$2 ;;
-                      VmRSS:*) set -- $line; rss=$2 ;;
-                      VmSize:*) set -- $line; vmsize=$2 ;;
-                      Threads:*) set -- $line; threads=$2 ;;
+                    case "@line" in
+                      Uid:*) set -- @line; uid=@2 ;;
+                      VmRSS:*) set -- @line; rss=@2 ;;
+                      VmSize:*) set -- @line; vmsize=@2 ;;
+                      Threads:*) set -- @line; threads=@2 ;;
                     esac
-                  done < "$p/status" 2>/dev/null
+                  done < "@p/status" 2>/dev/null
                   oom=0
-                  IFS= read -r oom < "$p/oom_score_adj" 2>/dev/null || oom=0
+                  IFS= read -r oom < "@p/oom_score_adj" 2>/dev/null || oom=0
                   cmd=''
-                  IFS= read -r -d '' cmd < "$p/cmdline" 2>/dev/null || true
-                  [ -n "$cmd" ] || cmd='-'
-                  printf '__PROC__|%s|%s|%s|%s|%s|%s|%s\n' "$pid" "$uid" "$rss" "$vmsize" "$threads" "$oom" "$cmd"
-                  printf '__PSTAT__|%s\n' "$statline"
+                  IFS= read -r -d '' cmd < "@p/cmdline" 2>/dev/null || true
+                  [ -n "@cmd" ] || cmd='-'
+                  printf '__PROC__|%s|%s|%s|%s|%s|%s|%s\n' "@pid" "@uid" "@rss" "@vmsize" "@threads" "@oom" "@cmd"
+                  printf '__PSTAT__|%s\n' "@statline"
                 done
-                """.trimIndent(),
+                """.trimIndent().replace('@', '$'),
                 12_000L,
             )
         return parse(
@@ -70,14 +70,14 @@ internal class YTaskProcessSampler(
             runCatching {
                 shell.text(
                     """
-                    p=/proc/${PID}
-                    [ -d "$p" ] || exit 1
-                    exe=$(readlink "$p/exe" 2>/dev/null | tr '\t\r\n|' '    ')
-                    cgroup=$(tr '\n\t\r|' '    ' < "$p/cgroup" 2>/dev/null)
-                    printf '%s|%s\n' "$exe" "$cgroup"
-                    """.trimIndent()
+                    p=/proc/@PID@
+                    [ -d "@p" ] || exit 1
+                    exe=$(readlink "@p/exe" 2>/dev/null | tr '\t\r\n|' '    ')
+                    cgroup=$(tr '\n\t\r|' '    ' < "@p/cgroup" 2>/dev/null)
+                    printf '%s|%s\n' "@exe" "@cgroup"
+                    """.trimIndent().replace('@', '$')
                         .replace(
-                            "${PID}",
+                            "@PID@",
                             process.pid
                                 .toString(),
                         ),
@@ -386,7 +386,7 @@ internal class YTaskProcessSampler(
                 close + 1,
             ).trim()
                 .split(
-                    Regex("\s+"),
+                    Regex("\\s+"),
                 )
         if (fields.size < 22) {
             return null
