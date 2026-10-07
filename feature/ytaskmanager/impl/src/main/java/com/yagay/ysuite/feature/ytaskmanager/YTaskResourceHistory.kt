@@ -1,20 +1,16 @@
 package com.yagay.ysuite.feature.ytaskmanager
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.component.YSuiteListItem
+import com.yagay.ysuite.designsystem.component.YSuiteSparkline
 import com.yagay.ysuite.designsystem.component.YSuiteSection
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
@@ -98,11 +94,6 @@ private fun HistoryRow(
     title: String,
     values: List<Float>,
 ) {
-    val lineColor =
-        Color(0xFF6F8BCB)
-    val guideColor =
-        Color(0x336F8BCB)
-
     Column(
         modifier =
             Modifier.fillMaxWidth(),
@@ -110,82 +101,11 @@ private fun HistoryRow(
         YSuiteListItem(
             title = title,
         )
-        Canvas(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-        ) {
-            drawLine(
-                color = guideColor,
-                start =
-                    Offset(
-                        0f,
-                        size.height / 2f,
-                    ),
-                end =
-                    Offset(
-                        size.width,
-                        size.height / 2f,
-                    ),
-                strokeWidth = 1f,
-            )
-            if (values.size < 2) {
-                return@Canvas
-            }
-            val maxIndex =
-                (values.size - 1)
-                    .coerceAtLeast(1)
-            var previous =
-                point(
-                    index = 0,
-                    maxIndex = maxIndex,
-                    value = values.first(),
-                )
-            values.drop(1)
-                .forEachIndexed {
-                    index,
-                    value,
-                    ->
-                    val next =
-                        point(
-                            index = index + 1,
-                            maxIndex = maxIndex,
-                            value = value,
-                        )
-                    drawLine(
-                        color = lineColor,
-                        start = previous,
-                        end = next,
-                        strokeWidth = 3f,
-                    )
-                    previous = next
-                }
-        }
+        YSuiteSparkline(
+            values = values,
+        )
     }
 }
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope
-    .point(
-        index: Int,
-        maxIndex: Int,
-        value: Float,
-    ): Offset =
-    Offset(
-        x =
-            size.width *
-                index.toFloat() /
-                maxIndex.toFloat(),
-        y =
-            size.height *
-                (
-                    1f -
-                        value.coerceIn(
-                            0f,
-                            100f,
-                        ) / 100f
-                    ),
-    )
 
 private fun MutableList<Float>.append(
     value: Float,
