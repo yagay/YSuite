@@ -22,6 +22,7 @@ dependencies {
     implementation(project(":core:productui"))
     implementation(project(":core:presentation"))
     implementation(project(":core:logging:api"))
+    implementation(project(":core:platform:api"))
     implementation(project(":core:permissions:api"))
 
     implementation(libs.androidx.core.ktx)
@@ -33,7 +34,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
     compileOnly(libs.libxposed.api)
-    implementation(libs.libxposed.service)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
