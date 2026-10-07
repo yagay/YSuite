@@ -5,16 +5,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yagay.ysuite.designsystem.component.YSuiteListItem
 import com.yagay.ysuite.designsystem.component.YSuiteSection
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
@@ -99,20 +99,16 @@ private fun HistoryRow(
     values: List<Float>,
 ) {
     val lineColor =
-        MaterialTheme.colorScheme.primary
+        Color(0xFF6F8BCB)
     val guideColor =
-        MaterialTheme.colorScheme
-            .outlineVariant
+        Color(0x336F8BCB)
 
     Column(
         modifier =
             Modifier.fillMaxWidth(),
     ) {
-        Text(
-            text = title,
-            style =
-                MaterialTheme.typography
-                    .labelLarge,
+        YSuiteListItem(
+            title = title,
         )
         Canvas(
             modifier =
