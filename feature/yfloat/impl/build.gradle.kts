@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":core:productui"))
     implementation(project(":core:presentation"))
     implementation(project(":core:platform:api"))
+    implementation(project(":core:logging:api"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

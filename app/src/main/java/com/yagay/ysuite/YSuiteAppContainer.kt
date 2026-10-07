@@ -300,7 +300,9 @@ class YSuiteAppContainer(
                     environment =
                         YFloatEnvironmentFactory.create(
                             context = context,
+                            rootGateway = platform.root,
                             hookGateway = platform.hooks,
+                            logger = logger,
                         ),
                 ),
                 SettingsFeatureUiRegistration(
