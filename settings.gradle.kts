@@ -57,5 +57,8 @@ include(":feature:ydiag:api")
 include(":feature:ydiag:impl")
 include(":feature:ypower:api")
 include(":feature:ypower:impl")
+include(":feature:ynotify:api")
+include(":feature:ynotify:runtime")
+include(":feature:ynotify:impl")
 
 include(":host:standalone")

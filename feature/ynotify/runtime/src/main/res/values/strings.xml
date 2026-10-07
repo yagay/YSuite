@@ -1,0 +1,4 @@
+<resources>
+    <string name="ynotify_runtime_listener_label">YNotify notification capture</string>
+    <string name="ynotify_runtime_accessibility_label">YNotify UI event capture</string>
+</resources>

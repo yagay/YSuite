@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":feature:yparam:impl"))
     implementation(project(":feature:ydiag:impl"))
     implementation(project(":feature:ypower:impl"))
+    implementation(project(":feature:ynotify:impl"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

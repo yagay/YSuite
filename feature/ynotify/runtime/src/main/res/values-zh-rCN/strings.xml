@@ -1,0 +1,4 @@
+<resources>
+    <string name="ynotify_runtime_listener_label">YNotify 通知采集</string>
+    <string name="ynotify_runtime_accessibility_label">YNotify 界面事件采集</string>
+</resources>

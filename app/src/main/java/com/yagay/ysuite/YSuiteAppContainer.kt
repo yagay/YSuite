@@ -19,6 +19,7 @@ import com.yagay.ysuite.feature.ydiag.YDiagEnvironmentFactory
 import com.yagay.ysuite.feature.ydiag.YDiagFeatureUiRegistration
 import com.yagay.ysuite.feature.ypower.YPowerEnvironmentFactory
 import com.yagay.ysuite.feature.ypower.YPowerFeatureUiRegistration
+import com.yagay.ysuite.feature.ynotify.YNotifyFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
 import com.yagay.ysuite.logging.android.AndroidLogcatCollector
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
@@ -281,6 +282,7 @@ class YSuiteAppContainer(
                             logger = logger,
                         ),
                 ),
+                YNotifyFeatureUiRegistration,
                 SettingsFeatureUiRegistration(
                     settings,
                 ),
