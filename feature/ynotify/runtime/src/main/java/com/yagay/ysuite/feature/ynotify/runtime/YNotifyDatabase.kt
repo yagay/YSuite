@@ -11,6 +11,13 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import org.json.JSONObject
 
+data class YNotifyAppAggregate(
+    val packageName: String,
+    val appLabel: String,
+    val count: Int,
+    val latestAt: Long,
+)
+
 internal class YNotifyDatabase(
     context: Context,
 ) : SQLiteOpenHelper(
@@ -147,9 +154,17 @@ internal class YNotifyDatabase(
 
     fun query(
         limit: Int = 2_000,
+    ): List<YNotifyEvent> =
+        queryPage(
+            limit = limit.coerceIn(1, 10_000),
+            offset = 0,
+        )
+
+    private fun queryPage(
+        limit: Int,
+        offset: Int,
     ): List<YNotifyEvent> {
         val result = mutableListOf<YNotifyEvent>()
-        val details = queryDetails()
         readableDatabase.query(
             "events",
             null,
@@ -158,7 +173,9 @@ internal class YNotifyDatabase(
             null,
             null,
             "posted_at DESC, id DESC",
-            limit.coerceIn(1, 10_000).toString(),
+            offset.coerceAtLeast(0).toString() +
+                "," +
+                limit.coerceAtLeast(1).toString(),
         ).use { cursor ->
             val idIndex = cursor.getColumnIndexOrThrow("id")
             val eventKeyIndex = cursor.getColumnIndexOrThrow("event_key")
@@ -242,12 +259,103 @@ internal class YNotifyDatabase(
                     )
             }
         }
+        val details =
+            queryDetails(
+                result.map {
+                    it.eventKey
+                },
+            )
         return result.map { event ->
             applyDetails(
                 event,
                 details[event.eventKey],
             )
         }
+    }
+
+    fun search(
+        query: String,
+        limit: Int = 500,
+    ): List<YNotifyEvent> {
+        val needle =
+            query.trim()
+        if (needle.isBlank()) {
+            return query(
+                limit.coerceIn(1, 10_000),
+            )
+        }
+
+        val result =
+            mutableListOf<YNotifyEvent>()
+        var offset = 0
+        while (result.size < limit) {
+            val page =
+                queryPage(
+                    limit = SEARCH_PAGE_SIZE,
+                    offset = offset,
+                )
+            if (page.isEmpty()) break
+            page.asSequence()
+                .filter {
+                    it.matchesSearch(
+                        needle,
+                    )
+                }
+                .take(
+                    limit - result.size,
+                )
+                .forEach(result::add)
+            offset += page.size
+            if (
+                page.size <
+                SEARCH_PAGE_SIZE
+            ) {
+                break
+            }
+        }
+        return result
+    }
+
+    fun appAggregates():
+        List<YNotifyAppAggregate> {
+        val result =
+            mutableListOf<
+                YNotifyAppAggregate
+                >()
+        readableDatabase.rawQuery(
+            """
+            SELECT package_name,
+                   MAX(app_label),
+                   COUNT(*),
+                   MAX(updated_at)
+            FROM events
+            GROUP BY package_name
+            ORDER BY MAX(updated_at) DESC
+            """.trimIndent(),
+            null,
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val packageName =
+                    cursor.getString(0)
+                        .orEmpty()
+                result +=
+                    YNotifyAppAggregate(
+                        packageName =
+                            packageName,
+                        appLabel =
+                            cursor.getString(1)
+                                ?.takeIf {
+                                    it.isNotBlank()
+                                }
+                                ?: packageName,
+                        count =
+                            cursor.getInt(2),
+                        latestAt =
+                            cursor.getLong(3),
+                    )
+            }
+        }
+        return result
     }
 
     fun count(): Int =
@@ -428,39 +536,56 @@ internal class YNotifyDatabase(
         }
     }
 
-    private fun queryDetails():
-        Map<String, String> {
+    private fun queryDetails(
+        eventKeys: Collection<String>,
+    ): Map<String, String> {
+        if (eventKeys.isEmpty()) {
+            return emptyMap()
+        }
         val result =
             mutableMapOf<String, String>()
-        readableDatabase.query(
-            "event_details",
-            arrayOf(
-                "event_key",
-                "detail_blob",
-            ),
-            null,
-            null,
-            null,
-            null,
-            null,
-        ).use { cursor ->
-            while (cursor.moveToNext()) {
-                val key =
-                    cursor.getString(0)
-                val value =
-                    crypto.decrypt(
-                        cursor.getStringOrNull(
-                            1,
-                        ),
-                    )
-                if (
-                    !key.isNullOrBlank() &&
-                    !value.isNullOrBlank()
-                ) {
-                    result[key] = value
+        eventKeys.distinct()
+            .chunked(400)
+            .forEach { keys ->
+                val placeholders =
+                    List(keys.size) {
+                        "?"
+                    }.joinToString(",")
+                readableDatabase.query(
+                    "event_details",
+                    arrayOf(
+                        "event_key",
+                        "detail_blob",
+                    ),
+                    "event_key IN (" +
+                        placeholders +
+                        ")",
+                    keys.toTypedArray(),
+                    null,
+                    null,
+                    null,
+                ).use { cursor ->
+                    while (
+                        cursor.moveToNext()
+                    ) {
+                        val key =
+                            cursor.getString(0)
+                        val value =
+                            crypto.decrypt(
+                                cursor
+                                    .getStringOrNull(
+                                        1,
+                                    ),
+                            )
+                        if (
+                            !key.isNullOrBlank() &&
+                            !value.isNullOrBlank()
+                        ) {
+                            result[key] = value
+                        }
+                    }
                 }
             }
-        }
         return result
     }
 
@@ -683,9 +808,35 @@ internal class YNotifyDatabase(
             null
         }
 
+    private fun YNotifyEvent.matchesSearch(
+        needle: String,
+    ): Boolean =
+        sequenceOf(
+            appLabel,
+            packageName,
+            title,
+            text,
+            fullText,
+            subText,
+            summaryText,
+            channelName,
+            channelDescription,
+            messagesJson,
+            actionsJson,
+            rawExtras,
+            className,
+        ).filterNotNull()
+            .any {
+                it.contains(
+                    needle,
+                    ignoreCase = true,
+                )
+            }
+
     companion object {
         const val CLASSIFICATION_VERSION = 4
         private const val DATABASE_VERSION = 2
+        private const val SEARCH_PAGE_SIZE = 500
         val invalidations = MutableSharedFlow<Unit>(
             extraBufferCapacity = 32,
         )
