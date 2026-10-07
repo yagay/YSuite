@@ -9,6 +9,7 @@ import com.yagay.ysuite.feature.ynotify.api.YNotifyEventType
 import com.yagay.ysuite.feature.ynotify.api.YNotifyNotificationKind
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import org.json.JSONObject
 
 internal class YNotifyDatabase(
     context: Context,
@@ -63,6 +64,7 @@ internal class YNotifyDatabase(
         db.execSQL(
             "CREATE INDEX idx_ynotify_notification_key ON events(notification_key)",
         )
+        createDetailsTable(db)
     }
 
     override fun onUpgrade(
@@ -70,8 +72,9 @@ internal class YNotifyDatabase(
         oldVersion: Int,
         newVersion: Int,
     ) {
-        db.execSQL("DROP TABLE IF EXISTS events")
-        onCreate(db)
+        if (oldVersion < 2) {
+            createDetailsTable(db)
+        }
     }
 
     fun upsert(event: YNotifyEvent) {
@@ -84,6 +87,20 @@ internal class YNotifyDatabase(
             "events",
             null,
             values,
+            SQLiteDatabase.CONFLICT_REPLACE,
+        )
+        writableDatabase.insertWithOnConflict(
+            "event_details",
+            null,
+            ContentValues().apply {
+                put("event_key", event.eventKey)
+                put(
+                    "detail_blob",
+                    crypto.encrypt(
+                        encodeDetails(event),
+                    ),
+                )
+            },
             SQLiteDatabase.CONFLICT_REPLACE,
         )
         invalidations.tryEmit(Unit)
@@ -132,6 +149,7 @@ internal class YNotifyDatabase(
         limit: Int = 2_000,
     ): List<YNotifyEvent> {
         val result = mutableListOf<YNotifyEvent>()
+        val details = queryDetails()
         readableDatabase.query(
             "events",
             null,
@@ -224,7 +242,12 @@ internal class YNotifyDatabase(
                     )
             }
         }
-        return result
+        return result.map { event ->
+            applyDetails(
+                event,
+                details[event.eventKey],
+            )
+        }
     }
 
     fun count(): Int =
@@ -243,11 +266,33 @@ internal class YNotifyDatabase(
             "posted_at < ?",
             arrayOf(cutoff.toString()),
         )
-        if (removed > 0) invalidations.tryEmit(Unit)
+        if (removed > 0) {
+            writableDatabase.execSQL(
+                "DELETE FROM event_details " +
+                    "WHERE event_key NOT IN " +
+                    "(SELECT event_key FROM events)",
+            )
+            invalidations.tryEmit(Unit)
+        }
     }
 
     fun clear() {
-        writableDatabase.delete("events", null, null)
+        writableDatabase.beginTransaction()
+        try {
+            writableDatabase.delete(
+                "event_details",
+                null,
+                null,
+            )
+            writableDatabase.delete(
+                "events",
+                null,
+                null,
+            )
+            writableDatabase.setTransactionSuccessful()
+        } finally {
+            writableDatabase.endTransaction()
+        }
         invalidations.tryEmit(Unit)
     }
 
@@ -383,12 +428,280 @@ internal class YNotifyDatabase(
         }
     }
 
+    private fun queryDetails():
+        Map<String, String> {
+        val result =
+            mutableMapOf<String, String>()
+        readableDatabase.query(
+            "event_details",
+            arrayOf(
+                "event_key",
+                "detail_blob",
+            ),
+            null,
+            null,
+            null,
+            null,
+            null,
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val key =
+                    cursor.getString(0)
+                val value =
+                    crypto.decrypt(
+                        cursor.getStringOrNull(
+                            1,
+                        ),
+                    )
+                if (
+                    !key.isNullOrBlank() &&
+                    !value.isNullOrBlank()
+                ) {
+                    result[key] = value
+                }
+            }
+        }
+        return result
+    }
+
+    private fun encodeDetails(
+        event: YNotifyEvent,
+    ): String =
+        JSONObject().apply {
+            put("subText", event.subText)
+            put("summaryText", event.summaryText)
+            put("rawExtras", event.rawExtras)
+            put("messagesJson", event.messagesJson)
+            put("actionsJson", event.actionsJson)
+            put(
+                "notificationId",
+                event.notificationId,
+            )
+            put(
+                "notificationTag",
+                event.notificationTag,
+            )
+            put("channelId", event.channelId)
+            put("channelName", event.channelName)
+            put(
+                "channelDescription",
+                event.channelDescription,
+            )
+            put(
+                "channelImportance",
+                event.channelImportance,
+            )
+            put("groupKey", event.groupKey)
+            put(
+                "groupSummary",
+                event.groupSummary,
+            )
+            put("category", event.category)
+            put("template", event.template)
+            put("importance", event.importance)
+            put(
+                "conversation",
+                event.conversation,
+            )
+            put(
+                "rankingCanBubble",
+                event.rankingCanBubble,
+            )
+            put(
+                "rankingAmbient",
+                event.rankingAmbient,
+            )
+            put(
+                "rankingSuspended",
+                event.rankingSuspended,
+            )
+            put("flags", event.flags)
+            put("clearable", event.clearable)
+            put("bubble", event.bubble)
+            put(
+                "fullScreen",
+                event.fullScreen,
+            )
+            put(
+                "payloadSilent",
+                event.payloadSilent,
+            )
+            put("silent", event.silent)
+            put(
+                "removalReason",
+                event.removalReason,
+            )
+        }.toString()
+
+    private fun applyDetails(
+        event: YNotifyEvent,
+        raw: String?,
+    ): YNotifyEvent {
+        if (raw.isNullOrBlank()) {
+            return event
+        }
+        return runCatching {
+            val value = JSONObject(raw)
+            event.copy(
+                subText =
+                    value.optStringOrNull(
+                        "subText",
+                    ),
+                summaryText =
+                    value.optStringOrNull(
+                        "summaryText",
+                    ),
+                rawExtras =
+                    value.optStringOrNull(
+                        "rawExtras",
+                    ),
+                messagesJson =
+                    value.optStringOrNull(
+                        "messagesJson",
+                    ),
+                actionsJson =
+                    value.optStringOrNull(
+                        "actionsJson",
+                    ),
+                notificationId =
+                    value.optInt(
+                        "notificationId",
+                        0,
+                    ),
+                notificationTag =
+                    value.optStringOrNull(
+                        "notificationTag",
+                    ),
+                channelId =
+                    value.optStringOrNull(
+                        "channelId",
+                    ),
+                channelName =
+                    value.optStringOrNull(
+                        "channelName",
+                    ),
+                channelDescription =
+                    value.optStringOrNull(
+                        "channelDescription",
+                    ),
+                channelImportance =
+                    value.optInt(
+                        "channelImportance",
+                        0,
+                    ),
+                groupKey =
+                    value.optStringOrNull(
+                        "groupKey",
+                    ),
+                groupSummary =
+                    value.optBoolean(
+                        "groupSummary",
+                        false,
+                    ),
+                category =
+                    value.optStringOrNull(
+                        "category",
+                    ),
+                template =
+                    value.optStringOrNull(
+                        "template",
+                    ),
+                importance =
+                    value.optInt(
+                        "importance",
+                        0,
+                    ),
+                conversation =
+                    value.optBoolean(
+                        "conversation",
+                        false,
+                    ),
+                rankingCanBubble =
+                    value.optBoolean(
+                        "rankingCanBubble",
+                        false,
+                    ),
+                rankingAmbient =
+                    value.optBoolean(
+                        "rankingAmbient",
+                        false,
+                    ),
+                rankingSuspended =
+                    value.optBoolean(
+                        "rankingSuspended",
+                        false,
+                    ),
+                flags =
+                    value.optInt(
+                        "flags",
+                        0,
+                    ),
+                clearable =
+                    value.optBoolean(
+                        "clearable",
+                        true,
+                    ),
+                bubble =
+                    value.optBoolean(
+                        "bubble",
+                        false,
+                    ),
+                fullScreen =
+                    value.optBoolean(
+                        "fullScreen",
+                        false,
+                    ),
+                payloadSilent =
+                    value.optBoolean(
+                        "payloadSilent",
+                        false,
+                    ),
+                silent =
+                    value.optBoolean(
+                        "silent",
+                        false,
+                    ),
+                removalReason =
+                    value.optInt(
+                        "removalReason",
+                        0,
+                    ),
+            )
+        }.getOrDefault(event)
+    }
+
+    private fun JSONObject.optStringOrNull(
+        key: String,
+    ): String? =
+        if (
+            has(key) &&
+            !isNull(key)
+        ) {
+            optString(key)
+                .takeIf(String::isNotBlank)
+        } else {
+            null
+        }
+
     companion object {
         const val CLASSIFICATION_VERSION = 4
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
         val invalidations = MutableSharedFlow<Unit>(
             extraBufferCapacity = 32,
         )
+
+        private fun createDetailsTable(
+            db: SQLiteDatabase,
+        ) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS event_details (
+                    event_key TEXT PRIMARY KEY,
+                    detail_blob TEXT
+                )
+                """.trimIndent(),
+            )
+        }
 
         fun changes(): SharedFlow<Unit> = invalidations
 
