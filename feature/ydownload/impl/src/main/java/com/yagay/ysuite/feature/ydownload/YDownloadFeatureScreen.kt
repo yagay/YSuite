@@ -64,6 +64,9 @@ fun YDownloadFeatureScreen(
         YSuiteFeatureBackHandler(onBack = model::backToMain)
         YDownloadSettingsScreen(
             settings = state.settings,
+            systemPatch = state.systemPatch,
+            systemPatchScopeCount =
+                model.systemPatchScopeCount(),
             onBack = model::backToMain,
             onDefaultTreeUri =
                 model::setDefaultTreeUri,
@@ -81,6 +84,22 @@ fun YDownloadFeatureScreen(
                 model::setNotifications,
             onUserAgent =
                 model::setDefaultUserAgent,
+            onSystemPatchEnabled =
+                model::setSystemPatchEnabled,
+            onSystemPatchAllowMetered =
+                model::setSystemPatchAllowMetered,
+            onSystemPatchAllowRoaming =
+                model::setSystemPatchAllowRoaming,
+            onSystemPatchRequireCharging =
+                model::setSystemPatchRequireCharging,
+            onSystemPatchRequireIdle =
+                model::setSystemPatchRequireIdle,
+            onSystemPatchCompletionNotification =
+                model::setSystemPatchCompletionNotification,
+            onSystemPatchScope =
+                model::requestSystemPatchScope,
+            onSystemPatchSync =
+                model::syncSystemPatch,
         )
         return
     }
