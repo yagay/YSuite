@@ -298,4 +298,24 @@
     <string name="yfiles_adv_cloud_google_drive">Google Drive</string>
     <string name="yfiles_adv_cloud_dropbox">Dropbox</string>
     <string name="yfiles_adv_cloud_onedrive">OneDrive</string>
+
+    <string name="yfiles_patch_title">系统文件选择器增强</string>
+    <string name="yfiles_patch_enabled">启用系统选择器补丁</string>
+    <string name="yfiles_patch_enabled_subtitle">增强系统 SAF/DocumentsUI，不替换系统选择器；补丁失败时保持系统原始行为。</string>
+    <string name="yfiles_patch_local_only">优先仅显示本地来源</string>
+    <string name="yfiles_patch_allow_multiple">允许多选</string>
+    <string name="yfiles_patch_default_sort">DocumentsUI 默认排序</string>
+    <string name="yfiles_patch_initial_uri">选择器初始位置</string>
+    <string name="yfiles_patch_initial_uri_label">文档 URI（留空使用系统默认）</string>
+    <string name="yfiles_patch_system_default">系统默认</string>
+    <string name="yfiles_patch_sort_system">系统默认</string>
+    <string name="yfiles_patch_sort_name">名称</string>
+    <string name="yfiles_patch_sort_date">日期</string>
+    <string name="yfiles_patch_sort_size">大小</string>
+    <string name="yfiles_patch_sort_type">文件类型</string>
+    <string name="yfiles_patch_scope">配置推荐 Hook 作用域</string>
+    <string name="yfiles_patch_scope_subtitle">检测到 %1$d 个选择器/调用应用</string>
+    <string name="yfiles_patch_sync">同步补丁配置</string>
+    <string name="yfiles_patch_scope_ready">系统选择器 Hook 作用域已更新</string>
+    <string name="yfiles_patch_synced">系统选择器补丁配置已同步</string>
 </resources>
