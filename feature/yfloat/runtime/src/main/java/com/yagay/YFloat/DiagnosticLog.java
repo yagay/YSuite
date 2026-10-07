@@ -33,8 +33,9 @@ public final class DiagnosticLog {
 
     public static void init(Context c) {
         if (c == null) return;
+        // Keep service/activity startup free of file-system work. Storage is opened by the
+        // dedicated IO executor when the first diagnostic line is actually written.
         app = c.getApplicationContext();
-        ensureStorage(app);
     }
 
     public static boolean enabled(Context c) {
