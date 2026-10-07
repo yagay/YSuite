@@ -32,6 +32,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
