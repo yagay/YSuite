@@ -539,6 +539,12 @@ private fun messageText(value: String): String =
         "saved" -> stringResource(R.string.yparam_saved)
         "saved_hook_reload_unavailable" ->
             stringResource(R.string.yparam_saved_hook_unavailable)
+        "reset" ->
+            stringResource(R.string.yparam_reset)
+        "reset_hook_write_failed" ->
+            stringResource(R.string.yparam_reset_hook_write_failed)
+        "reset_hook_reload_unavailable" ->
+            stringResource(R.string.yparam_reset_hook_unavailable)
         "validation_density" ->
             stringResource(R.string.yparam_validation_density)
         "validation_width" ->
