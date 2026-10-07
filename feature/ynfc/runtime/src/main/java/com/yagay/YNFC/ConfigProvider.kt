@@ -16,10 +16,7 @@ class ConfigProvider : ContentProvider() {
         device.getSharedPreferences("ynfc_config", 0)
     }
 
-    override fun onCreate(): Boolean {
-        prefs.edit().putInt(KEY_HOOK_BUILD, BuildConfig.HOOK_BUILD).apply()
-        return true
-    }
+    override fun onCreate(): Boolean = true
 
     override fun query(
         uri: Uri,
@@ -30,8 +27,19 @@ class ConfigProvider : ContentProvider() {
     ): Cursor {
         if (!trusted()) return MatrixCursor(arrayOf("key", "value"))
         return MatrixCursor(arrayOf("key", "value")).apply {
-            prefs.all.forEach { (key, value) ->
-                addRow(arrayOf(key, value?.toString().orEmpty()))
+            val values =
+                prefs.all.toMutableMap()
+            values.putIfAbsent(
+                KEY_HOOK_BUILD,
+                BuildConfig.HOOK_BUILD,
+            )
+            values.forEach { (key, value) ->
+                addRow(
+                    arrayOf(
+                        key,
+                        value?.toString().orEmpty(),
+                    ),
+                )
             }
         }
     }
