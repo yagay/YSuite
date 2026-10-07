@@ -5,8 +5,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
-import com.yagay.YNFC.BuildConfig;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -103,10 +101,7 @@ final class HookConfigStore {
     }
 
     private static Uri configUri() {
-        return Uri.parse(
-                "content://" +
-                        BuildConfig.CONFIG_AUTHORITY +
-                        "/settings");
+        return NfcInjectionModule.configUri();
     }
 
     private static String valueOrEmpty(String value) {
