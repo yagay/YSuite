@@ -174,7 +174,7 @@ internal class YMiniGuardRepository(
             " sessions=" + engine.activeSessions + "\n" +
             "generation=" + engine.generation +
             " hotReload=" + engine.hotReload +
-            " message=" + engine.reloadMessage + "\n\n" +
+            " reload=" + engine.reloadMessage + "\n\n" +
             body
     }
 }
