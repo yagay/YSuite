@@ -7,7 +7,6 @@ android {
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
         buildConfigField("int", "HOOK_BUILD", "40")
-        buildConfigField("String", "CONFIG_AUTHORITY", "\"com.yagay.ysuite.ynfc.config\"")
     }
     buildFeatures { buildConfig = true }
     compileOptions {
