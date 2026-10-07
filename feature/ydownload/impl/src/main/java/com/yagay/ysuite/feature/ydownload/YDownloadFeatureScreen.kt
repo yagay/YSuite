@@ -219,6 +219,22 @@ fun YDownloadFeatureScreen(
                     stringResource(
                         R.string.ydownload_settings,
                     ),
+                pauseAll =
+                    stringResource(
+                        R.string.ydownload_pause_all,
+                    ),
+                resumeAll =
+                    stringResource(
+                        R.string.ydownload_resume_all,
+                    ),
+                retryFailed =
+                    stringResource(
+                        R.string.ydownload_retry_failed,
+                    ),
+                clearFinished =
+                    stringResource(
+                        R.string.ydownload_clear_finished,
+                    ),
             ),
         fabLabels =
             QdmDownloadFabLabels(
@@ -239,6 +255,10 @@ fun YDownloadFeatureScreen(
         onSortDate = model::sortByDate,
         onSortName = model::sortByName,
         onClearCompleted = model::clearCompleted,
+        onPauseAll = model::pauseAll,
+        onResumeAll = model::resumeAll,
+        onRetryFailed = model::retryFailed,
+        onClearFinished = model::clearFinished,
         onPasteClipboard = {
             val clipboard =
                 context.getSystemService(
