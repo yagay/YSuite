@@ -250,6 +250,11 @@ class YFilesSystemPatchStore(
     }
 }
 
+private const val ERROR_HOOK_SERVICE_UNAVAILABLE =
+    "hook_service_unavailable"
+private const val ERROR_HOOK_CONFIG_WRITE_FAILED =
+    "hook_config_write_failed"
+
 private object YFilesPatchService :
     XposedServiceHelper.OnServiceListener {
     @Volatile
@@ -287,7 +292,7 @@ private object YFilesPatchService :
             service ?: return Outcome.Failure(
                 code = "hook_service_unavailable",
                 message =
-                    "LSPosed service is not connected",
+                    ERROR_HOOK_SERVICE_UNAVAILABLE,
                 retryable = true,
             )
         return runCatching {
@@ -308,7 +313,7 @@ private object YFilesPatchService :
                         code =
                             "hook_config_write_failed",
                         message =
-                            "Unable to write YFiles patch configuration",
+                            ERROR_HOOK_CONFIG_WRITE_FAILED,
                         retryable = true,
                     )
                 }
@@ -319,7 +324,7 @@ private object YFilesPatchService :
                         "hook_config_write_failed",
                     message =
                         it.message
-                            ?: "Unable to write YFiles patch configuration",
+                            ?: ERROR_HOOK_CONFIG_WRITE_FAILED,
                     cause = it,
                     retryable = true,
                 )
