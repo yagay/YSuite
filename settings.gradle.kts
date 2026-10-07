@@ -55,5 +55,7 @@ include(":feature:yparam:api")
 include(":feature:yparam:impl")
 include(":feature:ydiag:api")
 include(":feature:ydiag:impl")
+include(":feature:ypower:api")
+include(":feature:ypower:impl")
 
 include(":host:standalone")

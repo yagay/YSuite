@@ -17,6 +17,8 @@ import com.yagay.ysuite.feature.yparam.YParamEnvironmentFactory
 import com.yagay.ysuite.feature.yparam.YParamFeatureUiRegistration
 import com.yagay.ysuite.feature.ydiag.YDiagEnvironmentFactory
 import com.yagay.ysuite.feature.ydiag.YDiagFeatureUiRegistration
+import com.yagay.ysuite.feature.ypower.YPowerEnvironmentFactory
+import com.yagay.ysuite.feature.ypower.YPowerFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
 import com.yagay.ysuite.logging.android.AndroidLogcatCollector
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
@@ -264,6 +266,15 @@ class YSuiteAppContainer(
                 YDiagFeatureUiRegistration(
                     environment =
                         YDiagEnvironmentFactory.create(
+                            context = context,
+                            rootGateway = platform.root,
+                            hookGateway = platform.hooks,
+                            logger = logger,
+                        ),
+                ),
+                YPowerFeatureUiRegistration(
+                    environment =
+                        YPowerEnvironmentFactory.create(
                             context = context,
                             rootGateway = platform.root,
                             hookGateway = platform.hooks,
