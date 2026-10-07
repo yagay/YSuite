@@ -5,6 +5,8 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
 
+import com.yagay.ysuite.runtime.RuntimeOwnerGate;
+
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
@@ -24,13 +26,25 @@ public final class YDownloadModule extends XposedModule {
             "com.google.android.gms",
             "com.android.vending"
     );
+    private String moduleHostPackage = "";
     private final ConcurrentHashMap<String, Boolean> installed =
             new ConcurrentHashMap<>();
 
     @Override
     public void onModuleLoaded(ModuleLoadedParam param) {
         try {
-            log(Log.INFO, TAG, "Loaded in " + param.getProcessName());
+            if (getModuleApplicationInfo() != null
+                    && getModuleApplicationInfo().packageName != null) {
+                moduleHostPackage =
+                        getModuleApplicationInfo().packageName;
+            }
+        } catch (Throwable ignored) {
+            moduleHostPackage = "";
+        }
+        RuntimeOwnerGate.announce("ydownload", moduleHostPackage);
+        try {
+            log(Log.INFO, TAG, "Loaded in " + param.getProcessName()
+                    + " host=" + moduleHostPackage);
         } catch (Throwable ignored) {}
     }
 
@@ -38,6 +52,7 @@ public final class YDownloadModule extends XposedModule {
     public void onPackageReady(PackageReadyParam param) {
         try {
             if (!param.isFirstPackage()) return;
+            if (!RuntimeOwnerGate.shouldRun("ydownload", moduleHostPackage)) return;
             String pkg = param.getPackageName();
             if (pkg == null || HARD_EXCLUDED.contains(pkg)
                     || pkg.startsWith("com.yagay.ysuite")) {
