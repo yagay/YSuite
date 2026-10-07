@@ -44,6 +44,7 @@ dependencies {
     implementation(project(":feature:ydiag:impl"))
     implementation(project(":feature:ydiag:runtime"))
     implementation(project(":feature:ypower:impl"))
+    implementation(project(":feature:ypower:runtime"))
     implementation(project(":feature:ynotify:impl"))
     implementation(project(":feature:ynfc:runtime"))
     implementation(project(":feature:yminiguard:impl"))

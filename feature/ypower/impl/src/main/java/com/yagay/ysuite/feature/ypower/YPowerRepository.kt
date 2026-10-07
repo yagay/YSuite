@@ -318,6 +318,21 @@ internal class YPowerRepository(
                 }
         }
 
+        val hookConfig =
+            hooks.writeConfig(
+                "ypower",
+                "profile:" + profile.packageName,
+                hookProfileJson(profile),
+            )
+        when (hookConfig) {
+            is Outcome.Success ->
+                applied += "hook_profile_sync"
+            is Outcome.Failure ->
+                notes +=
+                    "hook_profile_sync:" +
+                        hookConfig.error.code
+        }
+
         if (profile.enabled && profile.anyHookFeature) {
             when (
                 val reload =
@@ -492,6 +507,26 @@ internal class YPowerRepository(
 
         return findings
     }
+
+    private fun hookProfileJson(
+        profile: YPowerProfile,
+    ): String =
+        JSONObject().apply {
+            put("enabled", profile.enabled)
+            put("simulateSystemApp", profile.simulateSystemApp)
+            put("simulatePermissions", profile.simulatePermissions)
+            put("tracePackageScan", profile.tracePackageScan)
+            put("traceFiles", profile.traceFiles)
+            put("traceCommands", profile.traceCommands)
+            put("traceProperties", profile.traceProperties)
+            put("tracePermissions", profile.tracePermissions)
+            put("traceDebugger", profile.traceDebugger)
+            put("traceExceptions", profile.traceExceptions)
+            put("traceSecurityApis", profile.traceSecurityApis)
+            put("traceNative", profile.traceNative)
+            put("traceSyscalls", profile.traceSyscalls)
+            put("traceStacks", profile.traceStacks)
+        }.toString()
 
     private fun dangerousPermissions(
         packageName: String,

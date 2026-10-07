@@ -18,7 +18,7 @@ The LibChecker-style hierarchy is layout-only; YPower behaviour remains YSuite-o
 ## Platform capabilities
 
 Root operations use only `RootGateway`. Hook scope/reload and runtime status use only
-`HookGateway`. The feature contains no direct `su`, Xposed or LSPosed API.
+`HookGateway`. The feature implementation contains no direct `su`, Xposed or LSPosed API. `feature/ypower/runtime` restores API-102 target-process simulation and runtime tracing behind the shared HookGateway configuration.
 
 ## Localization
 
