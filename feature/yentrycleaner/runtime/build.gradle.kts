@@ -11,6 +11,7 @@ android {
     }
 }
 dependencies {
+    implementation(project(":core:runtime"))
     api(project(":feature:yentrycleaner:api"))
     compileOnly(libs.libxposed.api)
 }
