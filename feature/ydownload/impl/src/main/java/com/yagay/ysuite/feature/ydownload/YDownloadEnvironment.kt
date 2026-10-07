@@ -3,6 +3,7 @@ package com.yagay.ysuite.feature.ydownload
 import android.content.Context
 import com.yagay.ysuite.logging.api.LogRecord
 import com.yagay.ysuite.logging.api.YSuiteLogger
+import com.yagay.ysuite.platform.api.HookGateway
 import okhttp3.OkHttpClient
 
 data class YDownloadEnvironment(
@@ -11,16 +12,19 @@ data class YDownloadEnvironment(
     val engine: YDownloadEngine,
     val metadataFetcher: YDownloadMetadataFetcher,
     val scheduler: YDownloadScheduler,
+    val hookGateway: HookGateway,
 )
 
 object YDownloadEnvironmentFactory {
     fun create(
         context: Context,
         logger: YSuiteLogger,
+        hookGateway: HookGateway,
     ): YDownloadEnvironment =
         YDownloadRuntime.obtain(
             context = context.applicationContext,
             logger = logger,
+            hookGateway = hookGateway,
         )
 }
 
@@ -33,6 +37,7 @@ internal object YDownloadRuntime {
     fun obtain(
         context: Context,
         logger: YSuiteLogger? = null,
+        hookGateway: HookGateway,
     ): YDownloadEnvironment {
         logger?.let(loggerBridge::bind)
 
@@ -55,6 +60,7 @@ internal object YDownloadRuntime {
                         settings = settings,
                         client = client,
                         logger = loggerBridge,
+                        hookGateway = hookGateway,
                     )
                 val scheduler =
                     YDownloadScheduler(context)
@@ -65,6 +71,7 @@ internal object YDownloadRuntime {
                     metadataFetcher =
                         YDownloadMetadataFetcher(client),
                     scheduler = scheduler,
+                    hookGateway = hookGateway,
                 ).also {
                     environment = it
                 }
