@@ -7,6 +7,10 @@ object YEntryRuntimeBridge {
     const val KEY_PRIORITIES = "priorities"
     const val KEY_DISABLED_COMPONENTS = "disabled_components"
     const val KEY_DIAGNOSTIC = "diagnostic"
+    const val KEY_MANAGER_APP_ID = "manager_app_id"
+    const val KEY_COMPONENT_DISCOVERY_PROTOCOL =
+        "component_discovery_protocol"
+    const val COMPONENT_DISCOVERY_PROTOCOL = 2
 
     fun ruleKey(
         surface: String,

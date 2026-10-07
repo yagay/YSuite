@@ -9,6 +9,8 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.content.pm.ApplicationInfo
+import android.content.pm.ComponentInfo
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.os.Process
 import com.yagay.ysuite.common.Outcome
@@ -301,34 +303,129 @@ internal class YEntryCleanerRepository(
         intent: Intent,
         surface: YEntrySurface,
     ): List<YEntryCandidate> {
-        val infos =
+        val flags =
+            PackageManager.MATCH_ALL or
+                PackageManager.MATCH_DISABLED_COMPONENTS or
+                PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS or
+                PackageManager.GET_META_DATA
+
+        fun merge(
+            vararg groups: List<ComponentInfo>,
+        ): List<ComponentInfo> {
+            val result =
+                linkedMapOf<ComponentName, ComponentInfo>()
+            groups.asSequence()
+                .flatten()
+                .forEach { info ->
+                    result[
+                        ComponentName(
+                            info.packageName,
+                            info.name,
+                        )
+                    ] = info
+                }
+            return result.values.toList()
+        }
+
+        val infos: List<ComponentInfo> =
             when (surface) {
                 YEntrySurface.Tile ->
                     pm.queryIntentServices(
                         intent,
-                        PackageManager.MATCH_ALL or
-                            PackageManager.MATCH_DISABLED_COMPONENTS,
+                        flags,
                     ).mapNotNull {
                         it.serviceInfo
+                    }.filter {
+                        it.exported &&
+                            it.permission ==
+                            "android.permission.BIND_QUICK_SETTINGS_TILE"
                     }
-                YEntrySurface.Shortcut ->
-                    pm.queryIntentActivities(
-                        intent,
-                        PackageManager.MATCH_ALL or
-                            PackageManager.MATCH_DISABLED_COMPONENTS,
-                    ).mapNotNull {
-                        it.activityInfo
-                    }
-                YEntrySurface.Widget ->
-                    pm.queryBroadcastReceivers(
-                        intent,
-                        PackageManager.MATCH_ALL or
-                            PackageManager.MATCH_DISABLED_COMPONENTS,
-                    ).mapNotNull {
-                        it.activityInfo
-                    }
+                YEntrySurface.Shortcut -> {
+                    val legacy =
+                        pm.queryIntentActivities(
+                            intent,
+                            flags,
+                        ).mapNotNull {
+                            it.activityInfo
+                        }.filter {
+                            it.exported
+                        }
+                    val registered =
+                        runCatching {
+                            context.getSystemService(
+                                LauncherApps::class.java,
+                            )?.getShortcutConfigActivityList(
+                                null,
+                                Process.myUserHandle(),
+                            ).orEmpty()
+                                .mapNotNull {
+                                    launcher ->
+                                    runCatching {
+                                        pm.getActivityInfo(
+                                            launcher.componentName,
+                                            flags,
+                                        )
+                                    }.getOrNull()
+                                }.filter {
+                                    it.exported
+                                }
+                        }.getOrDefault(
+                            emptyList(),
+                        )
+                    merge(
+                        registered,
+                        legacy,
+                    )
+                }
+                YEntrySurface.Widget -> {
+                    val manifest =
+                        pm.queryBroadcastReceivers(
+                            intent,
+                            flags,
+                        ).mapNotNull {
+                            it.activityInfo
+                        }.filter {
+                            it.metaData?.getInt(
+                                "android.appwidget.provider",
+                                0,
+                            ) != 0
+                        }
+                    val registered =
+                        if (
+                            YEntryRuntimeBridge
+                                .COMPONENT_DISCOVERY_PROTOCOL >=
+                            2
+                        ) {
+                            runCatching {
+                                AppWidgetManager
+                                    .getInstance(context)
+                                    .getInstalledProvidersForProfile(
+                                        Process.myUserHandle(),
+                                    ).mapNotNull {
+                                        provider ->
+                                        val component =
+                                            provider.provider
+                                        runCatching {
+                                            pm.getReceiverInfo(
+                                                component,
+                                                flags,
+                                            )
+                                        }.getOrNull()
+                                    }
+                            }.getOrDefault(
+                                emptyList(),
+                            )
+                        } else {
+                            emptyList()
+                        }
+                    merge(
+                        registered,
+                        manifest,
+                    )
+                }
                 else -> emptyList()
             }
+
         val disabled = disabledComponents()
         val locks = locked()
         return infos.map { info ->
@@ -364,6 +461,16 @@ internal class YEntryCleanerRepository(
                         true
                     else -> info.enabled
                 }
+            val appBlocked =
+                info.packageName ==
+                    context.packageName ||
+                    info.packageName ==
+                    "android" ||
+                    info.packageName ==
+                    "com.android.systemui" ||
+                    info.applicationInfo.uid %
+                    100_000 <
+                    Process.FIRST_APPLICATION_UID
             YEntryCandidate(
                 id = key,
                 surface = surface,
@@ -384,15 +491,11 @@ internal class YEntryCleanerRepository(
                 locked = key in locks,
                 priority = null,
                 rootEnabled = enabled,
-                rootBlocked =
-                    info.packageName ==
-                        context.packageName ||
-                        info.packageName ==
-                        "android" ||
-                        info.packageName ==
-                        "com.android.systemui",
+                rootBlocked = appBlocked,
             )
-        }.sortedBy { it.label.lowercase() }
+        }.sortedBy {
+            it.label.lowercase()
+        }
     }
 
     private fun remember(
@@ -969,6 +1072,14 @@ internal class YEntryCleanerRepository(
                         .joinToString("\n"),
                 YEntryRuntimeBridge.KEY_DIAGNOSTIC to
                     diagnostic().toString(),
+                YEntryRuntimeBridge.KEY_MANAGER_APP_ID to
+                    (Process.myUid() % 100_000)
+                        .toString(),
+                YEntryRuntimeBridge
+                    .KEY_COMPONENT_DISCOVERY_PROTOCOL to
+                    YEntryRuntimeBridge
+                        .COMPONENT_DISCOVERY_PROTOCOL
+                        .toString(),
             )
         for ((key, value) in values) {
             val result =
