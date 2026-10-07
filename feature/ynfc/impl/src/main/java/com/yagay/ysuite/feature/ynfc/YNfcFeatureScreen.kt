@@ -89,7 +89,6 @@ fun YNfcFeatureScreen(environment: YNfcEnvironment) {
                                     }?.onSuccess { reading = true }
                                 }
                             },
-                            enabled = reader != null,
                         )
                         scanned?.let { card ->
                             YSuiteSecondaryButton(
@@ -128,8 +127,7 @@ fun YNfcFeatureScreen(environment: YNfcEnvironment) {
                     Row(horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small)) {
                         YSuitePrimaryButton(
                             text = stringResource(R.string.ynfc_apply),
-                            onClick = { model.apply(card) },
-                            enabled = !state.busy && !active,
+                            onClick = { if (!state.busy && !active) model.apply(card) },
                         )
                         if (active) {
                             YSuiteSecondaryButton(
@@ -139,8 +137,7 @@ fun YNfcFeatureScreen(environment: YNfcEnvironment) {
                         }
                         YSuiteSecondaryButton(
                             text = stringResource(R.string.ynfc_delete),
-                            onClick = { model.delete(card) },
-                            enabled = !active,
+                            onClick = { if (!active) model.delete(card) },
                         )
                     }
                 }

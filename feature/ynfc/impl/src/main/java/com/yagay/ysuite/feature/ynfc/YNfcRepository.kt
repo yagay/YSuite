@@ -71,7 +71,7 @@ internal class YNfcRepository(
     suspend fun hookStatus(): CapabilityStatus = hooks.status()
 
     suspend fun runtime(): YNfcRuntimeSnapshot {
-        val pid = execute("pidof com.android.nfc 2>/dev/null | awk '{print $1}'", 5_000L)
+        val pid = execute("pidof com.android.nfc 2>/dev/null | awk '{print \$1}'", 5_000L)
             .stdout.trim().lineSequence().firstOrNull()?.toIntOrNull() ?: 0
         val map = linkedMapOf<String, String>()
         runCatching {
@@ -122,7 +122,7 @@ internal class YNfcRepository(
     suspend fun stop(): Pair<YNfcRuntimeSnapshot, String> {
         val generation = publish(false, null)
         restartNfc("stop:" + generation)
-        val pid = execute("pidof com.android.nfc 2>/dev/null | awk '{print $1}'", 5_000L)
+        val pid = execute("pidof com.android.nfc 2>/dev/null | awk '{print \$1}'", 5_000L)
             .stdout.trim().lineSequence().firstOrNull()?.toIntOrNull() ?: 0
         context.contentResolver.call(
             ConfigProvider.URI,
@@ -216,13 +216,13 @@ internal class YNfcRepository(
 
     private suspend fun restartNfc(reason: String) {
         execute(
-            "old=$(pidof com.android.nfc 2>/dev/null | awk '{print $1}'); " +
+            "old=$(pidof com.android.nfc 2>/dev/null | awk '{print \$1}'); " +
                 "echo reason=" + reason + "; " +
                 "if [ -n \"$old\" ]; then kill -TERM \"$old\" 2>/dev/null || true; sleep 0.5; " +
                 "kill -0 \"$old\" 2>/dev/null && kill -KILL \"$old\" 2>/dev/null || true; fi; " +
-                "i=0; while [ $i -lt 60 ]; do new=$(pidof com.android.nfc 2>/dev/null | awk '{print $1}'); " +
+                "i=0; while [ \$i -lt 60 ]; do new=$(pidof com.android.nfc 2>/dev/null | awk '{print \$1}'); " +
                 "if [ -n \"$new\" ] && [ \"$new\" != \"$old\" ]; then break; fi; " +
-                "sleep 0.2; i=$((i+1)); done; svc nfc enable 2>/dev/null || true",
+                "sleep 0.2; i=\$((i+1)); done; svc nfc enable 2>/dev/null || true",
             30_000L,
         )
     }
