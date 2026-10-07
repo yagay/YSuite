@@ -128,4 +128,9 @@
     <string name="ydownload_patch_scope">&#x914D;&#x7F6E;&#x63A8;&#x8350; Hook &#x4F5C;&#x7528;&#x57DF;</string>
     <string name="ydownload_patch_scope_desc">&#x68C0;&#x6D4B;&#x5230; %1$d &#x4E2A; DownloadManager &#x8C03;&#x7528;&#x5E94;&#x7528;</string>
     <string name="ydownload_patch_sync">&#x540C;&#x6B65; DownloadManager &#x8865;&#x4E01;</string>
+
+    <string name="ydownload_default_backend">默认下载后端</string>
+    <string name="ydownload_default_backend_desc">系统后端使用 Android DownloadProvider；私有后端保留 YDownload 分段、自定义目录和单任务限速能力。</string>
+    <string name="ydownload_backend_system">系统 DownloadManager</string>
+    <string name="ydownload_backend_private">YDownload 私有引擎</string>
 </resources>
