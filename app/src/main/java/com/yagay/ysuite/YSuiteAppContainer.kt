@@ -22,6 +22,8 @@ import com.yagay.ysuite.feature.ypower.YPowerFeatureUiRegistration
 import com.yagay.ysuite.feature.ynotify.YNotifyFeatureUiRegistration
 import com.yagay.ysuite.feature.ynfc.YNfcEnvironmentFactory
 import com.yagay.ysuite.feature.ynfc.YNfcFeatureUiRegistration
+import com.yagay.ysuite.feature.yfloat.YFloatEnvironmentFactory
+import com.yagay.ysuite.feature.yfloat.YFloatFeatureUiRegistration
 import com.yagay.ysuite.logging.android.AndroidLogSink
 import com.yagay.ysuite.logging.android.AndroidLogcatCollector
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
@@ -292,6 +294,13 @@ class YSuiteAppContainer(
                             rootGateway = platform.root,
                             hookGateway = platform.hooks,
                             logger = logger,
+                        ),
+                ),
+                YFloatFeatureUiRegistration(
+                    environment =
+                        YFloatEnvironmentFactory.create(
+                            context = context,
+                            hookGateway = platform.hooks,
                         ),
                 ),
                 SettingsFeatureUiRegistration(

@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":feature:ynfc:runtime"))
     implementation(project(":feature:ynfc:impl"))
     implementation(project(":feature:yfloat:runtime"))
+    implementation(project(":feature:yfloat:impl"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

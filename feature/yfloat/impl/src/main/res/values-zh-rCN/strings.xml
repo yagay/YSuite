@@ -1,0 +1,28 @@
+<resources>
+<string name="yfloat_title">YFloat</string>
+<string name="yfloat_runtime">悬浮运行状态</string><string name="yfloat_service">悬浮按钮</string>
+<string name="yfloat_service_desc">在其他应用上方保持手势悬浮按钮。</string>
+<string name="yfloat_overlay">显示在其他应用上层</string><string name="yfloat_permission_ready">权限已授予</string><string name="yfloat_permission_missing">需要权限</string>
+<string name="yfloat_accessibility">无障碍服务</string><string name="yfloat_accessibility_ready">已连接</string><string name="yfloat_accessibility_missing">启用后可使用手势和截图</string>
+<string name="yfloat_appearance">外观与显示</string><string name="yfloat_alpha">图标透明度</string><string name="yfloat_size">图标大小</string><string name="yfloat_visible_percent">边缘可见比例</string>
+<string name="yfloat_both_sides">左右两侧显示</string><string name="yfloat_snap">吸附屏幕边缘</string><string name="yfloat_show_lock">锁屏显示</string>
+<string name="yfloat_hide_fullscreen">全屏应用时隐藏</string><string name="yfloat_ime_avoid">避让键盘</string><string name="yfloat_quick_move">快速移动模式</string>
+<string name="yfloat_gestures">手势</string><string name="yfloat_vibrate">振动反馈</string><string name="yfloat_track">显示手势轨迹</string><string name="yfloat_long_drag">长按拖动</string>
+<string name="yfloat_click_action">单击动作</string><string name="yfloat_double_action">双击动作</string><string name="yfloat_long_action">长按动作</string>
+<string name="yfloat_capture_ocr">截图与 OCR</string><string name="yfloat_keep_status">截图保留状态栏</string><string name="yfloat_keep_navigation">截图保留导航栏</string>
+<string name="yfloat_accessibility_screenshot">优先使用无障碍截图</string><string name="yfloat_circle_border">选区边框</string><string name="yfloat_circle_width">选区边框宽度</string>
+<string name="yfloat_circle_engine">圈选引擎</string><string name="yfloat_circle_own">YFloat 自有圈选</string><string name="yfloat_circle_google">Google 圈画搜索</string>
+<string name="yfloat_full_ocr_engine">完整 OCR 引擎</string><string name="yfloat_correction_engine">纠正 OCR 引擎</string>
+<string name="yfloat_engine_auto">自动</string><string name="yfloat_engine_mlkit">ML Kit</string><string name="yfloat_engine_paddle">Paddle OCR</string><string name="yfloat_engine_google">Google</string>
+<string name="yfloat_privileges">Root 与 LSPosed</string><string name="yfloat_enhanced_mode">增强模式</string><string name="yfloat_root_enabled">使用 Root 增强</string>
+<string name="yfloat_check_root">检查 Root 授权</string><string name="yfloat_root_ready">之前已获得 Root</string><string name="yfloat_root_not_checked">执行一次明确的 Root 检查</string>
+<string name="yfloat_lsposed_enabled">使用 LSPosed 增强</string><string name="yfloat_secure_screenshot">安全图层截图支持</string>
+<string name="yfloat_hook_ready">LSPosed 服务已连接</string><string name="yfloat_hook_missing">LSPosed 服务不可用</string>
+<string name="yfloat_sync_hook_scope">同步 Hook 作用域</string><string name="yfloat_sync_hook_scope_desc">应用 system、SystemUI 和 Google 目标作用域及配置。</string>
+<string name="yfloat_diagnostic_logging">诊断日志</string>
+<string name="yfloat_action_none">无</string><string name="yfloat_action_back">返回</string><string name="yfloat_action_home">桌面</string><string name="yfloat_action_recents">最近任务</string>
+<string name="yfloat_action_screenshot">截图</string><string name="yfloat_action_region">区域截图</string><string name="yfloat_action_ocr">OCR</string>
+<string name="yfloat_action_notifications">通知栏</string><string name="yfloat_action_hide">隐藏图标</string><string name="yfloat_action_move">移动图标</string><string name="yfloat_action_ai">AI 屏幕动作</string>
+<string name="yfloat_root_granted">Root 授权成功。</string><string name="yfloat_root_denied">未获得 Root 授权。</string>
+<string name="yfloat_hook_synced">Hook 配置和作用域已同步。</string><string name="yfloat_hook_sync_failed">Hook 同步失败。</string>
+</resources>

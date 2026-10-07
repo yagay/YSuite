@@ -1,0 +1,28 @@
+<resources>
+<string name="yfloat_title">YFloat</string>
+<string name="yfloat_runtime">Floating runtime</string><string name="yfloat_service">Floating button</string>
+<string name="yfloat_service_desc">Keep the gesture button available over other apps.</string>
+<string name="yfloat_overlay">Display over other apps</string><string name="yfloat_permission_ready">Permission granted</string><string name="yfloat_permission_missing">Permission required</string>
+<string name="yfloat_accessibility">Accessibility service</string><string name="yfloat_accessibility_ready">Connected</string><string name="yfloat_accessibility_missing">Enable for gestures and capture</string>
+<string name="yfloat_appearance">Appearance &amp; visibility</string><string name="yfloat_alpha">Icon opacity</string><string name="yfloat_size">Icon size</string><string name="yfloat_visible_percent">Visible edge percentage</string>
+<string name="yfloat_both_sides">Show on both sides</string><string name="yfloat_snap">Snap to screen edge</string><string name="yfloat_show_lock">Show on lock screen</string>
+<string name="yfloat_hide_fullscreen">Hide in fullscreen apps</string><string name="yfloat_ime_avoid">Avoid keyboard</string><string name="yfloat_quick_move">Quick move mode</string>
+<string name="yfloat_gestures">Gestures</string><string name="yfloat_vibrate">Haptic feedback</string><string name="yfloat_track">Show gesture trail</string><string name="yfloat_long_drag">Long-press drag</string>
+<string name="yfloat_click_action">Tap action</string><string name="yfloat_double_action">Double-tap action</string><string name="yfloat_long_action">Long-press action</string>
+<string name="yfloat_capture_ocr">Capture &amp; OCR</string><string name="yfloat_keep_status">Keep status bar in capture</string><string name="yfloat_keep_navigation">Keep navigation bar in capture</string>
+<string name="yfloat_accessibility_screenshot">Prefer accessibility screenshot</string><string name="yfloat_circle_border">Selection border</string><string name="yfloat_circle_width">Selection border width</string>
+<string name="yfloat_circle_engine">Circle/select engine</string><string name="yfloat_circle_own">YFloat selection</string><string name="yfloat_circle_google">Google Circle to Search</string>
+<string name="yfloat_full_ocr_engine">Full OCR engine</string><string name="yfloat_correction_engine">Correction OCR engine</string>
+<string name="yfloat_engine_auto">Auto</string><string name="yfloat_engine_mlkit">ML Kit</string><string name="yfloat_engine_paddle">Paddle OCR</string><string name="yfloat_engine_google">Google</string>
+<string name="yfloat_privileges">Root &amp; LSPosed</string><string name="yfloat_enhanced_mode">Enhanced mode</string><string name="yfloat_root_enabled">Use Root enhancements</string>
+<string name="yfloat_check_root">Check Root authorization</string><string name="yfloat_root_ready">Root previously granted</string><string name="yfloat_root_not_checked">Run an explicit Root check</string>
+<string name="yfloat_lsposed_enabled">Use LSPosed enhancements</string><string name="yfloat_secure_screenshot">Secure-layer screenshot support</string>
+<string name="yfloat_hook_ready">LSPosed service connected</string><string name="yfloat_hook_missing">LSPosed service unavailable</string>
+<string name="yfloat_sync_hook_scope">Sync Hook scope</string><string name="yfloat_sync_hook_scope_desc">Apply system, SystemUI and Google target scope/configuration.</string>
+<string name="yfloat_diagnostic_logging">Diagnostic logging</string>
+<string name="yfloat_action_none">None</string><string name="yfloat_action_back">Back</string><string name="yfloat_action_home">Home</string><string name="yfloat_action_recents">Recents</string>
+<string name="yfloat_action_screenshot">Screenshot</string><string name="yfloat_action_region">Region screenshot</string><string name="yfloat_action_ocr">OCR</string>
+<string name="yfloat_action_notifications">Notifications</string><string name="yfloat_action_hide">Hide icon</string><string name="yfloat_action_move">Move icon</string><string name="yfloat_action_ai">AI screen action</string>
+<string name="yfloat_root_granted">Root authorization succeeded.</string><string name="yfloat_root_denied">Root authorization was not granted.</string>
+<string name="yfloat_hook_synced">Hook configuration and scope synced.</string><string name="yfloat_hook_sync_failed">Hook synchronization failed.</string>
+</resources>
