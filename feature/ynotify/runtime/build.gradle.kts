@@ -14,6 +14,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:runtime"))
     api(project(":feature:ynotify:api"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
