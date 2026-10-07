@@ -1406,7 +1406,7 @@ internal class YPowerRepository(
 }
 
 
-internal enum class YPowerDiagnosticLevel {
+enum class YPowerDiagnosticLevel {
     Quick,
     Standard,
     Deep,
