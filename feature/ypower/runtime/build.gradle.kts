@@ -20,7 +20,9 @@ android {
         prefab = true
     }
     packaging {
-        jniLibs.pickFirsts += setOf("**/libbytehook.so")
+        // ByteHook is a Prefab/AAR dependency. Keep it transitive for the app,
+        // but do not republish the same shared object from this SDK runtime.
+        jniLibs.excludes += setOf("**/libbytehook.so")
     }
     externalNativeBuild {
         cmake {
