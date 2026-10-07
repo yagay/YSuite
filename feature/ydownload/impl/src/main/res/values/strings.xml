@@ -119,7 +119,7 @@
 
     <string name="ydownload_patch_title">System DownloadManager enhancement</string>
     <string name="ydownload_patch_enabled">Enable DownloadManager patch</string>
-    <string name="ydownload_patch_enabled_desc">Enhance system DownloadManager requests without replacing DownloadProvider; failures keep the caller's original request.</string>
+    <string name="ydownload_patch_enabled_desc">Enhance system DownloadManager requests without replacing DownloadProvider; failures keep the original request unchanged.</string>
     <string name="ydownload_patch_metered">Allow metered networks</string>
     <string name="ydownload_patch_roaming">Allow roaming</string>
     <string name="ydownload_patch_charging">Require charging</string>
