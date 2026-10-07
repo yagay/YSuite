@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Binder
 import android.os.Process
 import android.util.Log
+import com.yagay.ysuite.runtime.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class YEntryComponentGuardModule :
     XposedModule() {
+    private var moduleHostPackage: String = ""
     private lateinit var prefs: SharedPreferences
     private val installed =
         ConcurrentHashMap.newKeySet<String>()
@@ -21,6 +23,16 @@ class YEntryComponentGuardModule :
     override fun onModuleLoaded(
         param: XposedModuleInterface.ModuleLoadedParam,
     ) {
+        moduleHostPackage =
+            runCatching {
+                getModuleApplicationInfo()
+                    ?.packageName
+                    .orEmpty()
+            }.getOrDefault("")
+        RuntimeOwnerGate.announce(
+            "yentrycleaner",
+            moduleHostPackage,
+        )
         prefs =
             getRemotePreferences(
                 YEntryRuntimeBridge.GROUP,
@@ -30,6 +42,12 @@ class YEntryComponentGuardModule :
     override fun onSystemServerStarting(
         param: XposedModuleInterface.SystemServerStartingParam,
     ) {
+        if (
+            !RuntimeOwnerGate.shouldRun(
+                "yentrycleaner",
+                moduleHostPackage,
+            )
+        ) return
         install(param.classLoader)
     }
 
