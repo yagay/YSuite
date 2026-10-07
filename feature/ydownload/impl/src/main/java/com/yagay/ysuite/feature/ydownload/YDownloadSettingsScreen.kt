@@ -25,6 +25,7 @@ fun YDownloadSettingsScreen(
     systemPatch: YDownloadSystemPatchSettings,
     systemPatchScopeCount: Int,
     onBack: () -> Unit,
+    onDefaultBackend: (com.yagay.ysuite.feature.ydownload.api.YDownloadBackend) -> Unit,
     onDefaultTreeUri: (String?) -> Unit,
     onMaxConcurrent: (Int) -> Unit,
     onDefaultThreadCount: (Int) -> Unit,
@@ -75,7 +76,10 @@ fun YDownloadSettingsScreen(
             YSuiteBackNavigationButton(onBack)
         },
     ) {
-        YDownloadBackendSettingsContent()
+        YDownloadBackendSettingsContent(
+            backend = settings.defaultBackend,
+            onBackendChanged = onDefaultBackend,
+        )
 
         ComposeSettingsGroup(
             title =
