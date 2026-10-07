@@ -64,4 +64,7 @@
     <string name="ydiag_option_lsposed_log">LSPosed 日志</string>
     <string name="ydiag_option_tombstone">Tombstone</string>
     <string name="ydiag_option_native">Native 崩溃</string>
+    <string name="ydiag_live_start">开始持续诊断</string>
+    <string name="ydiag_mark_problem">问题发生了</string>
+    <string name="ydiag_live_stop">停止持续诊断</string>
 </resources>

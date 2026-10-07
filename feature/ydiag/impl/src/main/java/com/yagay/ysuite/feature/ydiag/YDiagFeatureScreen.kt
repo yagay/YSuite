@@ -250,10 +250,39 @@ private fun DiagnosticContent(
                             ),
                         onClick = model::runDiagnostics,
                     )
-                    if (state.events.isNotEmpty()) {
+                    if (state.events.isNotEmpty() || state.liveSessionActive) {
                         YSuiteSecondaryButton(
                             text = stringResource(R.string.ydiag_export),
                             onClick = model::export,
+                        )
+                    }
+                }
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(YSuiteSpacing.Small),
+                ) {
+                    if (!state.liveSessionActive) {
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string.ydiag_live_start,
+                                ),
+                            onClick = model::startLiveSession,
+                        )
+                    } else {
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string.ydiag_mark_problem,
+                                ),
+                            onClick = model::markProblem,
+                        )
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string.ydiag_live_stop,
+                                ),
+                            onClick = model::stopLiveSession,
                         )
                     }
                 }

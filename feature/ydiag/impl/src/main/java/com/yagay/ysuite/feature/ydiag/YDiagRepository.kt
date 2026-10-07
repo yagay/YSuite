@@ -54,6 +54,67 @@ internal class YDiagRepository(
 
     suspend fun hookStatus(): CapabilityStatus = hooks.status()
 
+    fun liveSessionActive(): Boolean {
+        val path =
+            context.getSharedPreferences(
+                YDiagMonitorService.PREFS,
+                Context.MODE_PRIVATE,
+            ).getString(
+                YDiagMonitorService.KEY_CURRENT,
+                null,
+            )
+        return path?.let(::java.io.File)?.isDirectory == true
+    }
+
+    fun startLiveSession(
+        packageName: String,
+        optionIds: Set<String>,
+    ) {
+        androidx.core.content.ContextCompat.startForegroundService(
+            context,
+            android.content.Intent(
+                context,
+                YDiagMonitorService::class.java,
+            ).apply {
+                action = YDiagMonitorService.ACTION_START
+                putExtra(
+                    YDiagMonitorService.EXTRA_PACKAGE,
+                    packageName,
+                )
+                putStringArrayListExtra(
+                    YDiagMonitorService.EXTRA_OPTIONS,
+                    ArrayList(optionIds),
+                )
+            },
+        )
+    }
+
+    fun markProblem(note: String = "PROBLEM") {
+        context.startService(
+            android.content.Intent(
+                context,
+                YDiagMonitorService::class.java,
+            ).apply {
+                action = YDiagMonitorService.ACTION_MARK
+                putExtra(
+                    YDiagMonitorService.EXTRA_NOTE,
+                    note,
+                )
+            },
+        )
+    }
+
+    fun stopLiveSession() {
+        context.startService(
+            android.content.Intent(
+                context,
+                YDiagMonitorService::class.java,
+            ).apply {
+                action = YDiagMonitorService.ACTION_STOP
+            },
+        )
+    }
+
     private suspend fun configureHook(
         packageName: String,
         optionIds: Set<String>,
@@ -121,6 +182,19 @@ internal class YDiagRepository(
     }
 
     fun export(
+        packageName: String,
+        enabledOptions: Set<String>,
+        events: List<YDiagEvent>,
+    ): String =
+        YDiagSessionExporter.export(
+            context,
+            packageName,
+            enabledOptions,
+            events,
+        )
+
+    @Suppress("unused")
+    private fun legacyExport(
         packageName: String,
         enabledOptions: Set<String>,
         events: List<YDiagEvent>,
@@ -337,7 +411,9 @@ internal class YDiagRepository(
             "memory" ->
                 "dumpsys meminfo $pkg 2>/dev/null | head -n 400"
             "perfetto" ->
-                "dumpsys gfxinfo $pkg framestats 2>/dev/null | head -n 500"
+                "trace=/data/local/tmp/ydiag-command-$.perfetto-trace; " +
+                    "perfetto -o \$trace -t 5s sched freq idle am wm gfx view binder_driver hal dalvik 2>&1; " +
+                    "echo TRACE=\$trace; ls -lh \$trace 2>/dev/null"
             "kernel" ->
                 "dmesg 2>/dev/null | tail -n 300"
             "selinux" ->

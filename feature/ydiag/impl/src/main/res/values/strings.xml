@@ -64,4 +64,7 @@
     <string name="ydiag_option_lsposed_log">LSPosed logs</string>
     <string name="ydiag_option_tombstone">Tombstones</string>
     <string name="ydiag_option_native">Native crash</string>
+    <string name="ydiag_live_start">Start live session</string>
+    <string name="ydiag_mark_problem">Problem happened</string>
+    <string name="ydiag_live_stop">Stop live session</string>
 </resources>

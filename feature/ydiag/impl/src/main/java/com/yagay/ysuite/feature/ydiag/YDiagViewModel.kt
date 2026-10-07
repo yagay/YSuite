@@ -32,6 +32,7 @@ data class YDiagUiState(
     val rootStatus: CapabilityStatus = CapabilityStatus.Unavailable,
     val hookStatus: CapabilityStatus = CapabilityStatus.Unavailable,
     val running: Boolean = false,
+    val liveSessionActive: Boolean = false,
     val exportUri: String? = null,
     val error: String? = null,
 )
@@ -53,6 +54,8 @@ class YDiagViewModel(
         refreshApps()
         viewModelScope.launch {
             mutableState.value = mutableState.value.copy(
+                liveSessionActive =
+                    repository.liveSessionActive(),
                 rootStatus =
                     runCatching { repository.rootStatus() }
                         .getOrDefault(CapabilityStatus.Error),
@@ -137,6 +140,34 @@ class YDiagViewModel(
             enabledOptions =
                 if (enabled) old + id else old - id,
         )
+    }
+
+    fun startLiveSession() {
+        val packageName =
+            mutableState.value.selectedPackage
+                ?: return
+        repository.startLiveSession(
+            packageName,
+            mutableState.value.enabledOptions,
+        )
+        mutableState.value =
+            mutableState.value.copy(
+                liveSessionActive = true,
+                error = null,
+            )
+    }
+
+    fun markProblem() {
+        if (!mutableState.value.liveSessionActive) return
+        repository.markProblem()
+    }
+
+    fun stopLiveSession() {
+        repository.stopLiveSession()
+        mutableState.value =
+            mutableState.value.copy(
+                liveSessionActive = false,
+            )
     }
 
     fun runDiagnostics() {
