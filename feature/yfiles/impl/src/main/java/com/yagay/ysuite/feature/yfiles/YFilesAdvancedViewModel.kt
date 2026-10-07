@@ -56,6 +56,8 @@ data class YFilesAdvancedUiState(
         YFilesShareServerState =
         YFilesShareServerState(),
     val automationEnabled: Boolean = false,
+    val systemPatch: YFilesSystemPatchSettings =
+        YFilesSystemPatchSettings(),
     val plugins: List<YFilesPluginDescriptor> =
         emptyList(),
     val installedApps: List<YInstalledApp> =
@@ -103,6 +105,10 @@ class YFilesAdvancedViewModel(
             automationEnabled =
                 environment.automationSettings
                     .enabled(),
+            systemPatch =
+                YFilesSystemPatchStore(
+                    context,
+                ).load(),
             plugins =
                 environment.plugins
                     .discover(),
@@ -113,6 +119,10 @@ class YFilesAdvancedViewModel(
 ) {
     private val appContext =
         context.applicationContext
+    private val systemPatch =
+        YFilesSystemPatchStore(
+            appContext,
+        )
 
     init {
         viewModelScope.launch {
@@ -687,6 +697,124 @@ class YFilesAdvancedViewModel(
                         R.string.yfiles_msg_volume_unmounted,
                     ),
             )
+        }
+    }
+
+    fun setSystemPatchEnabled(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(enabled = value)
+    }
+
+    fun setSystemPatchLocalOnly(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(localOnly = value)
+    }
+
+    fun setSystemPatchAllowMultiple(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(allowMultiple = value)
+    }
+
+    fun setSystemPatchInitialUri(
+        value: String,
+    ) = updateSystemPatch {
+        copy(initialUri = value)
+    }
+
+    fun cycleSystemPatchSort() =
+        updateSystemPatch {
+            val values =
+                YFilesSystemPatchSettings
+                    .validSorts
+            val index =
+                values.indexOf(
+                    defaultSort,
+                )
+            copy(
+                defaultSort =
+                    values[
+                        (index + 1)
+                            .mod(values.size)
+                    ],
+            )
+        }
+
+    fun requestSystemPatchScope() =
+        launchOutcome(
+            "system_patch_scope",
+            {
+                systemPatch
+                    .requestRecommendedScope()
+            },
+        ) {
+            updateState {
+                current ->
+                current.copy(
+                    message =
+                        appContext.getString(
+                            R.string
+                                .yfiles_patch_scope_ready,
+                        ),
+                )
+            }
+        }
+
+    fun syncSystemPatch() =
+        launchOutcome(
+            "system_patch_sync",
+            {
+                systemPatch.sync(
+                    state.value.systemPatch,
+                )
+            },
+        ) {
+            updateState {
+                current ->
+                current.copy(
+                    message =
+                        appContext.getString(
+                            R.string
+                                .yfiles_patch_synced,
+                        ),
+                )
+            }
+        }
+
+    private fun updateSystemPatch(
+        transform:
+            YFilesSystemPatchSettings.() ->
+            YFilesSystemPatchSettings,
+    ) {
+        val next =
+            state.value.systemPatch
+                .transform()
+        updateState {
+            it.copy(
+                systemPatch = next,
+                error = null,
+            )
+        }
+        launchOutcome(
+            "system_patch_save",
+            {
+                systemPatch.save(next)
+            },
+        ) {
+            updateState {
+                current ->
+                current.copy(
+                    systemPatch =
+                        systemPatch.load(),
+                    message =
+                        appContext.getString(
+                            R.string
+                                .yfiles_patch_synced,
+                        ),
+                )
+            }
         }
     }
 
