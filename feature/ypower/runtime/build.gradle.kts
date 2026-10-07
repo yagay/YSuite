@@ -36,6 +36,7 @@ android {
     }
 }
 dependencies {
+    implementation(project(":core:runtime"))
     implementation(libs.bytehook)
     compileOnly(libs.libxposed.api)
 }
