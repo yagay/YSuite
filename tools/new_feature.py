@@ -35,8 +35,8 @@ PRODUCTS = {
         "QdmDownloadWorkspace(title = title, tabs = emptyList(), selectedTabId = \"\", onTabSelected = {}, searchActive = false, searchQuery = \"\", searchPlaceholder = title, addContentDescription = title, closeSearchContentDescription = title, onSearchQueryChange = {}, onToggleSearch = {}, onAdd = {}, navigationIcon = { YSuiteHostNavigationButton() }, content = { _, _ -> body() })",
     ),
     "TaskManager": (
-        "com.yagay.ysuite.productui.task.ComposeTodoTaskWorkspace",
-        "ComposeTodoTaskWorkspace(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
+        "com.yagay.ysuite.productui.task.AndroidTaskManagerWorkspace",
+        "AndroidTaskManagerWorkspace(title = title, navigationIcon = { YSuiteHostNavigationButton() }, content = { _ -> body() })",
     ),
     "AutomationStudio": (
         "com.yagay.ysuite.productui.automation.OpenTaskerWorkspace",

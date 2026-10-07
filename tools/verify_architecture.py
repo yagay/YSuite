@@ -13,6 +13,15 @@ if not upstream_path.exists():
     sys.exit(1)
 upstream_config = json.loads(upstream_path.read_text(encoding="utf-8"))
 upstream_products = upstream_config.get("products", {})
+
+feature_layout_path = ROOT / "config/feature-product-layouts.json"
+if not feature_layout_path.exists():
+    print("Missing config/feature-product-layouts.json")
+    sys.exit(1)
+feature_layout_config = json.loads(
+    feature_layout_path.read_text(encoding="utf-8")
+)
+feature_layouts = feature_layout_config.get("features", {})
 required_product_kinds = {
     "Dashboard",
     "FileManager",
@@ -34,6 +43,27 @@ if missing_upstream:
 for kind, spec in upstream_products.items():
     if not spec.get("repo") or not spec.get("license"):
         print(f"Invalid upstream product base for {kind}")
+        sys.exit(1)
+
+for feature_name, spec in feature_layouts.items():
+    surface = spec.get("surface")
+    workspace = spec.get("workspace")
+    primary = spec.get("primary_reference", {})
+    if surface not in required_product_kinds:
+        print(
+            f"Invalid feature product surface for {feature_name}: "
+            f"{surface}"
+        )
+        sys.exit(1)
+    if not workspace:
+        print(
+            f"Missing feature workspace symbol for {feature_name}"
+        )
+        sys.exit(1)
+    if not primary.get("repo") or not primary.get("license"):
+        print(
+            f"Invalid primary layout reference for {feature_name}"
+        )
         sys.exit(1)
 
 legacy_roots = ["apps", "libs/yui", "suite", "standalone"]
@@ -94,7 +124,7 @@ product_surface_requirements = {
     "Settings": "ComposeSettingsSurface",
     "LogViewer": "LogcatReaderWorkspace",
     "DownloadManager": "QdmDownloadWorkspace",
-    "TaskManager": "ComposeTodoTaskWorkspace",
+    "TaskManager": "AndroidTaskManagerWorkspace",
     "AutomationStudio": "OpenTaskerWorkspace",
     "EntityManager": "LibCheckerWorkspace",
     "Tool": "NiaToolSurface",
@@ -294,7 +324,7 @@ else:
 pane_adaptive_required = (
     "settings/ComposeSettingsSurface.kt",
     "logs/LogcatReaderWorkspace.kt",
-    "task/ComposeTodoTaskWorkspace.kt",
+    "task/AndroidTaskManagerWorkspace.kt",
     "automation/OpenTaskerWorkspace.kt",
     "entity/LibCheckerWorkspace.kt",
     "filemanager/FileExplorerWorkspace.kt",
@@ -429,11 +459,25 @@ for registration in ROOT.glob(
         continue
 
     kind = match.group(1)
-    required = product_surface_requirements.get(kind)
+    feature_name = rel.split("/")[1]
+    feature_layout = feature_layouts.get(feature_name)
+    if (
+        feature_layout is not None
+        and feature_layout.get("surface") != kind
+    ):
+        violations.append(
+            f"{rel}: expected ProductSurfaceKind."
+            f"{feature_layout.get('surface')} from "
+            "config/feature-product-layouts.json"
+        )
+
+    required = (
+        feature_layout.get("workspace")
+        if feature_layout is not None
+        else product_surface_requirements.get(kind)
+    )
     if required is None:
         continue
-
-    feature_name = rel.split("/")[1]
     feature_root = ROOT / "feature" / feature_name / "impl"
     feature_sources = "\n".join(
         source.read_text(encoding="utf-8", errors="ignore")

@@ -55,11 +55,11 @@ License: Apache License 2.0
 Copyright 2022 Absinthe  
 Use: application/entity collection, navigation and detail workflow.
 
-## Compose-ToDo
+## TaskManager
 
-Repository: wisnukurniawan/Compose-ToDo  
+Repository: RohitKushvaha01/TaskManager  
 License: Apache License 2.0  
-Use: task collection and detail workflow conventions.
+Use: Android resources/processes navigation, process search/filtering, resource tabs and process-detail workflow conventions.
 
 
 ## Shizuku

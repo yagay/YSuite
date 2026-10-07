@@ -25,7 +25,7 @@ YSuite standardizes visual language, not product-page geometry.
 - `ComposeSettingsSurface` — Compose-Settings
 - `LogcatReaderWorkspace` — LogcatReader
 - `QdmDownloadWorkspace` — QDM-Android
-- `ComposeTodoTaskWorkspace` — Compose-ToDo
+- `AndroidTaskManagerWorkspace` — RohitKushvaha01/TaskManager
 - `OpenTaskerWorkspace` — OpenTasker
 - `LibCheckerWorkspace` — LibChecker
 - `NiaToolSurface` / `NiaDetailSurface` — Now in Android bounded-content conventions

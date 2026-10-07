@@ -50,9 +50,9 @@ object UpstreamProductCatalog {
     )
 
     val taskManager = UpstreamProductSpec(
-        repository = "wisnukurniawan/Compose-ToDo",
+        repository = "RohitKushvaha01/TaskManager",
         license = UpstreamLicense.Apache2,
-        role = "Task collection, filters and focused task workflow",
+        role = "Android resources/processes navigation, process search/filtering and focused process details",
     )
 
     val automation = UpstreamProductSpec(

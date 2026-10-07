@@ -1,0 +1,59 @@
+{
+  "policy": "layout-only; preserve YSuite business behaviour",
+  "features": {
+    "yentrycleaner": {
+      "surface": "EntityManager",
+      "workspace": "YEntryCleanerWorkspace",
+      "primary_reference": {"repo": "LibChecker/LibChecker", "license": "Apache-2.0"},
+      "research_only": [{"repo": "MuntashirAkon/AppManager", "license": "GPL-family"}]
+    },
+    "ydiag": {
+      "surface": "LogViewer",
+      "workspace": "YDiagWorkspace",
+      "primary_reference": {"repo": "darshanparajuli/LogcatReader", "license": "MIT"},
+      "research_only": [{"repo": "F0x1d/LogFox", "license": "GPL-3.0"}]
+    },
+    "ynotify": {
+      "surface": "LogViewer",
+      "workspace": "YNotifyWorkspace",
+      "primary_reference": {"repo": "darshanparajuli/LogcatReader", "license": "MIT"}
+    },
+    "ypower": {
+      "surface": "EntityManager",
+      "workspace": "YPowerWorkspace",
+      "primary_reference": {"repo": "LibChecker/LibChecker", "license": "Apache-2.0"},
+      "research_only": [{"repo": "luckyzyx/LuckyTool", "license": "GPL-3.0"}]
+    },
+    "yminiguard": {
+      "surface": "EntityManager",
+      "workspace": "YMiniGuardWorkspace",
+      "primary_reference": {"repo": "LibChecker/LibChecker", "license": "Apache-2.0"},
+      "research_only": [{"repo": "luckyzyx/LuckyTool", "license": "GPL-3.0"}]
+    },
+    "ynfc": {
+      "surface": "Tool",
+      "workspace": "YNfcWorkspace",
+      "primary_reference": {"repo": "nfcgate/nfcgate", "license": "Apache-2.0"}
+    },
+    "ytaskmanager": {
+      "surface": "TaskManager",
+      "workspace": "YTaskManagerWorkspace",
+      "primary_reference": {"repo": "RohitKushvaha01/TaskManager", "license": "Apache-2.0"}
+    },
+    "yparam": {
+      "surface": "EntityManager",
+      "workspace": "YParamWorkspace",
+      "primary_reference": {"repo": "LibChecker/LibChecker", "license": "Apache-2.0"},
+      "research_only": [
+        {"repo": "Kwensiu/DPIS", "license": "GPL-3.0"},
+        {"repo": "rovo89/XposedAppSettings", "license": "GPL-family"}
+      ]
+    },
+    "yfloat": {
+      "surface": "Settings",
+      "workspace": "YFloatWorkspace",
+      "primary_reference": {"repo": "alorma/Compose-Settings", "license": "MIT"},
+      "secondary_reference": {"repo": "rhengtl/textsnip", "license": "MIT"}
+    }
+  }
+}
