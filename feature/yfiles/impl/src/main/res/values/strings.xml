@@ -298,4 +298,24 @@
     <string name="yfiles_adv_cloud_google_drive">Google Drive</string>
     <string name="yfiles_adv_cloud_dropbox">Dropbox</string>
     <string name="yfiles_adv_cloud_onedrive">OneDrive</string>
+
+    <string name="yfiles_patch_title">System file picker enhancement</string>
+    <string name="yfiles_patch_enabled">Enable system picker patch</string>
+    <string name="yfiles_patch_enabled_subtitle">Enhance stock SAF/DocumentsUI without replacing the system picker; failures keep the original system behaviour.</string>
+    <string name="yfiles_patch_local_only">Prefer local-only sources</string>
+    <string name="yfiles_patch_allow_multiple">Allow multiple selection</string>
+    <string name="yfiles_patch_default_sort">Default DocumentsUI sort</string>
+    <string name="yfiles_patch_initial_uri">Initial picker location</string>
+    <string name="yfiles_patch_initial_uri_label">Document URI (leave blank for system default)</string>
+    <string name="yfiles_patch_system_default">System default</string>
+    <string name="yfiles_patch_sort_system">System default</string>
+    <string name="yfiles_patch_sort_name">Name</string>
+    <string name="yfiles_patch_sort_date">Date</string>
+    <string name="yfiles_patch_sort_size">Size</string>
+    <string name="yfiles_patch_sort_type">File type</string>
+    <string name="yfiles_patch_scope">Configure recommended Hook scope</string>
+    <string name="yfiles_patch_scope_subtitle">%1$d picker/caller apps detected</string>
+    <string name="yfiles_patch_sync">Sync patch configuration</string>
+    <string name="yfiles_patch_scope_ready">System picker Hook scope updated</string>
+    <string name="yfiles_patch_synced">System picker patch configuration synced</string>
 </resources>
