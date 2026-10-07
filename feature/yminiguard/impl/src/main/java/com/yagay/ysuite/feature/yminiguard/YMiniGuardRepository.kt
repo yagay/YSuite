@@ -164,7 +164,7 @@ internal class YMiniGuardRepository(
                     is Outcome.Failure -> result.error.code + ": " + result.error.message
                 }
             } else {
-                "Root unavailable"
+                "root_unavailable"
             }
         return "Root=" + rootStatus + " Hook=" + hookStatus + "\n" +
             "engineVersion=" + engine.versionCode +
