@@ -66,14 +66,22 @@ public class LensAccessibilityService extends AccessibilityService {
         } catch (Throwable t) {
             DiagnosticLog.i(this, "ACCESSIBILITY", "setServiceInfo flags failed=" + t);
         }
-        try { refreshHomePackages(); }
-        catch (Throwable t) { DiagnosticLog.i(this, "ACCESSIBILITY", "home package query failed=" + t); }
-        try {
-            env = inspect(env.topPackage());
-            publishEnvironment();
-        } catch (Throwable t) {
-            DiagnosticLog.i(this, "ACCESSIBILITY", "publish on connect failed=" + t);
-        }
+        // Do not compete with the host Activity's first frame. When accessibility was already
+        // enabled before an app update, Android can reconnect this service while MainActivity is
+        // being created. Window-tree inspection and launcher queries are intentionally deferred.
+        main.postDelayed(() -> {
+            if (s != this) return;
+            try { refreshHomePackages(); }
+            catch (Throwable t) {
+                DiagnosticLog.i(this, "ACCESSIBILITY", "home package query failed=" + t);
+            }
+            try {
+                env = inspect(env.topPackage());
+                publishEnvironment();
+            } catch (Throwable t) {
+                DiagnosticLog.i(this, "ACCESSIBILITY", "publish on connect failed=" + t);
+            }
+        }, 750L);
         FloatService service = FloatService.get();
         if (service != null) service.onAccessibilityOverlayHostChanged(true);
         OverlayRegistry.onAccessibilityHostChanged(true);
