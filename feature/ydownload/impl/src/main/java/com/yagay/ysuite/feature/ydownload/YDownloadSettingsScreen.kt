@@ -22,6 +22,8 @@ import com.yagay.ysuite.ui.rememberYSuitePermissionRequester
 @Composable
 fun YDownloadSettingsScreen(
     settings: YDownloadSettings,
+    systemPatch: YDownloadSystemPatchSettings,
+    systemPatchScopeCount: Int,
     onBack: () -> Unit,
     onDefaultTreeUri: (String?) -> Unit,
     onMaxConcurrent: (Int) -> Unit,
@@ -31,6 +33,15 @@ fun YDownloadSettingsScreen(
     onAutoResumeNetwork: (Boolean) -> Unit,
     onNotifications: (Boolean) -> Unit,
     onUserAgent: (String) -> Unit,
+    onSystemPatchEnabled: (Boolean) -> Unit,
+    onSystemPatchAllowMetered: (Boolean) -> Unit,
+    onSystemPatchAllowRoaming: (Boolean) -> Unit,
+    onSystemPatchRequireCharging: (Boolean) -> Unit,
+    onSystemPatchRequireIdle: (Boolean) -> Unit,
+    onSystemPatchCompletionNotification:
+        (Boolean) -> Unit,
+    onSystemPatchScope: () -> Unit,
+    onSystemPatchSync: () -> Unit,
 ) {
     val context = LocalContext.current
     val permissionRequester =
@@ -237,6 +248,113 @@ fun YDownloadSettingsScreen(
                         onNotifications(enabled)
                     }
                 },
+            )
+        }
+
+        ComposeSettingsGroup(
+            title =
+                stringResource(
+                    R.string
+                        .ydownload_patch_title,
+                ),
+        ) {
+            ComposeSettingsSwitch(
+                title =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_enabled,
+                    ),
+                subtitle =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_enabled_desc,
+                    ),
+                checked = systemPatch.enabled,
+                onCheckedChange =
+                    onSystemPatchEnabled,
+            )
+            ComposeSettingsSwitch(
+                title =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_metered,
+                    ),
+                checked =
+                    systemPatch.allowMetered,
+                enabled = systemPatch.enabled,
+                onCheckedChange =
+                    onSystemPatchAllowMetered,
+            )
+            ComposeSettingsSwitch(
+                title =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_roaming,
+                    ),
+                checked =
+                    systemPatch.allowRoaming,
+                enabled = systemPatch.enabled,
+                onCheckedChange =
+                    onSystemPatchAllowRoaming,
+            )
+            ComposeSettingsSwitch(
+                title =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_charging,
+                    ),
+                checked =
+                    systemPatch.requireCharging,
+                enabled = systemPatch.enabled,
+                onCheckedChange =
+                    onSystemPatchRequireCharging,
+            )
+            ComposeSettingsSwitch(
+                title =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_idle,
+                    ),
+                checked =
+                    systemPatch.requireDeviceIdle,
+                enabled = systemPatch.enabled,
+                onCheckedChange =
+                    onSystemPatchRequireIdle,
+            )
+            ComposeSettingsSwitch(
+                title =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_completion_notification,
+                    ),
+                checked =
+                    systemPatch
+                        .forceCompletionNotification,
+                enabled = systemPatch.enabled,
+                onCheckedChange =
+                    onSystemPatchCompletionNotification,
+            )
+            ComposeSettingsLink(
+                title =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_scope,
+                    ),
+                subtitle =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_scope_desc,
+                        systemPatchScopeCount,
+                    ),
+                onClick = onSystemPatchScope,
+            )
+            ComposeSettingsLink(
+                title =
+                    stringResource(
+                        R.string
+                            .ydownload_patch_sync,
+                    ),
+                onClick = onSystemPatchSync,
             )
         }
 
