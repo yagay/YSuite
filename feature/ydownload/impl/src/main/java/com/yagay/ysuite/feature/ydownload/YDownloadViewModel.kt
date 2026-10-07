@@ -56,6 +56,9 @@ data class YDownloadAddDraft(
 data class YDownloadUiState(
     val items: List<YDownloadItem> = emptyList(),
     val settings: YDownloadSettings = YDownloadSettings(),
+    val systemPatch:
+        YDownloadSystemPatchSettings =
+        YDownloadSystemPatchSettings(),
     val page: YDownloadPage = YDownloadPage.Main,
     val sort: YDownloadSort = YDownloadSort.Added,
     val selectedTab: YDownloadTab = YDownloadTab.All,
@@ -73,8 +76,17 @@ class YDownloadViewModel(
 ) : ViewModel() {
     private val appContext =
         context.applicationContext
+    private val systemPatch =
+        YDownloadSystemPatchStore(
+            appContext,
+        )
     private val mutableState =
-        MutableStateFlow(YDownloadUiState())
+        MutableStateFlow(
+            YDownloadUiState(
+                systemPatch =
+                    systemPatch.load(),
+            ),
+        )
     private var fetchJob: Job? = null
 
     val state: StateFlow<YDownloadUiState> =
@@ -715,6 +727,80 @@ class YDownloadViewModel(
         viewModelScope.launch {
             environment.settings
                 .setNotificationsEnabled(value)
+        }
+    }
+
+    fun setSystemPatchEnabled(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(enabled = value)
+    }
+
+    fun setSystemPatchAllowMetered(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(allowMetered = value)
+    }
+
+    fun setSystemPatchAllowRoaming(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(allowRoaming = value)
+    }
+
+    fun setSystemPatchRequireCharging(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(requireCharging = value)
+    }
+
+    fun setSystemPatchRequireIdle(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(requireDeviceIdle = value)
+    }
+
+    fun setSystemPatchCompletionNotification(
+        value: Boolean,
+    ) = updateSystemPatch {
+        copy(
+            forceCompletionNotification = value,
+        )
+    }
+
+    fun systemPatchScopeCount(): Int =
+        systemPatch.recommendedTargets().size
+
+    fun requestSystemPatchScope() {
+        viewModelScope.launch {
+            systemPatch
+                .requestRecommendedScope()
+        }
+    }
+
+    fun syncSystemPatch() {
+        viewModelScope.launch {
+            systemPatch.sync(
+                mutableState.value.systemPatch,
+            )
+        }
+    }
+
+    private fun updateSystemPatch(
+        transform:
+            YDownloadSystemPatchSettings.() ->
+            YDownloadSystemPatchSettings,
+    ) {
+        val next =
+            mutableState.value.systemPatch
+                .transform()
+        mutableState.update {
+            it.copy(
+                systemPatch = next,
+            )
+        }
+        viewModelScope.launch {
+            systemPatch.save(next)
         }
     }
 
