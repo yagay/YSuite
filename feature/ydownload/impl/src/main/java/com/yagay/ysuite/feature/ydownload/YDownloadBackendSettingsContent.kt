@@ -1,33 +1,16 @@
 package com.yagay.ysuite.feature.ydownload
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.yagay.ysuite.feature.ydownload.api.YDownloadBackend
 import com.yagay.ysuite.productui.settings.ComposeSettingsChoice
 import com.yagay.ysuite.productui.settings.ComposeSettingsChoiceGroup
 
 @Composable
-internal fun YDownloadBackendSettingsContent() {
-    val context =
-        LocalContext.current
-    val store =
-        remember(context) {
-            YDownloadBackendPreferenceStore(
-                context,
-            )
-        }
-    var backend by
-        remember {
-            mutableStateOf(
-                store.get(),
-            )
-        }
-
+internal fun YDownloadBackendSettingsContent(
+    backend: YDownloadBackend,
+    onBackendChanged: (YDownloadBackend) -> Unit,
+) {
     ComposeSettingsChoiceGroup(
         title =
             stringResource(
@@ -63,10 +46,7 @@ internal fun YDownloadBackendSettingsContent() {
                 YDownloadBackend
                     .valueOf(id)
             }.getOrNull()
-                ?.let {
-                    backend = it
-                    store.set(it)
-                }
+                ?.let(onBackendChanged)
         },
     )
 }
