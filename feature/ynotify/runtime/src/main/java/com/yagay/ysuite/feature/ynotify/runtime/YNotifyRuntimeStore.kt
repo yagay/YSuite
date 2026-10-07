@@ -116,7 +116,7 @@ class YNotifyRuntimeStore(
         database.reclassify()
     }
 
-    fun export(events: List<YNotifyEvent>): String {
+    fun export(): String {
         val fileName =
             "YNotify-" +
                 System.currentTimeMillis() +
@@ -150,7 +150,7 @@ class YNotifyRuntimeStore(
         resolver.openOutputStream(uri)
             ?.bufferedWriter()
             ?.use { writer ->
-                events.forEach { event ->
+                database.forEachEvent { event ->
                     writer.appendLine(
                         JSONObject().apply {
                             put("id", event.id)
