@@ -11,6 +11,8 @@ import com.yagay.ysuite.feature.ynotify.api.YNotifyEventType
 import com.yagay.ysuite.feature.ynotify.api.YNotifyRuntimeStatus
 import com.yagay.ysuite.feature.ynotify.runtime.YNotifyRuntimeStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,6 +61,8 @@ enum class YNotifyTypeFilter {
 
 data class YNotifyUiState(
     val events: List<YNotifyEvent> = emptyList(),
+    val searchResults: List<YNotifyEvent>? = null,
+    val appSummaries: List<YNotifyAppSummary> = emptyList(),
     val query: String = "",
     val viewMode: YNotifyViewMode =
         YNotifyViewMode.History,
@@ -90,6 +94,8 @@ class YNotifyViewModel(
     val state: StateFlow<YNotifyUiState> =
         mutableState.asStateFlow()
 
+    private var searchJob: Job? = null
+
     init {
         mutableState.value =
             mutableState.value.copy(
@@ -98,19 +104,97 @@ class YNotifyViewModel(
             )
         viewModelScope.launch {
             store.observeEvents().collect {
+                    events ->
+                val aggregates =
+                    withContext(
+                        Dispatchers.IO,
+                    ) {
+                        store.appAggregates()
+                    }.map { aggregate ->
+                        YNotifyAppSummary(
+                            packageName =
+                                aggregate.packageName,
+                            label =
+                                aggregate.appLabel,
+                            count =
+                                aggregate.count,
+                            latestAt =
+                                aggregate.latestAt,
+                        )
+                    }
+                val current =
+                    mutableState.value
                 mutableState.value =
-                    mutableState.value.copy(
-                        events = it,
+                    current.copy(
+                        events = events,
+                        appSummaries =
+                            aggregates,
                         runtimeStatus =
                             store.status(),
                     )
+                if (
+                    current.query
+                        .isNotBlank()
+                ) {
+                    scheduleSearch(
+                        current.query,
+                    )
+                }
             }
         }
     }
 
     fun setQuery(value: String) {
         mutableState.value =
-            mutableState.value.copy(query = value)
+            mutableState.value.copy(
+                query = value,
+                searchResults =
+                    if (value.isBlank()) {
+                        null
+                    } else {
+                        mutableState.value
+                            .searchResults
+                    },
+            )
+        scheduleSearch(value)
+    }
+
+    private fun scheduleSearch(
+        value: String,
+    ) {
+        searchJob?.cancel()
+        val query = value.trim()
+        if (query.isBlank()) {
+            mutableState.value =
+                mutableState.value.copy(
+                    searchResults = null,
+                )
+            return
+        }
+        searchJob =
+            viewModelScope.launch {
+                delay(250L)
+                val result =
+                    withContext(
+                        Dispatchers.IO,
+                    ) {
+                        store.search(
+                            query,
+                        )
+                    }
+                if (
+                    mutableState.value
+                        .query
+                        .trim() ==
+                    query
+                ) {
+                    mutableState.value =
+                        mutableState.value.copy(
+                            searchResults =
+                                result,
+                        )
+                }
+            }
     }
 
     fun setViewMode(
@@ -159,32 +243,8 @@ class YNotifyViewModel(
         val state = mutableState.value
         val needle =
             state.query.trim()
-        return state.events
-            .groupBy {
-                it.packageName
-            }
-            .map {
-                (packageName, events) ->
-                val latest =
-                    events.maxByOrNull {
-                        it.updatedAt
-                    }
-                YNotifyAppSummary(
-                    packageName =
-                        packageName,
-                    label =
-                        latest?.appLabel
-                            ?.takeIf {
-                                it.isNotBlank()
-                            }
-                            ?: packageName,
-                    count = events.size,
-                    latestAt =
-                        events.maxOfOrNull {
-                            it.updatedAt
-                        } ?: 0L,
-                )
-            }
+        return state.appSummaries
+            .asSequence()
             .filter {
                 needle.isBlank() ||
                     it.label.contains(
@@ -206,12 +266,20 @@ class YNotifyViewModel(
                     it.label.lowercase()
                 },
             )
+            .toList()
     }
 
     fun visibleEvents(): List<YNotifyEvent> {
         val state = mutableState.value
         val needle = state.query.trim()
-        return state.events.filter { event ->
+        val source =
+            if (needle.isBlank()) {
+                state.events
+            } else {
+                state.searchResults
+                    ?: emptyList()
+            }
+        return source.filter { event ->
             val typeMatch =
                 when (state.typeFilter) {
                     YNotifyTypeFilter.All -> true
@@ -317,13 +385,17 @@ class YNotifyViewModel(
             )
     }
 
-    fun selectedEvent(): YNotifyEvent? =
-        mutableState.value.events
-            .firstOrNull {
+    fun selectedEvent(): YNotifyEvent? {
+        val state =
+            mutableState.value
+        return (
+            state.searchResults
+                ?: state.events
+            ).firstOrNull {
                 it.id ==
-                    mutableState.value
-                        .selectedEventId
+                    state.selectedEventId
             }
+    }
 
     fun isPaused(packageName: String): Boolean =
         store.isPaused(packageName)
