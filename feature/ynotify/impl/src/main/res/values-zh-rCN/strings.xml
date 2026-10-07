@@ -61,4 +61,25 @@
     <string name="ynotify_show_content">记录内容</string>
     <string name="ynotify_retention_days">%1$d 天</string>
     <string name="ynotify_retention_forever">永久</string>
+
+    <string name="ynotify_detail_metadata">通知详细元数据</string>
+    <string name="ynotify_detail_subtext">副文本</string>
+    <string name="ynotify_detail_summary">摘要</string>
+    <string name="ynotify_detail_notification_id">通知 ID</string>
+    <string name="ynotify_detail_tag">标签</string>
+    <string name="ynotify_detail_channel">通知渠道</string>
+    <string name="ynotify_detail_group">分组</string>
+    <string name="ynotify_detail_group_value">%1$s · 摘要=%2$b</string>
+    <string name="ynotify_detail_category">类别</string>
+    <string name="ynotify_detail_template">模板</string>
+    <string name="ynotify_detail_ranking">排序状态</string>
+    <string name="ynotify_detail_ranking_value">importance=%1$d · channel=%2$d · conversation=%3$b · canBubble=%4$b · ambient=%5$b · suspended=%6$b</string>
+    <string name="ynotify_detail_flags">标志</string>
+    <string name="ynotify_detail_flags_value">0x%1$x · clearable=%2$b · ongoing=%3$b · foreground=%4$b · bubble=%5$b · fullScreen=%6$b · silent=%7$b</string>
+    <string name="ynotify_detail_progress">进度</string>
+    <string name="ynotify_detail_progress_value">%1$d / %2$d · indeterminate=%3$b</string>
+    <string name="ynotify_detail_messages">消息</string>
+    <string name="ynotify_detail_actions">操作</string>
+    <string name="ynotify_detail_raw_extras">原始 extras</string>
+    <string name="ynotify_detail_removal_reason">移除原因</string>
 </resources>
