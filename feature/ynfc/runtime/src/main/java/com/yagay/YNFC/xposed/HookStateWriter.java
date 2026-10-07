@@ -11,8 +11,6 @@ import java.util.concurrent.Executors;
 /** Preserves ordered asynchronous writes and explicit synchronous lifecycle barriers. */
 final class HookStateWriter {
     private static final String TAG = "NfcUIDSim";
-    private static final Uri CONFIG_URI =
-            Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
     private final ExecutorService executor = Executors.newSingleThreadExecutor(
             runnable -> NfcHookUtils.daemon(runnable, "NfcUIDSim-StateSync"));
 
@@ -23,7 +21,7 @@ final class HookStateWriter {
                 Context context = NfcHookUtils.currentContext();
                 if (context != null) {
                     try {
-                        context.getContentResolver().insert(CONFIG_URI, copy);
+                        context.getContentResolver().insert(NfcInjectionModule.configUri(), copy);
                         return;
                     } catch (Throwable error) {
                         Log.w(TAG, "status write attempt " + (i + 1) + " failed: " + error.getMessage());
@@ -40,7 +38,7 @@ final class HookStateWriter {
             Context context = NfcHookUtils.currentContext();
             if (context != null) {
                 try {
-                    context.getContentResolver().insert(CONFIG_URI, copy);
+                    context.getContentResolver().insert(NfcInjectionModule.configUri(), copy);
                     return true;
                 } catch (Throwable error) {
                     Log.w(TAG, "sync state write attempt " + (i + 1) + " failed: " + error.getMessage());
