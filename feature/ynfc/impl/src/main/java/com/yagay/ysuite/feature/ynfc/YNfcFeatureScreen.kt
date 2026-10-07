@@ -150,7 +150,7 @@ fun YNfcFeatureScreen(environment: YNfcEnvironment) {
                     title = stringResource(R.string.ynfc_diagnostics),
                     modifier = Modifier.padding(horizontal = YSuiteSpacing.Medium),
                 ) {
-                    state.message?.let {
+                    state.statusToken?.let {
                         YSuiteStatusBadge(
                             text = messageText(it),
                             tone = if (it in setOf("card_saved", "apply_success", "stop_success")) {

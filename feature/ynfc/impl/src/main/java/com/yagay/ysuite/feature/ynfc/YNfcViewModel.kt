@@ -18,7 +18,7 @@ data class YNfcUiState(
     val rootStatus: CapabilityStatus = CapabilityStatus.Unavailable,
     val hookStatus: CapabilityStatus = CapabilityStatus.Unavailable,
     val busy: Boolean = false,
-    val message: String? = null,
+    val statusToken: String? = null,
     val diagnostics: String = "",
     val exportUri: String? = null,
 )
@@ -37,7 +37,7 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
     fun saveCard(card: CardModel) {
         val cards = (mutableState.value.cards.filterNot { it.uid.equals(card.uid, true) } + card).sortedBy { it.name.lowercase() }
         repository.saveCards(cards)
-        mutableState.value = mutableState.value.copy(cards = cards, message = "card_saved")
+        mutableState.value = mutableState.value.copy(cards = cards, statusToken = "card_saved")
     }
     fun delete(card: CardModel) {
         val cards = mutableState.value.cards.filterNot { it.uid.equals(card.uid, true) }
@@ -62,13 +62,13 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
     }
     private fun operation(started: String, block: suspend () -> Pair<YNfcRuntimeSnapshot, String>) {
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(busy = true, message = started)
+            mutableState.value = mutableState.value.copy(busy = true, statusToken = started)
             runCatching { withContext(Dispatchers.IO) { block() } }
                 .onSuccess { result ->
-                    mutableState.value = mutableState.value.copy(busy = false, runtime = result.first, message = result.second)
+                    mutableState.value = mutableState.value.copy(busy = false, runtime = result.first, statusToken = result.second)
                 }
                 .onFailure {
-                    mutableState.value = mutableState.value.copy(busy = false, message = it.message ?: "operation_failed")
+                    mutableState.value = mutableState.value.copy(busy = false, statusToken = "operation_failed")
                 }
         }
     }
