@@ -65,4 +65,14 @@
     <string name="yparam_diag_version_value">%1$s (%2$d)</string>
     <string name="yparam_diag_sdk">UID / SDK</string>
     <string name="yparam_diag_permissions">声明权限数量</string>
+    <string name="yparam_diag_sdk_value">UID %1$d · minSdk %2$d · targetSdk %3$d</string>
+    <string name="yparam_diag_launch">启动 Activity</string>
+    <string name="yparam_diag_launch_value">%1$s · 方向 %2$d</string>
+    <string name="yparam_diag_display">系统显示</string>
+    <string name="yparam_diag_display_value">%1$d × %2$d · %3$d dpi</string>
+    <string name="yparam_diag_configuration">系统 Configuration</string>
+    <string name="yparam_diag_configuration_value">%1$d × %2$d dp · 最小宽度 %3$d dp</string>
+    <string name="yparam_diag_locale">语言 / 时区</string>
+    <string name="yparam_diag_locale_value">%1$s · %2$s</string>
+    <string name="yparam_baseline_snapshot">首次修改基线</string>
 </resources>
