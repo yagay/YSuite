@@ -35,7 +35,7 @@ import io.github.libxposed.api.XposedModuleInterface;
 public class NfcInjectionModule extends XposedModule {
     private static final String TAG = "NfcUIDSim";
     private static final int HOOK_BUILD = BuildConfig.HOOK_BUILD;
-    private static final Uri CONFIG_URI = Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
+    private static volatile Uri CONFIG_URI = Uri.EMPTY;
     private static final int MAX_LEARNING_HOOKS = 4;
     private static final int MAX_TRIGGER_HOOKS = 4;
     private static final long TRIGGER_RF_WINDOW_MS = 3_000L;
@@ -115,7 +115,24 @@ public class NfcInjectionModule extends XposedModule {
 
     @Override public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param) {
         super.onModuleLoaded(param);
-        Log.i(TAG, "PROD MODULE loaded build=" + HOOK_BUILD + " process=" + param.getProcessName());
+        String hostPackage = "com.yagay.ysuite";
+        try {
+            if (getModuleApplicationInfo() != null
+                    && getModuleApplicationInfo().packageName != null
+                    && !getModuleApplicationInfo().packageName.isBlank()) {
+                hostPackage = getModuleApplicationInfo().packageName;
+            }
+        } catch (Throwable ignored) {
+        }
+        CONFIG_URI = Uri.parse(
+                "content://" + hostPackage + ".ynfc.config/settings");
+        Log.i(TAG, "PROD MODULE loaded build=" + HOOK_BUILD
+                + " host=" + hostPackage
+                + " process=" + param.getProcessName());
+    }
+
+    static Uri configUri() {
+        return CONFIG_URI;
     }
 
     @Override public void onPackageLoaded(XposedModuleInterface.PackageLoadedParam lp) {
