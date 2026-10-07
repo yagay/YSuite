@@ -24,10 +24,6 @@ class YDownloadRepository(
 ) {
     private val helper =
         DownloadDbHelper(context.applicationContext)
-    private val backendPreferences =
-        YDownloadBackendPreferenceStore(
-            context.applicationContext,
-        )
     private val mutex = Mutex()
     private val mutableItems =
         MutableStateFlow<List<YDownloadItem>>(emptyList())
@@ -55,18 +51,9 @@ class YDownloadRepository(
                         ?.takeIf {
                             it > System.currentTimeMillis()
                         }
-                val preferredBackend =
-                    if (
-                        request.backend ==
-                        YDownloadBackend.Private
-                    ) {
-                        YDownloadBackend.Private
-                    } else {
-                        backendPreferences.get()
-                    }
                 val backend =
                     if (
-                        preferredBackend ==
+                        request.backend ==
                             YDownloadBackend.System &&
                         (
                             request.destinationTreeUri != null ||
@@ -75,7 +62,7 @@ class YDownloadRepository(
                     ) {
                         YDownloadBackend.Private
                     } else {
-                        preferredBackend
+                        request.backend
                     }
                 val values = ContentValues().apply {
                     put(COL_ID, id)
