@@ -53,5 +53,7 @@ include(":feature:ytaskmanager:api")
 include(":feature:ytaskmanager:impl")
 include(":feature:yparam:api")
 include(":feature:yparam:impl")
+include(":feature:ydiag:api")
+include(":feature:ydiag:impl")
 
 include(":host:standalone")
