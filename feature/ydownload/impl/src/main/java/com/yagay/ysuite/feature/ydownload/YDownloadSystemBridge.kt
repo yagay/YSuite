@@ -13,6 +13,7 @@ import android.util.Base64
 import com.yagay.ysuite.feature.ydownload.api.YDownloadItem
 import com.yagay.ysuite.feature.ydownload.api.YDownloadState
 import com.yagay.ysuite.logging.api.YSuiteLogger
+import com.yagay.ysuite.platform.api.HookGateway
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.delay
@@ -21,6 +22,7 @@ internal class YDownloadSystemBridge(
     context: Context,
     private val repository: YDownloadRepository,
     private val logger: YSuiteLogger,
+    private val hookGateway: HookGateway,
 ) {
     private val appContext =
         context.applicationContext
@@ -154,6 +156,7 @@ internal class YDownloadSystemBridge(
         val patch =
             YDownloadSystemPatchStore(
                 appContext,
+                hookGateway,
             ).load()
         val request =
             DownloadManager.Request(
