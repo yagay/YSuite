@@ -715,15 +715,30 @@ private fun YDownloadItem.toRowModel():
         speedEtaText = speedEta,
         progress = progress,
         canPause =
-            state == YDownloadState.Downloading ||
-                state == YDownloadState.Connecting,
-        canResume =
-            state == YDownloadState.Paused ||
-                state == YDownloadState.Cancelled ||
+            backend == YDownloadBackend.Private &&
                 (
-                    state == YDownloadState.Pending &&
-                        !queued
+                    state ==
+                        YDownloadState.Downloading ||
+                        state ==
+                        YDownloadState.Connecting
                 ),
+        canResume =
+            if (
+                backend ==
+                YDownloadBackend.Private
+            ) {
+                state == YDownloadState.Paused ||
+                    state ==
+                        YDownloadState.Cancelled ||
+                    (
+                        state ==
+                            YDownloadState.Pending &&
+                            !queued
+                    )
+            } else {
+                state ==
+                    YDownloadState.Cancelled
+            },
         canCancel =
             state == YDownloadState.Downloading ||
                 state == YDownloadState.Connecting ||
