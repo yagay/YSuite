@@ -59,4 +59,20 @@
     <string name="yparam_validation_latitude">Latitude must be between -90 and 90.</string>
     <string name="yparam_validation_longitude">Longitude must be between -180 and 180.</string>
     <string name="yparam_validation_location">Fixed/random location requires latitude and longitude.</string>
+
+    <string name="yparam_diagnostics">Diagnostics</string>
+    <string name="yparam_diag_version">Version</string>
+    <string name="yparam_diag_version_value">%1$s (%2$d)</string>
+    <string name="yparam_diag_sdk">UID / SDK</string>
+    <string name="yparam_diag_sdk_value">UID %1$d · minSdk %2$d · targetSdk %3$d</string>
+    <string name="yparam_diag_permissions">Requested permissions</string>
+    <string name="yparam_diag_launch">Launch activity</string>
+    <string name="yparam_diag_launch_value">%1$s · orientation %2$d</string>
+    <string name="yparam_diag_display">System display</string>
+    <string name="yparam_diag_display_value">%1$d × %2$d · %3$d dpi</string>
+    <string name="yparam_diag_configuration">System Configuration</string>
+    <string name="yparam_diag_configuration_value">%1$d × %2$d dp · smallest %3$d dp</string>
+    <string name="yparam_diag_locale">Locale / timezone</string>
+    <string name="yparam_diag_locale_value">%1$s · %2$s</string>
+    <string name="yparam_baseline_snapshot">First-change baseline</string>
 </resources>
