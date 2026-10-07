@@ -1,5 +1,7 @@
 package com.yagay.ysuite.feature.yentrycleaner
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,9 +29,21 @@ import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidate
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidateState
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
+import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.productui.featurelayout.YEntryCleanerWorkspace
 import com.yagay.ysuite.ui.YSuiteFeatureBackHandler
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
+
+private val OPEN_MIME_PRESETS =
+    listOf(
+        "application/pdf",
+        "image/*",
+        "video/*",
+        "audio/*",
+        "text/plain",
+        "application/zip",
+        "application/vnd.android.package-archive",
+    )
 
 @Composable
 fun YEntryCleanerFeatureScreen(
@@ -49,6 +63,14 @@ fun YEntryCleanerFeatureScreen(
     val state by
         model.state.collectAsStateWithLifecycle()
     val selected = model.selected()
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts
+                    .OpenDocument(),
+        ) { uri ->
+            uri?.let(model::importBackup)
+        }
 
     if (selected != null) {
         YSuiteFeatureBackHandler {
@@ -89,13 +111,12 @@ fun YEntryCleanerFeatureScreen(
                 )
                 YSuiteFilterBar(
                     options =
-                        YEntrySurface.entries
-                            .map {
-                                YSuiteFilterOption(
-                                    it.name,
-                                    surfaceLabel(it),
-                                )
-                            },
+                        YEntrySurface.entries.map {
+                            YSuiteFilterOption(
+                                it.name,
+                                surfaceLabel(it),
+                            )
+                        },
                     selectedId =
                         state.surface.name,
                     onSelected = {
@@ -110,13 +131,12 @@ fun YEntryCleanerFeatureScreen(
                 )
                 YSuiteFilterBar(
                     options =
-                        YEntryAppFilter.entries
-                            .map {
-                                YSuiteFilterOption(
-                                    it.name,
-                                    filterLabel(it),
-                                )
-                            },
+                        YEntryAppFilter.entries.map {
+                            YSuiteFilterOption(
+                                it.name,
+                                filterLabel(it),
+                            )
+                        },
                     selectedId =
                         state.filter.name,
                     onSelected = {
@@ -129,28 +149,152 @@ fun YEntryCleanerFeatureScreen(
                             )
                     },
                 )
-                if (
-                    state.surface ==
-                    YEntrySurface.Browser
-                ) {
-                    YSuiteSearchField(
-                        value =
-                            state.browserHost,
-                        onValueChange =
-                            model::setBrowserHost,
-                        label =
-                            stringResource(
-                                R.string
-                                    .yentry_browser_host,
-                            ),
-                    )
+                when (state.surface) {
+                    YEntrySurface.Open -> {
+                        YSuiteSearchField(
+                            value = state.openMime,
+                            onValueChange =
+                                model::setOpenMime,
+                            label =
+                                stringResource(
+                                    R.string
+                                        .yentry_open_mime,
+                                ),
+                        )
+                        YSuiteFilterBar(
+                            options =
+                                OPEN_MIME_PRESETS.map {
+                                    YSuiteFilterOption(
+                                        it,
+                                        it,
+                                    )
+                                },
+                            selectedId =
+                                state.openMime
+                                    .takeIf {
+                                        it in
+                                            OPEN_MIME_PRESETS
+                                    },
+                            onSelected =
+                                model::setOpenMime,
+                        )
+                    }
+                    YEntrySurface.Browser -> {
+                        YSuiteSearchField(
+                            value =
+                                state.browserHost,
+                            onValueChange =
+                                model::setBrowserHost,
+                            label =
+                                stringResource(
+                                    R.string
+                                        .yentry_browser_host,
+                                ),
+                        )
+                        if (
+                            state.browserHosts
+                                .isNotEmpty()
+                        ) {
+                            YSuiteFilterBar(
+                                options =
+                                    state.browserHosts
+                                        .take(16)
+                                        .map {
+                                            YSuiteFilterOption(
+                                                it,
+                                                it,
+                                            )
+                                        },
+                                selectedId =
+                                    state.browserHost,
+                                onSelected =
+                                    model::setBrowserHost,
+                            )
+                        }
+                    }
+                    else -> Unit
                 }
             }
         },
         navigationPane = {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier =
+                    Modifier.fillMaxSize(),
             ) {
+                item {
+                    YSuiteSection(
+                        title =
+                            stringResource(
+                                R.string
+                                    .yentry_runtime,
+                            ),
+                        modifier =
+                            Modifier.padding(
+                                YSuiteSpacing.Medium,
+                            ),
+                    ) {
+                        YSuiteStatusBadge(
+                            text =
+                                if (
+                                    state.rootStatus ==
+                                    CapabilityStatus
+                                        .Available
+                                ) {
+                                    stringResource(
+                                        R.string
+                                            .yentry_root_ready,
+                                    )
+                                } else {
+                                    stringResource(
+                                        R.string
+                                            .yentry_root_missing,
+                                    )
+                                },
+                            tone =
+                                if (
+                                    state.rootStatus ==
+                                    CapabilityStatus
+                                        .Available
+                                ) {
+                                    YSuiteStatusTone
+                                        .Positive
+                                } else {
+                                    YSuiteStatusTone
+                                        .Warning
+                                },
+                        )
+                        YSuiteStatusBadge(
+                            text =
+                                if (
+                                    state.hookStatus ==
+                                    CapabilityStatus
+                                        .Available
+                                ) {
+                                    stringResource(
+                                        R.string
+                                            .yentry_hook_ready,
+                                    )
+                                } else {
+                                    stringResource(
+                                        R.string
+                                            .yentry_hook_missing,
+                                    )
+                                },
+                            tone =
+                                if (
+                                    state.hookStatus ==
+                                    CapabilityStatus
+                                        .Available
+                                ) {
+                                    YSuiteStatusTone
+                                        .Positive
+                                } else {
+                                    YSuiteStatusTone
+                                        .Warning
+                                },
+                        )
+                    }
+                }
                 item {
                     YSuiteListItem(
                         title =
@@ -193,6 +337,52 @@ fun YEntryCleanerFeatureScreen(
                             model::setDiagnostic,
                     )
                 }
+                item {
+                    Column(
+                        modifier =
+                            Modifier.padding(
+                                YSuiteSpacing.Medium,
+                            ),
+                        verticalArrangement =
+                            Arrangement.spacedBy(
+                                YSuiteSpacing.Small,
+                            ),
+                    ) {
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .yentry_discover_hosts,
+                                ),
+                            onClick =
+                                model::discoverBrowserHosts,
+                        )
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .yentry_export_backup,
+                                ),
+                            onClick =
+                                model::exportBackup,
+                        )
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .yentry_import_backup,
+                                ),
+                            onClick = {
+                                importLauncher.launch(
+                                    arrayOf(
+                                        "application/json",
+                                        "text/plain",
+                                    ),
+                                )
+                            },
+                        )
+                    }
+                }
             }
         },
         detailPane =
@@ -205,14 +395,16 @@ fun YEntryCleanerFeatureScreen(
                 }
             },
         selectionBar = {
+            val componentSurface =
+                state.surface in
+                    setOf(
+                        YEntrySurface.Tile,
+                        YEntrySurface.Shortcut,
+                        YEntrySurface.Widget,
+                    )
             if (
-                state.surface !in
-                setOf(
-                    YEntrySurface.Tile,
-                    YEntrySurface.Shortcut,
-                    YEntrySurface.Widget,
-                    YEntrySurface.Historical,
-                )
+                state.surface !=
+                YEntrySurface.Historical
             ) {
                 Row(
                     modifier =
@@ -227,26 +419,62 @@ fun YEntryCleanerFeatureScreen(
                             YSuiteSpacing.Small,
                         ),
                 ) {
-                    YSuiteSecondaryButton(
-                        text =
-                            stringResource(
-                                R.string
-                                    .yentry_hide_visible,
-                            ),
-                        onClick = {
-                            model.bulk(true)
-                        },
-                    )
-                    YSuiteSecondaryButton(
-                        text =
-                            stringResource(
-                                R.string
-                                    .yentry_show_visible,
-                            ),
-                        onClick = {
-                            model.bulk(false)
-                        },
-                    )
+                    if (componentSurface) {
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .yentry_disable_visible,
+                                ),
+                            onClick = {
+                                model.bulkComponents(
+                                    false,
+                                )
+                            },
+                        )
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .yentry_enable_visible,
+                                ),
+                            onClick = {
+                                model.bulkComponents(
+                                    true,
+                                )
+                            },
+                        )
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .yentry_invert_visible,
+                                ),
+                            onClick =
+                                model::invertComponents,
+                        )
+                    } else {
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .yentry_hide_visible,
+                                ),
+                            onClick = {
+                                model.bulk(true)
+                            },
+                        )
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .yentry_show_visible,
+                                ),
+                            onClick = {
+                                model.bulk(false)
+                            },
+                        )
+                    }
                 }
             }
         },
@@ -271,39 +499,20 @@ private fun CandidateList(
 ) {
     val state by
         model.state.collectAsStateWithLifecycle()
-    val items = model.visible()
+    val candidates = model.visible()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
     ) {
-        state.statusToken?.let {
+        state.statusToken?.let { token ->
             item {
+                val status =
+                    statusPresentation(token)
                 YSuiteStatusBadge(
                     text =
-                        if (
-                            it ==
-                            "component_changed"
-                        ) {
-                            stringResource(
-                                R.string
-                                    .yentry_component_changed,
-                            )
-                        } else {
-                            stringResource(
-                                R.string
-                                    .yentry_component_failed,
-                            )
-                        },
-                    tone =
-                        if (
-                            it ==
-                            "component_changed"
-                        ) {
-                            YSuiteStatusTone
-                                .Positive
-                        } else {
-                            YSuiteStatusTone
-                                .Error
-                        },
+                        stringResource(
+                            status.first,
+                        ),
+                    tone = status.second,
                     modifier =
                         Modifier.padding(
                             YSuiteSpacing.Medium,
@@ -311,13 +520,12 @@ private fun CandidateList(
                 )
             }
         }
-        if (items.isEmpty()) {
+        if (candidates.isEmpty()) {
             item {
                 YSuiteListItem(
                     title =
                         stringResource(
-                            R.string
-                                .yentry_empty,
+                            R.string.yentry_empty,
                         ),
                     modifier =
                         Modifier.padding(
@@ -326,8 +534,10 @@ private fun CandidateList(
                 )
             }
         }
-        items(items, key = { it.id }) {
-            candidate ->
+        items(
+            items = candidates,
+            key = { it.id },
+        ) { candidate ->
             YSuiteListItem(
                 title = candidate.label,
                 subtitle =
@@ -355,30 +565,29 @@ private fun CandidateList(
                                 YSuiteSpacing.Small,
                         ),
                 trailing = {
-                    if (candidate.locked) {
-                        YSuiteStatusBadge(
-                            text =
-                                stringResource(
-                                    R.string
-                                        .yentry_locked,
-                                ),
-                            tone =
-                                YSuiteStatusTone
-                                    .Warning,
-                        )
-                    } else if (
-                        candidate.hidden
-                    ) {
-                        YSuiteStatusBadge(
-                            text =
-                                stringResource(
-                                    R.string
-                                        .yentry_hidden,
-                                ),
-                            tone =
-                                YSuiteStatusTone
-                                    .Neutral,
-                        )
+                    when {
+                        candidate.locked ->
+                            YSuiteStatusBadge(
+                                text =
+                                    stringResource(
+                                        R.string
+                                            .yentry_locked,
+                                    ),
+                                tone =
+                                    YSuiteStatusTone
+                                        .Warning,
+                            )
+                        candidate.hidden ->
+                            YSuiteStatusBadge(
+                                text =
+                                    stringResource(
+                                        R.string
+                                            .yentry_hidden,
+                                    ),
+                                tone =
+                                    YSuiteStatusTone
+                                        .Neutral,
+                            )
                     }
                 },
             )
@@ -411,8 +620,7 @@ private fun CandidateDetail(
                 YSuiteSwitchItem(
                     title =
                         stringResource(
-                            R.string
-                                .yentry_locked,
+                            R.string.yentry_locked,
                         ),
                     subtitle =
                         stringResource(
@@ -452,9 +660,7 @@ private fun CandidateDetail(
                             )
                         },
                     )
-                    if (
-                        candidate.rootBlocked
-                    ) {
+                    if (candidate.rootBlocked) {
                         YSuiteStatusBadge(
                             text =
                                 stringResource(
@@ -462,8 +668,7 @@ private fun CandidateDetail(
                                         .yentry_component_protected,
                                 ),
                             tone =
-                                YSuiteStatusTone
-                                    .Warning,
+                                YSuiteStatusTone.Warning,
                         )
                     }
                 } else {
@@ -520,6 +725,51 @@ private fun CandidateDetail(
         }
     }
 }
+
+private fun statusPresentation(
+    token: String,
+): Pair<Int, YSuiteStatusTone> =
+    when {
+        token == "component_changed" ->
+            R.string.yentry_component_changed to
+                YSuiteStatusTone.Positive
+        token == "component_failed" ->
+            R.string.yentry_component_failed to
+                YSuiteStatusTone.Error
+        token == "backup_exported" ->
+            R.string.yentry_backup_exported to
+                YSuiteStatusTone.Positive
+        token == "backup_restored" ->
+            R.string.yentry_backup_restored to
+                YSuiteStatusTone.Positive
+        token == "backup_failed" ->
+            R.string.yentry_backup_failed to
+                YSuiteStatusTone.Error
+        token.startsWith(
+            "components_partial:",
+        ) ->
+            R.string.yentry_components_partial to
+                YSuiteStatusTone.Warning
+        token.startsWith(
+            "components_changed:",
+        ) ->
+            R.string.yentry_components_changed to
+                YSuiteStatusTone.Positive
+        token.startsWith(
+            "hosts_discovered:",
+        ) ->
+            R.string.yentry_hosts_discovered to
+                YSuiteStatusTone.Positive
+        token == "rules_hidden" ->
+            R.string.yentry_rules_hidden to
+                YSuiteStatusTone.Positive
+        token == "rules_shown" ->
+            R.string.yentry_rules_shown to
+                YSuiteStatusTone.Positive
+        else ->
+            R.string.yentry_component_failed to
+                YSuiteStatusTone.Error
+    }
 
 @Composable
 private fun surfaceLabel(
