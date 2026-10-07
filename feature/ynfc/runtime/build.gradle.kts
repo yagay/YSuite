@@ -15,6 +15,7 @@ android {
     }
 }
 dependencies {
+    implementation(project(":core:runtime"))
     compileOnly(libs.libxposed.api)
     implementation(libs.androidx.core.ktx)
 }
