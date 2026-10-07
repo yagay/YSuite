@@ -742,6 +742,9 @@ class YFilesAdvancedViewModel(
             )
         }
 
+    fun systemPatchRecommendedScopeCount(): Int =
+        systemPatch.recommendedTargets().size
+
     fun requestSystemPatchScope() =
         launchOutcome(
             "system_patch_scope",
