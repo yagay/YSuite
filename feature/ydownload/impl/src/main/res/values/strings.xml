@@ -128,4 +128,9 @@
     <string name="ydownload_patch_scope">Configure recommended Hook scope</string>
     <string name="ydownload_patch_scope_desc">%1$d DownloadManager caller apps detected</string>
     <string name="ydownload_patch_sync">Sync DownloadManager patch</string>
+
+    <string name="ydownload_default_backend">Default download backend</string>
+    <string name="ydownload_default_backend_desc">System uses Android DownloadProvider. Private keeps YDownload segment, custom folder, and per-task limiting features.</string>
+    <string name="ydownload_backend_system">System DownloadManager</string>
+    <string name="ydownload_backend_private">Private YDownload engine</string>
 </resources>
