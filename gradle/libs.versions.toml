@@ -27,7 +27,7 @@ shizuku = "13.1.5"
 biometric = "1.1.0"
 workmanager = "2.10.0"
 libxposedApi = "102.0.0"
-libxposedService = "102.0.0-1.0.0"
+libxposedService = "102.0.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
