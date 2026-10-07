@@ -1,0 +1,21 @@
+<resources>
+<string name="ynfc_title">YNFC</string>
+<string name="ynfc_root_ready">Root ready</string><string name="ynfc_root_missing">Root unavailable</string>
+<string name="ynfc_hook_ready">NFC Hook ready</string><string name="ynfc_hook_missing">NFC Hook not ready</string>
+<string name="ynfc_read_card">Read NFC-A access card</string><string name="ynfc_start_read">Start reading</string>
+<string name="ynfc_stop_read">Stop reading</string><string name="ynfc_save_card">Save card</string>
+<string name="ynfc_saved_cards">Saved cards</string><string name="ynfc_no_cards">No saved cards yet.</string>
+<string name="ynfc_card_summary">UID %1$s · SAK %2$s · ATQA %3$s</string><string name="ynfc_active">Active</string>
+<string name="ynfc_apply">Use card</string><string name="ynfc_restore">Restore stock NFC</string><string name="ynfc_delete">Delete</string>
+<string name="ynfc_runtime">NFC runtime</string><string name="ynfc_runtime_summary">PID %1$d · Hook %2$d · %3$s</string>
+<string name="ynfc_effective_state">Effective state</string><string name="ynfc_rf_state">RF state</string>
+<string name="ynfc_diagnostics">Diagnostics</string><string name="ynfc_collect_diagnostics">Collect diagnostics</string>
+<string name="ynfc_diagnostic_snapshot">Diagnostic snapshot</string><string name="ynfc_export">Export</string>
+<string name="ynfc_exported">Exported to Downloads/YSuite</string><string name="ynfc_card_saved">Card saved.</string>
+<string name="ynfc_applying">Applying card…</string><string name="ynfc_scope_failed">Could not add com.android.nfc to the LSPosed scope.</string>
+<string name="ynfc_apply_success">RF configuration verified for the selected card.</string>
+<string name="ynfc_hook_not_ready">NFC Hook is not ready in com.android.nfc.</string>
+<string name="ynfc_apply_failed">NFC RF apply failed.</string><string name="ynfc_waiting_rf">Waiting for a verified RF write.</string>
+<string name="ynfc_stopping">Restoring stock NFC…</string><string name="ynfc_stop_success">Stock NFC RF has been restored and verified.</string>
+<string name="ynfc_stop_unconfirmed">NFC restarted but stock RF confirmation is incomplete.</string>
+</resources>

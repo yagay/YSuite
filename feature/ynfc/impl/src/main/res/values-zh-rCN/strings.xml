@@ -1,0 +1,21 @@
+<resources>
+<string name="ynfc_title">YNFC</string>
+<string name="ynfc_root_ready">Root 可用</string><string name="ynfc_root_missing">Root 不可用</string>
+<string name="ynfc_hook_ready">NFC Hook 可用</string><string name="ynfc_hook_missing">NFC Hook 未就绪</string>
+<string name="ynfc_read_card">读取 NFC-A 门禁卡</string><string name="ynfc_start_read">开始读取</string>
+<string name="ynfc_stop_read">停止读取</string><string name="ynfc_save_card">保存卡片</string>
+<string name="ynfc_saved_cards">已保存卡片</string><string name="ynfc_no_cards">还没有保存的卡片。</string>
+<string name="ynfc_card_summary">UID %1$s · SAK %2$s · ATQA %3$s</string><string name="ynfc_active">使用中</string>
+<string name="ynfc_apply">使用此卡</string><string name="ynfc_restore">恢复原始 NFC</string><string name="ynfc_delete">删除</string>
+<string name="ynfc_runtime">NFC 运行状态</string><string name="ynfc_runtime_summary">PID %1$d · Hook %2$d · %3$s</string>
+<string name="ynfc_effective_state">实际状态</string><string name="ynfc_rf_state">RF 状态</string>
+<string name="ynfc_diagnostics">诊断</string><string name="ynfc_collect_diagnostics">采集诊断</string>
+<string name="ynfc_diagnostic_snapshot">诊断快照</string><string name="ynfc_export">导出</string>
+<string name="ynfc_exported">已导出到 Downloads/YSuite</string><string name="ynfc_card_saved">卡片已保存。</string>
+<string name="ynfc_applying">正在应用卡片…</string><string name="ynfc_scope_failed">无法把 com.android.nfc 加入 LSPosed 作用域。</string>
+<string name="ynfc_apply_success">已验证所选卡片的 RF 配置。</string>
+<string name="ynfc_hook_not_ready">com.android.nfc 中的 NFC Hook 尚未就绪。</string>
+<string name="ynfc_apply_failed">NFC RF 应用失败。</string><string name="ynfc_waiting_rf">正在等待已验证的 RF 写入。</string>
+<string name="ynfc_stopping">正在恢复原始 NFC…</string><string name="ynfc_stop_success">原始 NFC RF 已恢复并验证。</string>
+<string name="ynfc_stop_unconfirmed">NFC 已重启，但原始 RF 恢复确认尚未完成。</string>
+</resources>
