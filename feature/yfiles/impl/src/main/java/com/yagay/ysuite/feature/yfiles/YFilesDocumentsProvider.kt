@@ -296,6 +296,138 @@ class YFilesDocumentsProvider :
         return documentId(target)
     }
 
+
+    override fun copyDocument(
+        sourceDocumentId: String,
+        targetParentDocumentId: String,
+    ): String {
+        val source =
+            fileForId(sourceDocumentId)
+        if (source == storageRoot) {
+            throw FileNotFoundException(
+                "Root cannot be copied",
+            )
+        }
+        val targetParent =
+            fileForId(
+                targetParentDocumentId,
+            )
+        requireDirectory(targetParent)
+        val target =
+            uniqueChild(
+                targetParent,
+                source.name,
+            )
+
+        val copied =
+            if (source.isDirectory) {
+                runCatching {
+                    source.copyRecursively(
+                        target = target,
+                        overwrite = false,
+                    )
+                }.getOrDefault(false)
+            } else {
+                runCatching {
+                    source.copyTo(
+                        target = target,
+                        overwrite = false,
+                    )
+                    true
+                }.getOrDefault(false)
+            }
+        if (!copied) {
+            throw FileNotFoundException(
+                "Unable to copy document",
+            )
+        }
+        return documentId(target)
+    }
+
+    override fun moveDocument(
+        sourceDocumentId: String,
+        sourceParentDocumentId: String,
+        targetParentDocumentId: String,
+    ): String {
+        val source =
+            fileForId(sourceDocumentId)
+        if (source == storageRoot) {
+            throw FileNotFoundException(
+                "Root cannot be moved",
+            )
+        }
+        val sourceParent =
+            fileForId(
+                sourceParentDocumentId,
+            )
+        val targetParent =
+            fileForId(
+                targetParentDocumentId,
+            )
+        requireDirectory(sourceParent)
+        requireDirectory(targetParent)
+
+        if (
+            source.parentFile
+                ?.canonicalFile !=
+            sourceParent.canonicalFile
+        ) {
+            throw FileNotFoundException(
+                "Source parent mismatch",
+            )
+        }
+
+        val target =
+            uniqueChild(
+                targetParent,
+                source.name,
+            )
+        if (source.renameTo(target)) {
+            return documentId(target)
+        }
+
+        val copied =
+            if (source.isDirectory) {
+                runCatching {
+                    source.copyRecursively(
+                        target = target,
+                        overwrite = false,
+                    )
+                }.getOrDefault(false)
+            } else {
+                runCatching {
+                    source.copyTo(
+                        target = target,
+                        overwrite = false,
+                    )
+                    true
+                }.getOrDefault(false)
+            }
+        if (!copied) {
+            throw FileNotFoundException(
+                "Unable to move document",
+            )
+        }
+
+        val deleted =
+            if (source.isDirectory) {
+                source.deleteRecursively()
+            } else {
+                source.delete()
+            }
+        if (!deleted) {
+            if (target.isDirectory) {
+                target.deleteRecursively()
+            } else {
+                target.delete()
+            }
+            throw FileNotFoundException(
+                "Unable to remove source after move",
+            )
+        }
+        return documentId(target)
+    }
+
     override fun isChildDocument(
         parentDocumentId: String,
         documentId: String,
