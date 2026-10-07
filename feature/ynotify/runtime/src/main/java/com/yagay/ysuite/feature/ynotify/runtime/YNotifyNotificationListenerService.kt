@@ -36,10 +36,12 @@ class YNotifyNotificationListenerService :
                             packageName
                         ) {
                             database.upsert(
-                                parse(
-                                    it,
-                                    ranking,
-                                ),
+                                YNotifyNotificationParser
+                                    .parse(
+                                        this,
+                                        it,
+                                        ranking,
+                                    ),
                             )
                         }
                     }
@@ -115,7 +117,14 @@ class YNotifyNotificationListenerService :
         ) return
         executor.execute {
             runCatching {
-                var event = parse(sbn, rankingMap)
+                var event =
+                    YNotifyNotificationParser
+                        .parse(
+                            this,
+                            sbn,
+                            rankingMap
+                                ?: currentRanking,
+                        )
                 if (YNotifyCapturePolicy.isRedacted(this, sbn.packageName)) {
                     event = event.copy(
                         title = "•••",
