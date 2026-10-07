@@ -223,21 +223,25 @@ private fun AppList(
             items = apps,
             key = { it.packageName },
         ) { app ->
+            val recommendedText =
+                if (app.recommended) {
+                    stringResource(
+                        R.string.ypower_recommended,
+                    )
+                } else {
+                    null
+                }
+            val subtitle =
+                buildString {
+                    append(app.packageName)
+                    recommendedText?.let {
+                        append(" · ")
+                        append(it)
+                    }
+                }
             YSuiteListItem(
                 title = app.label,
-                subtitle =
-                    buildString {
-                        append(app.packageName)
-                        if (app.recommended) {
-                            append(" · ")
-                            append(
-                                stringResource(
-                                    R.string
-                                        .ypower_recommended,
-                                ),
-                            )
-                        }
-                    },
+                subtitle = subtitle,
                 modifier =
                     Modifier
                         .clickable {
@@ -731,25 +735,25 @@ private fun TraceSwitches(
 private fun FindingRow(
     finding: YPowerFinding,
 ) {
+    val recommendation =
+        finding.recommendation?.let {
+            recommendationText(it)
+        }
+    val subtitle =
+        buildString {
+            append(finding.summary)
+            if (finding.detail.isNotBlank()) {
+                append("\n")
+                append(finding.detail)
+            }
+            recommendation?.let {
+                append("\n")
+                append(it)
+            }
+        }
     YSuiteListItem(
         title = findingTitle(finding.id),
-        subtitle =
-            buildString {
-                append(finding.summary)
-                if (finding.detail.isNotBlank()) {
-                    append("\n")
-                    append(finding.detail)
-                }
-                finding.recommendation
-                    ?.let {
-                        append("\n")
-                        append(
-                            recommendationText(
-                                it,
-                            ),
-                        )
-                    }
-            },
+        subtitle = subtitle,
         trailing = {
             YSuiteStatusBadge(
                 text =
