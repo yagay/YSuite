@@ -682,6 +682,9 @@ private fun EventDetail(
                 )
             }
         }
+        item {
+            YNotifyEventMetadata(event)
+        }
     }
 }
 
