@@ -133,4 +133,8 @@
     <string name="ydownload_default_backend_desc">System uses Android DownloadProvider. Private keeps YDownload segment, custom folder, and per-task limiting features.</string>
     <string name="ydownload_backend_system">System DownloadManager</string>
     <string name="ydownload_backend_private">Private YDownload engine</string>
+    <string name="ydownload_pause_all">Pause all active</string>
+    <string name="ydownload_resume_all">Resume all paused</string>
+    <string name="ydownload_retry_failed">Retry failed</string>
+    <string name="ydownload_clear_finished">Clear completed and cancelled</string>
 </resources>
