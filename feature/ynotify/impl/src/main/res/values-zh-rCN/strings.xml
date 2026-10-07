@@ -35,6 +35,7 @@
     <string name="ynotify_type_popup">Popup</string>
     <string name="ynotify_type_systemui">系统界面</string>
     <string name="ynotify_type_other">其他界面</string>
+    <string name="ynotify_kind_all">全部类型</string>
     <string name="ynotify_kind_fullscreen">全屏</string>
     <string name="ynotify_kind_bubble">气泡</string>
     <string name="ynotify_kind_call">通话</string>

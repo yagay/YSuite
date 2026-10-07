@@ -90,6 +90,31 @@ fun YNotifyFeatureScreen() {
             ) {
                 YSuiteFilterBar(
                     options =
+                        YNotifyViewMode.entries
+                            .map {
+                                YSuiteFilterOption(
+                                    it.name,
+                                    viewModeLabel(it),
+                                )
+                            },
+                    selectedId =
+                        state.viewMode.name,
+                    onSelected = {
+                        runCatching {
+                            YNotifyViewMode
+                                .valueOf(it)
+                        }.getOrNull()
+                            ?.let(
+                                model::setViewMode,
+                            )
+                    },
+                )
+                if (
+                    state.viewMode ==
+                    YNotifyViewMode.History
+                ) {
+                    YSuiteFilterBar(
+                    options =
                         YNotifyTypeFilter.entries
                             .map {
                                 YSuiteFilterOption(
@@ -109,6 +134,46 @@ fun YNotifyFeatureScreen() {
                             )
                     },
                 )
+                    YSuiteFilterBar(
+                        options =
+                            YNotifyKindFilter.entries
+                                .map {
+                                    YSuiteFilterOption(
+                                        it.name,
+                                        kindFilterLabel(it),
+                                    )
+                                },
+                        selectedId =
+                            state.kindFilter.name,
+                        onSelected = {
+                            runCatching {
+                                YNotifyKindFilter
+                                    .valueOf(it)
+                            }.getOrNull()
+                                ?.let(
+                                    model::setKindFilter,
+                                )
+                        },
+                    )
+                    state.selectedPackage?.let {
+                        selectedPackage ->
+                        YSuiteListItem(
+                            title =
+                                stringResource(
+                                    R.string
+                                        .ynotify_app_filter,
+                                ),
+                            subtitle =
+                                selectedPackage,
+                            modifier =
+                                Modifier.clickable {
+                                    model.selectPackage(
+                                        null,
+                                    )
+                                },
+                        )
+                    }
+                }
                 RuntimeControls(
                     state = state,
                     model = model,
@@ -122,7 +187,14 @@ fun YNotifyFeatureScreen() {
                 }
             },
     ) {
-        EventList(model)
+        if (
+            state.viewMode ==
+            YNotifyViewMode.Apps
+        ) {
+            AppList(model)
+        } else {
+            EventList(model)
+        }
     }
 }
 
@@ -214,6 +286,70 @@ private fun RuntimeControls(
             onClick =
                 model::openAccessibility,
         )
+    }
+}
+
+@Composable
+private fun AppList(
+    model: YNotifyViewModel,
+) {
+    val apps =
+        model.appSummaries()
+    LazyColumn(
+        modifier =
+            Modifier.fillMaxSize(),
+    ) {
+        if (apps.isEmpty()) {
+            item {
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string
+                                .ynotify_no_apps,
+                        ),
+                    modifier =
+                        Modifier.padding(
+                            YSuiteSpacing.Medium,
+                        ),
+                )
+            }
+        }
+        items(
+            items = apps,
+            key = {
+                it.packageName
+            },
+        ) { app ->
+            YSuiteListItem(
+                title = app.label,
+                subtitle =
+                    stringResource(
+                        R.string
+                            .ynotify_app_summary,
+                        app.count,
+                        DateFormat
+                            .getDateTimeInstance()
+                            .format(
+                                Date(
+                                    app.latestAt,
+                                ),
+                            ),
+                    ),
+                modifier =
+                    Modifier
+                        .clickable {
+                            model.selectPackage(
+                                app.packageName,
+                            )
+                        }
+                        .padding(
+                            horizontal =
+                                YSuiteSpacing.Medium,
+                            vertical =
+                                YSuiteSpacing.Small,
+                        ),
+            )
+        }
     }
 }
 
@@ -492,6 +628,100 @@ private fun eventSummary(
         "\n" +
         content
 }
+
+@Composable
+private fun viewModeLabel(
+    value: YNotifyViewMode,
+): String =
+    when (value) {
+        YNotifyViewMode.History ->
+            stringResource(
+                R.string
+                    .ynotify_view_history,
+            )
+        YNotifyViewMode.Apps ->
+            stringResource(
+                R.string
+                    .ynotify_view_apps,
+            )
+    }
+
+@Composable
+private fun kindFilterLabel(
+    value: YNotifyKindFilter,
+): String =
+    when (value) {
+        YNotifyKindFilter.All ->
+            stringResource(
+                R.string
+                    .ynotify_kind_all,
+            )
+        YNotifyKindFilter.FullScreen ->
+            stringResource(
+                R.string
+                    .ynotify_kind_fullscreen,
+            )
+        YNotifyKindFilter.Bubble ->
+            stringResource(
+                R.string
+                    .ynotify_kind_bubble,
+            )
+        YNotifyKindFilter.Call ->
+            stringResource(
+                R.string
+                    .ynotify_kind_call,
+            )
+        YNotifyKindFilter.Alarm ->
+            stringResource(
+                R.string
+                    .ynotify_kind_alarm,
+            )
+        YNotifyKindFilter.Media ->
+            stringResource(
+                R.string
+                    .ynotify_kind_media,
+            )
+        YNotifyKindFilter.Progress ->
+            stringResource(
+                R.string
+                    .ynotify_kind_progress,
+            )
+        YNotifyKindFilter.ForegroundService ->
+            stringResource(
+                R.string
+                    .ynotify_kind_foreground,
+            )
+        YNotifyKindFilter.Message ->
+            stringResource(
+                R.string
+                    .ynotify_kind_message,
+            )
+        YNotifyKindFilter.System ->
+            stringResource(
+                R.string
+                    .ynotify_kind_system,
+            )
+        YNotifyKindFilter.Ongoing ->
+            stringResource(
+                R.string
+                    .ynotify_kind_ongoing,
+            )
+        YNotifyKindFilter.Silent ->
+            stringResource(
+                R.string
+                    .ynotify_kind_silent,
+            )
+        YNotifyKindFilter.Standard ->
+            stringResource(
+                R.string
+                    .ynotify_kind_standard,
+            )
+        YNotifyKindFilter.Unknown ->
+            stringResource(
+                R.string
+                    .ynotify_kind_unknown,
+            )
+    }
 
 @Composable
 private fun filterLabel(

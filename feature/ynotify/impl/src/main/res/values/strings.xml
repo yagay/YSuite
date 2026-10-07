@@ -1,6 +1,11 @@
 <resources>
     <string name="ynotify_title">YNotify</string>
     <string name="ynotify_search">Search notification and UI history</string>
+    <string name="ynotify_view_history">History</string>
+    <string name="ynotify_view_apps">Apps</string>
+    <string name="ynotify_app_filter">Filtered app · tap to clear</string>
+    <string name="ynotify_no_apps">No apps with captured history.</string>
+    <string name="ynotify_app_summary">%1$d events · latest %2$s</string>
     <string name="ynotify_filter_all">All</string>
     <string name="ynotify_filter_notifications">Notifications</string>
     <string name="ynotify_filter_toast">Toast</string>
@@ -35,6 +40,7 @@
     <string name="ynotify_type_popup">Popup</string>
     <string name="ynotify_type_systemui">System UI</string>
     <string name="ynotify_type_other">Other UI</string>
+    <string name="ynotify_kind_all">All kinds</string>
     <string name="ynotify_kind_fullscreen">Full screen</string>
     <string name="ynotify_kind_bubble">Bubble</string>
     <string name="ynotify_kind_call">Call</string>

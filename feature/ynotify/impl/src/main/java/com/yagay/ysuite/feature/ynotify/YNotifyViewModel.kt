@@ -17,6 +17,35 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+enum class YNotifyViewMode {
+    History,
+    Apps,
+}
+
+enum class YNotifyKindFilter {
+    All,
+    FullScreen,
+    Bubble,
+    Call,
+    Alarm,
+    Media,
+    Progress,
+    ForegroundService,
+    Message,
+    System,
+    Ongoing,
+    Silent,
+    Standard,
+    Unknown,
+}
+
+data class YNotifyAppSummary(
+    val packageName: String,
+    val label: String,
+    val count: Int,
+    val latestAt: Long,
+)
+
 enum class YNotifyTypeFilter {
     All,
     Notifications,
@@ -31,8 +60,13 @@ enum class YNotifyTypeFilter {
 data class YNotifyUiState(
     val events: List<YNotifyEvent> = emptyList(),
     val query: String = "",
+    val viewMode: YNotifyViewMode =
+        YNotifyViewMode.History,
     val typeFilter: YNotifyTypeFilter =
         YNotifyTypeFilter.All,
+    val kindFilter: YNotifyKindFilter =
+        YNotifyKindFilter.All,
+    val selectedPackage: String? = null,
     val selectedEventId: Long? = null,
     val runtimeStatus:
         YNotifyRuntimeStatus =
@@ -72,12 +106,98 @@ class YNotifyViewModel(
             mutableState.value.copy(query = value)
     }
 
+    fun setViewMode(
+        value: YNotifyViewMode,
+    ) {
+        mutableState.value =
+            mutableState.value.copy(
+                viewMode = value,
+                selectedEventId = null,
+            )
+    }
+
     fun setTypeFilter(
         value: YNotifyTypeFilter,
     ) {
         mutableState.value =
             mutableState.value.copy(
                 typeFilter = value,
+            )
+    }
+
+    fun setKindFilter(
+        value: YNotifyKindFilter,
+    ) {
+        mutableState.value =
+            mutableState.value.copy(
+                kindFilter = value,
+            )
+    }
+
+    fun selectPackage(
+        packageName: String?,
+    ) {
+        mutableState.value =
+            mutableState.value.copy(
+                selectedPackage =
+                    packageName,
+                viewMode =
+                    YNotifyViewMode.History,
+                selectedEventId = null,
+            )
+    }
+
+    fun appSummaries():
+        List<YNotifyAppSummary> {
+        val state = mutableState.value
+        val needle =
+            state.query.trim()
+        return state.events
+            .groupBy {
+                it.packageName
+            }
+            .map {
+                (packageName, events) ->
+                val latest =
+                    events.maxByOrNull {
+                        it.updatedAt
+                    }
+                YNotifyAppSummary(
+                    packageName =
+                        packageName,
+                    label =
+                        latest?.appLabel
+                            ?.takeIf {
+                                it.isNotBlank()
+                            }
+                            ?: packageName,
+                    count = events.size,
+                    latestAt =
+                        events.maxOfOrNull {
+                            it.updatedAt
+                        } ?: 0L,
+                )
+            }
+            .filter {
+                needle.isBlank() ||
+                    it.label.contains(
+                        needle,
+                        true,
+                    ) ||
+                    it.packageName
+                        .contains(
+                            needle,
+                            true,
+                        )
+            }
+            .sortedWith(
+                compareByDescending<
+                    YNotifyAppSummary
+                    > {
+                    it.latestAt
+                }.thenBy {
+                    it.label.lowercase()
+                },
             )
     }
 
@@ -110,6 +230,22 @@ class YNotifyViewModel(
                         event.eventType ==
                             YNotifyEventType.OtherUi
                 }
+            val packageMatch =
+                state.selectedPackage == null ||
+                    event.packageName ==
+                    state.selectedPackage
+            val kindMatch =
+                when (
+                    state.kindFilter
+                ) {
+                    YNotifyKindFilter.All ->
+                        true
+                    else ->
+                        event.eventType ==
+                            YNotifyEventType.Notification &&
+                            event.notificationKind.name ==
+                            state.kindFilter.name
+                }
             val textMatch =
                 needle.isBlank() ||
                     event.appLabel.contains(
@@ -130,7 +266,10 @@ class YNotifyViewModel(
                             needle,
                             ignoreCase = true,
                         ) == true
-            typeMatch && textMatch
+            typeMatch &&
+                packageMatch &&
+                kindMatch &&
+                textMatch
         }
     }
 
