@@ -15,6 +15,7 @@ import android.util.Log;
 
 import com.yagay.YNFC.BuildConfig;
 import com.yagay.YNFC.xposed.discovery.HookDiscoveryEngine;
+import com.yagay.ysuite.runtime.RuntimeOwnerGate;
 import com.yagay.YNFC.xposed.discovery.HookTarget;
 import com.yagay.YNFC.xposed.payload.RewriteResult;
 import com.yagay.YNFC.xposed.payload.RfPayloadEngine;
@@ -36,6 +37,7 @@ public class NfcInjectionModule extends XposedModule {
     private static final String TAG = "NfcUIDSim";
     private static final int HOOK_BUILD = BuildConfig.HOOK_BUILD;
     private static volatile Uri CONFIG_URI = Uri.EMPTY;
+    private String moduleHostPackage = "";
     private static final int MAX_LEARNING_HOOKS = 4;
     private static final int MAX_TRIGGER_HOOKS = 4;
     private static final long TRIGGER_RF_WINDOW_MS = 3_000L;
@@ -124,6 +126,8 @@ public class NfcInjectionModule extends XposedModule {
             }
         } catch (Throwable ignored) {
         }
+        moduleHostPackage = hostPackage;
+        RuntimeOwnerGate.announce("ynfc", moduleHostPackage);
         CONFIG_URI = Uri.parse(
                 "content://" + hostPackage + ".ynfc.config/settings");
         Log.i(TAG, "PROD MODULE loaded build=" + HOOK_BUILD
@@ -138,6 +142,7 @@ public class NfcInjectionModule extends XposedModule {
     @Override public void onPackageLoaded(XposedModuleInterface.PackageLoadedParam lp) {
         super.onPackageLoaded(lp);
         if (!"com.android.nfc".equals(lp.getPackageName())) return;
+        if (!RuntimeOwnerGate.shouldRun("ynfc", moduleHostPackage)) return;
         final int pid = Process.myPid();
         final ClassLoader cl = lp.getDefaultClassLoader();
         nfcClassLoader = cl;
