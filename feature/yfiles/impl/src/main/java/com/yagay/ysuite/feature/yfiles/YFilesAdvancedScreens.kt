@@ -1014,6 +1014,11 @@ internal fun YFilesAdvancedSettingsContent(
         )
     }
 
+    YFilesSystemPatchSettingsContent(
+        state = state,
+        advanced = advanced,
+    )
+
     ComposeSettingsGroup(
         title = stringResource(R.string.yfiles_adv_network_connections),
     ) {
