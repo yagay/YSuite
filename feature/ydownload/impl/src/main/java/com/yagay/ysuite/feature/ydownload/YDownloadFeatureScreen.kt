@@ -68,6 +68,8 @@ fun YDownloadFeatureScreen(
             systemPatchScopeCount =
                 model.systemPatchScopeCount(),
             onBack = model::backToMain,
+            onDefaultBackend =
+                model::setDefaultBackend,
             onDefaultTreeUri =
                 model::setDefaultTreeUri,
             onMaxConcurrent =
