@@ -222,9 +222,16 @@ class YDownloadViewModel(
     fun pauseAll() {
         state.value.items
             .filter {
-                it.state == YDownloadState.Pending ||
-                    it.state == YDownloadState.Connecting ||
-                    it.state == YDownloadState.Downloading
+                it.backend ==
+                    com.yagay.ysuite.feature.ydownload.api.YDownloadBackend.Private &&
+                    (
+                        it.state ==
+                            YDownloadState.Pending ||
+                            it.state ==
+                            YDownloadState.Connecting ||
+                            it.state ==
+                            YDownloadState.Downloading
+                    )
             }
             .forEach {
                 YDownloadService.pause(
@@ -237,7 +244,10 @@ class YDownloadViewModel(
     fun resumeAll() {
         state.value.items
             .filter {
-                it.state == YDownloadState.Paused
+                it.backend ==
+                    com.yagay.ysuite.feature.ydownload.api.YDownloadBackend.Private &&
+                    it.state ==
+                        YDownloadState.Paused
             }
             .forEach {
                 YDownloadService.resume(
