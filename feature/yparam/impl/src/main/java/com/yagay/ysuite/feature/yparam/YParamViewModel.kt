@@ -262,27 +262,101 @@ class YParamViewModel(
     }
 
     fun reset() {
-        val packageName = mutableState.value.selectedPackage ?: return
+        val packageName =
+            mutableState.value.selectedPackage
+                ?: return
+        val previous =
+            repository.read(packageName)
+
         viewModelScope.launch {
+            mutableState.value =
+                mutableState.value.copy(
+                    saving = true,
+                    message = null,
+                )
+
             runCatching {
                 withContext(Dispatchers.IO) {
                     repository.reset(packageName)
                 }
-                environment.hookGateway
-                    .writeConfig(
-                        group = "yparam",
-                        key =
-                            "app." +
-                                packageName,
-                        value = null,
+
+                val configResult =
+                    environment.hookGateway
+                        .writeConfig(
+                            group = "yparam",
+                            key =
+                                "app." +
+                                    packageName,
+                            value = null,
+                        )
+
+                if (
+                    configResult is
+                    Outcome.Failure
+                ) {
+                    withContext(Dispatchers.IO) {
+                        repository.save(
+                            packageName,
+                            previous,
+                        )
+                    }
+                    return@runCatching (
+                        configResult to
+                            null
+                        )
+                }
+
+                val scopeResult =
+                    environment.hookGateway
+                        .reload(
+                            setOf(packageName),
+                        )
+                configResult to scopeResult
+            }.onSuccess {
+                    (configResult, scopeResult) ->
+                select(packageName)
+                mutableState.value =
+                    mutableState.value.copy(
+                        saving = false,
+                        hookStatus =
+                            runCatching {
+                                environment
+                                    .hookGateway
+                                    .status()
+                            }.getOrDefault(
+                                CapabilityStatus.Error,
+                            ),
+                        message =
+                            when {
+                                configResult is
+                                    Outcome.Failure ->
+                                    "reset_hook_write_failed"
+                                scopeResult is
+                                    Outcome.Success ->
+                                    "reset"
+                                else ->
+                                    "reset_hook_reload_unavailable"
+                            },
                     )
-                environment.hookGateway
-                    .reload(
-                        setOf(packageName),
+                reloadApps()
+            }.onFailure { error ->
+                withContext(Dispatchers.IO) {
+                    repository.save(
+                        packageName,
+                        previous,
                     )
+                }
+                select(packageName)
+                mutableState.value =
+                    mutableState.value.copy(
+                        saving = false,
+                        message =
+                            error.message
+                                ?: error.javaClass
+                                    .simpleName,
+                    )
+                reloadApps()
             }
-            select(packageName)
-            reloadApps()
         }
     }
 
