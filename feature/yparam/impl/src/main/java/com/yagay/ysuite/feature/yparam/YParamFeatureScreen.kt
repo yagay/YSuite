@@ -238,6 +238,10 @@ private fun ParamDetail(
         }
 
         item {
+            YParamDiagnosticContent(state)
+        }
+
+        item {
             Column(
                 modifier = Modifier.padding(YSuiteSpacing.Medium),
                 verticalArrangement =
