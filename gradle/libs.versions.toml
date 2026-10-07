@@ -26,6 +26,8 @@ bouncycastle = "1.84"
 shizuku = "13.1.5"
 biometric = "1.1.0"
 workmanager = "2.10.0"
+libxposedApi = "102.0.0"
+libxposedService = "102.0.0-1.0.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -65,6 +67,8 @@ shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizu
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "workmanager" }
 junit = { module = "junit:junit", version.ref = "junit" }
+libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposedApi" }
+libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposedService" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

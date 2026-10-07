@@ -184,11 +184,28 @@ class YParamViewModel(
         viewModelScope.launch {
             mutableState.value = mutableState.value.copy(saving = true)
             runCatching {
-                withContext(Dispatchers.IO) {
-                    repository.save(packageName, value)
-                }
-                environment.hookGateway.reload(setOf(packageName))
-            }.onSuccess { reload ->
+                val payload =
+                    withContext(Dispatchers.IO) {
+                        repository.save(packageName, value)
+                        repository.hookPayload(value)
+                    }
+                val configResult =
+                    environment.hookGateway
+                        .writeConfig(
+                            group = "yparam",
+                            key =
+                                "app." +
+                                    packageName,
+                            value = payload,
+                        )
+                val scopeResult =
+                    environment.hookGateway
+                        .reload(
+                            setOf(packageName),
+                        )
+                configResult to scopeResult
+            }.onSuccess {
+                    (configResult, scopeResult) ->
                 mutableState.value = mutableState.value.copy(
                     saving = false,
                     hookStatus =
@@ -196,7 +213,12 @@ class YParamViewModel(
                             environment.hookGateway.status()
                         }.getOrDefault(CapabilityStatus.Error),
                     message =
-                        if (reload is Outcome.Success) {
+                        if (
+                            configResult is
+                                Outcome.Success &&
+                            scopeResult is
+                                Outcome.Success
+                        ) {
                             "saved"
                         } else {
                             "saved_hook_reload_unavailable"
@@ -224,7 +246,18 @@ class YParamViewModel(
                 withContext(Dispatchers.IO) {
                     repository.reset(packageName)
                 }
-                environment.hookGateway.reload(setOf(packageName))
+                environment.hookGateway
+                    .writeConfig(
+                        group = "yparam",
+                        key =
+                            "app." +
+                                packageName,
+                        value = null,
+                    )
+                environment.hookGateway
+                    .reload(
+                        setOf(packageName),
+                    )
             }
             select(packageName)
             reloadApps()

@@ -61,7 +61,25 @@ interface ShizukuGateway : CommandGateway {
 interface HookGateway {
     suspend fun status(): CapabilityStatus
 
+    /**
+     * Ensures the supplied packages are in the module scope.
+     *
+     * The modern libxposed service does not hot-reload target processes from the app side. Feature
+     * runtimes are expected to observe remote preferences for live configuration where possible.
+     */
     suspend fun reload(scopePackages: Set<String> = emptySet()): Outcome<Unit>
+
+    /**
+     * Writes one feature-owned string payload into libxposed remote preferences.
+     *
+     * A null value removes the key. Keeping the payload string-based leaves feature serialization
+     * inside the feature while the platform layer only owns LSPosed transport.
+     */
+    suspend fun writeConfig(
+        group: String,
+        key: String,
+        value: String?,
+    ): Outcome<Unit>
 }
 
 data class PlatformServices(

@@ -10,10 +10,14 @@ import com.yagay.ysuite.platform.api.RootRequest
 import com.yagay.ysuite.platform.api.RootResult
 import com.yagay.ysuite.platform.api.ShizukuGateway
 import java.io.File
+import io.github.libxposed.service.XposedService
+import io.github.libxposed.service.XposedServiceHelper
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 import rikka.shizuku.Shizuku
 
 private object SuRootGateway : RootGateway {
@@ -225,22 +229,215 @@ private object AndroidShizukuGateway :
         "Shizuku command failed"
 }
 
-private object UnconfiguredHookGateway :
-    HookGateway {
+private object AndroidLibXposedHookGateway :
+    HookGateway,
+    XposedServiceHelper.OnServiceListener {
+    @Volatile
+    private var service: XposedService? = null
+
+    @Volatile
+    private var registered = false
+
+    @Synchronized
+    fun ensureRegistered() {
+        if (registered) return
+        registered = true
+        XposedServiceHelper.registerListener(this)
+    }
+
+    override fun onServiceBind(
+        service: XposedService,
+    ) {
+        this.service = service
+    }
+
+    override fun onServiceDied(
+        service: XposedService,
+    ) {
+        if (this.service === service) {
+            this.service = null
+        }
+    }
+
     override suspend fun status():
-        CapabilityStatus =
-        CapabilityStatus.Unavailable
+        CapabilityStatus {
+        ensureRegistered()
+        val current = service
+            ?: return CapabilityStatus.Unavailable
+        return runCatching {
+            if (current.apiVersion >= MIN_HOOK_API) {
+                CapabilityStatus.Available
+            } else {
+                CapabilityStatus.Error
+            }
+        }.getOrDefault(
+            CapabilityStatus.Error,
+        )
+    }
 
     override suspend fun reload(
         scopePackages: Set<String>,
-    ): Outcome<Unit> =
-        Outcome.Failure(
-            code = "hook_unavailable",
-            message = HOOK_UNAVAILABLE_MESSAGE,
-        )
+    ): Outcome<Unit> {
+        ensureRegistered()
+        val current =
+            service
+                ?: return Outcome.Failure(
+                    code =
+                        "hook_service_unavailable",
+                    message =
+                        "LSPosed service is not connected",
+                    retryable = true,
+                )
+        val requested =
+            scopePackages
+                .asSequence()
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .distinct()
+                .toList()
+        if (requested.isEmpty()) {
+            return Outcome.Success(Unit)
+        }
 
-    private const val HOOK_UNAVAILABLE_MESSAGE =
-        "Hook adapter is not configured"
+        val missing =
+            runCatching {
+                val existing =
+                    current.scope
+                        .map(String::trim)
+                        .toSet()
+                requested.filterNot {
+                    it in existing
+                }
+            }.getOrDefault(requested)
+
+        if (missing.isEmpty()) {
+            return Outcome.Success(Unit)
+        }
+
+        return suspendCancellableCoroutine {
+                continuation ->
+            try {
+                current.requestScope(
+                    missing,
+                    object :
+                        XposedService
+                            .OnScopeEventListener {
+                        override fun onScopeRequestApproved(
+                            approved: List<String>,
+                        ) {
+                            if (
+                                continuation.isActive
+                            ) {
+                                continuation.resume(
+                                    Outcome.Success(
+                                        Unit,
+                                    ),
+                                )
+                            }
+                        }
+
+                        override fun onScopeRequestFailed(
+                            message: String,
+                        ) {
+                            if (
+                                continuation.isActive
+                            ) {
+                                continuation.resume(
+                                    Outcome.Failure(
+                                        code =
+                                            "hook_scope_denied",
+                                        message =
+                                            message.ifBlank {
+                                                "LSPosed scope request was denied"
+                                            },
+                                        retryable =
+                                            true,
+                                    ),
+                                )
+                            }
+                        }
+                    },
+                )
+            } catch (error: Throwable) {
+                if (continuation.isActive) {
+                    continuation.resume(
+                        Outcome.Failure(
+                            code =
+                                "hook_scope_request_failed",
+                            message =
+                                error.message
+                                    ?: "LSPosed scope request failed",
+                            cause = error,
+                            retryable = true,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    override suspend fun writeConfig(
+        group: String,
+        key: String,
+        value: String?,
+    ): Outcome<Unit> {
+        ensureRegistered()
+        val current =
+            service
+                ?: return Outcome.Failure(
+                    code =
+                        "hook_service_unavailable",
+                    message =
+                        "LSPosed service is not connected",
+                    retryable = true,
+                )
+        val safeGroup = group.trim()
+        val safeKey = key.trim()
+        if (
+            safeGroup.isEmpty() ||
+            safeKey.isEmpty()
+        ) {
+            return Outcome.Failure(
+                code =
+                    "hook_config_invalid_key",
+                message =
+                    "Hook preference group/key cannot be blank",
+            )
+        }
+
+        return runCatching {
+            val editor =
+                current
+                    .getRemotePreferences(
+                        safeGroup,
+                    )
+                    .edit()
+            if (value == null) {
+                editor.remove(safeKey)
+            } else {
+                editor.putString(
+                    safeKey,
+                    value,
+                )
+            }
+            check(editor.commit()) {
+                "LSPosed remote preferences commit failed"
+            }
+            Outcome.Success(Unit)
+        }.getOrElse { error ->
+            Outcome.Failure(
+                code =
+                    "hook_config_write_failed",
+                message =
+                    error.message
+                        ?: "Unable to write LSPosed remote preferences",
+                cause = error,
+                retryable = true,
+            )
+        }
+    }
+
+    private const val MIN_HOOK_API = 102
 }
 
 private fun collectProcess(
@@ -293,12 +490,16 @@ private fun collectProcess(
 }
 
 object DefaultPlatformServices {
-    fun create(): PlatformServices =
-        PlatformServices(
+    fun create(): PlatformServices {
+        AndroidLibXposedHookGateway
+            .ensureRegistered()
+        return PlatformServices(
             root = SuRootGateway,
             shizuku = AndroidShizukuGateway,
-            hooks = UnconfiguredHookGateway,
+            hooks =
+                AndroidLibXposedHookGateway,
         )
+    }
 }
 
 private const val THREAD_JOIN_MILLIS = 1_000L

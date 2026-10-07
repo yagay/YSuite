@@ -19,4 +19,5 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
+    implementation(libs.libxposed.service)
 }

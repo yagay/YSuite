@@ -73,6 +73,15 @@ internal class YParamRepository(
         }
     }
 
+    fun hookPayload(
+        value: YParamOverrides,
+    ): String? =
+        if (value.overrideCount() == 0) {
+            null
+        } else {
+            encode(value)
+        }
+
     fun defaults(packageName: String): YParamDefaults {
         val metrics = context.resources.displayMetrics
         val configuration = context.resources.configuration
