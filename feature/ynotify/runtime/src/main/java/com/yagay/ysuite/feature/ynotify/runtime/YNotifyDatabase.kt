@@ -316,6 +316,31 @@ internal class YNotifyDatabase(
         return result
     }
 
+    fun forEachEvent(
+        pageSize: Int = 500,
+        consumer: (YNotifyEvent) -> Unit,
+    ) {
+        val size =
+            pageSize.coerceIn(
+                50,
+                2_000,
+            )
+        var offset = 0
+        while (true) {
+            val page =
+                queryPage(
+                    limit = size,
+                    offset = offset,
+                )
+            if (page.isEmpty()) break
+            page.forEach(consumer)
+            offset += page.size
+            if (page.size < size) {
+                break
+            }
+        }
+    }
+
     fun appAggregates():
         List<YNotifyAppAggregate> {
         val result =
