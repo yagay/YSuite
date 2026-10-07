@@ -40,6 +40,7 @@ dependencies {
     implementation(project(":feature:ydownload:impl"))
     implementation(project(":feature:ytaskmanager:impl"))
     implementation(project(":feature:yparam:impl"))
+    implementation(project(":feature:yparam:runtime"))
     implementation(project(":feature:ydiag:impl"))
     implementation(project(":feature:ypower:impl"))
     implementation(project(":feature:ynotify:impl"))
