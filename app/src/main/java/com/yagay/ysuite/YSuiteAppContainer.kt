@@ -112,6 +112,7 @@ class YSuiteAppContainer(
                 rootGateway = platform.root,
                 shizukuGateway =
                     platform.shizuku,
+                hookGateway = platform.hooks,
             )
         }
 
@@ -120,6 +121,7 @@ class YSuiteAppContainer(
             YDownloadEnvironmentFactory.create(
                 context = context,
                 logger = logger,
+                hookGateway = platform.hooks,
             )
         }
 
