@@ -4,6 +4,10 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ContentValues
+import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Process
@@ -12,10 +16,13 @@ import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidate
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidateState
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
 import com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryRuntimeBridge
+import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
 import kotlinx.coroutines.delay
+import org.json.JSONArray
+import org.json.JSONObject
 
 internal class YEntryCleanerRepository(
     private val context: Context,
@@ -59,6 +66,38 @@ internal class YEntryCleanerRepository(
             "example.com",
         ).orEmpty()
             .ifBlank { "example.com" }
+
+    fun openMime(): String =
+        prefs.getString(
+            "open_mime",
+            "application/pdf",
+        ).orEmpty()
+            .ifBlank {
+                "application/pdf"
+            }
+
+    fun setOpenMime(value: String) {
+        val normalized =
+            value.trim()
+                .lowercase()
+                .ifBlank {
+                    "application/pdf"
+                }
+        prefs.edit()
+            .putString(
+                "open_mime",
+                normalized,
+            )
+            .apply()
+    }
+
+    suspend fun rootStatus():
+        CapabilityStatus =
+        root.status()
+
+    suspend fun hookStatus():
+        CapabilityStatus =
+        hooks.status()
 
     fun setBrowserHost(value: String) {
         prefs.edit()
@@ -152,7 +191,12 @@ internal class YEntryCleanerRepository(
                         "image/*",
                     )
                 YEntrySurface.Open ->
-                    queryOpen()
+                    queryIntent(
+                        Intent(Intent.ACTION_VIEW)
+                            .setType(openMime()),
+                        YEntrySurface.Open,
+                        openMime(),
+                    )
                 YEntrySurface.Browser ->
                     queryIntent(
                         Intent(
@@ -196,25 +240,6 @@ internal class YEntryCleanerRepository(
         } else {
             current
         }
-    }
-
-    private fun queryOpen(): List<YEntryCandidate> {
-        val types =
-            listOf(
-                "application/pdf",
-                "image/*",
-                "video/*",
-                "audio/*",
-                "text/plain",
-            )
-        return types.flatMap { mime ->
-            queryIntent(
-                Intent(Intent.ACTION_VIEW)
-                    .setType(mime),
-                YEntrySurface.Open,
-                mime,
-            )
-        }.distinctBy { it.id }
     }
 
     @Suppress("DEPRECATION")
@@ -567,6 +592,301 @@ internal class YEntryCleanerRepository(
         )
     }
 
+    suspend fun bulkComponents(
+        candidates: List<YEntryCandidate>,
+        enable: Boolean,
+    ): Pair<Int, Int> {
+        var changed = 0
+        var failed = 0
+        val locks = locked()
+        candidates
+            .filter {
+                it.id !in locks &&
+                    !it.rootBlocked
+            }
+            .forEach {
+                if (
+                    changeComponent(
+                        it,
+                        enable,
+                    )
+                ) {
+                    changed += 1
+                } else {
+                    failed += 1
+                }
+            }
+        return changed to failed
+    }
+
+    suspend fun invertComponents(
+        candidates: List<YEntryCandidate>,
+    ): Pair<Int, Int> {
+        var changed = 0
+        var failed = 0
+        val locks = locked()
+        candidates
+            .filter {
+                it.id !in locks &&
+                    !it.rootBlocked &&
+                    it.rootEnabled != null
+            }
+            .forEach {
+                if (
+                    changeComponent(
+                        it,
+                        !(it.rootEnabled ?: true),
+                    )
+                ) {
+                    changed += 1
+                } else {
+                    failed += 1
+                }
+            }
+        return changed to failed
+    }
+
+    suspend fun discoverBrowserHosts():
+        List<String> {
+        val result =
+            when (
+                val outcome =
+                    root.execute(
+                        RootRequest(
+                            command =
+                                "pm get-app-links --user cur 2>/dev/null || true",
+                            timeoutMillis =
+                                15_000L,
+                        ),
+                    )
+            ) {
+                is Outcome.Success ->
+                    outcome.value.stdout
+                is Outcome.Failure ->
+                    ""
+            }
+        val hosts =
+            linkedSetOf<String>()
+        result.lineSequence()
+            .forEach { raw ->
+                val line = raw.trim()
+                val match =
+                    Regex(
+                        "([A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+)(?::|\\s)",
+                    ).find(line)
+                val host =
+                    match?.groupValues
+                        ?.getOrNull(1)
+                        ?.lowercase()
+                        ?.removePrefix(
+                            "www.",
+                        )
+                if (
+                    !host.isNullOrBlank() &&
+                    host.count {
+                        it == '.'
+                    } >= 1
+                ) {
+                    hosts += host
+                }
+            }
+        return hosts
+            .take(192)
+    }
+
+    fun exportBackup(): String {
+        val values =
+            JSONObject()
+        prefs.all.forEach {
+            (key, value) ->
+            when (value) {
+                is String ->
+                    values.put(
+                        key,
+                        value,
+                    )
+                is Boolean ->
+                    values.put(
+                        key,
+                        value,
+                    )
+                is Int ->
+                    values.put(
+                        key,
+                        value,
+                    )
+                is Long ->
+                    values.put(
+                        key,
+                        value,
+                    )
+                is Float ->
+                    values.put(
+                        key,
+                        value.toDouble(),
+                    )
+                is Set<*> ->
+                    values.put(
+                        key,
+                        JSONArray(
+                            value.filterIsInstance<String>()
+                                .sorted(),
+                        ),
+                    )
+            }
+        }
+        val payload =
+            JSONObject().apply {
+                put("format", "YSuite.YEntryCleaner")
+                put("version", 1)
+                put("values", values)
+            }.toString(2)
+
+        val resolver =
+            context.contentResolver
+        val uri =
+            checkNotNull(
+                resolver.insert(
+                    MediaStore.Downloads
+                        .EXTERNAL_CONTENT_URI,
+                    ContentValues().apply {
+                        put(
+                            MediaStore.MediaColumns
+                                .DISPLAY_NAME,
+                            "YEntryCleaner-" +
+                                System.currentTimeMillis() +
+                                ".json",
+                        )
+                        put(
+                            MediaStore.MediaColumns
+                                .MIME_TYPE,
+                            "application/json",
+                        )
+                        put(
+                            MediaStore.MediaColumns
+                                .RELATIVE_PATH,
+                            Environment
+                                .DIRECTORY_DOWNLOADS +
+                                "/YSuite",
+                        )
+                    },
+                ),
+            )
+        resolver.openOutputStream(uri)
+            ?.bufferedWriter()
+            ?.use {
+                it.write(payload)
+            }
+            ?: error(
+                "Unable to export backup",
+            )
+        return uri.toString()
+    }
+
+    suspend fun importBackup(
+        uri: Uri,
+    ): Boolean {
+        val text =
+            context.contentResolver
+                .openInputStream(uri)
+                ?.bufferedReader()
+                ?.use { reader ->
+                    val out =
+                        StringBuilder()
+                    val buffer =
+                        CharArray(8192)
+                    while (true) {
+                        val count =
+                            reader.read(buffer)
+                        if (count < 0) break
+                        if (
+                            out.length + count >
+                            2_000_000
+                        ) {
+                            return false
+                        }
+                        out.append(
+                            buffer,
+                            0,
+                            count,
+                        )
+                    }
+                    out.toString()
+                } ?: return false
+        val root =
+            runCatching {
+                JSONObject(text)
+            }.getOrNull()
+                ?: return false
+        if (
+            root.optString("format") !=
+            "YSuite.YEntryCleaner"
+        ) {
+            return false
+        }
+        val values =
+            root.optJSONObject("values")
+                ?: return false
+        val editor =
+            prefs.edit().clear()
+        values.keys().forEach { key ->
+            when (
+                val value =
+                    values.opt(key)
+            ) {
+                is Boolean ->
+                    editor.putBoolean(
+                        key,
+                        value,
+                    )
+                is Int ->
+                    editor.putInt(
+                        key,
+                        value,
+                    )
+                is Long ->
+                    editor.putLong(
+                        key,
+                        value,
+                    )
+                is Double ->
+                    editor.putFloat(
+                        key,
+                        value.toFloat(),
+                    )
+                is String ->
+                    editor.putString(
+                        key,
+                        value,
+                    )
+                is JSONArray -> {
+                    val set =
+                        buildSet {
+                            for (
+                                i in 0 until
+                                value.length()
+                            ) {
+                                value.optString(i)
+                                    .takeIf {
+                                        it.isNotBlank()
+                                    }
+                                    ?.let(::add)
+                            }
+                        }
+                    editor.putStringSet(
+                        key,
+                        set,
+                    )
+                }
+            }
+        }
+        if (!editor.commit()) {
+            return false
+        }
+        return sync() is
+            Outcome.Success
+    }
+
     suspend fun bulkHidden(
         candidates: List<YEntryCandidate>,
         hidden: Boolean,
@@ -614,11 +934,7 @@ internal class YEntryCleanerRepository(
                                 )
                             YEntrySurface.Open ->
                                 listOf(
-                                    "application/pdf",
-                                    "image/*",
-                                    "video/*",
-                                    "audio/*",
-                                    "text/plain",
+                                    openMime(),
                                 )
                             else -> emptyList()
                         }
