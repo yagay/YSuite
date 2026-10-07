@@ -64,4 +64,22 @@
     <string name="ytask_kill">结束进程</string>
     <string name="ytask_force_stop">强制停止应用</string>
     <string name="ytask_unavailable">不可用</string>
+
+    <string name="ytask_sort_cpu">CPU</string>
+    <string name="ytask_auto_refresh_on">自动刷新 ✓</string>
+    <string name="ytask_auto_refresh_off">自动刷新已关闭</string>
+    <string name="ytask_refresh_500">500 毫秒</string>
+    <string name="ytask_refresh_800">800 毫秒</string>
+    <string name="ytask_refresh_1000">1 秒</string>
+    <string name="ytask_refresh_2000">2 秒</string>
+    <string name="ytask_pinned">已固定</string>
+    <string name="ytask_pin">固定</string>
+    <string name="ytask_unpin">取消固定</string>
+    <string name="ytask_started">启动时间</string>
+    <string name="ytask_shared_uid_packages">共享 UID 应用</string>
+    <string name="ytask_parent_pid">父进程 PID</string>
+    <string name="ytask_kill_confirm_title">结束进程？</string>
+    <string name="ytask_kill_confirm_message">立即结束 %1$s？</string>
+    <string name="ytask_confirm">确认</string>
+    <string name="ytask_cancel">取消</string>
 </resources>
