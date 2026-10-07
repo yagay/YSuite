@@ -242,20 +242,20 @@ class YParamViewModel(
     }
 
     private fun validate(value: YParamOverrides): String? {
-        if (value.densityDpi != null && value.densityDpi !in 72..1000) {
-            return "validation_density"
+        value.densityDpi?.let {
+            if (it !in 72..1000) return "validation_density"
         }
-        if (value.widthPixels != null && value.widthPixels < 100) {
-            return "validation_width"
+        value.widthPixels?.let {
+            if (it < 100) return "validation_width"
         }
-        if (value.heightPixels != null && value.heightPixels < 100) {
-            return "validation_height"
+        value.heightPixels?.let {
+            if (it < 100) return "validation_height"
         }
-        if (value.latitude != null && value.latitude !in -90.0..90.0) {
-            return "validation_latitude"
+        value.latitude?.let {
+            if (it !in -90.0..90.0) return "validation_latitude"
         }
-        if (value.longitude != null && value.longitude !in -180.0..180.0) {
-            return "validation_longitude"
+        value.longitude?.let {
+            if (it !in -180.0..180.0) return "validation_longitude"
         }
         if (
             value.locationMode != null &&

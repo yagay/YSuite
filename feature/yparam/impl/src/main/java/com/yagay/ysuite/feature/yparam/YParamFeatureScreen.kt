@@ -174,6 +174,10 @@ private fun ParamDetail(
 ) {
     val defaults = state.defaults ?: return
     val value = state.draft
+    val fields = parameterItems(
+        value = value,
+        defaults = defaults,
+    )
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
@@ -227,11 +231,7 @@ private fun ParamDetail(
             }
         }
 
-        parameterItems(
-            value = value,
-            defaults = defaults,
-            onUpdate = model::update,
-        ).forEach { field ->
+        fields.forEach { field ->
             item(key = field.key) {
                 ParameterEditor(field, model::update)
             }
@@ -334,7 +334,6 @@ private fun ParameterEditor(
 private fun parameterItems(
     value: YParamOverrides,
     defaults: YParamDefaults,
-    onUpdate: (String, String?) -> Unit,
 ): List<ParameterField> =
     listOf(
         ParameterField(
