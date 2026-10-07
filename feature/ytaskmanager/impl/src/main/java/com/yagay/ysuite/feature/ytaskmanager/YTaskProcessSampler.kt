@@ -11,51 +11,46 @@ internal class YTaskProcessSampler(
     context: Context,
     private val shell: YTaskRootRunner,
 ) {
-    private val packageManager =
-        context.packageManager
-    private var previousTicks =
-        emptyMap<Int, Long>()
+    private val packageManager = context.packageManager
+    private var previousTicks = emptyMap<Int, Long>()
     private var previousAt = 0L
     private var clockTicks = 100L
 
     suspend fun read(
-        network:
-            Map<Int, YTaskNetworkRow>,
+        network: Map<Int, YTaskNetworkRow>,
     ): List<YTaskProcess> {
-        val raw =
-            shell.text(
-                """
-                HZ=$(getconf CLK_TCK 2>/dev/null || echo 100)
-                IFS=' ' read -r UP _ < /proc/uptime 2>/dev/null || UP=0
-                echo "__META__|@HZ|@UP"
-                for p in /proc/[0-9]*; do
-                  pid=$(basename "@p")
-                  IFS= read -r statline < "@p/stat" 2>/dev/null || continue
-                  uid=-1
-                  rss=0
-                  vmsize=0
-                  threads=0
-                  while IFS= read -r line; do
-                    case "@line" in
-                      Uid:*) set -- @line; uid=@2 ;;
-                      VmRSS:*) set -- @line; rss=@2 ;;
-                      VmSize:*) set -- @line; vmsize=@2 ;;
-                      Threads:*) set -- @line; threads=@2 ;;
-                    esac
-                  done < "@p/status" 2>/dev/null
-                  oom=0
-                  IFS= read -r oom < "@p/oom_score_adj" 2>/dev/null || oom=0
-                  cmd=''
-                  IFS= read -r -d '' cmd < "@p/cmdline" 2>/dev/null || true
-                  [ -n "@cmd" ] || cmd='-'
-                  printf '__PROC__|%s|%s|%s|%s|%s|%s|%s\n' "@pid" "@uid" "@rss" "@vmsize" "@threads" "@oom" "@cmd"
-                  printf '__PSTAT__|%s\n' "@statline"
-                done
-                """.trimIndent().replace('@', '$'),
-                12_000L,
-            )
+        val command =
+            """
+            HZ=$(getconf CLK_TCK 2>/dev/null || echo 100)
+            IFS=' ' read -r UP _ < /proc/uptime 2>/dev/null || UP=0
+            echo "__META__|@HZ|@UP"
+            for p in /proc/[0-9]*; do
+              pid=$(basename "@p")
+              IFS= read -r statline < "@p/stat" 2>/dev/null || continue
+              uid=-1
+              rss=0
+              vmsize=0
+              threads=0
+              while IFS= read -r line; do
+                case "@line" in
+                  Uid:*) set -- @line; uid=@2 ;;
+                  VmRSS:*) set -- @line; rss=@2 ;;
+                  VmSize:*) set -- @line; vmsize=@2 ;;
+                  Threads:*) set -- @line; threads=@2 ;;
+                esac
+              done < "@p/status" 2>/dev/null
+              oom=0
+              IFS= read -r oom < "@p/oom_score_adj" 2>/dev/null || oom=0
+              cmd=''
+              IFS= read -r -d '' cmd < "@p/cmdline" 2>/dev/null || true
+              [ -n "@cmd" ] || cmd='-'
+              printf '__PROC__|%s|%s|%s|%s|%s|%s|%s\n' "@pid" "@uid" "@rss" "@vmsize" "@threads" "@oom" "@cmd"
+              printf '__PSTAT__|%s\n' "@statline"
+            done
+            """.trimIndent()
+                .replace('@', 36.toChar())
         return parse(
-            raw,
+            shell.text(command, 12_000L),
             network,
         )
     }
@@ -63,297 +58,180 @@ internal class YTaskProcessSampler(
     suspend fun details(
         process: YTaskProcess,
     ): YTaskProcess {
-        if (process.pid <= 0) {
-            return process
-        }
+        if (process.pid <= 0) return process
+        val command =
+            """
+            p=/proc/@PID@
+            [ -d "@p" ] || exit 1
+            exe=$(readlink "@p/exe" 2>/dev/null | tr '\t\r\n|' '    ')
+            cgroup=$(tr '\n\t\r|' '    ' < "@p/cgroup" 2>/dev/null)
+            printf '%s|%s\n' "@exe" "@cgroup"
+            """.trimIndent()
+                .replace("@PID@", process.pid.toString())
+                .replace('@', 36.toChar())
         val raw =
             runCatching {
-                shell.text(
-                    """
-                    p=/proc/@PID@
-                    [ -d "@p" ] || exit 1
-                    exe=$(readlink "@p/exe" 2>/dev/null | tr '\t\r\n|' '    ')
-                    cgroup=$(tr '\n\t\r|' '    ' < "@p/cgroup" 2>/dev/null)
-                    printf '%s|%s\n' "@exe" "@cgroup"
-                    """.trimIndent().replace('@', '$')
-                        .replace(
-                            "@PID@",
-                            process.pid
-                                .toString(),
-                        ),
-                    4_000L,
-                )
+                shell.text(command, 4_000L)
             }.getOrDefault("")
-        if (raw.isBlank()) {
-            return process
-        }
-        val p =
-            raw.lineSequence()
-                .last()
+        if (raw.isBlank()) return process
+        val values =
+            raw.lineSequence().last()
                 .split('|', limit = 2)
         return process.copy(
             executablePath =
-                p.getOrNull(0)
-                    ?.takeIf {
-                        it.isNotBlank()
-                    },
+                values.getOrNull(0)?.takeIf { it.isNotBlank() },
             cgroup =
-                p.getOrNull(1)
-                    ?.takeIf {
-                        it.isNotBlank()
-                    },
+                values.getOrNull(1)?.takeIf { it.isNotBlank() },
         )
     }
 
     private fun parse(
         raw: String,
-        network:
-            Map<Int, YTaskNetworkRow>,
+        network: Map<Int, YTaskNetworkRow>,
     ): List<YTaskProcess> {
-        val lines =
-            raw.lineSequence()
-                .toList()
+        val lines = raw.lineSequence().toList()
         val meta =
-            lines.firstOrNull {
-                it.startsWith(
-                    "__META__|",
-                )
-            }?.split('|')
+            lines.firstOrNull { it.startsWith("__META__|") }
+                ?.split('|')
         clockTicks =
             meta?.getOrNull(1)
                 ?.toLongOrNull()
                 ?.coerceAtLeast(1L)
                 ?: 100L
         val uptime =
-            meta?.getOrNull(2)
-                ?.toDoubleOrNull()
+            meta?.getOrNull(2)?.toDoubleOrNull()
                 ?: 0.0
 
-        val now =
-            System.currentTimeMillis()
+        val now = System.currentTimeMillis()
         val sampleMs =
             if (previousAt > 0L) {
-                max(
-                    1L,
-                    now - previousAt,
-                )
+                max(1L, now - previousAt)
             } else {
                 0L
             }
-        val newTicks =
-            HashMap<Int, Long>()
-        val result =
-            ArrayList<YTaskProcess>()
+        val newTicks = HashMap<Int, Long>()
+        val result = ArrayList<YTaskProcess>()
 
         var index = 0
         while (index < lines.size) {
-            val line =
-                lines[index]
-            if (
-                !line.startsWith(
-                    "__PROC__|",
-                )
-            ) {
+            val line = lines[index]
+            if (!line.startsWith("__PROC__|")) {
                 index++
                 continue
             }
-            val statLine =
-                lines.getOrNull(
-                    index + 1,
-                )
+            val statLine = lines.getOrNull(index + 1)
             if (
                 statLine == null ||
-                !statLine.startsWith(
-                    "__PSTAT__|",
-                )
+                !statLine.startsWith("__PSTAT__|")
             ) {
                 index++
                 continue
             }
-            val values =
-                line.split(
-                    '|',
-                    limit = 8,
-                )
-            val pid =
-                values.getOrNull(1)
-                    ?.toIntOrNull()
+
+            val values = line.split('|', limit = 8)
+            val pid = values.getOrNull(1)?.toIntOrNull()
             val stat =
-                parseStat(
-                    statLine.removePrefix(
-                        "__PSTAT__|",
-                    ),
-                )
-            if (
-                pid == null ||
-                stat == null ||
-                stat.pid != pid
-            ) {
+                parseStat(statLine.removePrefix("__PSTAT__|"))
+            if (pid == null || stat == null || stat.pid != pid) {
                 index += 2
                 continue
             }
 
-            val uid =
-                values.getOrNull(2)
-                    ?.toIntOrNull()
-                    ?: -1
-            val rss =
-                values.getOrNull(3)
-                    ?.toLongOrNull()
-                    ?: 0L
+            val uid = values.getOrNull(2)?.toIntOrNull() ?: -1
+            val rss = values.getOrNull(3)?.toLongOrNull() ?: 0L
             val virtualMemory =
-                values.getOrNull(4)
-                    ?.toLongOrNull()
-                    ?: 0L
+                values.getOrNull(4)?.toLongOrNull() ?: 0L
             val threads =
-                values.getOrNull(5)
-                    ?.toIntOrNull()
-                    ?: stat.threads
-            val oom =
-                values.getOrNull(6)
-                    ?.toIntOrNull()
+                values.getOrNull(5)?.toIntOrNull() ?: stat.threads
+            val oom = values.getOrNull(6)?.toIntOrNull()
             val command =
                 values.getOrNull(7)
                     .orEmpty()
-                    .takeUnless {
-                        it == "-"
-                    }
+                    .takeUnless { it == "-" }
                     .orEmpty()
-                    .ifBlank {
-                        stat.name
-                    }
+                    .ifBlank { stat.name }
 
-            val totalTicks =
-                stat.userTicks +
-                    stat.systemTicks
-            newTicks[pid] =
-                totalTicks
-            val oldTicks =
-                previousTicks[pid]
+            val totalTicks = stat.userTicks + stat.systemTicks
+            newTicks[pid] = totalTicks
+            val oldTicks = previousTicks[pid]
             val cpu =
-                if (
-                    oldTicks != null &&
-                    sampleMs > 0L
-                ) {
-                    val delta =
-                        max(
-                            0L,
-                            totalTicks -
-                                oldTicks,
-                        )
+                if (oldTicks != null && sampleMs > 0L) {
+                    val delta = max(0L, totalTicks - oldTicks)
                     (
-                        (
-                            delta.toDouble() /
-                                clockTicks
-                                    .toDouble()
-                            ) /
-                            (
-                                sampleMs
-                                    .toDouble() /
-                                    1000.0
-                                ) *
+                        (delta.toDouble() / clockTicks.toDouble()) /
+                            (sampleMs.toDouble() / 1000.0) *
                             100.0
-                        ).toFloat()
-                        .coerceAtLeast(0f)
+                        ).toFloat().coerceAtLeast(0f)
                 } else {
                     0f
                 }
 
-            val elapsed =
+            val elapsedSeconds =
                 max(
                     0.0,
                     uptime -
-                        stat.startTicks
-                            .toDouble() /
-                        clockTicks,
+                        stat.startTicks.toDouble() /
+                        clockTicks.toDouble(),
                 )
             val packages =
                 runCatching {
-                    packageManager
-                        .getPackagesForUid(uid)
+                    packageManager.getPackagesForUid(uid)
                         ?.toList()
                         .orEmpty()
-                }.getOrDefault(
-                    emptyList(),
-                )
+                }.getOrDefault(emptyList())
             val packageName =
                 packages.firstOrNull {
-                    command == it ||
-                        command.startsWith(
-                            "$it:",
-                        )
-                } ?: packages
-                    .firstOrNull()
+                    command == it || command.startsWith("$it:")
+                } ?: packages.firstOrNull()
             val info =
-                packageName?.let {
-                    pkg ->
+                packageName?.let { pkg ->
                     runCatching {
-                        packageManager
-                            .getApplicationInfo(
-                                pkg,
-                                0,
-                            )
+                        packageManager.getApplicationInfo(pkg, 0)
                     }.getOrNull()
                 }
             val label =
                 info?.let {
                     runCatching {
-                        packageManager
-                            .getApplicationLabel(it)
-                            .toString()
+                        packageManager.getApplicationLabel(it).toString()
                     }.getOrNull()
                 }
             val system =
                 info?.flags?.and(
-                    ApplicationInfo
-                        .FLAG_SYSTEM or
-                        ApplicationInfo
-                            .FLAG_UPDATED_SYSTEM_APP,
+                    ApplicationInfo.FLAG_SYSTEM or
+                        ApplicationInfo.FLAG_UPDATED_SYSTEM_APP,
                 ) != 0
             val kind =
                 when {
-                    info == null ->
-                        YTaskProcessKind.Linux
-                    system ->
-                        YTaskProcessKind.SystemApp
-                    else ->
-                        YTaskProcessKind.UserApp
+                    info == null -> YTaskProcessKind.Linux
+                    system -> YTaskProcessKind.SystemApp
+                    else -> YTaskProcessKind.UserApp
                 }
-            val speed =
-                network[uid]
+            val speed = network[uid]
+
             result +=
                 YTaskProcess(
                     pid = pid,
                     ppid = stat.ppid,
                     uid = uid,
                     rssKb = rss,
-                    virtualMemoryKb =
-                        virtualMemory,
+                    virtualMemoryKb = virtualMemory,
                     cpuPercent = cpu,
                     state = stat.state,
                     nice = stat.nice,
                     threads = threads,
                     elapsedTimeMillis =
-                        (elapsed * 1000.0)
-                            .toLong(),
+                        (elapsedSeconds * 1000.0).toLong(),
                     oomScoreAdj = oom,
-                    isForeground =
-                        info != null &&
-                            (oom ?: 1000) <= 0,
+                    isForeground = info != null && (oom ?: 1000) <= 0,
                     name = stat.name,
                     command = command,
-                    packageName =
-                        packageName,
+                    packageName = packageName,
                     appLabel = label,
                     kind = kind,
                     rxBytesPerSecond =
-                        speed
-                            ?.rxBytesPerSecond
-                            ?: 0L,
+                        speed?.rxBytesPerSecond ?: 0L,
                     txBytesPerSecond =
-                        speed
-                            ?.txBytesPerSecond
-                            ?: 0L,
+                        speed?.txBytesPerSecond ?: 0L,
                 )
             index += 2
         }
@@ -363,66 +241,30 @@ internal class YTaskProcessSampler(
         return result
     }
 
-    private fun parseStat(
-        raw: String,
-    ): ProcStat? {
-        val open =
-            raw.indexOf('(')
-        val close =
-            raw.lastIndexOf(')')
-        if (
-            open <= 0 ||
-            close <= open
-        ) {
-            return null
-        }
+    private fun parseStat(raw: String): ProcStat? {
+        val open = raw.indexOf('(')
+        val close = raw.lastIndexOf(')')
+        if (open <= 0 || close <= open) return null
         val pid =
             raw.substring(0, open)
                 .trim()
                 .toIntOrNull()
                 ?: return null
         val fields =
-            raw.substring(
-                close + 1,
-            ).trim()
-                .split(
-                    Regex("\\s+"),
-                )
-        if (fields.size < 22) {
-            return null
-        }
+            raw.substring(close + 1)
+                .trim()
+                .split(Regex("""\s+"""))
+        if (fields.size < 22) return null
         return ProcStat(
             pid = pid,
-            name =
-                raw.substring(
-                    open + 1,
-                    close,
-                ),
+            name = raw.substring(open + 1, close),
             state = fields[0],
-            ppid =
-                fields[1]
-                    .toIntOrNull()
-                    ?: 0,
-            userTicks =
-                fields[11]
-                    .toLongOrNull()
-                    ?: 0L,
-            systemTicks =
-                fields[12]
-                    .toLongOrNull()
-                    ?: 0L,
-            nice =
-                fields[16]
-                    .toIntOrNull()
-                    ?: 0,
-            threads =
-                fields[17]
-                    .toIntOrNull()
-                    ?: 0,
-            startTicks =
-                fields[19]
-                    .toLongOrNull()
-                    ?: 0L,
+            ppid = fields[1].toIntOrNull() ?: 0,
+            userTicks = fields[11].toLongOrNull() ?: 0L,
+            systemTicks = fields[12].toLongOrNull() ?: 0L,
+            nice = fields[16].toIntOrNull() ?: 0,
+            threads = fields[17].toIntOrNull() ?: 0,
+            startTicks = fields[19].toLongOrNull() ?: 0L,
         )
     }
 
