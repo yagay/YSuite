@@ -14,5 +14,6 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:runtime"))
     compileOnly(libs.libxposed.api)
 }
