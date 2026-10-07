@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yagay.ysuite.designsystem.component.YSuiteConfirmDialog
 import com.yagay.ysuite.designsystem.component.YSuiteFilterBar
 import com.yagay.ysuite.designsystem.component.YSuiteFilterOption
 import com.yagay.ysuite.designsystem.component.YSuiteListItem
@@ -30,6 +31,8 @@ import com.yagay.ysuite.feature.ytaskmanager.api.YTaskProcessSort
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.productui.featurelayout.YTaskManagerWorkspace
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
+import java.text.DateFormat
+import java.util.Date
 import kotlin.math.roundToInt
 
 @Composable
@@ -39,6 +42,27 @@ fun YTaskManagerFeatureScreen(
     val model: YTaskManagerViewModel =
         viewModel(factory = YTaskManagerViewModel.Factory(environment))
     val state by model.state.collectAsStateWithLifecycle()
+
+    if (state.pendingKillPid != null) {
+        val target =
+            state.snapshot.processes
+                .firstOrNull {
+                    it.pid == state.pendingKillPid
+                }
+        YSuiteConfirmDialog(
+            title = stringResource(R.string.ytask_kill_confirm_title),
+            message =
+                stringResource(
+                    R.string.ytask_kill_confirm_message,
+                    target?.displayName
+                        ?: state.pendingKillPid.toString(),
+                ),
+            confirmText = stringResource(R.string.ytask_confirm),
+            dismissText = stringResource(R.string.ytask_cancel),
+            onConfirm = model::confirmKill,
+            onDismiss = model::cancelKill,
+        )
+    }
 
     YTaskManagerWorkspace(
         title = stringResource(R.string.ytask_title),
@@ -116,6 +140,10 @@ fun YTaskManagerFeatureScreen(
                                     stringResource(R.string.ytask_sort_memory),
                                 ),
                                 YSuiteFilterOption(
+                                    YTaskProcessSort.Cpu.name,
+                                    stringResource(R.string.ytask_sort_cpu),
+                                ),
+                                YSuiteFilterOption(
                                     YTaskProcessSort.Name.name,
                                     stringResource(R.string.ytask_sort_name),
                                 ),
@@ -136,6 +164,55 @@ fun YTaskManagerFeatureScreen(
                         onSelected = {
                             runCatching { YTaskProcessSort.valueOf(it) }
                                 .getOrNull()?.let(model::setSort)
+                        },
+                    )
+                    YSuiteFilterBar(
+                        options =
+                            listOf(
+                                YSuiteFilterOption(
+                                    "on",
+                                    stringResource(
+                                        if (state.autoRefresh) {
+                                            R.string.ytask_auto_refresh_on
+                                        } else {
+                                            R.string.ytask_auto_refresh_off
+                                        },
+                                    ),
+                                ),
+                                YSuiteFilterOption(
+                                    "500",
+                                    stringResource(R.string.ytask_refresh_500),
+                                ),
+                                YSuiteFilterOption(
+                                    "800",
+                                    stringResource(R.string.ytask_refresh_800),
+                                ),
+                                YSuiteFilterOption(
+                                    "1000",
+                                    stringResource(R.string.ytask_refresh_1000),
+                                ),
+                                YSuiteFilterOption(
+                                    "2000",
+                                    stringResource(R.string.ytask_refresh_2000),
+                                ),
+                            ),
+                        selectedId =
+                            if (!state.autoRefresh) {
+                                "on"
+                            } else {
+                                state.refreshIntervalMs.toString()
+                            },
+                        onSelected = { value ->
+                            if (value == "on") {
+                                model.setAutoRefresh(
+                                    !state.autoRefresh,
+                                )
+                            } else {
+                                value.toLongOrNull()?.let {
+                                    model.setRefreshInterval(it)
+                                    model.setAutoRefresh(true)
+                                }
+                            }
                         },
                     )
                 }
@@ -287,6 +364,18 @@ private fun ProcessContent(
                             horizontal = YSuiteSpacing.Medium,
                             vertical = YSuiteSpacing.Small,
                         ),
+                trailing = {
+                    if (process.isPinned) {
+                        YSuiteStatusBadge(
+                            text =
+                                stringResource(
+                                    R.string.ytask_pinned,
+                                ),
+                            tone =
+                                YSuiteStatusTone.Positive,
+                        )
+                    }
+                },
             )
         }
         state.error?.let { error ->
@@ -607,6 +696,46 @@ private fun ProcessDetail(
                         process.elapsedTimeMillis,
                     ),
             )
+            if (process.startTimeMillis > 0L) {
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_started,
+                        ),
+                    subtitle =
+                        DateFormat
+                            .getDateTimeInstance()
+                            .format(
+                                Date(
+                                    process.startTimeMillis,
+                                ),
+                            ),
+                )
+            }
+            if (process.packageNames.size > 1) {
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_shared_uid_packages,
+                        ),
+                    subtitle =
+                        process.packageNames
+                            .joinToString("\n"),
+                )
+            }
+            if (process.ppid > 0) {
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_parent_pid,
+                        ),
+                    subtitle = process.ppid.toString(),
+                    modifier =
+                        Modifier.clickable {
+                            model.selectParent(process)
+                        },
+                )
+            }
             process.oomScoreAdj?.let {
                 YSuiteListItem(
                     title =
@@ -651,6 +780,17 @@ private fun ProcessDetail(
         Row(
             horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
         ) {
+            YSuiteSecondaryButton(
+                text =
+                    stringResource(
+                        if (process.isPinned) {
+                            R.string.ytask_unpin
+                        } else {
+                            R.string.ytask_pin
+                        },
+                    ),
+                onClick = { model.togglePin(process) },
+            )
             YSuiteSecondaryButton(
                 text = stringResource(R.string.ytask_kill),
                 onClick = { model.kill(process) },
