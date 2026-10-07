@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.component.YSuiteSection
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
@@ -66,7 +67,7 @@ internal fun YTaskResourceHistory(
     }
 
     YSuiteSection(
-        title = "History",
+        title = stringResource(R.string.ytask_history),
         modifier =
             Modifier.padding(
                 horizontal =
@@ -74,19 +75,19 @@ internal fun YTaskResourceHistory(
             ),
     ) {
         HistoryRow(
-            title = "CPU",
+            title = stringResource(R.string.ytask_cpu),
             values = cpu,
         )
         HistoryRow(
-            title = "RAM",
+            title = stringResource(R.string.ytask_ram),
             values = ram,
         )
         HistoryRow(
-            title = "SWAP",
+            title = stringResource(R.string.ytask_swap),
             values = swap,
         )
         HistoryRow(
-            title = "GPU",
+            title = stringResource(R.string.ytask_gpu),
             values = gpu,
         )
     }
