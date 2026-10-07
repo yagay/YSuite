@@ -25,14 +25,25 @@ class YNotifyNotificationListenerService :
         super.onListenerConnected()
         YNotifyRuntimeState
             .notificationListenerConnected = true
-        runCatching {
-            activeNotifications
-                ?.forEach {
-                    scheduleSave(
-                        it,
-                        currentRanking,
-                    )
-                }
+        executor.execute {
+            runCatching {
+                val ranking =
+                    currentRanking
+                activeNotifications
+                    ?.forEach {
+                        if (
+                            it.packageName !=
+                            packageName
+                        ) {
+                            database.upsert(
+                                parse(
+                                    it,
+                                    ranking,
+                                ),
+                            )
+                        }
+                    }
+            }
         }
     }
 
