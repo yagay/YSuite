@@ -19,6 +19,7 @@ import com.yagay.ysuite.feature.yfiles.provider.cloud.CloudFileProvider
 import com.yagay.ysuite.feature.yfiles.provider.cloud.YFilesCloudStore
 import com.yagay.ysuite.feature.yfiles.plugin.YFilesPluginRegistry
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
 import com.yagay.ysuite.platform.api.RootResult
@@ -47,6 +48,7 @@ data class YFilesEnvironment(
     val shareServerStore: YFilesShareServerStore,
     val automationSettings: YFilesAutomationSettings,
     val rootGateway: RootGateway,
+    val hookGateway: HookGateway,
 )
 
 object YFilesEnvironmentFactory {
@@ -54,6 +56,7 @@ object YFilesEnvironmentFactory {
         context: Context,
         rootGateway: RootGateway,
         shizukuGateway: ShizukuGateway,
+        hookGateway: HookGateway,
     ): YFilesEnvironment {
         val appContext =
             context.applicationContext
@@ -226,6 +229,7 @@ object YFilesEnvironmentFactory {
                     appContext,
                 ),
             rootGateway = rootGateway,
+            hookGateway = hookGateway,
         )
     }
 
@@ -243,6 +247,7 @@ object YFilesEnvironmentFactory {
                             .yfiles_msg_shizuku_unavailable_host,
                     ),
                 ),
+            hookGateway = UnavailableHookGateway,
         )
 }
 
@@ -284,3 +289,34 @@ private class UnavailableShizukuGateway(
             message = unavailableMessage,
         )
 }
+
+
+private object UnavailableHookGateway :
+    HookGateway {
+    override suspend fun status():
+        CapabilityStatus =
+        CapabilityStatus.Unavailable
+
+    override suspend fun reload(
+        scopePackages: Set<String>,
+    ): Outcome<Unit> =
+        Outcome.Failure(
+            code = "hook_unavailable",
+            message =
+                HOOK_UNAVAILABLE_MESSAGE,
+        )
+
+    override suspend fun writeConfig(
+        group: String,
+        key: String,
+        value: String?,
+    ): Outcome<Unit> =
+        Outcome.Failure(
+            code = "hook_unavailable",
+            message =
+                HOOK_UNAVAILABLE_MESSAGE,
+        )
+}
+
+private const val HOOK_UNAVAILABLE_MESSAGE =
+    "Hook service is unavailable in this host"
