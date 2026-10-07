@@ -219,6 +219,65 @@ class YDownloadViewModel(
         }
     }
 
+    fun pauseAll() {
+        state.value.items
+            .filter {
+                it.state == YDownloadState.Pending ||
+                    it.state == YDownloadState.Connecting ||
+                    it.state == YDownloadState.Downloading
+            }
+            .forEach {
+                YDownloadService.pause(
+                    appContext,
+                    it.id,
+                )
+            }
+    }
+
+    fun resumeAll() {
+        state.value.items
+            .filter {
+                it.state == YDownloadState.Paused
+            }
+            .forEach {
+                YDownloadService.resume(
+                    appContext,
+                    it.id,
+                )
+            }
+    }
+
+    fun retryFailed() {
+        state.value.items
+            .filter {
+                it.state == YDownloadState.Failed
+            }
+            .forEach {
+                YDownloadService.resume(
+                    appContext,
+                    it.id,
+                )
+            }
+    }
+
+    fun clearFinished() {
+        val finished =
+            state.value.items.filter {
+                it.state == YDownloadState.Completed ||
+                    it.state == YDownloadState.Cancelled
+            }
+        viewModelScope.launch {
+            finished.forEach {
+                environment.scheduler.cancel(it.id)
+                environment.engine.remove(
+                    item = it,
+                    deleteFile = false,
+                )
+            }
+            YDownloadService.pump(appContext)
+        }
+    }
+
     fun toggleSearch() {
         mutableState.update {
             it.copy(
