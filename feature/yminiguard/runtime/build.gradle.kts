@@ -15,6 +15,7 @@ android {
     }
 }
 dependencies {
+    implementation(project(":core:runtime"))
     api(project(":feature:yminiguard:api"))
     compileOnly(libs.libxposed.api)
 }
