@@ -69,13 +69,23 @@ class YSuiteAppContainer(
     val capabilityMonitor =
         PlatformCapabilityMonitor(platform)
 
-    val yFilesEnvironment =
-        YFilesEnvironmentFactory.create(
-            context = context,
-            rootGateway = platform.root,
-            shizukuGateway =
-                platform.shizuku,
-        )
+    val yFilesEnvironment by
+        lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            YFilesEnvironmentFactory.create(
+                context = context,
+                rootGateway = platform.root,
+                shizukuGateway =
+                    platform.shizuku,
+            )
+        }
+
+    val yDownloadEnvironment by
+        lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            YDownloadEnvironmentFactory.create(
+                context = context,
+                logger = logger,
+            )
+        }
 
     val diagnostics =
         DiagnosticCenter().apply {
@@ -171,54 +181,45 @@ class YSuiteAppContainer(
             replace(
                 owner = "yfiles",
                 checks =
-                    yFilesEnvironment
-                        .providerCatalog
-                        .descriptors
-                        .map { descriptor ->
-                            DiagnosticCheck {
-                                DiagnosticFinding(
-                                    id =
-                                        "provider_" +
-                                            descriptor.id,
-                                    status =
-                                        DiagnosticStatus.Pass,
-                                    summary =
-                                        buildString {
-                                            append(
-                                                descriptor.kind.name,
-                                            )
-                                            append(" · ")
-                                            append(
-                                                descriptor.accessMode.name,
-                                            )
-                                            append(" · ")
-                                            append(
-                                                descriptor.capabilities.size,
-                                            )
-                                            append(
-                                                " capabilities",
-                                            )
+                    listOf(
+                        DiagnosticCheck {
+                            val descriptors =
+                                yFilesEnvironment
+                                    .providerCatalog
+                                    .descriptors
+                            DiagnosticFinding(
+                                id =
+                                    "yfiles_providers",
+                                status =
+                                    DiagnosticStatus.Pass,
+                                summary =
+                                    descriptors.size
+                                        .toString() +
+                                        " providers",
+                                details =
+                                    descriptors
+                                        .joinToString("\n") {
+                                            descriptor ->
+                                            descriptor.id +
+                                                " · " +
+                                                descriptor.kind.name +
+                                                " · " +
+                                                descriptor.accessMode.name +
+                                                " · " +
+                                                descriptor.capabilities.size +
+                                                " capabilities"
                                         },
-                                    details =
-                                        descriptor.capabilities
-                                            .sortedBy {
-                                                it.name
-                                            }
-                                            .joinToString {
-                                                it.name
-                                            },
-                                    category =
-                                        "filesystem",
-                                    metadata =
-                                        mapOf(
-                                            "providerId" to descriptor.id,
-                                            "capabilityCount" to
-                                                descriptor.capabilities.size
-                                                    .toString(),
-                                        ),
-                                )
-                            }
+                                category =
+                                    "filesystem",
+                                metadata =
+                                    mapOf(
+                                        "providerCount" to
+                                            descriptors.size
+                                                .toString(),
+                                    ),
+                            )
                         },
+                    ),
             )
         }
 
@@ -241,19 +242,17 @@ class YSuiteAppContainer(
                     permissionCatalog =
                         permissionCatalog,
                 ),
-                YFilesFeatureUiRegistration(
-                    environment =
-                        yFilesEnvironment,
+                YFilesFeatureUiRegistration.lazy(
                     logger = logger,
+                    environmentProvider = {
+                        yFilesEnvironment
+                    },
                 ),
-                YDownloadFeatureUiRegistration(
-                    environment =
-                        YDownloadEnvironmentFactory
-                            .create(
-                                context = context,
-                                logger = logger,
-                            ),
+                YDownloadFeatureUiRegistration.lazy(
                     logger = logger,
+                    environmentProvider = {
+                        yDownloadEnvironment
+                    },
                 ),
                 YTaskManagerFeatureUiRegistration(
                     environment =
@@ -303,6 +302,24 @@ class YSuiteAppContainer(
                 YFloatFeatureUiRegistration(
                     environment =
                         YFloatEnvironmentFactory.create(
+                            context = context,
+                            rootGateway = platform.root,
+                            hookGateway = platform.hooks,
+                            logger = logger,
+                        ),
+                ),
+                YMiniGuardFeatureUiRegistration(
+                    environment =
+                        YMiniGuardEnvironmentFactory.create(
+                            context = context,
+                            rootGateway = platform.root,
+                            hookGateway = platform.hooks,
+                            logger = logger,
+                        ),
+                ),
+                YEntryCleanerFeatureUiRegistration(
+                    environment =
+                        YEntryCleanerEnvironmentFactory.create(
                             context = context,
                             rootGateway = platform.root,
                             hookGateway = platform.hooks,
