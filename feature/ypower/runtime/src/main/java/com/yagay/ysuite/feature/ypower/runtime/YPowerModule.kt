@@ -5,6 +5,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Debug
 import android.util.Log
+import com.yagay.ysuite.runtime.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -18,6 +19,7 @@ import org.json.JSONObject
 
 class YPowerModule : XposedModule() {
     private var packageName = ""
+    private var moduleHostPackage = ""
     private var processName = ""
     private val installed = ConcurrentHashMap.newKeySet<String>()
     private lateinit var profile: Profile
@@ -26,12 +28,28 @@ class YPowerModule : XposedModule() {
         param: XposedModuleInterface.ModuleLoadedParam,
     ) {
         processName = param.processName
+        moduleHostPackage =
+            runCatching {
+                getModuleApplicationInfo()
+                    ?.packageName
+                    .orEmpty()
+            }.getOrDefault("")
+        RuntimeOwnerGate.announce(
+            "ypower",
+            moduleHostPackage,
+        )
     }
 
     override fun onPackageReady(
         param: XposedModuleInterface.PackageReadyParam,
     ) {
         if (!param.isFirstPackage) return
+        if (
+            !RuntimeOwnerGate.shouldRun(
+                "ypower",
+                moduleHostPackage,
+            )
+        ) return
         packageName = param.packageName
         profile = loadProfile(packageName)
         if (!profile.enabled) return
