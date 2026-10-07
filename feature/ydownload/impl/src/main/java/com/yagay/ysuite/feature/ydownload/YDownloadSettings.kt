@@ -1,6 +1,7 @@
 package com.yagay.ysuite.feature.ydownload
 
 import android.content.Context
+import com.yagay.ysuite.feature.ydownload.api.YDownloadBackend
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
@@ -21,6 +22,8 @@ private val Context.yDownloadSettingsDataStore
     by preferencesDataStore(name = "ydownload_settings")
 
 data class YDownloadSettings(
+    val defaultBackend: YDownloadBackend =
+        YDownloadBackend.System,
     val defaultTreeUri: String? = null,
     val maxConcurrentDownloads: Int = 3,
     val defaultThreadCount: Int = 4,
@@ -45,6 +48,8 @@ class YDownloadSettingsRepository(
     private val context: Context,
 ) {
     private object Keys {
+        val defaultBackend =
+            stringPreferencesKey("default_backend")
         val defaultTreeUri =
             stringPreferencesKey("default_tree_uri")
         val maxConcurrent =
@@ -79,6 +84,17 @@ class YDownloadSettingsRepository(
             }
             .map { preferences ->
                 YDownloadSettings(
+                    defaultBackend =
+                        runCatching {
+                            YDownloadBackend.valueOf(
+                                preferences[
+                                    Keys.defaultBackend
+                                ] ?: YDownloadBackend
+                                    .System.name,
+                            )
+                        }.getOrDefault(
+                            YDownloadBackend.System,
+                        ),
                     defaultTreeUri =
                         preferences[Keys.defaultTreeUri]
                             ?.takeIf(String::isNotBlank),
@@ -108,6 +124,15 @@ class YDownloadSettingsRepository(
                 started = SharingStarted.Eagerly,
                 initialValue = YDownloadSettings(),
             )
+
+    suspend fun setDefaultBackend(
+        value: YDownloadBackend,
+    ) {
+        context.yDownloadSettingsDataStore.edit {
+            it[Keys.defaultBackend] =
+                value.name
+        }
+    }
 
     suspend fun setDefaultTreeUri(uri: String?) {
         context.yDownloadSettingsDataStore.edit {
