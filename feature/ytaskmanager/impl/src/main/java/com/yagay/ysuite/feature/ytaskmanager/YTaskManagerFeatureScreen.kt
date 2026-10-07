@@ -399,6 +399,9 @@ private fun ResourceContent(state: YTaskManagerUiState) {
         verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
     ) {
         item {
+            YTaskResourceHistory(state)
+        }
+        item {
             YSuiteSection(
                 title = stringResource(R.string.ytask_cpu),
                 modifier = Modifier.padding(YSuiteSpacing.Medium),
