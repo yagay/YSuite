@@ -34,11 +34,6 @@ internal fun YDownloadBackendSettingsContent() {
                 R.string
                     .ydownload_default_backend,
             ),
-        subtitle =
-            stringResource(
-                R.string
-                    .ydownload_default_backend_desc,
-            ),
         selectedId = backend.name,
         choices =
             listOf(
