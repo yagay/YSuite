@@ -61,5 +61,6 @@ include(":feature:ypower:impl")
 include(":feature:ynotify:api")
 include(":feature:ynotify:runtime")
 include(":feature:ynotify:impl")
+include(":feature:ynfc:runtime")
 
 include(":host:standalone")

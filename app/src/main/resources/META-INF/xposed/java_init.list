@@ -1,1 +1,2 @@
 com.yagay.ysuite.feature.yparam.runtime.YParamXposedModule
+com.yagay.YNFC.xposed.NfcInjectionModule
