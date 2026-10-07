@@ -8,14 +8,26 @@ import com.yagay.ysuite.feature.ydownload.api.YDownloadFeatureContract
 import com.yagay.ysuite.logging.api.CompositeYSuiteLogger
 import com.yagay.ysuite.logging.api.InMemoryLogStore
 import com.yagay.ysuite.logging.api.YSuiteLogger
+import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.productui.ProductSurfaceKind
 import com.yagay.ysuite.ui.YSuiteFeatureUiRegistration
+import com.yagay.ysuite.ui.YSuiteStandaloneAwareRegistration
+import com.yagay.ysuite.ui.YSuiteStandaloneDependencies
 
 object YDownloadStandaloneFeatureUiRegistration :
-    YSuiteFeatureUiRegistration {
+    YSuiteFeatureUiRegistration,
+    YSuiteStandaloneAwareRegistration {
     override val contract = YDownloadFeatureContract
     override val productSurface =
         ProductSurfaceKind.DownloadManager
+
+    private var hookGateway: HookGateway? = null
+
+    override fun bindStandaloneDependencies(
+        dependencies: YSuiteStandaloneDependencies,
+    ) {
+        hookGateway = dependencies.hookGateway
+    }
 
     private val logger: YSuiteLogger =
         CompositeYSuiteLogger(
@@ -30,11 +42,16 @@ object YDownloadStandaloneFeatureUiRegistration :
     override fun Content() {
         val context =
             LocalContext.current.applicationContext
+        val hooks =
+            checkNotNull(hookGateway) {
+                "Standalone dependencies not bound"
+            }
         val environment =
-            remember(context) {
+            remember(context, hooks) {
                 YDownloadEnvironmentFactory.create(
                     context = context,
                     logger = logger,
+                    hookGateway = hooks,
                 )
             }
 
