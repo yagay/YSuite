@@ -25,5 +25,12 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/ynotify_accessibility_service_config" />
         </service>
+        <receiver
+            android:name=".YNotifyHookReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.yagay.ysuite.YNOTIFY_XPOSED_EVENT" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

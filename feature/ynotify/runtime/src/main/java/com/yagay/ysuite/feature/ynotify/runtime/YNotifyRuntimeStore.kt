@@ -19,6 +19,10 @@ class YNotifyRuntimeStore(
 ) {
     private val applicationContext =
         context.applicationContext
+
+    init {
+        YNotifyXposedRuntime.ensure(applicationContext)
+    }
     private val database =
         YNotifyDatabase(applicationContext)
 

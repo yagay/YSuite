@@ -17,4 +17,6 @@ dependencies {
     api(project(":feature:ynotify:api"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.libxposed.service)
+    compileOnly(libs.libxposed.api)
 }

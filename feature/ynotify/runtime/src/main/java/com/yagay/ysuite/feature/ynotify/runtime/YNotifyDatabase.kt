@@ -82,6 +82,29 @@ internal class YNotifyDatabase(
         invalidations.tryEmit(Unit)
     }
 
+    fun markSurface(
+        notificationKey: String,
+        kind: String,
+        at: Long,
+    ) {
+        val values = ContentValues().apply {
+            when (kind) {
+                "heads_up" -> put("heads_up", 1)
+                "bubble" -> put("bubble_shown", 1)
+                "full_screen" -> put("full_screen_shown", 1)
+                else -> return
+            }
+            put("updated_at", at)
+        }
+        writableDatabase.update(
+            "events",
+            values,
+            "notification_key = ?",
+            arrayOf(notificationKey),
+        )
+        invalidations.tryEmit(Unit)
+    }
+
     fun markRemoved(
         notificationKey: String,
         removedAt: Long,
