@@ -483,6 +483,9 @@ class YDownloadViewModel(
             environment.repository.add(
                 request =
                     YDownloadRequest(
+                        backend =
+                            state.value.settings
+                                .defaultBackend,
                         url = url,
                         fileName =
                             YDownloadMetadataFetcher
@@ -681,6 +684,15 @@ class YDownloadViewModel(
         startActivity(intent, "folder", id)
     }
 
+    fun setDefaultBackend(
+        value: com.yagay.ysuite.feature.ydownload.api.YDownloadBackend,
+    ) {
+        viewModelScope.launch {
+            environment.settings
+                .setDefaultBackend(value)
+        }
+    }
+
     fun setDefaultTreeUri(uri: String?) {
         viewModelScope.launch {
             environment.settings.setDefaultTreeUri(uri)
@@ -833,6 +845,9 @@ class YDownloadViewModel(
                 environment.repository.add(
                     request =
                         YDownloadRequest(
+                            backend =
+                                state.value.settings
+                                    .defaultBackend,
                             url = draft.url.trim(),
                             fileName =
                                 YDownloadMetadataFetcher
