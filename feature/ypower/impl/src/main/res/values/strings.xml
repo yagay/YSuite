@@ -60,4 +60,12 @@
     <string name="ypower_status_detected">Detected</string>
     <string name="ypower_status_warning">Warning</string>
     <string name="ypower_status_failure">Failure</string>
+    <string name="ypower_diag_quick">Quick session</string>
+    <string name="ypower_diag_standard">Standard session</string>
+    <string name="ypower_diag_deep">Deep session</string>
+    <string name="ypower_diag_launch">Launch target</string>
+    <string name="ypower_diag_finish">Finish &amp; analyze</string>
+    <string name="ypower_diag_active">Diagnostic session active · %1$s</string>
+    <string name="ypower_diag_exported">Diagnostic report exported to Downloads/YSuite/YPower</string>
+    <string name="ypower_launch_failed">Target app has no launchable activity.</string>
 </resources>

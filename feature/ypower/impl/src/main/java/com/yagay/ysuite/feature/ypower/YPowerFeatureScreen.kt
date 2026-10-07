@@ -448,6 +448,100 @@ private fun AppDetail(
                         onClick = model::diagnose,
                     )
                 }
+                if (
+                    !state.diagnosticSessionActive
+                ) {
+                    Row(
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                YSuiteSpacing.Small,
+                            ),
+                    ) {
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .ypower_diag_quick,
+                                ),
+                            onClick = {
+                                model.startDiagnosticSession(
+                                    YPowerDiagnosticLevel.Quick,
+                                )
+                            },
+                        )
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .ypower_diag_standard,
+                                ),
+                            onClick = {
+                                model.startDiagnosticSession(
+                                    YPowerDiagnosticLevel.Standard,
+                                )
+                            },
+                        )
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .ypower_diag_deep,
+                                ),
+                            onClick = {
+                                model.startDiagnosticSession(
+                                    YPowerDiagnosticLevel.Deep,
+                                )
+                            },
+                        )
+                    }
+                } else {
+                    Row(
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                YSuiteSpacing.Small,
+                            ),
+                    ) {
+                        YSuiteSecondaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .ypower_diag_launch,
+                                ),
+                            onClick =
+                                model::launchDiagnosticTarget,
+                        )
+                        YSuitePrimaryButton(
+                            text =
+                                stringResource(
+                                    R.string
+                                        .ypower_diag_finish,
+                                ),
+                            onClick =
+                                model::finishDiagnosticSession,
+                        )
+                    }
+                    YSuiteStatusBadge(
+                        text =
+                            stringResource(
+                                R.string
+                                    .ypower_diag_active,
+                                state.diagnosticLevel.name,
+                            ),
+                        tone =
+                            YSuiteStatusTone.Positive,
+                    )
+                }
+                state.reportUri?.let {
+                    YSuiteStatusBadge(
+                        text =
+                            stringResource(
+                                R.string
+                                    .ypower_diag_exported,
+                            ),
+                        tone =
+                            YSuiteStatusTone.Positive,
+                    )
+                }
                 state.statusToken?.let {
                     YSuiteStatusBadge(
                         text = statusTokenText(it),

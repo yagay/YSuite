@@ -60,4 +60,12 @@
     <string name="ypower_status_detected">已检测</string>
     <string name="ypower_status_warning">警告</string>
     <string name="ypower_status_failure">失败</string>
+    <string name="ypower_diag_quick">快速诊断</string>
+    <string name="ypower_diag_standard">标准诊断</string>
+    <string name="ypower_diag_deep">深度诊断</string>
+    <string name="ypower_diag_launch">启动目标应用</string>
+    <string name="ypower_diag_finish">结束并分析</string>
+    <string name="ypower_diag_active">诊断会话进行中 · %1$s</string>
+    <string name="ypower_diag_exported">诊断报告已导出到 Downloads/YSuite/YPower</string>
+    <string name="ypower_launch_failed">目标应用没有可启动的 Activity。</string>
 </resources>

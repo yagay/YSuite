@@ -35,6 +35,12 @@ data class YPowerUiState(
         CapabilityStatus.Unavailable,
     val applying: Boolean = false,
     val diagnosing: Boolean = false,
+    val diagnosticSessionActive: Boolean = false,
+    val diagnosticSessionId: String = "",
+    val diagnosticLevel:
+        YPowerDiagnosticLevel =
+        YPowerDiagnosticLevel.Standard,
+    val reportUri: String? = null,
     val applyResult: YPowerApplyResult? = null,
     val findings: List<YPowerFinding> = emptyList(),
     val statusToken: String? = null,
@@ -109,11 +115,23 @@ class YPowerViewModel(
                     applyResult = null,
                     findings = emptyList(),
                     statusToken = null,
+                    reportUri = null,
                 )
             } else {
+                val session =
+                    repository
+                        .diagnosticSessionState(
+                            packageName,
+                        )
                 mutableState.value.copy(
                     selectedPackage = packageName,
                     draft = repository.load(packageName),
+                    diagnosticSessionActive =
+                        session.active,
+                    diagnosticSessionId =
+                        session.sessionId,
+                    diagnosticLevel =
+                        session.level,
                     applyResult = null,
                     findings = emptyList(),
                     statusToken = null,
@@ -187,6 +205,113 @@ class YPowerViewModel(
                     mutableState.value.copy(
                         applying = false,
                         statusToken = "apply_failed",
+                    )
+            }
+        }
+    }
+
+    fun startDiagnosticSession(
+        level: YPowerDiagnosticLevel,
+    ) {
+        val packageName =
+            mutableState.value
+                .selectedPackage
+                ?: return
+        viewModelScope.launch {
+            mutableState.value =
+                mutableState.value.copy(
+                    diagnosing = true,
+                    findings = emptyList(),
+                    reportUri = null,
+                )
+            runCatching {
+                withContext(
+                    Dispatchers.IO,
+                ) {
+                    repository
+                        .startDiagnosticSession(
+                            packageName,
+                            level,
+                        )
+                }
+            }.onSuccess {
+                mutableState.value =
+                    mutableState.value.copy(
+                        diagnosing = false,
+                        diagnosticSessionActive =
+                            true,
+                        diagnosticSessionId =
+                            it.sessionId,
+                        diagnosticLevel =
+                            it.level,
+                    )
+            }.onFailure {
+                mutableState.value =
+                    mutableState.value.copy(
+                        diagnosing = false,
+                        statusToken =
+                            "diagnostic_failed",
+                    )
+            }
+        }
+    }
+
+    fun launchDiagnosticTarget() {
+        val packageName =
+            mutableState.value
+                .selectedPackage
+                ?: return
+        if (
+            !repository
+                .launchDiagnosticTarget(
+                    packageName,
+                )
+        ) {
+            mutableState.value =
+                mutableState.value.copy(
+                    statusToken =
+                        "launch_failed",
+                )
+        }
+    }
+
+    fun finishDiagnosticSession() {
+        val packageName =
+            mutableState.value
+                .selectedPackage
+                ?: return
+        viewModelScope.launch {
+            mutableState.value =
+                mutableState.value.copy(
+                    diagnosing = true,
+                )
+            runCatching {
+                withContext(
+                    Dispatchers.IO,
+                ) {
+                    repository
+                        .finishDiagnosticSession(
+                            packageName,
+                        )
+                }
+            }.onSuccess {
+                mutableState.value =
+                    mutableState.value.copy(
+                        diagnosing = false,
+                        diagnosticSessionActive =
+                            false,
+                        diagnosticSessionId = "",
+                        findings =
+                            it.findings,
+                        reportUri =
+                            it.reportUri,
+                    )
+            }.onFailure {
+                mutableState.value =
+                    mutableState.value.copy(
+                        diagnosing = false,
+                        statusToken =
+                            "diagnostic_failed",
                     )
             }
         }
