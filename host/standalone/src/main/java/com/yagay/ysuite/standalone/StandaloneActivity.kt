@@ -62,6 +62,8 @@ class StandaloneActivity : AppCompatActivity() {
                     rootGateway = platform.root,
                     shizukuGateway =
                         platform.shizuku,
+                    hookGateway =
+                        platform.hooks,
                 ),
             )
 
