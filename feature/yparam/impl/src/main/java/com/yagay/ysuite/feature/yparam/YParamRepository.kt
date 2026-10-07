@@ -12,6 +12,25 @@ import java.util.Locale
 import java.util.TimeZone
 import org.json.JSONObject
 
+data class YParamDiagnostics(
+    val versionName: String,
+    val versionCode: Long,
+    val uid: Int,
+    val minSdk: Int,
+    val targetSdk: Int,
+    val requestedPermissionCount: Int,
+    val launchActivity: String?,
+    val launchOrientation: Int?,
+    val densityDpi: Int,
+    val widthPixels: Int,
+    val heightPixels: Int,
+    val screenWidthDp: Int,
+    val screenHeightDp: Int,
+    val smallestWidthDp: Int,
+    val localeTag: String,
+    val timeZoneId: String,
+)
+
 internal class YParamRepository(
     private val context: Context,
 ) {
@@ -21,6 +40,11 @@ internal class YParamRepository(
             Context.MODE_PRIVATE,
         )
     private val packageManager = context.packageManager
+    private val baselinePrefs =
+        context.getSharedPreferences(
+            "ysuite_yparam_baselines",
+            Context.MODE_PRIVATE,
+        )
 
     fun apps(): List<YParamAppSummary> =
         packageManager
@@ -65,6 +89,149 @@ internal class YParamRepository(
         check(edit.commit()) {
             "Unable to persist parameter overrides"
         }
+    }
+
+    fun baseline(
+        packageName: String,
+    ): String? =
+        baselinePrefs.getString(
+            packageName,
+            null,
+        )
+
+    fun ensureBaseline(
+        packageName: String,
+    ): String {
+        baseline(packageName)
+            ?.let { return it }
+        val defaults =
+            defaults(packageName)
+        val value =
+            JSONObject().apply {
+                put(
+                    "capturedAt",
+                    System.currentTimeMillis(),
+                )
+                put(
+                    "densityDpi",
+                    defaults.densityDpi,
+                )
+                put(
+                    "widthPixels",
+                    defaults.widthPixels,
+                )
+                put(
+                    "heightPixels",
+                    defaults.heightPixels,
+                )
+                put(
+                    "fontScale",
+                    defaults.fontScale,
+                )
+                put(
+                    "smallestWidthDp",
+                    defaults.smallestWidthDp,
+                )
+                put(
+                    "screenWidthDp",
+                    defaults.screenWidthDp,
+                )
+                put(
+                    "screenHeightDp",
+                    defaults.screenHeightDp,
+                )
+                put(
+                    "locale",
+                    defaults.localeTag,
+                )
+                put(
+                    "timezone",
+                    defaults.timeZoneId,
+                )
+            }.toString()
+        check(
+            baselinePrefs.edit()
+                .putString(
+                    packageName,
+                    value,
+                )
+                .commit(),
+        ) {
+            "Unable to persist baseline snapshot"
+        }
+        return value
+    }
+
+    fun diagnostics(
+        packageName: String,
+    ): YParamDiagnostics {
+        val packageInfo =
+            packageManager.getPackageInfo(
+                packageName,
+                PackageManager.GET_ACTIVITIES or
+                    PackageManager.GET_PERMISSIONS,
+            )
+        val applicationInfo =
+            packageInfo.applicationInfo
+        val launch =
+            packageManager
+                .getLaunchIntentForPackage(
+                    packageName,
+                )
+                ?.component
+                ?.let {
+                    runCatching {
+                        packageManager
+                            .getActivityInfo(
+                                it,
+                                0,
+                            )
+                    }.getOrNull()
+                }
+        val metrics =
+            context.resources.displayMetrics
+        val configuration =
+            context.resources.configuration
+        return YParamDiagnostics(
+            versionName =
+                packageInfo.versionName
+                    .orEmpty(),
+            versionCode =
+                packageInfo.longVersionCode,
+            uid =
+                applicationInfo?.uid ?: -1,
+            minSdk =
+                applicationInfo?.minSdkVersion
+                    ?: 0,
+            targetSdk =
+                applicationInfo?.targetSdkVersion
+                    ?: 0,
+            requestedPermissionCount =
+                packageInfo.requestedPermissions
+                    ?.size ?: 0,
+            launchActivity =
+                launch?.name,
+            launchOrientation =
+                launch?.screenOrientation,
+            densityDpi =
+                metrics.densityDpi,
+            widthPixels =
+                metrics.widthPixels,
+            heightPixels =
+                metrics.heightPixels,
+            screenWidthDp =
+                configuration.screenWidthDp,
+            screenHeightDp =
+                configuration.screenHeightDp,
+            smallestWidthDp =
+                configuration
+                    .smallestScreenWidthDp,
+            localeTag =
+                Locale.getDefault()
+                    .toLanguageTag(),
+            timeZoneId =
+                TimeZone.getDefault().id,
+        )
     }
 
     fun reset(packageName: String) {
