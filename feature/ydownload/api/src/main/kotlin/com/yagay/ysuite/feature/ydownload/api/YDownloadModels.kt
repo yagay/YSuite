@@ -1,5 +1,10 @@
 package com.yagay.ysuite.feature.ydownload.api
 
+enum class YDownloadBackend {
+    System,
+    Private,
+}
+
 enum class YDownloadState {
     Pending,
     Connecting,
@@ -35,6 +40,9 @@ data class YDownloadChunk(
 
 data class YDownloadItem(
     val id: String,
+    val backend: YDownloadBackend =
+        YDownloadBackend.Private,
+    val systemId: Long? = null,
     val url: String,
     val fileName: String,
     val outputUri: String?,
@@ -72,6 +80,8 @@ data class YDownloadItem(
 }
 
 data class YDownloadRequest(
+    val backend: YDownloadBackend =
+        YDownloadBackend.System,
     val url: String,
     val fileName: String,
     val mimeType: String = "",
