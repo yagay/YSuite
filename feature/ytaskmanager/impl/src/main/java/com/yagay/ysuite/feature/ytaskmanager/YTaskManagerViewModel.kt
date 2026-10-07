@@ -28,6 +28,7 @@ data class YTaskManagerUiState(
     val showSystem: Boolean = true,
     val showLinux: Boolean = false,
     val selectedPid: Int? = null,
+    val selectedDetail: YTaskProcess? = null,
     val loading: Boolean = true,
     val error: String? = null,
 )
@@ -82,14 +83,44 @@ class YTaskManagerViewModel(
     }
 
     fun select(process: YTaskProcess?) {
-        mutableState.value = mutableState.value.copy(
-            selectedPid = process?.pid,
-        )
+        mutableState.value =
+            mutableState.value.copy(
+                selectedPid = process?.pid,
+                selectedDetail = process,
+            )
+        if (process != null) {
+            viewModelScope.launch {
+                val detail =
+                    runCatching {
+                        repository.loadDetails(
+                            process,
+                        )
+                    }.getOrDefault(process)
+                if (
+                    mutableState.value.selectedPid ==
+                    process.pid
+                ) {
+                    mutableState.value =
+                        mutableState.value.copy(
+                            selectedDetail = detail,
+                        )
+                }
+            }
+        }
     }
 
-    fun selectedProcess(): YTaskProcess? =
-        mutableState.value.snapshot.processes
-            .firstOrNull { it.pid == mutableState.value.selectedPid }
+    fun selectedProcess(): YTaskProcess? {
+        val state = mutableState.value
+        state.selectedDetail
+            ?.takeIf {
+                it.pid == state.selectedPid
+            }
+            ?.let { return it }
+        return state.snapshot.processes
+            .firstOrNull {
+                it.pid == state.selectedPid
+            }
+    }
 
     fun visibleProcesses(): List<YTaskProcess> {
         val state = mutableState.value

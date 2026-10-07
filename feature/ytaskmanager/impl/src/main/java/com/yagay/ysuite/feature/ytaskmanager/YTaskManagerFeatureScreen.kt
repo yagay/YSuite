@@ -276,6 +276,7 @@ private fun ProcessContent(
                         R.string.ytask_process_summary,
                         process.pid,
                         formatBytes(process.rssKb * 1024L),
+                        process.cpuPercent,
                         formatRate(process.rxBytesPerSecond),
                         formatRate(process.txBytesPerSecond),
                     ),
@@ -329,6 +330,25 @@ private fun ResourceContent(state: YTaskManagerUiState) {
                         s.load1,
                     ),
                 )
+                if (s.abi.isNotBlank()) {
+                    YSuiteListItem(
+                        title =
+                            stringResource(
+                                R.string.ytask_abi,
+                            ),
+                        subtitle = s.abi,
+                    )
+                }
+                if (s.governor.isNotBlank()) {
+                    YSuiteListItem(
+                        title =
+                            stringResource(
+                                R.string.ytask_governor,
+                            ),
+                        subtitle =
+                            s.governor,
+                    )
+                }
                 s.cpuTemperatureC?.let {
                     YSuiteListItem(
                         title = stringResource(R.string.ytask_temperature),
@@ -352,6 +372,32 @@ private fun ResourceContent(state: YTaskManagerUiState) {
                         formatBytes(s.ramUsedBytes),
                         formatBytes(s.ramTotalBytes),
                     ),
+                )
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_ram_available,
+                        ),
+                    subtitle =
+                        formatBytes(
+                            s.ramAvailableBytes,
+                        ),
+                )
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_cache_buffers,
+                        ),
+                    subtitle =
+                        stringResource(
+                            R.string.ytask_memory_pair,
+                            formatBytes(
+                                s.cachedBytes,
+                            ),
+                            formatBytes(
+                                s.buffersBytes,
+                            ),
+                        ),
                 )
                 YSuiteListItem(
                     title = stringResource(R.string.ytask_swap),
@@ -379,10 +425,67 @@ private fun ResourceContent(state: YTaskManagerUiState) {
                         } ?: stringResource(R.string.ytask_unavailable),
                 )
                 YSuiteListItem(
-                    title = stringResource(R.string.ytask_gpu_frequency),
+                    title =
+                        stringResource(
+                            R.string.ytask_gpu_frequency,
+                        ),
                     subtitle =
-                        g.currentHz?.let(::formatFrequency)
-                            ?: stringResource(R.string.ytask_unavailable),
+                        listOfNotNull(
+                            g.currentHz
+                                ?.let(
+                                    ::formatFrequency,
+                                ),
+                            g.minHz?.let {
+                                "min " +
+                                    formatFrequency(it)
+                            },
+                            g.maxHz?.let {
+                                "max " +
+                                    formatFrequency(it)
+                            },
+                        ).joinToString(" · ")
+                            .ifBlank {
+                                stringResource(
+                                    R.string.ytask_unavailable,
+                                )
+                            },
+                )
+                if (
+                    !g.vendor.isNullOrBlank() ||
+                    !g.renderer.isNullOrBlank()
+                ) {
+                    YSuiteListItem(
+                        title =
+                            stringResource(
+                                R.string.ytask_gpu_info,
+                            ),
+                        subtitle =
+                            listOfNotNull(
+                                g.vendor,
+                                g.renderer,
+                                g.openGlVersion,
+                            ).filter {
+                                !it.isNullOrBlank()
+                            }.joinToString(" · "),
+                    )
+                }
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_vulkan,
+                        ),
+                    subtitle =
+                        if (g.vulkanSupported) {
+                            g.vulkanApiVersion
+                                ?.let {
+                                    "Vulkan $it"
+                                }
+                                ?: "Vulkan"
+                        } else {
+                            stringResource(
+                                R.string.ytask_unavailable,
+                            )
+                        },
                 )
             }
         }
@@ -444,9 +547,96 @@ private fun ProcessDetail(
                 subtitle = process.command,
             )
             YSuiteListItem(
-                title = stringResource(R.string.ytask_memory),
-                subtitle = formatBytes(process.rssKb * 1024L),
+                title =
+                    stringResource(
+                        R.string.ytask_memory,
+                    ),
+                subtitle =
+                    stringResource(
+                        R.string.ytask_memory_pair,
+                        formatBytes(
+                            process.rssKb *
+                                1024L,
+                        ),
+                        formatBytes(
+                            process.virtualMemoryKb *
+                                1024L,
+                        ),
+                    ),
             )
+            YSuiteListItem(
+                title =
+                    stringResource(
+                        R.string.ytask_cpu_usage,
+                    ),
+                subtitle =
+                    "%.1f%%".format(
+                        process.cpuPercent,
+                    ),
+            )
+            YSuiteListItem(
+                title =
+                    stringResource(
+                        R.string.ytask_process_state,
+                    ),
+                subtitle =
+                    stringResource(
+                        R.string.ytask_process_state_value,
+                        process.state,
+                        process.threads,
+                        process.nice,
+                    ),
+            )
+            YSuiteListItem(
+                title =
+                    stringResource(
+                        R.string.ytask_elapsed,
+                    ),
+                subtitle =
+                    formatDuration(
+                        process.elapsedTimeMillis,
+                    ),
+            )
+            process.oomScoreAdj?.let {
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_oom,
+                        ),
+                    subtitle =
+                        stringResource(
+                            R.string.ytask_oom_value,
+                            it,
+                            stringResource(
+                                if (
+                                    process.isForeground
+                                ) {
+                                    R.string.ytask_foreground
+                                } else {
+                                    R.string.ytask_background
+                                },
+                            ),
+                        ),
+                )
+            }
+            process.executablePath?.let {
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_executable,
+                        ),
+                    subtitle = it,
+                )
+            }
+            process.cgroup?.let {
+                YSuiteListItem(
+                    title =
+                        stringResource(
+                            R.string.ytask_cgroup,
+                        ),
+                    subtitle = it,
+                )
+            }
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
@@ -483,6 +673,32 @@ private fun formatBytes(value: Long): String {
 
 private fun formatRate(value: Long): String =
     formatBytes(value) + "/s"
+
+private fun formatDuration(
+    value: Long,
+): String {
+    val seconds =
+        value.coerceAtLeast(0L) /
+            1000L
+    val hours =
+        seconds / 3600L
+    val minutes =
+        (seconds % 3600L) / 60L
+    val remain =
+        seconds % 60L
+    return if (hours > 0L) {
+        "%dh %02dm %02ds".format(
+            hours,
+            minutes,
+            remain,
+        )
+    } else {
+        "%dm %02ds".format(
+            minutes,
+            remain,
+        )
+    }
+}
 
 private fun formatFrequency(value: Long): String =
     if (value >= 1_000_000L) {
