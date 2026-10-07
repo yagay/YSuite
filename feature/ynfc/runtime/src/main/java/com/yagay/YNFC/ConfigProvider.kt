@@ -72,7 +72,7 @@ class ConfigProvider : ContentProvider() {
                     prefs.getLong(KEY_COMMAND_GENERATION, 0L) + 1L,
                     System.currentTimeMillis(),
                 )
-                insert(URI, ContentValues().apply {
+                insert(currentUri(), ContentValues().apply {
                     put(KEY_SIMULATION_ENABLED, enabled)
                     put(KEY_UID, if (enabled) extras?.getString(EXTRA_UID).orEmpty() else "")
                     put(KEY_SAK, if (enabled) extras?.getString(EXTRA_SAK).orEmpty() else "")
@@ -104,7 +104,7 @@ class ConfigProvider : ContentProvider() {
                     generation == prefs.getLong(KEY_COMMAND_GENERATION, 0L) &&
                     pid > 0
                 if (ok) {
-                    insert(URI, ContentValues().apply {
+                    insert(currentUri(), ContentValues().apply {
                         put(KEY_COMMAND_HANDLED_GENERATION, generation)
                         put(KEY_COMMAND_STATUS, "SUCCESS")
                         put(KEY_COMMAND_DETAIL, "Stock RF restored by NFC process restart")
@@ -138,6 +138,9 @@ class ConfigProvider : ContentProvider() {
         return 1
     }
     override fun getType(uri: Uri): String = "vnd.android.cursor.item/vnd.ynfc.settings"
+
+    private fun currentUri(): Uri =
+        uri(requireNotNull(context))
 
     private fun trusted(): Boolean {
         val uid = Binder.getCallingUid()
@@ -185,7 +188,12 @@ class ConfigProvider : ContentProvider() {
         const val KEY_SCOPE_PID = "scope_pid"
         const val KEY_RUNTIME_PID = "runtime_pid"
 
-        @JvmField
-        val URI: Uri = Uri.parse("content://" + BuildConfig.CONFIG_AUTHORITY + "/settings")
+        @JvmStatic
+        fun uri(context: Context): Uri =
+            Uri.parse(
+                "content://" +
+                    context.packageName +
+                    ".ynfc.config/settings",
+            )
     }
 }
