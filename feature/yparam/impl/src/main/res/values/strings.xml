@@ -75,4 +75,7 @@
     <string name="yparam_diag_locale">Locale / timezone</string>
     <string name="yparam_diag_locale_value">%1$s · %2$s</string>
     <string name="yparam_baseline_snapshot">First-change baseline</string>
+    <string name="yparam_reset">Restored to app defaults</string>
+    <string name="yparam_reset_hook_write_failed">Restore failed; Hook configuration could not be cleared.</string>
+    <string name="yparam_reset_hook_unavailable">Restored persistently; restart the target app to apply because Hook reload is unavailable.</string>
 </resources>
