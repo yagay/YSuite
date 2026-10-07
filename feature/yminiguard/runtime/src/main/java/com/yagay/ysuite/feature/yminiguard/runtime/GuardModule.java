@@ -11,6 +11,8 @@ import android.os.Looper;
 import android.os.Process;
 import android.util.Log;
 
+import com.yagay.ysuite.runtime.RuntimeOwnerGate;
+
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -43,6 +45,7 @@ public final class GuardModule extends XposedModule {
     private final ConcurrentHashMap<Integer, String[]> uidPackages =
             new ConcurrentHashMap<>();
 
+    private String moduleHostPackage = "";
     private volatile ClassLoader systemClassLoader;
     private volatile SharedPreferences remotePrefs;
     private volatile EngineBridge engine;
@@ -51,6 +54,18 @@ public final class GuardModule extends XposedModule {
     public void onModuleLoaded(
             XposedModuleInterface.ModuleLoadedParam param
     ) {
+        try {
+            if (getModuleApplicationInfo() != null
+                    && getModuleApplicationInfo().packageName != null) {
+                moduleHostPackage =
+                        getModuleApplicationInfo().packageName;
+            }
+        } catch (Throwable ignored) {
+            moduleHostPackage = "";
+        }
+        RuntimeOwnerGate.announce(
+                "yminiguard",
+                moduleHostPackage);
         try {
             remotePrefs =
                     getRemotePreferences(
@@ -75,6 +90,11 @@ public final class GuardModule extends XposedModule {
     public void onSystemServerStarting(
             XposedModuleInterface.SystemServerStartingParam param
     ) {
+        if (!RuntimeOwnerGate.shouldRun(
+                "yminiguard",
+                moduleHostPackage)) {
+            return;
+        }
         systemClassLoader = param.getClassLoader();
 
         Handler handler =
