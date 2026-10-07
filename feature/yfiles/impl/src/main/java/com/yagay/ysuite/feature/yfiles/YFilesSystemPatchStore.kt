@@ -4,8 +4,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import com.yagay.ysuite.common.Outcome
-import com.yagay.ysuite.platform.api.HookGateway
+import io.github.libxposed.service.XposedService
+import io.github.libxposed.service.XposedServiceHelper
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
+import kotlin.coroutines.resume
 
 data class YFilesSystemPatchSettings(
     val enabled: Boolean = true,
@@ -20,6 +23,7 @@ data class YFilesSystemPatchSettings(
         const val SORT_DATE = "date"
         const val SORT_SIZE = "size"
         const val SORT_TYPE = "type"
+
         val validSorts =
             listOf(
                 SORT_SYSTEM,
@@ -33,7 +37,6 @@ data class YFilesSystemPatchSettings(
 
 class YFilesSystemPatchStore(
     context: Context,
-    private val hooks: HookGateway,
 ) {
     private val appContext =
         context.applicationContext
@@ -42,6 +45,10 @@ class YFilesSystemPatchStore(
             PREFS,
             Context.MODE_PRIVATE,
         )
+
+    init {
+        YFilesPatchService.ensureRegistered()
+    }
 
     fun load(): YFilesSystemPatchSettings =
         YFilesSystemPatchSettings(
@@ -124,38 +131,37 @@ class YFilesSystemPatchStore(
             YFilesSystemPatchSettings =
             load(),
     ): Outcome<Unit> =
-        hooks.writeConfig(
-            group = PREFS,
-            key = "config",
-            value =
-                JSONObject()
-                    .put(
-                        "enabled",
-                        settings.enabled,
-                    )
-                    .put(
-                        "initialUri",
-                        settings.initialUri,
-                    )
-                    .put(
-                        "localOnly",
-                        settings.localOnly,
-                    )
-                    .put(
-                        "allowMultiple",
-                        settings.allowMultiple,
-                    )
-                    .put(
-                        "defaultSort",
-                        settings.defaultSort,
-                    )
-                    .toString(),
+        YFilesPatchService.writeConfig(
+            JSONObject()
+                .put(
+                    "enabled",
+                    settings.enabled,
+                )
+                .put(
+                    "initialUri",
+                    settings.initialUri,
+                )
+                .put(
+                    "localOnly",
+                    settings.localOnly,
+                )
+                .put(
+                    "allowMultiple",
+                    settings.allowMultiple,
+                )
+                .put(
+                    "defaultSort",
+                    settings.defaultSort,
+                )
+                .toString(),
         )
 
     suspend fun requestRecommendedScope():
         Outcome<Unit> {
-        val targets = recommendedTargets()
-        val result = hooks.reload(targets)
+        val result =
+            YFilesPatchService.requestScope(
+                recommendedTargets(),
+            )
         if (result is Outcome.Success) {
             return sync()
         }
@@ -170,37 +176,35 @@ class YFilesSystemPatchStore(
                 "com.google.android.documentsui",
             )
 
-        val intents =
-            listOf(
-                Intent(
-                    Intent.ACTION_OPEN_DOCUMENT,
-                ).apply {
-                    type = "*/*"
-                    addCategory(
-                        Intent.CATEGORY_OPENABLE,
-                    )
-                },
-                Intent(
-                    Intent.ACTION_CREATE_DOCUMENT,
-                ).apply {
-                    type = "*/*"
-                    addCategory(
-                        Intent.CATEGORY_OPENABLE,
-                    )
-                },
-                Intent(
-                    Intent.ACTION_OPEN_DOCUMENT_TREE,
-                ),
-                Intent(
-                    Intent.ACTION_GET_CONTENT,
-                ).apply {
-                    type = "*/*"
-                    addCategory(
-                        Intent.CATEGORY_OPENABLE,
-                    )
-                },
-            )
-        intents.forEach { intent ->
+        listOf(
+            Intent(
+                Intent.ACTION_OPEN_DOCUMENT,
+            ).apply {
+                type = "*/*"
+                addCategory(
+                    Intent.CATEGORY_OPENABLE,
+                )
+            },
+            Intent(
+                Intent.ACTION_CREATE_DOCUMENT,
+            ).apply {
+                type = "*/*"
+                addCategory(
+                    Intent.CATEGORY_OPENABLE,
+                )
+            },
+            Intent(
+                Intent.ACTION_OPEN_DOCUMENT_TREE,
+            ),
+            Intent(
+                Intent.ACTION_GET_CONTENT,
+            ).apply {
+                type = "*/*"
+                addCategory(
+                    Intent.CATEGORY_OPENABLE,
+                )
+            },
+        ).forEach { intent ->
             runCatching {
                 pm.queryIntentActivities(
                     intent,
@@ -243,5 +247,175 @@ class YFilesSystemPatchStore(
 
     companion object {
         const val PREFS = "yfiles_patch"
+    }
+}
+
+private object YFilesPatchService :
+    XposedServiceHelper.OnServiceListener {
+    @Volatile
+    private var service: XposedService? = null
+
+    @Volatile
+    private var registered = false
+
+    @Synchronized
+    fun ensureRegistered() {
+        if (registered) return
+        registered = true
+        XposedServiceHelper.registerListener(this)
+    }
+
+    override fun onServiceBind(
+        service: XposedService,
+    ) {
+        this.service = service
+    }
+
+    override fun onServiceDied(
+        service: XposedService,
+    ) {
+        if (this.service === service) {
+            this.service = null
+        }
+    }
+
+    fun writeConfig(
+        payload: String,
+    ): Outcome<Unit> {
+        ensureRegistered()
+        val current =
+            service ?: return Outcome.Failure(
+                code = "hook_service_unavailable",
+                message =
+                    "LSPosed service is not connected",
+                retryable = true,
+            )
+        return runCatching {
+            current.getRemotePreferences(
+                YFilesSystemPatchStore.PREFS,
+            ).edit()
+                .putString(
+                    "config",
+                    payload,
+                )
+                .commit()
+        }.fold(
+            onSuccess = {
+                if (it) {
+                    Outcome.Success(Unit)
+                } else {
+                    Outcome.Failure(
+                        code =
+                            "hook_config_write_failed",
+                        message =
+                            "Unable to write YFiles patch configuration",
+                        retryable = true,
+                    )
+                }
+            },
+            onFailure = {
+                Outcome.Failure(
+                    code =
+                        "hook_config_write_failed",
+                    message =
+                        it.message
+                            ?: "Unable to write YFiles patch configuration",
+                    cause = it,
+                    retryable = true,
+                )
+            },
+        )
+    }
+
+    suspend fun requestScope(
+        packages: Set<String>,
+    ): Outcome<Unit> {
+        ensureRegistered()
+        val current =
+            service ?: return Outcome.Failure(
+                code = "hook_service_unavailable",
+                message =
+                    "LSPosed service is not connected",
+                retryable = true,
+            )
+        val requested =
+            packages
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .distinct()
+        if (requested.isEmpty()) {
+            return Outcome.Success(Unit)
+        }
+        val existing =
+            runCatching {
+                current.scope.toSet()
+            }.getOrDefault(emptySet())
+        val missing =
+            requested.filterNot {
+                it in existing
+            }
+        if (missing.isEmpty()) {
+            return Outcome.Success(Unit)
+        }
+        return suspendCancellableCoroutine {
+                continuation ->
+            try {
+                current.requestScope(
+                    missing,
+                    object :
+                        XposedService
+                            .OnScopeEventListener {
+                        override fun onScopeRequestApproved(
+                            approved: List<String>,
+                        ) {
+                            if (
+                                continuation.isActive
+                            ) {
+                                continuation.resume(
+                                    Outcome.Success(
+                                        Unit,
+                                    ),
+                                )
+                            }
+                        }
+
+                        override fun onScopeRequestFailed(
+                            message: String,
+                        ) {
+                            if (
+                                continuation.isActive
+                            ) {
+                                continuation.resume(
+                                    Outcome.Failure(
+                                        code =
+                                            "hook_scope_denied",
+                                        message =
+                                            message.ifBlank {
+                                                "YFiles scope request was denied"
+                                            },
+                                        retryable =
+                                            true,
+                                    ),
+                                )
+                            }
+                        }
+                    },
+                )
+            } catch (error: Throwable) {
+                if (continuation.isActive) {
+                    continuation.resume(
+                        Outcome.Failure(
+                            code =
+                                "hook_scope_request_failed",
+                            message =
+                                error.message
+                                    ?: "YFiles scope request failed",
+                            cause = error,
+                            retryable = true,
+                        ),
+                    )
+                }
+            }
+        }
     }
 }
