@@ -51,11 +51,24 @@ class YDownloadRepository(
                         ?.takeIf {
                             it > System.currentTimeMillis()
                         }
+                val backend =
+                    if (
+                        request.backend ==
+                            YDownloadBackend.System &&
+                        (
+                            request.destinationTreeUri != null ||
+                            request.speedLimitBytesPerSecond > 0L
+                        )
+                    ) {
+                        YDownloadBackend.Private
+                    } else {
+                        request.backend
+                    }
                 val values = ContentValues().apply {
                     put(COL_ID, id)
                     put(
                         COL_BACKEND,
-                        request.backend.name,
+                        backend.name,
                     )
                     putNull(COL_SYSTEM_ID)
                     put(COL_URL, request.url)
