@@ -17,10 +17,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+data class YTaskResourceHistoryState(
+    val cpu: List<Float> = emptyList(),
+    val ram: List<Float> = emptyList(),
+    val swap: List<Float> = emptyList(),
+    val gpu: List<Float> = emptyList(),
+)
+
 data class YTaskManagerUiState(
     val rootStatus: CapabilityStatus = CapabilityStatus.Unavailable,
     val hookStatus: CapabilityStatus = CapabilityStatus.Unavailable,
     val snapshot: YTaskSnapshot = YTaskSnapshot(),
+    val resourceHistory:
+        YTaskResourceHistoryState =
+        YTaskResourceHistoryState(),
     val page: YTaskPage = YTaskPage.Processes,
     val query: String = "",
     val sort: YTaskProcessSort = YTaskProcessSort.Memory,
@@ -427,10 +437,44 @@ class YTaskManagerViewModel(
                 snapshot.copy(
                     processes = pinnedProcesses,
                 )
+            val currentState =
+                mutableState.value
             val selectedPid =
-                mutableState.value.selectedPid
+                currentState.selectedPid
             val currentDetail =
-                mutableState.value.selectedDetail
+                currentState.selectedDetail
+            val system = nextSnapshot.system
+            val nextHistory =
+                currentState.resourceHistory.copy(
+                    cpu =
+                        currentState.resourceHistory.cpu
+                            .appendSample(
+                                system.cpuPercent,
+                            ),
+                    ram =
+                        currentState.resourceHistory.ram
+                            .appendSample(
+                                percent(
+                                    system.ramUsedBytes,
+                                    system.ramTotalBytes,
+                                ),
+                            ),
+                    swap =
+                        currentState.resourceHistory.swap
+                            .appendSample(
+                                percent(
+                                    system.swapUsedBytes,
+                                    system.swapTotalBytes,
+                                ),
+                            ),
+                    gpu =
+                        currentState.resourceHistory.gpu
+                            .appendSample(
+                                nextSnapshot.gpu
+                                    .usagePercent
+                                    ?: 0f,
+                            ),
+                )
             val nextDetail =
                 if (selectedPid != null) {
                     pinnedProcesses
@@ -461,6 +505,7 @@ class YTaskManagerViewModel(
                     rootStatus = rootStatus,
                     hookStatus = hookStatus,
                     snapshot = nextSnapshot,
+                    resourceHistory = nextHistory,
                     selectedDetail = nextDetail,
                     loading = false,
                     error = null,
@@ -501,3 +546,24 @@ class YTaskManagerViewModel(
             ) as T
     }
 }
+
+private fun List<Float>.appendSample(
+    value: Float,
+): List<Float> =
+    (this + value.coerceIn(0f, 100f))
+        .takeLast(60)
+
+private fun percent(
+    used: Long,
+    total: Long,
+): Float =
+    if (total <= 0L) {
+        0f
+    } else {
+        (
+            used.toDouble() /
+                total.toDouble() *
+                100.0
+            ).toFloat()
+            .coerceIn(0f, 100f)
+    }
