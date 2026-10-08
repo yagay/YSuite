@@ -86,4 +86,6 @@
     <string name="yparam_category_web">WebView</string>
     <string name="yparam_category_location">Location</string>
     <string name="yparam_category_diag">Diagnostics</string>
+    <string name="yparam_list_read_failed">Unable to read the installed-app list</string>
+    <string name="yparam_retry_apps">Retry app scan</string>
 </resources>

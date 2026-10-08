@@ -8,6 +8,7 @@ import com.yagay.ysuite.feature.yparam.api.YParamAppSummary
 import com.yagay.ysuite.feature.yparam.api.YParamDefaults
 import com.yagay.ysuite.feature.yparam.api.YParamOverrides
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ enum class YParamAppFilter {
 
 data class YParamUiState(
     val apps: List<YParamAppSummary> = emptyList(),
+    val appLoadError: String? = null,
     val query: String = "",
     val filter: YParamAppFilter = YParamAppFilter.All,
     val selectedPackage: String? = null,
@@ -373,13 +375,22 @@ class YParamViewModel(
         }
     }
 
+    fun retryApps() = reloadApps()
+
     private fun reloadApps() {
         viewModelScope.launch {
-            val apps =
-                withContext(Dispatchers.IO) {
-                    repository.apps()
-                }
-            mutableState.value = mutableState.value.copy(apps = apps)
+            try {
+                val apps = withContext(Dispatchers.IO) { repository.apps() }
+                mutableState.value = mutableState.value.copy(
+                    apps = apps, appLoadError = null,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    appLoadError = error.message ?: error.javaClass.simpleName,
+                )
+            }
         }
     }
 

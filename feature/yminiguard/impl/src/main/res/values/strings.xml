@@ -36,4 +36,6 @@
     <string name="yminiguard_hide_advanced">Hide advanced options</string>
     <string name="yminiguard_hook_inactive">Settings saved, but system_server Hook is not reporting an active engine. Check LSPosed scope and restart the framework.</string>
     <string name="yminiguard_reload_pending">Configuration published, but engine generation has not advanced. The new settings are not confirmed active.</string>
+    <string name="yminiguard_list_read_failed">Unable to read the installed-app list</string>
+    <string name="yminiguard_retry_apps">Retry app scan</string>
 </resources>

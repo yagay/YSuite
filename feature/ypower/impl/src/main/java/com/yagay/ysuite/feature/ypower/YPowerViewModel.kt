@@ -8,6 +8,7 @@ import com.yagay.ysuite.feature.ypower.api.YPowerApplyResult
 import com.yagay.ysuite.feature.ypower.api.YPowerFinding
 import com.yagay.ysuite.feature.ypower.api.YPowerProfile
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,7 @@ enum class YPowerAppFilter {
 
 data class YPowerUiState(
     val apps: List<YPowerAppSummary> = emptyList(),
+    val appLoadError: String? = null,
     val query: String = "",
     val filter: YPowerAppFilter = YPowerAppFilter.All,
     val selectedPackage: String? = null,
@@ -346,14 +348,22 @@ class YPowerViewModel(
         }
     }
 
+    fun retryApps() = reloadApps()
+
     private fun reloadApps() {
         viewModelScope.launch {
-            val apps =
-                withContext(Dispatchers.IO) {
-                    repository.apps()
-                }
-            mutableState.value =
-                mutableState.value.copy(apps = apps)
+            try {
+                val apps = withContext(Dispatchers.IO) { repository.apps() }
+                mutableState.value = mutableState.value.copy(
+                    apps = apps, appLoadError = null,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    appLoadError = error.message ?: error.javaClass.simpleName,
+                )
+            }
         }
     }
 

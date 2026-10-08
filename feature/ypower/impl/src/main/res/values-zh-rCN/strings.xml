@@ -71,4 +71,6 @@
     <string name="ypower_trace_group_events">事件</string>
     <string name="ypower_trace_group_checks">安全与检测</string>
     <string name="ypower_trace_group_native">Native 与堆栈</string>
+    <string name="ypower_list_read_failed">无法读取已安装应用列表</string>
+    <string name="ypower_retry_apps">重新扫描应用</string>
 </resources>

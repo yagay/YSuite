@@ -71,4 +71,6 @@
     <string name="ypower_trace_group_events">Events</string>
     <string name="ypower_trace_group_checks">Security and checks</string>
     <string name="ypower_trace_group_native">Native and stacks</string>
+    <string name="ypower_list_read_failed">Unable to read the installed-app list</string>
+    <string name="ypower_retry_apps">Retry app scan</string>
 </resources>

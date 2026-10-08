@@ -232,6 +232,19 @@ private fun MainList(
         }
 
         val apps = model.visibleApps()
+        state.appLoadError?.let { error ->
+            item(key = "app-load-error") {
+                YSuiteListItem(
+                    title = stringResource(R.string.yminiguard_list_read_failed),
+                    subtitle = error,
+                    modifier = Modifier.padding(horizontal = YSuiteSpacing.Medium),
+                )
+                YSuiteSecondaryButton(
+                    text = stringResource(R.string.yminiguard_retry_apps),
+                    onClick = model::refresh,
+                )
+            }
+        }
         if (apps.isEmpty()) {
             item {
                 YSuiteListItem(

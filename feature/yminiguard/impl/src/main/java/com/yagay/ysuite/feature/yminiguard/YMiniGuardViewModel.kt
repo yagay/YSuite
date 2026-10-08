@@ -7,6 +7,7 @@ import com.yagay.ysuite.feature.yminiguard.api.YMiniGuardApp
 import com.yagay.ysuite.feature.yminiguard.api.YMiniGuardEngineStatus
 import com.yagay.ysuite.feature.yminiguard.api.YMiniGuardSettings
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ enum class YMiniGuardFilter { All, Protected, Playback, ForceSupport, User, Syst
 
 data class YMiniGuardUiState(
     val apps: List<YMiniGuardApp> = emptyList(),
+    val appLoadError: String? = null,
     val settings: YMiniGuardSettings = YMiniGuardSettings(),
     val query: String = "",
     val filter: YMiniGuardFilter = YMiniGuardFilter.All,
@@ -43,25 +45,33 @@ internal class YMiniGuardViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            val snapshot = withContext(Dispatchers.IO) {
-                YMiniGuardUiState(
-                    apps = repository.apps(),
-                    settings = repository.settings(),
-                    rootStatus = runCatching { repository.rootStatus() }
-                        .getOrDefault(CapabilityStatus.Error),
-                    hookStatus = runCatching { repository.hookStatus() }
-                        .getOrDefault(CapabilityStatus.Error),
-                    engineStatus = repository.engineStatus(),
-                )
-            }
-            mutableState.value =
-                mutableState.value.copy(
+            try {
+                val snapshot = withContext(Dispatchers.IO) {
+                    YMiniGuardUiState(
+                        apps = repository.apps(),
+                        settings = repository.settings(),
+                        rootStatus = runCatching { repository.rootStatus() }
+                            .getOrDefault(CapabilityStatus.Error),
+                        hookStatus = runCatching { repository.hookStatus() }
+                            .getOrDefault(CapabilityStatus.Error),
+                        engineStatus = repository.engineStatus(),
+                    )
+                }
+                mutableState.value = mutableState.value.copy(
                     apps = snapshot.apps,
                     settings = snapshot.settings,
                     rootStatus = snapshot.rootStatus,
                     hookStatus = snapshot.hookStatus,
                     engineStatus = snapshot.engineStatus,
+                    appLoadError = null,
                 )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    appLoadError = error.message ?: error.javaClass.simpleName,
+                )
+            }
         }
     }
 

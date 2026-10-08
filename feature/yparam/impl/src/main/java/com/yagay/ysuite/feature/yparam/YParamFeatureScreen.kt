@@ -137,7 +137,21 @@ fun YParamFeatureScreen(
 @Composable
 private fun AppList(model: YParamViewModel) {
     val apps = model.visibleApps()
+    val state by model.state.collectAsStateWithLifecycle()
     LazyColumn(modifier = Modifier.fillMaxSize()) {
+        state.appLoadError?.let { error ->
+            item(key = "app-load-error") {
+                YSuiteListItem(
+                    title = stringResource(R.string.yparam_list_read_failed),
+                    subtitle = error,
+                    modifier = Modifier.padding(YSuiteSpacing.Medium),
+                )
+                YSuiteSecondaryButton(
+                    text = stringResource(R.string.yparam_retry_apps),
+                    onClick = model::retryApps,
+                )
+            }
+        }
         if (apps.isEmpty()) {
             item {
                 YSuiteListItem(

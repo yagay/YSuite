@@ -86,4 +86,6 @@
     <string name="yparam_category_web">WebView</string>
     <string name="yparam_category_location">定位</string>
     <string name="yparam_category_diag">诊断</string>
+    <string name="yparam_list_read_failed">无法读取已安装应用列表</string>
+    <string name="yparam_retry_apps">重新扫描应用</string>
 </resources>
