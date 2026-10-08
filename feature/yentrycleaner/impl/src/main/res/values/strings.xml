@@ -78,4 +78,7 @@
     <string name="yentry_custom_saved">Custom open type saved and synced.</string>
     <string name="yentry_custom_invalid">Invalid custom type. Provide a name and valid MIME or extensions.</string>
     <string name="yentry_custom_use">Manage rules for selected type</string>
+    <string name="yentry_group_priority">App priority</string>
+    <string name="yentry_pin_app">Prioritize app</string>
+    <string name="yentry_unpin_app">Remove app priority</string>
 </resources>

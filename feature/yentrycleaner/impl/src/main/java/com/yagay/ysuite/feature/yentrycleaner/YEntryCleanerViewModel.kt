@@ -230,6 +230,22 @@ internal class YEntryCleanerViewModel(
         syncAndRefresh()
     }
 
+    fun setGroupPriority(
+        packageName: String, candidates: List<YEntryCandidate>,
+        pinned: Boolean,
+    ) {
+        repository.setAppPriority(candidates, packageName, pinned)
+        syncAndRefresh()
+    }
+
+    fun moveGroupPriority(
+        packageName: String, candidates: List<YEntryCandidate>,
+        delta: Int,
+    ) {
+        repository.moveAppPriority(candidates, packageName, delta)
+        syncAndRefresh()
+    }
+
     fun component(
         candidate: YEntryCandidate,
         enable: Boolean,

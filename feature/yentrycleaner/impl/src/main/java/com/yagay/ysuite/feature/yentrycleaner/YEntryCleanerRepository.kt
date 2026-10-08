@@ -915,6 +915,61 @@ internal class YEntryCleanerRepository(
         setPriority(candidate.surface, candidate.qualifier, next)
     }
 
+    fun setAppPriority(
+        candidates: List<YEntryCandidate>,
+        packageName: String,
+        pinned: Boolean,
+    ) {
+        val first = candidates.firstOrNull {
+            it.packageName == packageName && !it.locked
+        } ?: return
+        if (first.surface in setOf(
+            YEntrySurface.Tile, YEntrySurface.Shortcut,
+            YEntrySurface.Widget, YEntrySurface.Historical,
+        )) return
+        val relevant = candidates.filter { it.packageName == packageName }
+            .mapTo(hashSetOf()) { it.id }
+        val retained = effectivePriority(first).filterNot {
+            it == packageName || it in relevant
+        }
+        setPriority(
+            first.surface, first.qualifier,
+            if (pinned) (listOf(packageName) + retained).take(200) else retained,
+        )
+    }
+
+    fun moveAppPriority(
+        candidates: List<YEntryCandidate>,
+        packageName: String,
+        delta: Int,
+    ) {
+        if (delta !in setOf(-1, 1)) return
+        val first = candidates.firstOrNull {
+            it.packageName == packageName && !it.locked
+        } ?: return
+        if (first.surface in setOf(
+            YEntrySurface.Tile, YEntrySurface.Shortcut,
+            YEntrySurface.Widget, YEntrySurface.Historical,
+        )) return
+        val ordered = candidates.groupBy { it.packageName }.entries.sortedWith(
+            compareBy<Map.Entry<String, List<YEntryCandidate>>> {
+                it.value.minOfOrNull { candidate -> candidate.priority ?: Int.MAX_VALUE }
+                    ?: Int.MAX_VALUE
+            }.thenBy { it.key.lowercase() },
+        ).map { it.key }.toMutableList()
+        val from = ordered.indexOf(packageName)
+        if (from < 0) return
+        val to = (from + delta).coerceIn(0, ordered.lastIndex)
+        if (from == to) return
+        ordered.add(to, ordered.removeAt(from))
+        val visiblePackages = ordered.toSet()
+        val visibleIds = candidates.mapTo(hashSetOf()) { it.id }
+        val retained = effectivePriority(first).filterNot {
+            it in visiblePackages || it in visibleIds
+        }
+        setPriority(first.surface, first.qualifier, (ordered + retained).take(200))
+    }
+
     private fun effectivePriority(candidate: YEntryCandidate): List<String> =
         qualifierCandidates(candidate.surface, candidate.qualifier)
             .firstNotNullOfOrNull { qualifier ->

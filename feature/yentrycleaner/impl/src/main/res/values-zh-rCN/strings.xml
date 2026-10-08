@@ -78,4 +78,7 @@
     <string name="yentry_custom_saved">自定义打开类型已保存并同步。</string>
     <string name="yentry_custom_invalid">自定义类型无效：请设置名称及有效的 MIME 或扩展名。</string>
     <string name="yentry_custom_use">管理此类型的规则</string>
+    <string name="yentry_group_priority">应用优先排序</string>
+    <string name="yentry_pin_app">应用优先</string>
+    <string name="yentry_unpin_app">取消应用优先</string>
 </resources>

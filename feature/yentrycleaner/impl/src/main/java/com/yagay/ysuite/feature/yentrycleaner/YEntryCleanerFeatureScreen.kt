@@ -590,6 +590,13 @@ private sealed interface CandidateListRow {
         override val key = "group:" + packageName
     }
 
+    data class GroupActions(
+        val packageName: String,
+        val candidates: List<YEntryCandidate>,
+    ) : CandidateListRow {
+        override val key = "group-actions:" + packageName
+    }
+
     data class Component(
         val candidate: YEntryCandidate,
     ) : CandidateListRow {
@@ -602,22 +609,28 @@ private fun CandidateList(
     model: YEntryCleanerViewModel,
 ) {
     val state by model.state.collectAsStateWithLifecycle()
-    val candidates = model.visible()
+    val candidates = remember(
+        state.surface, state.candidates, state.query,
+        state.filter, state.selectionFilter,
+    ) { model.visible() }
     var expandedPackages by remember(state.surface) {
         mutableStateOf(emptySet<String>())
     }
-    val rows = buildList<CandidateListRow> {
-        candidates.groupBy { it.packageName }
-            .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-            .forEach { (packageName, items) ->
+    val rows = remember(candidates, expandedPackages, state.query) {
+        buildList<CandidateListRow> {
+            candidates.groupBy { it.packageName }.entries.sortedWith(
+                compareBy<Map.Entry<String, List<YEntryCandidate>>> {
+                    it.value.minOfOrNull { item -> item.priority ?: Int.MAX_VALUE }
+                        ?: Int.MAX_VALUE
+                }.thenBy { it.key.lowercase() },
+            ).forEach { (packageName, items) ->
                 add(CandidateListRow.Group(packageName, items))
-                if (
-                    packageName in expandedPackages ||
-                    state.query.isNotBlank()
-                ) {
+                if (packageName in expandedPackages || state.query.isNotBlank()) {
+                    add(CandidateListRow.GroupActions(packageName, candidates))
                     items.forEach { add(CandidateListRow.Component(it)) }
                 }
             }
+        }
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -691,6 +704,51 @@ private fun CandidateList(
                             }
                         },
                     )
+                }
+                is CandidateListRow.GroupActions -> {
+                    if (state.surface !in setOf(
+                        YEntrySurface.Tile, YEntrySurface.Shortcut,
+                        YEntrySurface.Widget, YEntrySurface.Historical,
+                    )) {
+                        YSuiteSection(
+                            title = stringResource(R.string.yentry_group_priority),
+                            modifier = Modifier.padding(
+                                horizontal = YSuiteSpacing.Medium,
+                                vertical = YSuiteSpacing.Small,
+                            ),
+                        ) {
+                            Row(horizontalArrangement =
+                                Arrangement.spacedBy(YSuiteSpacing.Small)) {
+                                YSuiteSecondaryButton(
+                                    text = stringResource(R.string.yentry_pin_app),
+                                    onClick = { model.setGroupPriority(
+                                        row.packageName, row.candidates, true,
+                                    ) },
+                                )
+                                YSuiteSecondaryButton(
+                                    text = stringResource(R.string.yentry_unpin_app),
+                                    onClick = { model.setGroupPriority(
+                                        row.packageName, row.candidates, false,
+                                    ) },
+                                )
+                            }
+                            Row(horizontalArrangement =
+                                Arrangement.spacedBy(YSuiteSpacing.Small)) {
+                                YSuiteSecondaryButton(
+                                    text = stringResource(R.string.yentry_priority_up),
+                                    onClick = { model.moveGroupPriority(
+                                        row.packageName, row.candidates, -1,
+                                    ) },
+                                )
+                                YSuiteSecondaryButton(
+                                    text = stringResource(R.string.yentry_priority_down),
+                                    onClick = { model.moveGroupPriority(
+                                        row.packageName, row.candidates, 1,
+                                    ) },
+                                )
+                            }
+                        }
+                    }
                 }
                 is CandidateListRow.Component -> {
                     val candidate = row.candidate
