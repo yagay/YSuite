@@ -378,11 +378,22 @@ class YTaskManagerViewModel(
 
     private fun performKill(process: YTaskProcess) {
         viewModelScope.launch {
-            runCatching {
-                repository.kill(process.pid)
-            }.onFailure { report(it) }
-            select(null)
-            refreshInternal()
+            val result =
+                runCatching {
+                    repository.kill(process.pid)
+                }
+            if (result.getOrDefault(false)) {
+                select(null)
+                refreshInternal()
+            } else {
+                result.exceptionOrNull()?.let(::report)
+                    ?: run {
+                        mutableState.value =
+                            mutableState.value.copy(
+                                error = "kill_failed:" + process.pid,
+                            )
+                    }
+            }
         }
     }
 
@@ -390,11 +401,22 @@ class YTaskManagerViewModel(
         val packageName =
             process.packageName ?: return
         viewModelScope.launch {
-            runCatching {
-                repository.forceStop(packageName)
-            }.onFailure { report(it) }
-            select(null)
-            refreshInternal()
+            val result =
+                runCatching {
+                    repository.forceStop(packageName)
+                }
+            if (result.getOrDefault(false)) {
+                select(null)
+                refreshInternal()
+            } else {
+                result.exceptionOrNull()?.let(::report)
+                    ?: run {
+                        mutableState.value =
+                            mutableState.value.copy(
+                                error = "force_stop_failed:" + packageName,
+                            )
+                    }
+            }
         }
     }
 
