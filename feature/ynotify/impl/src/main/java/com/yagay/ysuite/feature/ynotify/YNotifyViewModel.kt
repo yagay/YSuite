@@ -387,12 +387,14 @@ class YNotifyViewModel(
     fun visibleEvents(): List<YNotifyEvent> {
         val state = mutableState.value
         val needle = state.query.trim()
+        // Search is asynchronous. Retain the locally loaded history until
+        // the search results arrive, then apply the same filters below.
         val source =
             if (needle.isBlank()) {
                 state.events
             } else {
                 state.searchResults
-                    ?: emptyList()
+                    ?: state.events
             }
         return source.filter { event ->
             val timelineMatch = when (state.timelineFilter) {
