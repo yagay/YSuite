@@ -171,7 +171,8 @@ class YDiagMonitorService : Service() {
             pidFile.endsWith(".pid")
         ) {
             shellText(
-                "if [ -s '$pidFile' ]; then kill -TERM " + ',
+                "if [ -s '$pidFile' ]; then kill -TERM " +
+                    "\$(cat '$pidFile') 2>/dev/null || true; fi",
                 4_000L,
             )
         }
