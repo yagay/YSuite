@@ -52,6 +52,11 @@ class YPowerModule : XposedModule() {
         ) return
         packageName = param.packageName
         profile = loadProfile(packageName)
+        installProfileHooks()
+    }
+
+    private fun installProfileHooks() {
+        if (!RuntimeOwnerGate.shouldRun("ypower", moduleHostPackage)) return
         if (!profile.enabled) return
 
         if (profile.simulateSystemApp) installIdentityHooks()
@@ -98,6 +103,7 @@ class YPowerModule : XposedModule() {
             if (param.isSystemServer) "system"
             else param.processName.substringBefore(':')
         profile = loadProfile(packageName)
+        installProfileHooks()
     }
 
     private fun loadProfile(pkg: String): Profile =
