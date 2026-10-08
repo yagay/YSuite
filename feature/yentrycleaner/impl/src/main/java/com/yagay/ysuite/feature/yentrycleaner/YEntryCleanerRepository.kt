@@ -945,78 +945,31 @@ internal class YEntryCleanerRepository(
                     }
                     out.toString()
                 } ?: return false
-        val root =
-            runCatching {
-                JSONObject(text)
-            }.getOrNull()
-                ?: return false
-        if (
-            root.optString("format") !=
-            "YSuite.YEntryCleaner"
-        ) {
-            return false
-        }
-        val values =
-            root.optJSONObject("values")
-                ?: return false
-        val editor =
-            prefs.edit().clear()
-        values.keys().forEach { key ->
-            when (
-                val value =
-                    values.opt(key)
-            ) {
-                is Boolean ->
-                    editor.putBoolean(
-                        key,
-                        value,
-                    )
-                is Int ->
-                    editor.putInt(
-                        key,
-                        value,
-                    )
-                is Long ->
-                    editor.putLong(
-                        key,
-                        value,
-                    )
-                is Double ->
-                    editor.putFloat(
-                        key,
-                        value.toFloat(),
-                    )
-                is String ->
-                    editor.putString(
-                        key,
-                        value,
-                    )
-                is JSONArray -> {
-                    val set =
-                        buildSet {
-                            for (
-                                i in 0 until
-                                value.length()
-                            ) {
-                                value.optString(i)
-                                    .takeIf {
-                                        it.isNotBlank()
-                                    }
-                                    ?.let(::add)
-                            }
-                        }
-                    editor.putStringSet(
-                        key,
-                        set,
-                    )
-                }
+        val imported = YEntryBackupParser.parse(text) ?: return false
+
+        // Validate the entire document before changing anything. Preserve the
+        // device's actual disabled components and unrelated local settings.
+        val editor = prefs.edit()
+            .remove("hidden_rules")
+            .remove("locked_rules")
+            .remove("seen_candidates")
+            .remove("browser_hosts")
+        prefs.all.keys
+            .filter { it.startsWith("priority_") }
+            .forEach(editor::remove)
+        for ((key, value) in imported) {
+            when (value) {
+                is String -> editor.putString(key, value)
+                is Boolean -> editor.putBoolean(key, value)
+                is Set<*> -> editor.putStringSet(
+                    key,
+                    value.filterIsInstance<String>().toSet(),
+                )
+                else -> return false
             }
         }
-        if (!editor.commit()) {
-            return false
-        }
-        return sync() is
-            Outcome.Success
+        if (!editor.commit()) return false
+        return sync() is Outcome.Success
     }
 
     suspend fun bulkHidden(
