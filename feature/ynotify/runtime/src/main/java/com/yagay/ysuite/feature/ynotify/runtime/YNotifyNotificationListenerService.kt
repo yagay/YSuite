@@ -23,34 +23,14 @@ class YNotifyNotificationListenerService :
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        YNotifyRuntimeState
-            .notificationListenerConnected = true
+        YNotifyRuntimeState.notificationListenerConnected = true
         YNotifyDatabase.signalRuntimeStatusChanged()
-        executor.execute {
-            runCatching {
-                val ranking =
-                    currentRanking
-                activeNotifications
-                    ?.forEach {
-                        if (
-                            it.packageName !=
-                            packageName
-                        ) {
-                            database.upsert(
-                                YNotifyNotificationParser
-                                    .parse(
-                                        this,
-                                        it,
-                                        ranking,
-                                    ),
-                            )
-                            YNotifyCaptureHealth.saved(this)
-                        }
-                    }
-            }.onFailure {
-                YNotifyCaptureHealth.failed(this, it)
-            }
-        }
+        // Reuse the live notification path for the initial snapshot so
+        // paused apps, redaction, and retention apply consistently.
+        runCatching {
+            val ranking = currentRanking
+            activeNotifications?.forEach { scheduleSave(it, ranking) }
+        }.onFailure { YNotifyCaptureHealth.failed(this, it) }
     }
 
     override fun onListenerDisconnected() {
@@ -140,6 +120,11 @@ class YNotifyNotificationListenerService :
                         title = "•••",
                         text = null,
                         fullText = null,
+                        subText = null,
+                        summaryText = null,
+                        rawExtras = null,
+                        messagesJson = null,
+                        actionsJson = null,
                     )
                 }
                 database.upsert(event)
