@@ -100,7 +100,9 @@ internal class YEntryCleanerViewModel(
         mutableState.value =
             mutableState.value.copy(
                 surface = value,
+                candidates = emptyList(),
                 selectedId = null,
+                statusToken = null,
             )
         refresh()
     }
@@ -601,7 +603,14 @@ internal class YEntryCleanerViewModel(
             }
             // Rapid surface changes must never restore another page's results.
             if (mutableState.value.surface != surface) return@launch
-            mutableState.value = mutableState.value.copy(candidates = items)
+            mutableState.value = mutableState.value.copy(
+                candidates = items,
+                statusToken = if (mutableState.value.statusToken == "candidate_load_failed") {
+                    null
+                } else {
+                    mutableState.value.statusToken
+                },
+            )
         }
     }
 

@@ -2,12 +2,11 @@ package com.yagay.ysuite.permissions.android
 
 import android.Manifest
 import android.app.AppOpsManager
-import android.app.NotificationManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Process
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import com.yagay.ysuite.permissions.api.PermissionChecker
@@ -41,6 +40,11 @@ class AndroidPermissionChecker(
                             context, permission,
                         ) == PackageManager.PERMISSION_GRANTED)
             }
+            Manifest.permission.REQUEST_INSTALL_PACKAGES ->
+                context.packageManager.canRequestPackageInstalls()
+            Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS ->
+                context.getSystemService(PowerManager::class.java)
+                    ?.isIgnoringBatteryOptimizations(context.packageName) == true
             Manifest.permission.QUERY_ALL_PACKAGES ->
                 context.packageManager.getPackageInfo(
                     context.packageName,

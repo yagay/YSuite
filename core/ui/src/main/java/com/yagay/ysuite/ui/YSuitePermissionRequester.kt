@@ -2,7 +2,6 @@ package com.yagay.ysuite.ui
 
 import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.pm.PermissionInfo
 import android.net.Uri
 import android.provider.Settings
@@ -50,24 +49,39 @@ fun rememberYSuitePermissionRequester(
                         PermissionInfo.PROTECTION_DANGEROUS
                 }.getOrDefault(false)
             }
-            // Android special accesses are managed by Settings, not a runtime
-            // permission dialog. Open one appropriate page per user action.
-            val special = permissions.firstOrNull { it !in runtime }
-            if (special != null) {
-                val action = when (special) {
-                    Manifest.permission.SYSTEM_ALERT_WINDOW ->
-                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION
-                    Manifest.permission.WRITE_SETTINGS ->
-                        Settings.ACTION_MANAGE_WRITE_SETTINGS
-                    Manifest.permission.MANAGE_EXTERNAL_STORAGE ->
-                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
-                    Manifest.permission.PACKAGE_USAGE_STATS ->
-                        Settings.ACTION_USAGE_ACCESS_SETTINGS
-                    else -> null
+            // Runtime requests and special access settings must not be
+            // launched together: the settings screen would conceal the dialog.
+            if (runtime.isNotEmpty()) {
+                launcher.launch(runtime.toTypedArray())
+            } else {
+                val special = permissions.firstNotNullOfOrNull { permission ->
+                    val action = when (permission) {
+                        Manifest.permission.SYSTEM_ALERT_WINDOW ->
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+                        Manifest.permission.WRITE_SETTINGS ->
+                            Settings.ACTION_MANAGE_WRITE_SETTINGS
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE ->
+                            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
+                        Manifest.permission.PACKAGE_USAGE_STATS ->
+                            Settings.ACTION_USAGE_ACCESS_SETTINGS
+                        Manifest.permission.REQUEST_INSTALL_PACKAGES ->
+                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES
+                        Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS ->
+                            Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+                        else -> null
+                    }
+                    action?.let { permission to it }
                 }
-                if (action != null) {
-                    val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    if (special != Manifest.permission.PACKAGE_USAGE_STATS) {
+                if (special != null) {
+                    val intent = Intent(special.second)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    if (special.first in setOf(
+                            Manifest.permission.SYSTEM_ALERT_WINDOW,
+                            Manifest.permission.WRITE_SETTINGS,
+                            Manifest.permission.MANAGE_EXTERNAL_STORAGE,
+                            Manifest.permission.REQUEST_INSTALL_PACKAGES,
+                        )
+                    ) {
                         intent.data = Uri.parse("package:${context.packageName}")
                     }
                     val opened = runCatching {
@@ -83,9 +97,6 @@ fun rememberYSuitePermissionRequester(
                         }
                     }
                 }
-            }
-            if (runtime.isNotEmpty()) {
-                launcher.launch(runtime.toTypedArray())
             }
         }
     }

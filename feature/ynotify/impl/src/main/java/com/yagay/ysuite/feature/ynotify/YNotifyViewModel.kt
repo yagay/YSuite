@@ -261,13 +261,9 @@ class YNotifyViewModel(
         mutableState.value =
             mutableState.value.copy(
                 query = value,
-                searchResults =
-                    if (value.isBlank()) {
-                        null
-                    } else {
-                        mutableState.value
-                            .searchResults
-                    },
+                // Results belong to the previous query; invalidating them
+                // avoids a transient empty or incorrect notification list.
+                searchResults = null,
             )
         scheduleSearch(value)
     }
@@ -532,13 +528,11 @@ class YNotifyViewModel(
     fun selectedEvent(): YNotifyEvent? {
         val state =
             mutableState.value
-        return (
-            state.searchResults
-                ?: state.events
-            ).firstOrNull {
-                it.id ==
-                    state.selectedEventId
-            }
+        return state.events.firstOrNull {
+            it.id == state.selectedEventId
+        } ?: state.searchResults?.firstOrNull {
+            it.id == state.selectedEventId
+        }
     }
 
     fun isPaused(packageName: String): Boolean =

@@ -12,7 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -84,6 +86,11 @@ fun SystemFeatureScreen(
         )
     val state by
         model.state.collectAsStateWithLifecycle()
+    // Special access is granted in Settings, outside the app. Refresh on
+    // return so the visible permission list is never stuck on stale values.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        model.refresh()
+    }
     val requester =
         rememberYSuitePermissionRequester(
             onResult =
