@@ -380,8 +380,22 @@ private fun ProcessContent(
         }
         state.error?.let { error ->
             item {
+                val text =
+                    when {
+                        error.startsWith("kill_failed:") ->
+                            stringResource(
+                                R.string.ytask_kill_failed,
+                                error.substringAfter(':'),
+                            )
+                        error.startsWith("force_stop_failed:") ->
+                            stringResource(
+                                R.string.ytask_force_stop_failed,
+                                error.substringAfter(':'),
+                            )
+                        else -> error
+                    }
                 YSuiteStatusBadge(
-                    text = error,
+                    text = text,
                     tone = YSuiteStatusTone.Error,
                     modifier = Modifier.padding(YSuiteSpacing.Medium),
                 )
