@@ -31,6 +31,8 @@ object YEntryIntentRouting {
                 }
             normalizedScheme == "file" || normalizedScheme == "content" ->
                 YEntrySurface.Open
+            normalizedScheme in setOf("magnet", "geo", "mailto", "tel", "sms", "smsto") ->
+                YEntrySurface.Open
             normalizedScheme.isBlank() && mime.isNotBlank() ->
                 YEntrySurface.Open
             else -> null
@@ -41,13 +43,20 @@ object YEntryIntentRouting {
         surface: YEntrySurface,
         mimeType: String?,
         host: String?,
+        scheme: String? = null,
     ): String = when (surface) {
         YEntrySurface.Browser ->
             host.orEmpty().lowercase().removePrefix("www.").ifBlank { "*" }
         YEntrySurface.ShareMultiple -> "*"
         YEntrySurface.ShareText, YEntrySurface.ShareImage,
-        YEntrySurface.ProcessText, YEntrySurface.Open ->
+        YEntrySurface.ProcessText ->
             mimeType.orEmpty().substringBefore(';').trim().lowercase().ifBlank { "*" }
+        YEntrySurface.Open ->
+            mimeType.orEmpty().substringBefore(';').trim().lowercase()
+                .ifBlank {
+                    scheme?.lowercase()?.takeIf { it !in setOf("file", "content", "http", "https") }
+                        ?.let { "scheme:" + it } ?: "*"
+                }
         else -> "*"
     }
 }

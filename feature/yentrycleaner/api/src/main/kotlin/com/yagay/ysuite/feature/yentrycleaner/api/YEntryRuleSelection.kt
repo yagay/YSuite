@@ -7,6 +7,14 @@ package com.yagay.ysuite.feature.yentrycleaner.api
 object YEntryRuleSelection {
     fun isSelected(
         exactId: String,
+        candidateIds: List<String>,
+        selectedRules: Set<String>,
+        explicitExceptions: Set<String>,
+    ): Boolean =
+        exactId !in explicitExceptions && candidateIds.any { it in selectedRules }
+
+    fun isSelected(
+        exactId: String,
         wildcardId: String,
         selectedRules: Set<String>,
         explicitExceptions: Set<String>,

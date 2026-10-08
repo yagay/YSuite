@@ -523,6 +523,7 @@ internal class YPowerRepository(
                 )
             is Outcome.Success -> Unit
         }
+        val now = System.currentTimeMillis()
         try {
         when (
             val scope =
@@ -570,7 +571,6 @@ internal class YPowerRepository(
                 }
         }
 
-        val now = System.currentTimeMillis()
         context.getSharedPreferences(
             DIAGNOSTIC_PREFS,
             Context.MODE_PRIVATE,
