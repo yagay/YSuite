@@ -227,17 +227,19 @@ internal fun YEntryManagedComponentsScreen(
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
                         ) {
-                            YSuiteSecondaryButton(
-                                text = stringResource(
-                                    if (component.enabled) R.string.yentry_root_disable
-                                    else R.string.yentry_root_enable,
-                                ),
-                                onClick = {
-                                    model.changeManagedComponent(
-                                        component, !component.enabled,
-                                    )
-                                },
-                            )
+                            if (!component.blocked && !state.busy) {
+                                YSuiteSecondaryButton(
+                                    text = stringResource(
+                                        if (component.enabled) R.string.yentry_root_disable
+                                        else R.string.yentry_root_enable,
+                                    ),
+                                    onClick = {
+                                        model.changeManagedComponent(
+                                            component, !component.enabled,
+                                        )
+                                    },
+                                )
+                            }
                             YSuiteSecondaryButton(
                                 text = stringResource(
                                     if (component.locked) R.string.yentry_root_unlock

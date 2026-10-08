@@ -957,7 +957,6 @@ internal class YNotifyDatabase(
      */
     private fun correlateHistoricalBanners(db: SQLiteDatabase): Int {
         data class Banner(
-            val id: Long,
             val eventKey: String,
             val pkg: String,
             val text: String,
@@ -968,6 +967,7 @@ internal class YNotifyDatabase(
         var linked = 0
         while (true) {
             val batch = mutableListOf<Banner>()
+            var scanned = 0
             db.rawQuery(
                 """
                 SELECT id,event_key,package_name,posted_at,event_type,
@@ -981,14 +981,13 @@ internal class YNotifyDatabase(
                 arrayOf(afterId.toString()),
             ).use { cursor ->
                 while (cursor.moveToNext()) {
-                    val id = cursor.getLong(0)
-                    afterId = id
+                    scanned++
+                    afterId = cursor.getLong(0)
                     val text = crypto.decrypt(cursor.getStringOrNull(5))
                         ?.takeIf(String::isNotBlank)
                         ?: crypto.decrypt(cursor.getStringOrNull(6)).orEmpty()
                     if (text.isBlank()) continue
                     batch += Banner(
-                        id = id,
                         eventKey = cursor.getString(1),
                         pkg = cursor.getString(2).orEmpty(),
                         at = cursor.getLong(3),
@@ -999,7 +998,7 @@ internal class YNotifyDatabase(
                     )
                 }
             }
-            if (batch.isEmpty()) break
+            if (scanned == 0) break
             for (banner in batch) {
                 val match = findBannerNotification(
                     db, banner.pkg, banner.text, banner.at,
@@ -1011,7 +1010,7 @@ internal class YNotifyDatabase(
                 )
                 if (changed > 0) linked++
             }
-            if (batch.size < 200) break
+            if (scanned < 200) break
         }
         return linked
     }

@@ -16,11 +16,14 @@ class YEntryComponentReconcileJobService :
     JobService() {
     private val executor =
         Executors.newSingleThreadExecutor()
+    @Volatile private var stopped = false
 
     override fun onStartJob(
         params: JobParameters,
     ): Boolean {
+        stopped = false
         executor.execute {
+            if (stopped) return@execute
             val reason =
                 params.extras.getString(
                     EXTRA_REASON,
@@ -42,19 +45,25 @@ class YEntryComponentReconcileJobService :
                     settled = true,
                 )
             }
-            jobFinished(
-                params,
-                false,
-            )
+            if (!stopped) {
+                jobFinished(
+                    params,
+                    false,
+                )
+            }
         }
         return true
     }
 
     override fun onStopJob(
         params: JobParameters,
-    ): Boolean = false
+    ): Boolean {
+        stopped = true
+        return true
+    }
 
     override fun onDestroy() {
+        stopped = true
         executor.shutdownNow()
         super.onDestroy()
     }
@@ -84,6 +93,7 @@ class YEntryComponentReconcileJobService :
         var repaired = 0
         var failed = 0
         keys.forEach { key ->
+            if (stopped || Thread.currentThread().isInterrupted) return@forEach
             val parts =
                 key.split(
                     '|',
