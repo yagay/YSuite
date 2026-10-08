@@ -185,26 +185,16 @@ class YDownloadEngine(
     }
 
     suspend fun pause(id: String) {
-        val item =
-            repository.find(id)
-        if (
-            item?.backend ==
-            YDownloadBackend.System &&
-            item.systemId != null
-        ) {
-            activeJobs.remove(id)
-                ?.cancelAndJoin()
-            if (!systemBridge.pause(item)) {
-                repository.updateState(
-                    id = id,
-                    state =
-                        YDownloadState.Paused,
-                    error =
-                        "System DownloadProvider pause is unavailable",
-                    queued = false,
-                )
-            }
-            pumpQueue()
+        val item = repository.find(id) ?: return
+        if (item.backend == YDownloadBackend.System) {
+            // Android DownloadManager has no public pause API.
+            // Keep the real status rather than reporting a fake pause.
+            repository.updateState(
+                id = id,
+                state = item.state,
+                error = "System DownloadManager pause is unavailable",
+                queued = item.queued,
+            )
             return
         }
         cancelCalls(id)
@@ -226,9 +216,10 @@ class YDownloadEngine(
             YDownloadBackend.System &&
             item.systemId != null
         ) {
-            activeJobs.remove(id)
-                ?.cancelAndJoin()
-            systemBridge.cancel(item)
+            if (systemBridge.cancel(item)) {
+                activeJobs.remove(id)
+                    ?.cancelAndJoin()
+            }
             pumpQueue()
             return
         }
