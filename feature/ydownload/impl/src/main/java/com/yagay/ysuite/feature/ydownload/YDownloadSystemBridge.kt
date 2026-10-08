@@ -142,12 +142,20 @@ internal class YDownloadSystemBridge(
             item.systemId ?: return false
         val removed =
             remove(systemId)
-        repository.updateState(
-            id = item.id,
-            state =
-                YDownloadState.Cancelled,
-            queued = false,
-        )
+        if (removed) {
+            repository.updateState(
+                id = item.id,
+                state = YDownloadState.Cancelled,
+                queued = false,
+            )
+        } else {
+            repository.updateState(
+                id = item.id,
+                state = item.state,
+                error = "System download cancellation failed",
+                queued = item.queued,
+            )
+        }
         return removed
     }
 
