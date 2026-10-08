@@ -166,7 +166,7 @@ internal class YDiagRepository(
                 timestampMillis = System.currentTimeMillis(),
                 optionId = "hook_health",
                 severity = YDiagSeverity.Error,
-                title = "LSPosed scope or configuration failed",
+                title = context.getString(R.string.ydiag_hook_setup_failed),
                 detail = hookFailure.error.code + ": " + hookFailure.message,
             )
         }

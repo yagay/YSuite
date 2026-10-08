@@ -67,4 +67,5 @@
     <string name="ydiag_live_start">Start live session</string>
     <string name="ydiag_mark_problem">Problem happened</string>
     <string name="ydiag_live_stop">Stop live session</string>
+    <string name="ydiag_hook_setup_failed">LSPosed scope or configuration failed</string>
 </resources>

@@ -1251,6 +1251,8 @@ class YFilesAdvancedViewModel(
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { action() }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (error: Throwable) {
                 fail(name, error)
             } finally {
@@ -1291,6 +1293,8 @@ class YFilesAdvancedViewModel(
                         )
                     }
                 }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (error: Throwable) {
                 fail(name, error)
             } finally {

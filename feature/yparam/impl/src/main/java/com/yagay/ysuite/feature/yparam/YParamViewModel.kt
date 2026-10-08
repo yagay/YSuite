@@ -243,7 +243,9 @@ class YParamViewModel(
                     saving = false,
                     hookStatus =
                         runCatching {
+                            withContext(Dispatchers.IO) {
                             environment.hookGateway.status()
+                        }
                         }.getOrDefault(CapabilityStatus.Error),
                     message =
                         if (

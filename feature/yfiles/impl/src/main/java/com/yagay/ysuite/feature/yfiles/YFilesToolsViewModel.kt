@@ -642,6 +642,8 @@ class YFilesToolsViewModel(
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { block() }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (error: Throwable) {
                 updateState {
                     it.copy(
