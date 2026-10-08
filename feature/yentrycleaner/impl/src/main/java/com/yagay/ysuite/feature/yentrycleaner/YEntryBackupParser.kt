@@ -1,6 +1,7 @@
 package com.yagay.ysuite.feature.yentrycleaner
 
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
+import com.yagay.ysuite.feature.yentrycleaner.api.YEntryOpenQualifiers
 import com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryRuntimeBridge
 import org.json.JSONArray
 import org.json.JSONObject
@@ -35,6 +36,11 @@ internal object YEntryBackupParser {
                     result[key] = mode
                 }
                 key == "diagnostic" -> result[key] = value as? Boolean ?: return null
+                key == "open_custom_definitions" -> {
+                    val raw = value as? String ?: return null
+                    if (raw.length > 20_000 || validateDefinitions(raw) == null) return null
+                    result[key] = raw
+                }
                 key == "component_titles" -> {
                     val raw = value as? String ?: return null
                     if (raw.length > 250_000) return null
@@ -99,10 +105,6 @@ internal object YEntryBackupParser {
         if (nonEmpty(source.optJSONArray("hiddenFromApps"))) return null
         if (nonEmpty(source.optJSONArray("visibilityScopes"))) return null
         val openTypes = source.optJSONObject("openTypes")
-        if (openTypes != null &&
-            listOf("rules", "priorities", "customDefinitions")
-                .any { (openTypes.optJSONObject(it)?.length() ?: 0) > 0 }
-        ) return null
 
         val mode = if (version >= 3) {
             source.optString("displayMode", "")
@@ -172,6 +174,40 @@ internal object YEntryBackupParser {
             }
         }
 
+        if (openTypes != null) {
+            val definitions = openTypes.optJSONObject("customDefinitions") ?: JSONObject()
+            val validated = validateDefinitions(definitions.toString()) ?: return null
+            result["open_custom_definitions"] = validated.toString()
+            val openRules = openTypes.optJSONObject("rules") ?: JSONObject()
+            for (preset in openRules.keys()) {
+                if (preset !in YEntryOpenQualifiers.presetNames ||
+                    (preset.startsWith("CUSTOM_") && !validated.has(preset))
+                ) return null
+                val ruleIds = readStrings(openRules.optJSONArray(preset) ?: return null, 2_000)
+                    ?: return null
+                for (id in ruleIds) {
+                    val parts = id.split('|', limit = 3)
+                    if (parts.size != 3 || parts[0] != "OPEN") return null
+                    val className = canonicalClass(parts[1], parts[2]) ?: return null
+                    rules += YEntryRuntimeBridge.ruleKey(
+                        YEntrySurface.Open.name, "preset:" + preset, parts[1], className,
+                    )
+                }
+            }
+            val order = openTypes.optJSONObject("priorities") ?: JSONObject()
+            for (preset in order.keys()) {
+                if (preset !in YEntryOpenQualifiers.presetNames ||
+                    (preset.startsWith("CUSTOM_") && !validated.has(preset))
+                ) return null
+                val packages = readStrings(order.optJSONArray(preset) ?: return null, 200)
+                    ?: return null
+                if (!packages.all(::validPackage)) return null
+                val qualifier = "preset:" + preset
+                result[priorityKey(YEntrySurface.Open, qualifier)] = packages.joinToString(">")
+                indexedQualifiers += YEntrySurface.Open.name + "|" + qualifier
+            }
+        }
+
         val browser = source.optJSONObject("browserLinks")
         if (browser != null) {
             val hosts = readStrings(browser.optJSONArray("hosts") ?: JSONArray(), 64)
@@ -209,6 +245,35 @@ internal object YEntryBackupParser {
         }
         result["priority_qualifiers"] = indexedQualifiers
         return result
+    }
+
+    private fun validateDefinitions(raw: String): JSONObject? {
+        val parsed = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+        if (parsed.length() > 8) return null
+        val clean = JSONObject()
+        for (preset in parsed.keys()) {
+            if (preset !in YEntryOpenQualifiers.presetNames ||
+                !preset.startsWith("CUSTOM_")) return null
+            val definition = parsed.optJSONObject(preset) ?: return null
+            val title = definition.optString("title").trim()
+            if (title.isBlank() || title.length > 24 ||
+                title.any { it.isISOControl() }) return null
+            val mime = readStrings(definition.optJSONArray("mimeTypes") ?: JSONArray(), 24)
+                ?: return null
+            val extensions = readStrings(definition.optJSONArray("extensions") ?: JSONArray(), 48)
+                ?: return null
+            if (mime.isEmpty() && extensions.isEmpty()) return null
+            if (mime.any { it.length > 127 || !it.matches(Regex("[A-Za-z0-9+.*_-]+/[A-Za-z0-9+.*_-]+")) } ||
+                extensions.any { it.removePrefix(".").length > 24 ||
+                    !it.removePrefix(".").matches(Regex("[A-Za-z0-9_-]+")) }
+            ) return null
+            clean.put(preset, JSONObject().apply {
+                put("title", title)
+                put("mimeTypes", JSONArray(mime.map { it.lowercase() }))
+                put("extensions", JSONArray(extensions.map { it.lowercase().removePrefix(".") }))
+            })
+        }
+        return clean
     }
 
     private fun surfaces(oldKind: String): List<YEntrySurface>? = when (oldKind) {

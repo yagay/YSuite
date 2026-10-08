@@ -17,6 +17,7 @@ import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidate
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidateState
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
+import com.yagay.ysuite.feature.yentrycleaner.api.YEntryOpenQualifiers
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryRuleSelection
 import com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryRuntimeBridge
 import com.yagay.ysuite.platform.api.CapabilityStatus
@@ -158,6 +159,53 @@ internal class YEntryCleanerRepository(
             .apply()
     }
 
+    private fun openCustomDefinitions(): Map<String, YEntryOpenQualifiers.CustomDefinition> =
+        runCatching {
+            val raw = prefs.getString("open_custom_definitions", "{}") ?: "{}"
+            val source = JSONObject(raw)
+            source.keys().asSequence().associateWith { name ->
+                val definition = source.getJSONObject(name)
+                fun strings(key: String): Set<String> {
+                    val array = definition.optJSONArray(key) ?: JSONArray()
+                    return (0 until array.length())
+                        .map { array.getString(it).lowercase() }.toSet()
+                }
+                YEntryOpenQualifiers.CustomDefinition(
+                    strings("mimeTypes"), strings("extensions"),
+                )
+            }
+        }.getOrDefault(emptyMap())
+
+    private fun qualifierCandidates(
+        surface: YEntrySurface, qualifier: String,
+        scheme: String? = null, path: String? = null,
+    ): List<String> = when (surface) {
+        YEntrySurface.Open -> {
+            val protocol = scheme ?: qualifier.takeIf { it.startsWith("scheme:") }
+                ?.removePrefix("scheme:")
+            YEntryOpenQualifiers.qualifiers(
+                qualifier.takeUnless { it.startsWith("scheme:") }, protocol,
+                path, openCustomDefinitions(),
+            )
+        }
+        YEntrySurface.ShareText, YEntrySurface.ShareImage, YEntrySurface.ProcessText ->
+            if ('/' in qualifier) listOf(qualifier, qualifier.substringBefore('/') + "/*", "*").distinct()
+            else listOf(qualifier, "*").distinct()
+        else -> listOf(qualifier, "*").distinct()
+    }
+
+    private fun hasInheritedRule(id: String, rules: Set<String>): Boolean {
+        val parts = id.split('|', limit = 4)
+        if (parts.size != 4) return false
+        val surface = YEntrySurface.entries.firstOrNull { it.name == parts[0] }
+            ?: return false
+        return qualifierCandidates(surface, parts[1]).any { qualifier ->
+            qualifier != parts[1] && YEntryRuntimeBridge.ruleKey(
+                surface.name, qualifier, parts[2], parts[3],
+            ) in rules
+        }
+    }
+
     private fun priorityKey(
         surface: YEntrySurface,
         qualifier: String,
@@ -212,12 +260,8 @@ internal class YEntryCleanerRepository(
             exceptions -= id
         } else {
             next -= id
-            val inherited = inheritedRuleKey(id)
-            if (inherited != null && inherited in next) {
-                exceptions += id
-            } else {
-                exceptions -= id
-            }
+            if (hasInheritedRule(id, next)) exceptions += id
+            else exceptions -= id
         }
         prefs.edit()
             .putStringSet("hidden_rules", next)
@@ -238,12 +282,8 @@ internal class YEntryCleanerRepository(
         } else {
             next.removeAll(ids)
             for (id in ids) {
-                val inherited = inheritedRuleKey(id)
-                if (inherited != null && inherited in next) {
-                    exceptions += id
-                } else {
-                    exceptions -= id
-                }
+                if (hasInheritedRule(id, next)) exceptions += id
+                else exceptions -= id
             }
         }
         prefs.edit()
@@ -285,13 +325,14 @@ internal class YEntryCleanerRepository(
                         surface,
                         "text/plain",
                     )
-                YEntrySurface.Open ->
-                    queryIntent(
-                        Intent(Intent.ACTION_VIEW)
-                            .setType(openMime()),
-                        YEntrySurface.Open,
-                        openMime(),
-                    )
+                YEntrySurface.Open -> {
+                    val mime = openMime()
+                    val intent = if (mime.startsWith("scheme:")) {
+                        Intent(Intent.ACTION_VIEW,
+                            android.net.Uri.parse(mime.removePrefix("scheme:") + ":example"))
+                    } else Intent(Intent.ACTION_VIEW).setType(mime)
+                    queryIntent(intent, YEntrySurface.Open, mime)
+                }
                 YEntrySurface.Browser ->
                     queryIntent(
                         Intent(
@@ -348,12 +389,13 @@ internal class YEntryCleanerRepository(
         val shown = shown()
         val unlocked = unlocked()
         val componentTitles = componentTitles()
-        val configuredOrder =
-            if (prefs.contains(priorityKey(surface, qualifier))) {
-                priority(surface, qualifier)
-            } else {
-                priority(surface, "*")
-            }
+        val qualifiers = qualifierCandidates(
+            surface, qualifier, intent.data?.scheme, intent.data?.toString(),
+        )
+        val configuredOrder = qualifiers.firstNotNullOfOrNull { key ->
+            if (prefs.contains(priorityKey(surface, key))) priority(surface, key)
+            else null
+        } ?: emptyList()
         val rank =
             configuredOrder
                 .withIndex()
@@ -396,10 +438,14 @@ internal class YEntryCleanerRepository(
                     ai.applicationInfo.flags and
                         ApplicationInfo.FLAG_SYSTEM != 0,
                 hidden = YEntryRuleSelection.isSelected(
-                    id, wildcardId, hidden, shown,
+                    id, qualifiers.map { key ->
+                        YEntryRuntimeBridge.ruleKey(surface.name, key, ai.packageName, ai.name)
+                    }, hidden, shown,
                 ),
                 locked = YEntryRuleSelection.isSelected(
-                    id, wildcardId, locked, unlocked,
+                    id, qualifiers.map { key ->
+                        YEntryRuntimeBridge.ruleKey(surface.name, key, ai.packageName, ai.name)
+                    }, locked, unlocked,
                 ),
                 priority = rank[id] ?: rank[wildcardId] ?: rank[ai.packageName],
             )
@@ -810,11 +856,12 @@ internal class YEntryCleanerRepository(
     }
 
     private fun effectivePriority(candidate: YEntryCandidate): List<String> =
-        if (prefs.contains(priorityKey(candidate.surface, candidate.qualifier))) {
-            priority(candidate.surface, candidate.qualifier)
-        } else {
-            priority(candidate.surface, "*")
-        }
+        qualifierCandidates(candidate.surface, candidate.qualifier)
+            .firstNotNullOfOrNull { qualifier ->
+                if (prefs.contains(priorityKey(candidate.surface, qualifier))) {
+                    priority(candidate.surface, qualifier)
+                } else null
+            } ?: emptyList()
 
     suspend fun bulkComponents(
         candidates: List<YEntryCandidate>,
@@ -1051,6 +1098,8 @@ internal class YEntryCleanerRepository(
             .remove("shown_rules")
             .remove("unlocked_rules")
             .remove("seen_candidates")
+            .remove("open_custom_definitions")
+            .remove("component_titles")
             .remove("browser_hosts")
             .remove("priority_qualifiers")
         prefs.all.keys
@@ -1090,12 +1139,8 @@ internal class YEntryCleanerRepository(
                     exceptions -= it.id
                 } else {
                     next -= it.id
-                    val inherited = inheritedRuleKey(it.id)
-                    if (inherited != null && inherited in next) {
-                        exceptions += it.id
-                    } else {
-                        exceptions -= it.id
-                    }
+                    if (hasInheritedRule(it.id, next)) exceptions += it.id
+                    else exceptions -= it.id
                 }
             }
         prefs.edit()
@@ -1175,6 +1220,8 @@ internal class YEntryCleanerRepository(
                 YEntryRuntimeBridge.KEY_SHOWN_RULES to
                     shown().sorted()
                         .joinToString("\n"),
+                YEntryRuntimeBridge.KEY_OPEN_CUSTOM_DEFINITIONS to
+                    (prefs.getString("open_custom_definitions", "{}") ?: "{}"),
                 YEntryRuntimeBridge.KEY_PRIORITIES to
                     priorityLines
                         .joinToString("\n"),

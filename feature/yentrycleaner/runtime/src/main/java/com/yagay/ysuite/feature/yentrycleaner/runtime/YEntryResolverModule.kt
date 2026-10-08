@@ -7,6 +7,7 @@ import android.os.Process
 import android.util.Log
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryIntentRouting
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
+import com.yagay.ysuite.feature.yentrycleaner.api.YEntryOpenQualifiers
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryRuleSelection
 import com.yagay.ysuite.runtime.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
@@ -135,20 +136,23 @@ class YEntryResolverModule : XposedModule() {
             val qualifier = qualifier(surface, intent)
             val hidden = stringSet(YEntryRuntimeBridge.KEY_HIDDEN_RULES)
             val shown = stringSet(YEntryRuntimeBridge.KEY_SHOWN_RULES)
+            val qualifiers =
+                if (surface == YEntrySurface.Open.name) {
+                    YEntryOpenQualifiers.qualifiers(
+                        intent.type, intent.data?.scheme, intent.data?.toString(),
+                        customDefinitions(),
+                    )
+                } else if ('/' in qualifier && surface != YEntrySurface.Browser.name) {
+                    listOf(qualifier, qualifier.substringBefore('/') + "/*", "*").distinct()
+                } else listOf(qualifier, "*").distinct()
             val mode =
                 prefs.getString(
                     YEntryRuntimeBridge.KEY_MODE,
                     "HIDE_SELECTED",
                 ) ?: "HIDE_SELECTED"
-            val selectedForSurface =
-                hidden.filter {
-                    it.startsWith(
-                        surface + "|" + qualifier + "|",
-                    ) ||
-                        it.startsWith(
-                            surface + "|*|",
-                        )
-                }.toSet()
+            val selectedForSurface = hidden.filter { id ->
+                qualifiers.any { id.startsWith(surface + "|" + it + "|") }
+            }.toSet()
             var values =
                 result.values.filter { item ->
                     val info = item as? ResolveInfo
@@ -170,7 +174,13 @@ class YEntryResolverModule : XposedModule() {
                             activity.name,
                         )
                     val selected = YEntryRuleSelection.isSelected(
-                        exact, wildcard, hidden, shown,
+                        exact,
+                        qualifiers.map { key ->
+                            YEntryRuntimeBridge.ruleKey(
+                                surface, key, activity.packageName, activity.name,
+                            )
+                        },
+                        hidden, shown,
                     )
                     when (mode) {
                         "SHOW_ALL" -> true
@@ -181,8 +191,7 @@ class YEntryResolverModule : XposedModule() {
                     }
                 }
 
-            val priority =
-                priorityFor(surface, qualifier)
+            val priority = priorityFor(surface, qualifiers)
             if (priority.isNotEmpty()) {
                 val rank = priority.withIndex()
                     .associate {
@@ -252,6 +261,7 @@ class YEntryResolverModule : XposedModule() {
             surface = YEntrySurface.valueOf(surface),
             mimeType = intent.type,
             host = intent.data?.host,
+            scheme = intent.data?.scheme,
         )
 
     private fun stringSet(key: String): Set<String> =
@@ -264,28 +274,38 @@ class YEntryResolverModule : XposedModule() {
 
     private fun priorityFor(
         surface: String,
-        qualifier: String,
+        qualifiers: List<String>,
     ): List<String> {
-        val exactPrefix =
-            surface + "|" + qualifier + "	"
-        val wildcardPrefix =
-            surface + "|*	"
         val lines =
             prefs.getString(
                 YEntryRuntimeBridge.KEY_PRIORITIES,
                 "",
             ).orEmpty().lineSequence().toList()
-        val line =
-            lines.firstOrNull {
-                it.startsWith(exactPrefix)
-            } ?: lines.firstOrNull {
-                it.startsWith(wildcardPrefix)
-            } ?: return emptyList()
+        val line = qualifiers.firstNotNullOfOrNull { qualifier ->
+            lines.firstOrNull { it.startsWith(surface + "|" + qualifier + "\t") }
+        } ?: return emptyList()
         return line.substringAfter('	')
             .split('>')
             .map(String::trim)
             .filter(String::isNotEmpty)
     }
+
+    private fun customDefinitions(): Map<String, YEntryOpenQualifiers.CustomDefinition> =
+        runCatching {
+            val raw = prefs.getString(YEntryRuntimeBridge.KEY_OPEN_CUSTOM_DEFINITIONS, "{}") ?: "{}"
+            val json = org.json.JSONObject(raw)
+            json.keys().asSequence().associateWith { slot ->
+                val entry = json.getJSONObject(slot)
+                fun values(key: String): Set<String> {
+                    val array = entry.optJSONArray(key) ?: org.json.JSONArray()
+                    return (0 until array.length())
+                        .map { array.getString(it).lowercase() }.toSet()
+                }
+                YEntryOpenQualifiers.CustomDefinition(
+                    values("mimeTypes"), values("extensions"),
+                )
+            }
+        }.getOrDefault(emptyMap())
 
     private fun diagnostic(): Boolean =
         prefs.getString(
