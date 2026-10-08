@@ -793,7 +793,10 @@ class YFilesViewModel(
                 is YFilesNamePrompt
                     .CreateDirectory -> {
                     if (directory == null) {
-                        return@launch
+                        return@withContext Outcome.Failure(
+                            code = "missing_directory",
+                            message = "Select a folder before creating a file",
+                        )
                     }
                     environment.engine
                         .createDirectory(
@@ -804,7 +807,10 @@ class YFilesViewModel(
                 is YFilesNamePrompt
                     .CreateFile -> {
                     if (directory == null) {
-                        return@launch
+                        return@withContext Outcome.Failure(
+                            code = "missing_directory",
+                            message = "Select a folder before creating a file",
+                        )
                     }
                     environment.engine
                         .createFile(
