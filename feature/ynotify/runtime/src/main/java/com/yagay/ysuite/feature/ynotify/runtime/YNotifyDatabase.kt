@@ -66,7 +66,10 @@ internal class YNotifyDatabase(
                 progress_max INTEGER NOT NULL DEFAULT 0,
                 progress_indeterminate INTEGER NOT NULL DEFAULT 0,
                 class_name TEXT,
-                classification_version INTEGER NOT NULL DEFAULT 1
+                classification_version INTEGER NOT NULL DEFAULT 1,
+                classification_locked INTEGER NOT NULL DEFAULT 0,
+                original_event_type TEXT,
+                classification_source TEXT
             )
             """.trimIndent(),
         )
@@ -96,6 +99,11 @@ internal class YNotifyDatabase(
         }
         if (oldVersion < 3) {
             createRevisionsTable(db)
+        }
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE events ADD COLUMN classification_locked INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE events ADD COLUMN original_event_type TEXT")
+            db.execSQL("ALTER TABLE events ADD COLUMN classification_source TEXT")
         }
     }
 
@@ -158,6 +166,18 @@ internal class YNotifyDatabase(
             ).use { existing = it.moveToFirst() }
             if (existing) {
                 values.remove("id")
+                val locked = db.query(
+                    "events", arrayOf("classification_locked"),
+                    "event_key = ?", arrayOf(current.eventKey),
+                    null, null, null,
+                ).use { cursor ->
+                    cursor.moveToFirst() && cursor.getInt(0) != 0
+                }
+                if (locked) {
+                    values.remove("event_type")
+                    values.remove("notification_kind")
+                    values.remove("classification_version")
+                }
                 // A later ranking callback must not clear a surface marker.
                 values.remove("heads_up")
                 values.remove("bubble_shown")
@@ -278,7 +298,7 @@ internal class YNotifyDatabase(
         writableDatabase.update(
             "events",
             values,
-            "notification_key = ? AND removed_at IS NULL",
+            "notification_key = ? AND removed_at IS NULL AND classification_locked = 0",
             arrayOf(notificationKey),
         )
         invalidations.tryEmit(Unit)
@@ -351,6 +371,9 @@ internal class YNotifyDatabase(
                 cursor.getColumnIndexOrThrow("progress_indeterminate")
             val classIndex = cursor.getColumnIndexOrThrow("class_name")
             val versionIndex = cursor.getColumnIndexOrThrow("classification_version")
+            val lockedIndex = cursor.getColumnIndexOrThrow("classification_locked")
+            val originalTypeIndex = cursor.getColumnIndexOrThrow("original_event_type")
+            val manualSourceIndex = cursor.getColumnIndexOrThrow("classification_source")
             while (cursor.moveToNext()) {
                 result +=
                     YNotifyEvent(
@@ -405,6 +428,11 @@ internal class YNotifyDatabase(
                             cursor.getStringOrNull(classIndex),
                         classificationVersion =
                             cursor.getInt(versionIndex),
+                        classificationLocked = cursor.getInt(lockedIndex) != 0,
+                        originalEventType = cursor.getStringOrNull(originalTypeIndex)?.let {
+                            enumValueOrDefault(it, YNotifyEventType.OtherUi)
+                        },
+                        classificationSource = cursor.getStringOrNull(manualSourceIndex),
                     )
             }
         }
@@ -609,12 +637,77 @@ internal class YNotifyDatabase(
         invalidations.tryEmit(Unit)
     }
 
+
+    fun setManualClassification(
+        id: Long,
+        type: YNotifyEventType,
+        headsUp: Boolean,
+        bubble: Boolean,
+    ): Boolean {
+        val db = writableDatabase
+        var changed = false
+        db.beginTransaction()
+        try {
+            val previous = db.query(
+                "events", arrayOf("event_type", "original_event_type"),
+                "id = ?", arrayOf(id.toString()),
+                null, null, null, "1",
+            ).use { cursor ->
+                if (!cursor.moveToFirst()) null
+                else if (cursor.isNull(1)) cursor.getString(0) else cursor.getString(1)
+            }
+            if (previous != null) {
+                changed = db.update(
+                    "events",
+                    ContentValues().apply {
+                        put("original_event_type", previous)
+                        put("event_type", type.name)
+                        put("classification_locked", 1)
+                        put("classification_source", "manual")
+                        put("classification_version", CLASSIFICATION_VERSION)
+                        put("heads_up", if (type == YNotifyEventType.Notification && headsUp) 1 else 0)
+                        put("bubble_shown", if (type == YNotifyEventType.Notification && bubble) 1 else 0)
+                    },
+                    "id = ?", arrayOf(id.toString()),
+                ) > 0
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        if (changed) invalidations.tryEmit(Unit)
+        return changed
+    }
+
+    fun clearManualClassification(id: Long): Boolean {
+        val db = writableDatabase
+        var changed = false
+        db.beginTransaction()
+        try {
+            changed = db.update(
+                "events",
+                ContentValues().apply {
+                    put("classification_locked", 0)
+                    put("classification_source", "manual_reset")
+                    put("classification_version", 0)
+                },
+                "id = ? AND classification_locked = 1",
+                arrayOf(id.toString()),
+            ) > 0
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        if (changed) reclassify()
+        return changed
+    }
+
     fun reclassify() {
         val db = writableDatabase
         db.beginTransaction()
         try {
             db.rawQuery(
-                "SELECT id,event_type,source,package_name,class_name,notification_key,notification_kind,ongoing,foreground_service,progress,progress_max,progress_indeterminate FROM events",
+                "SELECT id,event_type,source,package_name,class_name,notification_key,notification_kind,ongoing,foreground_service,progress,progress_max,progress_indeterminate FROM events WHERE classification_locked = 0",
                 null,
             ).use { cursor ->
                 while (cursor.moveToNext()) {
@@ -1042,7 +1135,7 @@ internal class YNotifyDatabase(
 
     companion object {
         const val CLASSIFICATION_VERSION = 4
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
         private const val SEARCH_PAGE_SIZE = 500
         val invalidations = MutableSharedFlow<Unit>(
             extraBufferCapacity = 32,

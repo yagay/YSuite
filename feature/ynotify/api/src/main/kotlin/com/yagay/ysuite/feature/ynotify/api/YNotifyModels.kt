@@ -78,6 +78,9 @@ data class YNotifyEvent(
     val progressIndeterminate: Boolean,
     val className: String?,
     val classificationVersion: Int,
+    val classificationLocked: Boolean = false,
+    val originalEventType: YNotifyEventType? = null,
+    val classificationSource: String? = null,
 )
 
 data class YNotifyRuntimeStatus(

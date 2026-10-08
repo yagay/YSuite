@@ -131,6 +131,16 @@ class YNotifyRuntimeStore(
         database.reclassify()
     }
 
+    fun setManualClassification(
+        id: Long,
+        type: com.yagay.ysuite.feature.ynotify.api.YNotifyEventType,
+        headsUp: Boolean,
+        bubble: Boolean,
+    ): Boolean = database.setManualClassification(id, type, headsUp, bubble)
+
+    fun clearManualClassification(id: Long): Boolean =
+        database.clearManualClassification(id)
+
     fun export(): String {
         val fileName =
             "YNotify-" +
