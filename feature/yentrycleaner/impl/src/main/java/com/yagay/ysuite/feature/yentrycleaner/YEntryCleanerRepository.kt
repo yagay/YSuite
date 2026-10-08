@@ -271,7 +271,9 @@ internal class YEntryCleanerRepository(
         val hidden = hidden()
         val locked = locked()
         val configuredOrder =
-            priority(surface, qualifier).ifEmpty {
+            if (prefs.contains(priorityKey(surface, qualifier))) {
+                priority(surface, qualifier)
+            } else {
                 priority(surface, "*")
             }
         val rank =
@@ -318,7 +320,7 @@ internal class YEntryCleanerRepository(
                         ApplicationInfo.FLAG_SYSTEM != 0,
                 hidden = id in hidden || wildcardId in hidden,
                 locked = id in locked || wildcardId in locked,
-                priority = rank[id] ?: rank[wildcardId],
+                priority = rank[id] ?: rank[wildcardId] ?: rank[ai.packageName],
             )
         }.sortedWith(
             compareBy<YEntryCandidate> {
@@ -700,29 +702,34 @@ internal class YEntryCleanerRepository(
         candidate: YEntryCandidate,
         delta: Int,
     ) {
-        val current =
-            priority(
-                candidate.surface,
-                candidate.qualifier,
-            ).toMutableList()
-        current.remove(candidate.id)
-        val base =
-            candidate.priority
-                ?: if (delta < 0) {
-                    current.size
-                } else {
-                    -1
-                }
-        val index =
-            (base + delta)
-                .coerceIn(0, current.size)
+        val current = effectivePriority(candidate).toMutableList()
+        val previous = current.indexOfFirst {
+            it == candidate.id || it == candidate.packageName
+        }
+        if (previous >= 0) current.removeAt(previous)
+        val index = if (previous >= 0) {
+            (previous + delta).coerceIn(0, current.size)
+        } else if (delta < 0) {
+            0
+        } else {
+            current.size
+        }
         current.add(index, candidate.id)
-        setPriority(
-            candidate.surface,
-            candidate.qualifier,
-            current,
-        )
+        setPriority(candidate.surface, candidate.qualifier, current)
     }
+
+    fun removePriority(candidate: YEntryCandidate) {
+        val next = effectivePriority(candidate)
+            .filterNot { it == candidate.id || it == candidate.packageName }
+        setPriority(candidate.surface, candidate.qualifier, next)
+    }
+
+    private fun effectivePriority(candidate: YEntryCandidate): List<String> =
+        if (prefs.contains(priorityKey(candidate.surface, candidate.qualifier))) {
+            priority(candidate.surface, candidate.qualifier)
+        } else {
+            priority(candidate.surface, "*")
+        }
 
     suspend fun bulkComponents(
         candidates: List<YEntryCandidate>,
@@ -733,7 +740,8 @@ internal class YEntryCleanerRepository(
         val locks = locked()
         candidates
             .filter {
-                it.id !in locks &&
+                !it.locked &&
+                    it.id !in locks &&
                     !it.rootBlocked
             }
             .forEach {
@@ -759,7 +767,8 @@ internal class YEntryCleanerRepository(
         val locks = locked()
         candidates
             .filter {
-                it.id !in locks &&
+                !it.locked &&
+                    it.id !in locks &&
                     !it.rootBlocked &&
                     it.rootEnabled != null
             }
@@ -797,8 +806,10 @@ internal class YEntryCleanerRepository(
                 is Outcome.Failure ->
                     ""
             }
-        val hosts =
-            linkedSetOf<String>()
+        val hosts = linkedSetOf<String>()
+        hosts.addAll(
+            prefs.getStringSet("browser_hosts", emptySet()).orEmpty(),
+        )
         result.lineSequence()
             .forEach { raw ->
                 val line = raw.trim()
@@ -979,7 +990,7 @@ internal class YEntryCleanerRepository(
         val locks = locked()
         val next = this.hidden().toMutableSet()
         candidates
-            .filter { it.id !in locks }
+            .filter { !it.locked && it.id !in locks }
             .forEach {
                 if (hidden) next += it.id
                 else next -= it.id
@@ -1010,22 +1021,20 @@ internal class YEntryCleanerRepository(
                     val qualifiers =
                         when (surface) {
                             YEntrySurface.ShareText ->
-                                listOf("text/plain")
+                                listOf("text/plain", "*")
                             YEntrySurface.ShareImage ->
-                                listOf("image/*")
+                                listOf("image/*", "*")
                             YEntrySurface.ShareMultiple ->
                                 listOf("*")
                             YEntrySurface.ProcessText ->
-                                listOf("text/plain")
+                                listOf("text/plain", "*")
                             YEntrySurface.Browser ->
                                 listOf(
                                     browserHost(),
                                     "*",
                                 )
                             YEntrySurface.Open ->
-                                listOf(
-                                    openMime(),
-                                )
+                                listOf(openMime(), "*")
                             else -> emptyList()
                         }
                     qualifiers.mapNotNull {
@@ -1035,7 +1044,10 @@ internal class YEntryCleanerRepository(
                                 surface,
                                 qualifier,
                             )
-                        if (list.isEmpty()) null
+                        if (
+                            list.isEmpty() &&
+                            !prefs.contains(priorityKey(surface, qualifier))
+                        ) null
                         else
                             surface.name +
                                 "|" +
