@@ -84,32 +84,66 @@ internal class YNotifyDatabase(
         }
     }
 
+    /**
+     * Reposting a notification should update its existing row, not replace the
+     * primary key and erase runtime heads-up/bubble/fullscreen markers.
+     * A queued ranking update must not resurrect an already removed instance.
+     */
     fun upsert(event: YNotifyEvent) {
+        val db = writableDatabase
         val values = event.toValues().apply {
             put("title", crypto.encrypt(event.title))
             put("text_value", crypto.encrypt(event.text))
             put("full_text", crypto.encrypt(event.fullText))
         }
-        writableDatabase.insertWithOnConflict(
-            "events",
-            null,
-            values,
-            SQLiteDatabase.CONFLICT_REPLACE,
-        )
-        writableDatabase.insertWithOnConflict(
-            "event_details",
-            null,
-            ContentValues().apply {
-                put("event_key", event.eventKey)
-                put(
-                    "detail_blob",
-                    crypto.encrypt(
-                        encodeDetails(event),
-                    ),
+        db.beginTransaction()
+        try {
+            var oldPostedAt: Long? = null
+            var wasRemoved = false
+            db.query(
+                "events",
+                arrayOf("posted_at", "removed_at"),
+                "event_key = ?",
+                arrayOf(event.eventKey),
+                null, null, null,
+            ).use { cursor ->
+                if (cursor.moveToFirst()) {
+                    oldPostedAt = cursor.getLong(0)
+                    wasRemoved = !cursor.isNull(1)
+                }
+            }
+            if (oldPostedAt != null) {
+                // The latest notification was already removed; only a truly
+                // newer posting of the same key may start another generation.
+                if (wasRemoved && event.postedAt <= oldPostedAt!!) return
+                values.remove("id")
+                if (event.postedAt == oldPostedAt) {
+                    values.remove("heads_up")
+                    values.remove("bubble_shown")
+                    values.remove("full_screen_shown")
+                }
+                db.update(
+                    "events",
+                    values,
+                    "event_key = ?",
+                    arrayOf(event.eventKey),
                 )
-            },
-            SQLiteDatabase.CONFLICT_REPLACE,
-        )
+            } else {
+                db.insertOrThrow("events", null, values)
+            }
+            db.insertWithOnConflict(
+                "event_details",
+                null,
+                ContentValues().apply {
+                    put("event_key", event.eventKey)
+                    put("detail_blob", crypto.encrypt(encodeDetails(event)))
+                },
+                SQLiteDatabase.CONFLICT_REPLACE,
+            )
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
         invalidations.tryEmit(Unit)
     }
 
@@ -130,7 +164,7 @@ internal class YNotifyDatabase(
         writableDatabase.update(
             "events",
             values,
-            "notification_key = ?",
+            "notification_key = ? AND removed_at IS NULL",
             arrayOf(notificationKey),
         )
         invalidations.tryEmit(Unit)
@@ -146,7 +180,7 @@ internal class YNotifyDatabase(
                 put("removed_at", removedAt)
                 put("updated_at", removedAt)
             },
-            "notification_key = ?",
+            "notification_key = ? AND removed_at IS NULL",
             arrayOf(notificationKey),
         )
         invalidations.tryEmit(Unit)
