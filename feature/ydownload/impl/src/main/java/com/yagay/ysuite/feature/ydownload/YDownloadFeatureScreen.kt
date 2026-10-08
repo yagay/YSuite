@@ -8,7 +8,6 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.weight
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.designsystem.component.YSuiteSecondaryButton
 import androidx.activity.result.contract.ActivityResultContracts
