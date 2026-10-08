@@ -672,10 +672,10 @@ internal class YEntryCleanerRepository(
                             ApplicationInfo.FLAG_SYSTEM,
                         ) != 0,
                 hidden = (
-                    id in hidden || inheritedRuleKey(id) in hidden
+                    id in hidden || inheritedRuleKey(id)?.let { it in hidden } == true
                 ) && id !in shown,
                 locked = (
-                    id in locked || inheritedRuleKey(id) in locked
+                    id in locked || inheritedRuleKey(id)?.let { it in locked } == true
                 ) && id !in unlocked,
                 priority = null,
                 state =
