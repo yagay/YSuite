@@ -105,12 +105,12 @@ class YNotifyViewModel(
         viewModelScope.launch {
             store.observeEvents().collect {
                     events ->
+                val (rawAggregates, runtimeStatus) =
+                    withContext(Dispatchers.IO) {
+                        store.appAggregates() to store.status()
+                    }
                 val aggregates =
-                    withContext(
-                        Dispatchers.IO,
-                    ) {
-                        store.appAggregates()
-                    }.map { aggregate ->
+                    rawAggregates.map { aggregate ->
                         YNotifyAppSummary(
                             packageName =
                                 aggregate.packageName,
@@ -130,7 +130,7 @@ class YNotifyViewModel(
                         appSummaries =
                             aggregates,
                         runtimeStatus =
-                            store.status(),
+                            runtimeStatus,
                     )
                 if (
                     current.query
@@ -428,19 +428,31 @@ class YNotifyViewModel(
     }
 
     fun setRetentionDays(days: Int) {
-        store.setRetentionDays(days)
-        mutableState.value =
-            mutableState.value.copy(
-                retentionDays = days,
-            )
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                store.setRetentionDays(days)
+            }
+            mutableState.value =
+                mutableState.value.copy(
+                    retentionDays = days,
+                )
+        }
     }
 
     fun clear() {
-        store.clear()
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                store.clear()
+            }
+        }
     }
 
     fun reclassify() {
-        store.reclassify()
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                store.reclassify()
+            }
+        }
     }
 
     fun export() {

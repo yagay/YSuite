@@ -75,7 +75,8 @@ internal class YEntryCleanerViewModel(
         discoverBrowserHosts()
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                repository.sync(reload = false)
+                // This only requests missing scopes; it does not restart Android.
+                repository.sync(reload = true)
             }
         }
     }
