@@ -23,6 +23,8 @@ import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -44,6 +46,7 @@ internal class YEntryCleanerRepository(
         )
     private val pm = context.packageManager
     private val user = Process.myUid() / 100_000
+    private val syncMutex = Mutex()
 
     fun hidden(): Set<String> =
         prefs.getStringSet("hidden_rules", emptySet())
@@ -1039,7 +1042,8 @@ internal class YEntryCleanerRepository(
     }
 
     /** Publish settings without restarting framework processes merely by opening the screen. */
-    suspend fun sync(reload: Boolean = true): Outcome<Unit> {
+    suspend fun sync(reload: Boolean = true): Outcome<Unit> =
+        syncMutex.withLock {
         val indexedQualifiers =
             prefs.getStringSet("priority_qualifiers", emptySet()).orEmpty()
         val browserHosts =
@@ -1129,10 +1133,10 @@ internal class YEntryCleanerRepository(
                     value,
                 )
             if (result is Outcome.Failure) {
-                return result
+                return@withLock result
             }
         }
-        return if (reload) {
+        if (reload) {
             hooks.reload(
                 setOf(
                     "android",
