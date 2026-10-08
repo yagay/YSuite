@@ -280,7 +280,7 @@ class YDiagViewModel(
                 }
                 mutableState.value = mutableState.value.copy(
                     apps = apps,
-                    appsLoadError = if (apps.isEmpty()) "no_visible_apps" else null,
+                    appsLoadError = null,
                 )
             } catch (cancelled: CancellationException) {
                 throw cancelled

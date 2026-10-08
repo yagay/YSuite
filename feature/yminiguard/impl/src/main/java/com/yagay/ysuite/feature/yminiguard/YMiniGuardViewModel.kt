@@ -54,7 +54,10 @@ internal class YMiniGuardViewModel(
                             .getOrDefault(CapabilityStatus.Error),
                         hookStatus = runCatching { repository.hookStatus() }
                             .getOrDefault(CapabilityStatus.Error),
-                        engineStatus = repository.engineStatus(),
+                        // Engine diagnostics must never prevent the installed
+                        // app inventory from being displayed.
+                        engineStatus = runCatching { repository.engineStatus() }
+                            .getOrDefault(mutableState.value.engineStatus),
                     )
                 }
                 mutableState.value = mutableState.value.copy(

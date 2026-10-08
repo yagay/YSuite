@@ -97,10 +97,15 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
     private suspend fun refresh() {
         runCatching {
             withContext(Dispatchers.IO) {
-                val root = repository.rootStatus()
-                val hook = repository.hookStatus()
+                // An unavailable hook service or NFC diagnostic provider must
+                // not prevent Root status and stored cards from updating.
+                val root = runCatching { repository.rootStatus() }
+                    .getOrDefault(CapabilityStatus.Error)
+                val hook = runCatching { repository.hookStatus() }
+                    .getOrDefault(CapabilityStatus.Error)
                 val runtime = if (root == CapabilityStatus.Available) {
-                    repository.runtime()
+                    runCatching { repository.runtime() }
+                        .getOrDefault(mutableState.value.runtime)
                 } else {
                     mutableState.value.runtime
                 }
