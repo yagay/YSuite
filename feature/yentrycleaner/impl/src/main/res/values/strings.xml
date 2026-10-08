@@ -14,7 +14,8 @@
     <string name="yentry_filter_all">All</string>
     <string name="yentry_filter_user">User</string>
     <string name="yentry_filter_system">System</string>
-    <string name="yentry_filter_hidden">Hidden</string>
+    <string name="yentry_filter_hidden">Selected / disabled</string>
+    <string name="yentry_filter_unselected">Unselected / enabled</string>
     <string name="yentry_filter_locked">Locked</string>
     <string name="yentry_browser_host">Browser host</string>
     <string name="yentry_mode">Display mode</string>

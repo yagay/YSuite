@@ -14,7 +14,8 @@
     <string name="yentry_filter_all">全部</string>
     <string name="yentry_filter_user">用户</string>
     <string name="yentry_filter_system">系统</string>
-    <string name="yentry_filter_hidden">已隐藏</string>
+    <string name="yentry_filter_hidden">已选 / 已禁用</string>
+    <string name="yentry_filter_unselected">未选 / 已启用</string>
     <string name="yentry_filter_locked">已锁定</string>
     <string name="yentry_browser_host">浏览器域名</string>
     <string name="yentry_mode">显示模式</string>

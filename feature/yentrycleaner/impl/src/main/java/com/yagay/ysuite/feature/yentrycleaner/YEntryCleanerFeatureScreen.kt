@@ -149,6 +149,22 @@ fun YEntryCleanerFeatureScreen(
                             )
                     },
                 )
+                YSuiteFilterBar(
+                    options =
+                        YEntrySelectionFilter.entries.map {
+                            YSuiteFilterOption(
+                                it.name,
+                                selectionFilterLabel(it),
+                            )
+                        },
+                    selectedId = state.selectionFilter.name,
+                    onSelected = {
+                        runCatching {
+                            YEntrySelectionFilter.valueOf(it)
+                        }.getOrNull()
+                            ?.let(model::setSelectionFilter)
+                    },
+                )
                 when (state.surface) {
                     YEntrySurface.Open -> {
                         YSuiteSearchField(
@@ -828,12 +844,19 @@ private fun filterLabel(
             stringResource(
                 R.string.yentry_filter_system,
             )
-        YEntryAppFilter.Hidden ->
-            stringResource(
-                R.string.yentry_filter_hidden,
-            )
-        YEntryAppFilter.Locked ->
-            stringResource(
-                R.string.yentry_filter_locked,
-            )
+    }
+
+@Composable
+private fun selectionFilterLabel(
+    value: YEntrySelectionFilter,
+): String =
+    when (value) {
+        YEntrySelectionFilter.All ->
+            stringResource(R.string.yentry_filter_all)
+        YEntrySelectionFilter.Selected ->
+            stringResource(R.string.yentry_filter_hidden)
+        YEntrySelectionFilter.Unselected ->
+            stringResource(R.string.yentry_filter_unselected)
+        YEntrySelectionFilter.Locked ->
+            stringResource(R.string.yentry_filter_locked)
     }

@@ -18,7 +18,12 @@ enum class YEntryAppFilter {
     All,
     User,
     System,
-    Hidden,
+}
+
+enum class YEntrySelectionFilter {
+    All,
+    Selected,
+    Unselected,
     Locked,
 }
 
@@ -30,6 +35,8 @@ data class YEntryCleanerUiState(
     val query: String = "",
     val filter: YEntryAppFilter =
         YEntryAppFilter.All,
+    val selectionFilter: YEntrySelectionFilter =
+        YEntrySelectionFilter.All,
     val selectedId: String? = null,
     val browserHost: String = "example.com",
     val browserHosts: List<String> =
@@ -104,6 +111,13 @@ internal class YEntryCleanerViewModel(
             )
     }
 
+    fun setSelectionFilter(value: YEntrySelectionFilter) {
+        mutableState.value =
+            mutableState.value.copy(
+                selectionFilter = value,
+            )
+    }
+
     fun visible(): List<YEntryCandidate> {
         val state = mutableState.value
         val q = state.query.trim()
@@ -115,12 +129,18 @@ internal class YEntryCleanerViewModel(
                         !candidate.system
                     YEntryAppFilter.System ->
                         candidate.system
-                    YEntryAppFilter.Hidden ->
+                }
+            val selectionMatch =
+                when (state.selectionFilter) {
+                    YEntrySelectionFilter.All -> true
+                    YEntrySelectionFilter.Selected ->
                         candidate.hidden
-                    YEntryAppFilter.Locked ->
+                    YEntrySelectionFilter.Unselected ->
+                        !candidate.hidden
+                    YEntrySelectionFilter.Locked ->
                         candidate.locked
                 }
-            filterMatch &&
+            filterMatch && selectionMatch &&
                 (
                     q.isBlank() ||
                         candidate.label.contains(q, true) ||
