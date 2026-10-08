@@ -36,6 +36,21 @@ internal enum class YEntryImportResult {
     Synced,
 }
 
+internal enum class YEntryManagedKind { Activity, Service, Receiver, Provider }
+
+internal data class YEntryManagedComponent(
+    val id: String,
+    val kind: YEntryManagedKind,
+    val packageName: String,
+    val className: String,
+    val appLabel: String,
+    val label: String,
+    val system: Boolean,
+    val enabled: Boolean,
+    val locked: Boolean,
+    val blocked: Boolean,
+)
+
 internal data class YEntryCustomDraft(
     val title: String = "",
     val mimeTypes: String = "",
@@ -131,6 +146,106 @@ internal class YEntryCleanerRepository(
                 normalized,
             )
             .apply()
+    }
+
+
+    /** Enumerates actual package components, not just resolver/tile candidates. */
+    @Suppress("DEPRECATION")
+    fun managedComponents(): List<YEntryManagedComponent> {
+        val flags = PackageManager.GET_ACTIVITIES or
+            PackageManager.GET_SERVICES or
+            PackageManager.GET_RECEIVERS or
+            PackageManager.GET_PROVIDERS or
+            PackageManager.MATCH_DISABLED_COMPONENTS or
+            PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS
+        val disabled = disabledComponents()
+        val locks = locked()
+        val result = linkedMapOf<String, YEntryManagedComponent>()
+        pm.getInstalledPackages(flags).forEach { pkg ->
+            val application = pkg.applicationInfo ?: return@forEach
+            val appLabel = runCatching {
+                pm.getApplicationLabel(application).toString()
+            }.getOrDefault(pkg.packageName)
+            fun record(kind: YEntryManagedKind, info: ComponentInfo) {
+                val component = ComponentName(info.packageName, info.name)
+                val id = YEntryRuntimeBridge.componentKey(
+                    user, info.packageName, info.name,
+                )
+                val setting = runCatching {
+                    pm.getComponentEnabledSetting(component)
+                }.getOrDefault(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT)
+                val enabled = when (setting) {
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED_UNTIL_USED -> false
+                    else -> info.enabled && application.enabled
+                }
+                val blocked = info.packageName == context.packageName ||
+                    info.packageName == "android" ||
+                    info.packageName == "com.android.systemui" ||
+                    application.uid % 100_000 < Process.FIRST_APPLICATION_UID
+                result[kind.name + ":" + id] = YEntryManagedComponent(
+                    id = id,
+                    kind = kind,
+                    packageName = info.packageName,
+                    className = info.name,
+                    appLabel = appLabel,
+                    label = runCatching { info.loadLabel(pm).toString() }
+                        .getOrDefault(info.name),
+                    system = application.flags and ApplicationInfo.FLAG_SYSTEM != 0,
+                    enabled = enabled,
+                    locked = id in locks,
+                    blocked = blocked,
+                )
+            }
+            pkg.activities?.forEach { record(YEntryManagedKind.Activity, it) }
+            pkg.services?.forEach { record(YEntryManagedKind.Service, it) }
+            pkg.receivers?.forEach { record(YEntryManagedKind.Receiver, it) }
+            pkg.providers?.forEach { record(YEntryManagedKind.Provider, it) }
+        }
+        return result.values.sortedWith(
+            compareBy<YEntryManagedComponent> { it.enabled }
+                .thenBy { it.appLabel.lowercase() }
+                .thenBy { it.label.lowercase() },
+        )
+    }
+
+    suspend fun changeManagedComponent(
+        component: YEntryManagedComponent,
+        enable: Boolean,
+    ): Boolean {
+        if (component.blocked || component.enabled == enable) return false
+        return changeComponent(
+            YEntryCandidate(
+                id = component.id,
+                surface = YEntrySurface.Tile,
+                qualifier = "*",
+                packageName = component.packageName,
+                className = component.className,
+                label = component.label,
+                system = component.system,
+                hidden = !component.enabled,
+                locked = component.locked,
+                priority = null,
+                rootEnabled = component.enabled,
+                rootBlocked = component.blocked,
+            ),
+            enable,
+        )
+    }
+
+    suspend fun changeManagedComponents(
+        components: List<YEntryManagedComponent>,
+        enable: Boolean,
+    ): Pair<Int, Int> {
+        var changed = 0
+        var failed = 0
+        components.filter { !it.locked && !it.blocked && it.enabled != enable }
+            .forEach {
+                if (changeManagedComponent(it, enable)) changed++ else failed++
+            }
+        return changed to failed
     }
 
     suspend fun rootStatus():

@@ -97,6 +97,12 @@ fun YEntryCleanerFeatureScreen(
             uri?.let(model::importBackup)
         }
 
+    if (state.managingComponents) {
+        YSuiteFeatureBackHandler { model.closeManagedComponents() }
+        YEntryManagedComponentsScreen(state, model)
+        return
+    }
+
     if (selected != null) {
         YSuiteFeatureBackHandler {
             model.select(null)
@@ -390,6 +396,13 @@ fun YEntryCleanerFeatureScreen(
                                 },
                         )
                     }
+                }
+                item {
+                    YSuiteListItem(
+                        title = stringResource(R.string.yentry_root_components),
+                        subtitle = stringResource(R.string.yentry_root_components_desc),
+                        modifier = Modifier.clickable { model.openManagedComponents() },
+                    )
                 }
                 item {
                     YSuiteListItem(

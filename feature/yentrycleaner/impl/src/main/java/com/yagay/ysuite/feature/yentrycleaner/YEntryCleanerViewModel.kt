@@ -34,6 +34,10 @@ data class YEntryCleanerUiState(
         YEntrySurface.ShareText,
     val candidates: List<YEntryCandidate> =
         emptyList(),
+    val managingComponents: Boolean = false,
+    val managedComponents: List<YEntryManagedComponent> = emptyList(),
+    val managedLoading: Boolean = false,
+    val managedError: String? = null,
     val query: String = "",
     val filter: YEntryAppFilter =
         YEntryAppFilter.All,
@@ -82,6 +86,7 @@ internal class YEntryCleanerViewModel(
         StateFlow<YEntryCleanerUiState> =
         mutableState.asStateFlow()
     private var refreshJob: Job? = null
+    private var managedJob: Job? = null
 
     init {
         setCustomSlot("CUSTOM_1")
@@ -93,6 +98,100 @@ internal class YEntryCleanerViewModel(
                 // This only requests missing scopes; it does not restart Android.
                 repository.sync(reload = true)
             }
+        }
+    }
+
+
+    fun openManagedComponents() {
+        mutableState.value = mutableState.value.copy(managingComponents = true)
+        refreshManagedComponents()
+    }
+
+    fun closeManagedComponents() {
+        managedJob?.cancel()
+        mutableState.value = mutableState.value.copy(managingComponents = false)
+    }
+
+    fun refreshManagedComponents() {
+        managedJob?.cancel()
+        managedJob = viewModelScope.launch {
+            mutableState.value = mutableState.value.copy(
+                managedLoading = true, managedError = null,
+            )
+            try {
+                val items = withContext(Dispatchers.IO) {
+                    repository.managedComponents()
+                }
+                mutableState.value = mutableState.value.copy(
+                    managedComponents = items,
+                    managedLoading = false,
+                    managedError = null,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    managedLoading = false,
+                    managedError = error.message ?: error.javaClass.simpleName,
+                )
+            }
+        }
+    }
+
+    fun setManagedLock(component: YEntryManagedComponent, locked: Boolean) {
+        repository.setLocked(component.id, locked)
+        mutableState.value = mutableState.value.copy(
+            managedComponents = mutableState.value.managedComponents.map {
+                if (it.id == component.id) it.copy(locked = locked) else it
+            },
+        )
+    }
+
+    fun changeManagedComponent(component: YEntryManagedComponent, enable: Boolean) {
+        if (mutableState.value.busy || component.blocked) return
+        viewModelScope.launch {
+            mutableState.value = mutableState.value.copy(busy = true)
+            try {
+                val changed = withContext(Dispatchers.IO) {
+                    repository.changeManagedComponent(component, enable)
+                }
+                mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    statusToken = if (changed) "component_changed" else "component_failed",
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    managedError = error.message ?: error.javaClass.simpleName,
+                )
+            }
+            refreshManagedComponents()
+        }
+    }
+
+    fun bulkManagedComponents(components: List<YEntryManagedComponent>, enable: Boolean) {
+        if (mutableState.value.busy) return
+        viewModelScope.launch {
+            mutableState.value = mutableState.value.copy(busy = true)
+            try {
+                val (changed, failed) = withContext(Dispatchers.IO) {
+                    repository.changeManagedComponents(components, enable)
+                }
+                mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    statusToken = "components_partial:$changed:$failed",
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    managedError = error.message ?: error.javaClass.simpleName,
+                )
+            }
+            refreshManagedComponents()
         }
     }
 
