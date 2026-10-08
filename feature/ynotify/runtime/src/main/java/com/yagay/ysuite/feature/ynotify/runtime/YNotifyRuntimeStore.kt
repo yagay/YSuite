@@ -8,6 +8,7 @@ import com.yagay.ysuite.feature.ynotify.api.YNotifyEvent
 import com.yagay.ysuite.feature.ynotify.api.YNotifyRuntimeStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -26,13 +27,16 @@ class YNotifyRuntimeStore(
     private val database =
         YNotifyDatabase(applicationContext)
 
-    fun observeEvents(): Flow<List<YNotifyEvent>> =
-        YNotifyDatabase
-            .changes()
-            .onStart { emit(Unit) }
-            .map {
+    // The history is paged to avoid decrypting thousands of events on each
+    // invalidation. Changing the page limit also refreshes the database query.
+    fun observeEvents(pageLimit: Flow<Int>): Flow<List<YNotifyEvent>> =
+        combine(
+            YNotifyDatabase.changes().onStart { emit(Unit) },
+            pageLimit.distinctUntilChanged(),
+        ) { _, limit -> limit.coerceIn(1, 10_000) }
+            .map { limit ->
                 withContext(Dispatchers.IO) {
-                    database.query()
+                    database.query(limit)
                 }
             }
             .distinctUntilChanged()

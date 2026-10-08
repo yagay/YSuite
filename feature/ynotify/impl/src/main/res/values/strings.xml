@@ -25,6 +25,7 @@
     <string name="ynotify_clear">Clear history</string>
     <string name="ynotify_exported">Exported to Downloads/YSuite</string>
     <string name="ynotify_empty">No matching history yet.</string>
+    <string name="ynotify_load_older">Load older history</string>
     <string name="ynotify_type">Event type</string>
     <string name="ynotify_kind">Notification kind</string>
     <string name="ynotify_content">Full content</string>

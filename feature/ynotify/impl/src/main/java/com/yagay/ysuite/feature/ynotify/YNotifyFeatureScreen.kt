@@ -655,6 +655,14 @@ private fun EventList(
                 },
             )
         }
+        if (state.query.isBlank() && model.canLoadOlder()) {
+            item(key = "load-older") {
+                YSuiteSecondaryButton(
+                    text = stringResource(R.string.ynotify_load_older),
+                    onClick = model::loadOlder,
+                )
+            }
+        }
     }
 }
 

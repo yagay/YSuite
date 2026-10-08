@@ -20,6 +20,7 @@
     <string name="ynotify_clear">清空历史</string>
     <string name="ynotify_exported">已导出到 Downloads/YSuite</string>
     <string name="ynotify_empty">暂时没有匹配的历史记录。</string>
+    <string name="ynotify_load_older">加载更早的历史记录</string>
     <string name="ynotify_type">事件类型</string>
     <string name="ynotify_kind">通知类型</string>
     <string name="ynotify_content">完整内容</string>

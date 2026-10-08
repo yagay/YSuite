@@ -27,10 +27,12 @@ class YNotifyNotificationListenerService :
         YNotifyDatabase.signalRuntimeStatusChanged()
         // Reuse the live notification path for the initial snapshot so
         // paused apps, redaction, and retention apply consistently.
-        runCatching {
-            val ranking = currentRanking
-            activeNotifications?.forEach { scheduleSave(it, ranking) }
-        }.onFailure { YNotifyCaptureHealth.failed(this, it) }
+        executor.execute {
+            runCatching {
+                val ranking = currentRanking
+                activeNotifications?.forEach { scheduleSave(it, ranking) }
+            }.onFailure { YNotifyCaptureHealth.failed(this, it) }
+        }
     }
 
     override fun onListenerDisconnected() {

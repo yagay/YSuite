@@ -116,6 +116,7 @@ class YNotifyViewModel(
         mutableState.asStateFlow()
 
     private var searchJob: Job? = null
+    private val historyPageLimit = MutableStateFlow(1_000)
     private var lastAutomaticRebindAt = 0L
 
     init {
@@ -141,7 +142,7 @@ class YNotifyViewModel(
                     store.retentionDays(),
             )
         viewModelScope.launch {
-            store.observeEvents()
+            store.observeEvents(historyPageLimit)
                 .catch { error ->
                     mutableState.value = mutableState.value.copy(
                         loadError = error.message ?: "history_load_failed",
@@ -255,6 +256,17 @@ class YNotifyViewModel(
             typeFilter = YNotifyTypeFilter.All,
             kindFilter = YNotifyKindFilter.All,
         )
+    }
+
+    fun loadOlder() {
+        historyPageLimit.value =
+            (historyPageLimit.value + 1_000).coerceAtMost(10_000)
+    }
+
+    fun canLoadOlder(): Boolean {
+        val current = mutableState.value
+        return current.events.size < current.runtimeStatus.storedEventCount &&
+            historyPageLimit.value < 10_000
     }
 
     fun setQuery(value: String) {
