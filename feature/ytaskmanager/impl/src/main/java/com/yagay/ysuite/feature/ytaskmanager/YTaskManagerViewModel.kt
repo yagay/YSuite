@@ -9,6 +9,7 @@ import com.yagay.ysuite.feature.ytaskmanager.api.YTaskProcessKind
 import com.yagay.ysuite.feature.ytaskmanager.api.YTaskProcessSort
 import com.yagay.ysuite.feature.ytaskmanager.api.YTaskSnapshot
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class YTaskResourceHistoryState(
     val cpu: List<Float> = emptyList(),
@@ -177,9 +179,11 @@ class YTaskManagerViewModel(
             viewModelScope.launch {
                 val detail =
                     runCatching {
-                        repository.loadDetails(
-                            process,
-                        )
+                        withContext(Dispatchers.IO) {
+                            repository.loadDetails(
+                                process,
+                            )
+                        }
                     }.getOrDefault(process)
                 if (
                     mutableState.value.selectedPid ==
@@ -380,7 +384,9 @@ class YTaskManagerViewModel(
         viewModelScope.launch {
             val result =
                 runCatching {
-                    repository.kill(process.pid)
+                    withContext(Dispatchers.IO) {
+                        repository.kill(process.pid)
+                    }
                 }
             if (result.getOrDefault(false)) {
                 mutableState.value =
@@ -405,7 +411,9 @@ class YTaskManagerViewModel(
         viewModelScope.launch {
             val result =
                 runCatching {
-                    repository.forceStop(packageName)
+                    withContext(Dispatchers.IO) {
+                        repository.forceStop(packageName)
+                    }
                 }
             if (result.getOrDefault(false)) {
                 mutableState.value =
@@ -427,13 +435,17 @@ class YTaskManagerViewModel(
     private suspend fun refreshInternal() {
         val rootStatus =
             runCatching {
-                repository.rootStatus()
+                withContext(Dispatchers.IO) {
+                    repository.rootStatus()
+                }
             }.getOrDefault(
                 CapabilityStatus.Error,
             )
         val hookStatus =
             runCatching {
-                environment.hookGateway.status()
+                withContext(Dispatchers.IO) {
+                    environment.hookGateway.status()
+                }
             }.getOrDefault(
                 CapabilityStatus.Error,
             )
@@ -450,7 +462,9 @@ class YTaskManagerViewModel(
             return
         }
         runCatching {
-            repository.snapshot()
+            withContext(Dispatchers.IO) {
+                repository.snapshot()
+            }
         }.onSuccess { snapshot ->
             val pinnedProcesses =
                 snapshot.processes.map {
