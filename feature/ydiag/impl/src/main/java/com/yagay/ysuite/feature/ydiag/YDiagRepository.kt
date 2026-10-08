@@ -154,10 +154,24 @@ internal class YDiagRepository(
                     "file_io",
                 ),
             )
-        if (hookOptions.isNotEmpty()) {
+        val hookSetup = if (hookOptions.isNotEmpty()) {
             configureHook(packageName, optionIds)
+        } else {
+            Outcome.Success(Unit)
+        }
+        val hookFailure = hookSetup as? Outcome.Failure
+        if (hookFailure != null) {
+            result += YDiagEvent(
+                id = "hook_setup_" + System.currentTimeMillis(),
+                timestampMillis = System.currentTimeMillis(),
+                optionId = "hook_health",
+                severity = YDiagSeverity.Error,
+                title = "LSPosed scope or configuration failed",
+                detail = hookFailure.error.code + ": " + hookFailure.message,
+            )
         }
         optionIds.forEach { optionId ->
+            if (hookFailure != null && optionId in hookOptions) return@forEach
             val event =
                 when (optionId) {
                     "lsposed_status", "hook_health",
