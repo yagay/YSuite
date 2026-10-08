@@ -235,6 +235,18 @@ internal class YEntryCleanerRepository(
         )
     }
 
+    suspend fun invertManagedComponents(
+        components: List<YEntryManagedComponent>,
+    ): Pair<Int, Int> {
+        var changed = 0
+        var failed = 0
+        components.filter { !it.locked && !it.blocked }
+            .forEach {
+                if (changeManagedComponent(it, !it.enabled)) changed++ else failed++
+            }
+        return changed to failed
+    }
+
     suspend fun changeManagedComponents(
         components: List<YEntryManagedComponent>,
         enable: Boolean,

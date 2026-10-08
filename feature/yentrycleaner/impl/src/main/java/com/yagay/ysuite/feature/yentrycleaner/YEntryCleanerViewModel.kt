@@ -171,6 +171,40 @@ internal class YEntryCleanerViewModel(
         }
     }
 
+    fun lockManagedComponents(components: List<YEntryManagedComponent>, locked: Boolean) {
+        repository.setLocked(components.mapTo(hashSetOf()) { it.id }, locked)
+        val selected = components.mapTo(hashSetOf()) { it.id }
+        mutableState.value = mutableState.value.copy(
+            managedComponents = mutableState.value.managedComponents.map {
+                if (it.id in selected) it.copy(locked = locked) else it
+            },
+        )
+    }
+
+    fun invertManagedComponents(components: List<YEntryManagedComponent>) {
+        if (mutableState.value.busy) return
+        viewModelScope.launch {
+            mutableState.value = mutableState.value.copy(busy = true)
+            try {
+                val (changed, failed) = withContext(Dispatchers.IO) {
+                    repository.invertManagedComponents(components)
+                }
+                mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    statusToken = "components_partial:$changed:$failed",
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    managedError = error.message ?: error.javaClass.simpleName,
+                )
+            }
+            refreshManagedComponents()
+        }
+    }
+
     fun bulkManagedComponents(components: List<YEntryManagedComponent>, enable: Boolean) {
         if (mutableState.value.busy) return
         viewModelScope.launch {

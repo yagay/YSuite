@@ -115,4 +115,9 @@
     <string name="yentry_root_user">用户应用</string>
     <string name="yentry_root_system">系统应用</string>
     <string name="yentry_root_app_all">全部应用</string>
+    <string name="yentry_root_show_all">显示全部</string>
+    <string name="yentry_root_disabled_only">仅看已禁用</string>
+    <string name="yentry_root_invert">反选组件状态</string>
+    <string name="yentry_root_lock_all">锁定当前列表</string>
+    <string name="yentry_root_unlock_all">解锁当前列表</string>
 </resources>

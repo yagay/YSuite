@@ -115,4 +115,9 @@
     <string name="yentry_root_user">User apps</string>
     <string name="yentry_root_system">System apps</string>
     <string name="yentry_root_app_all">All apps</string>
+    <string name="yentry_root_show_all">Show all</string>
+    <string name="yentry_root_disabled_only">Only disabled</string>
+    <string name="yentry_root_invert">Invert states</string>
+    <string name="yentry_root_lock_all">Lock visible</string>
+    <string name="yentry_root_unlock_all">Unlock visible</string>
 </resources>

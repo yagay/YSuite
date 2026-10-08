@@ -34,8 +34,9 @@ internal fun YEntryManagedComponentsScreen(
     var kind by remember { mutableStateOf("ALL") }
     var appFilter by remember { mutableStateOf("ALL") }
     var onlyLocked by remember { mutableStateOf(false) }
+    var onlyDisabled by remember { mutableStateOf(false) }
     var expandedPackages by remember { mutableStateOf(emptySet<String>()) }
-    var bulkChoice by remember { mutableStateOf<Boolean?>(null) }
+    var bulkChoice by remember { mutableStateOf<String?>(null) }
 
     val visible = state.managedComponents.filter { component ->
         (kind == "ALL" || component.kind.name == kind) &&
@@ -43,6 +44,7 @@ internal fun YEntryManagedComponentsScreen(
                 (appFilter == "SYSTEM" && component.system) ||
                 (appFilter == "USER" && !component.system)) &&
             (!onlyLocked || component.locked) &&
+            (!onlyDisabled || !component.enabled) &&
             (query.isBlank() ||
                 component.appLabel.contains(query, true) ||
                 component.packageName.contains(query, true) ||
@@ -55,7 +57,7 @@ internal fun YEntryManagedComponentsScreen(
         }.thenBy { it.key },
     )
 
-    bulkChoice?.let { enable ->
+    bulkChoice?.let { choice ->
         YSuiteConfirmDialog(
             title = stringResource(R.string.yentry_root_bulk_confirm),
             message = stringResource(R.string.yentry_root_bulk_message),
@@ -63,7 +65,11 @@ internal fun YEntryManagedComponentsScreen(
             dismissText = stringResource(R.string.yentry_root_cancel),
             onConfirm = {
                 bulkChoice = null
-                model.bulkManagedComponents(visible, enable)
+                when (choice) {
+                    "ENABLE" -> model.bulkManagedComponents(visible, true)
+                    "DISABLE" -> model.bulkManagedComponents(visible, false)
+                    "INVERT" -> model.invertManagedComponents(visible)
+                }
             },
             onDismiss = { bulkChoice = null },
         )
@@ -111,10 +117,22 @@ internal fun YEntryManagedComponentsScreen(
                     selectedId = appFilter,
                     onSelected = { appFilter = it },
                 )
-                YSuiteSecondaryButton(
-                    text = stringResource(R.string.yentry_root_locked),
-                    onClick = { onlyLocked = !onlyLocked },
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small)) {
+                    YSuiteSecondaryButton(
+                        text = stringResource(
+                            if (onlyLocked) R.string.yentry_root_show_all
+                            else R.string.yentry_root_locked,
+                        ),
+                        onClick = { onlyLocked = !onlyLocked },
+                    )
+                    YSuiteSecondaryButton(
+                        text = stringResource(
+                            if (onlyDisabled) R.string.yentry_root_show_all
+                            else R.string.yentry_root_disabled_only,
+                        ),
+                        onClick = { onlyDisabled = !onlyDisabled },
+                    )
+                }
                 YSuiteListItem(
                     title = stringResource(
                         R.string.yentry_root_summary,
@@ -137,11 +155,25 @@ internal fun YEntryManagedComponentsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small)) {
                     YSuiteSecondaryButton(
                         text = stringResource(R.string.yentry_root_disable),
-                        onClick = { bulkChoice = false },
+                        onClick = { bulkChoice = "DISABLE" },
                     )
                     YSuiteSecondaryButton(
                         text = stringResource(R.string.yentry_root_enable),
-                        onClick = { bulkChoice = true },
+                        onClick = { bulkChoice = "ENABLE" },
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small)) {
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.yentry_root_invert),
+                        onClick = { bulkChoice = "INVERT" },
+                    )
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.yentry_root_lock_all),
+                        onClick = { model.lockManagedComponents(visible, true) },
+                    )
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.yentry_root_unlock_all),
+                        onClick = { model.lockManagedComponents(visible, false) },
                     )
                 }
             }
