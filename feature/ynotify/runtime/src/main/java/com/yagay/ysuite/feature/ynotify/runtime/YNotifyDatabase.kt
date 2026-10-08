@@ -838,7 +838,7 @@ internal class YNotifyDatabase(
             writableDatabase.update(
                 "events",
                 values,
-                "id = ?",
+                "id = ? AND classification_locked = 0",
                 arrayOf(candidates.id.toString()),
             )
             invalidations.tryEmit(Unit)
