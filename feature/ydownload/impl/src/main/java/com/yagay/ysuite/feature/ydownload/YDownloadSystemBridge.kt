@@ -50,13 +50,43 @@ internal class YDownloadSystemBridge(
 
         val systemId =
             item.systemId?.let { existing ->
-                if (resume(existing)) {
-                    existing
-                } else {
-                    enqueue(
-                        downloadManager,
-                        item,
+                // A paused/pending system download remains owned by
+                // DownloadProvider. Enqueuing again would create a
+                // duplicate while the original may still resume.
+                val cursor =
+                    downloadManager.query(
+                        DownloadManager.Query()
+                            .setFilterById(existing),
+                    ) ?: error(
+                        "Unable to verify existing system download",
                     )
+                val previousStatus =
+                    cursor.use {
+                        if (it.moveToFirst()) {
+                            it.int(
+                                DownloadManager.COLUMN_STATUS,
+                                DownloadManager.STATUS_PENDING,
+                            )
+                        } else {
+                            null
+                        }
+                    }
+                when (previousStatus) {
+                    null ->
+                        enqueue(
+                            downloadManager,
+                            item,
+                        )
+                    DownloadManager.STATUS_FAILED -> {
+                        check(remove(existing)) {
+                            "Unable to remove failed system download"
+                        }
+                        enqueue(
+                            downloadManager,
+                            item,
+                        )
+                    }
+                    else -> existing
                 }
             } ?: enqueue(
                 downloadManager,
