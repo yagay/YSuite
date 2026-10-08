@@ -235,8 +235,11 @@ class YEntryResolverModule : XposedModule() {
 
     private fun surface(intent: Intent): String? =
         when {
-            intent.action == Intent.ACTION_SEND ||
-                intent.action == Intent.ACTION_SEND_MULTIPLE ->
+            intent.action == Intent.ACTION_SEND_MULTIPLE ->
+                "ShareMultiple"
+            intent.action == Intent.ACTION_PROCESS_TEXT ->
+                "ProcessText"
+            intent.action == Intent.ACTION_SEND ->
                 if (
                     intent.type
                         ?.startsWith("image/") == true
@@ -261,8 +264,10 @@ class YEntryResolverModule : XposedModule() {
         when (surface) {
             "Browser" ->
                 normalizeHost(intent.data)
+            "ShareMultiple" -> "*"
             "ShareText",
             "ShareImage",
+            "ProcessText",
             "Open" ->
                 intent.type.orEmpty()
                     .ifBlank { "*" }

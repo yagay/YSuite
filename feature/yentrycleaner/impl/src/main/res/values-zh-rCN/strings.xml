@@ -3,6 +3,8 @@
     <string name="yentry_search">搜索候选项</string>
     <string name="yentry_share_text">分享文字</string>
     <string name="yentry_share_image">分享图片</string>
+    <string name="yentry_share_multiple">分享多个文件</string>
+    <string name="yentry_process_text">文本处理</string>
     <string name="yentry_open">打开方式</string>
     <string name="yentry_browser">浏览器链接</string>
     <string name="yentry_tiles">快捷设置磁贴</string>

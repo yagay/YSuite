@@ -3,6 +3,8 @@
     <string name="yentry_search">Search candidates</string>
     <string name="yentry_share_text">Share text</string>
     <string name="yentry_share_image">Share image</string>
+    <string name="yentry_share_multiple">Share multiple files</string>
+    <string name="yentry_process_text">Process text</string>
     <string name="yentry_open">Open with</string>
     <string name="yentry_browser">Browser links</string>
     <string name="yentry_tiles">QS Tiles</string>

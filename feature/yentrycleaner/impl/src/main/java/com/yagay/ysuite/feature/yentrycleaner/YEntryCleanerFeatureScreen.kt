@@ -781,6 +781,10 @@ private fun surfaceLabel(
             stringResource(
                 R.string.yentry_share_image,
             )
+        YEntrySurface.ShareMultiple ->
+            stringResource(R.string.yentry_share_multiple)
+        YEntrySurface.ProcessText ->
+            stringResource(R.string.yentry_process_text)
         YEntrySurface.Open ->
             stringResource(
                 R.string.yentry_open,

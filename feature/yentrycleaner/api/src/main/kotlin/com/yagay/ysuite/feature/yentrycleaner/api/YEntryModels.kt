@@ -3,6 +3,8 @@ package com.yagay.ysuite.feature.yentrycleaner.api
 enum class YEntrySurface {
     ShareText,
     ShareImage,
+    ShareMultiple,
+    ProcessText,
     Open,
     Browser,
     Tile,

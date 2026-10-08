@@ -192,6 +192,20 @@ internal class YEntryCleanerRepository(
                         surface,
                         "image/*",
                     )
+                YEntrySurface.ShareMultiple ->
+                    queryIntent(
+                        Intent(Intent.ACTION_SEND_MULTIPLE)
+                            .setType("*/*"),
+                        surface,
+                        "*",
+                    )
+                YEntrySurface.ProcessText ->
+                    queryIntent(
+                        Intent(Intent.ACTION_PROCESS_TEXT)
+                            .setType("text/plain"),
+                        surface,
+                        "text/plain",
+                    )
                 YEntrySurface.Open ->
                     queryIntent(
                         Intent(Intent.ACTION_VIEW)
@@ -1031,6 +1045,10 @@ internal class YEntryCleanerRepository(
                                 listOf("text/plain")
                             YEntrySurface.ShareImage ->
                                 listOf("image/*")
+                            YEntrySurface.ShareMultiple ->
+                                listOf("*")
+                            YEntrySurface.ProcessText ->
+                                listOf("text/plain")
                             YEntrySurface.Browser ->
                                 listOf(
                                     browserHost(),
