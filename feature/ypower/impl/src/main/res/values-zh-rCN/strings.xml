@@ -68,4 +68,7 @@
     <string name="ypower_diag_active">诊断会话进行中 · %1$s</string>
     <string name="ypower_diag_exported">诊断报告已导出到 Downloads/YSuite/YPower</string>
     <string name="ypower_launch_failed">目标应用没有可启动的 Activity。</string>
+    <string name="ypower_trace_group_events">事件</string>
+    <string name="ypower_trace_group_checks">安全与检测</string>
+    <string name="ypower_trace_group_native">Native 与堆栈</string>
 </resources>

@@ -718,6 +718,16 @@ private fun TraceSwitches(
     profile: YPowerProfile,
     model: YPowerViewModel,
 ) {
+    var traceGroup by remember(profile.packageName) { mutableStateOf("events") }
+    YSuiteFilterBar(
+        options = listOf(
+            YSuiteFilterOption("events", stringResource(R.string.ypower_trace_group_events)),
+            YSuiteFilterOption("checks", stringResource(R.string.ypower_trace_group_checks)),
+            YSuiteFilterOption("native", stringResource(R.string.ypower_trace_group_native)),
+        ),
+        selectedId = traceGroup,
+        onSelected = { traceGroup = it },
+    )
     val rows =
         listOf(
             Triple(
@@ -838,13 +848,21 @@ private fun TraceSwitches(
                 }
             },
         )
-    rows.forEach {
-        (titleRes, checked, onChange) ->
-        YSuiteSwitchItem(
-            title = stringResource(titleRes),
-            checked = checked,
-            onCheckedChange = onChange,
-        )
+    rows.forEachIndexed { index, row ->
+        val visible = when (traceGroup) {
+            "events" -> index < 4
+            "checks" -> index in 4..7
+            "native" -> index >= 8
+            else -> false
+        }
+        if (visible) {
+            val (titleRes, checked, onChange) = row
+            YSuiteSwitchItem(
+                title = stringResource(titleRes),
+                checked = checked,
+                onCheckedChange = onChange,
+            )
+        }
     }
 }
 

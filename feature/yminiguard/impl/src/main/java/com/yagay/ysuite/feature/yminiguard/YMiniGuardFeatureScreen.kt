@@ -208,6 +208,8 @@ private fun MainList(
                                 when (it) {
                                     "synced" -> R.string.yminiguard_synced
                                     "reloaded" -> R.string.yminiguard_reloaded
+                                    "hook_inactive" -> R.string.yminiguard_hook_inactive
+                                    "reload_pending" -> R.string.yminiguard_reload_pending
                                     else -> R.string.yminiguard_sync_failed
                                 },
                             ),

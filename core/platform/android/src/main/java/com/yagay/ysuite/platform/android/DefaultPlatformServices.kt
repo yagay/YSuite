@@ -17,6 +17,7 @@ import kotlin.concurrent.thread
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import rikka.shizuku.Shizuku
@@ -326,7 +327,8 @@ private object AndroidLibXposedHookGateway :
             return Outcome.Success(Unit)
         }
 
-        return suspendCancellableCoroutine {
+        return withTimeoutOrNull(60_000L) {
+            suspendCancellableCoroutine {
                 continuation ->
             try {
                 current.requestScope(
@@ -391,7 +393,12 @@ private object AndroidLibXposedHookGateway :
                     )
                 }
             }
-        }
+            }
+        } ?: Outcome.Failure(
+            code = "hook_scope_request_timeout",
+            message = "LSPosed scope approval did not finish. Check the module scope in LSPosed.",
+            retryable = true,
+        )
     }
 
     override suspend fun writeConfig(

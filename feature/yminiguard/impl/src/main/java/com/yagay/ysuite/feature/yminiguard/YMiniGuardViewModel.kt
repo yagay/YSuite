@@ -8,6 +8,7 @@ import com.yagay.ysuite.feature.yminiguard.api.YMiniGuardEngineStatus
 import com.yagay.ysuite.feature.yminiguard.api.YMiniGuardSettings
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -127,20 +128,35 @@ internal class YMiniGuardViewModel(
 
     private fun sync(reload: Boolean) {
         viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
+            val (result, previous) = withContext(Dispatchers.IO) {
                 syncMutex.withLock {
-                    repository.sync(reload)
+                    val before = repository.engineStatus()
+                    repository.sync(reload) to before
                 }
             }
-            mutableState.value =
-                mutableState.value.copy(
-                    statusToken =
-                        if (result is com.yagay.ysuite.common.Outcome.Success) {
-                            if (reload) "reloaded" else "synced"
-                        } else {
-                            "sync_failed"
-                        },
-                )
+            val engine = if (result is com.yagay.ysuite.common.Outcome.Success) {
+                withContext(Dispatchers.IO) {
+                    var current = repository.engineStatus()
+                    repeat(8) {
+                        if (current.pid > 0 && current.hookCount > 0 &&
+                            (!reload || current.generation > previous.generation)
+                        ) return@withContext current
+                        delay(250L)
+                        current = repository.engineStatus()
+                    }
+                    current
+                }
+            } else null
+            val token = when {
+                result is com.yagay.ysuite.common.Outcome.Failure -> "sync_failed"
+                engine == null || engine.pid <= 0 || engine.hookCount <= 0 ->
+                    "hook_inactive"
+                reload && engine.generation <= previous.generation ->
+                    "reload_pending"
+                reload -> "reloaded"
+                else -> "synced"
+            }
+            mutableState.value = mutableState.value.copy(statusToken = token)
             refresh()
         }
     }

@@ -34,4 +34,6 @@
     <string name="yminiguard_sync_failed">无法同步 LSPosed 配置。</string>
     <string name="yminiguard_show_advanced">高级引擎设置</string>
     <string name="yminiguard_hide_advanced">收起高级设置</string>
+    <string name="yminiguard_hook_inactive">设置已保存，但 system_server Hook 未报告活动引擎。请检查 LSPosed 作用域并重启系统框架。</string>
+    <string name="yminiguard_reload_pending">配置已发布，但引擎代数未更新，暂无法确认设置已生效。</string>
 </resources>

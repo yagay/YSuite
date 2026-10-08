@@ -68,4 +68,7 @@
     <string name="ypower_diag_active">Diagnostic session active · %1$s</string>
     <string name="ypower_diag_exported">Diagnostic report exported to Downloads/YSuite/YPower</string>
     <string name="ypower_launch_failed">Target app has no launchable activity.</string>
+    <string name="ypower_trace_group_events">Events</string>
+    <string name="ypower_trace_group_checks">Security and checks</string>
+    <string name="ypower_trace_group_native">Native and stacks</string>
 </resources>

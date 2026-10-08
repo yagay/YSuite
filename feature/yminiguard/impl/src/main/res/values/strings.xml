@@ -34,4 +34,6 @@
     <string name="yminiguard_sync_failed">Unable to synchronize LSPosed configuration.</string>
     <string name="yminiguard_show_advanced">Advanced engine options</string>
     <string name="yminiguard_hide_advanced">Hide advanced options</string>
+    <string name="yminiguard_hook_inactive">Settings saved, but system_server Hook is not reporting an active engine. Check LSPosed scope and restart the framework.</string>
+    <string name="yminiguard_reload_pending">Configuration published, but engine generation has not advanced. The new settings are not confirmed active.</string>
 </resources>
