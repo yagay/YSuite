@@ -102,6 +102,7 @@ fun YSuiteListItem(
     subtitle: String? = null,
     modifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier =
@@ -115,6 +116,7 @@ fun YSuiteListItem(
                 YSuiteSpacing.Medium,
             ),
     ) {
+        leading?.invoke()
         Column(
             modifier = Modifier.weight(1f),
         ) {

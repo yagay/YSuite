@@ -17,6 +17,8 @@ import com.yagay.ysuite.feature.ynotify.api.YNotifyRuntimeStatus
 import com.yagay.ysuite.feature.ynotify.runtime.YNotifyRuntimeStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -118,7 +120,15 @@ class YNotifyViewModel(
         // Observing the database alone never updates a newly granted permission.
         viewModelScope.launch {
             while (isActive) {
-                refreshCaptureState()
+                try {
+                    refreshCaptureState()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    mutableState.value = mutableState.value.copy(
+                        captureMessage = "capture_status_failed",
+                    )
+                }
                 delay(4_000L)
             }
         }
@@ -128,8 +138,13 @@ class YNotifyViewModel(
                     store.retentionDays(),
             )
         viewModelScope.launch {
-            store.observeEvents().collect {
-                    events ->
+            store.observeEvents()
+                .catch { error ->
+                    mutableState.value = mutableState.value.copy(
+                        loadError = error.message ?: "history_load_failed",
+                    )
+                }
+                .collect { events ->
                 val (rawAggregates, runtimeStatus) =
                     withContext(Dispatchers.IO) {
                         store.appAggregates() to store.status()
@@ -154,8 +169,8 @@ class YNotifyViewModel(
                         events = events,
                         appSummaries =
                             aggregates,
-                        runtimeStatus =
-                            runtimeStatus,
+                        runtimeStatus = runtimeStatus,
+                        loadError = null,
                     )
                 if (
                     current.query
@@ -181,10 +196,12 @@ class YNotifyViewModel(
                 context.getSystemService(NotificationManager::class.java)
                     .isNotificationListenerAccessGranted(listener)
             }.getOrDefault(false)
-            val enabledServices = Settings.Secure.getString(
-                context.contentResolver,
-                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-            ).orEmpty()
+            val enabledServices = runCatching {
+                Settings.Secure.getString(
+                    context.contentResolver,
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                ).orEmpty()
+            }.getOrDefault("")
             val accessibilityPermission = enabledServices.split(':').any {
                 ComponentName.unflattenFromString(it) == accessibility
             }

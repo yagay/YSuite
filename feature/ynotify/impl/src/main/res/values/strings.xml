@@ -98,4 +98,5 @@
     <string name="ynotify_capture_scope_explanation">History includes events recorded after granting this app access. Older standalone app history is stored separately.</string>
     <string name="ynotify_clear_confirm_title">Delete all captured history?</string>
     <string name="ynotify_clear_confirm_message">This permanently deletes all recorded notification and UI events for YSuite.</string>
+    <string name="ynotify_load_failed">Could not load the notification history</string>
 </resources>

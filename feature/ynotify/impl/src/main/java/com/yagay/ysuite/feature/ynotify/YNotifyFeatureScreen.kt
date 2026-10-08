@@ -1,19 +1,25 @@
 package com.yagay.ysuite.feature.ynotify
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,6 +38,7 @@ import com.yagay.ysuite.feature.ynotify.api.YNotifyEventType
 import com.yagay.ysuite.feature.ynotify.api.YNotifyNotificationKind
 import com.yagay.ysuite.productui.featurelayout.YNotifyWorkspace
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
+import com.yagay.ysuite.ui.YSuiteFeatureBackHandler
 import java.text.DateFormat
 import java.util.Date
 
@@ -49,6 +56,9 @@ fun YNotifyFeatureScreen() {
     val state by
         model.state.collectAsStateWithLifecycle()
     val selected = model.selectedEvent()
+    if (selected != null && state.viewMode == YNotifyViewMode.History) {
+        YSuiteFeatureBackHandler(onBack = { model.select(null) })
+    }
     var showAdvanced by remember { mutableStateOf(false) }
 
     YNotifyWorkspace(
@@ -248,11 +258,16 @@ fun YNotifyFeatureScreen() {
         details = if (state.viewMode == YNotifyViewMode.History) {
             selected?.let { { EventDetail(selected) } }
         } else null,
-    ) {
+    ) { adaptive ->
         when (state.viewMode) {
             YNotifyViewMode.Apps -> AppList(model)
             YNotifyViewMode.Settings -> NotifySettings(model)
-            YNotifyViewMode.History -> EventList(model)
+            YNotifyViewMode.History ->
+                if (!adaptive.isExpanded && selected != null) {
+                    EventDetail(selected)
+                } else {
+                    EventList(model)
+                }
         }
     }
 }
@@ -445,6 +460,20 @@ private fun RuntimeControls(
 }
 
 @Composable
+private fun NotificationAppIcon(packageName: String) {
+    val context = LocalContext.current
+    val icon = remember(packageName) {
+        runCatching {
+            context.packageManager.getApplicationIcon(packageName)
+                .toBitmap(48, 48).asImageBitmap()
+        }.getOrNull()
+    }
+    icon?.let {
+        Image(bitmap = it, contentDescription = null, modifier = Modifier.size(36.dp))
+    }
+}
+
+@Composable
 private fun AppList(
     model: YNotifyViewModel,
 ) {
@@ -477,6 +506,7 @@ private fun AppList(
         ) { app ->
             YSuiteListItem(
                 title = app.label,
+                leading = { NotificationAppIcon(app.packageName) },
                 subtitle =
                     stringResource(
                         R.string
@@ -518,6 +548,15 @@ private fun EventList(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
     ) {
+        state.loadError?.let { error ->
+            item(key = "load-error") {
+                YSuiteListItem(
+                    title = stringResource(R.string.ynotify_load_failed),
+                    subtitle = error,
+                    modifier = Modifier.padding(YSuiteSpacing.Medium),
+                )
+            }
+        }
         if (events.isEmpty()) {
             item {
                 YSuiteListItem(
@@ -539,6 +578,7 @@ private fun EventList(
             key = { it.id },
         ) { event ->
             YSuiteListItem(
+                leading = { NotificationAppIcon(event.packageName) },
                 title =
                     event.title
                         ?.takeIf {
