@@ -168,7 +168,7 @@ internal class YEntryCleanerViewModel(
         candidate: YEntryCandidate,
         value: Boolean,
     ) {
-        if (candidate.locked) return
+        // Locking only protects bulk actions; explicit edits are allowed.
         repository.setHidden(candidate.id, value)
         syncAndRefresh()
     }
@@ -214,7 +214,7 @@ internal class YEntryCleanerViewModel(
         candidate: YEntryCandidate,
         enable: Boolean,
     ) {
-        if (candidate.locked) return
+        // Explicit component changes remain allowed even when locked.
         viewModelScope.launch {
             mutableState.value =
                 mutableState.value.copy(
