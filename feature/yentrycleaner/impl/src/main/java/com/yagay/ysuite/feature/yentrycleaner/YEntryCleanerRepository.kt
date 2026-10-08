@@ -1011,7 +1011,8 @@ internal class YEntryCleanerRepository(
         sync()
     }
 
-    suspend fun sync(): Outcome<Unit> {
+    /** Publish settings without restarting framework processes merely by opening the screen. */
+    suspend fun sync(reload: Boolean = true): Outcome<Unit> {
         val priorityLines =
             YEntrySurface.entries
                 .filter {
@@ -1092,11 +1093,15 @@ internal class YEntryCleanerRepository(
                 return result
             }
         }
-        return hooks.reload(
-            setOf(
-                "android",
-                "com.android.intentresolver",
-            ),
-        )
+        return if (reload) {
+            hooks.reload(
+                setOf(
+                    "android",
+                    "com.android.intentresolver",
+                ),
+            )
+        } else {
+            Outcome.Success(Unit)
+        }
     }
 }
