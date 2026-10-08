@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 data class YTaskResourceHistoryState(
@@ -104,7 +105,11 @@ class YTaskManagerViewModel(
     }
 
     fun refresh() {
-        viewModelScope.launch { refreshInternal() }
+        // Manual refresh waits for an active sample rather than silently
+        // dropping the user's request when auto-refresh is collecting.
+        viewModelScope.launch {
+            snapshotLock.withLock { refreshUnlocked() }
+        }
     }
 
     fun setPage(value: YTaskPage) {
@@ -435,10 +440,15 @@ class YTaskManagerViewModel(
     }
 
     private suspend fun refreshInternal() {
-        // Auto-refresh and manual refresh may race; only the first collector
-        // samples /proc while later requests reuse its imminent result.
         if (!snapshotLock.tryLock()) return
         try {
+            refreshUnlocked()
+        } finally {
+            snapshotLock.unlock()
+        }
+    }
+
+    private suspend fun refreshUnlocked() {
         val rootStatus =
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -561,9 +571,6 @@ class YTaskManagerViewModel(
                         },
                 )
         }.onFailure(::report)
-        } finally {
-            snapshotLock.unlock()
-        }
     }
 
     private fun report(error: Throwable) {

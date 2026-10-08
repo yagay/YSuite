@@ -63,7 +63,14 @@ internal class YDiagRepository(
                 com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.KEY_CURRENT,
                 null,
             )
-        return path?.let { java.io.File(it).isDirectory } == true
+        val prefs = context.getSharedPreferences(
+            com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.PREFS,
+            Context.MODE_PRIVATE,
+        )
+        return prefs.getBoolean(
+            com.yagay.ysuite.feature.ydiag.runtime.YDiagMonitorService.KEY_ACTIVE,
+            false,
+        ) && path?.let { java.io.File(it).isDirectory } == true
     }
 
     fun startLiveSession(

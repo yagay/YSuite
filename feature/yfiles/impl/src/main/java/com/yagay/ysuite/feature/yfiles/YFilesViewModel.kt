@@ -1248,8 +1248,19 @@ class YFilesViewModel(
                         error = null,
                     )
                 }
-            is Outcome.Failure ->
-                if (state.value.directory == directory) showFailure(result)
+            is Outcome.Failure -> {
+                val latest = state.value
+                if (latest.directory == directory &&
+                    latest.mode == YFilesBrowserMode.Directory &&
+                    latest.query == current.query &&
+                    latest.sort == current.sort &&
+                    latest.descending == current.descending &&
+                    latest.showHidden == current.showHidden &&
+                    latest.recursive == current.recursive
+                ) {
+                    showFailure(result)
+                }
+            }
         }
     }
 

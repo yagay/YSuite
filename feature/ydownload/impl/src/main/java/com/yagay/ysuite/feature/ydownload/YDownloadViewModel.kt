@@ -91,6 +91,8 @@ class YDownloadViewModel(
             ),
         )
     private var fetchJob: Job? = null
+    private var reloadJob: Job? = null
+    private var addInProgress = false
 
     val state: StateFlow<YDownloadUiState> =
         mutableState.asStateFlow()
@@ -128,7 +130,8 @@ class YDownloadViewModel(
     }
 
     fun retryLoad() {
-        viewModelScope.launch {
+        reloadJob?.cancel()
+        reloadJob = viewModelScope.launch {
             try {
                 environment.repository.refresh()
                 mutableState.update { it.copy(listLoadError = null) }
@@ -903,7 +906,8 @@ class YDownloadViewModel(
         startNow: Boolean,
     ) {
         val draft = state.value.addDraft
-        if (draft.url.isBlank()) return
+        if (draft.url.isBlank() || addInProgress) return
+        addInProgress = true
 
         val fileName =
             draft.fileName.ifBlank {
@@ -916,6 +920,7 @@ class YDownloadViewModel(
                 }
 
         viewModelScope.launch {
+            try {
             val id =
                 environment.repository.add(
                     request =
@@ -1011,6 +1016,16 @@ class YDownloadViewModel(
                 )
             } else {
                 YDownloadService.pump(appContext)
+            }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                logger.error(TAG, "Unable to add download task", error)
+                updateDraft {
+                    copy(error = error.message ?: error.javaClass.simpleName)
+                }
+            } finally {
+                addInProgress = false
             }
         }
     }

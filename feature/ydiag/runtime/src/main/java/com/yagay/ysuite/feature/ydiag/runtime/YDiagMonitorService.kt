@@ -17,12 +17,18 @@ class YDiagMonitorService : Service() {
     private val executor = Executors.newScheduledThreadPool(2)
     private var sampler: ScheduledFuture<*>? = null
     private var logcatProcess: Process? = null
+    @Volatile private var perfettoProcess: Process? = null
+    @Volatile private var perfettoRemote: String? = null
+    @Volatile private var sessionRunning = false
     private var sessionDir: File? = null
     private var targetPackage: String = ""
     private var enabledOptions: Set<String> = emptySet()
 
     override fun onCreate() {
         super.onCreate()
+        // A killed process cannot keep an earlier session running.
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .putBoolean(KEY_ACTIVE, false).apply()
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(
@@ -54,11 +60,13 @@ class YDiagMonitorService : Service() {
         val dir = File(filesDir, "ydiag/sessions/" + sessionId)
         dir.mkdirs()
         sessionDir = dir
+        sessionRunning = true
         getSharedPreferences(PREFS, MODE_PRIVATE)
             .edit()
             .putString(KEY_CURRENT, dir.absolutePath)
             .putString(KEY_PACKAGE, targetPackage)
             .putLong(KEY_STARTED, System.currentTimeMillis())
+            .putBoolean(KEY_ACTIVE, true)
             .apply()
         File(dir, "session.properties").writeText(
             buildString {
@@ -132,25 +140,68 @@ class YDiagMonitorService : Service() {
         File(dir, "snapshots.txt").appendText(result + "\n")
     }
 
+    /** Capture continuously for the live session (maximum 30 minutes). */
     private fun capturePerfetto(dir: File) {
-        val remote = "/data/local/tmp/ydiag-" + System.currentTimeMillis() + ".perfetto-trace"
+        if (!sessionRunning || sessionDir != dir) return
+        val stamp = System.currentTimeMillis()
+        val remote = "/data/local/tmp/ydiag-" + stamp + ".perfetto-trace"
+        val pidFile = "/data/local/tmp/ydiag-" + stamp + ".pid"
+        perfettoRemote = remote
         val command =
-            "perfetto -o " + remote +
-                " -t 10s sched freq idle am wm gfx view binder_driver hal dalvik 2>&1"
-        File(dir, "perfetto.txt").writeText(shellText(command, 20_000L))
+            "echo \\$ > '$pidFile'; exec perfetto -o '$remote' -t 30m " +
+                "sched freq idle am wm gfx view binder_driver hal dalvik"
         runCatching {
             val process = ProcessBuilder(
-                "su",
-                "-c",
-                "cat " + remote + "; rm -f " + remote,
-            ).redirectErrorStream(false).start()
-            File(dir, "trace.perfetto-trace").outputStream().use { output ->
-                process.inputStream.copyTo(output)
-            }
-            process.waitFor(10, TimeUnit.SECONDS)
-        }.onFailure {
-            File(dir, "perfetto.txt").appendText("\ncopy: " + it)
+                "su", "-c", "sh -c " + "'" +
+                    command.replace("'", "'\\\\''") + "'",
+            ).redirectErrorStream(true)
+                .redirectOutput(File(dir, "perfetto.txt"))
+                .start()
+            perfettoProcess = process
+            File(dir, "perfetto.pidpath").writeText(pidFile)
+        }.onFailure { error ->
+            File(dir, "perfetto.txt").appendText("start: " + error + "\n")
         }
+    }
+
+    private fun stopPerfetto(dir: File) {
+        val remote = perfettoRemote ?: return
+        perfettoRemote = null
+        val pidFile = File(dir, "perfetto.pidpath").takeIf { it.isFile }
+            ?.readText()?.trim().orEmpty()
+        if (pidFile.startsWith("/data/local/tmp/ydiag-") &&
+            pidFile.endsWith(".pid")
+        ) {
+            shellText(
+                "if [ -s '$pidFile' ]; then kill -TERM \\$(cat '$pidFile') 2>/dev/null || true; fi",
+                4_000L,
+            )
+        }
+        runCatching {
+            perfettoProcess?.let {
+                if (!it.waitFor(1_500L, TimeUnit.MILLISECONDS)) it.destroy()
+            }
+        }
+        perfettoProcess = null
+        val output = File(dir, "trace.perfetto-trace")
+        runCatching {
+            val p = ProcessBuilder("su", "-c", "cat '$remote'")
+                .redirectErrorStream(false).start()
+            p.inputStream.use { stream ->
+                output.outputStream().use { target -> stream.copyTo(target) }
+            }
+            val done = p.waitFor(10L, TimeUnit.SECONDS)
+            if (!done) p.destroyForcibly()
+            if (!done || p.exitValue() != 0 || output.length() <= 0L) {
+                output.delete()
+                File(dir, "perfetto.txt").appendText("capture unavailable\n")
+            }
+        }.onFailure { error ->
+            output.delete()
+            File(dir, "perfetto.txt").appendText("copy: " + error + "\n")
+        }
+        shellText("rm -f '$remote' '$pidFile'", 5_000L)
+        File(dir, "perfetto.pidpath").delete()
     }
 
     private fun markProblem(note: String) {
@@ -165,21 +216,32 @@ class YDiagMonitorService : Service() {
         File(dir, "timeline.jsonl").appendText(line)
     }
 
+    /** Shell evidence collection must never block Service.onStartCommand. */
     private fun stopSession() {
-        val dir = sessionDir
-        sampler?.cancel(true)
+        val dir = sessionDir ?: run {
+            stopSelf()
+            return
+        }
+        sessionRunning = false
+        sampler?.cancel(false)
         sampler = null
-        runCatching { logcatProcess?.destroy() }
-        logcatProcess = null
-        if (dir != null) {
-            collectFinalEvidence(dir)
+        sessionDir = null
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .putBoolean(KEY_ACTIVE, false).apply()
+        executor.execute {
+            runCatching { logcatProcess?.destroy() }
+            logcatProcess = null
+            runCatching { stopPerfetto(dir) }
+            runCatching { collectFinalEvidence(dir) }
+                .onFailure { File(dir, "monitor-errors.txt").appendText(
+                    "final-evidence: " + it + "\n",
+                ) }
             File(dir, "session.properties").appendText(
                 "ended=" + System.currentTimeMillis() + "\n",
             )
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
         }
-        sessionDir = null
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
     }
 
     private fun collectFinalEvidence(dir: File) {
@@ -213,6 +275,9 @@ class YDiagMonitorService : Service() {
         }.getOrElse { "error: " + it }
 
     override fun onDestroy() {
+        sessionRunning = false
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .putBoolean(KEY_ACTIVE, false).apply()
         sampler?.cancel(true)
         runCatching { logcatProcess?.destroy() }
         executor.shutdownNow()
@@ -232,6 +297,7 @@ class YDiagMonitorService : Service() {
         const val KEY_CURRENT = "current_dir"
         const val KEY_PACKAGE = "package"
         const val KEY_STARTED = "started"
+        const val KEY_ACTIVE = "active"
         private const val CHANNEL = "ydiag_monitor"
         private const val NOTIFICATION_ID = 7391
     }
