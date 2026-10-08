@@ -172,7 +172,7 @@ internal class YEntryCleanerRepository(
             next += id
         } else {
             next -= id
-            inheritedRuleKey(id)?.let(next::remove)
+            inheritedRuleKey(id)?.let({ removed -> next.remove(removed) })
         }
         prefs.edit()
             .putStringSet("hidden_rules", next)
@@ -189,7 +189,7 @@ internal class YEntryCleanerRepository(
             next.addAll(ids)
         } else {
             next.removeAll(ids)
-            ids.mapNotNull(::inheritedRuleKey).forEach(next::remove)
+            ids.mapNotNull(::inheritedRuleKey).forEach({ removed -> next.remove(removed) })
         }
         prefs.edit()
             .putStringSet("locked_rules", next)
@@ -1015,7 +1015,7 @@ internal class YEntryCleanerRepository(
                     next += it.id
                 } else {
                     next -= it.id
-                    inheritedRuleKey(it.id)?.let(next::remove)
+                    inheritedRuleKey(it.id)?.let({ removed -> next.remove(removed) })
                 }
             }
         prefs.edit()
