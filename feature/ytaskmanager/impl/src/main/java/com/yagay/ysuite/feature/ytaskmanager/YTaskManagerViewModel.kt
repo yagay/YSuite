@@ -383,6 +383,8 @@ class YTaskManagerViewModel(
                     repository.kill(process.pid)
                 }
             if (result.getOrDefault(false)) {
+                mutableState.value =
+                    mutableState.value.copy(error = null)
                 select(null)
                 refreshInternal()
             } else {
@@ -406,6 +408,8 @@ class YTaskManagerViewModel(
                     repository.forceStop(packageName)
                 }
             if (result.getOrDefault(false)) {
+                mutableState.value =
+                    mutableState.value.copy(error = null)
                 select(null)
                 refreshInternal()
             } else {
@@ -530,7 +534,11 @@ class YTaskManagerViewModel(
                     resourceHistory = nextHistory,
                     selectedDetail = nextDetail,
                     loading = false,
-                    error = null,
+                    error =
+                        currentState.error?.takeIf { message ->
+                            message.startsWith("kill_failed:") ||
+                                message.startsWith("force_stop_failed:")
+                        },
                 )
         }.onFailure(::report)
     }
