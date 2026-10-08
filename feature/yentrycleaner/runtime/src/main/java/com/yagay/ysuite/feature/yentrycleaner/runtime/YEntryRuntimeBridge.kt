@@ -4,6 +4,7 @@ object YEntryRuntimeBridge {
     const val GROUP = "yentrycleaner"
     const val KEY_MODE = "mode"
     const val KEY_HIDDEN_RULES = "hidden_rules"
+    const val KEY_SHOWN_RULES = "shown_rules"
     const val KEY_PRIORITIES = "priorities"
     const val KEY_DISABLED_COMPONENTS = "disabled_components"
     const val KEY_DIAGNOSTIC = "diagnostic"

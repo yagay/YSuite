@@ -56,6 +56,12 @@ internal class YEntryCleanerRepository(
         prefs.getStringSet("locked_rules", emptySet())
             ?.toSet().orEmpty()
 
+    private fun shown(): Set<String> =
+        prefs.getStringSet("shown_rules", emptySet())?.toSet().orEmpty()
+
+    private fun unlocked(): Set<String> =
+        prefs.getStringSet("unlocked_rules", emptySet())?.toSet().orEmpty()
+
     private fun componentTitles(): Map<String, String> =
         runCatching {
             val json = JSONObject(prefs.getString("component_titles", "{}") ?: "{}")
@@ -199,14 +205,22 @@ internal class YEntryCleanerRepository(
 
     fun setHidden(id: String, value: Boolean) {
         val next = hidden().toMutableSet()
+        val exceptions = shown().toMutableSet()
         if (value) {
             next += id
+            exceptions -= id
         } else {
             next -= id
-            inheritedRuleKey(id)?.let({ removed -> next.remove(removed) })
+            val inherited = inheritedRuleKey(id)
+            if (inherited != null && inherited in next) {
+                exceptions += id
+            } else {
+                exceptions -= id
+            }
         }
         prefs.edit()
             .putStringSet("hidden_rules", next)
+            .putStringSet("shown_rules", exceptions)
             .apply()
     }
 
@@ -216,14 +230,24 @@ internal class YEntryCleanerRepository(
 
     fun setLocked(ids: Set<String>, value: Boolean) {
         val next = locked().toMutableSet()
+        val exceptions = unlocked().toMutableSet()
         if (value) {
             next.addAll(ids)
+            exceptions.removeAll(ids)
         } else {
             next.removeAll(ids)
-            ids.mapNotNull(::inheritedRuleKey).forEach({ removed -> next.remove(removed) })
+            for (id in ids) {
+                val inherited = inheritedRuleKey(id)
+                if (inherited != null && inherited in next) {
+                    exceptions += id
+                } else {
+                    exceptions -= id
+                }
+            }
         }
         prefs.edit()
             .putStringSet("locked_rules", next)
+            .putStringSet("unlocked_rules", exceptions)
             .apply()
     }
 
@@ -320,6 +344,8 @@ internal class YEntryCleanerRepository(
     ): List<YEntryCandidate> {
         val hidden = hidden()
         val locked = locked()
+        val shown = shown()
+        val unlocked = unlocked()
         val componentTitles = componentTitles()
         val configuredOrder =
             if (prefs.contains(priorityKey(surface, qualifier))) {
@@ -368,8 +394,8 @@ internal class YEntryCleanerRepository(
                 system =
                     ai.applicationInfo.flags and
                         ApplicationInfo.FLAG_SYSTEM != 0,
-                hidden = id in hidden || wildcardId in hidden,
-                locked = id in locked || wildcardId in locked,
+                hidden = (id in hidden || wildcardId in hidden) && id !in shown,
+                locked = (id in locked || wildcardId in locked) && id !in unlocked,
                 priority = rank[id] ?: rank[wildcardId] ?: rank[ai.packageName],
             )
         }.sortedWith(
@@ -612,6 +638,8 @@ internal class YEntryCleanerRepository(
             ).orEmpty()
         val hidden = hidden()
         val locked = locked()
+        val shown = shown()
+        val unlocked = unlocked()
         val componentTitles = componentTitles()
         return seen.mapNotNull { id ->
             val p = id.split('|', limit = 4)
@@ -643,8 +671,12 @@ internal class YEntryCleanerRepository(
                         ?.and(
                             ApplicationInfo.FLAG_SYSTEM,
                         ) != 0,
-                hidden = id in hidden,
-                locked = id in locked,
+                hidden = (
+                    id in hidden || inheritedRuleKey(id) in hidden
+                ) && id !in shown,
+                locked = (
+                    id in locked || inheritedRuleKey(id) in locked
+                ) && id !in unlocked,
                 priority = null,
                 state =
                     if (installed == null) {
@@ -1011,6 +1043,8 @@ internal class YEntryCleanerRepository(
         val editor = prefs.edit()
             .remove("hidden_rules")
             .remove("locked_rules")
+            .remove("shown_rules")
+            .remove("unlocked_rules")
             .remove("seen_candidates")
             .remove("browser_hosts")
             .remove("priority_qualifiers")
@@ -1042,21 +1076,26 @@ internal class YEntryCleanerRepository(
     ): Outcome<Unit> {
         val locks = locked()
         val next = this.hidden().toMutableSet()
+        val exceptions = shown().toMutableSet()
         candidates
             .filter { !it.locked && it.id !in locks }
             .forEach {
                 if (hidden) {
                     next += it.id
+                    exceptions -= it.id
                 } else {
                     next -= it.id
-                    inheritedRuleKey(it.id)?.let({ removed -> next.remove(removed) })
+                    val inherited = inheritedRuleKey(it.id)
+                    if (inherited != null && inherited in next) {
+                        exceptions += it.id
+                    } else {
+                        exceptions -= it.id
+                    }
                 }
             }
         prefs.edit()
-            .putStringSet(
-                "hidden_rules",
-                next,
-            )
+            .putStringSet("hidden_rules", next)
+            .putStringSet("shown_rules", exceptions)
             .apply()
         return sync()
     }
@@ -1127,6 +1166,9 @@ internal class YEntryCleanerRepository(
                     displayMode(),
                 YEntryRuntimeBridge.KEY_HIDDEN_RULES to
                     hidden().sorted()
+                        .joinToString("\n"),
+                YEntryRuntimeBridge.KEY_SHOWN_RULES to
+                    shown().sorted()
                         .joinToString("\n"),
                 YEntryRuntimeBridge.KEY_PRIORITIES to
                     priorityLines

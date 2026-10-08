@@ -133,6 +133,7 @@ class YEntryResolverModule : XposedModule() {
                 ?: return@Hooker original
             val qualifier = qualifier(surface, intent)
             val hidden = stringSet(YEntryRuntimeBridge.KEY_HIDDEN_RULES)
+            val shown = stringSet(YEntryRuntimeBridge.KEY_SHOWN_RULES)
             val mode =
                 prefs.getString(
                     YEntryRuntimeBridge.KEY_MODE,
@@ -168,8 +169,8 @@ class YEntryResolverModule : XposedModule() {
                             activity.name,
                         )
                     val selected =
-                        exact in hidden ||
-                            wildcard in hidden
+                        (exact in hidden || wildcard in hidden) &&
+                            exact !in shown
                     when (mode) {
                         "SHOW_ALL" -> true
                         "SHOW_SELECTED" ->

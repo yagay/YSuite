@@ -54,7 +54,10 @@ internal object YEntryBackupParser {
                     if (string.length > 255 || string.contains('\n')) return null
                     result[key] = string
                 }
-                key in setOf("hidden_rules", "locked_rules", "seen_candidates", "browser_hosts") -> {
+                key in setOf(
+                    "hidden_rules", "locked_rules", "shown_rules",
+                    "unlocked_rules", "seen_candidates", "browser_hosts",
+                ) -> {
                     result[key] = readStrings(value as? JSONArray ?: return null, 10_000) ?: return null
                 }
                 key == "priority_qualifiers" -> {
