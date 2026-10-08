@@ -39,16 +39,24 @@ internal class YMiniGuardViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            val apps = withContext(Dispatchers.IO) { repository.apps() }
-            mutableState.value =
-                mutableState.value.copy(
-                    apps = apps,
+            val snapshot = withContext(Dispatchers.IO) {
+                YMiniGuardUiState(
+                    apps = repository.apps(),
                     settings = repository.settings(),
                     rootStatus = runCatching { repository.rootStatus() }
                         .getOrDefault(CapabilityStatus.Error),
                     hookStatus = runCatching { repository.hookStatus() }
                         .getOrDefault(CapabilityStatus.Error),
                     engineStatus = repository.engineStatus(),
+                )
+            }
+            mutableState.value =
+                mutableState.value.copy(
+                    apps = snapshot.apps,
+                    settings = snapshot.settings,
+                    rootStatus = snapshot.rootStatus,
+                    hookStatus = snapshot.hookStatus,
+                    engineStatus = snapshot.engineStatus,
                 )
         }
     }
@@ -102,7 +110,9 @@ internal class YMiniGuardViewModel(
 
     private fun sync(reload: Boolean) {
         viewModelScope.launch {
-            val result = repository.sync(reload)
+            val result = withContext(Dispatchers.IO) {
+                repository.sync(reload)
+            }
             mutableState.value =
                 mutableState.value.copy(
                     statusToken =
