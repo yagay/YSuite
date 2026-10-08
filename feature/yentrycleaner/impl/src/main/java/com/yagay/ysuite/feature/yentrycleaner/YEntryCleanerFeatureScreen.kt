@@ -273,38 +273,6 @@ fun YEntryCleanerFeatureScreen(
                             selectedId = state.customSlot,
                             onSelected = model::setCustomSlot,
                         )
-                        YSuiteSearchField(
-                            value = state.customTitle,
-                            onValueChange = model::setCustomTitle,
-                            label = stringResource(R.string.yentry_custom_title_short),
-                        )
-                        YSuiteSearchField(
-                            value = state.customMimeTypes,
-                            onValueChange = model::setCustomMimeTypes,
-                            label = stringResource(R.string.yentry_custom_mimes),
-                        )
-                        YSuiteSearchField(
-                            value = state.customExtensions,
-                            onValueChange = model::setCustomExtensions,
-                            label = stringResource(R.string.yentry_custom_extensions),
-                        )
-                        Row(
-                            horizontalArrangement =
-                                Arrangement.spacedBy(YSuiteSpacing.Small),
-                        ) {
-                            YSuiteSecondaryButton(
-                                text = stringResource(R.string.yentry_custom_save),
-                                onClick = model::saveCustom,
-                            )
-                            YSuiteSecondaryButton(
-                                text = stringResource(R.string.yentry_custom_reset),
-                                onClick = model::resetCustom,
-                            )
-                        }
-                        YSuiteSecondaryButton(
-                            text = stringResource(R.string.yentry_custom_use),
-                            onClick = model::useCustomSlot,
-                        )
                         }
                     }
                     YEntrySurface.Browser -> {
@@ -610,7 +578,7 @@ fun YEntryCleanerFeatureScreen(
                 model,
             )
         } else {
-            CandidateList(model)
+            CandidateList(model, openSection)
         }
     }
 }
@@ -642,6 +610,7 @@ private sealed interface CandidateListRow {
 @Composable
 private fun CandidateList(
     model: YEntryCleanerViewModel,
+    openSection: String,
 ) {
     val state by model.state.collectAsStateWithLifecycle()
     val candidates = remember(
@@ -669,6 +638,46 @@ private fun CandidateList(
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
+        if (state.surface == YEntrySurface.Open && openSection == "custom") {
+            item(key = "custom-editor") {
+                YSuiteSection(
+                    title = stringResource(R.string.yentry_custom_title_short),
+                    modifier = Modifier.padding(YSuiteSpacing.Medium),
+                ) {
+                    YSuiteSearchField(
+                        value = state.customTitle,
+                        onValueChange = model::setCustomTitle,
+                        label = stringResource(R.string.yentry_custom_title_short),
+                    )
+                    YSuiteSearchField(
+                        value = state.customMimeTypes,
+                        onValueChange = model::setCustomMimeTypes,
+                        label = stringResource(R.string.yentry_custom_mimes),
+                    )
+                    YSuiteSearchField(
+                        value = state.customExtensions,
+                        onValueChange = model::setCustomExtensions,
+                        label = stringResource(R.string.yentry_custom_extensions),
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+                    ) {
+                        YSuiteSecondaryButton(
+                            text = stringResource(R.string.yentry_custom_save),
+                            onClick = model::saveCustom,
+                        )
+                        YSuiteSecondaryButton(
+                            text = stringResource(R.string.yentry_custom_reset),
+                            onClick = model::resetCustom,
+                        )
+                    }
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.yentry_custom_use),
+                        onClick = model::useCustomSlot,
+                    )
+                }
+            }
+        }
         state.statusToken?.let { token ->
             item(key = "status") {
                 val status = statusPresentation(token)
