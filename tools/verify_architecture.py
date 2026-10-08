@@ -142,8 +142,8 @@ android_adapter_packages = (
 def contains_android_reference(source: str) -> bool:
     # Android intent action names are valid protocol strings in framework-neutral API.
     # Strip Kotlin/Java string literals before looking for actual Android dependencies.
-    code = re.sub(r'"""[\\s\\S]*?"""|"(?:\\\\.|[^"\\\\])*"', '""', source)
-    return re.search(r"\\b(android|androidx)\\.", code) is not None
+    code = re.sub(r'"""[\s\S]*?"""|"(?:\\.|[^"\\])*"', '""', source)
+    return re.search(r"\b(android|androidx)\.", code) is not None
 
 
 for path in ROOT.rglob("*"):
