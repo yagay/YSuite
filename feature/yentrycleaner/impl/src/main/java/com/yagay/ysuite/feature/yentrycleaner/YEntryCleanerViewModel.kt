@@ -29,7 +29,7 @@ enum class YEntrySelectionFilter {
     Locked,
 }
 
-data class YEntryCleanerUiState(
+internal data class YEntryCleanerUiState(
     val surface: YEntrySurface =
         YEntrySurface.ShareText,
     val candidates: List<YEntryCandidate> =
