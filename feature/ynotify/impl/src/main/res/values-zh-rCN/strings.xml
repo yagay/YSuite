@@ -100,4 +100,6 @@
     <string name="ynotify_clear_confirm_title">删除所有采集历史？</string>
     <string name="ynotify_clear_confirm_message">将永久删除 YSuite 已记录的通知及界面事件。</string>
     <string name="ynotify_load_failed">读取通知历史失败</string>
+    <string name="ynotify_revision_title">通知更新记录（%1$d 次）</string>
+    <string name="ynotify_revision_item">第 %1$d 版 · %2$s</string>
 </resources>

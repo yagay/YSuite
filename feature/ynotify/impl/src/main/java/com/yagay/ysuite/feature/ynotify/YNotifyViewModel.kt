@@ -15,6 +15,7 @@ import com.yagay.ysuite.feature.ynotify.api.YNotifyEvent
 import com.yagay.ysuite.feature.ynotify.api.YNotifyEventType
 import com.yagay.ysuite.feature.ynotify.api.YNotifyRuntimeStatus
 import com.yagay.ysuite.feature.ynotify.runtime.YNotifyRuntimeStore
+import com.yagay.ysuite.feature.ynotify.runtime.YNotifyRevision
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
@@ -91,6 +92,7 @@ data class YNotifyUiState(
         YNotifyKindFilter.All,
     val selectedPackage: String? = null,
     val selectedEventId: Long? = null,
+    val revisions: List<YNotifyRevision> = emptyList(),
     val runtimeStatus:
         YNotifyRuntimeStatus =
         YNotifyRuntimeStatus(
@@ -493,10 +495,22 @@ class YNotifyViewModel(
     }
 
     fun select(event: YNotifyEvent?) {
-        mutableState.value =
-            mutableState.value.copy(
-                selectedEventId = event?.id,
-            )
+        mutableState.value = mutableState.value.copy(
+            selectedEventId = event?.id,
+            revisions = emptyList(),
+        )
+        if (event?.eventType == YNotifyEventType.Notification) {
+            viewModelScope.launch {
+                val revisions = withContext(Dispatchers.IO) {
+                    store.revisions(event.eventKey)
+                }
+                if (mutableState.value.selectedEventId == event.id) {
+                    mutableState.value = mutableState.value.copy(
+                        revisions = revisions,
+                    )
+                }
+            }
+        }
     }
 
     fun selectedEvent(): YNotifyEvent? {

@@ -57,6 +57,9 @@ class YNotifyRuntimeStore(
             limit = limit,
         )
 
+    fun revisions(eventKey: String): List<YNotifyRevision> =
+        database.revisions(eventKey)
+
     fun appAggregates():
         List<YNotifyAppAggregate> =
         database.appAggregates()

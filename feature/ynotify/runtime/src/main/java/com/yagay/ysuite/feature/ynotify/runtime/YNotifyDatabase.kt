@@ -10,6 +10,17 @@ import com.yagay.ysuite.feature.ynotify.api.YNotifyNotificationKind
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import org.json.JSONObject
+import java.security.MessageDigest
+
+data class YNotifyRevision(
+    val sequence: Int,
+    val capturedAt: Long,
+    val title: String?,
+    val text: String?,
+    val fullText: String?,
+    val progress: Int,
+    val progressMax: Int,
+)
 
 data class YNotifyAppAggregate(
     val packageName: String,
@@ -72,6 +83,7 @@ internal class YNotifyDatabase(
             "CREATE INDEX idx_ynotify_notification_key ON events(notification_key)",
         )
         createDetailsTable(db)
+        createRevisionsTable(db)
     }
 
     override fun onUpgrade(
@@ -82,6 +94,9 @@ internal class YNotifyDatabase(
         if (oldVersion < 2) {
             createDetailsTable(db)
         }
+        if (oldVersion < 3) {
+            createRevisionsTable(db)
+        }
     }
 
     /**
@@ -91,43 +106,65 @@ internal class YNotifyDatabase(
      */
     fun upsert(event: YNotifyEvent) {
         val db = writableDatabase
-        val values = event.toValues().apply {
-            put("title", crypto.encrypt(event.title))
-            put("text_value", crypto.encrypt(event.text))
-            put("full_text", crypto.encrypt(event.fullText))
-        }
         db.beginTransaction()
         try {
-            var oldPostedAt: Long? = null
-            var wasRemoved = false
-            db.query(
-                "events",
-                arrayOf("posted_at", "removed_at"),
-                "event_key = ?",
-                arrayOf(event.eventKey),
-                null, null, null,
-            ).use { cursor ->
-                if (cursor.moveToFirst()) {
-                    oldPostedAt = cursor.getLong(0)
-                    wasRemoved = !cursor.isNull(1)
-                }
-            }
-            if (oldPostedAt != null) {
-                // Ignore delayed updates from an older posting of this key.
-                // A removed posting may be revived only by a newer postTime.
-                if (event.postedAt < oldPostedAt!!) return
-                if (wasRemoved && event.postedAt == oldPostedAt) return
-                values.remove("id")
-                if (event.postedAt == oldPostedAt) {
-                    values.remove("heads_up")
-                    values.remove("bubble_shown")
-                    values.remove("full_screen_shown")
-                }
-                db.update(
+            var current: YNotifyEvent = event
+            if (event.eventType == YNotifyEventType.Notification &&
+                !event.notificationKey.isNullOrBlank()
+            ) {
+                // The original app distinguished notification instances and their
+                // updates. A reused Android notification key must not erase a
+                // previously dismissed instance.
+                var lastKey: String? = null
+                var lastPostedAt = 0L
+                var active = false
+                db.query(
                     "events",
-                    values,
-                    "event_key = ?",
-                    arrayOf(event.eventKey),
+                    arrayOf("event_key", "posted_at", "removed_at"),
+                    "notification_key = ?",
+                    arrayOf(event.notificationKey),
+                    null, null,
+                    "posted_at DESC, id DESC",
+                    "1",
+                ).use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        lastKey = cursor.getString(0)
+                        lastPostedAt = cursor.getLong(1)
+                        active = cursor.isNull(2)
+                    }
+                }
+                if (lastKey != null && event.postedAt < lastPostedAt) {
+                    // Delayed ranking updates for an older notification instance.
+                    return
+                }
+                if (lastKey != null && !active &&
+                    event.postedAt <= lastPostedAt
+                ) return
+                current = event.copy(
+                    eventKey = if (active && lastKey != null) lastKey!!
+                        else "notification:" + event.notificationKey + "@" + event.postedAt,
+                    postedAt = if (active) lastPostedAt else event.postedAt,
+                )
+            }
+            val values = current.toValues().apply {
+                put("title", crypto.encrypt(current.title))
+                put("text_value", crypto.encrypt(current.text))
+                put("full_text", crypto.encrypt(current.fullText))
+            }
+            var existing = false
+            db.query(
+                "events", arrayOf("id"), "event_key = ?",
+                arrayOf(current.eventKey), null, null, null,
+            ).use { existing = it.moveToFirst() }
+            if (existing) {
+                values.remove("id")
+                // A later ranking callback must not clear a surface marker.
+                values.remove("heads_up")
+                values.remove("bubble_shown")
+                values.remove("full_screen_shown")
+                db.update(
+                    "events", values, "event_key = ?",
+                    arrayOf(current.eventKey),
                 )
             } else {
                 db.insertOrThrow("events", null, values)
@@ -136,16 +173,92 @@ internal class YNotifyDatabase(
                 "event_details",
                 null,
                 ContentValues().apply {
-                    put("event_key", event.eventKey)
-                    put("detail_blob", crypto.encrypt(encodeDetails(event)))
+                    put("event_key", current.eventKey)
+                    put("detail_blob", crypto.encrypt(encodeDetails(current)))
                 },
                 SQLiteDatabase.CONFLICT_REPLACE,
             )
+            if (current.eventType == YNotifyEventType.Notification) {
+                recordRevision(db, current)
+            }
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
         }
         invalidations.tryEmit(Unit)
+    }
+
+    private fun recordRevision(db: SQLiteDatabase, event: YNotifyEvent) {
+        val payload = JSONObject().apply {
+            put("title", event.title)
+            put("text", event.text)
+            put("fullText", event.fullText)
+            put("messages", event.messagesJson)
+            put("progress", event.progress)
+            put("progressMax", event.progressMax)
+            put("importance", event.importance)
+        }.toString()
+        val digest = MessageDigest.getInstance("SHA-256").digest(
+            payload.toByteArray(Charsets.UTF_8),
+        ).joinToString("") { "%02x".format(it) }
+        var sequence = 1
+        var unchanged = false
+        db.query(
+            "notification_revisions",
+            arrayOf("sequence", "content_hash"),
+            "event_key = ?",
+            arrayOf(event.eventKey),
+            null, null, "sequence DESC", "1",
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                sequence = cursor.getInt(0) + 1
+                unchanged = cursor.getString(1) == digest
+            }
+        }
+        if (unchanged) return
+        db.insertOrThrow(
+            "notification_revisions", null,
+            ContentValues().apply {
+                put("event_key", event.eventKey)
+                put("sequence", sequence)
+                put("captured_at", event.updatedAt)
+                put("content_hash", digest)
+                put("title", crypto.encrypt(event.title))
+                put("text_value", crypto.encrypt(event.text))
+                put("full_text", crypto.encrypt(event.fullText))
+                put("progress", event.progress)
+                put("progress_max", event.progressMax)
+            },
+        )
+    }
+
+    fun revisions(eventKey: String): List<YNotifyRevision> {
+        val result = mutableListOf<YNotifyRevision>()
+        readableDatabase.query(
+            "notification_revisions", null,
+            "event_key = ?", arrayOf(eventKey),
+            null, null, "sequence DESC", "100",
+        ).use { cursor ->
+            val number = cursor.getColumnIndexOrThrow("sequence")
+            val at = cursor.getColumnIndexOrThrow("captured_at")
+            val title = cursor.getColumnIndexOrThrow("title")
+            val text = cursor.getColumnIndexOrThrow("text_value")
+            val full = cursor.getColumnIndexOrThrow("full_text")
+            val progress = cursor.getColumnIndexOrThrow("progress")
+            val maximum = cursor.getColumnIndexOrThrow("progress_max")
+            while (cursor.moveToNext()) {
+                result += YNotifyRevision(
+                    sequence = cursor.getInt(number),
+                    capturedAt = cursor.getLong(at),
+                    title = crypto.decrypt(cursor.getString(title)),
+                    text = crypto.decrypt(cursor.getString(text)),
+                    fullText = crypto.decrypt(cursor.getString(full)),
+                    progress = cursor.getInt(progress),
+                    progressMax = cursor.getInt(maximum),
+                )
+            }
+        }
+        return result
     }
 
     fun markSurface(
@@ -441,6 +554,10 @@ internal class YNotifyDatabase(
                     "WHERE event_key NOT IN " +
                     "(SELECT event_key FROM events)",
             )
+            writableDatabase.execSQL(
+                "DELETE FROM notification_revisions " +
+                    "WHERE event_key NOT IN (SELECT event_key FROM events)",
+            )
             invalidations.tryEmit(Unit)
         }
     }
@@ -450,6 +567,11 @@ internal class YNotifyDatabase(
         try {
             writableDatabase.delete(
                 "event_details",
+                null,
+                null,
+            )
+            writableDatabase.delete(
+                "notification_revisions",
                 null,
                 null,
             )
@@ -898,7 +1020,7 @@ internal class YNotifyDatabase(
 
     companion object {
         const val CLASSIFICATION_VERSION = 4
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_VERSION = 3
         private const val SEARCH_PAGE_SIZE = 500
         val invalidations = MutableSharedFlow<Unit>(
             extraBufferCapacity = 32,
@@ -914,6 +1036,30 @@ internal class YNotifyDatabase(
                     detail_blob TEXT
                 )
                 """.trimIndent(),
+            )
+        }
+
+        private fun createRevisionsTable(db: SQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS notification_revisions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_key TEXT NOT NULL,
+                    sequence INTEGER NOT NULL,
+                    captured_at INTEGER NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    title TEXT,
+                    text_value TEXT,
+                    full_text TEXT,
+                    progress INTEGER NOT NULL DEFAULT 0,
+                    progress_max INTEGER NOT NULL DEFAULT 0,
+                    UNIQUE(event_key, sequence)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_ynotify_revisions_key " +
+                    "ON notification_revisions(event_key)",
             )
         }
 

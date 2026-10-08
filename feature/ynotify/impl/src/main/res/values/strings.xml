@@ -99,4 +99,6 @@
     <string name="ynotify_clear_confirm_title">Delete all captured history?</string>
     <string name="ynotify_clear_confirm_message">This permanently deletes all recorded notification and UI events for YSuite.</string>
     <string name="ynotify_load_failed">Could not load the notification history</string>
+    <string name="ynotify_revision_title">Notification updates (%1$d)</string>
+    <string name="ynotify_revision_item">Revision %1$d · %2$s</string>
 </resources>

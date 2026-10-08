@@ -36,6 +36,7 @@ import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.feature.ynotify.api.YNotifyEvent
 import com.yagay.ysuite.feature.ynotify.api.YNotifyEventType
 import com.yagay.ysuite.feature.ynotify.api.YNotifyNotificationKind
+import com.yagay.ysuite.feature.ynotify.runtime.YNotifyRevision
 import com.yagay.ysuite.productui.featurelayout.YNotifyWorkspace
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
 import com.yagay.ysuite.ui.YSuiteFeatureBackHandler
@@ -256,7 +257,7 @@ fun YNotifyFeatureScreen() {
             }
         },
         details = if (state.viewMode == YNotifyViewMode.History) {
-            selected?.let { { EventDetail(selected) } }
+            selected?.let { { EventDetail(selected, state.revisions) } }
         } else null,
     ) { adaptive ->
         when (state.viewMode) {
@@ -264,7 +265,7 @@ fun YNotifyFeatureScreen() {
             YNotifyViewMode.Settings -> NotifySettings(model)
             YNotifyViewMode.History ->
                 if (!adaptive.isExpanded && selected != null) {
-                    EventDetail(selected)
+                    EventDetail(selected, state.revisions)
                 } else {
                     EventList(model)
                 }
@@ -627,6 +628,7 @@ private fun EventList(
 @Composable
 private fun EventDetail(
     event: YNotifyEvent,
+    revisions: List<YNotifyRevision>,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -743,6 +745,27 @@ private fun EventDetail(
                         ),
                     subtitle = event.source,
                 )
+            }
+        }
+        if (revisions.size > 1) {
+            item {
+                YSuiteSection(
+                    title = stringResource(R.string.ynotify_revision_title, revisions.size),
+                    modifier = Modifier.padding(YSuiteSpacing.Medium),
+                ) {
+                    revisions.forEach { revision ->
+                        YSuiteListItem(
+                            title = stringResource(
+                                R.string.ynotify_revision_item,
+                                revision.sequence,
+                                DateFormat.getDateTimeInstance().format(Date(revision.capturedAt)),
+                            ),
+                            subtitle = revision.fullText ?: revision.text
+                                ?: revision.title
+                                ?: stringResource(R.string.ynotify_no_content),
+                        )
+                    }
+                }
             }
         }
         item {
