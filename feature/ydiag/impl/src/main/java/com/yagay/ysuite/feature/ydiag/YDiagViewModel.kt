@@ -7,6 +7,7 @@ import com.yagay.ysuite.feature.ydiag.api.YDiagApp
 import com.yagay.ysuite.feature.ydiag.api.YDiagCatalog
 import com.yagay.ysuite.feature.ydiag.api.YDiagEvent
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,7 @@ enum class YDiagAppFilter {
 
 data class YDiagUiState(
     val apps: List<YDiagApp> = emptyList(),
+    val appsLoadError: String? = null,
     val selectedPackage: String? = null,
     val query: String = "",
     val appFilter: YDiagAppFilter = YDiagAppFilter.All,
@@ -268,14 +270,25 @@ class YDiagViewModel(
         }
     }
 
+    fun retryApps() = refreshApps()
+
     private fun refreshApps() {
         viewModelScope.launch {
-            val apps =
-                withContext(Dispatchers.IO) {
+            try {
+                val apps = withContext(Dispatchers.IO) {
                     repository.apps()
                 }
-            mutableState.value =
-                mutableState.value.copy(apps = apps)
+                mutableState.value = mutableState.value.copy(
+                    apps = apps,
+                    appsLoadError = if (apps.isEmpty()) "no_visible_apps" else null,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    appsLoadError = error.message ?: error.javaClass.simpleName,
+                )
+            }
         }
     }
 

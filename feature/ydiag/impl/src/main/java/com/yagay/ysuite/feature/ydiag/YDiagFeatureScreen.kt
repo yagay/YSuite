@@ -137,9 +137,25 @@ fun YDiagFeatureScreen(
 
 @Composable
 private fun AppPickerContent(model: YDiagViewModel) {
+    val state by model.state.collectAsStateWithLifecycle()
     val apps = model.visibleApps()
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        if (apps.isEmpty()) {
+        state.appsLoadError?.let { error ->
+            item(key = "apps-error") {
+                YSuiteListItem(
+                    title = stringResource(R.string.ydiag_apps_load_failed),
+                    subtitle = error,
+                    modifier = Modifier.padding(YSuiteSpacing.Medium),
+                )
+            }
+            item(key = "apps-retry") {
+                YSuiteSecondaryButton(
+                    text = stringResource(R.string.ydiag_retry),
+                    onClick = model::retryApps,
+                )
+            }
+        }
+        if (apps.isEmpty() && state.appsLoadError == null) {
             item {
                 YSuiteListItem(
                     title = stringResource(R.string.ydiag_no_apps),

@@ -6,6 +6,8 @@
     <string name="ydiag_filter_user">User</string>
     <string name="ydiag_filter_system">System</string>
     <string name="ydiag_no_apps">No matching apps</string>
+    <string name="ydiag_apps_load_failed">Unable to load installed apps</string>
+    <string name="ydiag_retry">Retry</string>
     <string name="ydiag_enabled_count">%1$d diagnostic options enabled</string>
     <string name="ydiag_root_ready">Root ready</string>
     <string name="ydiag_root_missing">Root unavailable</string>
