@@ -91,6 +91,7 @@ internal class YNotifyDatabase(
         createRevisionsTable(db)
         createMergeIndex(db)
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_ynotify_linked ON events(linked_notification_id)")
+        createUpdatedIndex(db)
     }
 
     override fun onUpgrade(
@@ -116,6 +117,9 @@ internal class YNotifyDatabase(
         if (oldVersion < 6) {
             db.execSQL("ALTER TABLE events ADD COLUMN linked_notification_id INTEGER")
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_ynotify_linked ON events(linked_notification_id)")
+        }
+        if (oldVersion < 7) {
+            createUpdatedIndex(db)
         }
     }
 
@@ -741,9 +745,10 @@ internal class YNotifyDatabase(
         return changed
     }
 
-    fun reclassify(): Int {
+    fun reclassify(): Pair<Int, Int> {
         val db = writableDatabase
         var mergedCount = 0
+        var linkedCount = 0
         db.beginTransaction()
         try {
             db.rawQuery(
@@ -806,12 +811,13 @@ internal class YNotifyDatabase(
                 }
             }
             mergedCount = mergeHistoricalNotificationUpdates(db)
+            linkedCount = correlateHistoricalBanners(db)
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
         }
         invalidations.tryEmit(Unit)
-        return mergedCount
+        return mergedCount to linkedCount
     }
 
     /**
@@ -826,84 +832,188 @@ internal class YNotifyDatabase(
         now: Long,
         eventKey: String? = null,
     ) {
-        val normalized = normalize(text)
-        if (normalized.length < 2) return
-        val systemUi = packageName.isNullOrBlank() ||
-            packageName == "com.android.systemui"
-        data class Candidate(val event: YNotifyEvent, val score: Double)
-        val matches = query(250).asSequence()
-            .filter { event ->
-                event.eventType == YNotifyEventType.Notification &&
-                    !event.classificationLocked &&
-                    event.removedAt == null &&
-                    (systemUi || event.packageName == packageName)
-            }
-            .mapNotNull { event ->
-                val dt = minOf(
-                    kotlin.math.abs(now - event.postedAt),
-                    kotlin.math.abs(now - event.updatedAt),
-                )
-                if (dt > 5_000L) return@mapNotNull null
-                val similarity = similarity(
-                    normalized,
-                    normalize(listOfNotNull(
-                        event.title, event.fullText, event.text,
-                    ).joinToString(" ")),
-                )
-                val confident = if (systemUi && event.packageName != packageName) {
-                    similarity >= 0.995 ||
-                        (similarity >= 0.92 && dt <= 2_500L)
-                } else {
-                    similarity >= 0.995 ||
-                        (similarity >= 0.82 && dt <= 3_000L)
-                }
-                if (!confident) null
-                else Candidate(event, similarity - dt / 5_000.0 * 0.04)
-            }
-            .sortedByDescending { it.score }
-            .take(2)
-            .toList()
-        val best = matches.firstOrNull() ?: return
-        val second = matches.getOrNull(1)
-        // Do not associate an ambiguous shared SystemUI banner with an
-        // unrelated app when multiple notifications have nearly equal text.
-        if (second != null && best.score - second.score < 0.05) return
-        val values = ContentValues()
-        if (type == YNotifyEventType.SystemUi) {
-            values.put("heads_up", 1)
-        }
-        if (type == YNotifyEventType.Popup || type == YNotifyEventType.Dialog) {
-            values.put("full_screen_shown", 1)
-        }
-        if (text.contains("bubble", ignoreCase = true)) {
-            values.put("bubble_shown", 1)
-        }
         val database = writableDatabase
+        val targetId = findBannerNotification(database, packageName, text, now)
+            ?: return
         database.beginTransaction()
         var updated = 0
         try {
-            if (values.size() > 0) {
-                updated += database.update(
-                    "events", values,
-                    "id = ? AND classification_locked = 0",
-                    arrayOf(best.event.id.toString()),
-                )
-            }
-            if (!eventKey.isNullOrBlank()) {
-                updated += database.update(
-                    "events",
-                    ContentValues().apply {
-                        put("linked_notification_id", best.event.id)
-                    },
-                    "event_key = ? AND classification_locked = 0 AND event_type != ?",
-                    arrayOf(eventKey, YNotifyEventType.Notification.name),
-                )
-            }
+            updated += applyBannerMatch(database, targetId, type, text, eventKey)
             database.setTransactionSuccessful()
         } finally {
             database.endTransaction()
         }
         if (updated > 0) invalidations.tryEmit(Unit)
+    }
+
+    /**
+     * Both live capture and repair query the same indexed 5-second window.
+     * Matching against only the last N notifications misses busy devices.
+     * SystemUI can present another package's notification, but a cross-app
+     * match requires stronger confidence and an unambiguous best candidate.
+     */
+    private fun findBannerNotification(
+        db: SQLiteDatabase,
+        packageName: String?,
+        text: String,
+        at: Long,
+    ): Long? {
+        val normalized = normalize(text)
+        if (normalized.length < 2) return null
+        val systemUi = packageName.isNullOrBlank() ||
+            packageName == "com.android.systemui"
+        val earliest = (at - 5_000L).coerceAtLeast(0L).toString()
+        val latest = (at + 5_000L).toString()
+        val matches = mutableListOf<Pair<Long, Double>>()
+        db.rawQuery(
+            """
+            SELECT id,package_name,posted_at,updated_at,title,full_text,text_value,removed_at
+            FROM events
+            WHERE event_type = 'Notification'
+              AND classification_locked = 0 AND merged_into_id IS NULL
+              AND (posted_at BETWEEN ? AND ? OR updated_at BETWEEN ? AND ?)
+            ORDER BY updated_at DESC LIMIT 200
+            """.trimIndent(),
+            arrayOf(earliest, latest, earliest, latest),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val otherPackage = cursor.getString(1).orEmpty()
+                if (!systemUi && otherPackage != packageName) continue
+                if (!cursor.isNull(7) && cursor.getLong(7) < at) continue
+                val dt = minOf(
+                    kotlin.math.abs(at - cursor.getLong(2)),
+                    kotlin.math.abs(at - cursor.getLong(3)),
+                )
+                if (dt > 5_000L) continue
+                val candidateText = normalize(listOfNotNull(
+                    crypto.decrypt(cursor.getStringOrNull(4)),
+                    crypto.decrypt(cursor.getStringOrNull(5)),
+                    crypto.decrypt(cursor.getStringOrNull(6)),
+                ).joinToString(" "))
+                val similarity = similarity(normalized, candidateText)
+                val confident =
+                    if (systemUi && otherPackage != packageName) {
+                        similarity >= 0.995 ||
+                            (similarity >= 0.92 && dt <= 2_500L)
+                    } else {
+                        similarity >= 0.995 ||
+                            (similarity >= 0.82 && dt <= 3_000L)
+                    }
+                if (confident) {
+                    matches += cursor.getLong(0) to
+                        (similarity - dt / 5_000.0 * 0.04)
+                }
+            }
+        }
+        val ranked = matches.sortedByDescending { it.second }
+        val best = ranked.firstOrNull() ?: return null
+        if (ranked.size > 1 && best.second - ranked[1].second < 0.05) {
+            return null
+        }
+        return best.first
+    }
+
+    private fun applyBannerMatch(
+        db: SQLiteDatabase,
+        notificationId: Long,
+        type: YNotifyEventType,
+        text: String,
+        eventKey: String?,
+    ): Int {
+        val values = ContentValues().apply {
+            if (type == YNotifyEventType.SystemUi) put("heads_up", 1)
+            if (type == YNotifyEventType.Popup ||
+                type == YNotifyEventType.Dialog
+            ) put("full_screen_shown", 1)
+            if (text.contains("bubble", ignoreCase = true)) {
+                put("bubble_shown", 1)
+            }
+        }
+        var changed = 0
+        if (values.size() > 0) {
+            changed += db.update(
+                "events", values,
+                "id = ? AND classification_locked = 0",
+                arrayOf(notificationId.toString()),
+            )
+        }
+        if (!eventKey.isNullOrBlank()) {
+            changed += db.update(
+                "events",
+                ContentValues().apply {
+                    put("linked_notification_id", notificationId)
+                },
+                "event_key = ? AND classification_locked = 0 AND event_type != ?",
+                arrayOf(eventKey, YNotifyEventType.Notification.name),
+            )
+        }
+        return changed
+    }
+
+    /**
+     * Recover relationships for older accessibility banners. Iterate in fixed
+     * batches by stable row ID so updates do not change pagination positions.
+     * No historical row is deleted and manually locked records are skipped.
+     */
+    private fun correlateHistoricalBanners(db: SQLiteDatabase): Int {
+        data class Banner(
+            val id: Long,
+            val eventKey: String,
+            val pkg: String,
+            val text: String,
+            val at: Long,
+            val type: YNotifyEventType,
+        )
+        var afterId = 0L
+        var linked = 0
+        while (true) {
+            val batch = mutableListOf<Banner>()
+            db.rawQuery(
+                """
+                SELECT id,event_key,package_name,posted_at,event_type,
+                       full_text,text_value
+                FROM events
+                WHERE id > ? AND source LIKE '%accessibility%'
+                  AND event_type != 'Notification' AND classification_locked = 0
+                  AND merged_into_id IS NULL AND linked_notification_id IS NULL
+                ORDER BY id LIMIT 200
+                """.trimIndent(),
+                arrayOf(afterId.toString()),
+            ).use { cursor ->
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(0)
+                    afterId = id
+                    val text = crypto.decrypt(cursor.getStringOrNull(5))
+                        ?.takeIf(String::isNotBlank)
+                        ?: crypto.decrypt(cursor.getStringOrNull(6)).orEmpty()
+                    if (text.isBlank()) continue
+                    batch += Banner(
+                        id = id,
+                        eventKey = cursor.getString(1),
+                        pkg = cursor.getString(2).orEmpty(),
+                        at = cursor.getLong(3),
+                        type = enumValueOrDefault(
+                            cursor.getString(4), YNotifyEventType.OtherUi,
+                        ),
+                        text = text,
+                    )
+                }
+            }
+            if (batch.isEmpty()) break
+            for (banner in batch) {
+                val match = findBannerNotification(
+                    db, banner.pkg, banner.text, banner.at,
+                ) ?: continue
+                // Only count successful relationships; presentation indicators
+                // are updated by the same shared path as real-time capture.
+                val changed = applyBannerMatch(
+                    db, match, banner.type, banner.text, banner.eventKey,
+                )
+                if (changed > 0) linked++
+            }
+            if (batch.size < 200) break
+        }
+        return linked
     }
 
     /**
@@ -1317,11 +1427,17 @@ internal class YNotifyDatabase(
 
     companion object {
         const val CLASSIFICATION_VERSION = 4
-        private const val DATABASE_VERSION = 6
+        private const val DATABASE_VERSION = 7
         private const val SEARCH_PAGE_SIZE = 500
         val invalidations = MutableSharedFlow<Unit>(
             extraBufferCapacity = 32,
         )
+
+        private fun createUpdatedIndex(db: SQLiteDatabase) {
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_ynotify_updated ON events(updated_at)",
+            )
+        }
 
         private fun createMergeIndex(db: SQLiteDatabase) {
             db.execSQL(

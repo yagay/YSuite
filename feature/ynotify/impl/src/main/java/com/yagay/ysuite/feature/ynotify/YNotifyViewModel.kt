@@ -105,6 +105,7 @@ data class YNotifyUiState(
     val policyVersion: Int = 0,
     val repairingHistory: Boolean = false,
     val historyRepairMerged: Int? = null,
+    val historyRepairLinked: Int? = null,
     val historyRepairError: String? = null,
 )
 
@@ -641,14 +642,16 @@ class YNotifyViewModel(
                 repairingHistory = true,
                 historyRepairError = null,
                 historyRepairMerged = null,
+                historyRepairLinked = null,
             )
             try {
-                val merged = withContext(Dispatchers.IO) {
+                val (merged, linked) = withContext(Dispatchers.IO) {
                     store.reclassify()
                 }
                 mutableState.value = mutableState.value.copy(
                     repairingHistory = false,
                     historyRepairMerged = merged,
+                    historyRepairLinked = linked,
                 )
             } catch (cancelled: CancellationException) {
                 throw cancelled

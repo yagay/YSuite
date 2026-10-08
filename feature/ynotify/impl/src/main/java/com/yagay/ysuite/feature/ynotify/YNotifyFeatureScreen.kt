@@ -363,7 +363,11 @@ private fun NotifySettings(model: YNotifyViewModel) {
                 }
                 state.historyRepairMerged?.let { merged ->
                     YSuiteStatusBadge(
-                        text = stringResource(R.string.ynotify_repair_merged, merged),
+                        text = stringResource(
+                            R.string.ynotify_repair_merged,
+                            merged,
+                            state.historyRepairLinked ?: 0,
+                        ),
                         tone = YSuiteStatusTone.Positive,
                     )
                 }

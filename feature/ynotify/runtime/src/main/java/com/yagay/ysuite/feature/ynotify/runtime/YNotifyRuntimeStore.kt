@@ -127,7 +127,7 @@ class YNotifyRuntimeStore(
         database.deletePackage(packageName)
     }
 
-    fun reclassify(): Int = database.reclassify()
+    fun reclassify(): Pair<Int, Int> = database.reclassify()
 
     fun setManualClassification(
         id: Long,
