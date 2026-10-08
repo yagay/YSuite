@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
+    testImplementation(libs.junit)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
