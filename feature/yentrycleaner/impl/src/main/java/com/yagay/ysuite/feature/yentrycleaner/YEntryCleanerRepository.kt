@@ -214,6 +214,7 @@ internal class YEntryCleanerRepository(
     suspend fun changeManagedComponent(
         component: YEntryManagedComponent,
         enable: Boolean,
+        syncAfter: Boolean = true,
     ): Boolean {
         if (component.blocked || component.enabled == enable) return false
         return changeComponent(
@@ -232,6 +233,7 @@ internal class YEntryCleanerRepository(
                 rootBlocked = component.blocked,
             ),
             enable,
+            syncAfter,
         )
     }
 
@@ -242,8 +244,9 @@ internal class YEntryCleanerRepository(
         var failed = 0
         components.filter { !it.locked && !it.blocked }
             .forEach {
-                if (changeManagedComponent(it, !it.enabled)) changed++ else failed++
+                if (changeManagedComponent(it, !it.enabled, syncAfter = false)) changed++ else failed++
             }
+        if (changed > 0) sync()
         return changed to failed
     }
 
@@ -255,8 +258,9 @@ internal class YEntryCleanerRepository(
         var failed = 0
         components.filter { !it.locked && !it.blocked && it.enabled != enable }
             .forEach {
-                if (changeManagedComponent(it, enable)) changed++ else failed++
+                if (changeManagedComponent(it, enable, syncAfter = false)) changed++ else failed++
             }
+        if (changed > 0) sync()
         return changed to failed
     }
 
@@ -929,6 +933,7 @@ internal class YEntryCleanerRepository(
     suspend fun changeComponent(
         candidate: YEntryCandidate,
         enable: Boolean,
+        syncAfter: Boolean = true,
     ): Boolean {
         require(
             candidate.surface in
@@ -1012,7 +1017,7 @@ internal class YEntryCleanerRepository(
                 next,
             )
             .apply()
-        sync()
+        if (syncAfter) sync()
         return true
     }
 
