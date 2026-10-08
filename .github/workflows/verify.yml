@@ -33,6 +33,7 @@ jobs:
             tools/remove_feature.py \
             tools/verify_standalone_config.py \
             tools/verify_standalone_apk.py \
+            tools/verify_integrated_xposed_apk.py \
             tools/verify_foundation_contract.py \
             tools/verify_feature_migration.py
           python tools/new_feature.py ci_probe --product Tool --dry-run
@@ -75,6 +76,10 @@ jobs:
             "$(find host/standalone/build/outputs/apk/debug -name '*.apk' -print -quit)"
       - name: Build YSuite Debug
         run: gradle :app:assembleDebug --stacktrace
+      - name: Verify integrated LSPosed modules
+        run: |
+          python tools/verify_integrated_xposed_apk.py \
+            "$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)"
       - name: Upload YSuite Debug APK
         uses: actions/upload-artifact@v4
         with:
