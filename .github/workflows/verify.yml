@@ -26,6 +26,8 @@ jobs:
         run: python tools/verify_foundation_contract.py
       - name: Audit feature migrations
         run: python tools/verify_feature_migration.py
+      - name: Verify end-to-end feature entrypoints
+        run: python tools/verify_feature_parity_contracts.py
       - name: Verify feature tooling
         run: |
           python -m py_compile \
@@ -35,7 +37,8 @@ jobs:
             tools/verify_standalone_apk.py \
             tools/verify_integrated_xposed_apk.py \
             tools/verify_foundation_contract.py \
-            tools/verify_feature_migration.py
+            tools/verify_feature_migration.py \
+            tools/verify_feature_parity_contracts.py
           python tools/new_feature.py ci_probe --product Tool --dry-run
           python tools/verify_standalone_config.py
 

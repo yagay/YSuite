@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 
 data class YTaskResourceHistoryState(
@@ -79,6 +80,7 @@ class YTaskManagerViewModel(
         mutableState.asStateFlow()
 
     private var monitor: Job? = null
+    private val snapshotLock = Mutex()
 
     init {
         monitor =
@@ -433,6 +435,10 @@ class YTaskManagerViewModel(
     }
 
     private suspend fun refreshInternal() {
+        // Auto-refresh and manual refresh may race; only the first collector
+        // samples /proc while later requests reuse its imminent result.
+        if (!snapshotLock.tryLock()) return
+        try {
         val rootStatus =
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -555,6 +561,9 @@ class YTaskManagerViewModel(
                         },
                 )
         }.onFailure(::report)
+        } finally {
+            snapshotLock.unlock()
+        }
     }
 
     private fun report(error: Throwable) {

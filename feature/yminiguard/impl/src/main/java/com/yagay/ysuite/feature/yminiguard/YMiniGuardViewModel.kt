@@ -10,6 +10,7 @@ import com.yagay.ysuite.platform.api.CapabilityStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,11 +41,14 @@ internal class YMiniGuardViewModel(
     private val mutableState = MutableStateFlow(YMiniGuardUiState())
     val state: StateFlow<YMiniGuardUiState> = mutableState.asStateFlow()
     private val syncMutex = Mutex()
+    private var refreshJob: Job? = null
 
     init { refresh() }
 
     fun refresh() {
-        viewModelScope.launch {
+        // Latest refresh wins when a setting changes during inventory loading.
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             try {
                 val snapshot = withContext(Dispatchers.IO) {
                     YMiniGuardUiState(
