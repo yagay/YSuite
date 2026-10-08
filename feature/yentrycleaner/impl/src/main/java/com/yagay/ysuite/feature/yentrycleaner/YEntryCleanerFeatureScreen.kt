@@ -838,6 +838,9 @@ private fun statusPresentation(
         token == "rules_sync_failed" ->
             R.string.yentry_rules_sync_failed to
                 YSuiteStatusTone.Error
+        token == "candidate_load_failed" ->
+            R.string.yentry_candidate_load_failed to
+                YSuiteStatusTone.Error
         else ->
             R.string.yentry_component_failed to
                 YSuiteStatusTone.Error

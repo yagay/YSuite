@@ -64,4 +64,5 @@
     <string name="yentry_rules_hidden">Visible resolver rules hidden.</string>
     <string name="yentry_rules_shown">Visible resolver rules restored.</string>
     <string name="yentry_rules_sync_failed">Rules saved locally, but LSPosed sync failed. Check module scope and retry.</string>
+    <string name="yentry_candidate_load_failed">Could not load candidates. Check permissions or review diagnostics.</string>
 </resources>

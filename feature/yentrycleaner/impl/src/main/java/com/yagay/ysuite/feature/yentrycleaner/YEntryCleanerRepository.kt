@@ -561,12 +561,9 @@ internal class YEntryCleanerRepository(
     private fun remember(
         candidates: List<YEntryCandidate>,
     ) {
-        val seen =
-            prefs.getStringSet(
-                "seen_candidates",
-                emptySet(),
-            )?.toMutableSet()
-                ?: mutableSetOf()
+        val previous =
+            prefs.getStringSet("seen_candidates", emptySet()).orEmpty()
+        val seen = previous.toMutableSet()
         candidates.forEach {
             if (
                 it.surface !in
@@ -579,12 +576,11 @@ internal class YEntryCleanerRepository(
                 seen += it.id
             }
         }
-        prefs.edit()
-            .putStringSet(
-                "seen_candidates",
-                seen,
-            )
-            .apply()
+        if (seen != previous) {
+            prefs.edit()
+                .putStringSet("seen_candidates", seen)
+                .apply()
+        }
     }
 
     private fun historical(): List<YEntryCandidate> {
