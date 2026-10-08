@@ -268,7 +268,7 @@ fun YNotifyFeatureScreen() {
             }
         },
         details = if (state.viewMode == YNotifyViewMode.History) {
-            selected?.let { { EventDetail(selected, state.revisions) } }
+            selected?.let { { EventDetail(selected, state.revisions, model) } }
         } else null,
     ) { adaptive ->
         when (state.viewMode) {
@@ -276,7 +276,7 @@ fun YNotifyFeatureScreen() {
             YNotifyViewMode.Settings -> NotifySettings(model)
             YNotifyViewMode.History ->
                 if (!adaptive.isExpanded && selected != null) {
-                    EventDetail(selected, state.revisions)
+                    EventDetail(selected, state.revisions, model)
                 } else {
                     EventList(model)
                 }
@@ -670,6 +670,7 @@ private fun EventList(
 private fun EventDetail(
     event: YNotifyEvent,
     revisions: List<YNotifyRevision>,
+    model: YNotifyViewModel,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -786,6 +787,61 @@ private fun EventDetail(
                         ),
                     subtitle = event.source,
                 )
+            }
+        }
+        item(key = "manual-classification") {
+            YSuiteSection(
+                title = stringResource(R.string.ynotify_manual_classification),
+                modifier = Modifier.padding(YSuiteSpacing.Medium),
+            ) {
+                if (event.classificationLocked) {
+                    YSuiteStatusBadge(
+                        text = stringResource(R.string.ynotify_manual_locked),
+                        tone = YSuiteStatusTone.Warning,
+                    )
+                }
+                YSuiteFilterBar(
+                    options = YNotifyEventType.entries.map { type ->
+                        YSuiteFilterOption(type.name, eventTypeLabel(type))
+                    },
+                    selectedId = event.eventType.name,
+                    onSelected = { selected ->
+                        runCatching { YNotifyEventType.valueOf(selected) }
+                            .getOrNull()?.let { type ->
+                                model.setManualClassification(event, type)
+                            }
+                    },
+                )
+                if (event.eventType == YNotifyEventType.Notification) {
+                    YSuiteSecondaryButton(
+                        text = stringResource(
+                            if (event.headsUp) R.string.ynotify_manual_remove_headsup
+                            else R.string.ynotify_manual_mark_headsup,
+                        ),
+                        onClick = {
+                            model.setManualClassification(
+                                event, event.eventType, headsUp = !event.headsUp,
+                            )
+                        },
+                    )
+                    YSuiteSecondaryButton(
+                        text = stringResource(
+                            if (event.bubbleShown) R.string.ynotify_manual_remove_bubble
+                            else R.string.ynotify_manual_mark_bubble,
+                        ),
+                        onClick = {
+                            model.setManualClassification(
+                                event, event.eventType, bubble = !event.bubbleShown,
+                            )
+                        },
+                    )
+                }
+                if (event.classificationLocked) {
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.ynotify_manual_reset),
+                        onClick = { model.resetManualClassification(event) },
+                    )
+                }
             }
         }
         if (revisions.size > 1) {

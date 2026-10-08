@@ -108,4 +108,11 @@
     <string name="ynotify_last_capture_error">采集错误</string>
     <string name="ynotify_clear_app">清除此应用历史</string>
     <string name="ynotify_clear_app_confirm">确定删除此应用的全部通知和界面历史吗？删除后无法恢复。</string>
+    <string name="ynotify_manual_classification">手动事件分类</string>
+    <string name="ynotify_manual_locked">手动分类已锁定，不会被历史修复覆盖</string>
+    <string name="ynotify_manual_reset">恢复自动分类</string>
+    <string name="ynotify_manual_mark_headsup">标记为悬浮通知</string>
+    <string name="ynotify_manual_remove_headsup">取消悬浮通知标记</string>
+    <string name="ynotify_manual_mark_bubble">标记为气泡通知</string>
+    <string name="ynotify_manual_remove_bubble">取消气泡通知标记</string>
 </resources>

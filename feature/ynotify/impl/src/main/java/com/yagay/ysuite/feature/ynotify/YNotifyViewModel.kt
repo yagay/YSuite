@@ -610,6 +610,27 @@ class YNotifyViewModel(
         }
     }
 
+    fun setManualClassification(
+        event: YNotifyEvent,
+        type: YNotifyEventType,
+        headsUp: Boolean = event.headsUp,
+        bubble: Boolean = event.bubbleShown,
+    ) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                store.setManualClassification(event.id, type, headsUp, bubble)
+            }
+        }
+    }
+
+    fun resetManualClassification(event: YNotifyEvent) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                store.clearManualClassification(event.id)
+            }
+        }
+    }
+
     fun reclassify() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {

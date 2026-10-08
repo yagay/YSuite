@@ -684,11 +684,20 @@ internal class YNotifyDatabase(
         var changed = false
         db.beginTransaction()
         try {
+            val originalType = db.query(
+                "events", arrayOf("original_event_type"),
+                "id = ? AND classification_locked = 1",
+                arrayOf(id.toString()), null, null, null, "1",
+            ).use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getString(0)
+                else null
+            }
             changed = db.update(
                 "events",
                 ContentValues().apply {
                     put("classification_locked", 0)
                     put("classification_source", "manual_reset")
+                    if (originalType != null) put("event_type", originalType)
                     put("classification_version", 0)
                 },
                 "id = ? AND classification_locked = 1",
