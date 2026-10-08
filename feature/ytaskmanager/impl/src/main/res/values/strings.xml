@@ -83,4 +83,6 @@
     <string name="ytask_confirm">Confirm</string>
     <string name="ytask_cancel">Cancel</string>
     <string name="ytask_history">History</string>
+    <string name="ytask_kill_failed">Failed to kill PID %1$s</string>
+    <string name="ytask_force_stop_failed">Failed to force-stop %1$s</string>
 </resources>
