@@ -325,15 +325,21 @@ private object AndroidLibXposedHookGateway :
                         override fun onScopeRequestApproved(
                             approved: List<String>,
                         ) {
-                            if (
-                                continuation.isActive
-                            ) {
-                                continuation.resume(
-                                    Outcome.Success(
-                                        Unit,
-                                    ),
-                                )
-                            }
+                            if (!continuation.isActive) return
+                            val accepted = approved.map(String::trim).toSet()
+                            val omitted = missing.filterNot { it in accepted }
+                            continuation.resume(
+                                if (omitted.isEmpty()) {
+                                    Outcome.Success(Unit)
+                                } else {
+                                    Outcome.Failure(
+                                        code = "hook_scope_partial",
+                                        message = "LSPosed did not approve: " +
+                                            omitted.joinToString(", "),
+                                        retryable = true,
+                                    )
+                                },
+                            )
                         }
 
                         override fun onScopeRequestFailed(
