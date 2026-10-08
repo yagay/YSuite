@@ -3,9 +3,10 @@ package com.yagay.ysuite.feature.yentrycleaner.runtime
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ResolveInfo
-import android.net.Uri
 import android.os.Process
 import android.util.Log
+import com.yagay.ysuite.feature.yentrycleaner.api.YEntryIntentRouting
+import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
 import com.yagay.ysuite.runtime.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
@@ -234,52 +235,21 @@ class YEntryResolverModule : XposedModule() {
         }
 
     private fun surface(intent: Intent): String? =
-        when {
-            intent.action == Intent.ACTION_SEND_MULTIPLE ->
-                "ShareMultiple"
-            intent.action == Intent.ACTION_PROCESS_TEXT ->
-                "ProcessText"
-            intent.action == Intent.ACTION_SEND ->
-                if (
-                    intent.type
-                        ?.startsWith("image/") == true
-                ) {
-                    "ShareImage"
-                } else {
-                    "ShareText"
-                }
-            intent.action == Intent.ACTION_VIEW &&
-                intent.data?.scheme in
-                setOf("http", "https") ->
-                "Browser"
-            intent.action == Intent.ACTION_VIEW ->
-                "Open"
-            else -> null
-        }
+        YEntryIntentRouting.surface(
+            action = intent.action,
+            mimeType = intent.type,
+            scheme = intent.data?.scheme,
+        )?.name
 
     private fun qualifier(
         surface: String,
         intent: Intent,
     ): String =
-        when (surface) {
-            "Browser" ->
-                normalizeHost(intent.data)
-            "ShareMultiple" -> "*"
-            "ShareText",
-            "ShareImage",
-            "ProcessText",
-            "Open" ->
-                intent.type.orEmpty()
-                    .ifBlank { "*" }
-            else -> "*"
-        }
-
-    private fun normalizeHost(uri: Uri?): String =
-        uri?.host
-            ?.lowercase()
-            ?.removePrefix("www.")
-            ?.takeIf { it.isNotBlank() }
-            ?: "*"
+        YEntryIntentRouting.qualifier(
+            surface = YEntrySurface.valueOf(surface),
+            mimeType = intent.type,
+            host = intent.data?.host,
+        )
 
     private fun stringSet(key: String): Set<String> =
         prefs.getString(key, "")
