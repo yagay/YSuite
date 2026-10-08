@@ -83,6 +83,7 @@ class YNotifyNotificationListenerService :
         executor.execute {
             database.markRemoved(
                 key,
+                sbn.postTime,
                 System.currentTimeMillis(),
             )
         }

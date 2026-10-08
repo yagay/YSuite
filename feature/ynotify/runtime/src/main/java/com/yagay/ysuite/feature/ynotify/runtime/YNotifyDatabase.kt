@@ -172,6 +172,7 @@ internal class YNotifyDatabase(
 
     fun markRemoved(
         notificationKey: String,
+        postedAt: Long,
         removedAt: Long,
     ) {
         writableDatabase.update(
@@ -180,8 +181,8 @@ internal class YNotifyDatabase(
                 put("removed_at", removedAt)
                 put("updated_at", removedAt)
             },
-            "notification_key = ? AND removed_at IS NULL",
-            arrayOf(notificationKey),
+            "notification_key = ? AND posted_at <= ? AND removed_at IS NULL",
+            arrayOf(notificationKey, postedAt.toString()),
         )
         invalidations.tryEmit(Unit)
     }
