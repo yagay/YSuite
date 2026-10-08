@@ -517,6 +517,7 @@ internal class YPowerRepository(
                 )
             is Outcome.Success -> Unit
         }
+        try {
         when (
             val scope =
                 hooks.reload(
@@ -588,7 +589,19 @@ internal class YPowerRepository(
                 packageName + ":level",
                 level.name,
             )
-            .commit()
+            .commit().also {
+                check(it) { "diagnostic_state_save_failed" }
+            }
+        } catch (failure: Throwable) {
+            val restore = runCatching {
+                restoreDiagnosticProfile(packageName)
+            }.getOrNull()
+            if (restore !is Outcome.Success) {
+                error("diagnostic_start_failed_and_profile_restore_failed: " +
+                    (failure.message ?: failure.javaClass.simpleName))
+            }
+            throw failure
+        }
 
         return YPowerDiagnosticSessionState(
             active = true,
@@ -625,17 +638,6 @@ internal class YPowerRepository(
                 DIAGNOSTIC_PREFS,
                 Context.MODE_PRIVATE,
             )
-        sessionPrefs.edit()
-            .putBoolean(
-                packageName + ":active",
-                false,
-            )
-            .putLong(
-                packageName + ":ended",
-                endedAt,
-            )
-            .commit()
-
         val trace =
             if (
                 state.sessionId.isNotBlank() &&
@@ -709,17 +711,18 @@ internal class YPowerRepository(
             )
         }
 
-        val original = load(packageName)
-        hooks.writeConfig(
-            "ypower",
-            "profile:" + packageName,
-            hookProfileJson(
-                original.copy(
-                    diagnosticSessionId = "",
-                ),
-            ),
-        )
-        hooks.reload(setOf(packageName))
+        when (val restored = restoreDiagnosticProfile(packageName)) {
+            is Outcome.Failure -> error(
+                "diagnostic_profile_restore_failed:" + restored.error.code,
+            )
+            is Outcome.Success -> Unit
+        }
+        check(
+            sessionPrefs.edit()
+                .putBoolean(packageName + ":active", false)
+                .putLong(packageName + ":ended", endedAt)
+                .commit(),
+        ) { "diagnostic_state_save_failed" }
 
         val reportUri =
             exportDiagnosticReport(
@@ -734,6 +737,19 @@ internal class YPowerRepository(
             findings = findings,
             reportUri = reportUri,
         )
+    }
+
+    private suspend fun restoreDiagnosticProfile(
+        packageName: String,
+    ): Outcome<Unit> {
+        val original = load(packageName)
+        val written = hooks.writeConfig(
+            "ypower",
+            "profile:" + packageName,
+            hookProfileJson(original.copy(diagnosticSessionId = "")),
+        )
+        if (written is Outcome.Failure) return written
+        return hooks.reload(setOf(packageName))
     }
 
     private fun parseDiagnosticTrace(

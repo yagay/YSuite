@@ -155,11 +155,15 @@ internal class YEntryCleanerRepository(
         qualifier: String,
         ids: List<String>,
     ) {
+        val indexed = prefs.getStringSet("priority_qualifiers", emptySet())
+            .orEmpty().toMutableSet()
+        indexed += surface.name + "|" + qualifier
         prefs.edit()
             .putString(
                 priorityKey(surface, qualifier),
                 ids.distinct().joinToString(">"),
             )
+            .putStringSet("priority_qualifiers", indexed)
             .apply()
     }
 
@@ -990,6 +994,7 @@ internal class YEntryCleanerRepository(
             .remove("locked_rules")
             .remove("seen_candidates")
             .remove("browser_hosts")
+            .remove("priority_qualifiers")
         prefs.all.keys
             .filter { it.startsWith("priority_") }
             .forEach { editor.remove(it) }
@@ -1039,6 +1044,11 @@ internal class YEntryCleanerRepository(
 
     /** Publish settings without restarting framework processes merely by opening the screen. */
     suspend fun sync(reload: Boolean = true): Outcome<Unit> {
+        val indexedQualifiers =
+            prefs.getStringSet("priority_qualifiers", emptySet()).orEmpty()
+        val browserHosts =
+            prefs.getStringSet("browser_hosts", emptySet()).orEmpty() +
+                browserHost()
         val priorityLines =
             YEntrySurface.entries
                 .filter {
@@ -1062,15 +1072,17 @@ internal class YEntryCleanerRepository(
                             YEntrySurface.ProcessText ->
                                 listOf("text/plain", "*")
                             YEntrySurface.Browser ->
-                                listOf(
-                                    browserHost(),
-                                    "*",
-                                )
+                                browserHosts.toList() + "*"
                             YEntrySurface.Open ->
                                 listOf(openMime(), "*")
                             else -> emptyList()
                         }
-                    qualifiers.mapNotNull {
+                    val knownQualifiers = indexedQualifiers.mapNotNull { key ->
+                        val prefix = surface.name + "|"
+                        key.takeIf { it.startsWith(prefix) }
+                            ?.removePrefix(prefix)
+                    }
+                    (qualifiers + knownQualifiers).distinct().mapNotNull {
                         qualifier ->
                         val list =
                             priority(

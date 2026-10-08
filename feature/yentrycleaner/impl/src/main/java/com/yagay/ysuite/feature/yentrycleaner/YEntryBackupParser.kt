@@ -43,6 +43,18 @@ internal object YEntryBackupParser {
                 key in setOf("hidden_rules", "locked_rules", "seen_candidates", "browser_hosts") -> {
                     result[key] = readStrings(value as? JSONArray ?: return null, 10_000) ?: return null
                 }
+                key == "priority_qualifiers" -> {
+                    val qualifiers = readStrings(value as? JSONArray ?: return null, 1_000)
+                        ?: return null
+                    if (!qualifiers.all { key ->
+                        val parts = key.split('|', limit = 2)
+                        parts.size == 2 &&
+                            YEntrySurface.entries.any { it.name == parts[0] } &&
+                            parts[1].isNotBlank() && parts[1].length <= 255 &&
+                            parts[1].none { it.isWhitespace() || it.isISOControl() }
+                    }) return null
+                    result[key] = qualifiers
+                }
                 key.startsWith("priority_") && key.length < 90 -> {
                     val order = value as? String ?: return null
                     if (order.length > 50_000) return null
@@ -97,8 +109,12 @@ internal object YEntryBackupParser {
             "hidden_rules" to rules,
             "display_mode" to mode,
         )
-        val oldPriorities = source.optJSONObject("priorities")
-            ?.optJSONObject("apps")
+        val oldPriorityConfig = source.optJSONObject("priorities")
+        // The rebuilt UI has no component-title aliases yet. Reject rather than
+        // silently dropping user names from an otherwise "successful" import.
+        if ((oldPriorityConfig?.optJSONObject("titles")?.length() ?: 0) > 0) return null
+        val indexedQualifiers = linkedSetOf<String>()
+        val oldPriorities = oldPriorityConfig?.optJSONObject("apps")
         if (oldPriorities != null) {
             for (kind in oldPriorities.keys()) {
                 val mapped = surfaces(kind) ?: return null
@@ -107,6 +123,7 @@ internal object YEntryBackupParser {
                 if (!values.all(::validPackage)) return null
                 for (surface in mapped) {
                     result[priorityKey(surface, "*")] = values.joinToString(">")
+                    indexedQualifiers += surface.name + "|*"
                 }
             }
         }
@@ -142,9 +159,11 @@ internal object YEntryBackupParser {
                         ?: return null
                     if (!apps.all(::validPackage)) return null
                     result[priorityKey(YEntrySurface.Browser, host)] = apps.joinToString(">")
+                    indexedQualifiers += YEntrySurface.Browser.name + "|" + host
                 }
             }
         }
+        result["priority_qualifiers"] = indexedQualifiers
         return result
     }
 
