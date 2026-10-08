@@ -49,6 +49,33 @@ object YEntryOpenQualifiers {
         return result.toList()
     }
 
+    fun sampleMime(preset: String): String = when (preset) {
+        "PDF" -> "application/pdf"
+        "WORD" -> "application/msword"
+        "EXCEL" -> "application/vnd.ms-excel"
+        "POWERPOINT" -> "application/vnd.ms-powerpoint"
+        "EPUB" -> "application/epub+zip"
+        "APK" -> "application/vnd.android.package-archive"
+        "TORRENT" -> "application/x-bittorrent"
+        "MARKDOWN" -> "text/markdown"
+        "CSV" -> "text/csv"
+        "JSON" -> "application/json"
+        "XML" -> "application/xml"
+        "SVG" -> "image/svg+xml"
+        "GIF" -> "image/gif"
+        "IMAGE" -> "image/*"
+        "VIDEO" -> "video/*"
+        "AUDIO" -> "audio/*"
+        "TEXT" -> "text/plain"
+        "ARCHIVE" -> "application/zip"
+        "MAGNET" -> "scheme:magnet"
+        "GEO" -> "scheme:geo"
+        "MAILTO" -> "scheme:mailto"
+        "TEL" -> "scheme:tel"
+        "SMS" -> "scheme:sms"
+        else -> "application/octet-stream"
+    }
+
     private fun fileExtension(path: String?): String {
         val raw = path.orEmpty().substringBefore('?').substringBefore('#')
         val decoded = if ('%' in raw) runCatching {

@@ -228,13 +228,16 @@ internal class YEntryCleanerRepository(
         scheme: String? = null, path: String? = null,
     ): List<String> = when (surface) {
         YEntrySurface.Open -> {
-            if (qualifier.startsWith("preset:")) return listOf(qualifier, "*")
-            val protocol = scheme ?: qualifier.takeIf { it.startsWith("scheme:") }
-                ?.removePrefix("scheme:")
-            YEntryOpenQualifiers.qualifiers(
-                qualifier.takeUnless { it.startsWith("scheme:") }, protocol,
-                path, openCustomDefinitions(),
-            )
+            if (qualifier.startsWith("preset:")) {
+                listOf(qualifier, "*")
+            } else {
+                val protocol = scheme ?: qualifier.takeIf { it.startsWith("scheme:") }
+                    ?.removePrefix("scheme:")
+                YEntryOpenQualifiers.qualifiers(
+                    qualifier.takeUnless { it.startsWith("scheme:") }, protocol,
+                    path, openCustomDefinitions(),
+                )
+            }
         }
         YEntrySurface.ShareText, YEntrySurface.ShareImage, YEntrySurface.ProcessText ->
             if ('/' in qualifier) listOf(qualifier, qualifier.substringBefore('/') + "/*", "*").distinct()
@@ -377,8 +380,12 @@ internal class YEntryCleanerRepository(
                     val qualifier = openMime()
                     val targetMime = if (qualifier.startsWith("preset:")) {
                         val slot = qualifier.removePrefix("preset:")
-                        customDraft(slot).mimeTypes.substringBefore(',').trim()
-                            .ifBlank { "application/octet-stream" }
+                        if (slot.startsWith("CUSTOM_")) {
+                            customDraft(slot).mimeTypes.substringBefore(',').trim()
+                                .ifBlank { "application/octet-stream" }
+                        } else {
+                            YEntryOpenQualifiers.sampleMime(slot)
+                        }
                     } else qualifier
                     val intent = if (targetMime.startsWith("scheme:")) {
                         Intent(Intent.ACTION_VIEW,

@@ -32,6 +32,7 @@ import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidate
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidateState
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
+import com.yagay.ysuite.feature.yentrycleaner.api.YEntryOpenQualifiers
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.productui.featurelayout.YEntryCleanerWorkspace
 import com.yagay.ysuite.ui.YSuiteFeatureBackHandler
@@ -214,6 +215,21 @@ fun YEntryCleanerFeatureScreen(
                                 model::setOpenMime,
                         )
                         YSuiteFilterBar(
+                            options = YEntryOpenQualifiers.presetNames
+                                .filterNot { it.startsWith("CUSTOM_") }
+                                .map { preset ->
+                                    YSuiteFilterOption(
+                                        "preset:" + preset,
+                                        preset,
+                                    )
+                                },
+                            selectedId = state.openMime.takeIf {
+                                it.startsWith("preset:") &&
+                                    !it.startsWith("preset:CUSTOM_")
+                            },
+                            onSelected = model::setOpenMime,
+                        )
+                        YSuiteFilterBar(
                             options = (1..8).map { number ->
                                 YSuiteFilterOption(
                                     "CUSTOM_" + number,
@@ -250,11 +266,11 @@ fun YEntryCleanerFeatureScreen(
                                 text = stringResource(R.string.yentry_custom_reset),
                                 onClick = model::resetCustom,
                             )
-                            YSuiteSecondaryButton(
-                                text = stringResource(R.string.yentry_custom_use),
-                                onClick = model::useCustomSlot,
-                            )
                         }
+                        YSuiteSecondaryButton(
+                            text = stringResource(R.string.yentry_custom_use),
+                            onClick = model::useCustomSlot,
+                        )
                     }
                     YEntrySurface.Browser -> {
                         YSuiteSearchField(
