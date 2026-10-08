@@ -260,7 +260,7 @@ class YEntryComponentReconcileJobService :
                     command,
                 )
                     .redirectErrorStream(true)
-                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .redirectOutput(java.io.File("/dev/null"))
                     .start()
             // Avoid SIGPIPE and deadlocks when the root command writes output.
             // Redirect both streams before starting and do not close the pipe.
