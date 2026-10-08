@@ -13,7 +13,6 @@ import com.yagay.ysuite.productui.settings.ComposeSettingsChoiceGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsGroup
 import com.yagay.ysuite.productui.settings.ComposeSettingsSurface
 import com.yagay.ysuite.productui.settings.ComposeSettingsSwitch
-import com.yagay.ysuite.resources.LocaleController
 import com.yagay.ysuite.settings.AppSettingsRepository
 import com.yagay.ysuite.settings.AppThemeMode
 import com.yagay.ysuite.ui.YSuiteHostNavigationButton
@@ -24,7 +23,7 @@ fun SettingsFeatureScreen(
 ) {
     val context = LocalContext.current
     val viewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(repository),
+        factory = SettingsViewModelFactory(repository, context.applicationContext),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -126,10 +125,6 @@ fun SettingsFeatureScreen(
                 viewModel.setLanguageTag(
                     languageTag,
                 )
-                LocaleController.applyLanguageTag(
-                    context = context,
-                    languageTag = languageTag,
-                )
             },
         )
     }
@@ -137,10 +132,11 @@ fun SettingsFeatureScreen(
 
 private class SettingsViewModelFactory(
     private val repository: AppSettingsRepository,
+    private val context: android.content.Context,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(
         modelClass: Class<T>,
     ): T =
-        SettingsViewModel(repository) as T
+        SettingsViewModel(repository, context) as T
 }
