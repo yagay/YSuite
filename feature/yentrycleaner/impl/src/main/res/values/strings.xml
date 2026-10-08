@@ -81,4 +81,9 @@
     <string name="yentry_group_priority">App priority</string>
     <string name="yentry_pin_app">Prioritize app</string>
     <string name="yentry_unpin_app">Remove app priority</string>
+    <string name="yentry_more_filters">More filters</string>
+    <string name="yentry_hide_filters">Hide filters</string>
+    <string name="yentry_open_section_mime">MIME</string>
+    <string name="yentry_open_section_presets">File types</string>
+    <string name="yentry_open_section_custom">Custom</string>
 </resources>

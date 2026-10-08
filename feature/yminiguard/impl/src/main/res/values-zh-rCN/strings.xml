@@ -32,4 +32,6 @@
     <string name="yminiguard_synced">配置已同步。</string>
     <string name="yminiguard_reloaded">已请求引擎重载。</string>
     <string name="yminiguard_sync_failed">无法同步 LSPosed 配置。</string>
+    <string name="yminiguard_show_advanced">高级引擎设置</string>
+    <string name="yminiguard_hide_advanced">收起高级设置</string>
 </resources>

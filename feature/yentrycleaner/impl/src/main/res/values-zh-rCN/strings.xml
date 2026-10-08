@@ -81,4 +81,9 @@
     <string name="yentry_group_priority">应用优先排序</string>
     <string name="yentry_pin_app">应用优先</string>
     <string name="yentry_unpin_app">取消应用优先</string>
+    <string name="yentry_more_filters">更多筛选</string>
+    <string name="yentry_hide_filters">收起筛选</string>
+    <string name="yentry_open_section_mime">MIME 类型</string>
+    <string name="yentry_open_section_presets">文件类型</string>
+    <string name="yentry_open_section_custom">自定义</string>
 </resources>

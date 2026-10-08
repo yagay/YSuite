@@ -32,4 +32,6 @@
     <string name="yminiguard_synced">Configuration synchronized.</string>
     <string name="yminiguard_reloaded">Engine reload requested.</string>
     <string name="yminiguard_sync_failed">Unable to synchronize LSPosed configuration.</string>
+    <string name="yminiguard_show_advanced">Advanced engine options</string>
+    <string name="yminiguard_hide_advanced">Hide advanced options</string>
 </resources>

@@ -83,6 +83,8 @@ fun YEntryCleanerFeatureScreen(
     val state by
         model.state.collectAsStateWithLifecycle()
     val selected = model.selected()
+    var showFilters by remember { mutableStateOf(false) }
+    var openSection by remember { mutableStateOf("mime") }
     val importLauncher =
         rememberLauncherForActivityResult(
             contract =
@@ -149,6 +151,14 @@ fun YEntryCleanerFeatureScreen(
                             )
                     },
                 )
+                YSuiteSecondaryButton(
+                    text = stringResource(
+                        if (showFilters) R.string.yentry_hide_filters
+                        else R.string.yentry_more_filters,
+                    ),
+                    onClick = { showFilters = !showFilters },
+                )
+                if (showFilters) {
                 YSuiteFilterBar(
                     options =
                         YEntryAppFilter.entries.map {
@@ -185,6 +195,7 @@ fun YEntryCleanerFeatureScreen(
                             ?.let(model::setSelectionFilter)
                     },
                 )
+                }
                 when (state.surface) {
                     YEntrySurface.Open -> {
                         YSuiteSearchField(
@@ -197,6 +208,16 @@ fun YEntryCleanerFeatureScreen(
                                         .yentry_open_mime,
                                 ),
                         )
+                        YSuiteFilterBar(
+                            options = listOf(
+                                YSuiteFilterOption("mime", stringResource(R.string.yentry_open_section_mime)),
+                                YSuiteFilterOption("preset", stringResource(R.string.yentry_open_section_presets)),
+                                YSuiteFilterOption("custom", stringResource(R.string.yentry_open_section_custom)),
+                            ),
+                            selectedId = openSection,
+                            onSelected = { openSection = it },
+                        )
+                        if (openSection == "mime") {
                         YSuiteFilterBar(
                             options =
                                 OPEN_MIME_PRESETS.map {
@@ -214,6 +235,8 @@ fun YEntryCleanerFeatureScreen(
                             onSelected =
                                 model::setOpenMime,
                         )
+                        }
+                        if (openSection == "preset") {
                         YSuiteFilterBar(
                             options = YEntryOpenQualifiers.presetNames
                                 .filterNot { it.startsWith("CUSTOM_") }
@@ -229,6 +252,8 @@ fun YEntryCleanerFeatureScreen(
                             },
                             onSelected = model::setOpenMime,
                         )
+                        }
+                        if (openSection == "custom") {
                         YSuiteFilterBar(
                             options = (1..8).map { number ->
                                 YSuiteFilterOption(
@@ -271,6 +296,7 @@ fun YEntryCleanerFeatureScreen(
                             text = stringResource(R.string.yentry_custom_use),
                             onClick = model::useCustomSlot,
                         )
+                        }
                     }
                     YEntrySurface.Browser -> {
                         YSuiteSearchField(

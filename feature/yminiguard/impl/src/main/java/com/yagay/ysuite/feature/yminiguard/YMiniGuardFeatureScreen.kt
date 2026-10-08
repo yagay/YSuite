@@ -10,6 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -135,6 +138,7 @@ private fun MainList(
     state: YMiniGuardUiState,
     model: YMiniGuardViewModel,
 ) {
+    var showAdvanced by remember { mutableStateOf(false) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
@@ -151,6 +155,14 @@ private fun MainList(
                         model.updateSettings { old -> old.copy(masterEnabled = it) }
                     },
                 )
+                YSuiteSecondaryButton(
+                    text = stringResource(
+                        if (showAdvanced) R.string.yminiguard_hide_advanced
+                        else R.string.yminiguard_show_advanced,
+                    ),
+                    onClick = { showAdvanced = !showAdvanced },
+                )
+                if (showAdvanced) {
                 YSuiteSwitchItem(
                     title = stringResource(R.string.yminiguard_importance_top),
                     checked = state.settings.importanceTop,
@@ -212,6 +224,7 @@ private fun MainList(
                         title = stringResource(R.string.yminiguard_diagnostic_snapshot),
                         subtitle = state.diagnostics.take(4_000),
                     )
+                }
                 }
             }
         }
