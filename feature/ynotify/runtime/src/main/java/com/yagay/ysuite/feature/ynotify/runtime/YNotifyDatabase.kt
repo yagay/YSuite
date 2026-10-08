@@ -69,7 +69,8 @@ internal class YNotifyDatabase(
                 classification_version INTEGER NOT NULL DEFAULT 1,
                 classification_locked INTEGER NOT NULL DEFAULT 0,
                 original_event_type TEXT,
-                classification_source TEXT
+                classification_source TEXT,
+                merged_into_id INTEGER
             )
             """.trimIndent(),
         )
@@ -87,6 +88,7 @@ internal class YNotifyDatabase(
         )
         createDetailsTable(db)
         createRevisionsTable(db)
+        createMergeIndex(db)
     }
 
     override fun onUpgrade(
@@ -104,6 +106,10 @@ internal class YNotifyDatabase(
             db.execSQL("ALTER TABLE events ADD COLUMN classification_locked INTEGER NOT NULL DEFAULT 0")
             db.execSQL("ALTER TABLE events ADD COLUMN original_event_type TEXT")
             db.execSQL("ALTER TABLE events ADD COLUMN classification_source TEXT")
+        }
+        if (oldVersion < 5) {
+            db.execSQL("ALTER TABLE events ADD COLUMN merged_into_id INTEGER")
+            createMergeIndex(db)
         }
     }
 
@@ -129,7 +135,7 @@ internal class YNotifyDatabase(
                 db.query(
                     "events",
                     arrayOf("event_key", "posted_at", "removed_at"),
-                    "notification_key = ?",
+                    "notification_key = ? AND merged_into_id IS NULL",
                     arrayOf(event.notificationKey),
                     null, null,
                     "posted_at DESC, id DESC",
@@ -256,8 +262,9 @@ internal class YNotifyDatabase(
         val result = mutableListOf<YNotifyRevision>()
         readableDatabase.query(
             "notification_revisions", null,
-            "event_key = ?", arrayOf(eventKey),
-            null, null, "sequence DESC", "100",
+            "event_key IN (SELECT event_key FROM events WHERE event_key = ? OR merged_into_id = (SELECT id FROM events WHERE event_key = ?))",
+            arrayOf(eventKey, eventKey),
+            null, null, "captured_at DESC, sequence DESC", "100",
         ).use { cursor ->
             val number = cursor.getColumnIndexOrThrow("sequence")
             val at = cursor.getColumnIndexOrThrow("captured_at")
@@ -338,6 +345,7 @@ internal class YNotifyDatabase(
             "events",
             null,
             null,
+            "merged_into_id IS NULL",
             null,
             null,
             null,
@@ -531,6 +539,7 @@ internal class YNotifyDatabase(
                    COUNT(*),
                    MAX(updated_at)
             FROM events
+            WHERE merged_into_id IS NULL
             GROUP BY package_name
             ORDER BY MAX(updated_at) DESC
             """.trimIndent(),
@@ -562,7 +571,7 @@ internal class YNotifyDatabase(
 
     fun count(): Int =
         readableDatabase.rawQuery(
-            "SELECT COUNT(*) FROM events",
+            "SELECT COUNT(*) FROM events WHERE merged_into_id IS NULL",
             null,
         ).use {
             if (it.moveToFirst()) it.getInt(0) else 0
@@ -577,6 +586,11 @@ internal class YNotifyDatabase(
             arrayOf(cutoff.toString()),
         )
         if (removed > 0) {
+            writableDatabase.execSQL(
+                "UPDATE events SET merged_into_id = NULL " +
+                    "WHERE merged_into_id IS NOT NULL AND merged_into_id NOT IN " +
+                    "(SELECT id FROM events)",
+            )
             writableDatabase.execSQL(
                 "DELETE FROM event_details " +
                     "WHERE event_key NOT IN " +
@@ -774,6 +788,7 @@ internal class YNotifyDatabase(
                     )
                 }
             }
+            mergeHistoricalNotificationUpdates(db)
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
@@ -843,6 +858,99 @@ internal class YNotifyDatabase(
             )
             invalidations.tryEmit(Unit)
         }
+    }
+
+    /**
+     * Port of the original YNotify notification lifecycle grouping.
+     * Nothing is deleted: secondary rows retain their own revisions and detail
+     * blobs, while timeline, search and aggregates show only canonical rows.
+     * A manual classification always prevents either side from being merged.
+     */
+    private fun mergeHistoricalNotificationUpdates(db: SQLiteDatabase): Int {
+        data class Entry(
+            val id: Long,
+            val key: String,
+            val pkg: String,
+            val posted: Long,
+            val updated: Long,
+            val removed: Long?,
+            val longLived: Boolean,
+            val locked: Boolean,
+        )
+        val merges = mutableListOf<Pair<Long, Long>>()
+        var previous: Entry? = null
+        db.rawQuery(
+            """
+            SELECT id, notification_key, package_name, posted_at, updated_at,
+                   removed_at, ongoing, foreground_service, progress,
+                   progress_max, progress_indeterminate, classification_locked
+            FROM events
+            WHERE merged_into_id IS NULL AND event_type = 'Notification'
+              AND notification_key IS NOT NULL AND notification_key != ''
+            ORDER BY notification_key, package_name, posted_at, id
+            """.trimIndent(),
+            null,
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val next = Entry(
+                    id = cursor.getLong(0),
+                    key = cursor.getString(1),
+                    pkg = cursor.getString(2),
+                    posted = cursor.getLong(3),
+                    updated = cursor.getLong(4),
+                    removed = if (cursor.isNull(5)) null else cursor.getLong(5),
+                    longLived = cursor.getInt(6) != 0 || cursor.getInt(7) != 0 ||
+                        cursor.getInt(8) > 0 || cursor.getInt(9) > 0 ||
+                        cursor.getInt(10) != 0,
+                    locked = cursor.getInt(11) != 0,
+                )
+                val canonical = previous
+                val sameGroup = canonical != null &&
+                    canonical.key == next.key && canonical.pkg == next.pkg
+                val gap = if (canonical != null)
+                    (next.posted - maxOf(canonical.posted, canonical.updated)).coerceAtLeast(0L)
+                else Long.MAX_VALUE
+                val window = if (canonical != null && (canonical.longLived || next.longLived))
+                    86_400_000L else 600_000L
+                val sameLifecycle = sameGroup && !next.locked &&
+                    canonical?.locked == false && gap <= window &&
+                    (canonical.removed == null || next.posted <= canonical.removed + 2_000L)
+                if (sameLifecycle && canonical != null) {
+                    merges += next.id to canonical.id
+                    previous = canonical.copy(
+                        updated = maxOf(canonical.updated, next.updated),
+                        removed = next.removed ?: canonical.removed,
+                        longLived = canonical.longLived || next.longLived,
+                    )
+                } else {
+                    previous = next
+                }
+            }
+        }
+        for ((secondary, canonical) in merges) {
+            db.execSQL(
+                """
+                UPDATE events SET
+                    updated_at = MAX(updated_at, (SELECT updated_at FROM events WHERE id = ?)),
+                    removed_at = COALESCE((SELECT removed_at FROM events WHERE id = ?), removed_at),
+                    heads_up = MAX(heads_up, (SELECT heads_up FROM events WHERE id = ?)),
+                    bubble_shown = MAX(bubble_shown, (SELECT bubble_shown FROM events WHERE id = ?)),
+                    full_screen_shown = MAX(full_screen_shown, (SELECT full_screen_shown FROM events WHERE id = ?))
+                WHERE id = ? AND classification_locked = 0
+                """.trimIndent(),
+                arrayOf(secondary, secondary, secondary, secondary, secondary, canonical),
+            )
+            db.execSQL(
+                """
+                UPDATE events SET merged_into_id = ?,
+                    classification_version = ?,
+                    classification_source = 'repair:merged-notification-update'
+                WHERE id = ? AND merged_into_id IS NULL AND classification_locked = 0
+                """.trimIndent(),
+                arrayOf(canonical, CLASSIFICATION_VERSION, secondary),
+            )
+        }
+        return merges.size
     }
 
     private fun queryDetails(
@@ -1144,11 +1252,17 @@ internal class YNotifyDatabase(
 
     companion object {
         const val CLASSIFICATION_VERSION = 4
-        private const val DATABASE_VERSION = 4
+        private const val DATABASE_VERSION = 5
         private const val SEARCH_PAGE_SIZE = 500
         val invalidations = MutableSharedFlow<Unit>(
             extraBufferCapacity = 32,
         )
+
+        private fun createMergeIndex(db: SQLiteDatabase) {
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_ynotify_merged ON events(merged_into_id)",
+            )
+        }
 
         private fun createDetailsTable(
             db: SQLiteDatabase,
