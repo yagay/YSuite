@@ -260,9 +260,11 @@ internal class YPowerRepository(
                     if (outcome.value.exitCode == 0) {
                         applied += id
                     } else {
-                        notes +=
+                        errors +=
                             id +
-                                ": " +
+                                ": exit=" +
+                                outcome.value.exitCode +
+                                " " +
                                 outcome.value.stderr
                                     .ifBlank {
                                         outcome.value.stdout
@@ -294,21 +296,21 @@ internal class YPowerRepository(
             if (profile.backgroundOps) {
                 run(
                     "background_ops",
-                    "cmd appops set $pkg RUN_IN_BACKGROUND allow; " +
-                        "cmd appops set $pkg RUN_ANY_IN_BACKGROUND allow; " +
+                    "cmd appops set $pkg RUN_IN_BACKGROUND allow && " +
+                        "cmd appops set $pkg RUN_ANY_IN_BACKGROUND allow && " +
                         "cmd appops set $pkg START_FOREGROUND allow",
                 )
             } else {
                 run(
                     "background_ops_reset",
-                    "cmd appops set $pkg RUN_IN_BACKGROUND default; " +
+                    "cmd appops set $pkg RUN_IN_BACKGROUND default && " +
                         "cmd appops set $pkg RUN_ANY_IN_BACKGROUND default",
                 )
             }
             if (profile.standbyActive) {
                 run(
                     "standby_active",
-                    "am set-inactive $pkg false; " +
+                    "am set-inactive $pkg false && " +
                         "am set-standby-bucket $pkg active",
                 )
             }
@@ -399,7 +401,7 @@ internal class YPowerRepository(
                     "hook_target_restart",
                     "am force-stop " +
                         pkg +
-                        " || true",
+                        "",
                 )
             } else if (
                 profile.enabled &&
@@ -538,7 +540,7 @@ internal class YPowerRepository(
                                 shellQuote(
                                     packageName,
                                 ) +
-                                " || true",
+                                "",
                         timeoutMillis =
                             8_000L,
                     ),
@@ -701,7 +703,7 @@ internal class YPowerRepository(
                     command =
                         "am force-stop " +
                             shellQuote(packageName) +
-                            " || true",
+                            "",
                     timeoutMillis = 8_000L,
                 ),
             )
