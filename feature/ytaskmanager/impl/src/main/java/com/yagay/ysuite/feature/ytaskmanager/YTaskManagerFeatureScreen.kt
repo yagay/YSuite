@@ -95,6 +95,16 @@ fun YTaskManagerFeatureScreen(
                     tone = YSuiteStatusTone.Neutral,
                 )
             }
+            state.error?.let { error ->
+                YSuiteStatusBadge(
+                    text = taskFailureText(error),
+                    tone = YSuiteStatusTone.Error,
+                    modifier =
+                        Modifier.padding(
+                            horizontal = YSuiteSpacing.Medium,
+                        ),
+                )
+            }
         },
         filters = {
             Column(
@@ -378,31 +388,24 @@ private fun ProcessContent(
                 },
             )
         }
-        state.error?.let { error ->
-            item {
-                val text =
-                    when {
-                        error.startsWith("kill_failed:") ->
-                            stringResource(
-                                R.string.ytask_kill_failed,
-                                error.substringAfter(':'),
-                            )
-                        error.startsWith("force_stop_failed:") ->
-                            stringResource(
-                                R.string.ytask_force_stop_failed,
-                                error.substringAfter(':'),
-                            )
-                        else -> error
-                    }
-                YSuiteStatusBadge(
-                    text = text,
-                    tone = YSuiteStatusTone.Error,
-                    modifier = Modifier.padding(YSuiteSpacing.Medium),
-                )
-            }
-        }
     }
 }
+
+@Composable
+private fun taskFailureText(error: String): String =
+    when {
+        error.startsWith("kill_failed:") ->
+            stringResource(
+                R.string.ytask_kill_failed,
+                error.substringAfter(':'),
+            )
+        error.startsWith("force_stop_failed:") ->
+            stringResource(
+                R.string.ytask_force_stop_failed,
+                error.substringAfter(':'),
+            )
+        else -> error
+    }
 
 @Composable
 private fun ResourceContent(state: YTaskManagerUiState) {
