@@ -70,7 +70,7 @@ internal object YEntryBackupParser {
         val openTypes = source.optJSONObject("openTypes")
         if (openTypes != null &&
             listOf("rules", "priorities", "customDefinitions")
-                .any { openTypes.optJSONObject(it)?.length() ?: 0 > 0 }
+                .any { (openTypes.optJSONObject(it)?.length() ?: 0) > 0 }
         ) return null
 
         val mode = if (version >= 3) {
