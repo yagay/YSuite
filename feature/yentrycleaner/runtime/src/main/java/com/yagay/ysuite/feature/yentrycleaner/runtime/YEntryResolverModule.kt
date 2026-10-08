@@ -211,6 +211,7 @@ class YEntryResolverModule : XposedModule() {
                                         )
                                     rank[exact] ?:
                                         rank[wildcard] ?:
+                                        rank[ai.packageName] ?:
                                         Int.MAX_VALUE
                                 }
                             }.thenBy { it.index },

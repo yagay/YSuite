@@ -38,6 +38,7 @@
     <string name="yentry_component_protected">This component is protected from Root changes.</string>
     <string name="yentry_priority_up">Priority up</string>
     <string name="yentry_priority_down">Priority down</string>
+    <string name="yentry_priority_remove">Remove priority</string>
     <string name="yentry_component_changed">Component state verified.</string>
     <string name="yentry_component_failed">Component change could not be verified.</string>
 

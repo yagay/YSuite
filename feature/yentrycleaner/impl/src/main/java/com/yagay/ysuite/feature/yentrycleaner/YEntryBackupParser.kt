@@ -117,6 +117,7 @@ internal object YEntryBackupParser {
                 ?: return null
             if (!hosts.all(::validHost)) return null
             result["browser_hosts"] = hosts
+            hosts.firstOrNull()?.let { result["browser_host"] = it }
             val domainRules = browser.optJSONObject("rules")
             if (domainRules != null) {
                 for (host in domainRules.keys()) {

@@ -779,6 +779,12 @@ private fun CandidateDetail(
                                 )
                             },
                         )
+                        if (candidate.priority != null) {
+                            YSuiteSecondaryButton(
+                                text = stringResource(R.string.yentry_priority_remove),
+                                onClick = { model.removePriority(candidate) },
+                            )
+                        }
                     }
                 }
             }

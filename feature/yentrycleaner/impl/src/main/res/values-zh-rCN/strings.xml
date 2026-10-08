@@ -38,6 +38,7 @@
     <string name="yentry_component_protected">此组件禁止执行 Root 修改。</string>
     <string name="yentry_priority_up">提高优先级</string>
     <string name="yentry_priority_down">降低优先级</string>
+    <string name="yentry_priority_remove">取消优先排序</string>
     <string name="yentry_component_changed">组件状态已验证。</string>
     <string name="yentry_component_failed">无法验证组件状态修改。</string>
 

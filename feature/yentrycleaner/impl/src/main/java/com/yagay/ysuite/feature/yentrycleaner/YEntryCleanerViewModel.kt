@@ -205,6 +205,11 @@ internal class YEntryCleanerViewModel(
         syncAndRefresh()
     }
 
+    fun removePriority(candidate: YEntryCandidate) {
+        repository.removePriority(candidate)
+        syncAndRefresh()
+    }
+
     fun component(
         candidate: YEntryCandidate,
         enable: Boolean,
