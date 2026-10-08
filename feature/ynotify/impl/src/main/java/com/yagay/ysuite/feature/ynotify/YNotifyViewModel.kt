@@ -1,6 +1,11 @@
 package com.yagay.ysuite.feature.ynotify
 
 import android.content.Context
+import android.content.ComponentName
+import android.app.NotificationManager
+import android.service.notification.NotificationListenerService
+import com.yagay.ysuite.feature.ynotify.runtime.YNotifyNotificationListenerService
+import com.yagay.ysuite.feature.ynotify.runtime.YNotifyAccessibilityService
 import android.content.Intent
 import android.provider.Settings
 import androidx.lifecycle.ViewModel
@@ -12,6 +17,7 @@ import com.yagay.ysuite.feature.ynotify.api.YNotifyRuntimeStatus
 import com.yagay.ysuite.feature.ynotify.runtime.YNotifyRuntimeStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +28,12 @@ import kotlinx.coroutines.withContext
 enum class YNotifyViewMode {
     History,
     Apps,
+    Settings,
+}
+
+/** Matches the original YNotify timeline: visual presentation is not a type. */
+enum class YNotifyTimelineFilter {
+    All, Notifications, HeadsUp, Bubble, FullScreen, Toast, Dialog, Popup, Snackbar,
 }
 
 enum class YNotifyKindFilter {
@@ -66,6 +78,11 @@ data class YNotifyUiState(
     val query: String = "",
     val viewMode: YNotifyViewMode =
         YNotifyViewMode.History,
+    val timelineFilter: YNotifyTimelineFilter = YNotifyTimelineFilter.All,
+    val notificationAuthorized: Boolean = false,
+    val accessibilityAuthorized: Boolean = false,
+    val captureMessage: String? = null,
+    val loadError: String? = null,
     val typeFilter: YNotifyTypeFilter =
         YNotifyTypeFilter.All,
     val kindFilter: YNotifyKindFilter =
@@ -97,6 +114,14 @@ class YNotifyViewModel(
     private var searchJob: Job? = null
 
     init {
+        // The capture services may connect after the screen first opens.
+        // Observing the database alone never updates a newly granted permission.
+        viewModelScope.launch {
+            while (isActive) {
+                refreshCaptureState()
+                delay(4_000L)
+            }
+        }
         mutableState.value =
             mutableState.value.copy(
                 retentionDays =
@@ -142,6 +167,61 @@ class YNotifyViewModel(
                 }
             }
         }
+    }
+
+    private suspend fun refreshCaptureState() {
+        val snapshot = withContext(Dispatchers.IO) {
+            val listener = ComponentName(
+                context, YNotifyNotificationListenerService::class.java,
+            )
+            val accessibility = ComponentName(
+                context, YNotifyAccessibilityService::class.java,
+            )
+            val notificationPermission = runCatching {
+                context.getSystemService(NotificationManager::class.java)
+                    .isNotificationListenerAccessGranted(listener)
+            }.getOrDefault(false)
+            val enabledServices = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+            ).orEmpty()
+            val accessibilityPermission = enabledServices.split(':').any {
+                ComponentName.unflattenFromString(it) == accessibility
+            }
+            Triple(store.status(), notificationPermission, accessibilityPermission)
+        }
+        mutableState.value = mutableState.value.copy(
+            runtimeStatus = snapshot.first,
+            notificationAuthorized = snapshot.second,
+            accessibilityAuthorized = snapshot.third,
+        )
+    }
+
+    fun requestReconnect() {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    NotificationListenerService.requestRebind(
+                        ComponentName(
+                            context, YNotifyNotificationListenerService::class.java,
+                        ),
+                    )
+                }
+            }
+            mutableState.value = mutableState.value.copy(
+                captureMessage = if (result.isSuccess) "rebind_requested"
+                    else "rebind_failed",
+            )
+            refreshCaptureState()
+        }
+    }
+
+    fun setTimelineFilter(value: YNotifyTimelineFilter) {
+        mutableState.value = mutableState.value.copy(
+            timelineFilter = value,
+            typeFilter = YNotifyTypeFilter.All,
+            kindFilter = YNotifyKindFilter.All,
+        )
     }
 
     fun setQuery(value: String) {
@@ -213,6 +293,7 @@ class YNotifyViewModel(
         mutableState.value =
             mutableState.value.copy(
                 typeFilter = value,
+                timelineFilter = YNotifyTimelineFilter.All,
             )
     }
 
@@ -222,6 +303,7 @@ class YNotifyViewModel(
         mutableState.value =
             mutableState.value.copy(
                 kindFilter = value,
+                timelineFilter = YNotifyTimelineFilter.All,
             )
     }
 
@@ -280,6 +362,21 @@ class YNotifyViewModel(
                     ?: emptyList()
             }
         return source.filter { event ->
+            val timelineMatch = when (state.timelineFilter) {
+                YNotifyTimelineFilter.All -> true
+                YNotifyTimelineFilter.Notifications ->
+                    event.eventType == YNotifyEventType.Notification
+                YNotifyTimelineFilter.HeadsUp ->
+                    event.eventType == YNotifyEventType.Notification && event.headsUp
+                YNotifyTimelineFilter.Bubble ->
+                    event.eventType == YNotifyEventType.Notification && event.bubbleShown
+                YNotifyTimelineFilter.FullScreen ->
+                    event.eventType == YNotifyEventType.Notification && event.fullScreenShown
+                YNotifyTimelineFilter.Toast -> event.eventType == YNotifyEventType.Toast
+                YNotifyTimelineFilter.Dialog -> event.eventType == YNotifyEventType.Dialog
+                YNotifyTimelineFilter.Popup -> event.eventType == YNotifyEventType.Popup
+                YNotifyTimelineFilter.Snackbar -> event.eventType == YNotifyEventType.Snackbar
+            }
             val typeMatch =
                 when (state.typeFilter) {
                     YNotifyTypeFilter.All -> true
@@ -371,7 +468,7 @@ class YNotifyViewModel(
                             needle,
                             ignoreCase = true,
                         ) == true
-            typeMatch &&
+            timelineMatch && typeMatch &&
                 packageMatch &&
                 kindMatch &&
                 textMatch
@@ -469,26 +566,39 @@ class YNotifyViewModel(
     }
 
     fun openNotificationAccess() {
-        openSettings(
-            Settings
-                .ACTION_NOTIFICATION_LISTENER_SETTINGS,
+        val component = ComponentName(
+            context, YNotifyNotificationListenerService::class.java,
         )
+        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+            .putExtra(
+                Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
+                component.flattenToString(),
+            )
+        if (!openSettingsSafely(intent)) {
+            openSettings(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+        }
     }
 
     fun openAccessibility() {
-        openSettings(
-            Settings.ACTION_ACCESSIBILITY_SETTINGS,
-        )
+        val component = ComponentName(context, YNotifyAccessibilityService::class.java)
+        val intent = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS")
+            .putExtra(Intent.EXTRA_COMPONENT_NAME, component)
+        if (!openSettingsSafely(intent)) {
+            openSettings(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        }
     }
 
+    private fun openSettingsSafely(intent: Intent): Boolean =
+        runCatching {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.isSuccess
+
     private fun openSettings(action: String) {
-        context.startActivity(
-            Intent(action).apply {
-                addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK,
-                )
-            },
-        )
+        if (!openSettingsSafely(Intent(action))) {
+            mutableState.value = mutableState.value.copy(
+                captureMessage = "settings_unavailable",
+            )
+        }
     }
 
     class Factory(
