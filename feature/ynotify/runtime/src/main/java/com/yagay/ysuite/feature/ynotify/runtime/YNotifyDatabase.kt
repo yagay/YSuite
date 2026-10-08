@@ -113,9 +113,10 @@ internal class YNotifyDatabase(
                 }
             }
             if (oldPostedAt != null) {
-                // The latest notification was already removed; only a truly
-                // newer posting of the same key may start another generation.
-                if (wasRemoved && event.postedAt <= oldPostedAt!!) return
+                // Ignore delayed updates from an older posting of this key.
+                // A removed posting may be revived only by a newer postTime.
+                if (event.postedAt < oldPostedAt!!) return
+                if (wasRemoved && event.postedAt == oldPostedAt) return
                 values.remove("id")
                 if (event.postedAt == oldPostedAt) {
                     values.remove("heads_up")

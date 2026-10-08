@@ -63,7 +63,9 @@ internal object YEntryBackupParser {
                 // Physical component disablement is never restored from a rules backup.
                 // Keep the installed device's actual Root component state unchanged.
                 key == "disabled_components" -> Unit
-                else -> Unit
+                // Refuse unknown future configuration rather than silently
+                // reporting a lossy successful restore.
+                else -> return null
             }
         }
         return result.takeIf { it.isNotEmpty() }
@@ -122,7 +124,12 @@ internal object YEntryBackupParser {
                     ?: return null
                 if (!values.all(::validPackage)) return null
                 for (surface in mapped) {
-                    result[priorityKey(surface, "*")] = values.joinToString(">")
+                    val storageKey = priorityKey(surface, "*")
+                    val encoded = values.joinToString(">")
+                    if (result.containsKey(storageKey) &&
+                        result[storageKey] != encoded
+                    ) return null
+                    result[storageKey] = encoded
                     indexedQualifiers += surface.name + "|*"
                 }
             }

@@ -287,13 +287,13 @@ internal class YPowerRepository(
         if (rootAvailable) {
             run(
                 "doze",
-                if (profile.dozeWhitelist) {
+                if (profile.enabled && profile.dozeWhitelist) {
                     "cmd deviceidle whitelist +$pkg"
                 } else {
                     "cmd deviceidle whitelist -$pkg"
                 },
             )
-            if (profile.backgroundOps) {
+            if (profile.enabled && profile.backgroundOps) {
                 run(
                     "background_ops",
                     "cmd appops set $pkg RUN_IN_BACKGROUND allow && " +
@@ -307,22 +307,28 @@ internal class YPowerRepository(
                         "cmd appops set $pkg RUN_ANY_IN_BACKGROUND default",
                 )
             }
-            if (profile.standbyActive) {
+            if (profile.enabled && profile.standbyActive) {
                 run(
                     "standby_active",
                     "am set-inactive $pkg false && " +
                         "am set-standby-bucket $pkg active",
                 )
             }
-            if (profile.backgroundData) {
+            if (profile.enabled && profile.backgroundData) {
                 run(
                     "background_data",
                     "cmd netpolicy add " +
                         "restrict-background-whitelist $uid",
                 )
+            } else {
+                run(
+                    "background_data_reset",
+                    "cmd netpolicy remove " +
+                        "restrict-background-whitelist $uid",
+                )
             }
     
-            if (profile.autoGrantDangerous) {
+            if (profile.enabled && profile.autoGrantDangerous) {
                 dangerousPermissions(profile.packageName)
                     .forEach { permission ->
                         run(
