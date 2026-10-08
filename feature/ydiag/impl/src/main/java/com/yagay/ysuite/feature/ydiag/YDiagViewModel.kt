@@ -53,15 +53,19 @@ class YDiagViewModel(
     init {
         refreshApps()
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(
-                liveSessionActive =
+            val runtime = withContext(Dispatchers.IO) {
+                Triple(
                     repository.liveSessionActive(),
-                rootStatus =
                     runCatching { repository.rootStatus() }
                         .getOrDefault(CapabilityStatus.Error),
-                hookStatus =
                     runCatching { repository.hookStatus() }
                         .getOrDefault(CapabilityStatus.Error),
+                )
+            }
+            mutableState.value = mutableState.value.copy(
+                liveSessionActive = runtime.first,
+                rootStatus = runtime.second,
+                hookStatus = runtime.third,
             )
         }
     }
@@ -143,31 +147,55 @@ class YDiagViewModel(
     }
 
     fun startLiveSession() {
-        val packageName =
-            mutableState.value.selectedPackage
-                ?: return
-        repository.startLiveSession(
-            packageName,
-            mutableState.value.enabledOptions,
-        )
-        mutableState.value =
-            mutableState.value.copy(
-                liveSessionActive = true,
-                error = null,
-            )
+        val packageName = mutableState.value.selectedPackage ?: return
+        val options = mutableState.value.enabledOptions
+        viewModelScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    repository.startLiveSession(packageName, options)
+                }
+            }.onSuccess {
+                mutableState.value = mutableState.value.copy(
+                    liveSessionActive = true,
+                    error = null,
+                )
+            }.onFailure { failure ->
+                mutableState.value = mutableState.value.copy(
+                    liveSessionActive = false,
+                    error = failure.message ?: failure.javaClass.simpleName,
+                )
+            }
+        }
     }
 
     fun markProblem() {
         if (!mutableState.value.liveSessionActive) return
-        repository.markProblem()
+        viewModelScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) { repository.markProblem() }
+            }.onFailure { failure ->
+                mutableState.value = mutableState.value.copy(
+                    error = failure.message ?: failure.javaClass.simpleName,
+                )
+            }
+        }
     }
 
     fun stopLiveSession() {
-        repository.stopLiveSession()
-        mutableState.value =
-            mutableState.value.copy(
-                liveSessionActive = false,
-            )
+        viewModelScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) { repository.stopLiveSession() }
+            }.onSuccess {
+                mutableState.value = mutableState.value.copy(
+                    liveSessionActive = false,
+                    error = null,
+                )
+            }.onFailure { failure ->
+                mutableState.value = mutableState.value.copy(
+                    error = failure.message ?: failure.javaClass.simpleName,
+                )
+            }
+        }
     }
 
     fun runDiagnostics() {

@@ -16,9 +16,11 @@ import com.yagay.ysuite.feature.yfiles.provider.archive.UniversalArchiveProvider
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.presentation.YSuiteViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class YFilesTab {
     Files,
@@ -270,9 +272,9 @@ class YFilesViewModel(
     ) {
         viewModelScope.launch {
             when (
-                val stat =
-                    environment.engine
-                        .stat(record.ref)
+                val stat = withContext(Dispatchers.IO) {
+                    environment.engine.stat(record.ref)
+                }
             ) {
                 is Outcome.Success ->
                     if (
@@ -786,7 +788,8 @@ class YFilesViewModel(
         }
 
         viewModelScope.launch {
-            val result = when (prompt) {
+            val result = withContext(Dispatchers.IO) {
+                when (prompt) {
                 is YFilesNamePrompt
                     .CreateDirectory -> {
                     if (directory == null) {
@@ -818,6 +821,8 @@ class YFilesViewModel(
                         )
             }
 
+            }
+
             when (result) {
                 is Outcome.Success -> {
                     markSingleSuccess()
@@ -844,11 +849,13 @@ class YFilesViewModel(
             state.value.directory ?: return
 
         viewModelScope.launch {
-            environment.transfers.enqueue(
-                sources = clipboard.refs,
-                destination = destination,
-                move = clipboard.move,
-            )
+            withContext(Dispatchers.IO) {
+                environment.transfers.enqueue(
+                    sources = clipboard.refs,
+                    destination = destination,
+                    move = clipboard.move,
+                )
+            }
             updateState {
                 it.copy(
                     clipboard = null,
@@ -868,9 +875,9 @@ class YFilesViewModel(
             return
         }
         viewModelScope.launch {
-            val result =
-                environment.trash
-                    .moveToTrash(refs)
+            val result = withContext(Dispatchers.IO) {
+                environment.trash.moveToTrash(refs)
+            }
             updateState {
                 it.copy(
                     selected = emptySet(),
@@ -890,9 +897,9 @@ class YFilesViewModel(
             return
         }
         viewModelScope.launch {
-            val result =
-                environment.engine
-                    .deleteBatch(refs)
+            val result = withContext(Dispatchers.IO) {
+                environment.engine.deleteBatch(refs)
+            }
             updateState {
                 it.copy(
                     selected = emptySet(),
@@ -908,10 +915,9 @@ class YFilesViewModel(
         id: String,
     ) {
         viewModelScope.launch {
-            val result =
-                environment.trash.restore(
-                    setOf(id),
-                )
+            val result = withContext(Dispatchers.IO) {
+                environment.trash.restore(setOf(id))
+            }
             updateState {
                 it.copy(
                     operationResult = result,
@@ -923,8 +929,9 @@ class YFilesViewModel(
 
     fun emptyTrash() {
         viewModelScope.launch {
-            val result =
+            val result = withContext(Dispatchers.IO) {
                 environment.trash.empty()
+            }
             updateState {
                 it.copy(
                     operationResult = result,
@@ -976,8 +983,9 @@ class YFilesViewModel(
         viewModelScope.launch {
             val status =
                 runCatching {
-                    environment.shizukuGateway
-                        .status()
+                    withContext(Dispatchers.IO) {
+                        environment.shizukuGateway.status()
+                    }
                 }.getOrDefault(
                     CapabilityStatus.Error,
                 )
@@ -993,8 +1001,9 @@ class YFilesViewModel(
         viewModelScope.launch {
             val status =
                 runCatching {
-                    environment.rootGateway
-                        .status()
+                    withContext(Dispatchers.IO) {
+                        environment.rootGateway.status()
+                    }
                 }.getOrDefault(
                     CapabilityStatus.Error,
                 )
@@ -1167,9 +1176,9 @@ class YFilesViewModel(
                 it.copy(loading = true)
             }
             when (
-                val mounted =
-                    environment.archives
-                        .mount(node.ref)
+                val mounted = withContext(Dispatchers.IO) {
+                    environment.archives.mount(node.ref)
+                }
             ) {
                 is Outcome.Success ->
                     navigate(
@@ -1194,24 +1203,30 @@ class YFilesViewModel(
         }
 
         when (
-            val result =
+            val result = withContext(Dispatchers.IO) {
                 environment.engine.list(
                     directory,
                     YFileQuery(
                         text = current.query,
-                        recursive =
-                            current.recursive,
-                        showHidden =
-                            current.showHidden,
+                        recursive = current.recursive,
+                        showHidden = current.showHidden,
                         sort = current.sort,
-                        descending =
-                            current.descending,
+                        descending = current.descending,
                     ),
                 )
+            }
         ) {
             is Outcome.Success ->
                 updateState {
-                    it.copy(
+                    if (
+                        it.directory != directory ||
+                        it.mode != YFilesBrowserMode.Directory ||
+                        it.query != current.query ||
+                        it.sort != current.sort ||
+                        it.descending != current.descending ||
+                        it.showHidden != current.showHidden ||
+                        it.recursive != current.recursive
+                    ) it else it.copy(
                         entries =
                             result.value
                                 .filterNot {
@@ -1224,7 +1239,7 @@ class YFilesViewModel(
                     )
                 }
             is Outcome.Failure ->
-                showFailure(result)
+                if (state.value.directory == directory) showFailure(result)
         }
     }
 
@@ -1241,8 +1256,9 @@ class YFilesViewModel(
 
     private fun refreshTrash() {
         viewModelScope.launch {
-            val records =
+            val records = withContext(Dispatchers.IO) {
                 environment.trash.records()
+            }
             updateState {
                 it.copy(
                     trashRecords = records,

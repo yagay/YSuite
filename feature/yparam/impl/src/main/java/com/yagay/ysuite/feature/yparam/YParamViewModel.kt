@@ -9,6 +9,7 @@ import com.yagay.ysuite.feature.yparam.api.YParamDefaults
 import com.yagay.ysuite.feature.yparam.api.YParamOverrides
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +44,7 @@ class YParamViewModel(
         YParamRepository(environment.applicationContext)
     private val mutableState = MutableStateFlow(YParamUiState())
     val state: StateFlow<YParamUiState> = mutableState.asStateFlow()
+    private var selectionJob: Job? = null
 
     init {
         reloadApps()
@@ -50,7 +52,9 @@ class YParamViewModel(
             mutableState.value = mutableState.value.copy(
                 hookStatus =
                     runCatching {
-                        environment.hookGateway.status()
+                        withContext(Dispatchers.IO) {
+                            environment.hookGateway.status()
+                        }
                     }.getOrDefault(CapabilityStatus.Error),
             )
         }
@@ -83,35 +87,42 @@ class YParamViewModel(
     }
 
     fun select(packageName: String?) {
-        if (packageName == null) {
-            mutableState.value = mutableState.value.copy(
-                selectedPackage = null,
-                draft = YParamOverrides(),
-                defaults = null,
-                baseline = null,
-                diagnostics = null,
-                message = null,
-            )
-            return
-        }
-        val value = repository.read(packageName)
-        val defaults = repository.defaults(packageName)
-        val baseline =
-            repository.baseline(packageName)
-        val diagnostics =
-            runCatching {
-                repository.diagnostics(
-                    packageName,
-                )
-            }.getOrNull()
+        selectionJob?.cancel()
         mutableState.value = mutableState.value.copy(
             selectedPackage = packageName,
-            draft = value,
-            defaults = defaults,
-            baseline = baseline,
-            diagnostics = diagnostics,
+            draft = YParamOverrides(),
+            defaults = null,
+            baseline = null,
+            diagnostics = null,
             message = null,
         )
+        if (packageName == null) return
+        selectionJob = viewModelScope.launch {
+            val details = runCatching {
+                withContext(Dispatchers.IO) {
+                    val overrides = repository.read(packageName)
+                    val defaults = repository.defaults(packageName)
+                    val baseline = repository.baseline(packageName)
+                    val diagnostics = runCatching {
+                        repository.diagnostics(packageName)
+                    }.getOrNull()
+                    Pair(Triple(overrides, defaults, baseline), diagnostics)
+                }
+            }
+            if (mutableState.value.selectedPackage != packageName) return@launch
+            details.onSuccess { (values, diagnostics) ->
+                mutableState.value = mutableState.value.copy(
+                    draft = values.first,
+                    defaults = values.second,
+                    baseline = values.third,
+                    diagnostics = diagnostics,
+                )
+            }.onFailure { error ->
+                mutableState.value = mutableState.value.copy(
+                    message = error.message ?: error.javaClass.simpleName,
+                )
+            }
+        }
     }
 
     fun applyPreset(id: String) {
@@ -211,21 +222,21 @@ class YParamViewModel(
                             value,
                         )
                     }
-                val configResult =
-                    environment.hookGateway
-                        .writeConfig(
+                withContext(Dispatchers.IO) {
+                    val configResult =
+                        environment.hookGateway.writeConfig(
                             group = "yparam",
-                            key =
-                                "app." +
-                                    packageName,
+                            key = "app." + packageName,
                             value = payload,
                         )
-                val scopeResult =
-                    environment.hookGateway
-                        .reload(
-                            setOf(packageName),
-                        )
-                configResult to scopeResult
+                    val scopeResult =
+                        if (configResult is Outcome.Success) {
+                            environment.hookGateway.reload(setOf(packageName))
+                        } else {
+                            configResult
+                        }
+                    configResult to scopeResult
+                }
             }.onSuccess {
                     (configResult, scopeResult) ->
                 mutableState.value = mutableState.value.copy(
@@ -265,10 +276,10 @@ class YParamViewModel(
         val packageName =
             mutableState.value.selectedPackage
                 ?: return
-        val previous =
-            repository.read(packageName)
-
         viewModelScope.launch {
+            val previous = withContext(Dispatchers.IO) {
+                repository.read(packageName)
+            }
             mutableState.value =
                 mutableState.value.copy(
                     saving = true,
