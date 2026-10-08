@@ -80,4 +80,10 @@
     <string name="yparam_reset_hook_unavailable">Restored persistently; restart the target app to apply because Hook reload is unavailable.</string>
     <string name="yparam_saved_target_restart">Saved to LSPosed. Restart the target app to apply process-initialized settings.</string>
     <string name="yparam_reset_target_restart">Defaults restored. Restart the target app to clear cached parameters.</string>
+    <string name="yparam_category_display">Display</string>
+    <string name="yparam_category_system">Language and system</string>
+    <string name="yparam_category_window">Window</string>
+    <string name="yparam_category_web">WebView</string>
+    <string name="yparam_category_location">Location</string>
+    <string name="yparam_category_diag">Diagnostics</string>
 </resources>

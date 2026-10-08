@@ -10,6 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -178,6 +181,7 @@ private fun ParamDetail(
         value = value,
         defaults = defaults,
     )
+    var category by remember(packageName) { mutableStateOf("display") }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
@@ -228,40 +232,7 @@ private fun ParamDetail(
                     selectedId = null,
                     onSelected = model::applyPreset,
                 )
-            }
-        }
-
-        fields.forEach { field ->
-            item(key = field.key) {
-                ParameterEditor(field, model::update)
-            }
-        }
-
-        item {
-            YParamDiagnosticContent(state)
-        }
-
-        item {
-            Column(
-                modifier = Modifier.padding(YSuiteSpacing.Medium),
-                verticalArrangement =
-                    Arrangement.spacedBy(YSuiteSpacing.Small),
-            ) {
-                state.message?.let {
-                    YSuiteStatusBadge(
-                        text = messageText(it),
-                        tone =
-                            if (it == "saved") {
-                                YSuiteStatusTone.Positive
-                            } else {
-                                YSuiteStatusTone.Warning
-                            },
-                    )
-                }
-                Row(
-                    horizontalArrangement =
-                        Arrangement.spacedBy(YSuiteSpacing.Small),
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small)) {
                     YSuitePrimaryButton(
                         text = stringResource(R.string.yparam_save),
                         onClick = model::save,
@@ -271,7 +242,57 @@ private fun ParamDetail(
                         onClick = model::reset,
                     )
                 }
+                state.message?.let {
+                    YSuiteStatusBadge(
+                        text = messageText(it),
+                        tone = if (it == "saved" || it == "saved_target_restart")
+                            YSuiteStatusTone.Positive else YSuiteStatusTone.Warning,
+                    )
+                }
             }
+        }
+
+        item {
+            YSuiteFilterBar(
+                options = listOf(
+                    YSuiteFilterOption("display", stringResource(R.string.yparam_category_display)),
+                    YSuiteFilterOption("system", stringResource(R.string.yparam_category_system)),
+                    YSuiteFilterOption("window", stringResource(R.string.yparam_category_window)),
+                    YSuiteFilterOption("web", stringResource(R.string.yparam_category_web)),
+                    YSuiteFilterOption("location", stringResource(R.string.yparam_category_location)),
+                    YSuiteFilterOption("diag", stringResource(R.string.yparam_category_diag)),
+                ),
+                selectedId = category,
+                onSelected = { category = it },
+            )
+        }
+
+        fields.filter { field ->
+            when (category) {
+                "display" -> field.key in setOf(
+                    "densityDpi", "widthPixels", "heightPixels", "smallestWidthDp",
+                    "screenWidthDp", "screenHeightDp", "fontScale", "xdpi",
+                    "ydpi", "refreshRate",
+                )
+                "system" -> field.key in setOf("localeTag", "timeZoneId", "nightMode")
+                "window" -> field.key in setOf(
+                    "orientation", "allowScreenshots", "keepScreenOn",
+                )
+                "web" -> field.key == "userAgent"
+                "location" -> field.key in setOf(
+                    "locationMode", "latitude", "longitude", "altitude", "accuracy",
+                    "speed", "bearing", "randomRadiusMeters", "locationUpdateIntervalMs",
+                )
+                else -> false
+            }
+        }.forEach { field ->
+            item(key = field.key) {
+                ParameterEditor(field, model::update)
+            }
+        }
+
+        if (category == "diag") item {
+            YParamDiagnosticContent(state)
         }
     }
 }
@@ -537,6 +558,8 @@ private fun filterLabel(value: YParamAppFilter): String =
 private fun messageText(value: String): String =
     when (value) {
         "saved" -> stringResource(R.string.yparam_saved)
+        "saved_target_restart" -> stringResource(R.string.yparam_saved_target_restart)
+        "reset_target_restart" -> stringResource(R.string.yparam_reset_target_restart)
         "saved_hook_reload_unavailable" ->
             stringResource(R.string.yparam_saved_hook_unavailable)
         "reset" ->

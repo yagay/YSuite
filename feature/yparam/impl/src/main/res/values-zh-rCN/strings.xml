@@ -80,4 +80,10 @@
     <string name="yparam_reset_hook_unavailable">已保存恢复状态；Hook 无法热重载，请重启目标应用后生效。</string>
     <string name="yparam_saved_target_restart">已写入 LSPosed。需要进程初始化的设置请重启目标应用后生效。</string>
     <string name="yparam_reset_target_restart">已恢复默认。请重启目标应用，清除进程中缓存的参数。</string>
+    <string name="yparam_category_display">显示和分辨率</string>
+    <string name="yparam_category_system">语言和系统</string>
+    <string name="yparam_category_window">窗口</string>
+    <string name="yparam_category_web">WebView</string>
+    <string name="yparam_category_location">定位</string>
+    <string name="yparam_category_diag">诊断</string>
 </resources>

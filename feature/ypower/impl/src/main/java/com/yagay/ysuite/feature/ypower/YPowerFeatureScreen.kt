@@ -10,6 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -285,6 +288,7 @@ private fun AppDetail(
     model: YPowerViewModel,
 ) {
     val profile = state.draft ?: return
+    var activeSection by remember(profile.packageName) { mutableStateOf("root") }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement =
@@ -319,6 +323,28 @@ private fun AppDetail(
                         }
                     },
                 )
+                YSuitePrimaryButton(
+                    text = stringResource(
+                        if (state.applying) R.string.ypower_applying
+                        else R.string.ypower_save_apply,
+                    ),
+                    onClick = model::saveAndApply,
+                )
+                state.statusToken?.let { token ->
+                    YSuiteStatusBadge(
+                        text = statusTokenText(token),
+                        tone = if (token == "applied") YSuiteStatusTone.Positive
+                            else YSuiteStatusTone.Warning,
+                    )
+                }
+                state.applyResult?.let { result ->
+                    YSuiteListItem(
+                        title = stringResource(
+                            R.string.ypower_apply_summary,
+                            result.applied.size, result.notes.size, result.errors.size,
+                        ),
+                    )
+                }
                 if (recommended) {
                     YSuiteStatusBadge(
                         text =
@@ -344,6 +370,19 @@ private fun AppDetail(
         }
 
         item {
+            YSuiteFilterBar(
+                options = listOf(
+                    YSuiteFilterOption("root", stringResource(R.string.ypower_root_enhancements)),
+                    YSuiteFilterOption("hook", stringResource(R.string.ypower_hook_compatibility)),
+                    YSuiteFilterOption("trace", stringResource(R.string.ypower_tracing)),
+                    YSuiteFilterOption("diag", stringResource(R.string.ypower_diagnostics)),
+                ),
+                selectedId = activeSection,
+                onSelected = { activeSection = it },
+            )
+        }
+
+        if (activeSection == "root") item {
             YSuiteSection(
                 title =
                     stringResource(
@@ -360,7 +399,7 @@ private fun AppDetail(
             }
         }
 
-        item {
+        if (activeSection == "hook") item {
             YSuiteSection(
                 title =
                     stringResource(
@@ -380,7 +419,7 @@ private fun AppDetail(
             }
         }
 
-        item {
+        if (activeSection == "trace") item {
             YSuiteSection(
                 title =
                     stringResource(
@@ -397,7 +436,7 @@ private fun AppDetail(
             }
         }
 
-        item {
+        if (activeSection == "diag") item {
             YSuiteSection(
                 title =
                     stringResource(
@@ -416,22 +455,6 @@ private fun AppDetail(
                             YSuiteSpacing.Small,
                         ),
                 ) {
-                    YSuitePrimaryButton(
-                        text =
-                            stringResource(
-                                if (
-                                    state.applying
-                                ) {
-                                    R.string
-                                        .ypower_applying
-                                } else {
-                                    R.string
-                                        .ypower_save_apply
-                                },
-                            ),
-                        onClick =
-                            model::saveAndApply,
-                    )
                     YSuiteSecondaryButton(
                         text =
                             stringResource(
