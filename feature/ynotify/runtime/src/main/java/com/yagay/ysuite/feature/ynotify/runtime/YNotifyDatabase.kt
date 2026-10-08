@@ -881,6 +881,10 @@ internal class YNotifyDatabase(
 
         fun changes(): SharedFlow<Unit> = invalidations
 
+        fun signalRuntimeStatusChanged() {
+            invalidations.tryEmit(Unit)
+        }
+
         fun classifyUiType(
             current: YNotifyEventType,
             source: String,

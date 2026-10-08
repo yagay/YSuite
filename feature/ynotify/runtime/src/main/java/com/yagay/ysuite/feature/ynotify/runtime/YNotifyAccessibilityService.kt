@@ -24,6 +24,7 @@ class YNotifyAccessibilityService :
         super.onServiceConnected()
         YNotifyRuntimeState
             .accessibilityConnected = true
+        YNotifyDatabase.signalRuntimeStatusChanged()
     }
 
     override fun onAccessibilityEvent(
@@ -153,12 +154,14 @@ class YNotifyAccessibilityService :
     override fun onUnbind(intent: Intent?): Boolean {
         YNotifyRuntimeState
             .accessibilityConnected = false
+        YNotifyDatabase.signalRuntimeStatusChanged()
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
         YNotifyRuntimeState
             .accessibilityConnected = false
+        YNotifyDatabase.signalRuntimeStatusChanged()
         executor.shutdownNow()
         super.onDestroy()
     }

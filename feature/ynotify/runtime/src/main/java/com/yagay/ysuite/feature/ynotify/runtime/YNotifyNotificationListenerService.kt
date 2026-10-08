@@ -25,6 +25,7 @@ class YNotifyNotificationListenerService :
         super.onListenerConnected()
         YNotifyRuntimeState
             .notificationListenerConnected = true
+        YNotifyDatabase.signalRuntimeStatusChanged()
         executor.execute {
             runCatching {
                 val ranking =
@@ -52,6 +53,7 @@ class YNotifyNotificationListenerService :
     override fun onListenerDisconnected() {
         YNotifyRuntimeState
             .notificationListenerConnected = false
+        YNotifyDatabase.signalRuntimeStatusChanged()
         super.onListenerDisconnected()
         runCatching {
             requestRebind(
@@ -103,6 +105,7 @@ class YNotifyNotificationListenerService :
     override fun onDestroy() {
         YNotifyRuntimeState
             .notificationListenerConnected = false
+        YNotifyDatabase.signalRuntimeStatusChanged()
         executor.shutdownNow()
         super.onDestroy()
     }
