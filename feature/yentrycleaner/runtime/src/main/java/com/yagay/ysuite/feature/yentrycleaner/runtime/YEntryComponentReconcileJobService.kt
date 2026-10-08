@@ -252,7 +252,7 @@ class YEntryComponentReconcileJobService :
         command: String,
     ): Boolean =
         runCatching {
-            if (stopped || Thread.currentThread().isInterrupted) return false
+            if (stopped || Thread.currentThread().isInterrupted) return@runCatching false
             val process =
                 ProcessBuilder(
                     "su",
