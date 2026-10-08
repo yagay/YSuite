@@ -250,6 +250,10 @@ fun YEntryCleanerFeatureScreen(
                                 text = stringResource(R.string.yentry_custom_reset),
                                 onClick = model::resetCustom,
                             )
+                            YSuiteSecondaryButton(
+                                text = stringResource(R.string.yentry_custom_use),
+                                onClick = model::useCustomSlot,
+                            )
                         }
                     }
                     YEntrySurface.Browser -> {

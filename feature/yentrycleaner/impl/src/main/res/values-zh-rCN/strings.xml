@@ -77,4 +77,5 @@
     <string name="yentry_custom_reset">删除自定义类型</string>
     <string name="yentry_custom_saved">自定义打开类型已保存并同步。</string>
     <string name="yentry_custom_invalid">自定义类型无效：请设置名称及有效的 MIME 或扩展名。</string>
+    <string name="yentry_custom_use">管理此类型的规则</string>
 </resources>

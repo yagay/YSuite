@@ -120,12 +120,11 @@ internal class YEntryCleanerRepository(
             }
 
     fun setOpenMime(value: String) {
+        val input = value.trim()
         val normalized =
-            value.trim()
-                .lowercase()
-                .ifBlank {
-                    "application/pdf"
-                }
+            if (input.startsWith("preset:", ignoreCase = true)) {
+                "preset:" + input.substringAfter(':').uppercase()
+            } else input.lowercase().ifBlank { "application/pdf" }
         prefs.edit()
             .putString(
                 "open_mime",
@@ -229,6 +228,7 @@ internal class YEntryCleanerRepository(
         scheme: String? = null, path: String? = null,
     ): List<String> = when (surface) {
         YEntrySurface.Open -> {
+            if (qualifier.startsWith("preset:")) return listOf(qualifier, "*")
             val protocol = scheme ?: qualifier.takeIf { it.startsWith("scheme:") }
                 ?.removePrefix("scheme:")
             YEntryOpenQualifiers.qualifiers(
@@ -374,12 +374,17 @@ internal class YEntryCleanerRepository(
                         "text/plain",
                     )
                 YEntrySurface.Open -> {
-                    val mime = openMime()
-                    val intent = if (mime.startsWith("scheme:")) {
+                    val qualifier = openMime()
+                    val targetMime = if (qualifier.startsWith("preset:")) {
+                        val slot = qualifier.removePrefix("preset:")
+                        customDraft(slot).mimeTypes.substringBefore(',').trim()
+                            .ifBlank { "application/octet-stream" }
+                    } else qualifier
+                    val intent = if (targetMime.startsWith("scheme:")) {
                         Intent(Intent.ACTION_VIEW,
-                            android.net.Uri.parse(mime.removePrefix("scheme:") + ":example"))
-                    } else Intent(Intent.ACTION_VIEW).setType(mime)
-                    queryIntent(intent, YEntrySurface.Open, mime)
+                            android.net.Uri.parse(targetMime.removePrefix("scheme:") + ":example"))
+                    } else Intent(Intent.ACTION_VIEW).setType(targetMime)
+                    queryIntent(intent, YEntrySurface.Open, qualifier)
                 }
                 YEntrySurface.Browser ->
                     queryIntent(

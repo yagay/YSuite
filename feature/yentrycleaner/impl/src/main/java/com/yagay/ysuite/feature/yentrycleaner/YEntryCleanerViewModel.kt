@@ -378,6 +378,10 @@ internal class YEntryCleanerViewModel(
         }
     }
 
+    fun useCustomSlot() {
+        setOpenMime("preset:" + mutableState.value.customSlot)
+    }
+
     fun setCustomSlot(slot: String) {
         if (slot !in (1..8).map { "CUSTOM_" + it }) return
         val draft = repository.customDraft(slot)
