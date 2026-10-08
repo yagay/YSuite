@@ -157,9 +157,23 @@ internal class YEntryCleanerRepository(
             .apply()
     }
 
+    private fun inheritedRuleKey(id: String): String? {
+        val parts = id.split('|', limit = 4)
+        if (parts.size != 4 || parts[1] == "*") return null
+        if (YEntrySurface.entries.none { it.name == parts[0] }) return null
+        return YEntryRuntimeBridge.ruleKey(
+            parts[0], "*", parts[2], parts[3],
+        )
+    }
+
     fun setHidden(id: String, value: Boolean) {
         val next = hidden().toMutableSet()
-        if (value) next += id else next -= id
+        if (value) {
+            next += id
+        } else {
+            next -= id
+            inheritedRuleKey(id)?.let(next::remove)
+        }
         prefs.edit()
             .putStringSet("hidden_rules", next)
             .apply()
@@ -171,7 +185,12 @@ internal class YEntryCleanerRepository(
 
     fun setLocked(ids: Set<String>, value: Boolean) {
         val next = locked().toMutableSet()
-        if (value) next.addAll(ids) else next.removeAll(ids)
+        if (value) {
+            next.addAll(ids)
+        } else {
+            next.removeAll(ids)
+            ids.mapNotNull(::inheritedRuleKey).forEach(next::remove)
+        }
         prefs.edit()
             .putStringSet("locked_rules", next)
             .apply()
@@ -992,8 +1011,12 @@ internal class YEntryCleanerRepository(
         candidates
             .filter { !it.locked && it.id !in locks }
             .forEach {
-                if (hidden) next += it.id
-                else next -= it.id
+                if (hidden) {
+                    next += it.id
+                } else {
+                    next -= it.id
+                    inheritedRuleKey(it.id)?.let(next::remove)
+                }
             }
         prefs.edit()
             .putStringSet(
