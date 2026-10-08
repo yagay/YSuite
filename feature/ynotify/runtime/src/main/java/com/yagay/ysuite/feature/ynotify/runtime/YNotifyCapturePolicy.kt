@@ -21,7 +21,7 @@ internal object YNotifyCapturePolicy {
         mutate(context, REDACTED, packageName, value)
 
     fun retentionDays(context: Context): Int =
-        prefs(context).getInt(RETENTION, 30).let { if (it in setOf(0, 7, 30, 90)) it else 30 }
+        prefs(context).getInt(RETENTION, 90).let { if (it in setOf(0, 7, 30, 90)) it else 90 }
 
     fun setRetentionDays(context: Context, days: Int) {
         require(days in setOf(0, 7, 30, 90))

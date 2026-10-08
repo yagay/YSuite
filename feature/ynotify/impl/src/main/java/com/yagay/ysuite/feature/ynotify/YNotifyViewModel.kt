@@ -101,7 +101,7 @@ data class YNotifyUiState(
             storedEventCount = 0,
         ),
     val exportUri: String? = null,
-    val retentionDays: Int = 30,
+    val retentionDays: Int = 90,
     val policyVersion: Int = 0,
 )
 
