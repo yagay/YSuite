@@ -403,7 +403,7 @@ internal class YEntryCleanerViewModel(
                 mutableState.value.copy(
                     busy = true,
                 )
-            val ok =
+            val result =
                 runCatching {
                     withContext(
                         Dispatchers.IO,
@@ -411,7 +411,7 @@ internal class YEntryCleanerViewModel(
                         repository
                             .importBackup(uri)
                     }
-                }.getOrDefault(false)
+                }.getOrDefault(YEntryImportResult.Invalid)
             mutableState.value =
                 mutableState.value.copy(
                     busy = false,
@@ -424,10 +424,10 @@ internal class YEntryCleanerViewModel(
                     diagnostic =
                         repository.diagnostic(),
                     statusToken =
-                        if (ok) {
-                            "backup_restored"
-                        } else {
-                            "backup_failed"
+                        when (result) {
+                            YEntryImportResult.Synced -> "backup_restored"
+                            YEntryImportResult.SavedLocally -> "backup_saved_local"
+                            YEntryImportResult.Invalid -> "backup_failed"
                         },
                 )
             refresh()

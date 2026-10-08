@@ -54,6 +54,7 @@
     <string name="yentry_import_backup">Import rules backup</string>
     <string name="yentry_backup_exported">Rules backup exported to Downloads/YSuite.</string>
     <string name="yentry_backup_restored">Rules backup restored and synchronized.</string>
+    <string name="yentry_backup_saved_local">Rules were imported locally, but LSPosed synchronization failed. Check module scope and retry.</string>
     <string name="yentry_backup_failed">Backup operation failed.</string>
     <string name="yentry_disable_visible">Disable visible</string>
     <string name="yentry_enable_visible">Enable visible</string>

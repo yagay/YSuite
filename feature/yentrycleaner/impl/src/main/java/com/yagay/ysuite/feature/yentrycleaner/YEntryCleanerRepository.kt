@@ -26,6 +26,12 @@ import kotlinx.coroutines.delay
 import org.json.JSONArray
 import org.json.JSONObject
 
+internal enum class YEntryImportResult {
+    Invalid,
+    SavedLocally,
+    Synced,
+}
+
 internal class YEntryCleanerRepository(
     private val context: Context,
     private val root: RootGateway,
@@ -947,7 +953,7 @@ internal class YEntryCleanerRepository(
 
     suspend fun importBackup(
         uri: Uri,
-    ): Boolean {
+    ): YEntryImportResult {
         val text =
             context.contentResolver
                 .openInputStream(uri)
@@ -965,7 +971,7 @@ internal class YEntryCleanerRepository(
                             out.length + count >
                             2_000_000
                         ) {
-                            return false
+                            return YEntryImportResult.Invalid
                         }
                         out.append(
                             buffer,
@@ -974,8 +980,8 @@ internal class YEntryCleanerRepository(
                         )
                     }
                     out.toString()
-                } ?: return false
-        val imported = YEntryBackupParser.parse(text) ?: return false
+                } ?: return YEntryImportResult.Invalid
+        val imported = YEntryBackupParser.parse(text) ?: return YEntryImportResult.Invalid
 
         // Validate the entire document before changing anything. Preserve the
         // device's actual disabled components and unrelated local settings.
@@ -995,11 +1001,15 @@ internal class YEntryCleanerRepository(
                     key,
                     value.filterIsInstance<String>().toSet(),
                 )
-                else -> return false
+                else -> return YEntryImportResult.Invalid
             }
         }
-        if (!editor.commit()) return false
-        return sync() is Outcome.Success
+        if (!editor.commit()) return YEntryImportResult.Invalid
+        return if (sync() is Outcome.Success) {
+            YEntryImportResult.Synced
+        } else {
+            YEntryImportResult.SavedLocally
+        }
     }
 
     suspend fun bulkHidden(

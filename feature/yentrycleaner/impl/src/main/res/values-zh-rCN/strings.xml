@@ -54,6 +54,7 @@
     <string name="yentry_import_backup">导入规则备份</string>
     <string name="yentry_backup_exported">规则备份已导出到 Downloads/YSuite。</string>
     <string name="yentry_backup_restored">规则备份已恢复并同步。</string>
+    <string name="yentry_backup_saved_local">规则已导入本地，但 LSPosed 同步失败。请检查模块和作用域后重试。</string>
     <string name="yentry_backup_failed">备份操作失败。</string>
     <string name="yentry_disable_visible">禁用当前可见</string>
     <string name="yentry_enable_visible">启用当前可见</string>

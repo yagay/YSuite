@@ -808,6 +808,9 @@ private fun statusPresentation(
         token == "backup_restored" ->
             R.string.yentry_backup_restored to
                 YSuiteStatusTone.Positive
+        token == "backup_saved_local" ->
+            R.string.yentry_backup_saved_local to
+                YSuiteStatusTone.Warning
         token == "backup_failed" ->
             R.string.yentry_backup_failed to
                 YSuiteStatusTone.Error
