@@ -30,15 +30,19 @@ final class YParamEnvironmentHooks {
     private final String packageName;
     private final SharedPreferences prefs;
     private volatile YParamHookConfig config;
+    // SharedPreferences holds listeners weakly; retain this listener for the
+    // lifetime of the injected process or changes silently stop after GC.
+    private final SharedPreferences.OnSharedPreferenceChangeListener configListener;
 
     YParamEnvironmentHooks(XposedModule module, String packageName) {
         this.module = module;
         this.packageName = packageName;
         this.prefs = module.getRemotePreferences("yparam");
         reload();
-        prefs.registerOnSharedPreferenceChangeListener((p, key) -> {
+        configListener = (p, key) -> {
             if (("app." + packageName).equals(key)) reload();
-        });
+        };
+        prefs.registerOnSharedPreferenceChangeListener(configListener);
     }
 
     private void reload() {

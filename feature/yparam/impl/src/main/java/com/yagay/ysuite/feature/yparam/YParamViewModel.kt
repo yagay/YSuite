@@ -254,7 +254,7 @@ class YParamViewModel(
                             scopeResult is
                                 Outcome.Success
                         ) {
-                            "saved"
+                            "saved_target_restart"
                         } else {
                             "saved_hook_reload_unavailable"
                         },
@@ -346,7 +346,7 @@ class YParamViewModel(
                                     "reset_hook_write_failed"
                                 scopeResult is
                                     Outcome.Success ->
-                                    "reset"
+                                    "reset_target_restart"
                                 else ->
                                     "reset_hook_reload_unavailable"
                             },

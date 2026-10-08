@@ -15,6 +15,7 @@ import io.github.libxposed.service.XposedServiceHelper
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
@@ -241,8 +242,8 @@ private object AndroidLibXposedHookGateway :
     @Synchronized
     fun ensureRegistered() {
         if (registered) return
-        registered = true
         XposedServiceHelper.registerListener(this)
+        registered = true
     }
 
     override fun onServiceBind(
@@ -259,10 +260,22 @@ private object AndroidLibXposedHookGateway :
         }
     }
 
+    /**
+     * LSPosed service binding arrives asynchronously, often after the first
+     * settings screen has already tried writing its configuration.
+     */
+    private suspend fun connectedService(): XposedService? {
+        ensureRegistered()
+        repeat(15) {
+            service?.let { return it }
+            delay(100L)
+        }
+        return service
+    }
+
     override suspend fun status():
         CapabilityStatus {
-        ensureRegistered()
-        val current = service
+        val current = connectedService()
             ?: return CapabilityStatus.Unavailable
         return runCatching {
             if (current.apiVersion >= MIN_HOOK_API) {
@@ -278,9 +291,8 @@ private object AndroidLibXposedHookGateway :
     override suspend fun reload(
         scopePackages: Set<String>,
     ): Outcome<Unit> {
-        ensureRegistered()
         val current =
-            service
+            connectedService()
                 ?: return Outcome.Failure(
                     code =
                         "hook_service_unavailable",
@@ -387,9 +399,8 @@ private object AndroidLibXposedHookGateway :
         key: String,
         value: String?,
     ): Outcome<Unit> {
-        ensureRegistered()
         val current =
-            service
+            connectedService()
                 ?: return Outcome.Failure(
                     code =
                         "hook_service_unavailable",
@@ -411,7 +422,8 @@ private object AndroidLibXposedHookGateway :
             )
         }
 
-        return runCatching {
+        return withContext(Dispatchers.IO) {
+            runCatching {
             val editor =
                 current
                     .getRemotePreferences(
@@ -440,6 +452,7 @@ private object AndroidLibXposedHookGateway :
                 cause = error,
                 retryable = true,
             )
+        }
         }
     }
 
