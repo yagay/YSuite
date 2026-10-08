@@ -115,4 +115,7 @@
     <string name="ynotify_manual_remove_headsup">取消悬浮通知标记</string>
     <string name="ynotify_manual_mark_bubble">标记为气泡通知</string>
     <string name="ynotify_manual_remove_bubble">取消气泡通知标记</string>
+    <string name="ynotify_repair_in_progress">正在修复通知历史…</string>
+    <string name="ynotify_repair_merged">历史修复完成 · 已关联 %1$d 条重复通知更新</string>
+    <string name="ynotify_repair_failed">历史修复失败</string>
 </resources>

@@ -114,4 +114,7 @@
     <string name="ynotify_manual_remove_headsup">Remove heads-up marker</string>
     <string name="ynotify_manual_mark_bubble">Mark as bubble</string>
     <string name="ynotify_manual_remove_bubble">Remove bubble marker</string>
+    <string name="ynotify_repair_in_progress">Repairing notification history…</string>
+    <string name="ynotify_repair_merged">Repair complete · %1$d notification updates linked</string>
+    <string name="ynotify_repair_failed">History repair failed</string>
 </resources>

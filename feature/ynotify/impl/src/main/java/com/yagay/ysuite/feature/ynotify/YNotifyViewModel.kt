@@ -103,6 +103,9 @@ data class YNotifyUiState(
     val exportUri: String? = null,
     val retentionDays: Int = 90,
     val policyVersion: Int = 0,
+    val repairingHistory: Boolean = false,
+    val historyRepairMerged: Int? = null,
+    val historyRepairError: String? = null,
 )
 
 class YNotifyViewModel(
@@ -632,9 +635,28 @@ class YNotifyViewModel(
     }
 
     fun reclassify() {
+        if (mutableState.value.repairingHistory) return
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                store.reclassify()
+            mutableState.value = mutableState.value.copy(
+                repairingHistory = true,
+                historyRepairError = null,
+                historyRepairMerged = null,
+            )
+            try {
+                val merged = withContext(Dispatchers.IO) {
+                    store.reclassify()
+                }
+                mutableState.value = mutableState.value.copy(
+                    repairingHistory = false,
+                    historyRepairMerged = merged,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    repairingHistory = false,
+                    historyRepairError = error.message ?: error.javaClass.simpleName,
+                )
             }
         }
     }

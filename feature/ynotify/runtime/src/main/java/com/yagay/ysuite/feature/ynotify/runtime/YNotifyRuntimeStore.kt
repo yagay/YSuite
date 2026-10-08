@@ -127,9 +127,7 @@ class YNotifyRuntimeStore(
         database.deletePackage(packageName)
     }
 
-    fun reclassify() {
-        database.reclassify()
-    }
+    fun reclassify(): Int = database.reclassify()
 
     fun setManualClassification(
         id: Long,
@@ -260,6 +258,7 @@ class YNotifyRuntimeStore(
                             put("classificationLocked", event.classificationLocked)
                             put("originalEventType", event.originalEventType?.name)
                             put("classificationSource", event.classificationSource)
+                            put("mergedIntoId", event.mergedIntoId)
                         }.toString(),
                     )
                 }

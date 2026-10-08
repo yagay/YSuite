@@ -355,6 +355,24 @@ private fun NotifySettings(model: YNotifyViewModel) {
                         onClick = model::export,
                     )
                 }
+                if (state.repairingHistory) {
+                    YSuiteStatusBadge(
+                        text = stringResource(R.string.ynotify_repair_in_progress),
+                        tone = YSuiteStatusTone.Neutral,
+                    )
+                }
+                state.historyRepairMerged?.let { merged ->
+                    YSuiteStatusBadge(
+                        text = stringResource(R.string.ynotify_repair_merged, merged),
+                        tone = YSuiteStatusTone.Positive,
+                    )
+                }
+                state.historyRepairError?.let { failure ->
+                    YSuiteStatusBadge(
+                        text = stringResource(R.string.ynotify_repair_failed) + ": " + failure,
+                        tone = YSuiteStatusTone.Error,
+                    )
+                }
                 state.exportUri?.let {
                     YSuiteStatusBadge(
                         text = stringResource(R.string.ynotify_exported),

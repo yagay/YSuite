@@ -339,13 +339,13 @@ internal class YNotifyDatabase(
     private fun queryPage(
         limit: Int,
         offset: Int,
+        includeMerged: Boolean = false,
     ): List<YNotifyEvent> {
         val result = mutableListOf<YNotifyEvent>()
         readableDatabase.query(
             "events",
             null,
-            null,
-            "merged_into_id IS NULL",
+            if (includeMerged) null else "merged_into_id IS NULL",
             null,
             null,
             null,
@@ -382,6 +382,7 @@ internal class YNotifyDatabase(
             val lockedIndex = cursor.getColumnIndexOrThrow("classification_locked")
             val originalTypeIndex = cursor.getColumnIndexOrThrow("original_event_type")
             val manualSourceIndex = cursor.getColumnIndexOrThrow("classification_source")
+            val mergedIndex = cursor.getColumnIndexOrThrow("merged_into_id")
             while (cursor.moveToNext()) {
                 result +=
                     YNotifyEvent(
@@ -441,6 +442,7 @@ internal class YNotifyDatabase(
                             enumValueOrDefault(it, YNotifyEventType.OtherUi)
                         },
                         classificationSource = cursor.getStringOrNull(manualSourceIndex),
+                        mergedIntoId = cursor.getLongOrNull(mergedIndex),
                     )
             }
         }
@@ -516,6 +518,7 @@ internal class YNotifyDatabase(
                 queryPage(
                     limit = size,
                     offset = offset,
+                    includeMerged = true,
                 )
             if (page.isEmpty()) break
             page.forEach(consumer)
@@ -725,8 +728,9 @@ internal class YNotifyDatabase(
         return changed
     }
 
-    fun reclassify() {
+    fun reclassify(): Int {
         val db = writableDatabase
+        var mergedCount = 0
         db.beginTransaction()
         try {
             db.rawQuery(
@@ -788,12 +792,13 @@ internal class YNotifyDatabase(
                     )
                 }
             }
-            mergeHistoricalNotificationUpdates(db)
+            mergedCount = mergeHistoricalNotificationUpdates(db)
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
         }
         invalidations.tryEmit(Unit)
+        return mergedCount
     }
 
     fun markPresentation(
@@ -935,10 +940,29 @@ internal class YNotifyDatabase(
                     removed_at = COALESCE((SELECT removed_at FROM events WHERE id = ?), removed_at),
                     heads_up = MAX(heads_up, (SELECT heads_up FROM events WHERE id = ?)),
                     bubble_shown = MAX(bubble_shown, (SELECT bubble_shown FROM events WHERE id = ?)),
-                    full_screen_shown = MAX(full_screen_shown, (SELECT full_screen_shown FROM events WHERE id = ?))
+                    full_screen_shown = MAX(full_screen_shown, (SELECT full_screen_shown FROM events WHERE id = ?)),
+                    title = COALESCE((SELECT title FROM events WHERE id = ?), title),
+                    text_value = COALESCE((SELECT text_value FROM events WHERE id = ?), text_value),
+                    full_text = COALESCE((SELECT full_text FROM events WHERE id = ?), full_text)
                 WHERE id = ? AND classification_locked = 0
                 """.trimIndent(),
-                arrayOf(secondary, secondary, secondary, secondary, secondary, canonical),
+                arrayOf(secondary, secondary, secondary, secondary, secondary,
+                    secondary, secondary, secondary, canonical),
+            )
+            // Preserve the most recent encrypted detail payload on the visible
+            // event without deleting either event's original detail or revisions.
+            db.execSQL(
+                """
+                UPDATE event_details SET detail_blob =
+                    (SELECT detail_blob FROM event_details
+                     WHERE event_key = (SELECT event_key FROM events WHERE id = ?))
+                WHERE event_key = (SELECT event_key FROM events WHERE id = ?)
+                  AND EXISTS (
+                      SELECT 1 FROM event_details
+                      WHERE event_key = (SELECT event_key FROM events WHERE id = ?)
+                  )
+                """.trimIndent(),
+                arrayOf(secondary, canonical, secondary),
             )
             db.execSQL(
                 """
