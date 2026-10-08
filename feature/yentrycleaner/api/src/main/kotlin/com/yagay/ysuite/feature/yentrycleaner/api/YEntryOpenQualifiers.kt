@@ -30,7 +30,10 @@ object YEntryOpenQualifiers {
         if (protocol !in setOf("", "file", "content", "http", "https")) {
             result += "scheme:" + protocol
         }
-        val extension = fileExtension(path)
+        // A trustworthy MIME type beats a misleading URI extension.
+        val extension = if (mime.isEmpty() || mime in setOf(
+            "*/*", "application/octet-stream", "binary/octet-stream", "application/x-download",
+        )) fileExtension(path) else ""
         for ((slot, definition) in custom.toSortedMap()) {
             if (slot !in presetNames || !slot.startsWith("CUSTOM_")) continue
             if (definition.mimeTypes.any { it == mime ||

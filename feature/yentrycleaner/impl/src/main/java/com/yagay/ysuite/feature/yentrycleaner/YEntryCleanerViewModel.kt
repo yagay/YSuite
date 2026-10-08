@@ -45,6 +45,10 @@ data class YEntryCleanerUiState(
         emptyList(),
     val openMime: String =
         "application/pdf",
+    val customSlot: String = "CUSTOM_1",
+    val customTitle: String = "",
+    val customMimeTypes: String = "",
+    val customExtensions: String = "",
     val displayMode: String =
         "HIDE_SELECTED",
     val diagnostic: Boolean = false,
@@ -80,6 +84,7 @@ internal class YEntryCleanerViewModel(
     private var refreshJob: Job? = null
 
     init {
+        setCustomSlot("CUSTOM_1")
         refresh()
         refreshRuntime()
         discoverBrowserHosts()
@@ -370,6 +375,61 @@ internal class YEntryCleanerViewModel(
                                 .statusToken
                         },
                 )
+        }
+    }
+
+    fun setCustomSlot(slot: String) {
+        if (slot !in (1..8).map { "CUSTOM_" + it }) return
+        val draft = repository.customDraft(slot)
+        mutableState.value = mutableState.value.copy(
+            customSlot = slot,
+            customTitle = draft.title,
+            customMimeTypes = draft.mimeTypes,
+            customExtensions = draft.extensions,
+        )
+    }
+
+    fun setCustomTitle(value: String) {
+        mutableState.value = mutableState.value.copy(customTitle = value)
+    }
+
+    fun setCustomMimeTypes(value: String) {
+        mutableState.value = mutableState.value.copy(customMimeTypes = value)
+    }
+
+    fun setCustomExtensions(value: String) {
+        mutableState.value = mutableState.value.copy(customExtensions = value)
+    }
+
+    fun resetCustom() {
+        mutableState.value = mutableState.value.copy(
+            customTitle = "", customMimeTypes = "", customExtensions = "",
+        )
+        saveCustom()
+    }
+
+    fun saveCustom() {
+        val state = mutableState.value
+        val draft = YEntryCustomDraft(
+            state.customTitle, state.customMimeTypes, state.customExtensions,
+        )
+        viewModelScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                repository.saveCustomDefinition(state.customSlot, draft)
+            }
+            if (!saved) {
+                mutableState.value = mutableState.value.copy(statusToken = "custom_invalid")
+                return@launch
+            }
+            val synced = withContext(Dispatchers.IO) {
+                repository.sync()
+            }
+            mutableState.value = mutableState.value.copy(
+                statusToken = if (synced is com.yagay.ysuite.common.Outcome.Failure) {
+                    "rules_sync_failed"
+                } else "custom_saved",
+            )
+            refresh()
         }
     }
 

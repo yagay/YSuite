@@ -213,6 +213,44 @@ fun YEntryCleanerFeatureScreen(
                             onSelected =
                                 model::setOpenMime,
                         )
+                        YSuiteFilterBar(
+                            options = (1..8).map { number ->
+                                YSuiteFilterOption(
+                                    "CUSTOM_" + number,
+                                    stringResource(R.string.yentry_custom_slot, number),
+                                )
+                            },
+                            selectedId = state.customSlot,
+                            onSelected = model::setCustomSlot,
+                        )
+                        YSuiteSearchField(
+                            value = state.customTitle,
+                            onValueChange = model::setCustomTitle,
+                            label = stringResource(R.string.yentry_custom_title_short),
+                        )
+                        YSuiteSearchField(
+                            value = state.customMimeTypes,
+                            onValueChange = model::setCustomMimeTypes,
+                            label = stringResource(R.string.yentry_custom_mimes),
+                        )
+                        YSuiteSearchField(
+                            value = state.customExtensions,
+                            onValueChange = model::setCustomExtensions,
+                            label = stringResource(R.string.yentry_custom_extensions),
+                        )
+                        Row(
+                            horizontalArrangement =
+                                Arrangement.spacedBy(YSuiteSpacing.Small),
+                        ) {
+                            YSuiteSecondaryButton(
+                                text = stringResource(R.string.yentry_custom_save),
+                                onClick = model::saveCustom,
+                            )
+                            YSuiteSecondaryButton(
+                                text = stringResource(R.string.yentry_custom_reset),
+                                onClick = model::resetCustom,
+                            )
+                        }
                     }
                     YEntrySurface.Browser -> {
                         YSuiteSearchField(
@@ -865,6 +903,12 @@ private fun statusPresentation(
                 YSuiteStatusTone.Positive
         token == "rules_sync_failed" ->
             R.string.yentry_rules_sync_failed to
+                YSuiteStatusTone.Error
+        token == "custom_saved" ->
+            R.string.yentry_custom_saved to
+                YSuiteStatusTone.Positive
+        token == "custom_invalid" ->
+            R.string.yentry_custom_invalid to
                 YSuiteStatusTone.Error
         token == "title_updated" ->
             R.string.yentry_title_updated to

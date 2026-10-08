@@ -247,7 +247,7 @@ internal object YEntryBackupParser {
         return result
     }
 
-    private fun validateDefinitions(raw: String): JSONObject? {
+    fun validateDefinitions(raw: String): JSONObject? {
         val parsed = runCatching { JSONObject(raw) }.getOrNull() ?: return null
         if (parsed.length() > 8) return null
         val clean = JSONObject()

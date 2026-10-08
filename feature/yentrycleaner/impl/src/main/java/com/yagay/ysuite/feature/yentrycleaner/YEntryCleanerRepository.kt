@@ -36,6 +36,12 @@ internal enum class YEntryImportResult {
     Synced,
 }
 
+internal data class YEntryCustomDraft(
+    val title: String = "",
+    val mimeTypes: String = "",
+    val extensions: String = "",
+)
+
 internal class YEntryCleanerRepository(
     private val context: Context,
     private val root: RootGateway,
@@ -157,6 +163,48 @@ internal class YEntryCleanerRepository(
         prefs.edit()
             .putBoolean("diagnostic", value)
             .apply()
+    }
+
+    fun customDraft(slot: String): YEntryCustomDraft =
+        runCatching {
+            val raw = prefs.getString("open_custom_definitions", "{}") ?: "{}"
+            val definition = JSONObject(raw).optJSONObject(slot)
+                ?: return@runCatching YEntryCustomDraft()
+            fun values(key: String): String {
+                val array = definition.optJSONArray(key) ?: JSONArray()
+                return (0 until array.length()).joinToString(", ") { array.getString(it) }
+            }
+            YEntryCustomDraft(
+                title = definition.optString("title"),
+                mimeTypes = values("mimeTypes"),
+                extensions = values("extensions"),
+            )
+        }.getOrDefault(YEntryCustomDraft())
+
+    fun saveCustomDefinition(slot: String, draft: YEntryCustomDraft): Boolean {
+        if (slot !in (1..8).map { "CUSTOM_" + it }) return false
+        val source = runCatching {
+            JSONObject(prefs.getString("open_custom_definitions", "{}") ?: "{}")
+        }.getOrNull() ?: return false
+        fun items(text: String): List<String> =
+            text.split(',', ';', '\n').map(String::trim).filter(String::isNotEmpty)
+                .map(String::lowercase).distinct()
+        val mimeTypes = items(draft.mimeTypes)
+        val extensions = items(draft.extensions).map { it.removePrefix(".") }
+        if (draft.title.isBlank() && mimeTypes.isEmpty() && extensions.isEmpty()) {
+            source.remove(slot)
+        } else {
+            source.put(slot, JSONObject().apply {
+                put("title", draft.title.trim())
+                put("mimeTypes", JSONArray(mimeTypes))
+                put("extensions", JSONArray(extensions))
+            })
+        }
+        val cleaned = YEntryBackupParser.validateDefinitions(source.toString())
+            ?: return false
+        return prefs.edit()
+            .putString("open_custom_definitions", cleaned.toString())
+            .commit()
     }
 
     private fun openCustomDefinitions(): Map<String, YEntryOpenQualifiers.CustomDefinition> =

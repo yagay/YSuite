@@ -69,4 +69,12 @@
     <string name="yentry_save_title">Save name</string>
     <string name="yentry_title_updated">Component name saved.</string>
     <string name="yentry_title_invalid">Unable to save name; use up to 64 characters.</string>
+    <string name="yentry_custom_slot">Custom %1$d</string>
+    <string name="yentry_custom_title_short">Custom open type name</string>
+    <string name="yentry_custom_mimes">MIME types (comma-separated)</string>
+    <string name="yentry_custom_extensions">File extensions (comma-separated)</string>
+    <string name="yentry_custom_save">Save custom type</string>
+    <string name="yentry_custom_reset">Delete custom type</string>
+    <string name="yentry_custom_saved">Custom open type saved and synced.</string>
+    <string name="yentry_custom_invalid">Invalid custom type. Provide a name and valid MIME or extensions.</string>
 </resources>
