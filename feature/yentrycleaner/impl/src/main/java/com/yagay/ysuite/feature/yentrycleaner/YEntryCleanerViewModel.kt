@@ -74,7 +74,9 @@ internal class YEntryCleanerViewModel(
         refreshRuntime()
         discoverBrowserHosts()
         viewModelScope.launch {
-            repository.sync()
+            withContext(Dispatchers.IO) {
+                repository.sync(reload = false)
+            }
         }
     }
 
@@ -422,13 +424,17 @@ internal class YEntryCleanerViewModel(
         viewModelScope.launch {
             val root =
                 runCatching {
-                    repository.rootStatus()
+                    withContext(Dispatchers.IO) {
+                        repository.rootStatus()
+                    }
                 }.getOrDefault(
                     CapabilityStatus.Error,
                 )
             val hook =
                 runCatching {
-                    repository.hookStatus()
+                    withContext(Dispatchers.IO) {
+                        repository.hookStatus()
+                    }
                 }.getOrDefault(
                     CapabilityStatus.Error,
                 )
@@ -459,7 +465,9 @@ internal class YEntryCleanerViewModel(
 
     private fun syncAndRefresh() {
         viewModelScope.launch {
-            repository.sync()
+            withContext(Dispatchers.IO) {
+                repository.sync()
+            }
             refreshRuntime()
             refresh()
         }
