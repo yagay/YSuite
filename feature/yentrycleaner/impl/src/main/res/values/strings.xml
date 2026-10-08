@@ -26,6 +26,9 @@
     <string name="yentry_hide_visible">Hide visible</string>
     <string name="yentry_show_visible">Show visible</string>
     <string name="yentry_empty">No matching candidates.</string>
+    <string name="yentry_group_summary">%1$d components · %2$d selected</string>
+    <string name="yentry_group_expand">Expand</string>
+    <string name="yentry_group_collapse">Collapse</string>
     <string name="yentry_locked">Locked</string>
     <string name="yentry_locked_desc">Locked candidates are not changed by bulk operations.</string>
     <string name="yentry_hidden">Hidden</string>

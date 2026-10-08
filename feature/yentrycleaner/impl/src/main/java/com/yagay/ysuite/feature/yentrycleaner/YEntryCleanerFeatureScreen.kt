@@ -12,6 +12,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -503,104 +506,135 @@ fun YEntryCleanerFeatureScreen(
     }
 }
 
+private sealed interface CandidateListRow {
+    val key: String
+
+    data class Group(
+        val packageName: String,
+        val candidates: List<YEntryCandidate>,
+    ) : CandidateListRow {
+        override val key = "group:" + packageName
+    }
+
+    data class Component(
+        val candidate: YEntryCandidate,
+    ) : CandidateListRow {
+        override val key = "component:" + candidate.id
+    }
+}
+
 @Composable
 private fun CandidateList(
     model: YEntryCleanerViewModel,
 ) {
-    val state by
-        model.state.collectAsStateWithLifecycle()
+    val state by model.state.collectAsStateWithLifecycle()
     val candidates = model.visible()
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-    ) {
+    var expandedPackages by remember(state.surface) {
+        mutableStateOf(emptySet<String>())
+    }
+    val rows = buildList<CandidateListRow> {
+        candidates.groupBy { it.packageName }
+            .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+            .forEach { (packageName, items) ->
+                add(CandidateListRow.Group(packageName, items))
+                if (
+                    packageName in expandedPackages ||
+                    state.query.isNotBlank()
+                ) {
+                    items.forEach { add(CandidateListRow.Component(it)) }
+                }
+            }
+    }
+
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
         state.statusToken?.let { token ->
-            item {
-                val status =
-                    statusPresentation(token)
+            item(key = "status") {
+                val status = statusPresentation(token)
                 YSuiteStatusBadge(
-                    text =
-                        stringResource(
-                            status.first,
-                        ),
+                    text = stringResource(status.first),
                     tone = status.second,
-                    modifier =
-                        Modifier.padding(
-                            YSuiteSpacing.Medium,
-                        ),
+                    modifier = Modifier.padding(YSuiteSpacing.Medium),
                 )
             }
         }
         if (candidates.isEmpty()) {
-            item {
+            item(key = "empty") {
                 YSuiteListItem(
-                    title =
-                        stringResource(
-                            R.string.yentry_empty,
-                        ),
-                    modifier =
-                        Modifier.padding(
-                            YSuiteSpacing.Medium,
-                        ),
+                    title = stringResource(R.string.yentry_empty),
+                    modifier = Modifier.padding(YSuiteSpacing.Medium),
                 )
             }
         }
-        items(
-            items = candidates,
-            key = { it.id },
-        ) { candidate ->
-            YSuiteListItem(
-                title = candidate.label,
-                subtitle =
-                    candidate.packageName +
-                        if (
-                            candidate.state !=
-                            YEntryCandidateState.Current
-                        ) {
-                            " · " +
-                                candidate.state.name
-                        } else {
-                            ""
-                        },
-                modifier =
-                    Modifier
-                        .clickable {
-                            model.select(
-                                candidate.id,
-                            )
-                        }
-                        .padding(
-                            horizontal =
-                                YSuiteSpacing.Medium,
-                            vertical =
-                                YSuiteSpacing.Small,
+        items(items = rows, key = { it.key }) { row ->
+            when (row) {
+                is CandidateListRow.Group -> {
+                    YSuiteListItem(
+                        title = row.packageName,
+                        subtitle = stringResource(
+                            R.string.yentry_group_summary,
+                            row.candidates.size,
+                            row.candidates.count { it.hidden },
                         ),
-                trailing = {
-                    when {
-                        candidate.locked ->
+                        modifier = Modifier
+                            .clickable(enabled = state.query.isBlank()) {
+                                expandedPackages =
+                                    if (row.packageName in expandedPackages) {
+                                        expandedPackages - row.packageName
+                                    } else {
+                                        expandedPackages + row.packageName
+                                    }
+                            }
+                            .padding(
+                                horizontal = YSuiteSpacing.Medium,
+                                vertical = YSuiteSpacing.Small,
+                            ),
+                        trailing = {
                             YSuiteStatusBadge(
-                                text =
-                                    stringResource(
-                                        R.string
-                                            .yentry_locked,
-                                    ),
-                                tone =
-                                    YSuiteStatusTone
-                                        .Warning,
+                                text = stringResource(
+                                    if (
+                                        row.packageName in expandedPackages ||
+                                        state.query.isNotBlank()
+                                    ) R.string.yentry_group_collapse
+                                    else R.string.yentry_group_expand,
+                                ),
+                                tone = YSuiteStatusTone.Neutral,
                             )
-                        candidate.hidden ->
-                            YSuiteStatusBadge(
-                                text =
-                                    stringResource(
-                                        R.string
-                                            .yentry_hidden,
-                                    ),
-                                tone =
-                                    YSuiteStatusTone
-                                        .Neutral,
-                            )
-                    }
-                },
-            )
+                        },
+                    )
+                }
+                is CandidateListRow.Component -> {
+                    val candidate = row.candidate
+                    YSuiteListItem(
+                        title = candidate.label,
+                        subtitle = candidate.className +
+                            if (candidate.state != YEntryCandidateState.Current) {
+                                " · " + candidate.state.name
+                            } else {
+                                ""
+                            },
+                        modifier = Modifier
+                            .clickable { model.select(candidate.id) }
+                            .padding(
+                                horizontal = YSuiteSpacing.Medium,
+                                vertical = YSuiteSpacing.Small,
+                            ),
+                        trailing = {
+                            when {
+                                candidate.locked ->
+                                    YSuiteStatusBadge(
+                                        text = stringResource(R.string.yentry_locked),
+                                        tone = YSuiteStatusTone.Warning,
+                                    )
+                                candidate.hidden ->
+                                    YSuiteStatusBadge(
+                                        text = stringResource(R.string.yentry_hidden),
+                                        tone = YSuiteStatusTone.Neutral,
+                                    )
+                            }
+                        },
+                    )
+                }
+            }
         }
     }
 }

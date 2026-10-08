@@ -26,6 +26,9 @@
     <string name="yentry_hide_visible">隐藏当前可见</string>
     <string name="yentry_show_visible">显示当前可见</string>
     <string name="yentry_empty">没有匹配的候选项。</string>
+    <string name="yentry_group_summary">%1$d 个组件 · 已选 %2$d</string>
+    <string name="yentry_group_expand">展开</string>
+    <string name="yentry_group_collapse">收起</string>
     <string name="yentry_locked">已锁定</string>
     <string name="yentry_locked_desc">批量操作不会改变已锁定候选项。</string>
     <string name="yentry_hidden">已隐藏</string>
