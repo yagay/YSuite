@@ -349,16 +349,16 @@ internal class YPowerRepository(
                 hookConfigReady = true
             }
             is Outcome.Failure -> {
-                val message =
+                val failureCode =
                     "hook_profile_sync:" +
                         hookConfig.error.code
                 if (
                     profile.enabled &&
                     profile.anyHookFeature
                 ) {
-                    errors += message
+                    errors += failureCode
                 } else {
-                    notes += message
+                    notes += failureCode
                 }
             }
         }
