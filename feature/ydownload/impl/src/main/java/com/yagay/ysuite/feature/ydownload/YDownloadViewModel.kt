@@ -16,6 +16,7 @@ import com.yagay.ysuite.logging.api.YSuiteLogger
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +56,7 @@ data class YDownloadAddDraft(
 
 data class YDownloadUiState(
     val items: List<YDownloadItem> = emptyList(),
+    val listLoadError: String? = null,
     val settings: YDownloadSettings = YDownloadSettings(),
     val systemPatch:
         YDownloadSystemPatchSettings =
@@ -105,40 +107,15 @@ class YDownloadViewModel(
                         .clearIfMatches(
                             appContext,
                             url,
-                        )
-                    showAddDialog(url)
-                }
-        }
-
+               // Observe the repository independently of the initial database read.
+        // A failed read must not permanently disable future list updates.
         viewModelScope.launch {
-            environment.repository.refresh()
-            environment.repository.items.value
-                .filter {
-                    it.state ==
-                        YDownloadState.Scheduled
-                }
-                .forEach { item ->
-                    val scheduledAt =
-                        item.scheduledAtMillis
-                    if (
-                        scheduledAt == null ||
-                        scheduledAt <=
-                        System.currentTimeMillis()
-                    ) {
-                        YDownloadService.start(
-                            appContext,
-                            item.id,
-                        )
-                    } else {
-                        environment.scheduler.schedule(
-                            downloadId = item.id,
-                            scheduledAtMillis =
-                                scheduledAt,
-                        )
-                    }
-                }
             environment.repository.items.collect { items ->
-                mutableState.update {
+                mutableState.update { it.copy(items = items) }
+            }
+        }
+        retryLoad()
+{
                     it.copy(items = items)
                 }
             }
@@ -156,6 +133,45 @@ class YDownloadViewModel(
                 ) {
                     YDownloadService.pump(appContext)
                 }
+            }
+        }
+    }
+
+    fun retryLoad() {
+        viewModelScope.launch {
+            try {
+                environment.repository.refresh()
+                mutableState.update { it.copy(listLoadError = null) }
+                environment.repository.items.value
+                    .filter { it.state == YDownloadState.Scheduled }
+                    .forEach { item ->
+                        runCatching {
+                            val scheduledAt = item.scheduledAtMillis
+                            if (scheduledAt == null ||
+                                scheduledAt <= System.currentTimeMillis()
+                            ) {
+                                YDownloadService.start(appContext, item.id)
+                            } else {
+                                environment.scheduler.schedule(
+                                    downloadId = item.id,
+                                    scheduledAtMillis = scheduledAt,
+                                )
+                            }
+                        }.onFailure { error ->
+                            logger.error(
+                                "YSuite/YDownload",
+                                "Unable to restore scheduled task: " + item.id,
+                                error,
+                            )
+                        }
+                    }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.update {
+                    it.copy(listLoadError = error.message ?: error.javaClass.simpleName)
+                }
+                logger.error("YSuite/YDownload", "Unable to read download tasks", error)
             }
         }
     }

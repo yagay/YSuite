@@ -137,4 +137,5 @@
     <string name="ydownload_resume_all">Resume all paused</string>
     <string name="ydownload_retry_failed">Retry failed</string>
     <string name="ydownload_clear_finished">Clear completed and cancelled</string>
+    <string name="ydownload_retry_load">Retry loading download tasks</string>
 </resources>

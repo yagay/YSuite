@@ -6,6 +6,11 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.weight
+import androidx.compose.ui.Modifier
+import com.yagay.ysuite.designsystem.component.YSuiteSecondaryButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -282,15 +287,20 @@ fun YDownloadFeatureScreen(
             )
         },
     ) { _, _ ->
+        Column(modifier = Modifier.fillMaxSize()) {
+            state.listLoadError?.let {
+                YSuiteSecondaryButton(
+                    text = stringResource(R.string.ydownload_retry_load),
+                    onClick = model::retryLoad,
+                )
+            }
         QdmDownloadList(
             items =
                 filtered.map {
                     it.toRowModel()
                 },
-            emptyText =
-                stringResource(
-                    R.string.ydownload_empty,
-                ),
+            emptyText = state.listLoadError
+                ?: stringResource(R.string.ydownload_empty),
             labels =
                 QdmDownloadActionLabels(
                     pause =
@@ -353,7 +363,9 @@ fun YDownloadFeatureScreen(
             onOpenFolder = model::openFolder,
             onProperties = model::showProperties,
             onRedownload = model::redownload,
+            modifier = Modifier.weight(1f),
         )
+        }
     }
 
     if (state.addDialogVisible) {

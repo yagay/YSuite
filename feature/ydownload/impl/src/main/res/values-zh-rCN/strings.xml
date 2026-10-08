@@ -137,4 +137,5 @@
     <string name="ydownload_resume_all">恢复全部暂停任务</string>
     <string name="ydownload_retry_failed">重试失败任务</string>
     <string name="ydownload_clear_finished">清理已完成和已取消</string>
+    <string name="ydownload_retry_load">重试读取下载任务</string>
 </resources>
