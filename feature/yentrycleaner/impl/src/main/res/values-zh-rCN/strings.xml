@@ -18,6 +18,7 @@
     <string name="yentry_mode">显示模式</string>
     <string name="yentry_hide_selected">隐藏已选择</string>
     <string name="yentry_show_selected">仅显示已选择</string>
+    <string name="yentry_show_all">全部显示（暂停过滤）</string>
     <string name="yentry_diagnostics">运行时诊断</string>
     <string name="yentry_hide_visible">隐藏当前可见</string>
     <string name="yentry_show_visible">显示当前可见</string>

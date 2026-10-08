@@ -398,14 +398,10 @@ internal class YEntryCleanerViewModel(
 
     fun toggleDisplayMode() {
         val next =
-            if (
-                mutableState.value
-                    .displayMode ==
-                "HIDE_SELECTED"
-            ) {
-                "SHOW_SELECTED"
-            } else {
-                "HIDE_SELECTED"
+            when (mutableState.value.displayMode) {
+                "HIDE_SELECTED" -> "SHOW_SELECTED"
+                "SHOW_SELECTED" -> "SHOW_ALL"
+                else -> "HIDE_SELECTED"
             }
         repository.setDisplayMode(next)
         mutableState.value =

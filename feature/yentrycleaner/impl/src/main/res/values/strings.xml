@@ -18,6 +18,7 @@
     <string name="yentry_mode">Display mode</string>
     <string name="yentry_hide_selected">Hide selected</string>
     <string name="yentry_show_selected">Show selected only</string>
+    <string name="yentry_show_all">Show all (pause filtering)</string>
     <string name="yentry_diagnostics">Runtime diagnostics</string>
     <string name="yentry_hide_visible">Hide visible</string>
     <string name="yentry_show_visible">Show visible</string>

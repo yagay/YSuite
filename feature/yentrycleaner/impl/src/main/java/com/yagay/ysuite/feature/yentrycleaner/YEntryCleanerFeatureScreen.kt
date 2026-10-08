@@ -303,19 +303,13 @@ fun YEntryCleanerFeatureScreen(
                                     .yentry_mode,
                             ),
                         subtitle =
-                            if (
-                                state.displayMode ==
-                                "HIDE_SELECTED"
-                            ) {
-                                stringResource(
-                                    R.string
-                                        .yentry_hide_selected,
-                                )
-                            } else {
-                                stringResource(
-                                    R.string
-                                        .yentry_show_selected,
-                                )
+                            when (state.displayMode) {
+                                "HIDE_SELECTED" ->
+                                    stringResource(R.string.yentry_hide_selected)
+                                "SHOW_SELECTED" ->
+                                    stringResource(R.string.yentry_show_selected)
+                                else ->
+                                    stringResource(R.string.yentry_show_all)
                             },
                         modifier =
                             Modifier.clickable {

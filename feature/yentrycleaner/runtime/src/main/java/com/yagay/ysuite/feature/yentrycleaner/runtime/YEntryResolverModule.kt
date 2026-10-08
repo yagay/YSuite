@@ -170,6 +170,7 @@ class YEntryResolverModule : XposedModule() {
                         exact in hidden ||
                             wildcard in hidden
                     when (mode) {
+                        "SHOW_ALL" -> true
                         "SHOW_SELECTED" ->
                             selectedForSurface.isEmpty() ||
                                 selected
