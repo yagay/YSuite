@@ -5,6 +5,7 @@ object YEntryRuntimeBridge {
     const val KEY_MODE = "mode"
     const val KEY_HIDDEN_RULES = "hidden_rules"
     const val KEY_SHOWN_RULES = "shown_rules"
+    const val KEY_RESOLVER_HOSTS = "resolver_hosts"
     const val KEY_OPEN_CUSTOM_DEFINITIONS = "open_custom_definitions"
     const val KEY_PRIORITIES = "priorities"
     const val KEY_DISABLED_COMPONENTS = "disabled_components"

@@ -74,7 +74,8 @@ class YEntryResolverModule : XposedModule() {
         ) return
         if (
             param.packageName == "android" ||
-            param.packageName == "com.android.intentresolver"
+            param.packageName == "com.android.intentresolver" ||
+            param.packageName in stringSet(YEntryRuntimeBridge.KEY_RESOLVER_HOSTS)
         ) {
             installQueryHooks(param.classLoader)
         }

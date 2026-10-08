@@ -1266,8 +1266,45 @@ internal class YEntryCleanerRepository(
     }
 
     /** Publish settings without restarting framework processes merely by opening the screen. */
+    /**
+     * OEM resolver processes (ColorOS/OPlus, HyperOS, etc.) may host chooser
+     * UI outside com.android.intentresolver. Only detect real system resolver
+     * activities; never request Hook scope for arbitrary user apps.
+     */
+    @Suppress("DEPRECATION")
+    private fun resolverHostPackages(): Set<String> {
+        val probes = listOf(
+            Intent.createChooser(
+                Intent(Intent.ACTION_SEND).setType("text/plain"), null,
+            ),
+            Intent.createChooser(
+                Intent(Intent.ACTION_SEND_MULTIPLE).setType("image/*"), null,
+            ),
+            Intent(Intent.ACTION_VIEW)
+                .setDataAndType(
+                    Uri.parse("content://com.yagay.ysuite.probe/document"),
+                    "application/pdf",
+                ),
+        )
+        return probes.mapNotNull { intent ->
+            runCatching {
+                pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                    ?.activityInfo
+            }.getOrNull()?.takeIf { info ->
+                val name = info.name
+                val system =
+                    info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
+                system && (name.endsWith("ResolverActivity") ||
+                    name.endsWith("ChooserActivity") ||
+                    name.contains("ResolverActivity") ||
+                    name.contains("ChooserActivity"))
+            }?.packageName
+        }.filterNot { it == "android" || it == context.packageName }.toSet()
+    }
+
     suspend fun sync(reload: Boolean = true): Outcome<Unit> =
         syncMutex.withLock {
+        val resolverHosts = resolverHostPackages()
         val indexedQualifiers =
             prefs.getStringSet("priority_qualifiers", emptySet()).orEmpty()
         val browserHosts =
@@ -1329,6 +1366,8 @@ internal class YEntryCleanerRepository(
             linkedMapOf(
                 YEntryRuntimeBridge.KEY_MODE to
                     displayMode(),
+                YEntryRuntimeBridge.KEY_RESOLVER_HOSTS to
+                    resolverHosts.sorted().joinToString("\n"),
                 YEntryRuntimeBridge.KEY_HIDDEN_RULES to
                     hidden().sorted()
                         .joinToString("\n"),
@@ -1370,7 +1409,7 @@ internal class YEntryCleanerRepository(
                 setOf(
                     "android",
                     "com.android.intentresolver",
-                ),
+                ) + resolverHosts,
             )
         } else {
             Outcome.Success(Unit)
