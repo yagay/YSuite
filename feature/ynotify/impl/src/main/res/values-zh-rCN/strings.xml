@@ -102,4 +102,7 @@
     <string name="ynotify_load_failed">读取通知历史失败</string>
     <string name="ynotify_revision_title">通知更新记录（%1$d 次）</string>
     <string name="ynotify_revision_item">第 %1$d 版 · %2$s</string>
+    <string name="ynotify_last_received">上次收到通知</string>
+    <string name="ynotify_last_saved">上次保存通知</string>
+    <string name="ynotify_last_capture_error">采集错误</string>
 </resources>

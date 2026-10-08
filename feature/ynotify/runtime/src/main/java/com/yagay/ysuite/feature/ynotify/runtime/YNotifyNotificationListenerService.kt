@@ -44,8 +44,11 @@ class YNotifyNotificationListenerService :
                                         ranking,
                                     ),
                             )
+                            YNotifyCaptureHealth.saved(this)
                         }
                     }
+            }.onFailure {
+                YNotifyCaptureHealth.failed(this, it)
             }
         }
     }
@@ -70,6 +73,7 @@ class YNotifyNotificationListenerService :
         rankingMap: RankingMap?,
     ) {
         if (sbn != null) {
+            YNotifyCaptureHealth.received(this, sbn.packageName)
             scheduleSave(sbn, rankingMap)
         }
     }
@@ -81,11 +85,13 @@ class YNotifyNotificationListenerService :
     ) {
         val key = sbn?.key ?: return
         executor.execute {
-            database.markRemoved(
-                key,
-                sbn.postTime,
-                System.currentTimeMillis(),
-            )
+            runCatching {
+                database.markRemoved(
+                    key,
+                    sbn.postTime,
+                    System.currentTimeMillis(),
+                )
+            }.onFailure { YNotifyCaptureHealth.failed(this, it) }
         }
     }
 
@@ -137,9 +143,12 @@ class YNotifyNotificationListenerService :
                     )
                 }
                 database.upsert(event)
+                YNotifyCaptureHealth.saved(this)
                 database.prune(
                     YNotifyCapturePolicy.retentionDays(this),
                 )
+            }.onFailure {
+                YNotifyCaptureHealth.failed(this, it)
             }
         }
     }

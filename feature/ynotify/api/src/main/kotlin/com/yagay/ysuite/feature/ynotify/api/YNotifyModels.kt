@@ -84,4 +84,8 @@ data class YNotifyRuntimeStatus(
     val notificationListenerConnected: Boolean,
     val accessibilityConnected: Boolean,
     val storedEventCount: Int,
+    val lastReceivedAt: Long = 0L,
+    val lastSavedAt: Long = 0L,
+    val lastPackage: String? = null,
+    val lastError: String? = null,
 )

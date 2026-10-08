@@ -116,6 +116,7 @@ class YNotifyViewModel(
         mutableState.asStateFlow()
 
     private var searchJob: Job? = null
+    private var lastAutomaticRebindAt = 0L
 
     init {
         // The capture services may connect after the screen first opens.
@@ -214,6 +215,19 @@ class YNotifyViewModel(
             notificationAuthorized = snapshot.second,
             accessibilityAuthorized = snapshot.third,
         )
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (snapshot.second && !snapshot.first.notificationListenerConnected &&
+            now - lastAutomaticRebindAt > 60_000L
+        ) {
+            lastAutomaticRebindAt = now
+            runCatching {
+                NotificationListenerService.requestRebind(
+                    ComponentName(
+                        context, YNotifyNotificationListenerService::class.java,
+                    ),
+                )
+            }
+        }
     }
 
     fun requestReconnect() {

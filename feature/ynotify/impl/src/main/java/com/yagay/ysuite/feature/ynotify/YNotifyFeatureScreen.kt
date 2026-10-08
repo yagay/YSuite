@@ -305,6 +305,28 @@ private fun NotifySettings(model: YNotifyViewModel) {
                     title = stringResource(R.string.ynotify_captured_count, state.runtimeStatus.storedEventCount),
                     subtitle = stringResource(R.string.ynotify_capture_scope_explanation),
                 )
+                if (state.runtimeStatus.lastReceivedAt > 0L) {
+                    YSuiteListItem(
+                        title = stringResource(R.string.ynotify_last_received),
+                        subtitle = DateFormat.getDateTimeInstance().format(
+                            Date(state.runtimeStatus.lastReceivedAt),
+                        ) + " · " + state.runtimeStatus.lastPackage.orEmpty(),
+                    )
+                }
+                if (state.runtimeStatus.lastSavedAt > 0L) {
+                    YSuiteListItem(
+                        title = stringResource(R.string.ynotify_last_saved),
+                        subtitle = DateFormat.getDateTimeInstance().format(
+                            Date(state.runtimeStatus.lastSavedAt),
+                        ),
+                    )
+                }
+                state.runtimeStatus.lastError?.let { error ->
+                    YSuiteListItem(
+                        title = stringResource(R.string.ynotify_last_capture_error),
+                        subtitle = error,
+                    )
+                }
             }
         }
         item {

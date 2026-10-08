@@ -101,4 +101,7 @@
     <string name="ynotify_load_failed">Could not load the notification history</string>
     <string name="ynotify_revision_title">Notification updates (%1$d)</string>
     <string name="ynotify_revision_item">Revision %1$d · %2$s</string>
+    <string name="ynotify_last_received">Last notification received</string>
+    <string name="ynotify_last_saved">Last notification saved</string>
+    <string name="ynotify_last_capture_error">Capture error</string>
 </resources>

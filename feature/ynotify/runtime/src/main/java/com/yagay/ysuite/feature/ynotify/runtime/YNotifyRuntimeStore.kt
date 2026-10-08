@@ -46,6 +46,10 @@ class YNotifyRuntimeStore(
                 YNotifyRuntimeState
                     .accessibilityConnected,
             storedEventCount = database.count(),
+            lastReceivedAt = YNotifyCaptureHealth.lastReceived(applicationContext),
+            lastSavedAt = YNotifyCaptureHealth.lastSaved(applicationContext),
+            lastPackage = YNotifyCaptureHealth.lastPackage(applicationContext),
+            lastError = YNotifyCaptureHealth.lastError(applicationContext),
         )
 
     fun search(
@@ -211,6 +215,50 @@ class YNotifyRuntimeStore(
             ?: error("Unable to open export file")
         return uri.toString()
     }
+}
+
+internal object YNotifyCaptureHealth {
+    private const val NAME = "ysuite_ynotify_capture_health"
+    fun received(context: Context, packageName: String) {
+        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit()
+            .putLong("received_at", System.currentTimeMillis())
+            .putString("package", packageName)
+            .apply()
+    }
+
+    fun saved(context: Context) {
+        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit()
+            .putLong("saved_at", System.currentTimeMillis())
+            .remove("last_error")
+            .apply()
+        YNotifyDatabase.signalRuntimeStatusChanged()
+    }
+
+    fun failed(context: Context, error: Throwable) {
+        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit()
+            .putString(
+                "last_error",
+                error.javaClass.simpleName + ": " +
+                    error.message.orEmpty().take(160),
+            ).apply()
+        YNotifyDatabase.signalRuntimeStatusChanged()
+    }
+
+    fun lastReceived(context: Context): Long =
+        context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+            .getLong("received_at", 0L)
+
+    fun lastSaved(context: Context): Long =
+        context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+            .getLong("saved_at", 0L)
+
+    fun lastPackage(context: Context): String? =
+        context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+            .getString("package", null)
+
+    fun lastError(context: Context): String? =
+        context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+            .getString("last_error", null)
 }
 
 internal object YNotifyRuntimeState {
