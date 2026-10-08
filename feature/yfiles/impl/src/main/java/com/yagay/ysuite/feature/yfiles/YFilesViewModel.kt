@@ -795,7 +795,9 @@ class YFilesViewModel(
                     if (directory == null) {
                         return@withContext Outcome.Failure(
                             code = "missing_directory",
-                            message = "Select a folder before creating a file",
+                            message = environment.messages(
+                                R.string.yfiles_select_folder_first,
+                            ),
                         )
                     }
                     environment.engine
@@ -809,7 +811,9 @@ class YFilesViewModel(
                     if (directory == null) {
                         return@withContext Outcome.Failure(
                             code = "missing_directory",
-                            message = "Select a folder before creating a file",
+                            message = environment.messages(
+                                R.string.yfiles_select_folder_first,
+                            ),
                         )
                     }
                     environment.engine

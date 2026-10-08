@@ -318,4 +318,5 @@
     <string name="yfiles_patch_sync">Sync patch configuration</string>
     <string name="yfiles_patch_scope_ready">System picker Hook scope updated</string>
     <string name="yfiles_patch_synced">System picker patch configuration synced</string>
+    <string name="yfiles_select_folder_first">Select a folder before creating a file</string>
 </resources>

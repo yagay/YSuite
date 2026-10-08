@@ -49,6 +49,7 @@ data class YFilesEnvironment(
     val automationSettings: YFilesAutomationSettings,
     val rootGateway: RootGateway,
     val hookGateway: HookGateway,
+    val messages: (Int) -> String = { resourceId -> resourceId.toString() },
 )
 
 object YFilesEnvironmentFactory {
@@ -230,6 +231,7 @@ object YFilesEnvironmentFactory {
                 ),
             rootGateway = rootGateway,
             hookGateway = hookGateway,
+            messages = { resourceId -> appContext.getString(resourceId) },
         )
     }
 

@@ -318,4 +318,5 @@
     <string name="yfiles_patch_sync">同步补丁配置</string>
     <string name="yfiles_patch_scope_ready">系统选择器 Hook 作用域已更新</string>
     <string name="yfiles_patch_synced">系统选择器补丁配置已同步</string>
+    <string name="yfiles_select_folder_first">请先选择一个文件夹，再创建文件</string>
 </resources>
