@@ -10,6 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -46,6 +49,7 @@ fun YNotifyFeatureScreen() {
     val state by
         model.state.collectAsStateWithLifecycle()
     val selected = model.selectedEvent()
+    var showAdvanced by remember { mutableStateOf(false) }
 
     YNotifyWorkspace(
         title =
@@ -56,7 +60,7 @@ fun YNotifyFeatureScreen() {
             YSuiteHostNavigationButton()
         },
         search = {
-            YSuiteSearchField(
+            if (state.viewMode != YNotifyViewMode.Settings) YSuiteSearchField(
                 value = state.query,
                 onValueChange =
                     model::setQuery,
@@ -109,10 +113,25 @@ fun YNotifyFeatureScreen() {
                             )
                     },
                 )
-                if (
-                    state.viewMode ==
-                    YNotifyViewMode.History
-                ) {
+                if (state.viewMode == YNotifyViewMode.History) {
+                    YSuiteFilterBar(
+                        options = YNotifyTimelineFilter.entries.map {
+                            YSuiteFilterOption(it.name, timelineFilterLabel(it))
+                        },
+                        selectedId = state.timelineFilter.name,
+                        onSelected = { key ->
+                            runCatching { YNotifyTimelineFilter.valueOf(key) }
+                                .getOrNull()?.let(model::setTimelineFilter)
+                        },
+                    )
+                    YSuiteSecondaryButton(
+                        text = stringResource(
+                            if (showAdvanced) R.string.ynotify_hide_advanced_filters
+                            else R.string.ynotify_advanced_filters,
+                        ),
+                        onClick = { showAdvanced = !showAdvanced },
+                    )
+                    if (showAdvanced) {
                     YSuiteFilterBar(
                     options =
                         YNotifyTypeFilter.entries
@@ -155,6 +174,7 @@ fun YNotifyFeatureScreen() {
                                 )
                         },
                     )
+                    }
                     state.selectedPackage?.let {
                         selectedPackage ->
                         YSuiteListItem(
@@ -223,26 +243,87 @@ fun YNotifyFeatureScreen() {
                         }
                     }
                 }
-                RuntimeControls(
-                    state = state,
-                    model = model,
-                )
             }
         },
-        details =
-            selected?.let {
-                {
-                    EventDetail(selected)
-                }
-            },
+        details = if (state.viewMode == YNotifyViewMode.History) {
+            selected?.let { { EventDetail(selected) } }
+        } else null,
     ) {
-        if (
-            state.viewMode ==
-            YNotifyViewMode.Apps
-        ) {
-            AppList(model)
-        } else {
-            EventList(model)
+        when (state.viewMode) {
+            YNotifyViewMode.Apps -> AppList(model)
+            YNotifyViewMode.Settings -> NotifySettings(model)
+            YNotifyViewMode.History -> EventList(model)
+        }
+    }
+}
+
+@Composable
+private fun NotifySettings(model: YNotifyViewModel) {
+    val state by model.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
+    ) {
+        item {
+            YSuiteSection(
+                title = stringResource(R.string.ynotify_settings_access),
+                modifier = Modifier.padding(YSuiteSpacing.Medium),
+            ) {
+                RuntimeControls(state, model)
+                YSuiteSecondaryButton(
+                    text = stringResource(R.string.ynotify_rebind_listener),
+                    onClick = model::requestReconnect,
+                )
+                state.captureMessage?.let { message ->
+                    YSuiteStatusBadge(
+                        text = when (message) {
+                            "rebind_requested" -> stringResource(R.string.ynotify_rebind_requested)
+                            "rebind_failed" -> stringResource(R.string.ynotify_rebind_failed)
+                            else -> stringResource(R.string.ynotify_settings_unavailable)
+                        },
+                        tone = YSuiteStatusTone.Warning,
+                    )
+                }
+                YSuiteListItem(
+                    title = stringResource(R.string.ynotify_captured_count, state.runtimeStatus.storedEventCount),
+                    subtitle = stringResource(R.string.ynotify_capture_scope_explanation),
+                )
+            }
+        }
+        item {
+            YSuiteSection(
+                title = stringResource(R.string.ynotify_settings_data),
+                modifier = Modifier.padding(horizontal = YSuiteSpacing.Medium),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small)) {
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.ynotify_reclassify),
+                        onClick = model::reclassify,
+                    )
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.ynotify_export),
+                        onClick = model::export,
+                    )
+                }
+                state.exportUri?.let {
+                    YSuiteStatusBadge(
+                        text = stringResource(R.string.ynotify_exported),
+                        tone = YSuiteStatusTone.Positive,
+                    )
+                }
+                YSuiteSecondaryButton(
+                    text = stringResource(R.string.ynotify_clear),
+                    onClick = {
+                        android.app.AlertDialog.Builder(context)
+                            .setTitle(R.string.ynotify_clear_confirm_title)
+                            .setMessage(R.string.ynotify_clear_confirm_message)
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .setPositiveButton(R.string.ynotify_clear) { _, _ -> model.clear() }
+                            .show()
+                    },
+                )
+            }
         }
     }
 }
@@ -336,33 +417,31 @@ private fun RuntimeControls(
                 model::openAccessibility,
         )
     }
-    Row(
-        horizontalArrangement =
-            Arrangement.spacedBy(
-                YSuiteSpacing.Small,
-            ),
-    ) {
-        listOf(7, 30, 90, 0).forEach { days ->
-            YSuiteSecondaryButton(
-                text =
-                    if (days == 0) {
-                        stringResource(
-                            R.string
-                                .ynotify_retention_forever,
-                        )
-                    } else {
-                        stringResource(
-                            R.string
-                                .ynotify_retention_days,
-                            days,
-                        )
-                    },
-                onClick = {
-                    model.setRetentionDays(days)
-                },
+    YSuiteListItem(
+        title = stringResource(R.string.ynotify_listener_grant_state),
+        subtitle = stringResource(
+            if (state.notificationAuthorized) R.string.ynotify_grant_yes
+            else R.string.ynotify_grant_no,
+        ),
+    )
+    YSuiteListItem(
+        title = stringResource(R.string.ynotify_accessibility_grant_state),
+        subtitle = stringResource(
+            if (state.accessibilityAuthorized) R.string.ynotify_grant_yes
+            else R.string.ynotify_grant_no,
+        ),
+    )
+    YSuiteFilterBar(
+        options = listOf(7, 30, 90, 0).map { days ->
+            YSuiteFilterOption(
+                days.toString(),
+                if (days == 0) stringResource(R.string.ynotify_retention_forever)
+                else stringResource(R.string.ynotify_retention_days, days),
             )
-        }
-    }
+        },
+        selectedId = state.retentionDays.toString(),
+        onSelected = { days -> days.toIntOrNull()?.let(model::setRetentionDays) },
+    )
 }
 
 @Composable
@@ -439,63 +518,6 @@ private fun EventList(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
     ) {
-        item {
-            Row(
-                modifier =
-                    Modifier.padding(
-                        YSuiteSpacing.Medium,
-                    ),
-                horizontalArrangement =
-                    Arrangement.spacedBy(
-                        YSuiteSpacing.Small,
-                    ),
-            ) {
-                YSuiteSecondaryButton(
-                    text =
-                        stringResource(
-                            R.string
-                                .ynotify_reclassify,
-                        ),
-                    onClick =
-                        model::reclassify,
-                )
-                YSuiteSecondaryButton(
-                    text =
-                        stringResource(
-                            R.string
-                                .ynotify_export,
-                        ),
-                    onClick = model::export,
-                )
-                YSuiteSecondaryButton(
-                    text =
-                        stringResource(
-                            R.string
-                                .ynotify_clear,
-                        ),
-                    onClick = model::clear,
-                )
-            }
-        }
-        state.exportUri?.let {
-            item {
-                YSuiteStatusBadge(
-                    text =
-                        stringResource(
-                            R.string
-                                .ynotify_exported,
-                        ),
-                    tone =
-                        YSuiteStatusTone
-                            .Positive,
-                    modifier =
-                        Modifier.padding(
-                            horizontal =
-                                YSuiteSpacing.Medium,
-                        ),
-                )
-            }
-        }
         if (events.isEmpty()) {
             item {
                 YSuiteListItem(
@@ -504,6 +526,7 @@ private fun EventList(
                             R.string
                                 .ynotify_empty,
                         ),
+                    subtitle = stringResource(R.string.ynotify_capture_scope_explanation),
                     modifier =
                         Modifier.padding(
                             YSuiteSpacing.Medium,
@@ -723,7 +746,24 @@ private fun viewModeLabel(
                 R.string
                     .ynotify_view_apps,
             )
+        YNotifyViewMode.Settings -> stringResource(R.string.ynotify_view_settings)
     }
+
+@Composable
+private fun timelineFilterLabel(value: YNotifyTimelineFilter): String =
+    stringResource(
+        when (value) {
+            YNotifyTimelineFilter.All -> R.string.ynotify_filter_all
+            YNotifyTimelineFilter.Notifications -> R.string.ynotify_filter_notifications
+            YNotifyTimelineFilter.HeadsUp -> R.string.ynotify_heads_up
+            YNotifyTimelineFilter.Bubble -> R.string.ynotify_bubble
+            YNotifyTimelineFilter.FullScreen -> R.string.ynotify_fullscreen
+            YNotifyTimelineFilter.Toast -> R.string.ynotify_filter_toast
+            YNotifyTimelineFilter.Dialog -> R.string.ynotify_filter_dialog
+            YNotifyTimelineFilter.Popup -> R.string.ynotify_filter_popup
+            YNotifyTimelineFilter.Snackbar -> R.string.ynotify_filter_snackbar
+        },
+    )
 
 @Composable
 private fun kindFilterLabel(

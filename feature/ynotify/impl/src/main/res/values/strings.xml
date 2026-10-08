@@ -81,4 +81,21 @@
     <string name="ynotify_detail_actions">Actions</string>
     <string name="ynotify_detail_raw_extras">Raw extras</string>
     <string name="ynotify_detail_removal_reason">Removal reason</string>
+    <string name="ynotify_view_settings">Settings</string>
+    <string name="ynotify_advanced_filters">Advanced filters</string>
+    <string name="ynotify_hide_advanced_filters">Hide advanced filters</string>
+    <string name="ynotify_settings_access">Capture services</string>
+    <string name="ynotify_settings_data">History management</string>
+    <string name="ynotify_rebind_listener">Reconnect notification listener</string>
+    <string name="ynotify_rebind_requested">Reconnection requested. Check access status.</string>
+    <string name="ynotify_rebind_failed">Could not request listener reconnection.</string>
+    <string name="ynotify_settings_unavailable">Unable to open system settings.</string>
+    <string name="ynotify_listener_grant_state">Notification access granted</string>
+    <string name="ynotify_accessibility_grant_state">Accessibility access granted</string>
+    <string name="ynotify_grant_yes">Granted</string>
+    <string name="ynotify_grant_no">Not granted — open permission settings above</string>
+    <string name="ynotify_captured_count">%1$d captured events</string>
+    <string name="ynotify_capture_scope_explanation">History includes events recorded after granting this app access. Older standalone app history is stored separately.</string>
+    <string name="ynotify_clear_confirm_title">Delete all captured history?</string>
+    <string name="ynotify_clear_confirm_message">This permanently deletes all recorded notification and UI events for YSuite.</string>
 </resources>
