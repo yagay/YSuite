@@ -967,7 +967,7 @@ internal class YEntryCleanerRepository(
             .remove("browser_hosts")
         prefs.all.keys
             .filter { it.startsWith("priority_") }
-            .forEach(editor::remove)
+            .forEach { editor.remove(it) }
         for ((key, value) in imported) {
             when (value) {
                 is String -> editor.putString(key, value)
