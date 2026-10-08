@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidate
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -75,6 +77,7 @@ internal class YEntryCleanerViewModel(
     val state:
         StateFlow<YEntryCleanerUiState> =
         mutableState.asStateFlow()
+    private var refreshJob: Job? = null
 
     init {
         refresh()
@@ -486,19 +489,27 @@ internal class YEntryCleanerViewModel(
     }
 
     fun refresh() {
-        val surface =
-            mutableState.value.surface
-        viewModelScope.launch {
-            val items =
+        refreshJob?.cancel()
+        val surface = mutableState.value.surface
+        refreshJob = viewModelScope.launch {
+            val items = try {
                 withContext(Dispatchers.IO) {
-                    repository.candidates(
-                        surface,
+                    repository.candidates(surface)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                if (mutableState.value.surface == surface) {
+                    mutableState.value = mutableState.value.copy(
+                        candidates = emptyList(),
+                        statusToken = "candidate_load_failed",
                     )
                 }
-            mutableState.value =
-                mutableState.value.copy(
-                    candidates = items,
-                )
+                return@launch
+            }
+            // Rapid surface changes must never restore another page's results.
+            if (mutableState.value.surface != surface) return@launch
+            mutableState.value = mutableState.value.copy(candidates = items)
         }
     }
 

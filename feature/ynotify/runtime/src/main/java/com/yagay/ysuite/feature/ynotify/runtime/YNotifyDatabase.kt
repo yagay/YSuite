@@ -545,7 +545,9 @@ internal class YNotifyDatabase(
             .asSequence()
             .filter {
                 it.eventType == YNotifyEventType.Notification &&
-                    kotlin.math.abs(now - it.updatedAt) <= 8_000L &&
+                    it.removedAt == null &&
+                    it.updatedAt <= now &&
+                    now - it.updatedAt <= 8_000L &&
                     (
                         packageName.isNullOrBlank() ||
                             packageName == "com.android.systemui" ||
