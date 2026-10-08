@@ -90,8 +90,10 @@ class LocalFileProvider(
                         maxResults = query.maxResults,
                     )
                 } else {
-                    root.listFiles()
-                        .orEmpty()
+                    (root.listFiles()
+                        ?: throw SecurityException(
+                            "Unable to read this directory. Check file access permission.",
+                        ))
                         .asSequence()
                         .filter {
                             query.showHidden ||

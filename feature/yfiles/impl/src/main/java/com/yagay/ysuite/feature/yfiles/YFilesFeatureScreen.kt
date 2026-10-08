@@ -11,6 +11,7 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -669,6 +670,13 @@ private fun YFilesDirectoryList(
     context: Context,
     modifier: Modifier = Modifier,
 ) {
+    val needsStorageAccess =
+        state.directory?.providerId == "local" &&
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
+            !Environment.isExternalStorageManager()
+    val storageLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { browser.refresh() }
     if (
         state.viewMode ==
             YFilesViewMode.Grid &&
@@ -754,13 +762,27 @@ private fun YFilesDirectoryList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
     ) {
+        if (needsStorageAccess) {
+            item(key = "storage-access") {
+                YSuiteListItem(
+                    title = stringResource(R.string.yfiles_all_files_access),
+                    modifier = Modifier.clickable {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                            Uri.parse("package:" + context.packageName),
+                        )
+                        storageLauncher.launch(intent)
+                    },
+                )
+            }
+        }
         if (state.loading && state.entries.isEmpty()) {
             item {
                 YSuiteListItem(
                     title = stringResource(R.string.yfiles_loading),
                 )
             }
-        } else if (state.entries.isEmpty()) {
+        } else if (state.entries.isEmpty() && state.error == null && !needsStorageAccess) {
             item {
                 YSuiteListItem(
                     title = stringResource(R.string.yfiles_empty),
