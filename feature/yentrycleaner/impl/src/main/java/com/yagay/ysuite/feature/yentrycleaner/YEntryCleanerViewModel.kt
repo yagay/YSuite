@@ -167,6 +167,18 @@ internal class YEntryCleanerViewModel(
                     mutableState.value.selectedId
             }
 
+    fun rename(candidate: YEntryCandidate, name: String) {
+        viewModelScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                repository.setComponentTitle(candidate.id, name)
+            }
+            mutableState.value = mutableState.value.copy(
+                statusToken = if (saved) "title_updated" else "title_invalid",
+            )
+            if (saved) refresh()
+        }
+    }
+
     fun toggleHidden(
         candidate: YEntryCandidate,
         value: Boolean,

@@ -56,6 +56,24 @@ internal class YEntryCleanerRepository(
         prefs.getStringSet("locked_rules", emptySet())
             ?.toSet().orEmpty()
 
+    private fun componentTitles(): Map<String, String> =
+        runCatching {
+            val json = JSONObject(prefs.getString("component_titles", "{}") ?: "{}")
+            json.keys().asSequence().associateWith { json.getString(it) }
+        }.getOrDefault(emptyMap())
+
+    fun setComponentTitle(id: String, title: String): Boolean {
+        val normalized = title.trim()
+        if (normalized.length > 64 || normalized.any { it.isISOControl() }) {
+            return false
+        }
+        val titles = componentTitles().toMutableMap()
+        if (normalized.isBlank()) titles.remove(id) else titles[id] = normalized
+        return prefs.edit()
+            .putString("component_titles", JSONObject(titles).toString())
+            .commit()
+    }
+
     fun disabledComponents(): Set<String> =
         prefs.getStringSet(
             "disabled_components",
@@ -302,6 +320,7 @@ internal class YEntryCleanerRepository(
     ): List<YEntryCandidate> {
         val hidden = hidden()
         val locked = locked()
+        val componentTitles = componentTitles()
         val configuredOrder =
             if (prefs.contains(priorityKey(surface, qualifier))) {
                 priority(surface, qualifier)
@@ -342,11 +361,10 @@ internal class YEntryCleanerRepository(
                 packageName = ai.packageName,
                 className = ai.name,
                 label =
-                    runCatching {
+                    componentTitles[id] ?: componentTitles[wildcardId]
+                    ?: runCatching {
                         ri.loadLabel(pm).toString()
-                    }.getOrDefault(
-                        ai.packageName,
-                    ),
+                    }.getOrDefault(ai.packageName),
                 system =
                     ai.applicationInfo.flags and
                         ApplicationInfo.FLAG_SYSTEM != 0,
@@ -594,6 +612,7 @@ internal class YEntryCleanerRepository(
             ).orEmpty()
         val hidden = hidden()
         val locked = locked()
+        val componentTitles = componentTitles()
         return seen.mapNotNull { id ->
             val p = id.split('|', limit = 4)
             if (p.size != 4) return@mapNotNull null
@@ -612,12 +631,13 @@ internal class YEntryCleanerRepository(
                 packageName = packageName,
                 className = p[3],
                 label =
-                    installed?.let {
-                        runCatching {
-                            pm.getApplicationLabel(it)
-                                .toString()
-                        }.getOrNull()
-                    } ?: packageName,
+                    componentTitles[id]
+                        ?: installed?.let {
+                            runCatching {
+                                pm.getApplicationLabel(it)
+                                    .toString()
+                            }.getOrNull()
+                        } ?: packageName,
                 system =
                     installed?.flags
                         ?.and(

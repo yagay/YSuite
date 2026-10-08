@@ -677,6 +677,18 @@ private fun CandidateDetail(
                     subtitle =
                         candidate.className,
                 )
+                var titleDraft by remember(candidate.id) {
+                    mutableStateOf(candidate.label)
+                }
+                YSuiteSearchField(
+                    value = titleDraft,
+                    onValueChange = { titleDraft = it },
+                    label = stringResource(R.string.yentry_custom_title),
+                )
+                YSuiteSecondaryButton(
+                    text = stringResource(R.string.yentry_save_title),
+                    onClick = { model.rename(candidate, titleDraft) },
+                )
                 YSuiteSwitchItem(
                     title =
                         stringResource(
@@ -837,6 +849,12 @@ private fun statusPresentation(
                 YSuiteStatusTone.Positive
         token == "rules_sync_failed" ->
             R.string.yentry_rules_sync_failed to
+                YSuiteStatusTone.Error
+        token == "title_updated" ->
+            R.string.yentry_title_updated to
+                YSuiteStatusTone.Positive
+        token == "title_invalid" ->
+            R.string.yentry_title_invalid to
                 YSuiteStatusTone.Error
         token == "candidate_load_failed" ->
             R.string.yentry_candidate_load_failed to

@@ -65,4 +65,8 @@
     <string name="yentry_rules_shown">Visible resolver rules restored.</string>
     <string name="yentry_rules_sync_failed">Rules saved locally, but LSPosed sync failed. Check module scope and retry.</string>
     <string name="yentry_candidate_load_failed">Could not load candidates. Check permissions or review diagnostics.</string>
+    <string name="yentry_custom_title">Custom component name (clear to reset)</string>
+    <string name="yentry_save_title">Save name</string>
+    <string name="yentry_title_updated">Component name saved.</string>
+    <string name="yentry_title_invalid">Unable to save name; use up to 64 characters.</string>
 </resources>

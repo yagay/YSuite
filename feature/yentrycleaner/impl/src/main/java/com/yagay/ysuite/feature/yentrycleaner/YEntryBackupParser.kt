@@ -35,6 +35,20 @@ internal object YEntryBackupParser {
                     result[key] = mode
                 }
                 key == "diagnostic" -> result[key] = value as? Boolean ?: return null
+                key == "component_titles" -> {
+                    val raw = value as? String ?: return null
+                    if (raw.length > 250_000) return null
+                    val titles = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+                    if (titles.length() > 2_000) return null
+                    for (id in titles.keys()) {
+                        val name = titles.opt(id) as? String ?: return null
+                        if (id.length > 1024 || id.count { it == '|' } != 3 ||
+                            name.isBlank() || name.length > 64 ||
+                            name.any { it.isISOControl() }
+                        ) return null
+                    }
+                    result[key] = raw
+                }
                 key == "browser_host" || key == "open_mime" -> {
                     val string = value as? String ?: return null
                     if (string.length > 255 || string.contains('\n')) return null
@@ -112,10 +126,30 @@ internal object YEntryBackupParser {
             "display_mode" to mode,
         )
         val oldPriorityConfig = source.optJSONObject("priorities")
-        // The rebuilt UI has no component-title aliases yet. Reject rather than
-        // silently dropping user names from an otherwise "successful" import.
-        if ((oldPriorityConfig?.optJSONObject("titles")?.length() ?: 0) > 0) return null
         val indexedQualifiers = linkedSetOf<String>()
+        val titles = oldPriorityConfig?.optJSONObject("titles")
+        if (titles != null) {
+            if (titles.length() > 2_000) return null
+            val converted = linkedMapOf<String, String>()
+            for (oldId in titles.keys()) {
+                val parts = oldId.split('|', limit = 3)
+                if (parts.size != 3) return null
+                val targets = surfaces(parts[0]) ?: return null
+                val className = canonicalClass(parts[1], parts[2]) ?: return null
+                val title = titles.opt(oldId) as? String ?: return null
+                if (title.isBlank() || title.length > 64 ||
+                    title.any { it.isISOControl() }
+                ) return null
+                for (surface in targets) {
+                    val key = YEntryRuntimeBridge.ruleKey(
+                        surface.name, "*", parts[1], className,
+                    )
+                    if (converted.containsKey(key) && converted[key] != title) return null
+                    converted[key] = title
+                }
+            }
+            result["component_titles"] = JSONObject(converted).toString()
+        }
         val oldPriorities = oldPriorityConfig?.optJSONObject("apps")
         if (oldPriorities != null) {
             for (kind in oldPriorities.keys()) {
