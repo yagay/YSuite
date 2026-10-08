@@ -117,4 +117,5 @@
     <string name="ynotify_repair_in_progress">Repairing notification history…</string>
     <string name="ynotify_repair_merged">Repair complete · %1$d notification updates linked</string>
     <string name="ynotify_repair_failed">History repair failed</string>
+    <string name="ynotify_linked_notification">Related notification record</string>
 </resources>

@@ -805,6 +805,12 @@ private fun EventDetail(
                         ),
                     subtitle = event.source,
                 )
+                event.linkedNotificationId?.let { linkedId ->
+                    YSuiteListItem(
+                        title = stringResource(R.string.ynotify_linked_notification),
+                        subtitle = linkedId.toString(),
+                    )
+                }
             }
         }
         item(key = "manual-classification") {

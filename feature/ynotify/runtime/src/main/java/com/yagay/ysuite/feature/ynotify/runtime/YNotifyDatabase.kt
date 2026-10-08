@@ -70,7 +70,8 @@ internal class YNotifyDatabase(
                 classification_locked INTEGER NOT NULL DEFAULT 0,
                 original_event_type TEXT,
                 classification_source TEXT,
-                merged_into_id INTEGER
+                merged_into_id INTEGER,
+                linked_notification_id INTEGER
             )
             """.trimIndent(),
         )
@@ -89,6 +90,7 @@ internal class YNotifyDatabase(
         createDetailsTable(db)
         createRevisionsTable(db)
         createMergeIndex(db)
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_ynotify_linked ON events(linked_notification_id)")
     }
 
     override fun onUpgrade(
@@ -110,6 +112,10 @@ internal class YNotifyDatabase(
         if (oldVersion < 5) {
             db.execSQL("ALTER TABLE events ADD COLUMN merged_into_id INTEGER")
             createMergeIndex(db)
+        }
+        if (oldVersion < 6) {
+            db.execSQL("ALTER TABLE events ADD COLUMN linked_notification_id INTEGER")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_ynotify_linked ON events(linked_notification_id)")
         }
     }
 
@@ -383,6 +389,7 @@ internal class YNotifyDatabase(
             val originalTypeIndex = cursor.getColumnIndexOrThrow("original_event_type")
             val manualSourceIndex = cursor.getColumnIndexOrThrow("classification_source")
             val mergedIndex = cursor.getColumnIndexOrThrow("merged_into_id")
+            val linkedIndex = cursor.getColumnIndexOrThrow("linked_notification_id")
             while (cursor.moveToNext()) {
                 result +=
                     YNotifyEvent(
@@ -443,6 +450,7 @@ internal class YNotifyDatabase(
                         },
                         classificationSource = cursor.getStringOrNull(manualSourceIndex),
                         mergedIntoId = cursor.getLongOrNull(mergedIndex),
+                        linkedNotificationId = cursor.getLongOrNull(linkedIndex),
                     )
             }
         }
@@ -593,6 +601,11 @@ internal class YNotifyDatabase(
                 "UPDATE events SET merged_into_id = NULL " +
                     "WHERE merged_into_id IS NOT NULL AND merged_into_id NOT IN " +
                     "(SELECT id FROM events)",
+            )
+            writableDatabase.execSQL(
+                "UPDATE events SET linked_notification_id = NULL " +
+                    "WHERE linked_notification_id IS NOT NULL " +
+                    "AND linked_notification_id NOT IN (SELECT id FROM events)",
             )
             writableDatabase.execSQL(
                 "DELETE FROM event_details " +
@@ -801,68 +814,96 @@ internal class YNotifyDatabase(
         return mergedCount
     }
 
+    /**
+     * Correlate accessibility banners with a real notification only when text
+     * and timing both agree. A SystemUI banner can legitimately belong to a
+     * different package, but uses a higher matching threshold.
+     */
     fun markPresentation(
         packageName: String?,
         text: String,
         type: YNotifyEventType,
         now: Long,
+        eventKey: String? = null,
     ) {
         val normalized = normalize(text)
         if (normalized.length < 2) return
-        val candidates = query(80)
-            .asSequence()
-            .filter {
-                it.eventType == YNotifyEventType.Notification &&
-                    it.removedAt == null &&
-                    it.updatedAt <= now &&
-                    now - it.updatedAt <= 8_000L &&
-                    (
-                        packageName.isNullOrBlank() ||
-                            packageName == "com.android.systemui" ||
-                            it.packageName == packageName
-                    )
+        val systemUi = packageName.isNullOrBlank() ||
+            packageName == "com.android.systemui"
+        data class Candidate(val event: YNotifyEvent, val score: Double)
+        val matches = query(250).asSequence()
+            .filter { event ->
+                event.eventType == YNotifyEventType.Notification &&
+                    !event.classificationLocked &&
+                    event.removedAt == null &&
+                    (systemUi || event.packageName == packageName)
             }
-            .map {
-                it to similarity(
-                    normalized,
-                    normalize(
-                        listOfNotNull(
-                            it.title,
-                            it.fullText,
-                            it.text,
-                        ).joinToString(" "),
-                    ),
+            .mapNotNull { event ->
+                val dt = minOf(
+                    kotlin.math.abs(now - event.postedAt),
+                    kotlin.math.abs(now - event.updatedAt),
                 )
+                if (dt > 5_000L) return@mapNotNull null
+                val similarity = similarity(
+                    normalized,
+                    normalize(listOfNotNull(
+                        event.title, event.fullText, event.text,
+                    ).joinToString(" ")),
+                )
+                val confident = if (systemUi && event.packageName != packageName) {
+                    similarity >= 0.995 ||
+                        (similarity >= 0.92 && dt <= 2_500L)
+                } else {
+                    similarity >= 0.995 ||
+                        (similarity >= 0.82 && dt <= 3_000L)
+                }
+                if (!confident) null
+                else Candidate(event, similarity - dt / 5_000.0 * 0.04)
             }
-            .filter { it.second >= 0.72 }
-            .maxByOrNull { it.second }
-            ?.first
-            ?: return
-
+            .sortedByDescending { it.score }
+            .take(2)
+            .toList()
+        val best = matches.firstOrNull() ?: return
+        val second = matches.getOrNull(1)
+        // Do not associate an ambiguous shared SystemUI banner with an
+        // unrelated app when multiple notifications have nearly equal text.
+        if (second != null && best.score - second.score < 0.05) return
         val values = ContentValues()
         if (type == YNotifyEventType.SystemUi) {
             values.put("heads_up", 1)
         }
-        if (
-            type == YNotifyEventType.Popup ||
-            type == YNotifyEventType.Dialog
-        ) {
+        if (type == YNotifyEventType.Popup || type == YNotifyEventType.Dialog) {
             values.put("full_screen_shown", 1)
         }
-        if (
-            text.contains("bubble", ignoreCase = true)
-        ) {
+        if (text.contains("bubble", ignoreCase = true)) {
             values.put("bubble_shown", 1)
         }
-        if (values.size() > 0) {
-            writableDatabase.update(
-                "events",
-                values,
-                "id = ? AND classification_locked = 0",
-                arrayOf(candidates.id.toString()),
-            )
-            invalidations.tryEmit(Unit)
+        val database = writableDatabase
+        database.beginTransaction()
+        var updated = 0
+        try {
+            if (values.size() > 0) {
+                updated += database.update(
+                    "events", values,
+                    "id = ? AND classification_locked = 0",
+                    arrayOf(best.event.id.toString()),
+                )
+            }
+            if (!eventKey.isNullOrBlank()) {
+                updated += database.update(
+                    "events",
+                    ContentValues().apply {
+                        put("linked_notification_id", best.event.id)
+                    },
+                    "event_key = ? AND classification_locked = 0 AND event_type != ?",
+                    arrayOf(eventKey, YNotifyEventType.Notification.name),
+                )
+            }
+            database.setTransactionSuccessful()
+        } finally {
+            database.endTransaction()
         }
+        if (updated > 0) invalidations.tryEmit(Unit)
     }
 
     /**
@@ -1276,7 +1317,7 @@ internal class YNotifyDatabase(
 
     companion object {
         const val CLASSIFICATION_VERSION = 4
-        private const val DATABASE_VERSION = 5
+        private const val DATABASE_VERSION = 6
         private const val SEARCH_PAGE_SIZE = 500
         val invalidations = MutableSharedFlow<Unit>(
             extraBufferCapacity = 32,

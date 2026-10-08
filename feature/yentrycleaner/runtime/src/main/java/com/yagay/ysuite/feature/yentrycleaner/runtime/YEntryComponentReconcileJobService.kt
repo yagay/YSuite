@@ -229,6 +229,12 @@ class YEntryComponentReconcileJobService :
                     component,
                     flags,
                 )
+            }.isSuccess ||
+            runCatching {
+                pm.getProviderInfo(
+                    component,
+                    flags,
+                )
             }.isSuccess
     }
 

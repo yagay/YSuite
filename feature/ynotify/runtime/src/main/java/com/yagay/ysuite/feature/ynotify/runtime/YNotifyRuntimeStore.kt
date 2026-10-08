@@ -259,6 +259,7 @@ class YNotifyRuntimeStore(
                             put("originalEventType", event.originalEventType?.name)
                             put("classificationSource", event.classificationSource)
                             put("mergedIntoId", event.mergedIntoId)
+                            put("linkedNotificationId", event.linkedNotificationId)
                         }.toString(),
                     )
                 }

@@ -144,6 +144,7 @@ class YNotifyAccessibilityService :
                     text = text,
                     type = type,
                     now = now,
+                    eventKey = key,
                 )
             }
         }

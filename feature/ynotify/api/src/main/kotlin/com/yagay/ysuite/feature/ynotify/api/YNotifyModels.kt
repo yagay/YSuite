@@ -82,6 +82,7 @@ data class YNotifyEvent(
     val originalEventType: YNotifyEventType? = null,
     val classificationSource: String? = null,
     val mergedIntoId: Long? = null,
+    val linkedNotificationId: Long? = null,
 )
 
 data class YNotifyRuntimeStatus(
