@@ -170,16 +170,20 @@ internal class YDownloadNotificationManager(
                 .setSilent(true)
                 .setContentIntent(launchIntent())
 
-        builder.addAction(
-            0,
-            context.getString(R.string.ydownload_pause),
-            serviceAction(
-                action = YDownloadService.ACTION_PAUSE,
-                id = item.id,
-                requestCode =
-                    item.notificationId() + 10,
-            ),
-        )
+        if (item.backend ==
+            com.yagay.ysuite.feature.ydownload.api.YDownloadBackend.Private
+        ) {
+            builder.addAction(
+                0,
+                context.getString(R.string.ydownload_pause),
+                serviceAction(
+                    action = YDownloadService.ACTION_PAUSE,
+                    id = item.id,
+                    requestCode =
+                        item.notificationId() + 10,
+                ),
+            )
+        }
         builder.addAction(
             0,
             context.getString(R.string.ydownload_cancel),
