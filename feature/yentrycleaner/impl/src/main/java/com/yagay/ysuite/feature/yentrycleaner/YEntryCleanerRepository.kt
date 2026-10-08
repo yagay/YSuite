@@ -270,8 +270,12 @@ internal class YEntryCleanerRepository(
     ): List<YEntryCandidate> {
         val hidden = hidden()
         val locked = locked()
+        val configuredOrder =
+            priority(surface, qualifier).ifEmpty {
+                priority(surface, "*")
+            }
         val rank =
-            priority(surface, qualifier)
+            configuredOrder
                 .withIndex()
                 .associate {
                     it.value to it.index
@@ -290,6 +294,13 @@ internal class YEntryCleanerRepository(
                     ai.packageName,
                     ai.name,
                 )
+            val wildcardId =
+                YEntryRuntimeBridge.ruleKey(
+                    surface.name,
+                    "*",
+                    ai.packageName,
+                    ai.name,
+                )
             YEntryCandidate(
                 id = id,
                 surface = surface,
@@ -305,9 +316,9 @@ internal class YEntryCleanerRepository(
                 system =
                     ai.applicationInfo.flags and
                         ApplicationInfo.FLAG_SYSTEM != 0,
-                hidden = id in hidden,
-                locked = id in locked,
-                priority = rank[id],
+                hidden = id in hidden || wildcardId in hidden,
+                locked = id in locked || wildcardId in locked,
+                priority = rank[id] ?: rank[wildcardId],
             )
         }.sortedWith(
             compareBy<YEntryCandidate> {
