@@ -766,6 +766,9 @@ private fun statusPresentation(
         token == "rules_shown" ->
             R.string.yentry_rules_shown to
                 YSuiteStatusTone.Positive
+        token == "rules_sync_failed" ->
+            R.string.yentry_rules_sync_failed to
+                YSuiteStatusTone.Error
         else ->
             R.string.yentry_component_failed to
                 YSuiteStatusTone.Error

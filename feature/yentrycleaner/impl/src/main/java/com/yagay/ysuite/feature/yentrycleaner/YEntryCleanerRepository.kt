@@ -993,7 +993,7 @@ internal class YEntryCleanerRepository(
     suspend fun bulkHidden(
         candidates: List<YEntryCandidate>,
         hidden: Boolean,
-    ) {
+    ): Outcome<Unit> {
         val locks = locked()
         val next = this.hidden().toMutableSet()
         candidates
@@ -1008,7 +1008,7 @@ internal class YEntryCleanerRepository(
                 next,
             )
             .apply()
-        sync()
+        return sync()
     }
 
     /** Publish settings without restarting framework processes merely by opening the screen. */

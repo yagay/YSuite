@@ -205,14 +205,18 @@ internal class YEntryCleanerViewModel(
     fun bulk(hidden: Boolean) {
         val items = visible()
         viewModelScope.launch {
-            repository.bulkHidden(
-                items,
-                hidden,
-            )
+            val result = withContext(Dispatchers.IO) {
+                repository.bulkHidden(
+                    items,
+                    hidden,
+                )
+            }
             mutableState.value =
                 mutableState.value.copy(
                     statusToken =
-                        if (hidden) {
+                        if (result is com.yagay.ysuite.common.Outcome.Failure) {
+                            "rules_sync_failed"
+                        } else if (hidden) {
                             "rules_hidden"
                         } else {
                             "rules_shown"
@@ -465,8 +469,14 @@ internal class YEntryCleanerViewModel(
 
     private fun syncAndRefresh() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
+            val result = withContext(Dispatchers.IO) {
                 repository.sync()
+            }
+            if (result is com.yagay.ysuite.common.Outcome.Failure) {
+                mutableState.value =
+                    mutableState.value.copy(
+                        statusToken = "rules_sync_failed",
+                    )
             }
             refreshRuntime()
             refresh()

@@ -52,4 +52,5 @@
     <string name="yentry_components_partial">部分组件修改失败。</string>
     <string name="yentry_rules_hidden">当前可见解析规则已隐藏。</string>
     <string name="yentry_rules_shown">当前可见解析规则已恢复。</string>
+    <string name="yentry_rules_sync_failed">规则已在本地保存，但 LSPosed 同步失败。请检查模块及作用域后重试。</string>
 </resources>
