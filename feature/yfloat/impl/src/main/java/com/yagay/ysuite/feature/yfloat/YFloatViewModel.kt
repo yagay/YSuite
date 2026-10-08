@@ -4,10 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yagay.ysuite.feature.yfloat.runtime.YFloatRuntimeBridge
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 data class YFloatUiState(
     val snapshot: YFloatSnapshot? = null,
@@ -23,18 +28,25 @@ internal class YFloatViewModel(
     val state: StateFlow<YFloatUiState> =
         mutableState.asStateFlow()
 
+    private val changeMutex = Mutex()
+    private var refreshJob: Job? = null
+
     init {
         refresh()
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
+            val (snapshot, summary) =
+                withContext(Dispatchers.IO) {
+                    repository.snapshot() to
+                        repository.lsposedSummary()
+                }
             mutableState.value =
                 mutableState.value.copy(
-                    snapshot =
-                        repository.snapshot(),
-                    hookSummary =
-                        repository.lsposedSummary(),
+                    snapshot = snapshot,
+                    hookSummary = summary,
                 )
         }
     }
@@ -45,25 +57,20 @@ internal class YFloatViewModel(
         }
 
     fun bool(key: String, value: Boolean) =
-        mutate {
-            repository.putBoolean(
-                key,
-                value,
-            )
-            if (
+        mutate(
+            syncHooks =
                 key in
                     setOf(
                         YFloatRuntimeBridge.K_ENHANCED_MODE,
                         YFloatRuntimeBridge.K_LSPOSED_ENABLED,
                         YFloatRuntimeBridge.K_LSPOSED_SECURE_SCREENSHOT,
                         YFloatRuntimeBridge.K_DIAGNOSTIC,
-                    )
-            ) {
-                viewModelScope.launch {
-                    repository.syncHooks()
-                    refresh()
-                }
-            }
+                    ),
+        ) {
+            repository.putBoolean(
+                key,
+                value,
+            )
         }
 
     fun int(key: String, value: Int) =
@@ -99,7 +106,12 @@ internal class YFloatViewModel(
 
     fun syncHooks() {
         viewModelScope.launch {
-            val result = repository.syncHooks()
+            val result =
+                withContext(Dispatchers.IO) {
+                    changeMutex.withLock {
+                        repository.syncHooks()
+                    }
+                }
             mutableState.value =
                 mutableState.value.copy(
                     statusToken =
@@ -116,9 +128,38 @@ internal class YFloatViewModel(
         }
     }
 
-    private fun mutate(block: () -> Unit) {
-        block()
-        refresh()
+    private fun mutate(
+        syncHooks: Boolean = false,
+        block: () -> Unit,
+    ) {
+        viewModelScope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    changeMutex.withLock {
+                        block()
+                        if (syncHooks) {
+                            repository.syncHooks()
+                        } else {
+                            null
+                        }
+                    }
+                }
+            if (syncHooks) {
+                mutableState.value =
+                    mutableState.value.copy(
+                        statusToken =
+                            if (
+                                result is
+                                com.yagay.ysuite.common.Outcome.Success
+                            ) {
+                                "hook_synced"
+                            } else {
+                                "hook_sync_failed"
+                            },
+                    )
+            }
+            refresh()
+        }
     }
 
     class Factory(
