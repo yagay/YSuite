@@ -83,6 +83,9 @@ fun YEntryCleanerFeatureScreen(
     val state by
         model.state.collectAsStateWithLifecycle()
     val selected = model.selected()
+    val hasActiveFilters =
+        state.filter != YEntryAppFilter.All ||
+            state.selectionFilter != YEntrySelectionFilter.All
     var showFilters by remember { mutableStateOf(false) }
     var openSection by remember { mutableStateOf("mime") }
     val importLauncher =
@@ -158,6 +161,12 @@ fun YEntryCleanerFeatureScreen(
                     ),
                     onClick = { showFilters = !showFilters },
                 )
+                if (!showFilters && hasActiveFilters) {
+                    YSuiteStatusBadge(
+                        text = stringResource(R.string.yentry_filters_active),
+                        tone = YSuiteStatusTone.Warning,
+                    )
+                }
                 if (showFilters) {
                 YSuiteFilterBar(
                     options =

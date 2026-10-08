@@ -86,4 +86,5 @@
     <string name="yentry_open_section_mime">MIME</string>
     <string name="yentry_open_section_presets">File types</string>
     <string name="yentry_open_section_custom">Custom</string>
+    <string name="yentry_filters_active">Additional filters active; expand filters to change them.</string>
 </resources>

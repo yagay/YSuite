@@ -86,4 +86,5 @@
     <string name="yentry_open_section_mime">MIME 类型</string>
     <string name="yentry_open_section_presets">文件类型</string>
     <string name="yentry_open_section_custom">自定义</string>
+    <string name="yentry_filters_active">高级筛选正在生效；展开筛选可修改条件。</string>
 </resources>

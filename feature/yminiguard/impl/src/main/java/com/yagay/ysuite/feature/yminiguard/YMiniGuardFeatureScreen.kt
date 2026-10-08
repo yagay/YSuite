@@ -162,6 +162,26 @@ private fun MainList(
                     ),
                     onClick = { showAdvanced = !showAdvanced },
                 )
+                state.statusToken?.let {
+                    YSuiteStatusBadge(
+                        text =
+                            stringResource(
+                                when (it) {
+                                    "synced" -> R.string.yminiguard_synced
+                                    "reloaded" -> R.string.yminiguard_reloaded
+                                    "hook_inactive" -> R.string.yminiguard_hook_inactive
+                                    "reload_pending" -> R.string.yminiguard_reload_pending
+                                    else -> R.string.yminiguard_sync_failed
+                                },
+                            ),
+                        tone =
+                            if (it in setOf("synced", "reloaded")) {
+                                YSuiteStatusTone.Positive
+                            } else {
+                                YSuiteStatusTone.Warning
+                            },
+                    )
+                }
                 if (showAdvanced) {
                 YSuiteSwitchItem(
                     title = stringResource(R.string.yminiguard_importance_top),
@@ -199,26 +219,6 @@ private fun MainList(
                     YSuiteSecondaryButton(
                         text = stringResource(R.string.yminiguard_collect_diagnostics),
                         onClick = model::diagnostics,
-                    )
-                }
-                state.statusToken?.let {
-                    YSuiteStatusBadge(
-                        text =
-                            stringResource(
-                                when (it) {
-                                    "synced" -> R.string.yminiguard_synced
-                                    "reloaded" -> R.string.yminiguard_reloaded
-                                    "hook_inactive" -> R.string.yminiguard_hook_inactive
-                                    "reload_pending" -> R.string.yminiguard_reload_pending
-                                    else -> R.string.yminiguard_sync_failed
-                                },
-                            ),
-                        tone =
-                            if (it in setOf("synced", "reloaded")) {
-                                YSuiteStatusTone.Positive
-                            } else {
-                                YSuiteStatusTone.Warning
-                            },
                     )
                 }
                 if (state.diagnostics.isNotBlank()) {
