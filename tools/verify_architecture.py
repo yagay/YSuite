@@ -138,6 +138,14 @@ android_adapter_packages = (
     "com.yagay.ysuite.permissions.android",
 )
 
+
+def contains_android_reference(source: str) -> bool:
+    # Android intent action names are valid protocol strings in framework-neutral API.
+    # Strip Kotlin/Java string literals before looking for actual Android dependencies.
+    code = re.sub(r'"""[\\s\\S]*?"""|"(?:\\\\.|[^"\\\\])*"', '""', source)
+    return re.search(r"\\b(android|androidx)\\.", code) is not None
+
+
 for path in ROOT.rglob("*"):
     if not path.is_file():
         continue
@@ -205,13 +213,13 @@ for path in ROOT.rglob("*"):
                 )
 
     if rel.startswith("feature/") and "/api/" in rel:
-        if re.search(r"\b(android|androidx)\.", text):
+        if contains_android_reference(text):
             violations.append(
                 f"{rel}: feature API must remain framework-neutral"
             )
 
     if any(rel.startswith(root) for root in pure_api_roots[:3]):
-        if re.search(r"\b(android|androidx)\.", text):
+        if contains_android_reference(text):
             violations.append(
                 f"{rel}: infrastructure API must remain framework-neutral"
             )
