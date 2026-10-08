@@ -111,6 +111,9 @@ internal class YTaskProcessSampler(
             }
         val newTicks = HashMap<Int, Long>()
         val result = ArrayList<YTaskProcess>()
+        // A UID may own several processes; avoid querying package
+        // metadata repeatedly while sampling every refresh.
+        val packagesByUid = HashMap<Int, List<String>>()
 
         var index = 0
         while (index < lines.size) {
@@ -174,11 +177,13 @@ internal class YTaskProcessSampler(
                         clockTicks.toDouble(),
                 )
             val packages =
-                runCatching {
-                    packageManager.getPackagesForUid(uid)
-                        ?.toList()
-                        .orEmpty()
-                }.getOrDefault(emptyList())
+                packagesByUid.getOrPut(uid) {
+                    runCatching {
+                        packageManager.getPackagesForUid(uid)
+                            ?.toList()
+                            .orEmpty()
+                    }.getOrDefault(emptyList())
+                }
             val packageName =
                 packages.firstOrNull {
                     command == it || command.startsWith("$it:")
@@ -241,7 +246,7 @@ internal class YTaskProcessSampler(
 
         previousTicks = newTicks
         previousAt = now
-        return result
+        return attributeNetworkToPrimaryProcess(result)
     }
 
     private fun parseStat(raw: String): ProcStat? {
