@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 enum class YMiniGuardFilter { All, Protected, Playback, ForceSupport, User, System }
@@ -34,6 +36,7 @@ internal class YMiniGuardViewModel(
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(YMiniGuardUiState())
     val state: StateFlow<YMiniGuardUiState> = mutableState.asStateFlow()
+    private val syncMutex = Mutex()
 
     init { refresh() }
 
@@ -98,11 +101,25 @@ internal class YMiniGuardViewModel(
         forceSupport: Boolean? = null,
     ) {
         repository.updateApp(packageName, foreground, playback, forceSupport)
+        mutableState.value =
+            mutableState.value.copy(
+                apps = mutableState.value.apps.map { app ->
+                    if (app.packageName != packageName) app
+                    else app.copy(
+                        alwaysForeground = foreground ?: app.alwaysForeground,
+                        backgroundPlayback = playback ?: app.backgroundPlayback,
+                        forceFlexibleSupport = forceSupport ?: app.forceFlexibleSupport,
+                    )
+                },
+            )
         sync(false)
     }
 
     fun updateSettings(transform: (YMiniGuardSettings) -> YMiniGuardSettings) {
-        repository.setSettings(transform(mutableState.value.settings))
+        val next = transform(repository.settings())
+        repository.setSettings(next)
+        mutableState.value =
+            mutableState.value.copy(settings = next)
         sync(false)
     }
 
@@ -111,7 +128,9 @@ internal class YMiniGuardViewModel(
     private fun sync(reload: Boolean) {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
-                repository.sync(reload)
+                syncMutex.withLock {
+                    repository.sync(reload)
+                }
             }
             mutableState.value =
                 mutableState.value.copy(
