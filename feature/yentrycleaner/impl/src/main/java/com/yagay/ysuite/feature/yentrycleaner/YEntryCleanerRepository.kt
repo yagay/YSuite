@@ -17,6 +17,7 @@ import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidate
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryCandidateState
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
+import com.yagay.ysuite.feature.yentrycleaner.api.YEntryRuleSelection
 import com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryRuntimeBridge
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
@@ -394,8 +395,12 @@ internal class YEntryCleanerRepository(
                 system =
                     ai.applicationInfo.flags and
                         ApplicationInfo.FLAG_SYSTEM != 0,
-                hidden = (id in hidden || wildcardId in hidden) && id !in shown,
-                locked = (id in locked || wildcardId in locked) && id !in unlocked,
+                hidden = YEntryRuleSelection.isSelected(
+                    id, wildcardId, hidden, shown,
+                ),
+                locked = YEntryRuleSelection.isSelected(
+                    id, wildcardId, locked, unlocked,
+                ),
                 priority = rank[id] ?: rank[wildcardId] ?: rank[ai.packageName],
             )
         }.sortedWith(
@@ -671,12 +676,12 @@ internal class YEntryCleanerRepository(
                         ?.and(
                             ApplicationInfo.FLAG_SYSTEM,
                         ) != 0,
-                hidden = (
-                    id in hidden || inheritedRuleKey(id)?.let { it in hidden } == true
-                ) && id !in shown,
-                locked = (
-                    id in locked || inheritedRuleKey(id)?.let { it in locked } == true
-                ) && id !in unlocked,
+                hidden = YEntryRuleSelection.isSelected(
+                    id, inheritedRuleKey(id) ?: id, hidden, shown,
+                ),
+                locked = YEntryRuleSelection.isSelected(
+                    id, inheritedRuleKey(id) ?: id, locked, unlocked,
+                ),
                 priority = null,
                 state =
                     if (installed == null) {

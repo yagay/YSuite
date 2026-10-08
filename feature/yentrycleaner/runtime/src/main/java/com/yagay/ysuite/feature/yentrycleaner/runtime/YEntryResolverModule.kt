@@ -7,6 +7,7 @@ import android.os.Process
 import android.util.Log
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryIntentRouting
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
+import com.yagay.ysuite.feature.yentrycleaner.api.YEntryRuleSelection
 import com.yagay.ysuite.runtime.RuntimeOwnerGate
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
@@ -168,9 +169,9 @@ class YEntryResolverModule : XposedModule() {
                             activity.packageName,
                             activity.name,
                         )
-                    val selected =
-                        (exact in hidden || wildcard in hidden) &&
-                            exact !in shown
+                    val selected = YEntryRuleSelection.isSelected(
+                        exact, wildcard, hidden, shown,
+                    )
                     when (mode) {
                         "SHOW_ALL" -> true
                         "SHOW_SELECTED" ->
