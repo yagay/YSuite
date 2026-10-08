@@ -101,36 +101,26 @@ class YDownloadViewModel(
             ?.let(::showAddDialog)
 
         viewModelScope.launch {
-            YDownloadIncomingUrlStore.urls
-                .collect { url ->
-                    YDownloadIncomingUrlStore
-                        .clearIfMatches(
-                            appContext,
-                            url,
-               // Observe the repository independently of the initial database read.
-        // A failed read must not permanently disable future list updates.
+            YDownloadIncomingUrlStore.urls.collect { url ->
+                YDownloadIncomingUrlStore.clearIfMatches(appContext, url)
+                showAddDialog(url)
+            }
+        }
+
+        // Keep the UI subscribed even if the initial database read fails.
         viewModelScope.launch {
             environment.repository.items.collect { items ->
                 mutableState.update { it.copy(items = items) }
             }
         }
         retryLoad()
-{
-                    it.copy(items = items)
-                }
-            }
-        }
+
         viewModelScope.launch {
             environment.settings.settings.collect { settings ->
-                mutableState.update {
-                    it.copy(settings = settings)
-                }
-                if (
-                    mutableState.value.items.any {
-                        it.state == YDownloadState.Pending &&
-                            it.queued
-                    }
-                ) {
+                mutableState.update { it.copy(settings = settings) }
+                if (mutableState.value.items.any {
+                        it.state == YDownloadState.Pending && it.queued
+                    }) {
                     YDownloadService.pump(appContext)
                 }
             }
