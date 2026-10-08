@@ -7,7 +7,9 @@ import com.yagay.ysuite.feature.yfiles.api.YFileNode
 import com.yagay.ysuite.feature.yfiles.api.YFileRef
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.presentation.YSuiteViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class YLinkDraft(
     val name: String = "",
@@ -639,7 +641,7 @@ class YFilesToolsViewModel(
         }
         viewModelScope.launch {
             try {
-                block()
+                withContext(Dispatchers.IO) { block() }
             } catch (error: Throwable) {
                 updateState {
                     it.copy(

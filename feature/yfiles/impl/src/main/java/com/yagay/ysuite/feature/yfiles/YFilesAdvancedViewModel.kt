@@ -12,7 +12,9 @@ import com.yagay.ysuite.feature.yfiles.provider.remote.YFilesNetworkProtocol
 import com.yagay.ysuite.feature.yfiles.provider.cloud.YFilesCloudKind
 import com.yagay.ysuite.feature.yfiles.provider.cloud.YFilesCloudProfile
 import com.yagay.ysuite.feature.yfiles.plugin.YFilesPluginDescriptor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class YFilesNetworkDraft(
     val id: String? = null,
@@ -91,32 +93,7 @@ class YFilesAdvancedViewModel(
     YFilesAdvancedUiState,
     Nothing,
     >(
-    initialState =
-        YFilesAdvancedUiState(
-            networkProfiles =
-                environment.networkStore
-                    .profiles(),
-            cloudProfiles =
-                environment.cloudStore
-                    .profiles(),
-            shareServerSettings =
-                environment.shareServerStore
-                    .settings(),
-            automationEnabled =
-                environment.automationSettings
-                    .enabled(),
-            systemPatch =
-                YFilesSystemPatchStore(
-                    context,
-                    environment.hookGateway,
-                ).load(),
-            plugins =
-                environment.plugins
-                    .discover(),
-            vaultEntries =
-                environment.security
-                    .vaultEntries(),
-        ),
+    initialState = YFilesAdvancedUiState(),
 ) {
     private val appContext =
         context.applicationContext
@@ -127,6 +104,30 @@ class YFilesAdvancedViewModel(
         )
 
     init {
+        viewModelScope.launch {
+            val initial = withContext(Dispatchers.IO) {
+                YFilesAdvancedUiState(
+                    networkProfiles = environment.networkStore.profiles(),
+                    cloudProfiles = environment.cloudStore.profiles(),
+                    shareServerSettings = environment.shareServerStore.settings(),
+                    automationEnabled = environment.automationSettings.enabled(),
+                    systemPatch = systemPatch.load(),
+                    plugins = environment.plugins.discover(),
+                    vaultEntries = environment.security.vaultEntries(),
+                )
+            }
+            updateState {
+                it.copy(
+                    networkProfiles = initial.networkProfiles,
+                    cloudProfiles = initial.cloudProfiles,
+                    shareServerSettings = initial.shareServerSettings,
+                    automationEnabled = initial.automationEnabled,
+                    systemPatch = initial.systemPatch,
+                    plugins = initial.plugins,
+                    vaultEntries = initial.vaultEntries,
+                )
+            }
+        }
         viewModelScope.launch {
             environment.transfers.tasks
                 .collect { tasks ->
@@ -1249,7 +1250,7 @@ class YFilesAdvancedViewModel(
         }
         viewModelScope.launch {
             try {
-                action()
+                withContext(Dispatchers.IO) { action() }
             } catch (error: Throwable) {
                 fail(name, error)
             } finally {
@@ -1273,7 +1274,7 @@ class YFilesAdvancedViewModel(
         }
         viewModelScope.launch {
             try {
-                when (val result = outcome()) {
+                when (val result = withContext(Dispatchers.IO) { outcome() }) {
                     is Outcome.Success ->
                         success(result.value)
                     is Outcome.Failure -> {

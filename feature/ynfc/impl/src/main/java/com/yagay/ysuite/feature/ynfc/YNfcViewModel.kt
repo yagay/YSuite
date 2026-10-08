@@ -35,14 +35,35 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
         }
     }
     fun saveCard(card: YNfcCard) {
-        val cards = (mutableState.value.cards.filterNot { it.uid.equals(card.uid, true) } + card).sortedBy { it.name.lowercase() }
-        repository.saveCards(cards)
-        mutableState.value = mutableState.value.copy(cards = cards, statusToken = "card_saved")
+        val cards = (mutableState.value.cards.filterNot {
+            it.uid.equals(card.uid, true)
+        } + card).sortedBy { it.name.lowercase() }
+        persistCards(cards, "card_saved")
     }
+
     fun delete(card: YNfcCard) {
-        val cards = mutableState.value.cards.filterNot { it.uid.equals(card.uid, true) }
-        repository.saveCards(cards)
-        mutableState.value = mutableState.value.copy(cards = cards)
+        val cards = mutableState.value.cards.filterNot {
+            it.uid.equals(card.uid, true)
+        }
+        persistCards(cards, "card_deleted")
+    }
+
+    private fun persistCards(cards: List<YNfcCard>, successToken: String) {
+        if (mutableState.value.busy) return
+        viewModelScope.launch {
+            mutableState.value = mutableState.value.copy(busy = true)
+            runCatching {
+                withContext(Dispatchers.IO) { repository.saveCards(cards) }
+            }.onSuccess {
+                mutableState.value = mutableState.value.copy(
+                    busy = false, cards = cards, statusToken = successToken,
+                )
+            }.onFailure {
+                mutableState.value = mutableState.value.copy(
+                    busy = false, statusToken = "operation_failed",
+                )
+            }
+        }
     }
     fun apply(card: YNfcCard) = operation("applying") { repository.apply(card) }
     fun stop() = operation("stopping") { repository.stop() }
@@ -61,6 +82,7 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
         }
     }
     private fun operation(started: String, block: suspend () -> Pair<YNfcRuntimeSnapshot, String>) {
+        if (mutableState.value.busy) return
         viewModelScope.launch {
             mutableState.value = mutableState.value.copy(busy = true, statusToken = started)
             runCatching { withContext(Dispatchers.IO) { block() } }
@@ -74,12 +96,24 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
     }
     private suspend fun refresh() {
         runCatching {
-            val root = repository.rootStatus()
-            val hook = repository.hookStatus()
-            val runtime = if (root == CapabilityStatus.Available) repository.runtime() else mutableState.value.runtime
-            Triple(root, hook, runtime)
-        }.onSuccess {
-            mutableState.value = mutableState.value.copy(rootStatus = it.first, hookStatus = it.second, runtime = it.third)
+            withContext(Dispatchers.IO) {
+                val root = repository.rootStatus()
+                val hook = repository.hookStatus()
+                val runtime = if (root == CapabilityStatus.Available) {
+                    repository.runtime()
+                } else {
+                    mutableState.value.runtime
+                }
+                Triple(root, hook, runtime)
+            }
+        }.onSuccess { snapshot ->
+            if (!mutableState.value.busy) {
+                mutableState.value = mutableState.value.copy(
+                    rootStatus = snapshot.first,
+                    hookStatus = snapshot.second,
+                    runtime = snapshot.third,
+                )
+            }
         }
     }
     class Factory(private val environment: YNfcEnvironment) : ViewModelProvider.Factory {
