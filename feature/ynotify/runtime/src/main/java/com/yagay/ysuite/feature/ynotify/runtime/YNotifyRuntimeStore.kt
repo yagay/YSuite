@@ -119,6 +119,10 @@ class YNotifyRuntimeStore(
         database.clear()
     }
 
+    fun clearPackage(packageName: String) {
+        database.deletePackage(packageName)
+    }
+
     fun reclassify() {
         database.reclassify()
     }

@@ -581,6 +581,19 @@ class YNotifyViewModel(
         }
     }
 
+    fun clearPackage(packageName: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                store.clearPackage(packageName)
+            }
+            mutableState.value = mutableState.value.copy(
+                selectedPackage = null,
+                selectedEventId = null,
+                viewMode = YNotifyViewMode.Apps,
+            )
+        }
+    }
+
     fun clear() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {

@@ -104,4 +104,6 @@
     <string name="ynotify_last_received">Last notification received</string>
     <string name="ynotify_last_saved">Last notification saved</string>
     <string name="ynotify_last_capture_error">Capture error</string>
+    <string name="ynotify_clear_app">Clear this app history</string>
+    <string name="ynotify_clear_app_confirm">Delete all captured notifications and UI events belonging to this app? This cannot be undone.</string>
 </resources>

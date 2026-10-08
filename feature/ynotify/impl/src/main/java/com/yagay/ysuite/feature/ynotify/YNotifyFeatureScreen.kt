@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -45,8 +44,8 @@ import java.util.Date
 
 @Composable
 fun YNotifyFeatureScreen() {
-    val context =
-        LocalContext.current.applicationContext
+    val dialogContext = LocalContext.current
+    val context = dialogContext.applicationContext
     val model: YNotifyViewModel =
         viewModel(
             factory =
@@ -252,6 +251,19 @@ fun YNotifyFeatureScreen() {
                                 },
                             )
                         }
+                        YSuiteSecondaryButton(
+                            text = stringResource(R.string.ynotify_clear_app),
+                            onClick = {
+                                android.app.AlertDialog.Builder(dialogContext)
+                                    .setTitle(R.string.ynotify_clear_app)
+                                    .setMessage(R.string.ynotify_clear_app_confirm)
+                                    .setNegativeButton(android.R.string.cancel, null)
+                                    .setPositiveButton(R.string.ynotify_clear_app) { _, _ ->
+                                        model.clearPackage(selectedPackage)
+                                    }
+                                    .show()
+                            },
+                        )
                     }
                 }
             }
@@ -492,7 +504,7 @@ private fun NotificationAppIcon(packageName: String) {
         }.getOrNull()
     }
     icon?.let {
-        Image(bitmap = it, contentDescription = null, modifier = Modifier.size(36.dp))
+        Image(bitmap = it, contentDescription = null, modifier = Modifier.size(YSuiteSpacing.XLarge))
     }
 }
 

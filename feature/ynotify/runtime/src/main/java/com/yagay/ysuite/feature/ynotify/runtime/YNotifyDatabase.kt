@@ -562,6 +562,28 @@ internal class YNotifyDatabase(
         }
     }
 
+    fun deletePackage(packageName: String) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(
+                "notification_revisions",
+                "event_key IN (SELECT event_key FROM events WHERE package_name = ?)",
+                arrayOf(packageName),
+            )
+            db.delete(
+                "event_details",
+                "event_key IN (SELECT event_key FROM events WHERE package_name = ?)",
+                arrayOf(packageName),
+            )
+            db.delete("events", "package_name = ?", arrayOf(packageName))
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        invalidations.tryEmit(Unit)
+    }
+
     fun clear() {
         writableDatabase.beginTransaction()
         try {

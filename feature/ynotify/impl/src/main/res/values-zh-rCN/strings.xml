@@ -105,4 +105,6 @@
     <string name="ynotify_last_received">上次收到通知</string>
     <string name="ynotify_last_saved">上次保存通知</string>
     <string name="ynotify_last_capture_error">采集错误</string>
+    <string name="ynotify_clear_app">清除此应用历史</string>
+    <string name="ynotify_clear_app_confirm">确定删除此应用的全部通知和界面历史吗？删除后无法恢复。</string>
 </resources>
