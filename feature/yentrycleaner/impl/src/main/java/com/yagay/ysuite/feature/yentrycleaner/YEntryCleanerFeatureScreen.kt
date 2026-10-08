@@ -589,16 +589,32 @@ private fun CandidateList(
                                 vertical = YSuiteSpacing.Small,
                             ),
                         trailing = {
-                            YSuiteStatusBadge(
-                                text = stringResource(
-                                    if (
-                                        row.packageName in expandedPackages ||
-                                        state.query.isNotBlank()
-                                    ) R.string.yentry_group_collapse
-                                    else R.string.yentry_group_expand,
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    YSuiteSpacing.Small,
                                 ),
-                                tone = YSuiteStatusTone.Neutral,
-                            )
+                            ) {
+                                val fullyLocked = row.candidates.all { it.locked }
+                                YSuiteSecondaryButton(
+                                    text = stringResource(
+                                        if (fullyLocked) R.string.yentry_unlock_group
+                                        else R.string.yentry_lock_group,
+                                    ),
+                                    onClick = {
+                                        model.toggleGroupLock(row.packageName, !fullyLocked)
+                                    },
+                                )
+                                YSuiteStatusBadge(
+                                    text = stringResource(
+                                        if (
+                                            row.packageName in expandedPackages ||
+                                            state.query.isNotBlank()
+                                        ) R.string.yentry_group_collapse
+                                        else R.string.yentry_group_expand,
+                                    ),
+                                    tone = YSuiteStatusTone.Neutral,
+                                )
+                            }
                         },
                     )
                 }

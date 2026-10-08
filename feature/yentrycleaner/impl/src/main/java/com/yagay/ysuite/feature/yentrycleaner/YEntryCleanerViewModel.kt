@@ -181,6 +181,19 @@ internal class YEntryCleanerViewModel(
         refresh()
     }
 
+    fun toggleGroupLock(
+        packageName: String,
+        value: Boolean,
+    ) {
+        val ids = mutableState.value.candidates
+            .asSequence()
+            .filter { it.packageName == packageName }
+            .map { it.id }
+            .toSet()
+        repository.setLocked(ids, value)
+        refresh()
+    }
+
     fun move(
         candidate: YEntryCandidate,
         delta: Int,

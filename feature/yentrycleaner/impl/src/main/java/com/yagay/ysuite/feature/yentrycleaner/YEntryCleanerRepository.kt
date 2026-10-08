@@ -166,8 +166,12 @@ internal class YEntryCleanerRepository(
     }
 
     fun setLocked(id: String, value: Boolean) {
+        setLocked(setOf(id), value)
+    }
+
+    fun setLocked(ids: Set<String>, value: Boolean) {
         val next = locked().toMutableSet()
-        if (value) next += id else next -= id
+        if (value) next.addAll(ids) else next.removeAll(ids)
         prefs.edit()
             .putStringSet("locked_rules", next)
             .apply()
