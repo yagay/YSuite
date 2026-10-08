@@ -101,6 +101,13 @@ internal class YPowerRepository(
                         "simulatePermissions",
                         false,
                     ),
+                simulatedPermissions =
+                    value.optJSONArray("simulatedPermissions")?.let { permissions ->
+                        (0 until permissions.length())
+                            .mapNotNull { index ->
+                                permissions.optString(index).takeIf(String::isNotBlank)
+                            }
+                    } ?: emptyList(),
                 tracePackageScan =
                     value.optBoolean(
                         "tracePackageScan",
@@ -179,6 +186,7 @@ internal class YPowerRepository(
                     "simulatePermissions",
                     profile.simulatePermissions,
                 )
+                put("simulatedPermissions", JSONArray(profile.simulatedPermissions))
                 put(
                     "tracePackageScan",
                     profile.tracePackageScan,
@@ -1444,6 +1452,7 @@ internal class YPowerRepository(
             put("enabled", profile.enabled)
             put("simulateSystemApp", profile.simulateSystemApp)
             put("simulatePermissions", profile.simulatePermissions)
+            put("simulatedPermissions", JSONArray(profile.simulatedPermissions))
             put("tracePackageScan", profile.tracePackageScan)
             put("traceFiles", profile.traceFiles)
             put("traceCommands", profile.traceCommands)

@@ -18,6 +18,7 @@ data class YPowerProfile(
     val autoGrantDangerous: Boolean = false,
     val simulateSystemApp: Boolean = false,
     val simulatePermissions: Boolean = false,
+    val simulatedPermissions: List<String> = emptyList(),
     val tracePackageScan: Boolean = false,
     val traceFiles: Boolean = false,
     val traceCommands: Boolean = false,

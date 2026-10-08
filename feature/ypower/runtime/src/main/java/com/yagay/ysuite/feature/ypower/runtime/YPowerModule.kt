@@ -1,5 +1,6 @@
 package com.yagay.ysuite.feature.ypower.runtime
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -217,7 +218,7 @@ class YPowerModule : XposedModule() {
                         original,
                 )
             }
-            if (profile.simulatePermissions) {
+            if (shouldSimulatePermission(permission)) {
                 PackageManager.PERMISSION_GRANTED
             } else {
                 original
@@ -270,10 +271,8 @@ class YPowerModule : XposedModule() {
                         )
                     }
                     if (
-                        profile
-                            .simulatePermissions &&
-                        queried ==
-                        packageName
+                        shouldSimulatePermission(permission) &&
+                        queried == packageName
                     ) {
                         PackageManager
                             .PERMISSION_GRANTED
@@ -282,6 +281,17 @@ class YPowerModule : XposedModule() {
                     }
                 }
             }
+    }
+
+    // Keep the original YPower policy: an empty list means location-only
+    // compatibility, not unrestricted permission simulation.
+    private fun shouldSimulatePermission(permission: String): Boolean {
+        if (!profile.simulatePermissions || permission.isBlank()) return false
+        val configured = profile.simulatedPermissions
+        if (configured.isNotEmpty()) return permission in configured
+        return permission == Manifest.permission.ACCESS_FINE_LOCATION ||
+            permission == Manifest.permission.ACCESS_COARSE_LOCATION ||
+            permission == Manifest.permission.ACCESS_BACKGROUND_LOCATION
     }
 
     private fun installPackageHooks() {
@@ -720,6 +730,7 @@ class YPowerModule : XposedModule() {
         val enabled: Boolean = false,
         val simulateSystemApp: Boolean = false,
         val simulatePermissions: Boolean = false,
+        val simulatedPermissions: Set<String> = emptySet(),
         val tracePackageScan: Boolean = false,
         val traceFiles: Boolean = false,
         val traceCommands: Boolean = false,
@@ -756,6 +767,14 @@ class YPowerModule : XposedModule() {
                                 "simulatePermissions",
                                 false,
                             ),
+                        simulatedPermissions =
+                            value.optJSONArray("simulatedPermissions")?.let { permissions ->
+                                (0 until permissions.length())
+                                    .mapNotNull { index ->
+                                        permissions.optString(index).takeIf(String::isNotBlank)
+                                    }
+                                    .toSet()
+                            } ?: emptySet(),
                         tracePackageScan =
                             value.optBoolean(
                                 "tracePackageScan",
