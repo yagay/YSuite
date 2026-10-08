@@ -88,10 +88,36 @@ internal fun YEntryManagedComponentsScreen(
                     text = stringResource(R.string.yentry_root_back),
                     onClick = model::closeManagedComponents,
                 )
-                YSuiteSecondaryButton(
-                    text = stringResource(R.string.yentry_root_refresh),
-                    onClick = model::refreshManagedComponents,
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small)) {
+                    YSuiteSecondaryButton(
+                        text = stringResource(R.string.yentry_root_refresh),
+                        onClick = model::refreshManagedComponents,
+                    )
+                    if (!state.recoveryRequested) {
+                        YSuiteSecondaryButton(
+                            text = stringResource(R.string.yentry_root_reconcile),
+                            onClick = model::requestRecovery,
+                        )
+                    }
+                }
+                if (state.recoveryRequested) {
+                    YSuiteStatusBadge(
+                        text = stringResource(R.string.yentry_root_reconcile_running),
+                        tone = YSuiteStatusTone.Warning,
+                    )
+                }
+                state.recoveryStatus?.let { recovery ->
+                    YSuiteListItem(
+                        title = stringResource(R.string.yentry_root_reconcile_result),
+                        subtitle = stringResource(
+                            R.string.yentry_root_reconcile_summary,
+                            recovery.persisted,
+                            recovery.repaired,
+                            recovery.failed,
+                            recovery.missing,
+                        ) + " · " + recovery.reason,
+                    )
+                }
                 YSuiteSearchField(
                     value = query,
                     onValueChange = { query = it },

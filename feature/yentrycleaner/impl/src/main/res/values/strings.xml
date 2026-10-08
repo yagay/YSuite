@@ -120,4 +120,8 @@
     <string name="yentry_root_invert">Invert states</string>
     <string name="yentry_root_lock_all">Lock visible</string>
     <string name="yentry_root_unlock_all">Unlock visible</string>
+    <string name="yentry_root_reconcile">Verify / restore disabled components</string>
+    <string name="yentry_root_reconcile_running">Component verification scheduled; waiting for results…</string>
+    <string name="yentry_root_reconcile_result">Last component reconciliation</string>
+    <string name="yentry_root_reconcile_summary">Saved %1$d · restored %2$d · failed %3$d · missing %4$d</string>
 </resources>

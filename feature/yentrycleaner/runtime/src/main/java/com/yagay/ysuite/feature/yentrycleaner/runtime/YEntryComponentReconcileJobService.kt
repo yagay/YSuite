@@ -286,11 +286,11 @@ class YEntryComponentReconcileJobService :
             context: Context,
             reason: String,
             settled: Boolean = false,
-        ) {
+        ): Boolean {
             val scheduler =
                 context.getSystemService(
                     JobScheduler::class.java,
-                ) ?: return
+                ) ?: return false
             val delay =
                 when {
                     settled -> 20_000L
@@ -334,7 +334,7 @@ class YEntryComponentReconcileJobService :
                         },
                     )
                     .build()
-            scheduler.schedule(info)
+            return scheduler.schedule(info) == JobScheduler.RESULT_SUCCESS
         }
     }
 }

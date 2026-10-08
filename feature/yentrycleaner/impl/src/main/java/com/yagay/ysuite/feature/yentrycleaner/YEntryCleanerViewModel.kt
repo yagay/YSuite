@@ -10,6 +10,7 @@ import com.yagay.ysuite.platform.api.CapabilityStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +39,8 @@ internal data class YEntryCleanerUiState(
     val managedComponents: List<YEntryManagedComponent> = emptyList(),
     val managedLoading: Boolean = false,
     val managedError: String? = null,
+    val recoveryStatus: YEntryComponentRecovery? = null,
+    val recoveryRequested: Boolean = false,
     val query: String = "",
     val filter: YEntryAppFilter =
         YEntryAppFilter.All,
@@ -87,6 +90,7 @@ internal class YEntryCleanerViewModel(
         mutableState.asStateFlow()
     private var refreshJob: Job? = null
     private var managedJob: Job? = null
+    private var recoveryPollJob: Job? = null
 
     init {
         setCustomSlot("CUSTOM_1")
@@ -126,6 +130,7 @@ internal class YEntryCleanerViewModel(
                     managedComponents = items,
                     managedLoading = false,
                     managedError = null,
+                    recoveryStatus = repository.recoveryStatus(),
                 )
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -135,6 +140,39 @@ internal class YEntryCleanerViewModel(
                     managedError = error.message ?: error.javaClass.simpleName,
                 )
             }
+        }
+    }
+
+    fun requestRecovery() {
+        if (mutableState.value.recoveryRequested) return
+        val previousAt = mutableState.value.recoveryStatus?.finishedAt ?: 0L
+        val scheduled = repository.scheduleRecovery()
+        mutableState.value = mutableState.value.copy(
+            recoveryRequested = scheduled,
+            managedError = if (scheduled) null else "Unable to schedule component recovery",
+        )
+        if (!scheduled) return
+        recoveryPollJob?.cancel()
+        recoveryPollJob = viewModelScope.launch {
+            repeat(18) {
+                delay(2_000L)
+                val status = withContext(Dispatchers.IO) {
+                    repository.recoveryStatus()
+                }
+                if (status != null && status.finishedAt > previousAt) {
+                    mutableState.value = mutableState.value.copy(
+                        recoveryStatus = status,
+                        recoveryRequested = false,
+                    )
+                    if (mutableState.value.managingComponents) {
+                        refreshManagedComponents()
+                    }
+                    return@launch
+                }
+            }
+            mutableState.value = mutableState.value.copy(
+                recoveryRequested = false,
+            )
         }
     }
 

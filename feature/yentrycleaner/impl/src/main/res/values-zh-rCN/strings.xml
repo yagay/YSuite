@@ -120,4 +120,8 @@
     <string name="yentry_root_invert">反选组件状态</string>
     <string name="yentry_root_lock_all">锁定当前列表</string>
     <string name="yentry_root_unlock_all">解锁当前列表</string>
+    <string name="yentry_root_reconcile">检查／恢复禁用组件</string>
+    <string name="yentry_root_reconcile_running">组件状态检查已安排，正在等待结果…</string>
+    <string name="yentry_root_reconcile_result">上次组件状态恢复</string>
+    <string name="yentry_root_reconcile_summary">已记录 %1$d · 已恢复 %2$d · 失败 %3$d · 不存在 %4$d</string>
 </resources>

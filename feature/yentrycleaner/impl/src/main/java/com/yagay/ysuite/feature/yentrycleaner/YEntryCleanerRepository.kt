@@ -20,6 +20,7 @@ import com.yagay.ysuite.feature.yentrycleaner.api.YEntrySurface
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryOpenQualifiers
 import com.yagay.ysuite.feature.yentrycleaner.api.YEntryRuleSelection
 import com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryRuntimeBridge
+import com.yagay.ysuite.feature.yentrycleaner.runtime.YEntryComponentReconcileJobService
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.platform.api.RootGateway
@@ -49,6 +50,16 @@ internal data class YEntryManagedComponent(
     val enabled: Boolean,
     val locked: Boolean,
     val blocked: Boolean,
+)
+
+internal data class YEntryComponentRecovery(
+    val reason: String,
+    val persisted: Int,
+    val mismatched: Int,
+    val repaired: Int,
+    val failed: Int,
+    val missing: Int,
+    val finishedAt: Long,
 )
 
 internal data class YEntryCustomDraft(
@@ -263,6 +274,26 @@ internal class YEntryCleanerRepository(
         if (changed > 0) sync()
         return changed to failed
     }
+
+    fun recoveryStatus(): YEntryComponentRecovery? {
+        val status = context.getSharedPreferences(
+            "yentry_component_reconcile", Context.MODE_PRIVATE,
+        )
+        val finishedAt = status.getLong("finished", 0L)
+        if (finishedAt <= 0L) return null
+        return YEntryComponentRecovery(
+            reason = status.getString("reason", "").orEmpty(),
+            persisted = status.getInt("persisted", 0),
+            mismatched = status.getInt("mismatched", 0),
+            repaired = status.getInt("repaired", 0),
+            failed = status.getInt("failed", 0),
+            missing = status.getInt("missing", 0),
+            finishedAt = finishedAt,
+        )
+    }
+
+    fun scheduleRecovery(): Boolean =
+        YEntryComponentReconcileJobService.schedule(context, "manual")
 
     suspend fun rootStatus():
         CapabilityStatus =
