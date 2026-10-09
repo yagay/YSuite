@@ -24,4 +24,5 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
+    testImplementation(libs.junit)
 }
