@@ -185,33 +185,42 @@ internal class YEntryCleanerViewModel(
         )
     }
 
-    fun changeManagedComponent(component: YEntryManagedComponent, enable: Boolean) {
-        if (mutableState.value.busy || component.blocked) return
+    private fun editManaged(action: suspend () -> String) {
+        if (mutableState.value.busy) return
         mutableState.value = mutableState.value.copy(busy = true)
         viewModelScope.launch {
             try {
-                val changed = withContext(Dispatchers.IO) {
-                    repository.changeManagedComponent(component, enable)
-                }
+                val token = withContext(Dispatchers.IO) { action() }
                 mutableState.value = mutableState.value.copy(
-                    busy = false,
-                    statusToken = if (changed) "component_changed" else "component_failed",
+                    statusToken = token,
+                    managedError = null,
                 )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 mutableState.value = mutableState.value.copy(
-                    busy = false,
+                    statusToken = "component_failed",
                     managedError = error.message ?: error.javaClass.simpleName,
                 )
+            } finally {
+                mutableState.value = mutableState.value.copy(busy = false)
+                if (mutableState.value.managingComponents) refreshManagedComponents()
             }
-            refreshManagedComponents()
+        }
+    }
+
+    fun changeManagedComponent(component: YEntryManagedComponent, enable: Boolean) {
+        if (component.blocked) return
+        editManaged {
+            if (repository.changeManagedComponent(component, enable)) {
+                "component_changed"
+            } else "component_failed"
         }
     }
 
     fun lockManagedComponents(components: List<YEntryManagedComponent>, locked: Boolean) {
-        repository.setLocked(components.mapTo(hashSetOf()) { it.id }, locked)
         val selected = components.mapTo(hashSetOf()) { it.id }
+        repository.setLocked(selected, locked)
         mutableState.value = mutableState.value.copy(
             managedComponents = mutableState.value.managedComponents.map {
                 if (it.id in selected) it.copy(locked = locked) else it
@@ -220,50 +229,18 @@ internal class YEntryCleanerViewModel(
     }
 
     fun invertManagedComponents(components: List<YEntryManagedComponent>) {
-        if (mutableState.value.busy) return
-        mutableState.value = mutableState.value.copy(busy = true)
-        viewModelScope.launch {
-            try {
-                val (changed, failed) = withContext(Dispatchers.IO) {
-                    repository.invertManagedComponents(components)
-                }
-                mutableState.value = mutableState.value.copy(
-                    busy = false,
-                    statusToken = "components_partial:$changed:$failed",
-                )
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                mutableState.value = mutableState.value.copy(
-                    busy = false,
-                    managedError = error.message ?: error.javaClass.simpleName,
-                )
-            }
-            refreshManagedComponents()
+        editManaged {
+            val (changed, failed) = repository.invertManagedComponents(components)
+            if (failed == 0) "components_changed:$changed"
+            else "components_partial:$changed:$failed"
         }
     }
 
     fun bulkManagedComponents(components: List<YEntryManagedComponent>, enable: Boolean) {
-        if (mutableState.value.busy) return
-        mutableState.value = mutableState.value.copy(busy = true)
-        viewModelScope.launch {
-            try {
-                val (changed, failed) = withContext(Dispatchers.IO) {
-                    repository.changeManagedComponents(components, enable)
-                }
-                mutableState.value = mutableState.value.copy(
-                    busy = false,
-                    statusToken = "components_partial:$changed:$failed",
-                )
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                mutableState.value = mutableState.value.copy(
-                    busy = false,
-                    managedError = error.message ?: error.javaClass.simpleName,
-                )
-            }
-            refreshManagedComponents()
+        editManaged {
+            val (changed, failed) = repository.changeManagedComponents(components, enable)
+            if (failed == 0) "components_changed:$changed"
+            else "components_partial:$changed:$failed"
         }
     }
 
@@ -626,40 +603,36 @@ internal class YEntryCleanerViewModel(
     }
 
     fun importBackup(uri: Uri) {
+        if (mutableState.value.busy) return
+        mutableState.value = mutableState.value.copy(busy = true)
         viewModelScope.launch {
-            mutableState.value =
-                mutableState.value.copy(
-                    busy = true,
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    repository.importBackup(uri)
+                }
+                mutableState.value = mutableState.value.copy(
+                    browserHost = repository.browserHost(),
+                    openMime = repository.openMime(),
+                    displayMode = repository.displayMode(),
+                    diagnostic = repository.diagnostic(),
+                    statusToken = when (result) {
+                        YEntryImportResult.Synced -> "backup_restored"
+                        YEntryImportResult.SavedLocally -> "backup_saved_local"
+                        YEntryImportResult.Invalid -> "backup_failed"
+                    },
                 )
-            val result =
-                runCatching {
-                    withContext(
-                        Dispatchers.IO,
-                    ) {
-                        repository
-                            .importBackup(uri)
-                    }
-                }.getOrDefault(YEntryImportResult.Invalid)
-            mutableState.value =
-                mutableState.value.copy(
-                    busy = false,
-                    browserHost =
-                        repository.browserHost(),
-                    openMime =
-                        repository.openMime(),
-                    displayMode =
-                        repository.displayMode(),
-                    diagnostic =
-                        repository.diagnostic(),
-                    statusToken =
-                        when (result) {
-                            YEntryImportResult.Synced -> "backup_restored"
-                            YEntryImportResult.SavedLocally -> "backup_saved_local"
-                            YEntryImportResult.Invalid -> "backup_failed"
-                        },
+                refresh()
+                refreshRuntime()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    statusToken = "backup_failed",
+                    managedError = error.message ?: error.javaClass.simpleName,
                 )
-            refresh()
-            refreshRuntime()
+            } finally {
+                mutableState.value = mutableState.value.copy(busy = false)
+            }
         }
     }
 

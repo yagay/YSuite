@@ -82,10 +82,24 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
     }
     fun exportDiagnostics() {
         val text = mutableState.value.diagnostics
-        if (text.isBlank()) return
+        if (text.isBlank() || mutableState.value.busy) return
         viewModelScope.launch {
-            val uri = withContext(Dispatchers.IO) { repository.export(text) }
-            mutableState.value = mutableState.value.copy(exportUri = uri)
+            try {
+                val uri = withContext(Dispatchers.IO) { repository.export(text) }
+                mutableState.value = mutableState.value.copy(
+                    exportUri = uri,
+                    statusToken = "diagnostics_exported",
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    exportUri = null,
+                    diagnostics = text + "\nexport_failed: " +
+                        (error.message ?: error.javaClass.simpleName),
+                    statusToken = "operation_failed",
+                )
+            }
         }
     }
     private fun operation(started: String, block: suspend () -> Pair<YNfcRuntimeSnapshot, String>) {

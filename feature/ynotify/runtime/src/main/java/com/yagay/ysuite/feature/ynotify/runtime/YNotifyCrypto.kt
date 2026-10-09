@@ -12,14 +12,18 @@ import javax.crypto.spec.GCMParameterSpec
 internal class YNotifyCrypto {
     fun encrypt(value: String?): String? {
         if (value.isNullOrEmpty() || value.startsWith(PREFIX)) return value
-        return runCatching {
+        return try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, key())
             PREFIX +
                 Base64.encodeToString(cipher.iv, Base64.NO_WRAP) +
                 ":" +
                 Base64.encodeToString(cipher.doFinal(value.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
-        }.getOrDefault(value)
+        } catch (error: Exception) {
+            // Never silently put sensitive notification text into the DB as
+            // plaintext when AndroidKeyStore is unavailable.
+            throw IllegalStateException("notification_content_encryption_failed", error)
+        }
     }
 
     fun decrypt(value: String?): String? {
@@ -33,7 +37,7 @@ internal class YNotifyCrypto {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
             String(cipher.doFinal(payload), Charsets.UTF_8)
-        }.getOrDefault(value)
+        }.getOrDefault("[encrypted content unavailable]")
     }
 
     private fun key(): SecretKey {

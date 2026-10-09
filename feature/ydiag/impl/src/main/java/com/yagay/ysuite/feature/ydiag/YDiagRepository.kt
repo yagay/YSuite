@@ -13,6 +13,7 @@ import com.yagay.ysuite.feature.ydiag.api.YDiagSeverity
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
+import com.yagay.ysuite.platform.api.HookConfigCoordinator
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
 import java.time.Instant
@@ -126,21 +127,19 @@ internal class YDiagRepository(
         packageName: String,
         optionIds: Set<String>,
     ): Outcome<Unit> {
-        val targetWrite =
-            hooks.writeConfig(
-                "ydiag",
-                "targets",
-                packageName,
+        return when (
+            val published = HookConfigCoordinator(hooks).publish(
+                group = "ydiag",
+                values = mapOf(
+                    "targets" to packageName,
+                    "options" to optionIds.sorted().joinToString("\n"),
+                ),
+                scopePackages = setOf(packageName),
             )
-        if (targetWrite is Outcome.Failure) return targetWrite
-        val optionsWrite =
-            hooks.writeConfig(
-                "ydiag",
-                "options",
-                optionIds.sorted().joinToString("\n"),
-            )
-        if (optionsWrite is Outcome.Failure) return optionsWrite
-        return hooks.reload(setOf(packageName))
+        ) {
+            is Outcome.Success -> Outcome.Success(Unit)
+            is Outcome.Failure -> published
+        }
     }
 
     suspend fun collect(

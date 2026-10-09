@@ -1212,8 +1212,8 @@ class YFilesViewModel(
             )
         }
 
-        when (
-            val result = withContext(Dispatchers.IO) {
+        val result = try {
+            withContext(Dispatchers.IO) {
                 environment.engine.list(
                     directory,
                     YFileQuery(
@@ -1225,7 +1225,28 @@ class YFilesViewModel(
                     ),
                 )
             }
-        ) {
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            updateState { latest ->
+                if (latest.directory == directory &&
+                    latest.mode == YFilesBrowserMode.Directory &&
+                    latest.query == current.query &&
+                    latest.sort == current.sort &&
+                    latest.descending == current.descending &&
+                    latest.showHidden == current.showHidden &&
+                    latest.recursive == current.recursive
+                ) {
+                    latest.copy(
+                        loading = false,
+                        error = error.message ?: error.javaClass.simpleName,
+                    )
+                } else latest
+            }
+            logger.error(TAG, "YFiles directory listing crashed", error)
+            return
+        }
+        when (result) {
             is Outcome.Success ->
                 updateState {
                     if (

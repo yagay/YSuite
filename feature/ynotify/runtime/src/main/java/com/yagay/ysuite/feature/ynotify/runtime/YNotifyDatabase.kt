@@ -595,33 +595,40 @@ internal class YNotifyDatabase(
     fun prune(retentionDays: Int) {
         if (retentionDays <= 0) return
         val cutoff = System.currentTimeMillis() - retentionDays * 86_400_000L
-        val removed = writableDatabase.delete(
-            "events",
-            "posted_at < ?",
-            arrayOf(cutoff.toString()),
-        )
-        if (removed > 0) {
-            writableDatabase.execSQL(
-                "UPDATE events SET merged_into_id = NULL " +
-                    "WHERE merged_into_id IS NOT NULL AND merged_into_id NOT IN " +
-                    "(SELECT id FROM events)",
+        val database = writableDatabase
+        var removed = 0
+        database.beginTransaction()
+        try {
+            removed = database.delete(
+                "events",
+                "posted_at < ?",
+                arrayOf(cutoff.toString()),
             )
-            writableDatabase.execSQL(
-                "UPDATE events SET linked_notification_id = NULL " +
-                    "WHERE linked_notification_id IS NOT NULL " +
-                    "AND linked_notification_id NOT IN (SELECT id FROM events)",
-            )
-            writableDatabase.execSQL(
-                "DELETE FROM event_details " +
-                    "WHERE event_key NOT IN " +
-                    "(SELECT event_key FROM events)",
-            )
-            writableDatabase.execSQL(
-                "DELETE FROM notification_revisions " +
-                    "WHERE event_key NOT IN (SELECT event_key FROM events)",
-            )
-            invalidations.tryEmit(Unit)
+            if (removed > 0) {
+                database.execSQL(
+                    "UPDATE events SET merged_into_id = NULL " +
+                        "WHERE merged_into_id IS NOT NULL AND merged_into_id NOT IN " +
+                        "(SELECT id FROM events)",
+                )
+                database.execSQL(
+                    "UPDATE events SET linked_notification_id = NULL " +
+                        "WHERE linked_notification_id IS NOT NULL " +
+                        "AND linked_notification_id NOT IN (SELECT id FROM events)",
+                )
+                database.execSQL(
+                    "DELETE FROM event_details " +
+                        "WHERE event_key NOT IN (SELECT event_key FROM events)",
+                )
+                database.execSQL(
+                    "DELETE FROM notification_revisions " +
+                        "WHERE event_key NOT IN (SELECT event_key FROM events)",
+                )
+            }
+            database.setTransactionSuccessful()
+        } finally {
+            database.endTransaction()
         }
+        if (removed > 0) invalidations.tryEmit(Unit)
     }
 
     fun deletePackage(packageName: String) {

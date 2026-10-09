@@ -121,3 +121,23 @@ precede declaring complete runtime parity.
   history deletion, preserving relational integrity without deleting other apps.
 - None of these contracts proves that an LSPosed target has executed a newly
   published Hook. Device tests and runtime acknowledgment remain necessary.
+
+## 2026-10-09: service lifecycle, persistence and failure-path pass
+
+- YDiag publishes its Hook target/options in one remote-preference batch.
+- YDiag session stop now guards against overlapping start/stop requests, and
+  Perfetto trace copying redirects stdout to a file before waiting with a
+  bounded timeout. This avoids blocking indefinitely on a Root pipe.
+- YNotify retention pruning and cleanup are atomic, and encryption no longer
+  silently stores plaintext if AndroidKeyStore fails. Existing legacy plaintext
+  remains readable for migration; ciphertext decryption failures show a
+  placeholder rather than ciphertext.
+- YEntryCleaner managed component edits and backup import release in-flight
+  state on failure, with cancellation propagated to the coroutine scope.
+- YFiles failed providers now report an error and clear loading only for the
+  current directory/filter; stale directory failures cannot overwrite the UI.
+- YMiniGuard handles exceptional sync failures without crashing the screen.
+- YNFC diagnostics export catches errors and presents a failure state.
+
+CI can prove builds and JVM-level checks, but does not establish device-level
+Root, NFC RF, LSPosed execution, or complete legacy-feature parity.

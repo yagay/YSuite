@@ -20,6 +20,7 @@ class YDiagMonitorService : Service() {
     @Volatile private var perfettoProcess: Process? = null
     @Volatile private var perfettoRemote: String? = null
     @Volatile private var sessionRunning = false
+    @Volatile private var stopping = false
     private var sessionDir: File? = null
     private var targetPackage: String = ""
     private var enabledOptions: Set<String> = emptySet()
@@ -49,7 +50,7 @@ class YDiagMonitorService : Service() {
     }
 
     private fun startSession(intent: Intent) {
-        if (sessionDir != null) return
+        if (sessionDir != null || stopping) return
         targetPackage = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
         enabledOptions = intent.getStringArrayListExtra(EXTRA_OPTIONS)?.toSet().orEmpty()
         if (targetPackage.isBlank()) {
@@ -194,16 +195,20 @@ class YDiagMonitorService : Service() {
         perfettoProcess = null
         val output = File(dir, "trace.perfetto-trace")
         runCatching {
+            // Redirect output to a file so the timeout applies even if
+            // a Root pipe never reaches EOF.
+            val errorFile = File(dir, "perfetto-copy-errors.txt")
             val p = ProcessBuilder("su", "-c", "cat '$remote'")
-                .redirectErrorStream(false).start()
-            p.inputStream.use { stream ->
-                output.outputStream().use { target -> stream.copyTo(target) }
-            }
-            val done = p.waitFor(10L, TimeUnit.SECONDS)
+                .redirectOutput(output)
+                .redirectError(errorFile)
+                .start()
+            val done = p.waitFor(20L, TimeUnit.SECONDS)
             if (!done) p.destroyForcibly()
             if (!done || p.exitValue() != 0 || output.length() <= 0L) {
                 output.delete()
                 File(dir, "perfetto.txt").appendText("capture unavailable\n")
+            } else if (errorFile.length() == 0L) {
+                errorFile.delete()
             }
         }.onFailure { error ->
             output.delete()
@@ -227,10 +232,12 @@ class YDiagMonitorService : Service() {
 
     /** Shell evidence collection must never block Service.onStartCommand. */
     private fun stopSession() {
+        if (stopping) return
         val dir = sessionDir ?: run {
             stopSelf()
             return
         }
+        stopping = true
         sessionRunning = false
         sampler?.cancel(false)
         sampler = null
@@ -238,18 +245,30 @@ class YDiagMonitorService : Service() {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit()
             .putBoolean(KEY_ACTIVE, false).apply()
         executor.execute {
-            runCatching { logcatProcess?.destroy() }
-            logcatProcess = null
-            runCatching { stopPerfetto(dir) }
-            runCatching { collectFinalEvidence(dir) }
-                .onFailure { File(dir, "monitor-errors.txt").appendText(
-                    "final-evidence: " + it + "\n",
-                ) }
-            File(dir, "session.properties").appendText(
-                "ended=" + System.currentTimeMillis() + "\n",
-            )
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            try {
+                runCatching { logcatProcess?.destroy() }
+                logcatProcess = null
+                runCatching { stopPerfetto(dir) }
+                    .onFailure {
+                        File(dir, "monitor-errors.txt").appendText(
+                            "perfetto-stop: " + it + "\n",
+                        )
+                    }
+                runCatching { collectFinalEvidence(dir) }
+                    .onFailure {
+                        File(dir, "monitor-errors.txt").appendText(
+                            "final-evidence: " + it + "\n",
+                        )
+                    }
+                runCatching {
+                    File(dir, "session.properties").appendText(
+                        "ended=" + System.currentTimeMillis() + "\n",
+                    )
+                }
+            } finally {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
     }
 
@@ -309,6 +328,7 @@ class YDiagMonitorService : Service() {
 
     override fun onDestroy() {
         sessionRunning = false
+        stopping = false
         getSharedPreferences(PREFS, MODE_PRIVATE).edit()
             .putBoolean(KEY_ACTIVE, false).apply()
         sampler?.cancel(true)

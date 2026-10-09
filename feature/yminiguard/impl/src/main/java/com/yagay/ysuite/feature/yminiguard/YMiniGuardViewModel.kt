@@ -147,6 +147,7 @@ internal class YMiniGuardViewModel(
     private fun sync(reload: Boolean) {
         val requestId = ++syncRequestId
         viewModelScope.launch {
+            try {
             val (result, previous) = withContext(Dispatchers.IO) {
                 syncMutex.withLock {
                     val before = repository.engineStatus()
@@ -180,6 +181,16 @@ internal class YMiniGuardViewModel(
             if (requestId == syncRequestId) {
                 mutableState.value = mutableState.value.copy(statusToken = token)
                 refresh()
+            }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (requestId == syncRequestId) {
+                    mutableState.value = mutableState.value.copy(
+                        statusToken = "sync_failed",
+                        appLoadError = error.message ?: error.javaClass.simpleName,
+                    )
+                }
             }
         }
     }
