@@ -95,4 +95,15 @@
     <string name="feature_yparam_description">应用 DPI、语言、定位与参数覆盖</string>
     <string name="feature_yfloat_name">YFloat</string>
     <string name="feature_yfloat_description">悬浮操作、文字选框与快捷动作</string>
+    <string name="home_modules">功能模块</string>
+    <string name="home_manage">模块管理</string>
+    <string name="home_back">返回模块列表</string>
+    <string name="home_search">搜索模块</string>
+    <string name="home_no_match">没有匹配的模块</string>
+    <string name="home_pin">置顶模块</string>
+    <string name="home_unpin">取消置顶</string>
+    <string name="home_pinned">已置顶</string>
+    <string name="home_enable">启用功能</string>
+    <string name="home_disable">停用功能</string>
+    <string name="home_disabled">已停用 · 点击进入管理</string>
 </resources>
