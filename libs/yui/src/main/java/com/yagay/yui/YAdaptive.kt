@@ -56,20 +56,22 @@ data class YPageTemplate(
 )
 
 internal fun YPageRole.template(): YPageTemplate = when (this) {
+    // A section heading and a short description no longer need a 64dp minimum row.
+    // All actionable rows still use a 48dp minimum touch target in YListItem.
     YPageRole.DASHBOARD -> YPageTemplate(
-        YDimens.ContentMaxWidth, 12.dp, 64.dp, YTopBarStyle.PROMINENT, emphasizeCards = true,
+        YDimens.ContentMaxWidth, 8.dp, 48.dp, YTopBarStyle.COMPACT,
     )
     YPageRole.SETTINGS -> YPageTemplate(
-        YDimens.FormMaxWidth, 0.dp, 64.dp, YTopBarStyle.PROMINENT,
+        YDimens.FormMaxWidth, 0.dp, 48.dp, YTopBarStyle.COMPACT,
     )
     YPageRole.MANAGER, YPageRole.BROWSER, YPageRole.TIMELINE, YPageRole.LOG -> YPageTemplate(
-        YDimens.ContentMaxWidth, 0.dp, 56.dp, YTopBarStyle.COMPACT,
+        YDimens.ContentMaxWidth, 0.dp, 48.dp, YTopBarStyle.COMPACT,
     )
     YPageRole.DETAIL, YPageRole.EDITOR, YPageRole.WIZARD -> YPageTemplate(
-        YDimens.FormMaxWidth, 8.dp, 64.dp, YTopBarStyle.COMPACT,
+        YDimens.FormMaxWidth, 6.dp, 48.dp, YTopBarStyle.COMPACT,
     )
     YPageRole.LIST -> YPageTemplate(
-        YDimens.ContentMaxWidth, 0.dp, 60.dp, YTopBarStyle.COMPACT,
+        YDimens.ContentMaxWidth, 0.dp, 48.dp, YTopBarStyle.COMPACT,
     )
 }
 
