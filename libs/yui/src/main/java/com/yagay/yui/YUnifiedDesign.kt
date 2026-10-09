@@ -1,6 +1,7 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -31,8 +32,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -158,10 +157,10 @@ fun YPageList(
 
 @Composable
 fun YSectionHeader(title: String, modifier: Modifier = Modifier, subtitle: String? = null) {
-    val topPadding = if (LocalYPageRole.current == YPageRole.SETTINGS) 18.dp else 10.dp
+    val topPadding = if (LocalYPageRole.current == YPageRole.SETTINGS) 8.dp else 4.dp
     Column(
-        modifier.fillMaxWidth().padding(top = topPadding, bottom = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        modifier.fillMaxWidth().padding(top = topPadding, bottom = 3.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         if (!subtitle.isNullOrBlank()) {
@@ -189,12 +188,12 @@ fun YSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 if (!subtitle.isNullOrBlank()) {
                     Text(
                         subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -217,7 +216,7 @@ fun YSection(
         Column(
             modifier = modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(
-                if (role.prefersCompactRows()) 8.dp else YDimens.ControlGap,
+                if (role.prefersCompactRows()) 4.dp else YDimens.ControlGap,
             ),
         ) {
             body()
@@ -312,47 +311,63 @@ fun YListItem(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
-    val roleTemplate = LocalYPageRole.current.template()
-    val interactionModifier = if (onClick != null || onLongClick != null) {
-        modifier.combinedClickable(enabled = enabled, onClick = { onClick?.invoke() }, onLongClick = onLongClick)
+    // Material3 ListItem adds substantial fixed internal padding. An explicit row keeps the
+    // same actions and accessibility while sizing to its actual content.
+    val activeModifier = if (onClick != null || onLongClick != null) {
+        modifier.combinedClickable(
+            enabled = enabled,
+            onClick = { onClick?.invoke() },
+            onLongClick = onLongClick,
+        )
     } else modifier
-    ListItem(
-        modifier = interactionModifier.fillMaxWidth().heightIn(min = roleTemplate.minimumRowHeight),
-        colors = ListItemDefaults.colors(
-            containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
-            else Color.Transparent,
-            disabledHeadlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-        ),
-        headlineContent = { Text(title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-        supportingContent = if (subtitle.isNullOrBlank() && detail.isNullOrBlank()) null else {
-            {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (!subtitle.isNullOrBlank()) {
-                        Text(
-                            subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (!detail.isNullOrBlank()) {
-                        Text(
-                            detail,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
+    val foreground = if (enabled) MaterialTheme.colorScheme.onSurface
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    Row(
+        modifier = activeModifier
+            .fillMaxWidth()
+            .heightIn(min = YDimens.TouchTarget)
+            .background(
+                if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
+                else Color.Transparent,
+            )
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+    ) {
+        leading?.invoke()
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            Text(
+                title,
+                color = foreground,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    subtitle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-        },
-        leadingContent = leading,
-        trailingContent = trailing,
-    )
+            if (!detail.isNullOrBlank()) {
+                Text(
+                    detail,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        trailing?.invoke()
+    }
 }
 
 @Composable
@@ -695,7 +710,7 @@ fun YSelectionBar(
     label: String = count.toString(),
 ) {
     Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
             YActionGroup(actions)
         }
