@@ -94,6 +94,31 @@ def require_markers(path: Path, markers: tuple[str, ...]) -> None:
 def main() -> None:
     subprocess.run([sys.executable, str(TOKEN_GENERATOR), "--check"], cwd=ROOT, check=True)
 
+    # Rebuilt feature libraries must never override the original host's Material3 theme
+    # through a more-specific values-night resource qualifier.
+    for qualifier in ("values", "values-night"):
+        rebuilt_theme = ROOT / "next/core/designsystem/src/main/res" / qualifier / "themes.xml"
+        if rebuilt_theme.is_file() and re.search(
+            r'<style\\s+name="Theme\\.YSuite"', read(rebuilt_theme)
+        ):
+            fail(f"{rebuilt_theme.relative_to(ROOT)} redefines the main host theme")
+
+    # All ordinary YFloat screens create Material components and require Theme.YFloat,
+    # not an inherited theme from an unrelated host module.
+    yfloat_manifest = read(APPS / "YFloat/feature/src/main/AndroidManifest.xml")
+    for activity in (
+        "MainActivity", "SettingsActivity", "AppearanceSettingsActivity",
+        "GestureHubActivity", "DiagnosticsActivity", "MenuPickerActivity",
+        "MenuLabelEditorActivity",
+    ):
+        pattern = (
+            r'<activity\\s+android:name="com\\.yagay\\.YFloat\\.'
+            + activity
+            + r'"[^>]*android:theme="@style/Theme\\.YFloat"'
+        )
+        if not re.search(pattern, yfloat_manifest):
+            fail(f"YFloat {activity} must explicitly use Theme.YFloat")
+
     require_markers(YUI, REQUIRED_YUI_MARKERS)
     require_markers(YUI_ADAPTIVE, REQUIRED_ADAPTIVE_MARKERS)
     require_markers(YUI_FORMS, REQUIRED_FORM_MARKERS)
