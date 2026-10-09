@@ -25,4 +25,13 @@
 <string name="ydownload_system_control_unsupported">This system DownloadProvider does not expose manual pause/resume for this task.</string>
 <string name="pause">Pause</string><string name="resume">Resume</string><string name="retry">Retry</string><string name="cancel">Cancel</string><string name="open">Open</string><string name="remove">Remove</string>
 <string name="download_channel">Downloads</string><string name="download_service">YDownload</string><string name="download_running">Downloading…</string>
+    <string name="qdm_search_downloads">Search downloads</string>
+    <string name="qdm_batch_actions">Batch actions</string>
+    <string name="qdm_filter_all">All</string>
+    <string name="qdm_filter_active">Active</string>
+    <string name="qdm_filter_completed">Finished</string>
+    <string name="qdm_filter_failed">Failed</string>
+    <string name="qdm_back_to_downloads">Back to downloads</string>
+    <string name="qdm_details">Details</string>
+    <string name="qdm_hide_details">Hide details</string>
 </resources>
