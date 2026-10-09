@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -132,9 +133,30 @@ def main() -> None:
         fail("YPageRole must actively drive shared layout behavior")
 
     generated = read(GENERATED_TOKENS)
-    for marker in ("ButtonHeight = 48.dp", "TouchTarget = 48.dp", "ExpandedBreakpoint = 840.dp", "ScreenHorizontalMedium = 24.dp", "ScreenHorizontalExpanded = 32.dp"):
-        if marker not in generated:
-            fail(f"generated YUI tokens missing accessibility/adaptive marker {marker!r}")
+    tokens = json.loads(read(ROOT / "libs/yui/yui_tokens.json"))
+    # Density may evolve, but the system still needs accessible hit targets and
+    # ordered compact/medium/expanded breakpoints.
+    if tokens["button_height"] < 48 or tokens["touch_target"] < 48:
+        fail("YUI buttons and touch targets must remain at least 48dp")
+    if not (
+        tokens["screen_horizontal"] <= tokens["screen_horizontal_medium"]
+        <= tokens["screen_horizontal_expanded"]
+    ):
+        fail("YUI horizontal padding must grow with the viewport")
+    if not (
+        tokens["compact_breakpoint"] < tokens["medium_breakpoint"]
+        < tokens["expanded_breakpoint"]
+    ):
+        fail("YUI adaptive breakpoints must be ordered")
+    for key, marker in (
+        ("button_height", "ButtonHeight"),
+        ("touch_target", "TouchTarget"),
+        ("screen_horizontal_medium", "ScreenHorizontalMedium"),
+        ("screen_horizontal_expanded", "ScreenHorizontalExpanded"),
+    ):
+        expected = f"{marker} = {tokens[key]}.dp"
+        if expected not in generated:
+            fail(f"generated YUI token missing source-matched marker {expected!r}")
 
     catalog = read(YUI_CATALOG)
     if "fun YComponentCatalogScreen(" not in catalog or catalog.count("@Preview") < 3:
