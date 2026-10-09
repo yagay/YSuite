@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.MoreVert
