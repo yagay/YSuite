@@ -28,4 +28,14 @@
     <string name="common_error">出现错误</string>
     <string name="common_empty">暂无内容</string>
     <string name="common_permission_required">需要权限</string>
+    <string name="home_modules">功能模块</string>
+    <string name="home_system_status">系统状态</string>
+    <string name="home_system_status_detail">Root · LSPosed · 权限</string>
+    <string name="home_search_modules">搜索模块</string>
+    <string name="home_pinned">已置顶</string>
+    <string name="home_pin">置顶模块</string>
+    <string name="home_unpin">取消置顶</string>
+    <string name="home_open_module">打开模块</string>
+    <string name="home_no_matches">没有匹配的模块</string>
+    <string name="home_logs">诊断与日志</string>
 </resources>
