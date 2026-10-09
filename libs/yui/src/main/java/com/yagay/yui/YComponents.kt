@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -76,7 +78,7 @@ fun YSettingRow(
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+        modifier = modifier.fillMaxWidth().heightIn(min = YDimens.TouchTarget).padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
     ) {
@@ -87,9 +89,15 @@ fun YSettingRow(
 
 @Composable
 private fun YSettingCopy(title: String, subtitle: String?) {
-    Text(title, style = MaterialTheme.typography.bodyLarge)
+    Text(title, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
     if (!subtitle.isNullOrBlank()) {
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -115,7 +123,7 @@ fun YBottomActionBar(
     Surface(modifier = modifier.fillMaxWidth(), tonalElevation = 2.dp, shadowElevation = 1.dp) {
         Row(
             modifier = Modifier.fillMaxWidth().navigationBarsPadding()
-                .padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
+                .padding(horizontal = YDimens.ScreenHorizontal, vertical = 5.dp),
             horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
