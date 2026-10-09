@@ -5,6 +5,18 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
+import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -241,38 +253,102 @@ class MainActivity : YComposeActivity() {
         } else {
             stringResource(R.string.enhanced_engine)
         }
-        YSection(title = task.fileName, subtitle = task.url, detail = task.error) {
-            YStatusLine(stringResource(R.string.engine), engine, YStatusTone.Neutral)
-            YStatusLine(
-                stringResource(R.string.status),
-                status,
-                when (task.state) {
-                    DownloadState.FAILED -> YStatusTone.Error
-                    DownloadState.COMPLETED -> YStatusTone.Good
-                    else -> YStatusTone.Neutral
-                },
-            )
-            if (task.backend == DownloadBackend.ENHANCED && task.retryCount > 0) {
-                YStatusLine(stringResource(R.string.retry_count), task.retryCount.toString(), YStatusTone.Warning)
-            }
-            if (task.expectedSha256 != null) {
-                YStatusLine(
-                    stringResource(R.string.expected_sha256),
-                    task.expectedSha256,
-                    if (task.sha256?.equals(task.expectedSha256, ignoreCase = true) == true) YStatusTone.Good else YStatusTone.Neutral,
+        var detailsExpanded by remember(task.id) { mutableStateOf(false) }
+        Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = task.fileName,
+                        modifier = Modifier.weight(1f),
+                        style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = status,
+                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                        color = when (task.state) {
+                            DownloadState.FAILED -> androidx.compose.material3.MaterialTheme.colorScheme.error
+                            DownloadState.COMPLETED -> androidx.compose.material3.MaterialTheme.colorScheme.primary
+                            else -> androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.widthIn(max = 105.dp),
+                    )
+                }
+                Text(
+                    text = task.url,
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                if (task.total > 0L) {
+                    LinearProgressIndicator(
+                        progress = { (task.done.toFloat() / task.total.toFloat()).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else if (task.state == DownloadState.RUNNING) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = engine,
+                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                    )
+                    if (task.speedBytesPerSecond > 0L) {
+                        Text(
+                            text = formatSpeed(task.speedBytesPerSecond),
+                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    if (task.total > 0L) {
+                        Text(
+                            text = stringResource(
+                                R.string.progress_percent,
+                                ((task.done.toFloat() / task.total.toFloat()) * 100f).toInt().coerceIn(0, 100),
+                            ),
+                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+                if (task.backend == DownloadBackend.SYSTEM) {
+                    SystemTaskActions(task, store)
+                } else {
+                    EnhancedTaskActions(task, store)
+                }
+                YSecondaryActionButton(onClick = { detailsExpanded = !detailsExpanded }) {
+                    Text(
+                        stringResource(
+                            if (detailsExpanded) R.string.qdm_hide_details else R.string.qdm_details,
+                        ),
+                    )
+                }
+                if (detailsExpanded) {
+                    task.error?.let {
+                        Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                    }
+                    YStatusLine(stringResource(R.string.status), status, YStatusTone.Neutral)
+                    if (task.backend == DownloadBackend.ENHANCED && task.retryCount > 0) {
+                        YStatusLine(stringResource(R.string.retry_count), task.retryCount.toString())
+                    }
+                    task.expectedSha256?.let {
+                        YStatusLine(stringResource(R.string.expected_sha256), it)
+                    }
+                    task.sha256?.let {
+                        YStatusLine(stringResource(R.string.sha256), it)
+                    }
+                    if (task.etaMillis >= 0L && task.state == DownloadState.RUNNING) {
+                        YStatusLine(stringResource(R.string.ydownload_eta), formatEta(task.etaMillis))
+                    }
+                }
             }
-            if (task.total > 0) {
-                val percent = ((task.done * 100L) / task.total).coerceIn(0L, 100L).toInt()
-                YStatusLine(stringResource(R.string.progress), stringResource(R.string.progress_percent, percent))
-            }
-            if (task.speedBytesPerSecond > 0L) {
-                YStatusLine(stringResource(R.string.ydownload_speed), formatSpeed(task.speedBytesPerSecond), YStatusTone.Neutral)
-            }
-            if (task.etaMillis >= 0L && task.state == DownloadState.RUNNING) {
-                YStatusLine(stringResource(R.string.ydownload_eta), formatEta(task.etaMillis), YStatusTone.Neutral)
-            }
-            if (task.backend == DownloadBackend.SYSTEM) SystemTaskActions(task, store) else EnhancedTaskActions(task, store)
         }
     }
 
