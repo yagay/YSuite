@@ -21,6 +21,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Nfc
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.MoreVert
@@ -49,7 +61,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yagay.suite.core.FeatureSpec
@@ -286,11 +297,24 @@ private fun CompactSuiteModuleRow(
             modifier = Modifier.size(34.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = module.label.take(1).uppercase(),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
+                Icon(
+                    imageVector = when (module.feature.id) {
+                        "yentrycleaner" -> Icons.Default.ListAlt
+                        "ydiag" -> Icons.Default.BugReport
+                        "ynotify" -> Icons.Default.Notifications
+                        "ypower" -> Icons.Default.Security
+                        "yminiguard" -> Icons.Default.PictureInPictureAlt
+                        "ynfc" -> Icons.Default.Nfc
+                        "ytaskmanager" -> Icons.Default.Memory
+                        "yparam" -> Icons.Default.Tune
+                        "yfloat" -> Icons.Default.TouchApp
+                        "ydownload" -> Icons.Default.FileDownload
+                        "yfiles" -> Icons.Default.Folder
+                        else -> Icons.Default.Apps
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
