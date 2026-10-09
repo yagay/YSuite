@@ -1,6 +1,7 @@
 package com.yagay.YSuite
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,6 +11,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -87,6 +89,47 @@ class MainActivity : YComposeActivity() {
         var permissions by remember { mutableStateOf(SuitePermissionState.snapshot(this)) }
         var resumeTick by remember { mutableIntStateOf(0) }
         val fullDiagnosticLabel = stringResource(R.string.diagnostic_full_label)
+        var managementMode by rememberSaveable { mutableStateOf(false) }
+        var managingFeatureId by rememberSaveable { mutableStateOf<String?>(null) }
+        val managementFeatures =
+            if (managingFeatureId == null) features
+            else features.filter { it.id == managingFeatureId }
+        val homeModules = features.map { feature ->
+            HomeModuleEntry(
+                feature = feature,
+                label = localizedFeatureName(feature),
+                description = localizedFeatureDescription(feature),
+                enabled = enabled[feature.id] == true,
+            )
+        }
+
+        BackHandler(enabled = managementMode) {
+            managementMode = false
+            managingFeatureId = null
+        }
+
+        val openModule: (FeatureSpec, String) -> Unit = { feature, localizedName ->
+            SuiteCrashTracker.markActiveFeature(this@MainActivity, feature.id)
+            runCatching {
+                startActivity(feature.createIntent(this@MainActivity))
+            }.onFailure {
+                SuiteLog.e(this@MainActivity, feature.id, "open failed", it)
+                SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.feature_open_failed, localizedName, it.javaClass.simpleName),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+
+        val updateFeatureEnabled: (FeatureSpec, Boolean) -> Unit = { feature, next ->
+            store.setEnabled(feature, next)
+            enabled[feature.id] = store.isEnabled(feature)
+            if (next && enabled[feature.id] == true) {
+                SuiteLog.i(this@MainActivity, feature.id, "host enabled")
+            }
+        }
 
         LifecycleResumeEffect(Unit) {
             resumeTick++
@@ -126,11 +169,39 @@ class MainActivity : YComposeActivity() {
 
         YDashboardScaffold(
             title = stringResource(R.string.app_name),
-            subtitle = stringResource(R.string.suite_subtitle),
+            subtitle = if (managementMode) stringResource(R.string.home_manage) else "",
         ) { scaffoldPadding ->
-            YPageList(padding = scaffoldPadding) {
-                item {
-                    RuntimeEnvironmentCard(
+            if (!managementMode) {
+                CompactSuiteHome(
+                    modules = homeModules,
+                    rootAvailable = rootAvailable,
+                    xposedConnected = xposedConnected,
+                    padding = scaffoldPadding,
+                    onOpen = openModule,
+                    onManage = { featureId ->
+                        managingFeatureId = featureId
+                        managementMode = true
+                    },
+                    onToggleEnabled = updateFeatureEnabled,
+                    onExportModule = { feature, name ->
+                        exportDiagnostic(setOf(feature.id), name)
+                    },
+                    onExportAll = { exportDiagnostic(null, fullDiagnosticLabel) },
+                )
+            } else {
+                YPageList(padding = scaffoldPadding) {
+                    item {
+                        YSecondaryButton(
+                            text = stringResource(R.string.home_back),
+                            onClick = {
+                                managementMode = false
+                                managingFeatureId = null
+                            },
+                        )
+                    }
+                    if (managingFeatureId == null) {
+                        item {
+                            RuntimeEnvironmentCard(
                         featureCount = features.size,
                         rootAvailable = rootAvailable,
                         xposedConnected = xposedConnected,
@@ -151,11 +222,12 @@ class MainActivity : YComposeActivity() {
                             }
                         },
                         onExport = { exportDiagnostic(null, fullDiagnosticLabel) },
-                    )
-                }
+                            )
+                        }
+                    }
 
-                items(features.size, key = { features[it].id }) { index ->
-                    val feature = features[index]
+                    items(managementFeatures.size, key = { managementFeatures[it].id }) { index ->
+                    val feature = managementFeatures[index]
                     val localizedName = localizedFeatureName(feature)
                     val standalone = standaloneApps[feature.id]
                     FeatureCard(
@@ -166,27 +238,8 @@ class MainActivity : YComposeActivity() {
                         rootAvailable = rootAvailable,
                         xposedConnected = xposedConnected,
                         standalone = standalone,
-                        onEnabledChange = { next ->
-                            store.setEnabled(feature, next)
-                            enabled[feature.id] = store.isEnabled(feature)
-                            if (next && enabled[feature.id] == true) {
-                                SuiteLog.i(this@MainActivity, feature.id, "host enabled")
-                            }
-                        },
-                        onOpen = {
-                            SuiteCrashTracker.markActiveFeature(this@MainActivity, feature.id)
-                            runCatching {
-                                startActivity(feature.createIntent(this@MainActivity))
-                            }.onFailure {
-                                SuiteLog.e(this@MainActivity, feature.id, "open failed", it)
-                                SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    getString(R.string.feature_open_failed, localizedName, it.javaClass.simpleName),
-                                    Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                        },
+                        onEnabledChange = { next -> updateFeatureEnabled(feature, next) },
+                        onOpen = { openModule(feature, localizedName) },
                         onOpenStandalone = {
                             val packageName = feature.standalonePackageName ?: return@FeatureCard
                             if (!StandaloneAppManager.open(this@MainActivity, packageName)) {
@@ -227,6 +280,7 @@ class MainActivity : YComposeActivity() {
                         },
                         onExportLog = { exportDiagnostic(setOf(feature.id), localizedName) },
                     )
+                    }
                 }
             }
         }
