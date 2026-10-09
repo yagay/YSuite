@@ -93,6 +93,24 @@ interface HookGateway {
         key: String,
         value: String?,
     ): Outcome<Unit>
+
+    /**
+     * A production gateway commits all keys in one remote-preference editor
+     * transaction. The fallback keeps fake / third-party gateways compatible,
+     * but does not promise atomicity.
+     */
+    suspend fun writeConfigBatch(
+        group: String,
+        values: Map<String, String?>,
+    ): Outcome<Unit> {
+        for ((key, value) in values) {
+            when (val result = writeConfig(group, key, value)) {
+                is Outcome.Success -> Unit
+                is Outcome.Failure -> return result
+            }
+        }
+        return Outcome.Success(Unit)
+    }
 }
 
 data class PlatformServices(

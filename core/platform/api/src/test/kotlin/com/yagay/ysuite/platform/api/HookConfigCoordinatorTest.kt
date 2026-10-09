@@ -83,6 +83,59 @@ class HookConfigCoordinatorTest {
         assertTrue(fake.operations.isEmpty())
     }
 
+    @Test fun aTransactionalGatewayGetsPayloadAndRevisionInOneCommit() = runBlocking {
+        val fake = object : HookGateway {
+            val batches = mutableListOf<Map<String, String?>>()
+            override suspend fun status() = CapabilityStatus.Available
+            override suspend fun writeConfig(
+                group: String, key: String, value: String?,
+            ): Outcome<Unit> = error("must use batch")
+            override suspend fun writeConfigBatch(
+                group: String, values: Map<String, String?>,
+            ): Outcome<Unit> {
+                batches += values
+                return Outcome.Success(Unit)
+            }
+            override suspend fun reload(scopePackages: Set<String>): Outcome<Unit> =
+                Outcome.Success(Unit)
+        }
+        val result = HookConfigCoordinator(fake).publish(
+            group = "ypower",
+            values = linkedMapOf("one" to "A", "two" to null),
+            scopePackages = setOf("example.app"),
+        )
+        assertTrue(result is Outcome.Success)
+        assertEquals(1, fake.batches.size)
+        assertEquals(setOf("one", "two", HookConfigCoordinator.REVISION_KEY),
+            fake.batches.single().keys)
+        assertNotNull(fake.batches.single()[HookConfigCoordinator.REVISION_KEY])
+    }
+
+    @Test fun failedBatchIsNotFollowedByScopeRequest() = runBlocking {
+        val fake = object : HookGateway {
+            var scopeRequested = false
+            override suspend fun status() = CapabilityStatus.Available
+            override suspend fun writeConfig(
+                group: String, key: String, value: String?,
+            ): Outcome<Unit> = error("must use batch")
+            override suspend fun writeConfigBatch(
+                group: String, values: Map<String, String?>,
+            ): Outcome<Unit> = Outcome.Failure(
+                code = "batch_failed", message = "commit failed",
+            )
+            override suspend fun reload(scopePackages: Set<String>): Outcome<Unit> {
+                scopeRequested = true
+                return Outcome.Success(Unit)
+            }
+        }
+        val result = HookConfigCoordinator(fake).publish(
+            group = "yparam", values = mapOf("app.example" to "payload"),
+            scopePackages = setOf("example.app"),
+        )
+        assertEquals("batch_failed", (result as Outcome.Failure).error.code)
+        assertFalse(fake.scopeRequested)
+    }
+
     @Test fun perPackageRevisionsCannotOverwriteEachOther() = runBlocking {
         val fake = Fake()
         val coordinator = HookConfigCoordinator(fake)

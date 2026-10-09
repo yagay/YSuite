@@ -42,6 +42,7 @@ internal class YMiniGuardViewModel(
     val state: StateFlow<YMiniGuardUiState> = mutableState.asStateFlow()
     private val syncMutex = Mutex()
     private var refreshJob: Job? = null
+    private var syncRequestId = 0L
 
     init { refresh() }
 
@@ -144,6 +145,7 @@ internal class YMiniGuardViewModel(
     fun reloadEngine() = sync(true)
 
     private fun sync(reload: Boolean) {
+        val requestId = ++syncRequestId
         viewModelScope.launch {
             val (result, previous) = withContext(Dispatchers.IO) {
                 syncMutex.withLock {
@@ -173,8 +175,12 @@ internal class YMiniGuardViewModel(
                 reload -> "reloaded"
                 else -> "config_pending"
             }
-            mutableState.value = mutableState.value.copy(statusToken = token)
-            refresh()
+            // Older operations must not override the result shown for a
+            // newer settings edit or explicit reload.
+            if (requestId == syncRequestId) {
+                mutableState.value = mutableState.value.copy(statusToken = token)
+                refresh()
+            }
         }
     }
 

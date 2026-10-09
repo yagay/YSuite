@@ -406,61 +406,48 @@ private object AndroidLibXposedHookGateway :
         group: String,
         key: String,
         value: String?,
+    ): Outcome<Unit> = writeConfigBatch(group, mapOf(key to value))
+
+    override suspend fun writeConfigBatch(
+        group: String,
+        values: Map<String, String?>,
     ): Outcome<Unit> {
-        val current =
-            connectedService()
-                ?: return Outcome.Failure(
-                    code =
-                        "hook_service_unavailable",
-                    message =
-                        "LSPosed service is not connected",
-                    retryable = true,
-                )
         val safeGroup = group.trim()
-        val safeKey = key.trim()
-        if (
-            safeGroup.isEmpty() ||
-            safeKey.isEmpty()
-        ) {
+        if (safeGroup.isBlank() || values.isEmpty() ||
+            values.keys.any { it.isBlank() || it != it.trim() }) {
             return Outcome.Failure(
-                code =
-                    "hook_config_invalid_key",
-                message =
-                    "Hook preference group/key cannot be blank",
+                code = "hook_config_invalid_key",
+                message = "Hook preference group and keys must be nonblank",
             )
         }
-
-        return withContext(Dispatchers.IO) {
-            runCatching {
-            val editor =
-                current
-                    .getRemotePreferences(
-                        safeGroup,
-                    )
-                    .edit()
-            if (value == null) {
-                editor.remove(safeKey)
-            } else {
-                editor.putString(
-                    safeKey,
-                    value,
-                )
-            }
-            check(editor.commit()) {
-                "LSPosed remote preferences commit failed"
-            }
-            Outcome.Success(Unit)
-        }.getOrElse { error ->
-            Outcome.Failure(
-                code =
-                    "hook_config_write_failed",
-                message =
-                    error.message
-                        ?: "Unable to write LSPosed remote preferences",
-                cause = error,
+        val current = connectedService()
+            ?: return Outcome.Failure(
+                code = "hook_service_unavailable",
+                message = "LSPosed service is not connected",
                 retryable = true,
             )
-        }
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                // One edit/commit guarantees all payload values and their
+                // revision marker become visible together.
+                val editor = current.getRemotePreferences(safeGroup).edit()
+                values.forEach { (key, value) ->
+                    if (value == null) editor.remove(key)
+                    else editor.putString(key, value)
+                }
+                check(editor.commit()) {
+                    "LSPosed remote preferences transaction failed"
+                }
+                Outcome.Success(Unit)
+            }.getOrElse { error ->
+                Outcome.Failure(
+                    code = "hook_config_write_failed",
+                    message = error.message
+                        ?: "Unable to commit LSPosed remote preferences",
+                    cause = error,
+                    retryable = true,
+                )
+            }
         }
     }
 

@@ -638,6 +638,20 @@ internal class YNotifyDatabase(
                 "event_key IN (SELECT event_key FROM events WHERE package_name = ?)",
                 arrayOf(packageName),
             )
+            // Keep cross-app banner references and canonical-row links
+            // consistent when their target notification is deleted.
+            db.execSQL(
+                "UPDATE events SET linked_notification_id = NULL " +
+                    "WHERE linked_notification_id IN " +
+                    "(SELECT id FROM events WHERE package_name = ?)",
+                arrayOf(packageName),
+            )
+            db.execSQL(
+                "UPDATE events SET merged_into_id = NULL " +
+                    "WHERE merged_into_id IN " +
+                    "(SELECT id FROM events WHERE package_name = ?)",
+                arrayOf(packageName),
+            )
             db.delete("events", "package_name = ?", arrayOf(packageName))
             db.setTransactionSuccessful()
         } finally {

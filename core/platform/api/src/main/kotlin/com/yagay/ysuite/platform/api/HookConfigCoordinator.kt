@@ -25,12 +25,13 @@ data class HookDeliveryReceipt(
 }
 
 /**
- * Publishes a coherent revision marker only after all individual remote
- * preference writes succeed. Target runtimes can use this marker to
- * reject partial generations as they gain protocol support.
+ * Publishes payload and revision together in one remote-preference
+ * transaction where the HookGateway supports batching (the production
+ * Android gateway does). Custom gateways using the default fallback may
+ * still write keys individually.
  *
  * Existing target hooks keep reading their original keys: the marker is
- * additive and cannot itself claim runtime activation.
+ * additive and does not itself confirm runtime activation.
  */
 class HookConfigCoordinator(private val gateway: HookGateway) {
     suspend fun publish(
@@ -48,15 +49,15 @@ class HookConfigCoordinator(private val gateway: HookGateway) {
             )
         }
         val revision = revisionFor(values)
-        for ((key, value) in values) {
-            when (val written = gateway.writeConfig(group, key, value)) {
-                is Outcome.Failure -> return written
-                is Outcome.Success -> Unit
-            }
-        }
-        // Never advance revision on a partially failed write.
-        when (val marked = gateway.writeConfig(group, revisionKey, revision)) {
-            is Outcome.Failure -> return marked
+        // Production HookGateway commits payload + revision together.
+        // Scope approval remains separate and does not prove Hook activation.
+        when (
+            val written = gateway.writeConfigBatch(
+                group,
+                LinkedHashMap(values).apply { put(revisionKey, revision) },
+            )
+        ) {
+            is Outcome.Failure -> return written
             is Outcome.Success -> Unit
         }
         if (scopePackages.isNotEmpty()) {

@@ -104,3 +104,20 @@ Known limitation: remote preference publication is not an atomic multi-key
 transaction; older Hook readers may observe intermediate updates. Reusing
 mature Hook engines and introducing in-process revision acknowledgment must
 precede declaring complete runtime parity.
+
+## 2026-10-09: transactional remote-preference and action lifecycle hardening
+
+- Production Android HookGateway writes an entire feature payload and its
+  revision marker in one SharedPreferences editor commit. No target process
+  should receive a partially committed preference generation.
+- The platform API retains a sequential compatibility fallback for tests and
+  third-party gateways, so only the Android implementation guarantees atomicity.
+- Unit tests explicitly verify single-batch publication, rejection on a
+  failed batch, and preserved per-app revision isolation.
+- YEntryCleaner uses one in-flight Root operation guard for manual, bulk and
+  inverted component changes; failures and cancellation always clear busy.
+- YMiniGuard discards stale sync status responses after newer requests.
+- YNotify clears cross-app references to notifications removed by per-app
+  history deletion, preserving relational integrity without deleting other apps.
+- None of these contracts proves that an LSPosed target has executed a newly
+  published Hook. Device tests and runtime acknowledgment remain necessary.

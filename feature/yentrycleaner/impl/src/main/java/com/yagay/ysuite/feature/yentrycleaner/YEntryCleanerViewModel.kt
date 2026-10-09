@@ -419,114 +419,74 @@ internal class YEntryCleanerViewModel(
         syncAndRefresh()
     }
 
-    fun component(
-        candidate: YEntryCandidate,
-        enable: Boolean,
+    /** All manual and bulk edits share one in-flight guard and always
+     * release it, including when Root execution throws or the screen closes.
+     */
+    private fun changeComponents(
+        failureToken: String,
+        action: suspend () -> String,
     ) {
-        // Explicit component changes remain allowed even when locked.
+        if (mutableState.value.busy) return
+        mutableState.value = mutableState.value.copy(busy = true)
         viewModelScope.launch {
-            mutableState.value =
-                mutableState.value.copy(
-                    busy = true,
+            try {
+                val result = withContext(Dispatchers.IO) { action() }
+                mutableState.value = mutableState.value.copy(
+                    statusToken = result,
+                    managedError = null,
                 )
-            val ok =
-                withContext(Dispatchers.IO) {
-                    repository.changeComponent(
-                        candidate,
-                        enable,
-                    )
-                }
-            mutableState.value =
-                mutableState.value.copy(
-                    busy = false,
-                    statusToken =
-                        if (ok) {
-                            "component_changed"
-                        } else {
-                            "component_failed"
-                        },
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    statusToken = failureToken,
+                    managedError = error.message ?: error.javaClass.simpleName,
                 )
-            refresh()
+            } finally {
+                mutableState.value = mutableState.value.copy(busy = false)
+                refresh()
+            }
+        }
+    }
+
+    fun component(candidate: YEntryCandidate, enable: Boolean) {
+        // Explicit component changes are permitted even when a bulk lock
+        // is active, but concurrent Root changes are not.
+        changeComponents("component_failed") {
+            if (repository.changeComponent(candidate, enable)) {
+                "component_changed"
+            } else {
+                "component_failed"
+            }
         }
     }
 
     fun bulk(hidden: Boolean) {
         val items = visible()
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                repository.bulkHidden(
-                    items,
-                    hidden,
-                )
+        changeComponents("rules_sync_failed") {
+            when (repository.bulkHidden(items, hidden)) {
+                is com.yagay.ysuite.common.Outcome.Failure -> "rules_sync_failed"
+                is com.yagay.ysuite.common.Outcome.Success ->
+                    if (hidden) "rules_hidden" else "rules_shown"
             }
-            mutableState.value =
-                mutableState.value.copy(
-                    statusToken =
-                        if (result is com.yagay.ysuite.common.Outcome.Failure) {
-                            "rules_sync_failed"
-                        } else if (hidden) {
-                            "rules_hidden"
-                        } else {
-                            "rules_shown"
-                        },
-                )
-            refresh()
         }
     }
 
     fun bulkComponents(enable: Boolean) {
         val items = visible()
-        viewModelScope.launch {
-            mutableState.value =
-                mutableState.value.copy(
-                    busy = true,
-                )
-            val (changed, failed) =
-                withContext(Dispatchers.IO) {
-                    repository.bulkComponents(
-                        items,
-                        enable,
-                    )
-                }
-            mutableState.value =
-                mutableState.value.copy(
-                    busy = false,
-                    statusToken =
-                        if (failed == 0) {
-                            "components_changed:$changed"
-                        } else {
-                            "components_partial:$changed:$failed"
-                        },
-                )
-            refresh()
+        changeComponents("component_failed") {
+            val (changed, failed) = repository.bulkComponents(items, enable)
+            if (failed == 0) "components_changed:$changed"
+            else "components_partial:$changed:$failed"
         }
     }
 
     fun invertComponents() {
         val items = visible()
-        viewModelScope.launch {
-            mutableState.value =
-                mutableState.value.copy(
-                    busy = true,
-                )
-            val (changed, failed) =
-                withContext(Dispatchers.IO) {
-                    repository
-                        .invertComponents(
-                            items,
-                        )
-                }
-            mutableState.value =
-                mutableState.value.copy(
-                    busy = false,
-                    statusToken =
-                        if (failed == 0) {
-                            "components_changed:$changed"
-                        } else {
-                            "components_partial:$changed:$failed"
-                        },
-                )
-            refresh()
+        changeComponents("component_failed") {
+            val (changed, failed) = repository.invertComponents(items)
+            if (failed == 0) "components_changed:$changed"
+            else "components_partial:$changed:$failed"
         }
     }
 
