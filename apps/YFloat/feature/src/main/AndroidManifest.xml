@@ -17,13 +17,13 @@
         <activity android:name="com.yagay.YFloat.ResultActivity" android:theme="@style/Theme.YFloat.ResultText" android:exported="false" android:excludeFromRecents="true" android:launchMode="singleTop" android:taskAffinity="" />
         <activity android:name="com.yagay.YFloat.ShadeDismissActivity" android:theme="@style/Theme.YFloat.ShadeDismiss" android:exported="false" android:excludeFromRecents="true" android:noHistory="true" android:taskAffinity="" />
         <activity android:name="com.yagay.YFloat.SecureCaptureProbeActivity" android:exported="false" android:excludeFromRecents="true" android:taskAffinity="" />
-        <activity android:name="com.yagay.YFloat.MenuPickerActivity" android:exported="false" />
-        <activity android:name="com.yagay.YFloat.MenuLabelEditorActivity" android:exported="false" />
-        <activity android:name="com.yagay.YFloat.GestureHubActivity" android:exported="false" />
-        <activity android:name="com.yagay.YFloat.DiagnosticsActivity" android:exported="false" />
-        <activity android:name="com.yagay.YFloat.AppearanceSettingsActivity" android:exported="false" />
-        <activity android:name="com.yagay.YFloat.SettingsActivity" android:exported="false" />
-        <activity android:name="com.yagay.YFloat.MainActivity" />
+        <activity android:name="com.yagay.YFloat.MenuPickerActivity" android:theme="@style/Theme.YFloat" android:exported="false" />
+        <activity android:name="com.yagay.YFloat.MenuLabelEditorActivity" android:theme="@style/Theme.YFloat" android:exported="false" />
+        <activity android:name="com.yagay.YFloat.GestureHubActivity" android:theme="@style/Theme.YFloat" android:exported="false" />
+        <activity android:name="com.yagay.YFloat.DiagnosticsActivity" android:theme="@style/Theme.YFloat" android:exported="false" />
+        <activity android:name="com.yagay.YFloat.AppearanceSettingsActivity" android:theme="@style/Theme.YFloat" android:exported="false" />
+        <activity android:name="com.yagay.YFloat.SettingsActivity" android:theme="@style/Theme.YFloat" android:exported="false" />
+        <activity android:name="com.yagay.YFloat.MainActivity" android:theme="@style/Theme.YFloat" />
         <service android:name="com.yagay.YFloat.FloatService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Persistent user-controlled floating gesture button" />
         </service>
