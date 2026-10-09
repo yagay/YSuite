@@ -209,8 +209,9 @@ class YParamViewModel(
             mutableState.value = mutableState.value.copy(message = error)
             return
         }
+        if (mutableState.value.saving) return
+        mutableState.value = mutableState.value.copy(saving = true)
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(saving = true)
             runCatching {
                 val payload =
                     withContext(Dispatchers.IO) {
@@ -230,6 +231,9 @@ class YParamViewModel(
                         group = "yparam",
                         values = mapOf("app." + packageName to payload),
                         scopePackages = setOf(packageName),
+                        revisionKey = HookConfigCoordinator.revisionKeyFor(
+                            "app." + packageName,
+                        ),
                     )
                 }
             }.onSuccess { publication ->
@@ -267,16 +271,12 @@ class YParamViewModel(
         val packageName =
             mutableState.value.selectedPackage
                 ?: return
+        if (mutableState.value.saving) return
+        mutableState.value = mutableState.value.copy(
+            saving = true,
+            message = null,
+        )
         viewModelScope.launch {
-            val previous = withContext(Dispatchers.IO) {
-                repository.read(packageName)
-            }
-            mutableState.value =
-                mutableState.value.copy(
-                    saving = true,
-                    message = null,
-                )
-
             runCatching {
                 withContext(Dispatchers.IO) {
                     repository.reset(packageName)
@@ -288,12 +288,12 @@ class YParamViewModel(
                     group = "yparam",
                     values = mapOf("app." + packageName to null),
                     scopePackages = setOf(packageName),
+                    revisionKey = HookConfigCoordinator.revisionKeyFor(
+                        "app." + packageName,
+                    ),
                 )
-                if (publication is Outcome.Failure) {
-                    withContext(Dispatchers.IO) {
-                        repository.save(packageName, previous)
-                    }
-                }
+                // Desired local settings remain reset even if the remote
+                // scope request fails after the config write succeeded.
                 publication
             }.onSuccess { publication ->
                 select(packageName)
@@ -319,12 +319,6 @@ class YParamViewModel(
                     )
                 reloadApps()
             }.onFailure { error ->
-                withContext(Dispatchers.IO) {
-                    repository.save(
-                        packageName,
-                        previous,
-                    )
-                }
                 select(packageName)
                 mutableState.value =
                     mutableState.value.copy(

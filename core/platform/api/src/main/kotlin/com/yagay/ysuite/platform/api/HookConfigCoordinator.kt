@@ -19,6 +19,7 @@ data class HookDeliveryReceipt(
     val keys: Set<String>,
     val scopePackages: Set<String>,
     val phase: HookDeliveryPhase = HookDeliveryPhase.AwaitingTargetRuntime,
+    val revisionKey: String = HookConfigCoordinator.REVISION_KEY,
 ) {
     val runtimeVerified: Boolean get() = false
 }
@@ -36,9 +37,11 @@ class HookConfigCoordinator(private val gateway: HookGateway) {
         group: String,
         values: Map<String, String?>,
         scopePackages: Set<String> = emptySet(),
+        revisionKey: String = REVISION_KEY,
     ): Outcome<HookDeliveryReceipt> {
         if (group.isBlank() || values.isEmpty() ||
-            values.keys.any { it.isBlank() || it == REVISION_KEY }) {
+            !revisionKey.startsWith(REVISION_KEY) ||
+            values.keys.any { it.isBlank() || it.startsWith(REVISION_KEY) }) {
             return Outcome.Failure(
                 code = "hook_publication_invalid",
                 message = "Hook group and feature keys must be nonblank; revision is reserved",
@@ -52,7 +55,7 @@ class HookConfigCoordinator(private val gateway: HookGateway) {
             }
         }
         // Never advance revision on a partially failed write.
-        when (val marked = gateway.writeConfig(group, REVISION_KEY, revision)) {
+        when (val marked = gateway.writeConfig(group, revisionKey, revision)) {
             is Outcome.Failure -> return marked
             is Outcome.Success -> Unit
         }
@@ -63,12 +66,21 @@ class HookConfigCoordinator(private val gateway: HookGateway) {
             }
         }
         return Outcome.Success(
-            HookDeliveryReceipt(group, revision, values.keys.toSet(), scopePackages),
+            HookDeliveryReceipt(
+                group, revision, values.keys.toSet(), scopePackages,
+                revisionKey = revisionKey,
+            ),
         )
     }
 
     companion object {
         const val REVISION_KEY: String = "__config_revision"
+
+        /** Keep revisions independent for per-app Hook payloads in one group. */
+        fun revisionKeyFor(target: String): String {
+            require(target.isNotBlank()) { "target cannot be blank" }
+            return REVISION_KEY + ":" + target.trim()
+        }
 
         fun revisionFor(values: Map<String, String?>): String {
             val digest = MessageDigest.getInstance("SHA-256")

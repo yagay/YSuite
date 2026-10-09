@@ -83,6 +83,27 @@ class HookConfigCoordinatorTest {
         assertTrue(fake.operations.isEmpty())
     }
 
+    @Test fun perPackageRevisionsCannotOverwriteEachOther() = runBlocking {
+        val fake = Fake()
+        val coordinator = HookConfigCoordinator(fake)
+        val first = coordinator.publish(
+            "yparam", mapOf("app.first" to "A"),
+            revisionKey = HookConfigCoordinator.revisionKeyFor("app.first"),
+        )
+        val second = coordinator.publish(
+            "yparam", mapOf("app.second" to "B"),
+            revisionKey = HookConfigCoordinator.revisionKeyFor("app.second"),
+        )
+        assertTrue(first is Outcome.Success)
+        assertTrue(second is Outcome.Success)
+        assertEquals(
+            listOf(
+                "write:app.first", "write:__config_revision:app.first",
+                "write:app.second", "write:__config_revision:app.second",
+            ), fake.operations,
+        )
+    }
+
     @Test fun commandCompletionDifferentiatesTransportAndExecution() {
         assertEquals(CommandCompletion.Succeeded, RootResult(0, "", "").completion)
         assertEquals(CommandCompletion.NonZeroExit, RootResult(1, "", "").completion)

@@ -175,9 +175,9 @@ class YPowerViewModel(
 
     fun saveAndApply() {
         val profile = mutableState.value.draft ?: return
+        if (mutableState.value.applying) return
+        mutableState.value = mutableState.value.copy(applying = true)
         viewModelScope.launch {
-            mutableState.value =
-                mutableState.value.copy(applying = true)
             runCatching {
                 withContext(Dispatchers.IO) {
                     repository.save(profile)

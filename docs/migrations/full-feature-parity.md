@@ -82,3 +82,25 @@ net in CI. It is not a substitute for any of the closure gates above.
 Still outstanding: runtime acknowledgment from every target, device/OEM tests,
 database upgrade tests and exhaustive original-engine parity. Do not mark a
 module as behaviorally complete based only on CI success.
+
+## 2026-10-09: activation consistency pass
+
+- Remote preference revisions are now keyed per app for YParam and YPower,
+  preventing one app update from overwriting another app's revision marker.
+- YParam holds the save/reset operation guard before launching the coroutine.
+  Local desired settings are preserved if a scope request fails after a remote
+  write; UI presents remote activation as pending, not necessarily verified.
+- YPower no longer force-stops apps merely because Doze, AppOps or other
+  Root-only settings changed. A restart is needed for a new/changed or
+  previously active Hook configuration; previously successful restart state is
+  recorded per package. Target Hook activation remains unverified without an
+  in-process acknowledgment.
+- YPower diagnostic Hook publication and restoration use the same coordinator.
+- YMiniGuard reports pending system-Hook confirmation rather than claiming a
+  non-reloaded configuration is already active.
+- Focused JVM tests cover revision isolation and restart policy.
+
+Known limitation: remote preference publication is not an atomic multi-key
+transaction; older Hook readers may observe intermediate updates. Reusing
+mature Hook engines and introducing in-process revision acknowledgment must
+precede declaring complete runtime parity.

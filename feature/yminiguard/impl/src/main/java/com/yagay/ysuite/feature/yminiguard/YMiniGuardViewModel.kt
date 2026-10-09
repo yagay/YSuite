@@ -171,7 +171,7 @@ internal class YMiniGuardViewModel(
                 reload && engine.generation <= previous.generation ->
                     "reload_pending"
                 reload -> "reloaded"
-                else -> "synced"
+                else -> "config_pending"
             }
             mutableState.value = mutableState.value.copy(statusToken = token)
             refresh()

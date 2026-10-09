@@ -16,9 +16,11 @@ import com.yagay.ysuite.feature.ypower.api.YPowerApplyResult
 import com.yagay.ysuite.feature.ypower.api.YPowerFinding
 import com.yagay.ysuite.feature.ypower.api.YPowerFindingStatus
 import com.yagay.ysuite.feature.ypower.api.YPowerProfile
+import com.yagay.ysuite.feature.ypower.api.requiresHookRestart
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
+import com.yagay.ysuite.platform.api.HookConfigCoordinator
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
 import org.json.JSONArray
@@ -352,77 +354,55 @@ internal class YPowerRepository(
             notes += "root_unavailable"
         }
 
-        val hookConfig =
-            hooks.writeConfig(
-                "ypower",
-                "profile:" + profile.packageName,
-                hookProfileJson(profile),
-            )
-        var hookConfigReady = false
-        when (hookConfig) {
+        // Compare only Hook payloads: changing Doze/AppOps must not
+        // unexpectedly kill the target application.
+        val target = profile.packageName
+        val hookEnabled = profile.enabled && profile.anyHookFeature
+        val hookKey = "profile:" + target
+        val payloads = mapOf(hookKey to hookProfileJson(profile))
+        val currentRevision = HookConfigCoordinator.revisionFor(payloads)
+        val previousRevision = prefs.getString("applied_hook_revision:" + target, null)
+        val previousActive = prefs.getBoolean("applied_hook_active:" + target, false)
+
+        val publication = HookConfigCoordinator(hooks).publish(
+            group = "ypower",
+            values = payloads,
+            scopePackages = if (hookEnabled) setOf(target) else emptySet(),
+            revisionKey = HookConfigCoordinator.revisionKeyFor(hookKey),
+        )
+        when (publication) {
+            is Outcome.Failure -> {
+                val code = "hook_profile_sync:" + publication.error.code
+                if (hookEnabled || previousActive) errors += code else notes += code
+            }
             is Outcome.Success -> {
                 applied += "hook_profile_sync"
-                hookConfigReady = true
-            }
-            is Outcome.Failure -> {
-                val failureCode =
-                    "hook_profile_sync:" +
-                        hookConfig.error.code
-                if (
-                    profile.enabled &&
-                    profile.anyHookFeature
-                ) {
-                    errors += failureCode
-                } else {
-                    notes += failureCode
-                }
-            }
-        }
-
-        var hookScopeReady =
-            !(
-                profile.enabled &&
-                    profile.anyHookFeature
-                )
-        if (
-            hookConfigReady &&
-            profile.enabled &&
-            profile.anyHookFeature
-        ) {
-            when (
-                val reload =
-                    hooks.reload(
-                        setOf(profile.packageName),
+                if (hookEnabled) applied += "hook_scope_reload"
+                // Scope approval and preference commits are not proof that
+                // the target process has read the new generation.
+                if (hookEnabled) notes += "hook_activation_unverified"
+                if (requiresHookRestart(
+                        previousRevision, previousActive, currentRevision, hookEnabled,
                     )
-            ) {
-                is Outcome.Success -> {
-                    applied += "hook_scope_reload"
-                    hookScopeReady = true
+                ) {
+                    if (rootAvailable) {
+                        run("hook_target_restart", "am force-stop " + pkg)
+                        if ("hook_target_restart" in applied) {
+                            if (!prefs.edit()
+                                    .putString("applied_hook_revision:" + target, currentRevision)
+                                    .putBoolean("applied_hook_active:" + target, hookEnabled)
+                                    .commit()
+                            ) errors += "hook_restart_state_save_failed"
+                        }
+                    } else {
+                        notes += "hook_target_restart_required"
+                    }
+                } else if (!hookEnabled && !previousActive) {
+                    prefs.edit()
+                        .putString("applied_hook_revision:" + target, currentRevision)
+                        .putBoolean("applied_hook_active:" + target, false)
+                        .apply()
                 }
-                is Outcome.Failure ->
-                    errors +=
-                        "hook_scope_reload:" +
-                            reload.error.code
-            }
-        }
-
-        if (
-            hookConfigReady &&
-            hookScopeReady
-        ) {
-            if (rootAvailable) {
-                run(
-                    "hook_target_restart",
-                    "am force-stop " +
-                        pkg +
-                        "",
-                )
-            } else if (
-                profile.enabled &&
-                profile.anyHookFeature
-            ) {
-                notes +=
-                    "hook_target_restart_required"
             }
         }
 
@@ -516,34 +496,18 @@ internal class YPowerRepository(
                 diagnosticSessionId = sessionId,
             )
 
-        when (
-            val sync =
-                hooks.writeConfig(
-                    "ypower",
-                    "profile:" + packageName,
-                    hookProfileJson(tracing),
-                )
-        ) {
-            is Outcome.Failure ->
-                error(
-                    "hook_profile_sync:" +
-                        sync.error.code,
-                )
-            is Outcome.Success -> Unit
-        }
         val now = System.currentTimeMillis()
         try {
         when (
-            val scope =
-                hooks.reload(
-                    setOf(packageName),
-                )
+            val published = HookConfigCoordinator(hooks).publish(
+                "ypower",
+                mapOf("profile:" + packageName to hookProfileJson(tracing)),
+                setOf(packageName),
+                HookConfigCoordinator.revisionKeyFor("profile:" + packageName),
+            )
         ) {
             is Outcome.Failure ->
-                error(
-                    "hook_scope_reload:" +
-                        scope.error.code,
-                )
+                error("hook_profile_sync:" + published.error.code)
             is Outcome.Success -> Unit
         }
 
@@ -757,13 +721,20 @@ internal class YPowerRepository(
         packageName: String,
     ): Outcome<Unit> {
         val original = load(packageName)
-        val written = hooks.writeConfig(
-            "ypower",
-            "profile:" + packageName,
-            hookProfileJson(original.copy(diagnosticSessionId = "")),
-        )
-        if (written is Outcome.Failure) return written
-        return hooks.reload(setOf(packageName))
+        return when (
+            val published = HookConfigCoordinator(hooks).publish(
+                "ypower",
+                mapOf(
+                    "profile:" + packageName to
+                        hookProfileJson(original.copy(diagnosticSessionId = "")),
+                ),
+                setOf(packageName),
+                HookConfigCoordinator.revisionKeyFor("profile:" + packageName),
+            )
+        ) {
+            is Outcome.Failure -> published
+            is Outcome.Success -> Outcome.Success(Unit)
+        }
     }
 
     private fun parseDiagnosticTrace(

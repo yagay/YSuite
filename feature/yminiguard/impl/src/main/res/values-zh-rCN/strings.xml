@@ -30,6 +30,7 @@
     <string name="yminiguard_force_support">强制 OPlus 小窗支持</string>
     <string name="yminiguard_force_support_desc">仅对所选应用绕过 OPlus 小窗黑名单/支持检查。</string>
     <string name="yminiguard_synced">配置已同步。</string>
+    <string name="yminiguard_config_pending">配置已提交，正在等待系统 Hook 确认生效。</string>
     <string name="yminiguard_reloaded">已请求引擎重载。</string>
     <string name="yminiguard_sync_failed">无法同步 LSPosed 配置。</string>
     <string name="yminiguard_show_advanced">高级引擎设置</string>
