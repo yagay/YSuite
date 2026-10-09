@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -21,7 +22,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yagay.yui.YTextField
 
 /** FileExplorer-style command bar adapted from the rebuild branch to main's repository. */
 @Composable
@@ -70,11 +71,11 @@ internal fun FileExplorerHostChrome(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.parent))
             }
             if (searching) {
-                OutlinedTextField(
+                YTextField(
                     value = query,
                     onValueChange = onQuery,
+                    label = stringResource(R.string.search_files),
                     singleLine = true,
-                    placeholder = { Text(stringResource(R.string.search_files)) },
                     modifier = Modifier.weight(1f),
                 )
             } else {
@@ -117,25 +118,41 @@ internal fun FileExplorerHostChrome(
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.show_hidden)) },
-                        trailingIcon = { Text(if (showHidden) "✓" else "") },
+                        trailingIcon = {
+                            if (showHidden) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                            }
+                        },
                         onClick = { menuExpanded = false; onShowHidden() },
                         enabled = !busy,
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.recursive_search)) },
-                        trailingIcon = { Text(if (recursiveSearch) "✓" else "") },
+                        trailingIcon = {
+                            if (recursiveSearch) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                            }
+                        },
                         onClick = { menuExpanded = false; onRecursiveSearch() },
                         enabled = !rootMode && !busy,
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.root_mode)) },
-                        trailingIcon = { Text(if (rootMode) "✓" else "") },
+                        trailingIcon = {
+                            if (rootMode) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                            }
+                        },
                         onClick = { menuExpanded = false; onRootMode() },
                         enabled = rootAllowed && !busy,
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.descending)) },
-                        trailingIcon = { Text(if (descending) "✓" else "") },
+                        trailingIcon = {
+                            if (descending) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                            }
+                        },
                         onClick = { menuExpanded = false; onDescending() },
                         enabled = !rootMode && !busy,
                     )
@@ -146,7 +163,11 @@ internal fun FileExplorerHostChrome(
                     FileSortMode.entries.forEachIndexed { index, mode ->
                         DropdownMenuItem(
                             text = { Text(stringResource(modeTitles[index])) },
-                            trailingIcon = { Text(if (sortMode == mode) "✓" else "") },
+                            trailingIcon = {
+                            if (sortMode == mode) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                            }
+                        },
                             onClick = { menuExpanded = false; onSortMode(mode) },
                             enabled = !rootMode && !busy,
                         )
