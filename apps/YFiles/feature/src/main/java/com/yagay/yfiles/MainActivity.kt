@@ -355,105 +355,37 @@ class MainActivity : YComposeActivity() {
                 }
 
                 if (page == 0) {
-                    item {
-                        YSectionHeader(title = stringResource(R.string.location))
-                        YBreadcrumbBar(
-                            segments = buildList {
-                                add(
-                                    YBreadcrumbSegment("/", "/") {
-                                        path = "/"
-                                        query = ""
-                                    },
-                                )
-                                var current = ""
-                                path.trim('/').split('/').filter { it.isNotBlank() }.forEach { segment ->
-                                    current += "/$segment"
-                                    val target = current
-                                    add(
-                                        YBreadcrumbSegment(target, segment) {
-                                            path = target
-                                            query = ""
-                                        },
-                                    )
+                    item(key = "file_explorer_chrome") {
+                        FileExplorerHostChrome(
+                            path = path,
+                            query = query,
+                            onQuery = { query = it },
+                            onNavigate = {
+                                path = it
+                                query = ""
+                            },
+                            onParent = {
+                                repository.parent(path)?.let {
+                                    path = it
+                                    query = ""
                                 }
                             },
-                        )
-                    }
-                    item {
-                        YSearchField(query, { query = it }, hint = stringResource(R.string.search_files))
-                    }
-                    item {
-                        YToggleFilterBar(
-                            filters = listOf(
-                                YFilterSpec(
-                                    label = stringResource(R.string.recursive_search),
-                                    selected = recursiveSearch,
-                                    enabled = !rootMode,
-                                    onClick = { recursiveSearch = !recursiveSearch },
-                                ),
-                                YFilterSpec(
-                                    label = stringResource(R.string.show_hidden),
-                                    selected = showHidden,
-                                    enabled = !rootMode,
-                                    onClick = { showHidden = !showHidden },
-                                ),
-                                YFilterSpec(
-                                    label = stringResource(R.string.root_mode),
-                                    selected = rootMode,
-                                    enabled = rootGranted,
-                                    onClick = { rootMode = !rootMode },
-                                ),
-                                YFilterSpec(
-                                    label = stringResource(R.string.descending),
-                                    selected = sortDescending,
-                                    enabled = !rootMode,
-                                    onClick = { sortDescending = !sortDescending },
-                                ),
-                            ),
-                        )
-                    }
-                    if (!rootMode) {
-                        item {
-                            val sortModes = FileSortMode.entries
-                            YFilterBar(
-                                options = listOf(
-                                    stringResource(R.string.sort_name),
-                                    stringResource(R.string.sort_modified),
-                                    stringResource(R.string.sort_size),
-                                    stringResource(R.string.sort_type),
-                                ),
-                                selectedIndex = sortModes.indexOf(sortMode).coerceAtLeast(0),
-                                onSelected = { index ->
-                                    sortModes.getOrNull(index)?.let { sortMode = it }
-                                },
-                            )
-                        }
-                    }
-                    item {
-                        YActionGroup(
-                            actions = listOf(
-                                YActionSpec(
-                                    label = stringResource(R.string.parent),
-                                    enabled = repository.parent(path) != null && !operationBusy,
-                                    onClick = { repository.parent(path)?.let { path = it; query = "" } },
-                                ),
-                                YActionSpec(
-                                    label = stringResource(R.string.refresh),
-                                    enabled = !operationBusy,
-                                    onClick = { refresh++ },
-                                ),
-                                YActionSpec(
-                                    label = stringResource(R.string.new_folder),
-                                    enabled = !operationBusy,
-                                    style = YActionStyle.PRIMARY,
-                                    onClick = { newFolderDialog = true },
-                                ),
-                                YActionSpec(
-                                    label = stringResource(R.string.new_file),
-                                    enabled = !operationBusy,
-                                    onClick = { newFileDialog = true },
-                                ),
-                            ),
+                            canParent = repository.parent(path) != null,
+                            onRefresh = { refresh++ },
+                            onNewFolder = { newFolderDialog = true },
+                            onNewFile = { newFileDialog = true },
+                            sortMode = sortMode,
+                            onSortMode = { sortMode = it },
+                            descending = sortDescending,
+                            onDescending = { sortDescending = !sortDescending },
+                            showHidden = showHidden,
+                            onShowHidden = { showHidden = !showHidden },
+                            recursiveSearch = recursiveSearch,
+                            onRecursiveSearch = { recursiveSearch = !recursiveSearch },
+                            rootMode = rootMode,
+                            rootAllowed = rootGranted,
+                            onRootMode = { rootMode = !rootMode },
+                            busy = operationBusy,
                         )
                     }
                     pendingTransfer?.let { transfer ->
