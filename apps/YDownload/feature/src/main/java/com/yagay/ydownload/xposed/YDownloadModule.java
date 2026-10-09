@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import com.yagay.suite.api.RuntimeOwnerGate;
 import io.github.libxposed.api.XposedModule;
 import java.lang.reflect.Method;
+import org.json.JSONObject;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,7 +58,7 @@ public final class YDownloadModule extends XposedModule {
             hook(enqueue).intercept(chain -> {
                 try {
                     SharedPreferences prefs = remotePreferencesOrNull();
-                    if (prefs == null || !prefs.getBoolean("enabled", true)) return chain.proceed();
+                    if (prefs == null || !hookBoolean(prefs, "enabled", "enabled", true)) return chain.proceed();
                     Object arg = chain.getArg(0);
                     if (arg instanceof DownloadManager.Request request) {
                         applyRequestPatch(request, prefs);
@@ -73,6 +74,15 @@ public final class YDownloadModule extends XposedModule {
         }
     }
 
+    /** Read the rebuilt screen's atomic settings without losing legacy LSPosed preferences. */
+    private boolean hookBoolean(SharedPreferences prefs, String legacy, String modern, boolean fallback) {
+        try {
+            JSONObject config = new JSONObject(prefs.getString("config", "{}"));
+            if (config.has(modern)) return config.optBoolean(modern, fallback);
+        } catch (Throwable ignored) { }
+        try { return prefs.getBoolean(legacy, fallback); } catch (Throwable ignored) { return fallback; }
+    }
+
     private SharedPreferences remotePreferencesOrNull() {
         try {
             return getRemotePreferences(PREFS);
@@ -85,20 +95,20 @@ public final class YDownloadModule extends XposedModule {
     private void applyRequestPatch(DownloadManager.Request request, SharedPreferences prefs) {
         try {
             // Only tighten policy. Leaving a toggle permissive preserves whatever the caller set.
-            if (!prefs.getBoolean("allow_metered", true)) {
+            if (!hookBoolean(prefs, "allow_metered", "allowMetered", true)) {
                 request.setAllowedOverMetered(false);
             }
-            if (!prefs.getBoolean("allow_roaming", true)) {
+            if (!hookBoolean(prefs, "allow_roaming", "allowRoaming", true)) {
                 request.setAllowedOverRoaming(false);
             }
-            if (prefs.getBoolean("force_completion_notification", false)) {
+            if (hookBoolean(prefs, "force_completion_notification", "forceCompletionNotification", false)) {
                 request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                if (prefs.getBoolean("require_charging", false)) {
+                if (hookBoolean(prefs, "require_charging", "requireCharging", false)) {
                     request.setRequiresCharging(true);
                 }
-                if (prefs.getBoolean("require_device_idle", false)) {
+                if (hookBoolean(prefs, "require_device_idle", "requireDeviceIdle", false)) {
                     request.setRequiresDeviceIdle(true);
                 }
             }

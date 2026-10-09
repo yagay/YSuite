@@ -14,10 +14,10 @@ android {
 }
 
 dependencies {
-    api(project(":core:platform:api"))
-    implementation(project(":core:common"))
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.shizuku.api)
-    implementation(libs.shizuku.provider)
+    api(project(":next:core:platform:api"))
+    implementation(project(":next:core:common"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation(libs.libxposed.service)
 }

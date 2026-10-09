@@ -1,12 +1,12 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    id("org.jetbrains.kotlin.jvm")
 }
 
 kotlin { jvmToolchain(17) }
 
 dependencies {
-    api(project(":core:common"))
-    api(libs.kotlinx.coroutines.core)
+    api(project(":next:core:common"))
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
     testImplementation(libs.junit)
 }

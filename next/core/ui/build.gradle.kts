@@ -16,14 +16,14 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:designsystem"))
-    api(project(":core:productui"))
-    implementation(project(":core:resources"))
-    implementation(project(":core:navigation"))
-    implementation(project(":core:settings"))
-    implementation(project(":core:runtime"))
-    implementation(project(":core:permissions:api"))
-    api(project(":core:platform:api"))
+    implementation(project(":next:core:designsystem"))
+    api(project(":next:core:productui"))
+    implementation(project(":next:core:resources"))
+    implementation(project(":next:core:navigation"))
+    implementation(project(":next:core:settings"))
+    implementation(project(":next:core:runtime"))
+    implementation(project(":next:core:permissions:api"))
+    api(project(":next:core:platform:api"))
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)

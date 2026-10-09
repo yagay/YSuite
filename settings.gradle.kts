@@ -50,3 +50,30 @@ generatedFeatureModules.readLines()
 
 include(":yfloat-ppocr-sdk")
 project(":yfloat-ppocr-sdk").projectDir = file("apps/YFloat/ppocr-sdk")
+
+// Rebuilt YFiles/YDownload modules retained alongside the host-owned Xposed integrations.
+val rebuiltModules = listOf(
+    "core:common",
+    "core:model",
+    "core:navigation",
+    "core:runtime",
+    "core:logging:api",
+    "core:platform:api",
+    "core:platform:android",
+    "core:permissions:api",
+    "core:designsystem",
+    "core:productui",
+    "core:resources",
+    "core:settings",
+    "core:presentation",
+    "core:ui",
+    "feature:yfiles:api",
+    "feature:yfiles:impl",
+    "feature:ydownload:api",
+    "feature:ydownload:impl",
+)
+rebuiltModules.forEach { module ->
+    val gradleName = ":next:" + module
+    include(gradleName)
+    project(gradleName).projectDir = file("next/" + module.replace(':', '/'))
+}

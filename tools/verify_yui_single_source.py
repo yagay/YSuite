@@ -56,12 +56,12 @@ MODULE_UI = {
     "YDiag": (Path("apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity.kt"), ("YPageScaffold", "YAppShell")),
     "YDownload": (
         Path("apps/YDownload/feature/src/main/java/com/yagay/ydownload/MainActivity.kt"),
-        ("YPageScaffold", "YPageRole.MANAGER", "YPageRole.SETTINGS"),
+        ("YComposeActivity", "YDownloadFeatureScreen"),
     ),
     "YEntryCleaner": (Path("apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainActivity.kt"), ("com.yagay.yui", "YAppShell")),
     "YFiles": (
         Path("apps/YFiles/feature/src/main/java/com/yagay/yfiles/MainActivity.kt"),
-        ("YPageScaffold", "YPageRole.BROWSER", "YPageRole.MANAGER", "YPageRole.SETTINGS", "YPageList"),
+        ("YComposeActivity", "YFilesFeatureScreen"),
     ),
     "YFloat": (Path("apps/YFloat/feature/src/main/java/com/yagay/YFloat/MainActivity.java"), ("com.yagay.yui.YViewLayout",)),
     "YMiniGuard": (Path("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java"), ("YViewLayout",)),

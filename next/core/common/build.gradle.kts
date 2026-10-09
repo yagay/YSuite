@@ -1,2 +1,2 @@
-plugins { alias(libs.plugins.kotlin.jvm) }
+plugins { id("org.jetbrains.kotlin.jvm") }
 kotlin { jvmToolchain(17) }

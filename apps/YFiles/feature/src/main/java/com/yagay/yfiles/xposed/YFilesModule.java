@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import com.yagay.suite.api.RuntimeOwnerGate;
 import io.github.libxposed.api.XposedModule;
 import java.lang.reflect.Method;
+import org.json.JSONObject;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -95,8 +96,8 @@ public final class YFilesModule extends XposedModule {
             hook(setDefaultDimension).intercept(chain -> {
                 try {
                     SharedPreferences prefs = remotePreferencesOrNull();
-                    if (prefs == null || !prefs.getBoolean("enabled", true)) return chain.proceed();
-                    String selected = prefs.getString("default_sort", "system");
+                    if (prefs == null || !hookBoolean(prefs, "enabled", "enabled", true)) return chain.proceed();
+                    String selected = hookString(prefs, "default_sort", "defaultSort", "system");
                     int target = switch (selected == null ? "system" : selected) {
                         case "name" -> sortName;
                         case "date" -> sortDate;
@@ -152,13 +153,13 @@ public final class YFilesModule extends XposedModule {
         boolean create = Intent.ACTION_CREATE_DOCUMENT.equals(action);
         if (!openDocument && !getContent && !tree && !create) return;
 
-        if (prefs.getBoolean("local_only", false)) {
+        if (hookBoolean(prefs, "local_only", "localOnly", false)) {
             intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
         }
-        if ((openDocument || getContent) && prefs.getBoolean("allow_multiple", false)) {
+        if ((openDocument || getContent) && hookBoolean(prefs, "allow_multiple", "allowMultiple", false)) {
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         }
-        String initialUri = prefs.getString("initial_uri", null);
+        String initialUri = hookString(prefs, "initial_uri", "initialUri", null);
         if ((openDocument || tree || create) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 && initialUri != null && !initialUri.isBlank()) {
             try {
@@ -167,6 +168,27 @@ public final class YFilesModule extends XposedModule {
                 log(Log.WARN, TAG, "Invalid initial URI; keeping system default", t);
             }
         }
+    }
+
+    /** New feature writes one atomic JSON payload; legacy preferences remain readable. */
+    private JSONObject featureConfig(SharedPreferences prefs) {
+        try {
+            return new JSONObject(prefs.getString("config", "{}"));
+        } catch (Throwable ignored) {
+            return new JSONObject();
+        }
+    }
+
+    private boolean hookBoolean(SharedPreferences prefs, String legacy, String modern, boolean fallback) {
+        JSONObject json = featureConfig(prefs);
+        if (json.has(modern)) return json.optBoolean(modern, fallback);
+        try { return prefs.getBoolean(legacy, fallback); } catch (Throwable ignored) { return fallback; }
+    }
+
+    private String hookString(SharedPreferences prefs, String legacy, String modern, String fallback) {
+        JSONObject json = featureConfig(prefs);
+        if (json.has(modern)) return json.optString(modern, fallback);
+        try { return prefs.getString(legacy, fallback); } catch (Throwable ignored) { return fallback; }
     }
 
     private SharedPreferences remotePreferencesOrNull() {

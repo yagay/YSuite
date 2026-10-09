@@ -33,6 +33,5 @@
 
     <application>
         <activity android:name="com.yagay.ydownload.MainActivity" android:exported="false" android:theme="@style/Theme.YUI" />
-        <service android:name="com.yagay.ydownload.DownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
     </application>
 </manifest>

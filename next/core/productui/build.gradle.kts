@@ -16,7 +16,7 @@ android {
 }
 
 dependencies {
-    api(project(":core:designsystem"))
+    api(project(":next:core:designsystem"))
 
     val composeBom = platform(libs.androidx.compose.bom)
     api(composeBom)

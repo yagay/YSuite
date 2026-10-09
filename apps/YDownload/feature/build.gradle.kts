@@ -12,6 +12,9 @@ android {
     compileOptions { sourceCompatibility = sharedJavaVersion; targetCompatibility = sharedJavaVersion }
 }
 dependencies {
+    implementation(project(":next:feature:ydownload:impl"))
+    implementation(project(":next:core:platform:android"))
+    implementation(project(":next:core:logging:api"))
     implementation("com.github.yagay.YSuite:api") { version { branch = sharedSuiteBranch.get() } }
     implementation("com.github.yagay.YSuite:ui") { version { branch = sharedSuiteBranch.get() } }
     implementation(libs.androidx.core.ktx)

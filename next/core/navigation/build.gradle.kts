@@ -1,8 +1,8 @@
-plugins { alias(libs.plugins.kotlin.jvm) }
+plugins { id("org.jetbrains.kotlin.jvm") }
 
 kotlin { jvmToolchain(17) }
 
 dependencies {
-    api(project(":core:model"))
+    api(project(":next:core:model"))
     testImplementation(libs.junit)
 }

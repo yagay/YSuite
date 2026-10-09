@@ -45,7 +45,7 @@
         </provider>
 
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".YFilesFileProvider"
             android:authorities="${applicationId}.yfiles.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
