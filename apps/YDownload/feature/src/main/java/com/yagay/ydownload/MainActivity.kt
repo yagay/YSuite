@@ -342,7 +342,7 @@ class MainActivity : YComposeActivity() {
                         YStatusLine(stringResource(R.string.expected_sha256), it)
                     }
                     task.sha256?.let {
-                        YStatusLine(stringResource(R.string.sha256), it)
+                        YStatusLine(stringResource(R.string.ydownload_sha256), it)
                     }
                     if (task.etaMillis >= 0L && task.state == DownloadState.RUNNING) {
                         YStatusLine(stringResource(R.string.ydownload_eta), formatEta(task.etaMillis))
