@@ -1,7 +1,6 @@
 package com.yagay.ysuite.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -9,12 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerValue
@@ -35,11 +30,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.ysuite.productui.ProductAdaptiveRoot
-import com.yagay.ysuite.productui.dashboard.NiaDashboardSurface
 import com.yagay.ysuite.resources.R
 import com.yagay.ysuite.runtime.FeatureLifecycleEvent
 import kotlinx.coroutines.launch
@@ -352,50 +345,8 @@ private fun YSuiteFeatureDashboard(
     features: List<YSuiteFeatureUiRegistration>,
     onSelect: (String) -> Unit,
 ) {
-    NiaDashboardSurface(
-        title = stringResource(R.string.home_title),
-        navigationIcon = { YSuiteHostNavigationButton() },
-    ) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(220.dp),
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
-            verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Medium),
-        ) {
-            items(
-                items = features,
-                key = { it.contract.descriptor.id },
-            ) { feature ->
-                ProductFeatureTile(
-                    feature = feature,
-                    onClick = { onSelect(feature.contract.descriptor.id) },
-                )
-            }
-        }
-    }
+    YSuiteCompactDashboard(
+        features = features,
+        onSelect = onSelect,
+    )
 }
-
-@Composable
-private fun ProductFeatureTile(
-    feature: YSuiteFeatureUiRegistration,
-    onClick: () -> Unit,
-) {
-    androidx.compose.material3.Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Column(
-            modifier = Modifier.padding(YSuiteSpacing.Medium),
-            verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
-        ) {
-            Text(
-                text = feature.label(),
-                style = MaterialTheme.typography.titleLarge,
-            )
-        }
-    }
-}
-
