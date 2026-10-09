@@ -440,7 +440,7 @@ object YViewLayout {
     fun listGap(context: Context): Int = controlGap(context)
 
     @JvmStatic
-    fun listIconSize(context: Context): Int = YView.dimen(context, R.dimen.yui_touch_target)
+    fun listIconSize(context: Context): Int = dp(context, 32)
 
     @JvmStatic
     @JvmOverloads
@@ -566,7 +566,7 @@ object YViewLayout {
                 YView.styleSectionTitle(this)
                 setTextColor(YView.onSurfaceVariant(context))
                 gravity = Gravity.CENTER
-                minimumWidth = YView.touchTarget(context)
+                minimumWidth = dp(context, 28)
             },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
@@ -684,8 +684,8 @@ object YViewLayout {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 maxOf(1, dp(root.context, 1)),
             ).apply {
-                topMargin = YView.controlGap(root.context)
-                bottomMargin = YView.sectionGap(root.context)
+                topMargin = maxOf(2, YView.controlGap(root.context) / 2)
+                bottomMargin = maxOf(2, YView.controlGap(root.context) / 2)
             },
         )
     }
@@ -741,7 +741,7 @@ object YViewLayout {
         val horizontal = YView.cardPadding(context)
         val vertical = if (compact) 0 else maxOf(1, YView.controlGap(context) / 2)
         setPadding(horizontal, vertical, horizontal, vertical)
-        minimumHeight = YView.touchTarget(context) + if (compact) 0 else maxOf(0, YView.controlGap(context) / 2)
+        minimumHeight = YView.touchTarget(context)
     }
 
     @JvmStatic
