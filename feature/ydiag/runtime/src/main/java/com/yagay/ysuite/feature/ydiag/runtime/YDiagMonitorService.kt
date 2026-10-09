@@ -105,16 +105,26 @@ class YDiagMonitorService : Service() {
                     .redirectErrorStream(true)
                     .start()
                 logcatProcess = process
-                BufferedReader(InputStreamReader(process.inputStream)).useLines { lines ->
-                    output.bufferedWriter().use { writer ->
-                        lines.forEach { line ->
+                var written = output.length()
+                var writer = output.bufferedWriter()
+                try {
+                    BufferedReader(InputStreamReader(process.inputStream)).useLines { lines ->
+                        for (line in lines) {
+                            if (!sessionRunning || Thread.currentThread().isInterrupted) break
                             writer.appendLine(line)
-                            if (output.length() > 8L * 1024L * 1024L) {
+                            written += line.toByteArray(Charsets.UTF_8).size + 1L
+                            if (written >= 8L * 1024L * 1024L) {
                                 writer.flush()
+                                writer.close()
                                 rotate(output)
+                                writer = output.bufferedWriter()
+                                written = 0L
                             }
                         }
                     }
+                } finally {
+                    runCatching { writer.close() }
+                    process.destroy()
                 }
             }.onFailure {
                 File(dir, "monitor-errors.txt").appendText("logcat: " + it + "\n")
@@ -262,16 +272,40 @@ class YDiagMonitorService : Service() {
         }
     }
 
-    private fun shellText(command: String, timeoutMs: Long): String =
-        runCatching {
+    /** Enforce the timeout before reading output: a blocked su must not
+     * prevent the diagnostics service from stopping or collecting evidence.
+     */
+    private fun shellText(command: String, timeoutMs: Long): String {
+        val output = File.createTempFile("ydiag-root-", ".log", cacheDir)
+        return try {
             val process = ProcessBuilder("su", "-c", command)
                 .redirectErrorStream(true)
+                .redirectOutput(output)
                 .start()
-            val text = process.inputStream.bufferedReader().readText().take(1_000_000)
-            process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
-            if (process.isAlive) process.destroyForcibly()
-            text
-        }.getOrElse { "error: " + it }
+            val completed = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
+            if (!completed) {
+                process.destroyForcibly()
+                runCatching { process.waitFor(250, TimeUnit.MILLISECONDS) }
+            }
+            val text = output.bufferedReader().use { reader ->
+                val buffer = CharArray(8_192)
+                val result = StringBuilder()
+                while (result.length < 1_000_000) {
+                    val count = reader.read(
+                        buffer, 0, minOf(buffer.size, 1_000_000 - result.length),
+                    )
+                    if (count <= 0) break
+                    result.append(buffer, 0, count)
+                }
+                result.toString()
+            }
+            if (completed) text else text + "\n[command timeout after " + timeoutMs + "ms]"
+        } catch (error: Exception) {
+            "error: " + error
+        } finally {
+            output.delete()
+        }
+    }
 
     override fun onDestroy() {
         sessionRunning = false

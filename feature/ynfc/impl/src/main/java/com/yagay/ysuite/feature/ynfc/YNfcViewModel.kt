@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yagay.ysuite.feature.ynfc.runtime.YNfcCard
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,15 +84,29 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
     }
     private fun operation(started: String, block: suspend () -> Pair<YNfcRuntimeSnapshot, String>) {
         if (mutableState.value.busy) return
+        // Set busy before scheduling the coroutine: two taps must never
+        // publish conflicting NFC generations or restart the vendor service.
+        mutableState.value = mutableState.value.copy(busy = true, statusToken = started)
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(busy = true, statusToken = started)
-            runCatching { withContext(Dispatchers.IO) { block() } }
-                .onSuccess { result ->
-                    mutableState.value = mutableState.value.copy(busy = false, runtime = result.first, statusToken = result.second)
+            try {
+                val result = withContext(Dispatchers.IO) { block() }
+                mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    runtime = result.first,
+                    statusToken = result.second,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.value = mutableState.value.copy(
+                    busy = false, statusToken = "operation_failed",
+                    diagnostics = error.stackTraceToString(),
+                )
+            } finally {
+                if (mutableState.value.busy) {
+                    mutableState.value = mutableState.value.copy(busy = false)
                 }
-                .onFailure {
-                    mutableState.value = mutableState.value.copy(busy = false, statusToken = "operation_failed")
-                }
+            }
         }
     }
     private suspend fun refresh() {
