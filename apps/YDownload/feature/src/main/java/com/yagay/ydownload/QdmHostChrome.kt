@@ -16,9 +16,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +25,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yagay.yui.YTextField
+import com.yagay.yui.YTabBar
+import com.yagay.yui.YTabSpec
 
 /** QDM-inspired toolbar from rebuild/product-ui-system, bound to the main-branch engine. */
 @Composable
@@ -52,12 +52,12 @@ internal fun QdmHostChrome(
             horizontalArrangement = Arrangement.End,
         ) {
             if (searching) {
-                OutlinedTextField(
+                YTextField(
                     value = query,
                     onValueChange = onQuery,
+                    label = stringResource(R.string.qdm_search_downloads),
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    placeholder = { Text(stringResource(R.string.qdm_search_downloads)) },
                 )
             } else {
                 Text(
@@ -97,30 +97,25 @@ internal fun QdmHostChrome(
             }
         }
         val filters = DownloadListFilter.entries
-        ScrollableTabRow(
-            selectedTabIndex = filters.indexOf(filter),
-            edgePadding = 8.dp,
-            divider = {},
-        ) {
-            filters.forEach { candidate ->
-                Tab(
-                    selected = candidate == filter,
-                    onClick = { onFilter(candidate) },
-                    text = {
-                        Text(
-                            stringResource(
-                                when (candidate) {
-                                    DownloadListFilter.ALL -> R.string.qdm_filter_all
-                                    DownloadListFilter.ACTIVE -> R.string.qdm_filter_active
-                                    DownloadListFilter.COMPLETED -> R.string.qdm_filter_completed
-                                    DownloadListFilter.FAILED -> R.string.qdm_filter_failed
-                                },
-                            ),
-                        )
-                    },
+        YTabBar(
+            tabs = filters.map { candidate ->
+                YTabSpec(
+                    key = candidate.name,
+                    label = stringResource(
+                        when (candidate) {
+                            DownloadListFilter.ALL -> R.string.qdm_filter_all
+                            DownloadListFilter.ACTIVE -> R.string.qdm_filter_active
+                            DownloadListFilter.COMPLETED -> R.string.qdm_filter_completed
+                            DownloadListFilter.FAILED -> R.string.qdm_filter_failed
+                        },
+                    ),
                 )
-            }
-        }
+            },
+            selectedKey = filter.name,
+            onSelected = { tab ->
+                filters.firstOrNull { it.name == tab.key }?.let(onFilter)
+            },
+        )
     }
 }
 
