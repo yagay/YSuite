@@ -58,3 +58,27 @@ names or changed SHA values are not automatically missing functionality.*
 
 `tools/verify_feature_parity_contracts.py` provides a fast structural safety
 net in CI. It is not a substitute for any of the closure gates above.
+
+## 2026-10-09: shared transport and behavioral test consolidation
+
+- Root and Shizuku output streams now have a fixed per-stream memory budget,
+  continue draining after truncation and enforce command timeout.
+- Root exit codes distinguish successful execution, nonzero execution and
+  timeout. Callers must inspect exit codes; a transport-level Outcome.Success
+  is not equivalent to a successful shell command.
+- HookConfigCoordinator publishes the original feature keys, then a stable
+  `__config_revision` checksum, and finally requests scope. Partial remote
+  preference writes do not advance the revision marker. Older hooks may still
+  read individual keys: this is not a transactional update until their
+  runtime readers adopt the marker.
+- YEntryCleaner, YMiniGuard and YParam share publication semantics. Success
+  means **configuration transport confirmed / target runtime unverified**.
+  The LSPosed bridge cannot currently prove each target hook executed.
+- YNFC card persistence and YEntryCleaner component actions claim the busy
+  slot synchronously, preventing multiple clicks from queuing conflicts.
+- JVM tests exercise publication ordering, error paths, revision stability,
+  Root execution outcomes and representative feature-model behavior.
+
+Still outstanding: runtime acknowledgment from every target, device/OEM tests,
+database upgrade tests and exhaustive original-engine parity. Do not mark a
+module as behaviorally complete based only on CI success.

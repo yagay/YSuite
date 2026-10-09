@@ -25,6 +25,7 @@ import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
+import com.yagay.ysuite.platform.api.HookConfigCoordinator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -1556,26 +1557,19 @@ internal class YEntryCleanerRepository(
                         .COMPONENT_DISCOVERY_PROTOCOL
                         .toString(),
             )
-        for ((key, value) in values) {
-            val result =
-                hooks.writeConfig(
-                    YEntryRuntimeBridge.GROUP,
-                    key,
-                    value,
-                )
-            if (result is Outcome.Failure) {
-                return@withLock result
-            }
-        }
-        if (reload) {
-            hooks.reload(
-                setOf(
-                    "android",
-                    "com.android.intentresolver",
-                ) + resolverHosts,
+        when (
+            val published = HookConfigCoordinator(hooks).publish(
+                group = YEntryRuntimeBridge.GROUP,
+                values = values,
+                scopePackages =
+                    if (reload) setOf(
+                        "android",
+                        "com.android.intentresolver",
+                    ) + resolverHosts else emptySet(),
             )
-        } else {
-            Outcome.Success(Unit)
+        ) {
+            is Outcome.Success -> Outcome.Success(Unit)
+            is Outcome.Failure -> published
         }
     }
 }

@@ -12,6 +12,7 @@ import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
 import com.yagay.ysuite.platform.api.RootGateway
 import com.yagay.ysuite.platform.api.RootRequest
+import com.yagay.ysuite.platform.api.HookConfigCoordinator
 
 internal class YMiniGuardRepository(
     private val context: Context,
@@ -129,16 +130,16 @@ internal class YMiniGuardRepository(
                 YMiniGuardRuntimeBridge.DIAGNOSTICS_STARTED_AT to
                     if (value.diagnostics) System.currentTimeMillis().toString() else "",
             )
-        for ((key, item) in values) {
-            val result =
-                hooks.writeConfig(
-                    YMiniGuardRuntimeBridge.GROUP,
-                    key,
-                    item,
-                )
-            if (result is Outcome.Failure) return result
+        return when (
+            val published = HookConfigCoordinator(hooks).publish(
+                group = YMiniGuardRuntimeBridge.GROUP,
+                values = values,
+                scopePackages = setOf("android", "com.android.systemui"),
+            )
+        ) {
+            is Outcome.Success -> Outcome.Success(Unit)
+            is Outcome.Failure -> published
         }
-        return hooks.reload(setOf("android", "com.android.systemui"))
     }
 
     suspend fun diagnostics(): String {

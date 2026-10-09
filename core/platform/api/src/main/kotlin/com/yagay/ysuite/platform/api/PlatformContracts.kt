@@ -38,7 +38,20 @@ data class RootResult(
     val exitCode: Int,
     val stdout: String,
     val stderr: String,
-)
+) {
+    val completion: CommandCompletion
+        get() = when (exitCode) {
+            0 -> CommandCompletion.Succeeded
+            124 -> CommandCompletion.TimedOut
+            else -> CommandCompletion.NonZeroExit
+        }
+}
+
+enum class CommandCompletion {
+    Succeeded,
+    NonZeroExit,
+    TimedOut,
+}
 
 interface CommandGateway {
     suspend fun status(): CapabilityStatus

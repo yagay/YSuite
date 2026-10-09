@@ -187,8 +187,8 @@ internal class YEntryCleanerViewModel(
 
     fun changeManagedComponent(component: YEntryManagedComponent, enable: Boolean) {
         if (mutableState.value.busy || component.blocked) return
+        mutableState.value = mutableState.value.copy(busy = true)
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(busy = true)
             try {
                 val changed = withContext(Dispatchers.IO) {
                     repository.changeManagedComponent(component, enable)
@@ -221,8 +221,8 @@ internal class YEntryCleanerViewModel(
 
     fun invertManagedComponents(components: List<YEntryManagedComponent>) {
         if (mutableState.value.busy) return
+        mutableState.value = mutableState.value.copy(busy = true)
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(busy = true)
             try {
                 val (changed, failed) = withContext(Dispatchers.IO) {
                     repository.invertManagedComponents(components)
@@ -245,8 +245,8 @@ internal class YEntryCleanerViewModel(
 
     fun bulkManagedComponents(components: List<YEntryManagedComponent>, enable: Boolean) {
         if (mutableState.value.busy) return
+        mutableState.value = mutableState.value.copy(busy = true)
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(busy = true)
             try {
                 val (changed, failed) = withContext(Dispatchers.IO) {
                     repository.changeManagedComponents(components, enable)

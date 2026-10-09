@@ -8,6 +8,7 @@ import com.yagay.ysuite.feature.yparam.api.YParamAppSummary
 import com.yagay.ysuite.feature.yparam.api.YParamDefaults
 import com.yagay.ysuite.feature.yparam.api.YParamOverrides
 import com.yagay.ysuite.platform.api.CapabilityStatus
+import com.yagay.ysuite.platform.api.HookConfigCoordinator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -225,22 +226,13 @@ class YParamViewModel(
                         )
                     }
                 withContext(Dispatchers.IO) {
-                    val configResult =
-                        environment.hookGateway.writeConfig(
-                            group = "yparam",
-                            key = "app." + packageName,
-                            value = payload,
-                        )
-                    val scopeResult =
-                        if (configResult is Outcome.Success) {
-                            environment.hookGateway.reload(setOf(packageName))
-                        } else {
-                            configResult
-                        }
-                    configResult to scopeResult
+                    HookConfigCoordinator(environment.hookGateway).publish(
+                        group = "yparam",
+                        values = mapOf("app." + packageName to payload),
+                        scopePackages = setOf(packageName),
+                    )
                 }
-            }.onSuccess {
-                    (configResult, scopeResult) ->
+            }.onSuccess { publication ->
                 mutableState.value = mutableState.value.copy(
                     saving = false,
                     hookStatus =
@@ -250,12 +242,7 @@ class YParamViewModel(
                         }
                         }.getOrDefault(CapabilityStatus.Error),
                     message =
-                        if (
-                            configResult is
-                                Outcome.Success &&
-                            scopeResult is
-                                Outcome.Success
-                        ) {
+                        if (publication is Outcome.Success) {
                             "saved_target_restart"
                         } else {
                             "saved_hook_reload_unavailable"
@@ -295,40 +282,20 @@ class YParamViewModel(
                     repository.reset(packageName)
                 }
 
-                val configResult =
-                    environment.hookGateway
-                        .writeConfig(
-                            group = "yparam",
-                            key =
-                                "app." +
-                                    packageName,
-                            value = null,
-                        )
-
-                if (
-                    configResult is
-                    Outcome.Failure
-                ) {
+                val publication = HookConfigCoordinator(
+                    environment.hookGateway,
+                ).publish(
+                    group = "yparam",
+                    values = mapOf("app." + packageName to null),
+                    scopePackages = setOf(packageName),
+                )
+                if (publication is Outcome.Failure) {
                     withContext(Dispatchers.IO) {
-                        repository.save(
-                            packageName,
-                            previous,
-                        )
+                        repository.save(packageName, previous)
                     }
-                    return@runCatching (
-                        configResult to
-                            null
-                        )
                 }
-
-                val scopeResult =
-                    environment.hookGateway
-                        .reload(
-                            setOf(packageName),
-                        )
-                configResult to scopeResult
-            }.onSuccess {
-                    (configResult, scopeResult) ->
+                publication
+            }.onSuccess { publication ->
                 select(packageName)
                 mutableState.value =
                     mutableState.value.copy(
@@ -343,14 +310,11 @@ class YParamViewModel(
                             ),
                         message =
                             when {
-                                configResult is
-                                    Outcome.Failure ->
-                                    "reset_hook_write_failed"
-                                scopeResult is
-                                    Outcome.Success ->
+                                publication is Outcome.Success ->
                                     "reset_target_restart"
-                                else ->
+                                publication is Outcome.Failure ->
                                     "reset_hook_reload_unavailable"
+                                else -> "reset_hook_reload_unavailable"
                             },
                     )
                 reloadApps()

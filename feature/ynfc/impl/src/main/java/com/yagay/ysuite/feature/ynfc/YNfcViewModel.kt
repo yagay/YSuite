@@ -51,18 +51,24 @@ class YNfcViewModel(private val environment: YNfcEnvironment) : ViewModel() {
 
     private fun persistCards(cards: List<YNfcCard>, successToken: String) {
         if (mutableState.value.busy) return
+        mutableState.value = mutableState.value.copy(busy = true)
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(busy = true)
-            runCatching {
+            try {
                 withContext(Dispatchers.IO) { repository.saveCards(cards) }
-            }.onSuccess {
                 mutableState.value = mutableState.value.copy(
                     busy = false, cards = cards, statusToken = successToken,
                 )
-            }.onFailure {
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
                 mutableState.value = mutableState.value.copy(
                     busy = false, statusToken = "operation_failed",
+                    diagnostics = error.stackTraceToString(),
                 )
+            } finally {
+                if (mutableState.value.busy) {
+                    mutableState.value = mutableState.value.copy(busy = false)
+                }
             }
         }
     }

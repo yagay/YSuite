@@ -10,6 +10,7 @@ import com.yagay.ysuite.platform.api.RootRequest
 import com.yagay.ysuite.platform.api.RootResult
 import com.yagay.ysuite.platform.api.ShizukuGateway
 import java.io.File
+import java.io.InputStream
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import java.util.concurrent.TimeUnit
@@ -466,6 +467,31 @@ private object AndroidLibXposedHookGateway :
     private const val MIN_HOOK_API = 102
 }
 
+/**
+ * Drains stdout and stderr concurrently, with a strict memory cap for each
+ * stream. After hitting the cap, the stream is still drained to prevent a
+ * noisy Root command from blocking on a full OS pipe.
+ */
+private fun drainProcessStream(stream: InputStream, sink: StringBuilder) {
+    try {
+        stream.bufferedReader().use { reader ->
+            val buffer = CharArray(8_192)
+            var truncated = false
+            while (true) {
+                val count = reader.read(buffer)
+                if (count <= 0) break
+                val room = (PROCESS_OUTPUT_LIMIT - sink.length).coerceAtLeast(0)
+                val kept = minOf(count, room)
+                if (kept > 0) sink.append(buffer, 0, kept)
+                if (kept < count) truncated = true
+            }
+            if (truncated) sink.append("\n[output truncated]")
+        }
+    } catch (_: java.io.IOException) {
+        // Closing the pipes while a command is cancelled is expected.
+    }
+}
+
 private fun collectProcess(
     process: Process,
     timeoutMillis: Long,
@@ -473,46 +499,45 @@ private fun collectProcess(
 ): RootResult {
     val stdout = StringBuilder()
     val stderr = StringBuilder()
-    val stdoutThread =
-        thread(start = true) {
-            process.inputStream
-                .bufferedReader()
-                .use {
-                    stdout.append(it.readText())
-                }
-        }
-    val stderrThread =
-        thread(start = true) {
-            process.errorStream
-                .bufferedReader()
-                .use {
-                    stderr.append(it.readText())
-                }
-        }
-
-    val completed =
-        process.waitFor(
+    val stdoutThread = thread(start = true, isDaemon = true) {
+        drainProcessStream(process.inputStream, stdout)
+    }
+    val stderrThread = thread(start = true, isDaemon = true) {
+        drainProcessStream(process.errorStream, stderr)
+    }
+    try {
+        val completed = process.waitFor(
             timeoutMillis.coerceAtLeast(1L),
             TimeUnit.MILLISECONDS,
         )
-    if (!completed) {
-        process.destroyForcibly()
+        if (!completed) {
+            process.destroyForcibly()
+            stdoutThread.join(THREAD_JOIN_MILLIS)
+            stderrThread.join(THREAD_JOIN_MILLIS)
+            return RootResult(
+                exitCode = TIMEOUT_EXIT_CODE,
+                stdout = stdout.toString(),
+                stderr = timeoutMessage,
+            )
+        }
         stdoutThread.join(THREAD_JOIN_MILLIS)
         stderrThread.join(THREAD_JOIN_MILLIS)
         return RootResult(
+            exitCode = process.exitValue(),
+            stdout = stdout.toString(),
+            stderr = stderr.toString(),
+        )
+    } catch (interrupted: InterruptedException) {
+        process.destroyForcibly()
+        Thread.currentThread().interrupt()
+        return RootResult(
             exitCode = TIMEOUT_EXIT_CODE,
             stdout = stdout.toString(),
-            stderr = timeoutMessage,
+            stderr = "Root command interrupted",
         )
+    } finally {
+        if (process.isAlive) process.destroyForcibly()
     }
-
-    stdoutThread.join(THREAD_JOIN_MILLIS)
-    stderrThread.join(THREAD_JOIN_MILLIS)
-    return RootResult(
-        exitCode = process.exitValue(),
-        stdout = stdout.toString(),
-        stderr = stderr.toString(),
-    )
 }
 
 object DefaultPlatformServices {
@@ -527,3 +552,4 @@ object DefaultPlatformServices {
 
 private const val THREAD_JOIN_MILLIS = 1_000L
 private const val TIMEOUT_EXIT_CODE = 124
+private const val PROCESS_OUTPUT_LIMIT = 512 * 1024

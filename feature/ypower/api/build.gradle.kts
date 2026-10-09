@@ -5,4 +5,5 @@ kotlin { jvmToolchain(17) }
 dependencies {
     api(project(":core:model"))
     api(project(":core:navigation"))
+    testImplementation(libs.junit)
 }
