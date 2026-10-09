@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
 @Composable
@@ -47,10 +48,12 @@ fun YSuiteSectionHeader(
                 text = subtitle,
                 style =
                     MaterialTheme.typography
-                        .bodyMedium,
+                        .bodySmall,
                 color =
                     MaterialTheme.colorScheme
                         .onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -113,7 +116,7 @@ fun YSuiteListItem(
             Alignment.CenterVertically,
         horizontalArrangement =
             Arrangement.spacedBy(
-                YSuiteSpacing.Medium,
+                YSuiteSpacing.Small,
             ),
     ) {
         leading?.invoke()
@@ -124,17 +127,21 @@ fun YSuiteListItem(
                 text = title,
                 style =
                     MaterialTheme.typography
-                        .bodyLarge,
+                        .bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     text = subtitle,
                     style =
                         MaterialTheme.typography
-                            .bodyMedium,
+                            .bodySmall,
                     color =
                         MaterialTheme.colorScheme
                             .onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
