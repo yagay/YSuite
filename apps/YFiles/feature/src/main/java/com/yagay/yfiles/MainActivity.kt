@@ -624,8 +624,8 @@ class MainActivity : YComposeActivity() {
                         }
                         val selectedForBatch = YFilesBatchSelectionState.selected.containsKey(entry.path)
 
-                        YListItem(
-                            title = entry.name,
+                        FileExplorerEntryRow(
+                            entry = entry,
                             subtitle = if (entry.isDirectory) {
                                 stringResource(R.string.folder)
                             } else {
