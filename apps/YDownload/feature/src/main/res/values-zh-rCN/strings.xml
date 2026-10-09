@@ -25,4 +25,13 @@
 <string name="ydownload_system_control_unsupported">当前系统 DownloadProvider 不允许手动暂停/继续这个任务。</string>
 <string name="pause">暂停</string><string name="resume">继续</string><string name="retry">重试</string><string name="cancel">取消</string><string name="open">打开</string><string name="remove">移除</string>
 <string name="download_channel">下载任务</string><string name="download_service">YDownload</string><string name="download_running">正在下载…</string>
+    <string name="qdm_search_downloads">搜索下载</string>
+    <string name="qdm_batch_actions">批量操作</string>
+    <string name="qdm_filter_all">全部</string>
+    <string name="qdm_filter_active">进行中</string>
+    <string name="qdm_filter_completed">已完成</string>
+    <string name="qdm_filter_failed">失败</string>
+    <string name="qdm_back_to_downloads">返回下载列表</string>
+    <string name="qdm_details">详细信息</string>
+    <string name="qdm_hide_details">收起详情</string>
 </resources>
