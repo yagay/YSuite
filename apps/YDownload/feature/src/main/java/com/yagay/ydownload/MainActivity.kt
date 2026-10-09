@@ -2,6 +2,7 @@ package com.yagay.ydownload
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +42,13 @@ class MainActivity : YComposeActivity() {
         var patchSettings by remember { mutableStateOf(YDownloadPatchSettings.load(this)) }
         var enhancedSettings by remember { mutableStateOf(YDownloadEnhancedSettings.load(this)) }
         var page by remember { mutableIntStateOf(0) }
+        var filter by remember { mutableStateOf(DownloadListFilter.ALL) }
+        var searchQuery by remember { mutableStateOf("") }
+        var addExpanded by remember { mutableStateOf(false) }
+        var batchExpanded by remember { mutableStateOf(false) }
+        val filteredItems = filterDownloadItems(items, filter, searchQuery)
+
+        BackHandler(enabled = page != 0) { page = 0 }
 
         LaunchedEffect(Unit) {
             while (true) {
@@ -55,30 +63,42 @@ class MainActivity : YComposeActivity() {
             role = if (page == 0) YPageRole.MANAGER else YPageRole.SETTINGS,
         ) { padding ->
             YPageList(padding) {
-                item {
-                    YTabBar(
-                        tabs = listOf(
-                            YTabSpec("tasks", stringResource(R.string.ydownload_tab_tasks)),
-                            YTabSpec("settings", stringResource(R.string.ydownload_tab_settings)),
-                        ),
-                        selectedKey = if (page == 0) "tasks" else "settings",
-                        onSelected = { page = if (it.key == "tasks") 0 else 1 },
-                    )
-                }
-
                 if (page == 0) {
-                    item { YDownloadNewTaskCard(store, enhancedSettings) }
-                    if (items.isNotEmpty()) item { YDownloadBatchControls(items, store) }
-                    if (items.isEmpty()) {
-                        item {
+                    item(key = "qdm_toolbar") {
+                        QdmHostChrome(
+                            filter = filter,
+                            onFilter = { filter = it },
+                            query = searchQuery,
+                            onQuery = { searchQuery = it },
+                            addExpanded = addExpanded,
+                            onToggleAdd = { addExpanded = !addExpanded },
+                            onSettings = { page = 1 },
+                            onBatch = { batchExpanded = !batchExpanded },
+                        )
+                    }
+                    if (addExpanded) {
+                        item(key = "new_task") { YDownloadNewTaskCard(store, enhancedSettings) }
+                    }
+                    if (batchExpanded && items.isNotEmpty()) {
+                        item(key = "batch_controls") { YDownloadBatchControls(items, store) }
+                    }
+                    if (filteredItems.isEmpty()) {
+                        item(key = "empty") {
                             YSection(
                                 title = stringResource(R.string.no_downloads),
                                 subtitle = stringResource(R.string.no_downloads_summary),
                             )
                         }
                     }
-                    items(items, key = { it.id }) { task -> DownloadTaskCard(task, store) }
+                    items(filteredItems, key = { it.id }) { task ->
+                        DownloadTaskCard(task, store)
+                    }
                 } else {
+                    item(key = "back") {
+                        YSecondaryActionButton(onClick = { page = 0 }) {
+                            Text(stringResource(R.string.qdm_back_to_downloads))
+                        }
+                    }
                     item { SystemPatchCard(patchSettings) { patchSettings = it } }
                     item { YDownloadHookScopeCard(this@MainActivity) }
                     item { EnhancedSettingsCard(enhancedSettings) { enhancedSettings = it } }
