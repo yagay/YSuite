@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -572,6 +573,7 @@ fun QdmAddDownloadDialog(
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedButton(
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                         onClick = onFetch,
                         enabled =
                             model.url.isNotBlank() &&
@@ -628,12 +630,14 @@ fun QdmAddDownloadDialog(
                         )
                     }
                     OutlinedButton(
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                         onClick = onChooseFolder,
                     ) {
                         Text(labels.chooseFolder)
                     }
                 }
                 TextButton(
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                     onClick = onUseDefaultFolder,
                 ) {
                     Text(labels.useDefaultFolder)
@@ -730,12 +734,14 @@ fun QdmAddDownloadDialog(
                         )
                     }
                     OutlinedButton(
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                         onClick = onChooseSchedule,
                     ) {
                         Text(labels.schedule)
                     }
                     if (model.hasSchedule) {
                         TextButton(
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             onClick = onClearSchedule,
                         ) {
                             Text(labels.clearSchedule)
@@ -804,22 +810,24 @@ fun QdmAddDownloadDialog(
                         ),
                 ) {
                     OutlinedButton(
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                         onClick = onAddQueue,
                         enabled =
                             model.url.isNotBlank() &&
                                 model.fileName
                                     .isNotBlank(),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.heightIn(min = 40.dp),
                     ) {
                         Text(labels.addQueue)
                     }
                     Button(
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                         onClick = onStart,
                         enabled =
                             model.url.isNotBlank() &&
                                 model.fileName
                                     .isNotBlank(),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.heightIn(min = 40.dp),
                     ) {
                         Text(labels.start)
                     }

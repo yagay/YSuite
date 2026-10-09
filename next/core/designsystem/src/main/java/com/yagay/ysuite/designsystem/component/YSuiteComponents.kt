@@ -1,6 +1,7 @@
 package com.yagay.ysuite.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -182,7 +183,8 @@ fun YSuitePrimaryButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 40.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
     ) {
         Text(text)
     }
@@ -196,7 +198,8 @@ fun YSuiteSecondaryButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 40.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
     ) {
         Text(text)
     }

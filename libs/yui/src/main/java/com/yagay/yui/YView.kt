@@ -17,6 +17,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.TextViewCompat
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.button.MaterialButton
 
 /** Shared View-system renderer for Java/legacy YSuite modules. */
 object YView {
@@ -92,9 +93,19 @@ object YView {
         view.setTextColor(onSurface(view.context))
     }
 
+    /** Keep a 48dp clickable View but draw its Material background with tighter insets. */
     @JvmStatic fun stylePrimaryButton(button: Button) {
-        button.minHeight = dimen(button.context, R.dimen.yui_button_height)
+        val context = button.context
+        button.minHeight = dimen(context, R.dimen.yui_button_height)
         button.isAllCaps = false
+        button.minWidth = 0
+        button.setPadding(dp(context, 10), 0, dp(context, 10), 0)
+        if (button is MaterialButton) {
+            button.insetTop = dp(context, 4)
+            button.insetBottom = dp(context, 4)
+            button.insetLeft = 0
+            button.insetRight = 0
+        }
     }
 
     @JvmStatic fun styleSecondaryButton(button: Button) = stylePrimaryButton(button)

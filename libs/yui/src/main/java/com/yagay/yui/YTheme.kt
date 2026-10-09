@@ -229,9 +229,10 @@ fun YPrimaryButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonHeight),
+        modifier = modifier.heightIn(min = 40.dp),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
     ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
@@ -244,10 +245,11 @@ fun YSecondaryButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonHeight),
+        modifier = modifier.heightIn(min = 40.dp),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = ButtonDefaults.outlinedButtonColors(),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
     ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 

@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -595,8 +596,9 @@ fun YPrimaryActionButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonHeight),
+        modifier = modifier.heightIn(min = 40.dp),
         enabled = enabled,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
         content = content,
     )
 }
@@ -610,8 +612,9 @@ fun YSecondaryActionButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonHeight),
+        modifier = modifier.heightIn(min = 40.dp),
         enabled = enabled,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
         content = content,
     )
 }
@@ -631,7 +634,8 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
                 YActionStyle.DANGER -> OutlinedButton(
                     onClick = action.onClick,
                     enabled = action.enabled,
-                    modifier = Modifier.heightIn(min = YDimens.ButtonHeight),
+                    modifier = Modifier.heightIn(min = 40.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                 ) {
                     Text(
                         action.label,
