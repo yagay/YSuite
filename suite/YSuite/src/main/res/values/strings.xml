@@ -95,4 +95,15 @@
     <string name="feature_yparam_description">Override app DPI, language, location, and other parameters</string>
     <string name="feature_yfloat_name">YFloat</string>
     <string name="feature_yfloat_description">Floating actions, text selection, and quick actions</string>
+    <string name="home_modules">Modules</string>
+    <string name="home_manage">Module management</string>
+    <string name="home_back">Back to modules</string>
+    <string name="home_search">Search modules</string>
+    <string name="home_no_match">No matching modules</string>
+    <string name="home_pin">Pin to top</string>
+    <string name="home_unpin">Unpin</string>
+    <string name="home_pinned">Pinned</string>
+    <string name="home_enable">Enable feature</string>
+    <string name="home_disable">Disable feature</string>
+    <string name="home_disabled">Disabled · open management to enable</string>
 </resources>
