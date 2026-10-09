@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
@@ -57,7 +58,6 @@ private const val PINNED_MODULES_KEY = "pinned_modules"
 private data class HomeModule(
     val id: String,
     val label: String,
-    val feature: YSuiteFeatureUiRegistration,
 )
 
 /** Keep the registry's existing order inside each group; only pinned modules move to the top. */
@@ -84,7 +84,7 @@ internal fun YSuiteCompactDashboard(
     for (feature in features) {
         val id = feature.contract.descriptor.id
         if (id != "system" && id != "settings") {
-            modules += HomeModule(id = id, label = feature.label(), feature = feature)
+            modules += HomeModule(id = id, label = feature.label())
         }
     }
     val orderedIds = compactModuleOrder(modules.map { it.id }, pinnedIds)
@@ -96,6 +96,7 @@ internal fun YSuiteCompactDashboard(
     }
     val systemId = features.firstOrNull { it.contract.descriptor.id == "system" }?.contract?.descriptor?.id
     val settingsId = features.firstOrNull { it.contract.descriptor.id == "settings" }?.contract?.descriptor?.id
+    val logsId = features.firstOrNull { it.contract.descriptor.id == "ydiag" }?.contract?.descriptor?.id
 
     fun togglePin(id: String) {
         val next = if (id in pinnedIds) pinnedIds - id else pinnedIds + id
@@ -117,6 +118,14 @@ internal fun YSuiteCompactDashboard(
                         if (searching) R.string.common_close else R.string.common_search,
                     ),
                 )
+            }
+            if (logsId != null) {
+                IconButton(onClick = { onSelect(logsId) }) {
+                    Icon(
+                        imageVector = Icons.Default.BugReport,
+                        contentDescription = stringResource(R.string.home_logs),
+                    )
+                }
             }
             if (settingsId != null) {
                 IconButton(onClick = { onSelect(settingsId) }) {
