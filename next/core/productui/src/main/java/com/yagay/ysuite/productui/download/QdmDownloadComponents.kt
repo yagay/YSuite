@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
