@@ -157,20 +157,22 @@ fun YCustomTopBar(
 
 @Composable
 private fun YTopBarCopy(title: String, subtitle: String?) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleLarge,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
-    )
-    if (!subtitle.isNullOrBlank()) {
+    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
         Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
