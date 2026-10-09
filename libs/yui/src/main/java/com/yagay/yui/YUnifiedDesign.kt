@@ -40,6 +40,7 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -326,7 +327,7 @@ fun YListItem(
     Row(
         modifier = activeModifier
             .fillMaxWidth()
-            .heightIn(min = YDimens.TouchTarget)
+            .heightIn(min = YDimens.OptionRowHeight)
             .background(
                 if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
                 else Color.Transparent,
@@ -596,9 +597,29 @@ fun YPrimaryActionButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 40.dp),
+        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
         enabled = enabled,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
+        content = content,
+    )
+}
+
+/** Shared compact text-action for dialogs and inline file/download operations. */
+@Composable
+fun YTextActionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
+        enabled = enabled,
+        contentPadding = PaddingValues(
+            horizontal = YDimens.ButtonTextPaddingHorizontal,
+            vertical = YDimens.ButtonPaddingVertical,
+        ),
         content = content,
     )
 }
@@ -612,9 +633,9 @@ fun YSecondaryActionButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 40.dp),
+        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
         enabled = enabled,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
         content = content,
     )
 }
@@ -634,8 +655,8 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
                 YActionStyle.DANGER -> OutlinedButton(
                     onClick = action.onClick,
                     enabled = action.enabled,
-                    modifier = Modifier.heightIn(min = 40.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    modifier = Modifier.heightIn(min = YDimens.ButtonVisualHeight),
+                    contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
                 ) {
                     Text(
                         action.label,

@@ -14,6 +14,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:logging:api"))
+    implementation(project(":next:core:logging:api"))
     implementation(libs.kotlinx.coroutines.android)
 }

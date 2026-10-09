@@ -158,6 +158,21 @@ def main() -> None:
         if expected not in generated:
             fail(f"generated YUI token missing source-matched marker {expected!r}")
 
+    # Rebuilt feature compatibility layer must forward reusable UI into YUI.
+    # Stop future local theme/button/form copies from creeping back in.
+    for source, required in (
+        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTheme.kt", ("import com.yagay.yui.YTheme", "YTheme(")),
+        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt", ("import com.yagay.yui.YDimens",)),
+        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteComponents.kt", ("import com.yagay.yui.YPrimaryButton", "import com.yagay.yui.YListItem", "import com.yagay.yui.YCard")),
+        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteControls.kt", ("import com.yagay.yui.YTextField", "import com.yagay.yui.YFilterBar")),
+        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteStatus.kt", ("import com.yagay.yui.YStatusPill",)),
+        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteDialogs.kt", ("import com.yagay.yui.YConfirmDialog", "import com.yagay.yui.YTextField")),
+    ):
+        content = read(source)
+        for token in required:
+            if token not in content:
+                fail(f"reusable feature component in {source.relative_to(ROOT)} must delegate to shared YUI: {token}")
+
     catalog = read(YUI_CATALOG)
     if "fun YComponentCatalogScreen(" not in catalog or catalog.count("@Preview") < 3:
         fail("YUI catalog must include the living screen plus compact/dark/large-font previews")

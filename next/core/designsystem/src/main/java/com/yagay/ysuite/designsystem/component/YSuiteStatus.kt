@@ -1,54 +1,20 @@
 package com.yagay.ysuite.designsystem.component
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+import com.yagay.yui.YStatusPill
+import com.yagay.yui.YStatusTone
 
-enum class YSuiteStatusTone {
-    Positive,
-    Warning,
-    Error,
-    Neutral,
-}
+enum class YSuiteStatusTone { Positive, Warning, Error, Neutral }
 
+/** Feature-specific tone enum retained for source compatibility; YUI owns badge rendering. */
 @Composable
-fun YSuiteStatusBadge(
-    text: String,
-    tone: YSuiteStatusTone,
-    modifier: Modifier = Modifier,
-) {
-    val colors = when (tone) {
-        YSuiteStatusTone.Positive ->
-            MaterialTheme.colorScheme.primaryContainer to
-                MaterialTheme.colorScheme.onPrimaryContainer
-        YSuiteStatusTone.Warning ->
-            MaterialTheme.colorScheme.tertiaryContainer to
-                MaterialTheme.colorScheme.onTertiaryContainer
-        YSuiteStatusTone.Error ->
-            MaterialTheme.colorScheme.errorContainer to
-                MaterialTheme.colorScheme.onErrorContainer
-        YSuiteStatusTone.Neutral ->
-            MaterialTheme.colorScheme.surfaceVariant to
-                MaterialTheme.colorScheme.onSurfaceVariant
+fun YSuiteStatusBadge(text: String, tone: YSuiteStatusTone, modifier: Modifier = Modifier) {
+    val yuiTone = when (tone) {
+        YSuiteStatusTone.Positive -> YStatusTone.Good
+        YSuiteStatusTone.Warning -> YStatusTone.Warning
+        YSuiteStatusTone.Error -> YStatusTone.Error
+        YSuiteStatusTone.Neutral -> YStatusTone.Neutral
     }
-
-    Surface(
-        modifier = modifier,
-        color = colors.first,
-        contentColor = colors.second,
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(
-                horizontal = YSuiteSpacing.Small,
-                vertical = YSuiteSpacing.XSmall,
-            ),
-        )
-    }
+    YStatusPill(label = "", value = text, tone = yuiTone, modifier = modifier)
 }

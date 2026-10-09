@@ -20,4 +20,16 @@
     <dimen name="yui_list_detail_list_width">360dp</dimen>
     <dimen name="yui_navigation_rail_width">80dp</dimen>
     <dimen name="yui_pane_gap">12dp</dimen>
+    <dimen name="yui_button_visual_height">40dp</dimen>
+    <dimen name="yui_button_padding_horizontal">10dp</dimen>
+    <dimen name="yui_button_padding_vertical">2dp</dimen>
+    <dimen name="yui_button_inset_vertical">4dp</dimen>
+    <dimen name="yui_button_text_padding_horizontal">8dp</dimen>
+    <dimen name="yui_button_radius">14dp</dimen>
+    <dimen name="yui_option_row_height">48dp</dimen>
+    <dimen name="yui_spacing_xsmall">4dp</dimen>
+    <dimen name="yui_spacing_small">6dp</dimen>
+    <dimen name="yui_spacing_medium">12dp</dimen>
+    <dimen name="yui_spacing_large">16dp</dimen>
+    <dimen name="yui_spacing_xlarge">24dp</dimen>
 </resources>

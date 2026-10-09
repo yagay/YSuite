@@ -1,11 +1,10 @@
 package com.yagay.ysuite.feature.ydownload
 
 import android.content.Context
-import com.yagay.ysuite.common.Outcome
-import com.yagay.ysuite.logging.api.LogRecord
 import com.yagay.ysuite.logging.api.YSuiteLogger
-import com.yagay.ysuite.platform.api.CapabilityStatus
+import com.yagay.ysuite.logging.api.BindableYSuiteLogger
 import com.yagay.ysuite.platform.api.HookGateway
+import com.yagay.ysuite.platform.api.BindableHookGateway
 import okhttp3.OkHttpClient
 
 data class YDownloadEnvironment(
@@ -34,8 +33,8 @@ internal object YDownloadRuntime {
     @Volatile
     private var environment: YDownloadEnvironment? = null
 
-    private val loggerBridge = RuntimeLoggerBridge()
-    private val hookBridge = RuntimeHookGatewayBridge()
+    private val loggerBridge = BindableYSuiteLogger()
+    private val hookBridge = BindableHookGateway()
 
     fun obtain(
         context: Context,
@@ -83,61 +82,4 @@ internal object YDownloadRuntime {
         }
     }
 
-    private class RuntimeHookGatewayBridge :
-        HookGateway {
-        @Volatile
-        private var delegate: HookGateway? = null
-
-        fun bind(gateway: HookGateway) {
-            delegate = gateway
-        }
-
-        override suspend fun status():
-            CapabilityStatus =
-            delegate?.status()
-                ?: CapabilityStatus.Unavailable
-
-        override suspend fun reload(
-            scopePackages: Set<String>,
-        ): Outcome<Unit> =
-            delegate?.reload(scopePackages)
-                ?: Outcome.Failure(
-                    code = "hook_unavailable",
-                    message =
-                        HOOK_UNAVAILABLE_MESSAGE,
-                    retryable = true,
-                )
-
-        override suspend fun writeConfig(
-            group: String,
-            key: String,
-            value: String?,
-        ): Outcome<Unit> =
-            delegate?.writeConfig(
-                group = group,
-                key = key,
-                value = value,
-            ) ?: Outcome.Failure(
-                code = "hook_unavailable",
-                message =
-                    HOOK_UNAVAILABLE_MESSAGE,
-                retryable = true,
-            )
-    }
-
-    private class RuntimeLoggerBridge : YSuiteLogger {
-        @Volatile
-        private var delegate: YSuiteLogger? = null
-
-        fun bind(logger: YSuiteLogger) {
-            delegate = logger
-        }
-
-        override fun log(record: LogRecord) {
-            delegate?.log(record)
-        }
-    }
 }
-
-private const val HOOK_UNAVAILABLE_MESSAGE =
-    "Hook service is unavailable"

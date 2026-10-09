@@ -238,9 +238,9 @@ fun <T> YDropdownField(
     Box(modifier.fillMaxWidth()) {
         OutlinedButton(
             onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = YDimens.ButtonVisualHeight),
             enabled = enabled,
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
         ) {
             Column(Modifier.fillMaxWidth()) {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -304,14 +304,14 @@ fun YConfirmDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
                 colors = if (dangerous) ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
                 ) else ButtonDefaults.buttonColors(),
             ) { Text(confirmLabel) }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 2.dp)) { Text(dismissLabel) } },
+        dismissButton = { OutlinedButton(onClick = onDismiss, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical)) { Text(dismissLabel) } },
     )
 }
 

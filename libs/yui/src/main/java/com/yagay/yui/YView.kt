@@ -99,10 +99,10 @@ object YView {
         button.minHeight = dimen(context, R.dimen.yui_button_height)
         button.isAllCaps = false
         button.minWidth = 0
-        button.setPadding(dp(context, 10), 0, dp(context, 10), 0)
+        button.setPadding(dimen(context, R.dimen.yui_button_padding_horizontal), 0, dimen(context, R.dimen.yui_button_padding_horizontal), 0)
         if (button is MaterialButton) {
-            button.insetTop = dp(context, 4)
-            button.insetBottom = dp(context, 4)
+            button.insetTop = dimen(context, R.dimen.yui_button_inset_vertical)
+            button.insetBottom = dimen(context, R.dimen.yui_button_inset_vertical)
         }
     }
 
@@ -148,7 +148,7 @@ object YView {
     @JvmStatic fun onSurface(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurface, Color.BLACK)
     @JvmStatic fun onSurfaceVariant(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF656A73.toInt())
     @JvmStatic fun outline(context: Context): Int = color(context, com.google.android.material.R.attr.colorOutlineVariant, 0xFFD0D5DD.toInt())
-    @JvmStatic fun accent(context: Context): Int = color(context, androidx.appcompat.R.attr.colorPrimary, 0xFF3451B2.toInt())
+    @JvmStatic fun accent(context: Context): Int = color(context, androidx.appcompat.R.attr.colorPrimary, context.getColor(R.color.yui_palette_primary))
 
     @JvmStatic fun success(context: Context): Int = if (isDark(context)) 0xFF9BDAA8.toInt() else 0xFF146C2E.toInt()
     @JvmStatic fun successContainer(context: Context): Int = if (isDark(context)) 0xFF005321.toInt() else 0xFFB7F2C4.toInt()

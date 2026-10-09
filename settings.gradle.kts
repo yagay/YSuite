@@ -58,6 +58,7 @@ val rebuiltModules = listOf(
     "core:navigation",
     "core:runtime",
     "core:logging:api",
+    "core:logging:android",
     "core:platform:api",
     "core:platform:android",
     "core:permissions:api",

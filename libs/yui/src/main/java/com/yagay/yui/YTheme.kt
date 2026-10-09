@@ -44,46 +44,46 @@ import androidx.compose.ui.unit.sp
 
 private val YShapes = Shapes(
     extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(14.dp),
+    small = RoundedCornerShape(YDimens.ButtonRadius),
     medium = RoundedCornerShape(YDimens.CardRadius),
     large = RoundedCornerShape(24.dp),
     extraLarge = RoundedCornerShape(28.dp),
 )
 
 private val YLightColors = lightColorScheme(
-    primary = Color(0xFF3451B2),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFDDE2FF),
-    onPrimaryContainer = Color(0xFF00174F),
-    secondary = Color(0xFF585E71),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFDDE1F9),
-    onSecondaryContainer = Color(0xFF151B2C),
-    background = Color(0xFFFBF8FF),
-    onBackground = Color(0xFF1B1B1F),
-    surface = Color(0xFFFBF8FF),
-    onSurface = Color(0xFF1B1B1F),
-    surfaceVariant = Color(0xFFE3E2E9),
-    onSurfaceVariant = Color(0xFF46464F),
-    outline = Color(0xFF777680),
+    primary = YUiPalette.LightPrimary,
+    onPrimary = YUiPalette.LightOnPrimary,
+    primaryContainer = YUiPalette.LightPrimaryContainer,
+    onPrimaryContainer = YUiPalette.LightOnPrimaryContainer,
+    secondary = YUiPalette.LightSecondary,
+    onSecondary = YUiPalette.LightOnSecondary,
+    secondaryContainer = YUiPalette.LightSecondaryContainer,
+    onSecondaryContainer = YUiPalette.LightOnSecondaryContainer,
+    background = YUiPalette.LightBackground,
+    onBackground = YUiPalette.LightOnBackground,
+    surface = YUiPalette.LightSurface,
+    onSurface = YUiPalette.LightOnSurface,
+    surfaceVariant = YUiPalette.LightSurfaceVariant,
+    onSurfaceVariant = YUiPalette.LightOnSurfaceVariant,
+    outline = YUiPalette.LightOutline,
 )
 
 private val YDarkColors = darkColorScheme(
-    primary = Color(0xFFB7C4FF),
-    onPrimary = Color(0xFF002A78),
-    primaryContainer = Color(0xFF17398F),
-    onPrimaryContainer = Color(0xFFDDE2FF),
-    secondary = Color(0xFFC1C6DD),
-    onSecondary = Color(0xFF2A3042),
-    secondaryContainer = Color(0xFF404659),
-    onSecondaryContainer = Color(0xFFDDE1F9),
-    background = Color(0xFF121318),
-    onBackground = Color(0xFFE4E1E9),
-    surface = Color(0xFF121318),
-    onSurface = Color(0xFFE4E1E9),
-    surfaceVariant = Color(0xFF46464F),
-    onSurfaceVariant = Color(0xFFC7C5D0),
-    outline = Color(0xFF91909A),
+    primary = YUiPalette.DarkPrimary,
+    onPrimary = YUiPalette.DarkOnPrimary,
+    primaryContainer = YUiPalette.DarkPrimaryContainer,
+    onPrimaryContainer = YUiPalette.DarkOnPrimaryContainer,
+    secondary = YUiPalette.DarkSecondary,
+    onSecondary = YUiPalette.DarkOnSecondary,
+    secondaryContainer = YUiPalette.DarkSecondaryContainer,
+    onSecondaryContainer = YUiPalette.DarkOnSecondaryContainer,
+    background = YUiPalette.DarkBackground,
+    onBackground = YUiPalette.DarkOnBackground,
+    surface = YUiPalette.DarkSurface,
+    onSurface = YUiPalette.DarkOnSurface,
+    surfaceVariant = YUiPalette.DarkSurfaceVariant,
+    onSurfaceVariant = YUiPalette.DarkOnSurfaceVariant,
+    outline = YUiPalette.DarkOutline,
 )
 
 private val YTypography = Typography(
@@ -229,10 +229,10 @@ fun YPrimaryButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 40.dp),
+        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
     ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
@@ -245,11 +245,11 @@ fun YSecondaryButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 40.dp),
+        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = ButtonDefaults.outlinedButtonColors(),
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
     ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 

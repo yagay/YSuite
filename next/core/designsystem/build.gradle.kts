@@ -16,6 +16,7 @@ android {
 }
 
 dependencies {
+    api(project(":ui"))
     val composeBom = platform(libs.androidx.compose.bom)
     api(composeBom)
     api(libs.androidx.compose.ui)

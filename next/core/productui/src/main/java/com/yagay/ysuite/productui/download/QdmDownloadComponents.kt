@@ -28,10 +28,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.unit.dp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -39,16 +35,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YSecondaryActionButton
+import com.yagay.yui.YTextActionButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -543,7 +540,7 @@ fun QdmAddDownloadDialog(
                             MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = onDismiss) {
+                    YTextActionButton(onClick = onDismiss) {
                         Text(labels.cancel)
                     }
                 }
@@ -574,8 +571,7 @@ fun QdmAddDownloadDialog(
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    OutlinedButton(
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    YSecondaryActionButton(
                         onClick = onFetch,
                         enabled =
                             model.url.isNotBlank() &&
@@ -631,15 +627,13 @@ fun QdmAddDownloadDialog(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    OutlinedButton(
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    YSecondaryActionButton(
                         onClick = onChooseFolder,
                     ) {
                         Text(labels.chooseFolder)
                     }
                 }
-                TextButton(
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                YTextActionButton(
                     onClick = onUseDefaultFolder,
                 ) {
                     Text(labels.useDefaultFolder)
@@ -735,15 +729,13 @@ fun QdmAddDownloadDialog(
                                 MaterialTheme.typography.bodySmall,
                         )
                     }
-                    OutlinedButton(
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    YSecondaryActionButton(
                         onClick = onChooseSchedule,
                     ) {
                         Text(labels.schedule)
                     }
                     if (model.hasSchedule) {
-                        TextButton(
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        YTextActionButton(
                             onClick = onClearSchedule,
                         ) {
                             Text(labels.clearSchedule)
@@ -811,25 +803,21 @@ fun QdmAddDownloadDialog(
                             YSuiteSpacing.Small,
                         ),
                 ) {
-                    OutlinedButton(
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    YSecondaryActionButton(
                         onClick = onAddQueue,
                         enabled =
                             model.url.isNotBlank() &&
                                 model.fileName
                                     .isNotBlank(),
-                        modifier = Modifier.heightIn(min = 40.dp),
                     ) {
                         Text(labels.addQueue)
                     }
-                    Button(
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    YPrimaryActionButton(
                         onClick = onStart,
                         enabled =
                             model.url.isNotBlank() &&
                                 model.fileName
                                     .isNotBlank(),
-                        modifier = Modifier.heightIn(min = 40.dp),
                     ) {
                         Text(labels.start)
                     }
@@ -879,7 +867,7 @@ fun QdmDownloadPropertiesDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            YTextActionButton(onClick = onDismiss) {
                 Text(closeLabel)
             }
         },

@@ -1,23 +1,13 @@
 package com.yagay.ysuite.designsystem.component
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+import com.yagay.yui.YFilterBar
+import com.yagay.yui.YTextField
 
-data class YSuiteFilterOption(
-    val id: String,
-    val label: String,
-)
+data class YSuiteFilterOption(val id: String, val label: String)
 
+/** Search and filter controls of YFiles/YDownload use the real YUI implementations. */
 @Composable
 fun YSuiteSearchField(
     value: String,
@@ -26,15 +16,7 @@ fun YSuiteSearchField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
-        enabled = enabled,
-        singleLine = true,
-        label = { Text(label) },
-        shape = MaterialTheme.shapes.medium,
-    )
+    YTextField(value = value, onValueChange = onValueChange, label = label, modifier = modifier, enabled = enabled)
 }
 
 @Composable
@@ -44,18 +26,11 @@ fun YSuiteFilterBar(
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
-    ) {
-        options.forEach { option ->
-            FilterChip(
-                selected = option.id == selectedId,
-                onClick = { onSelected(option.id) },
-                label = { Text(option.label) },
-            )
-        }
-    }
+    val selectedIndex = options.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
+    YFilterBar(
+        options = options.map { it.label },
+        selectedIndex = selectedIndex,
+        onSelected = { index -> options.getOrNull(index)?.let { onSelected(it.id) } },
+        modifier = modifier,
+    )
 }
