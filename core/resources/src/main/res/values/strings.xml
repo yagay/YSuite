@@ -28,4 +28,14 @@
     <string name="common_error">Something went wrong</string>
     <string name="common_empty">Nothing here yet</string>
     <string name="common_permission_required">Permission required</string>
+    <string name="home_modules">Modules</string>
+    <string name="home_system_status">System status</string>
+    <string name="home_system_status_detail">Root · LSPosed · Permissions</string>
+    <string name="home_search_modules">Search modules</string>
+    <string name="home_pinned">Pinned</string>
+    <string name="home_pin">Pin to top</string>
+    <string name="home_unpin">Unpin</string>
+    <string name="home_open_module">Open module</string>
+    <string name="home_no_matches">No matching modules</string>
+    <string name="home_logs">Diagnostics and logs</string>
 </resources>
