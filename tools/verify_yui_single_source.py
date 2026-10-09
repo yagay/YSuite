@@ -99,7 +99,7 @@ def main() -> None:
     for qualifier in ("values", "values-night"):
         rebuilt_theme = ROOT / "next/core/designsystem/src/main/res" / qualifier / "themes.xml"
         if rebuilt_theme.is_file() and re.search(
-            r'<style\\s+name="Theme\\.YSuite"', read(rebuilt_theme)
+            r'<style\s+name="Theme\.YSuite"', read(rebuilt_theme)
         ):
             fail(f"{rebuilt_theme.relative_to(ROOT)} redefines the main host theme")
 
@@ -112,9 +112,9 @@ def main() -> None:
         "MenuLabelEditorActivity",
     ):
         pattern = (
-            r'<activity\\s+android:name="com\\.yagay\\.YFloat\\.'
+            r'<activity\s+android:name="com\.yagay\.YFloat\.'
             + activity
-            + r'"[^>]*android:theme="@style/Theme\\.YFloat"'
+            + r'"[^>]*android:theme="@style/Theme\.YFloat"'
         )
         if not re.search(pattern, yfloat_manifest):
             fail(f"YFloat {activity} must explicitly use Theme.YFloat")
