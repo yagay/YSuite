@@ -14,11 +14,21 @@ ROOT = Path(__file__).resolve().parents[1]
 # and the actual implementation path (not just a label in a menu).
 REQUIRED = {
     "ydiag": [
+        ("api/src/main/kotlin/com/yagay/ysuite/feature/ydiag/api/YDiagModels.kt", 'YDiagOption("events"'),
+        ("api/src/main/kotlin/com/yagay/ysuite/feature/ydiag/api/YDiagModels.kt", '"webview"'),
+        ("api/src/main/kotlin/com/yagay/ysuite/feature/ydiag/api/YDiagModels.kt", '"freeze"'),
+        ("api/src/main/kotlin/com/yagay/ysuite/feature/ydiag/api/YDiagSignalDetector.kt", "object YDiagSignalDetector"),
         ("impl/src/main/java/com/yagay/ysuite/feature/ydiag/YDiagFeatureScreen.kt", "YDiagFeatureScreen("),
         ("impl/src/main/java/com/yagay/ysuite/feature/ydiag/YDiagRepository.kt", '"perfetto"'),
         ("impl/src/main/java/com/yagay/ysuite/feature/ydiag/YDiagRepository.kt", "startLiveSession("),
     ],
     "ydownload": [
+        ("api/src/main/kotlin/com/yagay/ysuite/feature/ydownload/api/YDownloadRetryPolicy.kt", "object YDownloadRetryPolicy"),
+        ("impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadSettings.kt", "val autoRetry: Boolean"),
+        ("impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadSettings.kt", "val calculateSha256: Boolean"),
+        ("impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadRepository.kt", "const val COL_RETRY_COUNT"),
+        ("impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadRepository.kt", "const val COL_SHA256"),
+        ("impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadEngine.kt", "private fun calculateSha256("),
         ("impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadViewModel.kt", "fun retryLoad()"),
         ("impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadService.kt", "class YDownloadService"),
         ("impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadEngine.kt", "class YDownloadEngine"),

@@ -814,6 +814,18 @@ class YDownloadViewModel(
         }
     }
 
+    fun setAutoRetry(value: Boolean) {
+        viewModelScope.launch { environment.settings.setAutoRetry(value) }
+    }
+
+    fun setMaxRetries(value: Int) {
+        viewModelScope.launch { environment.settings.setMaxRetries(value) }
+    }
+
+    fun setCalculateSha256(value: Boolean) {
+        viewModelScope.launch { environment.settings.setCalculateSha256(value) }
+    }
+
     fun setNotifications(value: Boolean) {
         viewModelScope.launch {
             environment.settings

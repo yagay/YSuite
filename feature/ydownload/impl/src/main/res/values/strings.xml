@@ -138,4 +138,11 @@
     <string name="ydownload_retry_failed">Retry failed</string>
     <string name="ydownload_clear_finished">Clear completed and cancelled</string>
     <string name="ydownload_retry_load">Retry loading download tasks</string>
+    <string name="ydownload_settings_integrity">Reliability and integrity</string>
+    <string name="ydownload_auto_retry">Retry failed private downloads automatically</string>
+    <string name="ydownload_max_retries">Maximum automatic retries</string>
+    <string name="ydownload_calculate_sha256">Calculate SHA-256 after download</string>
+    <string name="ydownload_calculate_sha256_desc">Private downloads only. The fingerprint is shown in task properties.</string>
+    <string name="ydownload_property_sha256">SHA-256</string>
+    <string name="ydownload_property_retry_count">Automatic retries</string>
 </resources>

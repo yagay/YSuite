@@ -141,3 +141,29 @@ precede declaring complete runtime parity.
 
 CI can prove builds and JVM-level checks, but does not establish device-level
 Root, NFC RF, LSPosed execution, or complete legacy-feature parity.
+
+## 2026-10-09: eleven-module source comparison and confirmed restoration
+
+Compared `main` commit `ddd7cdf` against rebuild commit `a01f741`,
+including original and rebuilt Java/Kotlin source trees, model fields,
+catalogs, runtime entrypoints and UI routes. Counts are not proof of feature
+equivalence; only individually verified items are marked restored.
+
+| Module | Confirmed source-level differences | Added in this batch | Unverified / outstanding |
+| --- | --- | --- | --- |
+| YDiag | Missing system events collector, WebView/freeze presets and 13-category issue detection | Events query, two presets, cause-specific issue analysis and tests | Session export and Perfetto device parity |
+| YDownload | No legacy private-engine autoRetry/maxRetries or calculated SHA-256 setting | Auto-retry/backoff with persisted retry count, checksum calculation/DB v5 migration and property UI | Expected hash field/validation, SAF retry/device upgrade |
+| YEntryCleaner | Original 70 code units vs 19 consolidated files; no one-to-one original class mapping | Previously implemented share/open/component logic retained | Full rule/ordering/Root persistence behavioral verification |
+| YFiles | New file-engine and providers differ from original | Existing functionality retained | SAF, SMB, SFTP, FTP, WebDAV and archive interoperability |
+| YFloat | 164 identical original runtime source blobs | Original runtime retained | Overlay, OCR, gestures and system service activation |
+| YMiniGuard | Different runtime controller and settings implementation | Existing functionality retained | OEM playback/window/lock state on real device |
+| YNFC | Many original NFC Hook source files copied and integrated | Existing functionality retained | Card generation/RF/reader behavior on real hardware |
+| YNotify | Original Room/FTS search replaced with encrypted SQLite and paged decrypt search | Existing encrypted search retained | Efficient private full-history indexing, original DB migration |
+| YParam | Reimplemented per-app parameter overrides and LSPosed protocol | Existing functionality retained | All overrides on actual target app |
+| YPower | Original 52-file rule/provider engine consolidated into 14 files | Existing implementation retained | Full rule catalog, provider and native tracing equivalence |
+| YTaskManager | Original process sampler redesigned | Existing implementation retained | Process identity, GPU/network and multi-user kill safety |
+
+CI now asserts restored original YDiag and YDownload entries and exercises
+the new pure logic in JVM tests. This is **not** a claim that all original
+functions have been imported or that Root/LSPosed/NFC hardware behavior has
+been validated. Device-only and major engine gaps remain open.

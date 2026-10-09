@@ -28,6 +28,8 @@
     <string name="ydiag_preset_quick">快速</string>
     <string name="ydiag_preset_crash">崩溃</string>
     <string name="ydiag_preset_hook">Hook</string>
+    <string name="ydiag_preset_webview">WebView 专项</string>
+    <string name="ydiag_preset_freeze">卡顿 / 无响应</string>
     <string name="ydiag_preset_root">Root</string>
     <string name="ydiag_preset_complete">完整</string>
     <string name="ydiag_preset_custom">自定义</string>
@@ -47,6 +49,7 @@
     <string name="ydiag_option_crash">崩溃历史</string>
     <string name="ydiag_option_exit_info">退出信息</string>
     <string name="ydiag_option_anr">ANR</string>
+    <string name="ydiag_option_events">系统事件日志</string>
     <string name="ydiag_option_process">进程状态</string>
     <string name="ydiag_option_lsposed_status">LSPosed 状态</string>
     <string name="ydiag_option_hook_health">Hook 健康状态</string>

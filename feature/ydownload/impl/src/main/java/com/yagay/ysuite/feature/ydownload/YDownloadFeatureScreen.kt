@@ -87,6 +87,9 @@ fun YDownloadFeatureScreen(
                 model::setWifiOnly,
             onAutoResumeNetwork =
                 model::setAutoResumeNetwork,
+            onAutoRetry = model::setAutoRetry,
+            onMaxRetries = model::setMaxRetries,
+            onCalculateSha256 = model::setCalculateSha256,
             onNotifications =
                 model::setNotifications,
             onUserAgent =
@@ -851,6 +854,18 @@ private fun YDownloadItem.properties():
                 },
             ),
         )
+        if (retryCount > 0) {
+            add(QdmDownloadProperty(
+                stringResource(R.string.ydownload_property_retry_count),
+                retryCount.toString(),
+            ))
+        }
+        sha256?.let { value ->
+            add(QdmDownloadProperty(
+                stringResource(R.string.ydownload_property_sha256),
+                value,
+            ))
+        }
         if (customHeaders.isNotEmpty()) {
             add(
                 QdmDownloadProperty(

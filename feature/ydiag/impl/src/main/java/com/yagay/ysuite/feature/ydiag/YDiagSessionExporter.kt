@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Environment
 import android.provider.MediaStore
 import com.yagay.ysuite.feature.ydiag.api.YDiagEvent
+import com.yagay.ysuite.feature.ydiag.api.YDiagSignalDetector
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -107,42 +108,29 @@ internal object YDiagSessionExporter {
     }
 
     private fun detectIssues(dir: File?, events: List<YDiagEvent>): JSONArray {
-        val text = buildString {
-            events.forEach { appendLine(it.detail) }
-            dir?.listFiles()
-                ?.filter { it.isFile && it.length() <= 8L * 1024L * 1024L }
-                ?.forEach { file ->
-                    runCatching {
-                        appendLine(file.readText().takeLast(2_000_000))
-                    }
-                }
-        }.lowercase()
-        val out = JSONArray()
-        fun add(id: String, severity: String, evidence: String) {
-            out.put(
-                JSONObject().apply {
-                    put("id", id)
-                    put("severity", severity)
-                    put("evidence", evidence)
-                },
-            )
+        // Stream bounded log files: no concatenation of all evidence in memory.
+        val issues = linkedMapOf<String, com.yagay.ysuite.feature.ydiag.api.YDiagIssueSignal>()
+        fun collect(lines: Sequence<String>) {
+            for (issue in YDiagSignalDetector.find(lines)) {
+                issues.putIfAbsent(issue.category, issue)
+            }
         }
-        if ("fatal exception" in text || "fatal signal" in text) {
-            add("crash", "fatal", "Fatal exception/signal observed")
+        collect(events.asSequence().flatMap { it.detail.lineSequence() })
+        dir?.listFiles()
+            ?.filter { it.isFile && it.length() <= 8L * 1024L * 1024L &&
+                it.extension.lowercase() in setOf("txt", "jsonl", "log") }
+            ?.sortedBy { it.name }
+            ?.forEach { file -> runCatching { file.useLines { collect(it) } } }
+        return JSONArray().apply {
+            issues.values.forEach { issue ->
+                put(JSONObject().apply {
+                    put("id", issue.category)
+                    put("severity", issue.severity.name.lowercase())
+                    put("title", issue.title)
+                    put("evidence", issue.evidence)
+                })
+            }
         }
-        if ("anr in" in text || "not responding" in text) {
-            add("anr", "error", "ANR evidence observed")
-        }
-        if ("avc: denied" in text) {
-            add("selinux", "warning", "SELinux denial observed")
-        }
-        if ("outofmemoryerror" in text || "lowmemory" in text) {
-            add("memory", "error", "Memory pressure/OOM observed")
-        }
-        if ("hook_failed" in text) {
-            add("hook", "warning", "LSPosed hook failure observed")
-        }
-        return out
     }
 
     private fun putText(zip: ZipOutputStream, path: String, text: String) {

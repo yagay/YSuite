@@ -138,4 +138,11 @@
     <string name="ydownload_retry_failed">重试失败任务</string>
     <string name="ydownload_clear_finished">清理已完成和已取消</string>
     <string name="ydownload_retry_load">重试读取下载任务</string>
+    <string name="ydownload_settings_integrity">可靠性与文件校验</string>
+    <string name="ydownload_auto_retry">私有下载失败后自动重试</string>
+    <string name="ydownload_max_retries">最多自动重试次数</string>
+    <string name="ydownload_calculate_sha256">下载完成后计算 SHA-256</string>
+    <string name="ydownload_calculate_sha256_desc">仅私有下载，校验值显示在任务属性中。</string>
+    <string name="ydownload_property_sha256">SHA-256</string>
+    <string name="ydownload_property_retry_count">自动重试次数</string>
 </resources>

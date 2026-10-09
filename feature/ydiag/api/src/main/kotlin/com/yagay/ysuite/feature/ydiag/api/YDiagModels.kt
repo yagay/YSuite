@@ -69,6 +69,7 @@ object YDiagCatalog {
             YDiagOption("crash", YDiagCategory.Basic, YDiagRecommendation.Recommended, YDiagLoad.VeryLow, true),
             YDiagOption("exit_info", YDiagCategory.Basic, YDiagRecommendation.Recommended, YDiagLoad.VeryLow, true),
             YDiagOption("anr", YDiagCategory.Basic, YDiagRecommendation.Recommended, YDiagLoad.Low, true),
+            YDiagOption("events", YDiagCategory.System, YDiagRecommendation.OnDemand, YDiagLoad.Low),
             YDiagOption("process", YDiagCategory.System, YDiagRecommendation.Recommended, YDiagLoad.VeryLow, true),
             YDiagOption("lsposed_status", YDiagCategory.Lsposed, YDiagRecommendation.Recommended, YDiagLoad.VeryLow, true),
             YDiagOption("hook_health", YDiagCategory.Lsposed, YDiagRecommendation.Recommended, YDiagLoad.Low, true),
@@ -115,6 +116,15 @@ object YDiagCatalog {
                     "logcat", "process", "lsposed_status",
                     "hook_health", "lifecycle", "intent", "lsposed_log",
                 ),
+            ),
+            YDiagPreset(
+                "webview",
+                setOf("logcat", "crash", "exit_info", "process",
+                    "lsposed_status", "hook_health", "lifecycle", "intent", "webview", "network"),
+            ),
+            YDiagPreset(
+                "freeze",
+                setOf("logcat", "anr", "exit_info", "process", "memory", "perfetto", "binder"),
             ),
             YDiagPreset(
                 "root",

@@ -68,6 +68,8 @@ data class YDownloadItem(
     val customHeaders: Map<String, String> = emptyMap(),
     val scheduledAtMillis: Long? = null,
     val chunks: List<YDownloadChunk> = emptyList(),
+    val retryCount: Int = 0,
+    val sha256: String? = null,
 ) {
     val progress: Float?
         get() =

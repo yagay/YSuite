@@ -28,6 +28,8 @@
     <string name="ydiag_preset_quick">Quick</string>
     <string name="ydiag_preset_crash">Crash</string>
     <string name="ydiag_preset_hook">Hook</string>
+    <string name="ydiag_preset_webview">WebView</string>
+    <string name="ydiag_preset_freeze">Freeze / ANR</string>
     <string name="ydiag_preset_root">Root</string>
     <string name="ydiag_preset_complete">Complete</string>
     <string name="ydiag_preset_custom">Custom</string>
@@ -47,6 +49,7 @@
     <string name="ydiag_option_crash">Crash history</string>
     <string name="ydiag_option_exit_info">Exit information</string>
     <string name="ydiag_option_anr">ANR</string>
+    <string name="ydiag_option_events">System event log</string>
     <string name="ydiag_option_process">Process state</string>
     <string name="ydiag_option_lsposed_status">LSPosed status</string>
     <string name="ydiag_option_hook_health">Hook health</string>

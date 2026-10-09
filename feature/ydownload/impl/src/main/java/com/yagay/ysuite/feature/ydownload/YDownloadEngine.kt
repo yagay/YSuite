@@ -12,9 +12,11 @@ import com.yagay.ysuite.feature.ydownload.api.YDownloadBackend
 import com.yagay.ysuite.feature.ydownload.api.YDownloadChunk
 import com.yagay.ysuite.feature.ydownload.api.YDownloadItem
 import com.yagay.ysuite.feature.ydownload.api.YDownloadState
+import com.yagay.ysuite.feature.ydownload.api.YDownloadRetryPolicy
 import com.yagay.ysuite.logging.api.YSuiteLogger
 import com.yagay.ysuite.platform.api.HookGateway
 import java.io.FileOutputStream
+import java.security.MessageDigest
 import java.net.ConnectException
 import java.net.SocketException
 import java.net.SocketTimeoutException
@@ -88,6 +90,10 @@ class YDownloadEngine(
                     repository.find(id)
                         ?: return@withLock
                 val config = settings.settings.value
+                if (item.state == YDownloadState.Failed) {
+                    // A manual retry restores the automatic retry budget.
+                    repository.setRetryCount(id, 0)
+                }
 
                 if (
                     item.state == YDownloadState.Scheduled &&
@@ -374,6 +380,10 @@ class YDownloadEngine(
                     )
                 }
 
+            val checksum = if (settings.settings.value.calculateSha256) {
+                calculateSha256(outputUri)
+            } else null
+            repository.setSha256(id, checksum)
             repository.markCompleted(
                 id = id,
                 totalBytes = finalTotal,
@@ -402,25 +412,36 @@ class YDownloadEngine(
                             config.autoResumeNetwork
                     )
 
+            val retryCount = repository.find(id)?.retryCount ?: 0
+            val retryable = !networkInterruption &&
+                YDownloadRetryPolicy.canRetry(
+                    config.autoRetry, config.maxRetries, retryCount,
+                )
             repository.updateState(
                 id = id,
-                state =
-                    if (shouldQueueForNetwork) {
-                        YDownloadState.Pending
-                    } else if (networkInterruption) {
-                        YDownloadState.Paused
-                    } else {
-                        YDownloadState.Failed
-                    },
-                error =
-                    if (networkInterruption) {
-                        null
-                    } else {
-                        error.message
-                            ?: error.javaClass.simpleName
-                    },
+                state = when {
+                    shouldQueueForNetwork -> YDownloadState.Pending
+                    networkInterruption -> YDownloadState.Paused
+                    retryable -> YDownloadState.Pending
+                    else -> YDownloadState.Failed
+                },
+                error = if (networkInterruption) null
+                    else error.message ?: error.javaClass.simpleName,
                 queued = shouldQueueForNetwork,
             )
+            if (retryable) {
+                val attempt = retryCount + 1
+                repository.setRetryCount(id, attempt)
+                // Wait with the task not queued yet so other queue pumps cannot
+                // bypass backoff. Cancellation never resurrects a stopped task.
+                delay(YDownloadRetryPolicy.backoffMillis(attempt))
+                currentCoroutineContext().ensureActive()
+                if (repository.find(id)?.state == YDownloadState.Pending) {
+                    repository.updateState(
+                        id = id, state = YDownloadState.Pending, queued = true,
+                    )
+                }
+            }
 
             if (networkInterruption) {
                 logger.debug(
@@ -890,6 +911,23 @@ class YDownloadEngine(
             etaSeconds = 0L,
         )
         totalBytes
+    }
+
+    private fun calculateSha256(uri: Uri): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val input = resolver.openInputStream(uri)
+            ?: error("Unable to read output for SHA-256")
+        input.use { stream ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val count = stream.read(buffer)
+                if (count < 0) break
+                if (count > 0) digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") {
+            "%02x".format(it.toInt() and 0xff)
+        }
     }
 
     private suspend fun throttle(

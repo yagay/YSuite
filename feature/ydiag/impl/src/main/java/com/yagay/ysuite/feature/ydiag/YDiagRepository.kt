@@ -416,6 +416,9 @@ internal class YDiagRepository(
                 "dumpsys activity exit-info $pkg 2>/dev/null | head -n 400"
             "anr" ->
                 "ls -lt /data/anr 2>/dev/null | head -n 50"
+            "events" ->
+                "logcat -d -b events -v threadtime -t 1000 2>/dev/null | " +
+                    "grep -E 'am_|wm_|activity|proc|crash' | tail -n 350"
             "process" ->
                 "pid=$pid; echo pid=\$pid; ps -A 2>/dev/null | grep -F $pkg; " +
                     "[ -n \"\$pid\" ] && cat /proc/\$pid/status 2>/dev/null || true"

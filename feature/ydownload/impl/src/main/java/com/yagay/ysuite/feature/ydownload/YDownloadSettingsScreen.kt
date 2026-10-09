@@ -32,6 +32,9 @@ fun YDownloadSettingsScreen(
     onSpeedLimit: (Long) -> Unit,
     onWifiOnly: (Boolean) -> Unit,
     onAutoResumeNetwork: (Boolean) -> Unit,
+    onAutoRetry: (Boolean) -> Unit,
+    onMaxRetries: (Int) -> Unit,
+    onCalculateSha256: (Boolean) -> Unit,
     onNotifications: (Boolean) -> Unit,
     onUserAgent: (String) -> Unit,
     onSystemPatchEnabled: (Boolean) -> Unit,
@@ -184,6 +187,28 @@ fun YDownloadSettingsScreen(
                     ?.let(onSpeedLimit)
             },
         )
+
+        ComposeSettingsGroup(
+            title = stringResource(R.string.ydownload_settings_integrity),
+        ) {
+            ComposeSettingsSwitch(
+                title = stringResource(R.string.ydownload_auto_retry),
+                checked = settings.autoRetry,
+                onCheckedChange = onAutoRetry,
+            )
+            ComposeSettingsIntSlider(
+                title = stringResource(R.string.ydownload_max_retries),
+                value = settings.maxRetries,
+                range = 0..5,
+                onValueChange = onMaxRetries,
+            )
+            ComposeSettingsSwitch(
+                title = stringResource(R.string.ydownload_calculate_sha256),
+                subtitle = stringResource(R.string.ydownload_calculate_sha256_desc),
+                checked = settings.calculateSha256,
+                onCheckedChange = onCalculateSha256,
+            )
+        }
 
         ComposeSettingsGroup(
             title =

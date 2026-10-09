@@ -30,6 +30,9 @@ data class YDownloadSettings(
     val globalSpeedLimitBytesPerSecond: Long = 0L,
     val wifiOnly: Boolean = false,
     val autoResumeNetwork: Boolean = true,
+    val autoRetry: Boolean = true,
+    val maxRetries: Int = 2,
+    val calculateSha256: Boolean = false,
     val notificationsEnabled: Boolean = true,
     val defaultUserAgent: String = MOBILE_USER_AGENT,
 ) {
@@ -62,6 +65,9 @@ class YDownloadSettingsRepository(
             booleanPreferencesKey("wifi_only")
         val autoResumeNetwork =
             booleanPreferencesKey("auto_resume_network")
+        val autoRetry = booleanPreferencesKey("auto_retry")
+        val maxRetries = intPreferencesKey("max_retries")
+        val calculateSha256 = booleanPreferencesKey("calculate_sha256")
         val notifications =
             booleanPreferencesKey("notifications")
         val userAgent =
@@ -111,6 +117,9 @@ class YDownloadSettingsRepository(
                         preferences[Keys.wifiOnly] ?: false,
                     autoResumeNetwork =
                         preferences[Keys.autoResumeNetwork] ?: true,
+                    autoRetry = preferences[Keys.autoRetry] ?: true,
+                    maxRetries = (preferences[Keys.maxRetries] ?: 2).coerceIn(0, 5),
+                    calculateSha256 = preferences[Keys.calculateSha256] ?: false,
                     notificationsEnabled =
                         preferences[Keys.notifications] ?: true,
                     defaultUserAgent =
@@ -172,6 +181,20 @@ class YDownloadSettingsRepository(
         context.yDownloadSettingsDataStore.edit {
             it[Keys.autoResumeNetwork] = value
         }
+    }
+
+    suspend fun setAutoRetry(value: Boolean) {
+        context.yDownloadSettingsDataStore.edit { it[Keys.autoRetry] = value }
+    }
+
+    suspend fun setMaxRetries(value: Int) {
+        context.yDownloadSettingsDataStore.edit {
+            it[Keys.maxRetries] = value.coerceIn(0, 5)
+        }
+    }
+
+    suspend fun setCalculateSha256(value: Boolean) {
+        context.yDownloadSettingsDataStore.edit { it[Keys.calculateSha256] = value }
     }
 
     suspend fun setNotificationsEnabled(value: Boolean) {

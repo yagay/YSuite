@@ -268,6 +268,18 @@ class YDownloadRepository(
         )
     }
 
+    suspend fun setRetryCount(id: String, count: Int) {
+        updateColumns(id, ContentValues().apply {
+            put(COL_RETRY_COUNT, count.coerceAtLeast(0))
+        })
+    }
+
+    suspend fun setSha256(id: String, checksum: String?) {
+        updateColumns(id, ContentValues().apply {
+            put(COL_SHA256, checksum)
+        })
+    }
+
     suspend fun updateProgress(
         id: String,
         downloadedBytes: Long,
@@ -524,6 +536,8 @@ class YDownloadRepository(
                 decodeChunks(
                     nullableString(COL_CHUNKS),
                 ),
+            retryCount = int(COL_RETRY_COUNT).coerceAtLeast(0),
+            sha256 = nullableString(COL_SHA256),
         )
 
     private fun Cursor.string(name: String): String =
@@ -584,7 +598,9 @@ class YDownloadRepository(
                     $COL_TASK_SPEED_LIMIT INTEGER NOT NULL DEFAULT 0,
                     $COL_CUSTOM_HEADERS TEXT,
                     $COL_SCHEDULED_AT INTEGER,
-                    $COL_CHUNKS TEXT
+                    $COL_CHUNKS TEXT,
+                    $COL_RETRY_COUNT INTEGER NOT NULL DEFAULT 0,
+                    $COL_SHA256 TEXT
                 )
                 """.trimIndent(),
             )
@@ -633,12 +649,19 @@ class YDownloadRepository(
                         "$COL_SYSTEM_ID INTEGER",
                 )
             }
+            if (oldVersion < 5) {
+                db.execSQL(
+                    "ALTER TABLE $TABLE ADD COLUMN " +
+                        "$COL_RETRY_COUNT INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL("ALTER TABLE $TABLE ADD COLUMN $COL_SHA256 TEXT")
+            }
         }
     }
 
     private companion object {
         const val DB_NAME = "ydownload.db"
-        const val DB_VERSION = 4
+        const val DB_VERSION = 5
         const val TABLE = "downloads"
         const val COL_ID = "id"
         const val COL_BACKEND = "backend"
@@ -669,6 +692,8 @@ class YDownloadRepository(
         const val COL_CUSTOM_HEADERS = "custom_headers"
         const val COL_SCHEDULED_AT = "scheduled_at"
         const val COL_CHUNKS = "chunks"
+        const val COL_RETRY_COUNT = "retry_count"
+        const val COL_SHA256 = "sha256"
 
         fun encodeHeaders(
             headers: Map<String, String>,
@@ -757,6 +782,8 @@ class YDownloadRepository(
             COL_CUSTOM_HEADERS,
             COL_SCHEDULED_AT,
             COL_CHUNKS,
+            COL_RETRY_COUNT,
+            COL_SHA256,
         )
     }
 }
