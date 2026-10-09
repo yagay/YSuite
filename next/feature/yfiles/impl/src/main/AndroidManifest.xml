@@ -1,0 +1,57 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <queries>
+        <intent>
+            <action android:name="com.yagay.ysuite.yfiles.PLUGIN" />
+        </intent>
+    </queries>
+
+    <application>
+        <service
+            android:name=".YFilesShareServerService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <receiver
+            android:name=".YFilesAutomationReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.yagay.ysuite.yfiles.COPY" />
+                <action android:name="com.yagay.ysuite.yfiles.MOVE" />
+                <action android:name="com.yagay.ysuite.yfiles.ARCHIVE" />
+                <action android:name="com.yagay.ysuite.yfiles.NETWORK_UPLOAD" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name=".YFilesDocumentsProvider"
+            android:authorities="${applicationId}.yfiles.documents"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.yfiles.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/yfiles_file_paths" />
+        </provider>
+    </application>
+</manifest>
