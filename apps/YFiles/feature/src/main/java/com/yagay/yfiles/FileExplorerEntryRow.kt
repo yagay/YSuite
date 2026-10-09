@@ -50,14 +50,13 @@ internal fun FileExplorerEntryRow(
             modifier = Modifier.size(40.dp),
         ) {
             androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
-                val extension = entry.name.substringAfterLast('.', "").lowercase()
-                val icon = when {
-                    entry.isDirectory -> Icons.Default.Folder
-                    extension in setOf("jpg", "jpeg", "png", "webp", "gif", "heic") -> Icons.Default.Image
-                    extension in setOf("mp4", "mkv", "mov", "avi", "webm") -> Icons.Default.Movie
-                    extension in setOf("mp3", "flac", "wav", "ogg", "m4a") -> Icons.Default.MusicNote
-                    extension in setOf("txt", "pdf", "doc", "docx", "md") -> Icons.Default.Description
-                    else -> Icons.Default.InsertDriveFile
+                val icon = when (explorerIconCategory(entry.name, entry.isDirectory)) {
+                    ExplorerIconCategory.FOLDER -> Icons.Default.Folder
+                    ExplorerIconCategory.IMAGE -> Icons.Default.Image
+                    ExplorerIconCategory.VIDEO -> Icons.Default.Movie
+                    ExplorerIconCategory.AUDIO -> Icons.Default.MusicNote
+                    ExplorerIconCategory.DOCUMENT -> Icons.Default.Description
+                    ExplorerIconCategory.OTHER -> Icons.Default.InsertDriveFile
                 }
                 Icon(
                     imageVector = icon,
@@ -97,4 +96,17 @@ internal fun FileExplorerEntryRow(
         color = MaterialTheme.colorScheme.outlineVariant,
         thickness = 0.5.dp,
     )
+}
+
+internal enum class ExplorerIconCategory { FOLDER, IMAGE, VIDEO, AUDIO, DOCUMENT, OTHER }
+
+internal fun explorerIconCategory(name: String, isDirectory: Boolean): ExplorerIconCategory {
+    if (isDirectory) return ExplorerIconCategory.FOLDER
+    return when (name.substringAfterLast('.', "").lowercase()) {
+        "jpg", "jpeg", "png", "webp", "gif", "heic" -> ExplorerIconCategory.IMAGE
+        "mp4", "mkv", "mov", "avi", "webm" -> ExplorerIconCategory.VIDEO
+        "mp3", "flac", "wav", "ogg", "m4a" -> ExplorerIconCategory.AUDIO
+        "txt", "pdf", "doc", "docx", "md" -> ExplorerIconCategory.DOCUMENT
+        else -> ExplorerIconCategory.OTHER
+    }
 }
