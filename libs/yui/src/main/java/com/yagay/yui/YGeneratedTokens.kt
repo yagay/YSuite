@@ -5,17 +5,17 @@ import androidx.compose.ui.unit.dp
 
 /** Canonical geometry generated from libs/yui/yui_tokens.json. */
 object YDimens {
-    val ScreenHorizontal = 16.dp
-    val ScreenHorizontalMedium = 24.dp
-    val ScreenHorizontalExpanded = 32.dp
-    val ScreenVertical = 16.dp
-    val SectionGap = 18.dp
-    val CardPadding = 16.dp
-    val ControlGap = 12.dp
-    val ToolbarHeight = 56.dp
+    val ScreenHorizontal = 12.dp
+    val ScreenHorizontalMedium = 18.dp
+    val ScreenHorizontalExpanded = 24.dp
+    val ScreenVertical = 8.dp
+    val SectionGap = 10.dp
+    val CardPadding = 10.dp
+    val ControlGap = 8.dp
+    val ToolbarHeight = 52.dp
     val ButtonHeight = 48.dp
     val TouchTarget = 48.dp
-    val CardRadius = 20.dp
+    val CardRadius = 14.dp
     val CompactBreakpoint = 420.dp
     val MediumBreakpoint = 600.dp
     val ExpandedBreakpoint = 840.dp
@@ -23,5 +23,5 @@ object YDimens {
     val FormMaxWidth = 840.dp
     val ListDetailListWidth = 360.dp
     val NavigationRailWidth = 80.dp
-    val PaneGap = 16.dp
+    val PaneGap = 12.dp
 }
