@@ -8,19 +8,19 @@ import androidx.compose.ui.unit.dp
 
 object YSuiteSpacing {
     val XSmall = 4.dp
-    val Small = 8.dp
-    val Medium = 16.dp
-    val Large = 24.dp
-    val XLarge = 32.dp
+    val Small = 6.dp
+    val Medium = 12.dp
+    val Large = 16.dp
+    val XLarge = 24.dp
 }
 
 val YSuiteShapes =
     Shapes(
         extraSmall = RoundedCornerShape(8.dp),
         small = RoundedCornerShape(10.dp),
-        medium = RoundedCornerShape(16.dp),
-        large = RoundedCornerShape(24.dp),
-        extraLarge = RoundedCornerShape(28.dp),
+        medium = RoundedCornerShape(12.dp),
+        large = RoundedCornerShape(16.dp),
+        extraLarge = RoundedCornerShape(20.dp),
     )
 
 private val MaterialTypography = Typography()
