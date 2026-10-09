@@ -103,8 +103,6 @@ object YView {
         if (button is MaterialButton) {
             button.insetTop = dp(context, 4)
             button.insetBottom = dp(context, 4)
-            button.insetLeft = 0
-            button.insetRight = 0
         }
     }
 
