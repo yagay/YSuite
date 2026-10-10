@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.InlineTextContent
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.ui.unit.TextUnit
 
 /**
@@ -74,5 +74,5 @@ fun YUiText(
         letterSpacing = letterSpacing, textDecoration = textDecoration, textAlign = textAlign,
         lineHeight = lineHeight, overflow = overflow, softWrap = softWrap,
         maxLines = maxLines, minLines = minLines, inlineContent = inlineContent,
-        onTextLayout = onTextLayout, style = style)
+        onTextLayout = onTextLayout ?: {}, style = style)
 }
