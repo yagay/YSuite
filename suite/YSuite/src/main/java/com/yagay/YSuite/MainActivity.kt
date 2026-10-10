@@ -184,6 +184,30 @@ class MainActivity : YComposeActivity() {
                     if (settingsModuleId != null) settingsModuleId = null else settingsOpen = false
                 },
                 onSelectModule = { settingsModuleId = it },
+                moduleStates = enabled.toMap(),
+                permissions = permissions,
+                rootAvailable = rootAvailable,
+                xposedConnected = xposedConnected,
+                onToggleModule = { featureId, next ->
+                    features.firstOrNull { it.id == featureId }?.let { feature ->
+                        runCatching { updateFeatureEnabled(feature, next) }
+                            .onFailure { error ->
+                                SuiteLog.e(this@MainActivity, featureId, "settings toggle failed", error)
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(R.string.feature_enable_failed, localizedFeatureName(feature), error.javaClass.simpleName),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                    }
+                },
+                onExportDiagnostic = { featureId ->
+                    exportDiagnostic(
+                        featureId?.let { setOf(it) },
+                        featureId?.let { id -> homeModules.firstOrNull { it.feature.id == id }?.label ?: id }
+                            ?: fullDiagnosticLabel,
+                    )
+                },
             )
         } else {
         YDashboardScaffold(
