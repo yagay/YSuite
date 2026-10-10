@@ -71,7 +71,7 @@ final class ViewCandidateFrameOverlay {
             super(c);
             setBackgroundColor(Color.TRANSPARENT);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(2f * getResources().getDisplayMetrics().density);
+            paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
             paint.setStrokeJoin(Paint.Join.MITER);
             updateColor();
         }
