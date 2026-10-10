@@ -144,7 +144,7 @@ public final class FloatSettings {
 
     public boolean snap() { return p.getBoolean(K_SNAP, true); }
     public boolean vibrate() { return p.getBoolean(K_VIBRATE, true); }
-    public boolean track() { return p.getBoolean(K_TRACK, false); }
+    public boolean track() { return YFloatVisualSettings.readBoolean(context, K_TRACK, false); }
     public boolean bothSide() { return p.getBoolean(K_BOTH_SIDE, false); }
     public boolean showOnLock() { return p.getBoolean(K_SHOW_ON_LOCK, true); }
     public boolean keepInScreenshot() { return p.getBoolean(K_KEEP_IN_SCREENSHOT, false); }
@@ -152,7 +152,7 @@ public final class FloatSettings {
     public boolean keepNavigationBarInScreenshot() { return p.getBoolean(K_KEEP_NAVIGATION_BAR, false); }
     public boolean accessibilityScreenshot() { return p.getBoolean(K_ACCESSIBILITY_SCREENSHOT, true); }
     public int circleEngine() { return clamp(p.getInt(K_CIRCLE_ENGINE, 0), 0, 1); }
-    public boolean circleBorderEnabled() { return p.getBoolean(K_CIRCLE_BORDER_ENABLED, true); }
+    public boolean circleBorderEnabled() { return YFloatVisualSettings.readBoolean(context, K_CIRCLE_BORDER_ENABLED, true); }
     public int circleBorderColor() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_COLOR, DEFAULT_CIRCLE_BORDER_COLOR); }
     public int circleBorderWidthDp() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_WIDTH_DP, 3); }
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
@@ -203,7 +203,7 @@ public final class FloatSettings {
     public int lineAlpha() { return YFloatVisualSettings.readInt(context, K_LINE_ALPHA, 80); }
     public int lineWidthDp() { return YFloatVisualSettings.readInt(context, K_LINE_WIDTH, 6); }
     public int lineStyle() { return YFloatVisualSettings.readInt(context, K_LINE_STYLE, 0); }
-    public String lineColors() { return p.getString(K_LINE_COLORS, "#FFFFFF"); }
+    public String lineColors() { return YFloatVisualSettings.readString(context, K_LINE_COLORS, "#FFFFFF"); }
     public boolean lineGradient() { return YFloatVisualSettings.readBoolean(context, K_LINE_GRADIENT, false); }
     public boolean ocrShowText() { return p.getBoolean(K_OCR_SHOW_TEXT, true); }
     public boolean ocrShowImage() { return p.getBoolean(K_OCR_SHOW_IMAGE, true); }
@@ -248,6 +248,7 @@ public final class FloatSettings {
     }
 
     public void setString(String key, String value) {
+        if (YFloatVisualSettings.writeString(context, key, value)) return;
         if (key != null && !key.isBlank()) p.edit().putString(key, value == null ? "" : value).apply();
     }
 
