@@ -80,12 +80,11 @@ final class SettingsIconPage {
                 activity.getString(R.string.yfloat_click_under_icon),
                 activity.getString(R.string.yfloat_click_under_icon_desc),
                 FloatSettings.K_CLICK_UNDER, fs.clickScreenUnderIcon());
-        YViewLayout.addSection(root, position);
-
         TextView note = YViewLayout.caption(activity,
                 activity.getString(R.string.yfloat_position_save_note), 12);
         note.setPadding(YViewLayout.dp(activity, 4), 0, YViewLayout.dp(activity, 4), YViewLayout.dp(activity, 4));
-        root.addView(note);
+        position.body.addView(note);
+        YViewLayout.addSection(root, position);
         return root;
     }
 

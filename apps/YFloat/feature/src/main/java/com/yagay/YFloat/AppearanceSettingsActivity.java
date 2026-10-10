@@ -35,7 +35,7 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
 
             TextView note = YViewLayout.caption(this, getString(R.string.yfloat_text_menu_note), 12);
             note.setPadding(Math.max(1, YView.controlGap(this) / 3), 0, Math.max(1, YView.controlGap(this) / 3), Math.max(1, YView.controlGap(this) / 3));
-            root.addView(note);
+            textMenu.body.addView(note);
         }
 
         YViewSection menus = YViewLayout.section(this,

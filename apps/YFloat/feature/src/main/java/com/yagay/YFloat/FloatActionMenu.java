@@ -230,8 +230,8 @@ public final class FloatActionMenu {
         for (int i = 0; i < customLimit; i++) {
             CustomMenuActionStore.Item item = customs.get(i);
             TextView custom = FloatingMenuUi.action(app, item.label, 58);
-            custom.setEllipsize(TextUtils.TruncateAt.END);
-            custom.setSingleLine(true);
+            custom.setEllipsize(null);
+            custom.setSingleLine(false);
             custom.setOnClickListener(v -> launchCustom(app, item, text));
             items.add(custom);
         }
@@ -265,13 +265,14 @@ public final class FloatActionMenu {
             if (item instanceof TextView tv) {
                 tv.setMinWidth(0);
                 tv.setPadding(dp(app, 4), 0, dp(app, 4), 0);
-                tv.setSingleLine(true);
-                tv.setEllipsize(TextUtils.TruncateAt.END);
+                tv.setSingleLine(false);
+                tv.setMaxLines(2);
+                tv.setEllipsize(null);
                 if (items.size() >= 7 && !"⋮".contentEquals(tv.getText())) {
                     tv.setTextSize(13);
                 }
             }
-            row.addView(item, new LinearLayout.LayoutParams(slotWidth, dp(app, 46)));
+            row.addView(item, new LinearLayout.LayoutParams(slotWidth, -2));
         }
         root.addView(row, new LinearLayout.LayoutParams(-2, -2));
     }
@@ -292,7 +293,7 @@ public final class FloatActionMenu {
                                       Runnable selectAll) {
         root.setPadding(dp(app, 4), dp(app, 4), dp(app, 4), dp(app, 4));
         TextView back = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_f014f4d81cae), null);
-        root.addView(back, new LinearLayout.LayoutParams(-1, dp(app, 46)));
+        root.addView(back, new LinearLayout.LayoutParams(-1, -2));
         back.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MAIN));
 
         List<CustomMenuActionStore.Item> customs = CustomMenuActionStore.load(app);
@@ -303,12 +304,12 @@ public final class FloatActionMenu {
             try { icon = app.getPackageManager().getApplicationIcon(item.packageName); }
             catch (Throwable ignored) {}
             TextView custom = FloatingMenuUi.row(app, item.label, icon);
-            root.addView(custom, new LinearLayout.LayoutParams(-1, dp(app, 48)));
+            root.addView(custom, new LinearLayout.LayoutParams(-1, -2));
             custom.setOnClickListener(v -> launchCustom(app, item, text));
         }
 
         TextView process = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_60c2b0e40300), null);
-        root.addView(process, new LinearLayout.LayoutParams(-1, dp(app, 46)));
+        root.addView(process, new LinearLayout.LayoutParams(-1, -2));
         process.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_PROCESS));
     }
 
@@ -323,7 +324,7 @@ public final class FloatActionMenu {
         TextView back = FloatingMenuUi.row(app,
                 mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_dfcb6e479124) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_0983c71bfdc1), null);
         back.setTypeface(back.getTypeface(), android.graphics.Typeface.BOLD);
-        root.addView(back, new LinearLayout.LayoutParams(-1, dp(app, 46)));
+        root.addView(back, new LinearLayout.LayoutParams(-1, -2));
         back.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MAIN));
 
         PackageManager pm = app.getPackageManager();
@@ -354,7 +355,7 @@ public final class FloatActionMenu {
                     mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_2e9a9b8c88ad) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_89aaeb63f4fd));
             none.setGravity(Gravity.CENTER_VERTICAL);
             none.setPadding(dp(app, 16), 0, dp(app, 16), 0);
-            list.addView(none, new LinearLayout.LayoutParams(-1, dp(app, 48)));
+            list.addView(none, new LinearLayout.LayoutParams(-1, -2));
         } else {
             for (ResolveInfo ri : resolved) {
                 CharSequence rawLabel;
@@ -368,16 +369,18 @@ public final class FloatActionMenu {
                 try { icon = ri.loadIcon(pm); } catch (Throwable ignored) {}
                 TextView target = FloatingMenuUi.row(app, displayLabel, icon);
                 target.setOnClickListener(v -> launchExplicit(app, base, ri));
-                list.addView(target, new LinearLayout.LayoutParams(-1, dp(app, 50)));
+                list.addView(target, new LinearLayout.LayoutParams(-1, -2));
             }
         }
         scroll.addView(list);
         int visibleRows = Math.min(Math.max(1, resolved.size()), 6);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1, dp(app, 50 * visibleRows)));
+        root.addView(scroll, new LinearLayout.LayoutParams(-1,
+                visibleRows <= 3 ? -2 : Math.min(ScreenGeometry.usableBounds(app).height() * 2 / 3,
+                        Math.max(YView.rowHeight(app) * visibleRows, dp(app, 50 * visibleRows)))));
 
         TextView moreApps = FloatingMenuUi.row(app,
                 mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_ff5514843724) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_c34d1ed979ed), null);
-        root.addView(moreApps, new LinearLayout.LayoutParams(-1, dp(app, 46)));
+        root.addView(moreApps, new LinearLayout.LayoutParams(-1, -2));
         moreApps.setOnClickListener(v -> {
             if (mode == MODE_SHARE) launchSystemShare(app, text);
             else launchSystemProcess(app, text);

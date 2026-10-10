@@ -19,7 +19,7 @@ final class FloatingMenuUi {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackground(rounded(YOverlayTokens.menuSurface(c), dp(c, radiusDp)));
         root.setElevation(dp(c, 10));
-        root.setClipToOutline(true);
+        root.setClipToOutline(false);
         root.setClickable(true);
         return root;
     }
@@ -28,16 +28,19 @@ final class FloatingMenuUi {
         TextView tv = baseText(c, text);
         tv.setGravity(Gravity.CENTER);
         tv.setMinWidth(dp(c, minWidthDp));
-        tv.setPadding(YView.controlGap(c), 0, YView.controlGap(c), 0);
+        tv.setPadding(YView.controlGap(c), Math.max(1, YView.controlGap(c) / 2),
+                YView.controlGap(c), Math.max(1, YView.controlGap(c) / 2));
         return tv;
     }
 
     static TextView row(Context c, String text, Drawable icon) {
         TextView tv = baseText(c, text);
         tv.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        tv.setPadding(YView.cardPadding(c), 0, YView.cardPadding(c), 0);
-        tv.setSingleLine(true);
-        tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        tv.setPadding(YView.cardPadding(c), Math.max(1, YView.controlGap(c) / 2),
+                YView.cardPadding(c), Math.max(1, YView.controlGap(c) / 2));
+        tv.setSingleLine(false);
+        tv.setMaxLines(Integer.MAX_VALUE);
+        tv.setEllipsize(null);
         if (icon != null) {
             int s = dp(c, 24);
             icon.setBounds(0, 0, s, s);
@@ -61,6 +64,8 @@ final class FloatingMenuUi {
         tv.setBackground(ripple(c));
         tv.setClickable(true);
         tv.setFocusable(true);
+        tv.setMinHeight(YView.rowHeight(c));
+        tv.setIncludeFontPadding(true);
         return tv;
     }
 

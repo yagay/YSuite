@@ -118,7 +118,7 @@ object YViewLayout {
             toolbar,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                YView.toolbarHeight(context),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
         )
         val content = FrameLayout(context).apply {
@@ -198,7 +198,7 @@ object YViewLayout {
     fun fixedScreen(context: Context, title: String, subtitle: String? = null): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(screenH(context), screenV(context), screenH(context), 0)
+            setPadding(screenH(context), screenV(context), screenH(context), sectionGap(context))
             YView.applyRoot(this)
             header(this, title, subtitle)
         }
@@ -223,7 +223,7 @@ object YViewLayout {
             toolbar,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                YView.toolbarHeight(context),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
         )
         val scroll = ScrollView(context).apply {
@@ -555,9 +555,19 @@ object YViewLayout {
         val copy = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
         }
-        copy.addView(listTitle(context).apply { text = title })
+        copy.addView(listTitle(context).apply {
+            text = title
+            maxLines = Int.MAX_VALUE
+            isSingleLine = false
+            ellipsize = null
+        })
         if (!description.isNullOrBlank()) {
-            copy.addView(listSubtitle(context).apply { text = description })
+            copy.addView(listSubtitle(context).apply {
+                text = description
+                maxLines = Int.MAX_VALUE
+                isSingleLine = false
+                ellipsize = null
+            })
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(
@@ -630,6 +640,12 @@ object YViewLayout {
 
     @JvmStatic
     fun scrollPage(context: Context, content: View): ScrollView = ScrollView(context).apply {
+        if (content is LinearLayout) {
+            content.setPadding(
+                content.paddingLeft, content.paddingTop, content.paddingRight,
+                maxOf(content.paddingBottom, sectionGap(context) + YView.controlGap(context)),
+            )
+        }
         isFillViewport = true
         clipToPadding = false
         setBackgroundColor(YView.background(context))
@@ -670,7 +686,7 @@ object YViewLayout {
         }
         val body = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, maxOf(1, YView.controlGap(context) / 3))
+            setPadding(0, 0, 0, maxOf(YView.cardPadding(context), YView.controlGap(context)))
         }
         holder.addView(body, matchWrap())
         return YViewSection(card, body)
@@ -710,7 +726,7 @@ object YViewLayout {
     private fun switchSlot(context: Context): LinearLayout.LayoutParams =
         LinearLayout.LayoutParams(
             YView.dimen(context, R.dimen.yui_switch_slot_width),
-            YView.dimen(context, R.dimen.yui_switch_slot_height),
+            ViewGroup.LayoutParams.WRAP_CONTENT,
         )
 
     @JvmStatic
@@ -834,7 +850,7 @@ object YViewLayout {
                 spinner,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    YView.touchTarget(context),
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply { topMargin = maxOf(1, YView.controlGap(context) / 4) },
             )
         } else {
@@ -848,7 +864,7 @@ object YViewLayout {
             )
             row.addView(
                 spinner,
-                LinearLayout.LayoutParams(0, YView.touchTarget(context), 1.18f),
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.18f),
             )
             block.addView(row, matchWrap())
         }
@@ -865,6 +881,7 @@ object YViewLayout {
     ): Spinner {
         val safe = labels.ifEmpty { arrayOf("") }
         return Spinner(context).apply {
+            minimumHeight = YView.touchTarget(context)
             adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, safe)
             setSelection(selected.coerceIn(0, safe.lastIndex), false)
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -932,8 +949,8 @@ object YViewLayout {
             slider,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(context, 34),
-            ).apply { topMargin = dp(context, -1) },
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
         )
         precise.setOnEditorActionListener { _, _, _ ->
             val entered = precise.text?.toString()?.toIntOrNull()

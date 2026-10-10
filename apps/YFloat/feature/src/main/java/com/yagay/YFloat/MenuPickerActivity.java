@@ -574,13 +574,13 @@ public final class MenuPickerActivity extends AppCompatActivity {
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
         TextView titleView = YViewLayout.text(this, title, 14, false);
-        titleView.setMaxLines(2);
-        titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        titleView.setMaxLines(Integer.MAX_VALUE);
+        titleView.setEllipsize(null);
         texts.addView(titleView);
         if (subtitle != null && !subtitle.isBlank()) {
             TextView sub = YViewLayout.caption(this, subtitle, 11);
-            sub.setMaxLines(2);
-            sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            sub.setMaxLines(Integer.MAX_VALUE);
+            sub.setEllipsize(null);
             sub.setPadding(0, dp(2), 0, 0);
             texts.addView(sub);
         }
@@ -644,11 +644,11 @@ public final class MenuPickerActivity extends AppCompatActivity {
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
         TextView a = YViewLayout.text(this, title, 15, false);
-        a.setSingleLine(true);
+        a.setSingleLine(false);
         texts.addView(a);
         if (subtitle != null && !subtitle.isBlank()) {
             TextView b = YViewLayout.caption(this, subtitle, 12);
-            b.setSingleLine(true);
+            b.setSingleLine(false);
             b.setPadding(0, dp(2), dp(8), 0);
             texts.addView(b);
         }

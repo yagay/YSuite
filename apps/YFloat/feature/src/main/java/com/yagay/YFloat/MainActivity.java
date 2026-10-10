@@ -142,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
                 12);
         footer.setGravity(Gravity.CENTER_HORIZONTAL);
         footer.setPadding(0, 2, 0, YViewLayout.dp(this, 4));
-        root.addView(footer);
+        advanced.body.addView(footer);
 
         setContentView(YViewLayout.scrollPage(this, root));
     }

@@ -161,13 +161,13 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
         TextView name = YViewLayout.text(this, title, 14, false);
-        name.setSingleLine(true);
-        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        name.setSingleLine(false);
+        name.setEllipsize(null);
         texts.addView(name);
         if (subtitle != null && !subtitle.isBlank()) {
             TextView sub = YViewLayout.caption(this, subtitle, 11);
-            sub.setSingleLine(true);
-            sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            sub.setSingleLine(false);
+            sub.setEllipsize(null);
             sub.setPadding(0, YViewLayout.dp(this, 2), YViewLayout.dp(this, 8), 0);
             texts.addView(sub);
         }
