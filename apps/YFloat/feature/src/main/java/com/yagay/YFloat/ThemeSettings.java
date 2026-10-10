@@ -29,7 +29,7 @@ final class ThemeSettings {
         String value = next == MODE_DARK ? "dark" : next == MODE_LIGHT ? "light" : "system";
         new com.yagay.yui.YAppearanceStore(c)
             .set(com.yagay.yui.YSettingKey.THEME, value, "yfloat");
-        if (c instanceof Activity activity) activity.recreate();
+        // Shared YUI runtime handles active Activity refresh; no second theme lifecycle.
         return true;
     }
 
