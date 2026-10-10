@@ -34,7 +34,7 @@
     <string name="yfloat_theme_dark">Dark</string>
     <string name="yfloat_main_menu_count">Main-menu action count</string>
     <string name="yfloat_item_count">%1$d items</string>
-    <string name="yfloat_main_menu_count_hint">Choose 4 to 8 action items. Copy, select all, and share are included. The More menu is separate and always available.</string>
+    <string name="yfloat_main_menu_count_hint">Choose 2 to 32 action items. Copy, select all, and share are included. The More menu is separate and always available.</string>
 
     <string name="yfloat_gesture_hub_title">Gestures and trails</string>
     <string name="yfloat_gesture_hub_desc">Gesture parameters, trail feedback, and action mapping are managed here.</string>
