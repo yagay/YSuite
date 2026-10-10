@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -151,9 +152,9 @@ fun YPageList(
             modifier = Modifier.widthIn(max = template.maxContentWidth).fillMaxSize(),
             contentPadding = PaddingValues(
                 start = horizontal,
-                top = padding.calculateTopPadding() + YDimens.ScreenVertical,
+                top = padding.calculateTopPadding() + LocalYAppearance.current.pageVerticalPaddingDp.dp,
                 end = horizontal,
-                bottom = padding.calculateBottomPadding() + YDimens.ScreenVertical,
+                bottom = padding.calculateBottomPadding() + LocalYAppearance.current.pageVerticalPaddingDp.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(rowSpacing),
             content = content,
@@ -651,7 +652,7 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
                 YActionStyle.DANGER -> YUiOutlinedButton(
                     onClick = action.onClick,
                     enabled = action.enabled,
-                    modifier = Modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+                    modifier = if (LocalYAppearance.current.buttonHeightDp < 48) Modifier.height(LocalYAppearance.current.buttonHeightDp.dp) else Modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
                     contentPadding = PaddingValues(
                         horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
                         vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
