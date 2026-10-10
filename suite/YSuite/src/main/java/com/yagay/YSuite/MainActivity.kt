@@ -195,7 +195,7 @@ class MainActivity : YComposeActivity() {
                                 SuiteLog.e(this@MainActivity, featureId, "settings toggle failed", error)
                                 Toast.makeText(
                                     this@MainActivity,
-                                    getString(R.string.feature_enable_failed, localizedFeatureName(feature), error.javaClass.simpleName),
+                                    getString(R.string.feature_enable_failed, homeModules.firstOrNull { it.feature.id == featureId }?.label ?: featureId, error.javaClass.simpleName),
                                     Toast.LENGTH_LONG,
                                 ).show()
                             }
