@@ -139,7 +139,9 @@ fun YPageList(
 ) {
     val role = LocalYPageRole.current
     val template = role.template()
-    val rowSpacing = if (compact) 0.dp else template.sectionSpacing
+    // Legacy compact argument is retained for binary/source compatibility.
+    // Normal-screen lists always use the role's standard row spacing.
+    val rowSpacing = template.sectionSpacing
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val horizontal = yPageHorizontalPadding(maxWidth)
         LazyColumn(

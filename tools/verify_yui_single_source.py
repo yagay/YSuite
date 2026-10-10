@@ -134,18 +134,17 @@ def main() -> None:
 
     generated = read(GENERATED_TOKENS)
     tokens = json.loads(read(ROOT / "libs/yui/yui_tokens.json"))
-    # A Material default-size switch is wider/taller than most setting labels. Keep
-    # its visual geometry separate from the 48dp minimum row/touch target.
+    # Standard upstream Material3 switch visuals: no compact scaling.
     for key in (
         "switch_track_width", "switch_track_height", "switch_thumb_size",
         "switch_slot_width", "switch_slot_height",
     ):
         if key not in tokens:
-            fail(f"missing canonical compact-switch geometry: {key}")
+            fail(f"missing standard switch geometry: {key}")
     if not (tokens["switch_track_width"] < tokens["switch_slot_width"]
             and tokens["switch_track_height"] < tokens["switch_slot_height"]
             and tokens["switch_thumb_size"] < tokens["switch_track_height"]):
-        fail("compact switch geometry must fit inside its touch slot")
+        fail("standard switch geometry must fit inside its touch slot")
     if tokens["switch_slot_height"] >= tokens["option_row_height"]:
         fail("switch touch slot must not force an oversized settings row")
     if tokens["switch_slot_width"] < tokens["touch_target"]:
@@ -164,26 +163,38 @@ def main() -> None:
             if f"val {mode}{role} = " not in generated_palette:
                 fail(f"generated YUI semantic color missing: {mode}{role}")
 
-    compact_switch = read(YUI_ROOT / "YCompactSwitch.kt")
-    # The official Material3 Switch now supplies role/semantics/animation; YUI only
-    # constrains its visual layer inside the compact token-sized layout slot.
-    for marker in ("import androidx.compose.material3.Switch", "Switch(", "graphicsLayer(", "YDimens.SwitchSlotWidth", "YDimens.SwitchSlotHeight"):
-        if marker not in compact_switch:
-            fail(f"compact switch must delegate upstream Material3 behavior: {marker}")
+    standard_switch = read(YUI_ROOT / "YCompactSwitch.kt")
+    for marker in ("fun YStandardSwitch(", "import androidx.compose.material3.Switch",
+                   "Switch(", "YDimens.SwitchSlotWidth", "YDimens.SwitchSlotHeight"):
+        if marker not in standard_switch:
+            fail(f"standard switch must delegate upstream Material3: {marker}")
+    if "graphicsLayer(" in standard_switch or "scaleX = 0.75f" in standard_switch:
+        fail("standard Compose switch must not be visually shrunk")
     for shared_source in (YUI, YUI_ROOT / "YComponents.kt"):
         source = read(shared_source)
-        if not any(marker in source for marker in ("YCompactSwitch(", "YSwitchItem(")):
-            fail(f"{shared_source.relative_to(ROOT)} must delegate to the shared switch row")
+        if not any(marker in source for marker in ("YStandardSwitch(", "YSwitchItem(")):
+            fail(f"{shared_source.relative_to(ROOT)} must use the standard switch row")
         if re.search(r"(?<![A-Za-z0-9_])Switch\(checked\s*=\s*checked", source):
-            fail(f"{shared_source.relative_to(ROOT)} still uses the oversized Material switch")
+            fail(f"{shared_source.relative_to(ROOT)} must use shared switch rendering")
     view_switches = read(YUI_ROOT / "YViewFramework.kt")
-    if "compactToggle(this)" not in view_switches or "switchSlot(" not in view_switches:
-        fail("Java/View switch rows must use the shared compact geometry")
+    if "styleStandardToggle(this)" not in view_switches or "switchSlot(" not in view_switches:
+        fail("Java/View switch rows must use standard geometry")
+    if "scaleX = scale" in view_switches or "scaleY = scale" in view_switches:
+        fail("Java/View switch must not scale its rendered track")
 
     # Density may evolve, but the system still needs accessible hit targets and
     # ordered compact/medium/expanded breakpoints.
     if tokens["button_height"] < 48 or tokens["touch_target"] < 48:
         fail("YUI buttons and touch targets must remain at least 48dp")
+    if (tokens["button_visual_height"] < 48
+            or tokens["option_row_height"] < 56
+            or tokens["button_padding_horizontal"] < 16
+            or tokens["card_padding"] < 16):
+        fail("YUI normal screens must use standard Material3 density")
+    if tokens["button_inset_vertical"] != 0:
+        fail("standard buttons must not shrink their visual backgrounds")
+    if tokens["switch_track_width"] < 52 or tokens["switch_track_height"] < 32:
+        fail("standard switch must keep normal upstream geometry")
     if not (
         tokens["screen_horizontal"] <= tokens["screen_horizontal_medium"]
         <= tokens["screen_horizontal_expanded"]

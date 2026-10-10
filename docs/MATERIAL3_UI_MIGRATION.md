@@ -69,3 +69,12 @@ dialog focus, accessibility touch targets, back navigation and the working
 file/download UI on an actual device. GitHub Actions did not yet report a run
 for the migration branch after its initial successful commit; the original
 success runs cannot establish build success for this version.
+
+## Standard UI density (October 2026)
+
+Standard Material 3 replaces compact YUI sizing: 48dp visible buttons, minimum
+56dp setting rows, 16dp page and card padding, 24dp horizontal button padding,
+24dp normal icons, and unscaled Material3 switches. Compose and Java/View/XML
+share `libs/yui/yui_tokens.json` generated dimensions. `YCompactSwitch` and
+`compactButton` remain backwards-compatible aliases but no longer render compactly.
+Compact/medium/expanded *viewport width classes* remain for responsive layouts.
