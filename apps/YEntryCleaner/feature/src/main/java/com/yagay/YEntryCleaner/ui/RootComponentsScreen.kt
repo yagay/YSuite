@@ -1,6 +1,7 @@
 package com.yagay.YEntryCleaner.ui
 
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -124,18 +125,18 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
     }
     val visible = groups.flatMap { it.value }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalYAppearance.current.sectionSpacingDp.dp)) {
         item(key = "title") {
             YSectionHeader(
                 title = stringResource(R.string.root_screen_title),
                 subtitle = stringResource(R.string.root_filter_help),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
             )
         }
         stickyHeader(key = "controls") {
             Surface(tonalElevation = 2.dp) {
                 Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-                    LazyRow(contentPadding = PaddingValues(horizontal = 12.dp)) {
+                    LazyRow(contentPadding = PaddingValues(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp)) {
                         items(listOf<CleanupKind?>(null) + CleanupKind.entries) { entry ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 TextButton(onClick = { kind = entry }) {
@@ -160,7 +161,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         Box {
                             TextButton(
                                 onClick = { appTypeMenu = true },
-                                contentPadding = PaddingValues(horizontal = 6.dp)
+                                contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
                             ) {
                                 Text(
                                     stringResource(
@@ -184,7 +185,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         Box {
                             TextButton(
                                 onClick = { filterMenu = true },
-                                contentPadding = PaddingValues(horizontal = 6.dp)
+                                contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
                             ) {
                                 Text(
                                     stringResource(
@@ -208,12 +209,12 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         TextButton(
                             onClick = { vm.changeComponentsBulk(kind, visible, enable = false) },
                             enabled = !busy && visible.any { it.blocked == null && it.enabled == true },
-                            contentPadding = PaddingValues(horizontal = 6.dp)
+                            contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
                         ) { Text(stringResource(R.string.select_all)) }
                         TextButton(
                             onClick = { vm.invertComponentsBulk(kind, visible) },
                             enabled = !busy && visible.any { it.blocked == null && it.enabled != null },
-                            contentPadding = PaddingValues(horizontal = 6.dp)
+                            contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
                         ) { Text(stringResource(R.string.invert_selection)) }
                     }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
