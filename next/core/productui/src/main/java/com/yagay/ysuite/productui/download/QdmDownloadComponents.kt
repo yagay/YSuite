@@ -46,6 +46,9 @@ import androidx.compose.runtime.Composable
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YTextActionButton
+import com.yagay.yui.YResponsiveFieldAction
+import com.yagay.yui.YResponsiveFieldPair
+import com.yagay.yui.YUiAlertDialog
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -553,33 +556,25 @@ fun QdmAddDownloadDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Row(
-                    horizontalArrangement =
-                        Arrangement.spacedBy(
-                            YSuiteSpacing.Small,
-                        ),
-                    verticalAlignment =
-                        Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = model.fileName,
-                        onValueChange =
-                            onFileNameChange,
-                        label = {
-                            Text(labels.fileName)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    YSecondaryActionButton(
-                        onClick = onFetch,
-                        enabled =
-                            model.url.isNotBlank() &&
-                                !model.loading,
-                    ) {
-                        Text(labels.fetch)
-                    }
-                }
+                YResponsiveFieldAction(
+                    field = { fieldModifier ->
+                        OutlinedTextField(
+                            value = model.fileName,
+                            onValueChange = onFileNameChange,
+                            label = { Text(labels.fileName) },
+                            singleLine = true,
+                            modifier = fieldModifier,
+                        )
+                    },
+                    action = {
+                        YSecondaryActionButton(
+                            onClick = onFetch,
+                            enabled = model.url.isNotBlank() && !model.loading,
+                        ) {
+                            Text(labels.fetch)
+                        }
+                    },
+                )
 
                 model.metadataText?.let {
                     Text(
@@ -766,35 +761,27 @@ fun QdmAddDownloadDialog(
                     label = { Text(labels.cookies) },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(
-                    horizontalArrangement =
-                        Arrangement.spacedBy(
-                            YSuiteSpacing.Small,
-                        ),
-                ) {
-                    OutlinedTextField(
-                        value = model.username,
-                        onValueChange =
-                            onUsernameChange,
-                        label = {
-                            Text(labels.username)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedTextField(
-                        value = model.password,
-                        onValueChange =
-                            onPasswordChange,
-                        label = {
-                            Text(labels.password)
-                        },
-                        singleLine = true,
-                        visualTransformation =
-                            PasswordVisualTransformation(),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                YResponsiveFieldPair(
+                    first = { fieldModifier ->
+                        OutlinedTextField(
+                            value = model.username,
+                            onValueChange = onUsernameChange,
+                            label = { Text(labels.username) },
+                            singleLine = true,
+                            modifier = fieldModifier,
+                        )
+                    },
+                    second = { fieldModifier ->
+                        OutlinedTextField(
+                            value = model.password,
+                            onValueChange = onPasswordChange,
+                            label = { Text(labels.password) },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = fieldModifier,
+                        )
+                    },
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -840,7 +827,7 @@ fun QdmDownloadPropertiesDialog(
     closeLabel: String,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.AlertDialog(
+    YUiAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
