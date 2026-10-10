@@ -34,7 +34,7 @@
     <string name="yfloat_theme_dark">深色</string>
     <string name="yfloat_main_menu_count">主菜单操作数量</string>
     <string name="yfloat_item_count">%1$d 个</string>
-    <string name="yfloat_main_menu_count_hint">可设置 4 到 8 个实际操作。复制、全选和分享会计入。更多菜单单独显示并始终可用。</string>
+    <string name="yfloat_main_menu_count_hint">可设置 2 到 32 个实际操作。复制、全选和分享会计入。更多菜单单独显示并始终可用。</string>
 
     <string name="yfloat_gesture_hub_title">手势与轨迹</string>
     <string name="yfloat_gesture_hub_desc">手势参数、轨迹反馈和动作映射集中在这里。</string>
