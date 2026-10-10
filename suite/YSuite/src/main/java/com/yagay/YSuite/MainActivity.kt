@@ -184,11 +184,6 @@ class MainActivity : YComposeActivity() {
                     if (settingsModuleId != null) settingsModuleId = null else settingsOpen = false
                 },
                 onSelectModule = { settingsModuleId = it },
-                onOpenManagement = {
-                    settingsOpen = false
-                    managingFeatureId = null
-                    managementMode = true
-                },
             )
         } else {
         YDashboardScaffold(
