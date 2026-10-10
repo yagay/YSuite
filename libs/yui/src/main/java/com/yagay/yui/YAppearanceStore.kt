@@ -230,6 +230,14 @@ class YAppearanceStore(context: Context) {
         prefs.unregisterOnSharedPreferenceChangeListener(listener)
     }
 
+    /** Clear all scoped visual overrides, keeping the global appearance and feature data.
+     * Allows older migrated feature preferences to explicitly inherit one unified theme. */
+    fun inheritGlobalAppearanceForAllModules() {
+        val editor = prefs.edit()
+        prefs.all.keys.filter { MODULE_KEY.matches(it) }.forEach(editor::remove)
+        check(editor.commit()) { "Unable to synchronize module appearance" }
+    }
+
     fun listen(onChange: () -> Unit): () -> Unit {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> onChange() }
         prefs.registerOnSharedPreferenceChangeListener(listener)
