@@ -379,7 +379,7 @@ fun YSectionTitle(title: String, subtitle: String? = null) {
 fun YEmptyState(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        modifier = modifier.padding(vertical = YDimens.ScreenVertical),
+        modifier = modifier.padding(vertical = LocalYAppearance.current.pageVerticalPaddingDp.dp),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
