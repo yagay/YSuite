@@ -63,6 +63,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yagay.suite.core.FeatureSpec
+import com.yagay.suite.core.SuiteCommonSetting
+import com.yagay.suite.core.SuiteCommonSettings
 import com.yagay.yui.YDimens
 import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.rememberYAppearance
@@ -100,6 +102,10 @@ internal fun CompactSuiteHome(
 ) {
     val context = LocalContext.current
     val appearance = rememberYAppearance()
+    val general = remember(context.applicationContext) { SuiteCommonSettings(context) }
+    val hideDisabled = general.value(SuiteCommonSetting.HOME_HIDE_DISABLED) == "true"
+    val showSearch = general.value(SuiteCommonSetting.HOME_SHOW_SEARCH) == "true"
+    val showDiagnostics = general.value(SuiteCommonSetting.HOME_SHOW_DIAGNOSTICS) == "true"
     val prefs = remember(context) {
         context.getSharedPreferences(HOME_SETTINGS_NAME, Context.MODE_PRIVATE)
     }
@@ -120,10 +126,10 @@ internal fun CompactSuiteHome(
         .mapNotNull(moduleById::get)
     val visible = ordered.filter { module ->
         val query = search.trim()
-        query.isEmpty() ||
+        (!hideDisabled || module.enabled) && (query.isEmpty() ||
             module.label.contains(query, ignoreCase = true) ||
             module.description.contains(query, ignoreCase = true) ||
-            module.feature.id.contains(query, ignoreCase = true)
+            module.feature.id.contains(query, ignoreCase = true))
     }
 
     LazyColumn(
@@ -190,6 +196,7 @@ internal fun CompactSuiteHome(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
                 )
+                if (showSearch) {
                 IconButton(onClick = {
                     searching = !searching
                     if (!searching) search = ""
@@ -199,11 +206,14 @@ internal fun CompactSuiteHome(
                         contentDescription = stringResource(R.string.home_search),
                     )
                 }
+                }
+                if (showDiagnostics) {
                 IconButton(onClick = onExportAll) {
                     Icon(
                         imageVector = Icons.Default.Description,
                         contentDescription = stringResource(R.string.export_full_diagnostic),
                     )
+                }
                 }
                 IconButton(onClick = { onManage(null) }) {
                     Icon(
