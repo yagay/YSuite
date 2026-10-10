@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.view.View
@@ -105,23 +106,33 @@ object YView {
         view.setTextColor(onSurface(view.context))
     }
 
-    /** Keep a 48dp clickable View but draw its Material background with tighter insets. */
-    @JvmStatic fun stylePrimaryButton(button: Button) {
+    /** Both View button variants consume the same contrast-safe accent and geometry as Compose. */
+    @JvmStatic fun stylePrimaryButton(button: Button) = styleButton(button, outlined = false)
+    @JvmStatic fun styleSecondaryButton(button: Button) = styleButton(button, outlined = true)
+
+    private fun styleButton(button: Button, outlined: Boolean) {
         val context = button.context
-        val appearance = YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context))
+        val appearance = appearance(context)
+        val colors = palette(context)
         button.minHeight = dp(context, appearance.buttonHeightDp)
         button.isAllCaps = false
         button.minWidth = 0
         button.setPadding(dp(context, appearance.buttonPaddingHorizontalDp), dp(context, appearance.buttonVerticalPaddingDp),
             dp(context, appearance.buttonPaddingHorizontalDp), dp(context, appearance.buttonVerticalPaddingDp))
+        button.backgroundTintList = ColorStateList.valueOf(
+            if (outlined) Color.TRANSPARENT else colors.primary.toArgb(),
+        )
+        button.setTextColor(if (outlined) colors.primary.toArgb() else colors.onPrimary.toArgb())
         if (button is MaterialButton) {
             button.cornerRadius = dp(context, appearance.buttonRadiusDp)
             button.insetTop = dimen(context, R.dimen.yui_button_inset_vertical)
             button.insetBottom = dimen(context, R.dimen.yui_button_inset_vertical)
+            if (outlined) {
+                button.strokeColor = ColorStateList.valueOf(colors.outline.toArgb())
+                button.strokeWidth = maxOf(button.strokeWidth, dp(context, 1))
+            }
         }
     }
-
-    @JvmStatic fun styleSecondaryButton(button: Button) = stylePrimaryButton(button)
 
     @JvmStatic fun cardBackground(context: Context): GradientDrawable = GradientDrawable().apply {
         setColor(surfaceContainer(context))
