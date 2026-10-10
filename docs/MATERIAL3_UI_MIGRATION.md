@@ -1,24 +1,51 @@
-# Material 3 UI migration
+# YSuite unified Material 3 UI
 
-This branch replaces YSuite's bespoke visual component system with the upstream open-source AndroidX Compose Material 3 component implementation.
+Upstream renderer: [AndroidX Compose Material 3](https://github.com/androidx/androidx/tree/androidx-main/compose/material3)
 
-Upstream: https://github.com/androidx/androidx/tree/androidx-main/compose/material3
+## Architecture
 
-## Source of truth
+**AndroidX Material 3 → libs/yui → ordinary feature screens.**
+The upstream Material 3 library supplies accessibility, animations, semantics, typography and widgets.
+YUI owns suite-wide sizing, color mapping, default shapes, compact button insets,
+touch targets, standard dialogs and compatibility with Java/View modules.
 
-- Use `androidx.compose.material3` for themes, buttons, dialogs, inputs, lists, navigation, and overlays.
-- Keep `YTheme` as a source-compatible adapter for current feature modules, not as a second implementation. Its default color palette is shared with legacy XML themes. Dynamic colors require explicit opt-in.
-- Keep the product-specific layouts (file manager, download manager, log viewer, NFC, etc.) while replacing their common controls with upstream primitives.
-- Use the official Material 3 Typography and Shapes rather than inventing per-feature font sizes and shapes.
-- Legacy View screens use Material 3 XML themes during migration; they must ultimately become Compose screens. Do not recursively repaint/re-size View hierarchies at runtime.
-- Reuse `YDialogConfirmButton` and `YDialogDismissButton` for dialog actions; do not introduce per-feature modal button implementations.
+- `YTheme` / `YSuiteTheme`: one color, typography and shape source. Dynamic color is
+  opt-in, so legacy XML/View and Compose pages do not randomly use different palettes.
+- `YMaterialControls.kt`: upstream Material 3 button, text button, outline button,
+  icon button and checkbox adapters; all default geometry comes from `YDimens`.
+- `YMaterialInputs.kt`: standard outlined text fields with the same shape on every screen.
+- `YDialogs.kt`, `YViewDialogs.kt`: shared Compose and View dialog entry points.
+- `YViewLayout`: legacy Java/View layouts, buttons, forms and switches use YUI XML tokens.
+- `next/core/designsystem`: backwards-compatible aliases and adapters, **not** a parallel
+  theme or collection of feature-specific default dimensions.
+- `next/core/productui`: file manager, downloader, task manager and browser keep their own
+  *page structure* (panes, command bars, drawers, tabs), but common visual controls should
+  come from YUI and the active `MaterialTheme`.
 
-## Migration status
+Do not copy Material 3 source files into features or replace feature business logic.
+Import `com.yagay.yui.YUiIconButton as IconButton` (or the matching adapter)
+when a product-specific composable expects the upstream slot API.
 
-Foundation migration in progress. This first commit unifies the Compose theme defaults, removes the global View tree restyler and dynamic-color mismatch, and consolidates shared dialog actions and setting rows. Other legacy feature-specific screens still require direct conversion; **this is not yet a full application-wide UI replacement**.
+## What has changed on this branch
 
-## Validation targets
+- Moved theme defaults and button/switch sizing to common Material 3 + YUI sources.
+- Removed recursive runtime restyling of View trees.
+- Centralized button, icon button, checkbox and outlined text-field default geometry
+  in the suite host, YEntryCleaner and the rebuilt YFiles/YDownload product workspaces.
+- Routed standard dialogs from YNotify, YFloat and YParam through the Material 3
+  View dialog builder while retaining existing dialog content and actions.
+- Added `tools/verify_yui_controls.py` to architecture CI so feature UI cannot
+  reintroduce independent Material 3 button/input imports.
 
-- Compare colors, typography, dialogs, input fields, switches, buttons, lists, and settings side-by-side in light and dark modes.
-- Audit legacy View and feature-local Compose implementations for unmanaged hard-coded colors, independent styles and mismatched input controls.
-- Build `:suite:assembleDebug` and exercise the existing UI catalog before merging to `main`.
+## Known boundaries and validation
+
+This is a **shared-control migration, not an assertion that every page has been
+visually verified on a device**. Java/View screens retain their implementation
+until converted; specialized overlays keep feature-owned geometry. Material 3
+navigation, cards, menus and product-specific page composition are allowed
+provided they use the shared theme. The static import check does not prove every
+hard-coded size or layout is gone.
+
+Before merging, verify architecture checks, Gradle debug build, light/dark mode,
+dialog focus, accessibility touch targets, back navigation and the working
+file/download UI on an actual device.

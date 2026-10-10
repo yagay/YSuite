@@ -69,6 +69,9 @@ jobs:
       - name: Verify YEntryCleaner unified UI
         run: python3 tools/verify_yentry_unified_ui.py
 
+      - name: Verify shared Material3 controls across all modules
+        run: python3 tools/verify_yui_controls.py
+
       - name: Verify repository UI screen ownership
         run: python3 tools/verify_ui_screen_ownership.py
 
