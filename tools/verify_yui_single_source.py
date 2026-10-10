@@ -157,7 +157,7 @@ def main() -> None:
         source = read(shared_source)
         if "YCompactSwitch(" not in source:
             fail(f"{shared_source.relative_to(ROOT)} must use the shared compact switch")
-        if "Switch(checked = checked" in source:
+        if re.search(r"(?<![A-Za-z0-9_])Switch\(checked\s*=\s*checked", source):
             fail(f"{shared_source.relative_to(ROOT)} still uses the oversized Material switch")
     view_switches = read(YUI_ROOT / "YViewFramework.kt")
     if "compactToggle(this)" not in view_switches or "switchSlot(" not in view_switches:
