@@ -41,6 +41,7 @@ object YUiControlRegistry {
         range(YSettingKey.FONT_PERCENT, YControlGroup.TYPOGRAPHY),
         YControlDefinition(YSettingKey.DENSITY, YControlGroup.LAYOUT, YControlKind.CHOICE, choices = listOf("compact","standard","comfortable")),
         range(YSettingKey.SCREEN_PADDING, YControlGroup.LAYOUT),
+        range(YSettingKey.PAGE_VERTICAL_PADDING, YControlGroup.LAYOUT),
         range(YSettingKey.SECTION_SPACING, YControlGroup.LAYOUT),
         range(YSettingKey.CONTROL_GAP, YControlGroup.LAYOUT),
         range(YSettingKey.BUTTON_HEIGHT, YControlGroup.BUTTONS),
@@ -48,7 +49,9 @@ object YUiControlRegistry {
         range(YSettingKey.BUTTON_PADDING, YControlGroup.BUTTONS),
         range(YSettingKey.BUTTON_VERTICAL_PADDING, YControlGroup.BUTTONS),
         range(YSettingKey.ICON_TOUCH_TARGET, YControlGroup.BUTTONS),
+        range(YSettingKey.ICON_VISUAL_SIZE, YControlGroup.BUTTONS),
         range(YSettingKey.ROW_HEIGHT, YControlGroup.LISTS),
+        range(YSettingKey.LIST_ICON_SIZE, YControlGroup.LISTS),
         range(YSettingKey.ROW_HORIZONTAL_PADDING, YControlGroup.LISTS),
         range(YSettingKey.ROW_VERTICAL_PADDING, YControlGroup.LISTS),
         range(YSettingKey.CARD_RADIUS, YControlGroup.CARDS),
@@ -57,6 +60,7 @@ object YUiControlRegistry {
         range(YSettingKey.SWITCH_SLOT_WIDTH, YControlGroup.SWITCHES),
         range(YSettingKey.DIALOG_RADIUS, YControlGroup.DIALOGS),
         range(YSettingKey.NAV_RADIUS, YControlGroup.NAVIGATION),
+        range(YSettingKey.TOOLBAR_HEIGHT, YControlGroup.NAVIGATION),
     )
     val groups: List<YControlGroup> = YControlGroup.entries
     fun forGroup(group: YControlGroup): List<YControlDefinition> = definitions.filter { it.group == group }
