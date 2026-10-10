@@ -43,6 +43,8 @@ import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
 import com.yagay.yui.YUiSlider as Slider
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
@@ -540,7 +542,7 @@ fun QdmAddDownloadDialog(
                 .fillMaxWidth()
                 .padding(YSuiteSpacing.Medium)
                 .heightIn(max = maxHeight - 24.dp),
-            shape = MaterialTheme.shapes.large,
+            shape = RoundedCornerShape(LocalYAppearance.current.dialogRadiusDp.dp),
             tonalElevation = YSuiteSpacing.XSmall,
         ) {
             Column(
