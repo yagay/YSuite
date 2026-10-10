@@ -151,12 +151,15 @@ def main() -> None:
     if tokens["switch_slot_width"] < tokens["touch_target"]:
         fail("switch touch slot must meet the minimum horizontal touch size")
     compact_switch = read(YUI_ROOT / "YCompactSwitch.kt")
-    if "Role.Switch" not in compact_switch or "YDimens.SwitchTrackWidth" not in compact_switch:
-        fail("canonical Compose compact switch must have switch semantics and generated sizing")
+    # The official Material3 Switch now supplies role/semantics/animation; YUI only
+    # constrains its visual layer inside the compact token-sized layout slot.
+    for marker in ("import androidx.compose.material3.Switch", "Switch(", "graphicsLayer(", "YDimens.SwitchSlotWidth", "YDimens.SwitchSlotHeight"):
+        if marker not in compact_switch:
+            fail(f"compact switch must delegate upstream Material3 behavior: {marker}")
     for shared_source in (YUI, YUI_ROOT / "YComponents.kt"):
         source = read(shared_source)
-        if "YCompactSwitch(" not in source:
-            fail(f"{shared_source.relative_to(ROOT)} must use the shared compact switch")
+        if not any(marker in source for marker in ("YCompactSwitch(", "YSwitchItem(")):
+            fail(f"{shared_source.relative_to(ROOT)} must delegate to the shared switch row")
         if re.search(r"(?<![A-Za-z0-9_])Switch\(checked\s*=\s*checked", source):
             fail(f"{shared_source.relative_to(ROOT)} still uses the oversized Material switch")
     view_switches = read(YUI_ROOT / "YViewFramework.kt")
