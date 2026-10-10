@@ -311,6 +311,44 @@ def main() -> None:
     ):
         for required in markers:
             require(source, required, label)
+    # All numeric visual settings must use one shared validator and reach both renderers.
+    appearance_store = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YAppearanceStore.kt")
+    registry = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiControlRegistry.kt")
+    forms = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YForms.kt")
+    float_settings = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatSettings.java")
+    float_icon = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsIconPage.java")
+    float_gesture = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsGesturePage.java")
+    module_slider = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt")
+    appearance_screen = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt")
+    tokens = text(ROOT / "libs/yui/yui_tokens.json")
+    for source, markers, label in (
+        (appearance_store, ('BUTTON_RADIUS("button_radius", "12", 0, 512)',
+                            'BUTTON_HEIGHT("button_height", "48", 16, 320)',
+                            'FONT_PERCENT("font_percent", "100", 25, 400)',
+                            'PAGE_VERTICAL_PADDING(', 'ICON_VISUAL_SIZE(', 'LIST_ICON_SIZE(',
+                            'TOOLBAR_HEIGHT('), "single YUI appearance validator"),
+        (registry, ('require(minimum == key.minimum && maximum == key.maximum)',
+                    'range(YSettingKey.TOOLBAR_HEIGHT', 'range(YSettingKey.LIST_ICON_SIZE'),
+         "appearance registry"),
+        (appearance_screen, ('appearance_toolbar_height', 'appearance_list_icon_size',
+                             'appearance_icon_visual_size', 'appearance_page_vertical_padding',
+                             'appearance_exact_value'), "appearance settings editor"),
+        (forms, ('yui_exact_value', 'yui_apply_value',
+                 'it.roundToInt().coerceIn(range.first, range.last)', 'steps = 0'),
+         "shared integer slider"),
+        (module_slider, ('fun sliderSetting(', 'val precise = AppCompatEditText(context)',
+                         'YView.toolbarHeight(context)', 'YView.listIconSize(context)'),
+         "View slider and controls"),
+        (float_settings, ('clamp(p.getInt(K_SIZE, 48), 16, 192)',
+                          'clamp(p.getInt(K_LINE_WIDTH, 6), 0, 64)'),
+         "YFloat runtime values"),
+        (float_icon, ('16, 192, fs.sizeDp()',), "YFloat appearance UI"),
+        (float_gesture, ('K_LINE_WIDTH, 0, 64',), "YFloat gesture UI"),
+        (tokens, ('"button_radius": 12', '"button_padding_horizontal": 16',
+                  '"button_padding_vertical": 4'), "generated YUI defaults"),
+    ):
+        for required in markers:
+            require(source, required, label)
     print(
         "ui-framework: OK compose=YUI-v2 view=YViewPage/YViewLayout page-xml=forbidden "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
