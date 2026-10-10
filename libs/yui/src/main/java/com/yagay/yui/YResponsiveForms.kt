@@ -29,7 +29,7 @@ fun YResponsiveFieldAction(
         if (maxWidth < stackedBelow) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
                 horizontalAlignment = Alignment.End,
             ) {
                 field(Modifier.fillMaxWidth())
@@ -38,7 +38,7 @@ fun YResponsiveFieldAction(
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 field(Modifier.weight(1f))
@@ -60,7 +60,7 @@ fun YResponsiveFieldPair(
         if (maxWidth < stackedBelow) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
             ) {
                 first(Modifier.fillMaxWidth())
                 second(Modifier.fillMaxWidth())
@@ -68,7 +68,7 @@ fun YResponsiveFieldPair(
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
             ) {
                 first(Modifier.weight(1f))
                 second(Modifier.weight(1f))
@@ -86,8 +86,8 @@ fun YResponsiveActionBar(
 ) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         content()
     }
