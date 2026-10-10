@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yagay.yui.LocalYAppearance
 import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.OpenPreset
 import com.yagay.YEntryCleaner.domain.OpenTypeConfig
@@ -42,7 +43,7 @@ fun OpenPresetFilterMenu(
     Box {
         TextButton(
             onClick = { expanded = true },
-            contentPadding = PaddingValues(horizontal = 6.dp)
+            contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp)
         ) {
             Text(
                 stringResource(
@@ -50,8 +51,8 @@ fun OpenPresetFilterMenu(
                     stringResource(R.string.open_type_filter),
                     selectedTitle
                 ),
-                modifier = Modifier.widthIn(max = 150.dp),
-                maxLines = 1,
+                modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 3f).dp),
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             Icon(Icons.Rounded.ExpandMore, null)
@@ -60,7 +61,7 @@ fun OpenPresetFilterMenu(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.heightIn(max = 420.dp),
+            modifier = Modifier.heightIn(max = (LocalYAppearance.current.rowHeightDp * 8f).dp),
             scrollState = menuScroll
         ) {
             DropdownMenuItem(
@@ -84,7 +85,7 @@ fun OpenPresetFilterMenu(
                     text = {
                         Text(
                             config.localizedTitle(preset),
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     },

@@ -1,6 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
-import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -145,7 +145,7 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
     }
     val visibleRules = shownGroups.flatMap { it.components }.map { it.rule }.distinct()
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalYAppearance.current.sectionSpacingDp.dp)) {
         item(key = "module-indicator") {
             ModuleStatusRow(state, compact = true) { vm.setDestination(Destination.DASHBOARD) }
             if (state.runtime.needsDecision) RuntimePanel(state, vm, showUpdateTools = false)
@@ -354,7 +354,7 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
             item {
                 YEmptyMessage(
                     message = stringResource(R.string.no_matching_components),
-                    modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall)
+                    modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)
                 )
             }
         }
@@ -393,7 +393,7 @@ private fun SummaryRow(
         },
         subtitle = stringResource(R.string.rules_page_intro),
         detail = usageText,
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall)
+        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)
     ) {
         YStatusLine(
             label = stringResource(R.string.rules_summary_mode),

@@ -844,7 +844,7 @@ fun QdmDownloadPropertiesDialog(
         text = {
             Column(
                 modifier = Modifier
-                    .heightIn(max = 420.dp)
+                    .heightIn(max = (LocalYAppearance.current.rowHeightDp * 8f).dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
             ) {

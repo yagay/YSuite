@@ -1,6 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
-import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -70,14 +70,14 @@ internal fun AppRow(
         modifier = Modifier.fillMaxWidth()
             .bulkLockSwipe(onLock = onLock, onUnlock = onUnlock)
             .clickable(onClickLabel = expandLabel, onClick = onExpand)
-            .heightIn(min = 64.dp)
-            .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
+            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+            .padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         TriStateCheckbox(state = selectionState, onClick = { onSelect(selectionState != ToggleableState.On) })
         AppIcon(bitmap = group.appIcon, appLabel = group.appLabel)
-        Column(Modifier.weight(1f).padding(start = 10.dp)) {
-            Text(group.appLabel, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
+        Column(Modifier.weight(1f).padding(start = LocalYAppearance.current.effectiveGapDp.dp)) {
+            Text(group.appLabel, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
             Text(
                 stringResource(
                     R.string.app_row_selection_summary,
@@ -87,7 +87,7 @@ internal fun AppRow(
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             val missing = group.components.count { it.unavailable || it.restricted }
@@ -106,7 +106,7 @@ internal fun AppRow(
                     if (lockState == BulkLockState.PARTIAL) R.string.bulk_lock_partial
                     else R.string.bulk_lock_full
                 ),
-                modifier = Modifier.padding(horizontal = 8.dp).size(YDimens.IconVisualSize),
+                modifier = Modifier.padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp).size(LocalYAppearance.current.iconVisualSizeDp.dp),
                 tint = if (lockState == BulkLockState.PARTIAL) MaterialTheme.colorScheme.tertiary
                 else LocalContentColor.current
             )
@@ -139,23 +139,24 @@ internal fun ComponentRow(
                 onUnlock = onUnlock
             )
             .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() })
-            .heightIn(min = YDimens.OptionRowHeight).padding(start = 24.dp, end = 16.dp),
+            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp).padding(start = (LocalYAppearance.current.rowHorizontalPaddingDp * 1.5f).dp,
+                end = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         ComponentSelectionMark(checked)
-        Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+        Column(Modifier.weight(1f).padding(vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     item.activityLabel,
-                    modifier = Modifier.weight(1f).padding(end = 12.dp),
-                    maxLines = 1,
+                    modifier = Modifier.weight(1f).padding(end = LocalYAppearance.current.effectiveGapDp.dp),
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     stringResource(item.rule.kind.titleRes()),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -164,7 +165,7 @@ internal fun ComponentRow(
                     it,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -173,16 +174,16 @@ internal fun ComponentRow(
                     stringResource(R.string.component_shown_as, customTitle),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
             Text(
                 item.rule.className,
-                modifier = Modifier.padding(top = 2.dp),
+                modifier = Modifier.padding(top = (LocalYAppearance.current.rowVerticalPaddingDp / 3f).dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             if (item.unavailable) {
@@ -199,7 +200,7 @@ internal fun ComponentRow(
             Icon(
                 Icons.Rounded.Lock,
                 contentDescription = stringResource(R.string.bulk_lock_full),
-                modifier = Modifier.padding(horizontal = 8.dp).size(18.dp)
+                modifier = Modifier.padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp).size((LocalYAppearance.current.iconVisualSizeDp * 0.75f).dp)
             )
         }
         IconButton(onClick = onEditTitle) {
@@ -214,7 +215,7 @@ internal fun Modifier.bulkLockSwipe(
     onLock: () -> Unit,
     onUnlock: () -> Unit
 ): Modifier {
-    val threshold = with(LocalDensity.current) { 56.dp.toPx() }
+    val threshold = with(LocalDensity.current) { LocalYAppearance.current.rowHeightDp.dp.toPx() }
     return pointerInput(enabled, threshold, onLock, onUnlock) {
         if (enabled) {
             var totalDrag = 0f
@@ -240,15 +241,15 @@ internal fun Modifier.bulkLockSwipe(
 @Composable
 private fun ComponentSelectionMark(checked: Boolean) {
     val colors = MaterialTheme.colorScheme
-    Box(Modifier.size(YDimens.TouchTarget), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(LocalYAppearance.current.iconTouchTargetDp.dp), contentAlignment = Alignment.Center) {
         Box(
-            Modifier.size(YDimens.IconVisualSize)
+            Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp)
                 .background(if (checked) colors.primary else Color.Transparent, CircleShape)
                 .border(1.5.dp, if (checked) colors.primary else colors.outline, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             if (checked) {
-                Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(14.dp), tint = colors.onPrimary)
+                Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 0.6f).dp), tint = colors.onPrimary)
             }
         }
     }
@@ -257,13 +258,13 @@ private fun ComponentSelectionMark(checked: Boolean) {
 @Composable
 internal fun AppIcon(bitmap: Bitmap?, appLabel: String) {
     if (bitmap == null) {
-        Icon(Icons.Rounded.Apps, null, Modifier.size(YDimens.ListIconSize))
+        Icon(Icons.Rounded.Apps, null, Modifier.size(LocalYAppearance.current.listIconSizeDp.dp))
         return
     }
     Image(
         bitmap = bitmap.asImageBitmap(),
         contentDescription = stringResource(R.string.app_icon_description, appLabel),
-        modifier = Modifier.size(YDimens.ListIconSize).clip(MaterialTheme.shapes.small),
+        modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp).clip(MaterialTheme.shapes.small),
         contentScale = ContentScale.Fit
     )
 }

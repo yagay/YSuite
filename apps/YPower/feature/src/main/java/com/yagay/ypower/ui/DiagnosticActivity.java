@@ -169,7 +169,9 @@ public class DiagnosticActivity extends AppCompatActivity {
         output.setTextIsSelectable(true);
         output.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         ScrollView scroll = YViewLayout.scrollPage(this, output);
-        result.addView(scroll, new LinearLayout.LayoutParams(-1, dp(420)));
+        result.addView(scroll, new LinearLayout.LayoutParams(-1,
+                Math.min(getResources().getDisplayMetrics().heightPixels * 2 / 3,
+                        Math.max(YView.rowHeight(this) * 8, YView.touchTarget(this) * 4))));
     }
 
     private void startSession() {

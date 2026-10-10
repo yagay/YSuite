@@ -18,7 +18,9 @@ def require(path: Path, *markers: str) -> list[str]:
 def main() -> int:
     errors: list[str] = []
     errors += require(YUI / "YViewFramework.kt",
-                      "setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)")
+                      "setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)",
+                      "ViewGroup.LayoutParams.WRAP_CONTENT,",
+                      "maxOf(content.paddingBottom, sectionGap(context) + YView.controlGap(context))")
     errors += require(YUI / "YAdaptive.kt",
                       "BoxWithConstraints(modifier.fillMaxSize())",
                       "NavigationSuiteType.NavigationBar",
@@ -52,7 +54,8 @@ def main() -> int:
                       "screenWidthDp < 480",
                       "PopupMenu popup",
                       "YView.touchTarget(this)",
-                      "titleView.setMaxLines(2)")
+                      "titleView.setMaxLines(Integer.MAX_VALUE)",
+                      "sub.setMaxLines(Integer.MAX_VALUE)")
     if errors:
         print("yui-content: incompatible or missing UI contracts:", file=sys.stderr)
         for error in errors:

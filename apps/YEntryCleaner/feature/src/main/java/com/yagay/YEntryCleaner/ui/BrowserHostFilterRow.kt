@@ -35,6 +35,8 @@ import com.yagay.yui.YFormDialog
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YTextField
+import com.yagay.yui.LocalYAppearance
+import androidx.compose.ui.platform.LocalConfiguration
 import com.yagay.yui.YSettingRow
 
 /** Compact BROWSER-domain selector shown inside the shared top filter row. */
@@ -50,7 +52,8 @@ fun BrowserHostFilterMenu(
     var hostQuery by remember { mutableStateOf("") }
     var anchorWidthPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
-    val menuWidth = 296.dp
+    val menuWidth = minOf(296f, LocalConfiguration.current.screenWidthDp.toFloat() -
+        2f * LocalYAppearance.current.screenPaddingDp).coerceAtLeast(160f).dp
     val menuHorizontalOffset = with(density) {
         ((anchorWidthPx.toDp() - menuWidth) / 2)
     }
@@ -68,7 +71,7 @@ fun BrowserHostFilterMenu(
         TextButton(
             onClick = { expanded = true },
             modifier = Modifier.onSizeChanged { anchorWidthPx = it.width },
-            contentPadding = PaddingValues(horizontal = 6.dp)
+            contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp)
         ) {
             Text(
                 stringResource(
@@ -76,8 +79,8 @@ fun BrowserHostFilterMenu(
                     stringResource(R.string.browser_domain_filter),
                     selectedTitle
                 ),
-                modifier = Modifier.widthIn(max = 170.dp),
-                maxLines = 1,
+                modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 3f).dp),
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             Icon(Icons.Rounded.ExpandMore, null)
@@ -87,20 +90,20 @@ fun BrowserHostFilterMenu(
             onDismissRequest = { hostQuery = ""; expanded = false },
             modifier = Modifier
                 .width(menuWidth)
-                .heightIn(max = 420.dp),
+                .heightIn(max = (LocalYAppearance.current.rowHeightDp * 8f).dp),
             offset = DpOffset(menuHorizontalOffset, 0.dp),
             scrollState = menuScroll
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp)
+                    .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                     .clickable {
                         hostQuery = ""
                         expanded = false
                         onSelected(null)
                     }
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -120,13 +123,13 @@ fun BrowserHostFilterMenu(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp)
+                    .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                     .clickable {
                         hostQuery = ""
                         expanded = false
                         onManage()
                     }
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Spacer(Modifier.width(24.dp))
@@ -149,13 +152,13 @@ fun BrowserHostFilterMenu(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(36.dp)
+                            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                             .clickable {
                                 hostQuery = ""
                                 expanded = false
                                 onSelected(host)
                             }
-                            .padding(horizontal = 12.dp),
+                            .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -172,7 +175,7 @@ fun BrowserHostFilterMenu(
                         }
                         Text(
                             host,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     }

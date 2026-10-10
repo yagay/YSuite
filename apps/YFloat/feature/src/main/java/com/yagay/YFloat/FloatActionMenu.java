@@ -1,5 +1,6 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YView;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
