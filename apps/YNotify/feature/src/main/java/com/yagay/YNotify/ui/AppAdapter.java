@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.yagay.YNotify.R;
+import com.yagay.yui.YView;
 import com.yagay.YNotify.data.AppSummary;
 import com.yagay.YNotify.databinding.ItemAppBinding;
 import com.yagay.YNotify.util.AppInfoUtil;
@@ -48,6 +49,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     @Override public void onBindViewHolder(@NonNull Holder h, int position) {
         AppSummary s = shown.get(position);
         Context c = h.itemView.getContext();
+        // XML is the structural template; YAppearance controls live row metrics and typography.
+        h.b.getRoot().setPadding(
+                YView.screenHorizontal(c), YView.rowVerticalPadding(c),
+                YView.screenHorizontal(c), YView.rowVerticalPadding(c));
+        h.b.getRoot().setMinimumHeight(YView.rowHeight(c));
+        YView.styleItemTitle(h.b.appName);
+        YView.styleCaption(h.b.packageName);
+        YView.styleCaption(h.b.lastTime);
+        YView.styleSectionTitle(h.b.count);
         h.b.appIcon.setImageDrawable(AppInfoUtil.icon(c, s.packageName));
         h.b.appName.setText(s.appLabel == null || s.appLabel.isBlank()
                 ? c.getString(R.string.ynotify_unknown_app)
