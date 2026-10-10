@@ -36,6 +36,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".AppearanceSettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
         <!-- One host-owned file-share surface for every embedded feature. -->
         <provider
             android:name="androidx.core.content.FileProvider"
