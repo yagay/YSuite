@@ -25,11 +25,11 @@ object YDimens {
     val NavigationRailWidth = 80.dp
     val PaneGap = 16.dp
     val ButtonVisualHeight = 48.dp
-    val ButtonPaddingHorizontal = 24.dp
-    val ButtonPaddingVertical = 8.dp
+    val ButtonPaddingHorizontal = 16.dp
+    val ButtonPaddingVertical = 4.dp
     val ButtonInsetVertical = 0.dp
     val ButtonTextPaddingHorizontal = 16.dp
-    val ButtonRadius = 24.dp
+    val ButtonRadius = 12.dp
     val OptionRowHeight = 56.dp
     val ListIconSize = 48.dp
     val IconVisualSize = 24.dp
