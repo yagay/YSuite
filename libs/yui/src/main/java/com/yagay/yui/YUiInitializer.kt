@@ -3,7 +3,6 @@ package com.yagay.yui
 import android.app.Activity
 import android.app.Application
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -77,8 +76,7 @@ object YUiRuntime {
             window.isNavigationBarContrastEnforced = false
         }
 
-        val nightMask = activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val dark = nightMask == Configuration.UI_MODE_NIGHT_YES
+        val dark = YView.isDark(activity)
         WindowCompat.getInsetsController(window, decor).apply {
             isAppearanceLightStatusBars = !dark
             isAppearanceLightNavigationBars = !dark
