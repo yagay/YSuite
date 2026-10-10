@@ -811,7 +811,6 @@ object YViewLayout {
             background = rounded(context, if (positive) successSurface(context) else warningSurface(context), 999)
         }
 
-    @JvmStatic
     /** Kept for Java call sites: this now uses the same standard size as secondaryButton. */
     @Deprecated("Use secondaryButton; compact button density has been removed.")
     @JvmStatic
