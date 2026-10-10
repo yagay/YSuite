@@ -14,3 +14,8 @@
 -keepclasseswithmembers,includedescriptorclasses class * {
     native <methods>;
 }
+
+# Android does not provide desktop Java EL or Kerberos/JGSS. These code paths are
+# optional in MBassador/SMBJ and are not used by Android feature transports.
+-dontwarn javax.el.**
+-dontwarn org.ietf.jgss.**

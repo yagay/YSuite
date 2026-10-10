@@ -43,6 +43,8 @@ dependencies {
     implementation(libs.androidx.documentfile)
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("org.apache.commons:commons-compress:1.28.0")
+    // Provide the optional Brotli decoder instead of suppressing a real archive feature.
+    implementation("org.brotli:dec:0.1.2")
     implementation("net.lingala.zip4j:zip4j:2.11.6")
     implementation("com.github.junrar:junrar:7.6.0")
     implementation("org.tukaani:xz:1.10")
