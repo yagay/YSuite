@@ -508,6 +508,17 @@ def main() -> None:
                           (float_main, "YFloat main page")):
         require(source, "YViewLayout.sectionNote(", label)
 
+    # Legacy home and common components must not retain a second static layout scale.
+    compact_dashboard = text(ROOT / "next/core/ui/src/main/java/com/yagay/ysuite/ui/YSuiteCompactDashboard.kt")
+    browser_hosts = text(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/BrowserHostFilterRow.kt")
+    unified_design = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt")
+    if "YDimens." in compact_dashboard or "LocalYAppearance.current" not in compact_dashboard:
+        fail("YSuiteCompactDashboard must use live YUI appearance instead of static YDimens")
+    if ".heightIn(max = 320.dp)" in browser_hosts:
+        fail("BrowserHostFilterRow must derive its scroll-panel height from YUI")
+    if "Arrangement.spacedBy(8.dp)" in unified_design:
+        fail("shared YUI component spacing must use live appearance rather than fixed 8dp")
+
     # All regular screens identified in the fixed-dp audit must use live YUI
     # appearance values. Keep this check as new modules are migrated.
     runtime_sized_screens = (

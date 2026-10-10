@@ -1,6 +1,6 @@
 package com.yagay.ysuite.ui
 
-import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -145,21 +145,21 @@ internal fun YSuiteCompactDashboard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall)
+                        .padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)
                         .background(
                             MaterialTheme.colorScheme.surfaceContainerLow,
                             MaterialTheme.shapes.medium,
                         )
                         .clickable { onSelect(systemId) }
-                        .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap),
+                        .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.effectiveGapDp.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
+                    horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.sectionSpacingDp.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(YDimens.IconVisualSize),
+                        modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -170,13 +170,13 @@ internal fun YSuiteCompactDashboard(
                             text = stringResource(R.string.home_system_status_detail),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            maxLines = Int.MAX_VALUE,
                         )
                     }
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                 }
             }
@@ -185,7 +185,7 @@ internal fun YSuiteCompactDashboard(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                     singleLine = true,
                     label = { Text(stringResource(R.string.home_search_modules)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
@@ -193,7 +193,7 @@ internal fun YSuiteCompactDashboard(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = YDimens.ScreenHorizontal, end = YDimens.ControlGap, top = YDimens.ControlGap, bottom = YDimens.SpacingXsmall),
+                modifier = Modifier.fillMaxWidth().padding(start = LocalYAppearance.current.screenPaddingDp.dp, end = LocalYAppearance.current.effectiveGapDp.dp, top = LocalYAppearance.current.effectiveGapDp.dp, bottom = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -231,7 +231,7 @@ internal fun YSuiteCompactDashboard(
                             onTogglePin = { togglePin(module.id) },
                         )
                         HorizontalDivider(
-                            thickness = 0.5.dp,
+                            thickness = (LocalYAppearance.current.effectiveGapDp / 24f).coerceAtLeast(0.5f).dp,
                             color = MaterialTheme.colorScheme.outlineVariant,
                         )
                     }
@@ -254,7 +254,7 @@ private fun CompactModuleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = YDimens.OptionRowHeight)
+            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
             // Horizontal gestures do not intercept the LazyColumn's vertical scrolling.
             // Swipe right to pin, left to unpin; the menu remains the accessible fallback.
             .pointerInput(pinned) {
@@ -278,14 +278,14 @@ private fun CompactModuleRow(
                 onClick = onOpen,
                 onLongClick = { menuExpanded = true },
             )
-            .padding(start = YDimens.ScreenHorizontal, end = YDimens.SpacingXsmall, top = YDimens.SpacingSmall, bottom = YDimens.SpacingSmall),
+            .padding(start = LocalYAppearance.current.screenPaddingDp.dp, end = LocalYAppearance.current.rowVerticalPaddingDp.dp, top = LocalYAppearance.current.rowVerticalPaddingDp.dp, bottom = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.sectionSpacingDp.dp),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = MaterialTheme.shapes.small,
-            modifier = Modifier.size(YDimens.ListIconSize),
+            modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
@@ -300,7 +300,7 @@ private fun CompactModuleRow(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
-            maxLines = 1,
+            maxLines = Int.MAX_VALUE,
             overflow = TextOverflow.Ellipsis,
         )
         if (pinned) {
@@ -308,7 +308,7 @@ private fun CompactModuleRow(
                 imageVector = Icons.Default.Star,
                 contentDescription = stringResource(R.string.home_pinned),
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 0.75f).dp),
             )
         }
         Box {

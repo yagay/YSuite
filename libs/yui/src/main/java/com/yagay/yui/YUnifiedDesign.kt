@@ -479,8 +479,8 @@ fun YStatusItem(
 fun YStatusStrip(statuses: List<YStatusSpec>, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         statuses.forEach { status -> YStatusPill(status.label, status.value, status.tone) }
     }
@@ -519,7 +519,7 @@ fun YNotice(text: String, modifier: Modifier = Modifier, tone: YNoticeTone = YNo
         YNoticeTone.ERROR -> MaterialTheme.colorScheme.onErrorContainer
     }
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = container) {
-        Text(text, Modifier.padding(horizontal = 14.dp, vertical = 11.dp), color = foreground)
+        Text(text, Modifier.padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp), color = foreground)
     }
 }
 
@@ -642,7 +642,7 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         actions.forEach { action ->
             when (action.style) {
@@ -673,7 +673,7 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
 fun YFilterBar(options: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         options.forEachIndexed { index, label ->
             FilterChip(selected = selectedIndex == index, onClick = { onSelected(index) }, label = { Text(label) })
@@ -685,7 +685,7 @@ fun YFilterBar(options: List<String>, selectedIndex: Int, onSelected: (Int) -> U
 fun YToggleFilterBar(filters: List<YFilterSpec>, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         filters.forEach { filter ->
             FilterChip(
@@ -732,7 +732,7 @@ fun YSelectionBar(
     label: String = count.toString(),
 ) {
     Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
-        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(LocalYAppearance.current.cardPaddingDp.dp), verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.rowVerticalPaddingDp / 2f).dp)) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
             YActionGroup(actions)
         }
@@ -748,7 +748,7 @@ fun YLogPanel(lines: List<String>, modifier: Modifier = Modifier, maxHeightDp: I
     ) {
         SelectionContainer {
             LazyColumn(
-                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                modifier = Modifier.fillMaxWidth().padding(LocalYAppearance.current.cardPaddingDp.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 items(lines) { line ->

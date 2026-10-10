@@ -241,7 +241,7 @@ fun BrowserHostDialog(
         if (hosts.isEmpty()) {
             YEmptyMessage(message = stringResource(R.string.browser_hosts_empty))
         } else {
-            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = (LocalYAppearance.current.rowHeightDp * 6f).dp)) {
                 items(hosts, key = { it }) { host ->
                     YSettingRow(title = host) {
                         IconButton(onClick = { hosts = hosts - host }) {
