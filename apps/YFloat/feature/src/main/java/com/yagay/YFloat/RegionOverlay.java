@@ -74,7 +74,7 @@ public final class RegionOverlay {
             paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
             textPaint.setColor(YFloatOverlayStyle.primaryText(c));
             textPaint.setTextSize(YFloatOverlayStyle.textSize(c, 16f));
-            textPaint.setShadowLayer(dp(3), 0, dp(1), Color.BLACK);
+            textPaint.setShadowLayer(dp(3), 0, dp(1), YFloatOverlayStyle.scrim(getContext(), 0xFF));
         }
 
         @Override protected void onDraw(Canvas canvas) {
