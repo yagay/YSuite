@@ -74,6 +74,9 @@ jobs:
       - name: Test responsive YUI and shared appearance settings
         run: gradle --no-daemon --stacktrace :ui:testDebugUnitTest --tests com.yagay.yui.YResponsiveContentTest --tests com.yagay.yui.YAppearanceStoreTest
 
+      - name: Test shared functionality, YFiles and YDownload
+        run: gradle --no-daemon --stacktrace :core:testDebugUnitTest --tests com.yagay.suite.core.SuiteCommonSettingsTest
+
       - name: Test YFiles and YDownload feature migration
         run: gradle --no-daemon --stacktrace :api:testDebugUnitTest :yfiles-feature:testDebugUnitTest :ydownload-feature:testDebugUnitTest
 
