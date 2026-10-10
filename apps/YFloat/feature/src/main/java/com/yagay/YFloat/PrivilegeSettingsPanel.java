@@ -23,9 +23,9 @@ public final class PrivilegeSettingsPanel {
                 activity.getString(R.string.yfloat_priv_title),
                 activity.getString(R.string.yfloat_priv_desc));
 
-        TextView modeStatus = YViewLayout.caption(activity, "", 13);
-        TextView rootStatus = YViewLayout.caption(activity, "", 13);
-        TextView googleAppStatus = YViewLayout.caption(activity, "", 13);
+        TextView modeStatus = YViewLayout.rowSubtitle(activity, "");
+        TextView rootStatus = YViewLayout.rowSubtitle(activity, "");
+        TextView googleAppStatus = YViewLayout.rowSubtitle(activity, "");
 
         YViewSection master = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_priv_master_title),
@@ -83,9 +83,8 @@ public final class PrivilegeSettingsPanel {
         rootButtons.addView(checkRoot, new LinearLayout.LayoutParams(0, -2, 1f));
         YViewLayout.addRow(rootSection.body, rootButtons);
 
-        TextView rootNote = YViewLayout.caption(activity,
-                activity.getString(R.string.yfloat_priv_root_note), 12);
-        YViewLayout.addRow(rootSection.body, simpleBlock(activity, rootNote));
+        YViewLayout.addRow(rootSection.body, YViewLayout.sectionNote(activity,
+                activity.getString(R.string.yfloat_priv_root_note)));
         YViewLayout.addSection(root, rootSection);
 
         YViewSection googleAppSection = YViewLayout.section(activity,
@@ -180,12 +179,11 @@ public final class PrivilegeSettingsPanel {
         googleAdvancedRow.addView(restoreGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
         YViewLayout.addRow(googleAppSection.body, googleAdvancedRow);
 
-        TextView googleNote = YViewLayout.caption(activity,
-                activity.getString(R.string.yfloat_priv_google_note), 12);
-        YViewLayout.addRow(googleAppSection.body, simpleBlock(activity, googleNote));
+        YViewLayout.addRow(googleAppSection.body, YViewLayout.sectionNote(activity,
+                activity.getString(R.string.yfloat_priv_google_note)));
         YViewLayout.addSection(root, googleAppSection);
 
-        TextView lsposedStatus = YViewLayout.caption(activity, "", 13);
+        TextView lsposedStatus = YViewLayout.rowSubtitle(activity, "");
         YViewSection lsposedSection = YViewLayout.section(activity, "LSPosed",
                 activity.getString(R.string.yfloat_priv_lsposed_desc));
         MaterialSwitch lsposedSwitch = preferenceSwitch(activity, fs,
@@ -267,9 +265,8 @@ public final class PrivilegeSettingsPanel {
         lsposedTools.addView(probeSecure, new LinearLayout.LayoutParams(0, -2, 1f));
         YViewLayout.addRow(lsposedSection.body, lsposedTools);
 
-        TextView lsposedNote = YViewLayout.caption(activity,
-                activity.getString(R.string.yfloat_priv_lsposed_note), 12);
-        YViewLayout.addRow(lsposedSection.body, simpleBlock(activity, lsposedNote));
+        YViewLayout.addRow(lsposedSection.body, YViewLayout.sectionNote(activity,
+                activity.getString(R.string.yfloat_priv_lsposed_note)));
 
         LsposedStatusManager.Listener lsposedListener = snapshot -> {
             lsposedSwitch.setEnabled(PrivilegeManager.lsposedProviderAvailable());
@@ -317,16 +314,10 @@ public final class PrivilegeSettingsPanel {
 
     private static LinearLayout statusBlock(AppCompatActivity activity, String title, TextView status) {
         LinearLayout block = YViewLayout.settingBlock(activity);
-        block.addView(YViewLayout.text(activity, title, 14, false));
+        block.addView(YViewLayout.rowTitle(activity, title));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = YViewLayout.dp(activity, 4);
         block.addView(status, lp);
-        return block;
-    }
-
-    private static LinearLayout simpleBlock(AppCompatActivity activity, TextView text) {
-        LinearLayout block = YViewLayout.settingBlock(activity);
-        block.addView(text, new LinearLayout.LayoutParams(-1, -2));
         return block;
     }
 

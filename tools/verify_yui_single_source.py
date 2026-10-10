@@ -165,9 +165,12 @@ def main() -> None:
 
     standard_switch = read(YUI_ROOT / "YCompactSwitch.kt")
     for marker in ("fun YStandardSwitch(", "import androidx.compose.material3.Switch",
-                   "Switch(", "YDimens.SwitchSlotWidth", "YDimens.SwitchSlotHeight"):
+                   "Switch(", "LocalYAppearance.current.switchSlotWidthDp",
+                   "LocalYAppearance.current.iconTouchTargetDp"):
         if marker not in standard_switch:
             fail(f"standard switch must delegate upstream Material3: {marker}")
+    if "YDimens.SwitchSlot" in standard_switch:
+        fail("standard Compose switch cannot use static switch-slot dimensions")
     if "graphicsLayer(" in standard_switch or "scaleX = 0.75f" in standard_switch:
         fail("standard Compose switch must not be visually shrunk")
     for shared_source in (YUI, YUI_ROOT / "YComponents.kt"):
@@ -177,6 +180,10 @@ def main() -> None:
         if re.search(r"(?<![A-Za-z0-9_])Switch\(checked\s*=\s*checked", source):
             fail(f"{shared_source.relative_to(ROOT)} must use shared switch rendering")
     view_switches = read(YUI_ROOT / "YViewFramework.kt")
+    if "SwitchMaterial(" in view_switches or view_switches.count("MaterialSwitch(context).apply") != 1:
+        fail("View switch must have a single Material 3 renderer")
+    if "val toggle = switchRow(parent.context, title, description, checked, listener)" not in view_switches:
+        fail("both View switch-row overloads must share one implementation")
     if "styleStandardToggle(this)" not in view_switches or "switchSlot(" not in view_switches:
         fail("Java/View switch rows must use standard geometry")
     if "scaleX = scale" in view_switches or "scaleY = scale" in view_switches:

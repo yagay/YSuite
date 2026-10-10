@@ -443,7 +443,7 @@ fun YCheckboxItem(
     selected = checked,
     enabled = enabled,
     onClick = { if (enabled) onCheckedChange(!checked) },
-    trailing = { Checkbox(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
+    trailing = { YUiCheckbox(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
 )
 
 @Composable
@@ -453,7 +453,7 @@ fun YCheckboxControl(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Checkbox(
+    YUiCheckbox(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,

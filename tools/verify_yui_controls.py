@@ -19,7 +19,7 @@ SOURCES = (
 # Common controls instead pass through libs/yui to share geometry, defaults and accessibility.
 CONTROL_IMPORT = re.compile(
     r"^import\s+androidx\.compose\.material3\."
-    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow)\b",
+    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch)\b",
     re.MULTILINE,
 )
 PRODUCT_CONTROL_IMPORT = re.compile(
@@ -31,7 +31,7 @@ PRODUCT_CONTROL_FQCN = re.compile(
 )
 CONTROL_FQCN = re.compile(
     r"\bandroidx\.compose\.material3\."
-    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow)\s*\("
+    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch)\s*\("
 )
 
 def main() -> None:
@@ -56,11 +56,21 @@ def main() -> None:
                     bad.append("material3 wildcard import")
                 if bad:
                     failures.append(f"{path.relative_to(ROOT)}: {', '.join(bad)}")
-            elif (
-                "import androidx.appcompat.app.AlertDialog;" in source
-                and "new AlertDialog.Builder(" in source
-            ):
-                failures.append(f"{path.relative_to(ROOT)}: use YViewDialogs.builder()")
+            elif path.suffix == ".java":
+                # Non-YUI screen modules may hold SwitchCompat references, but cannot
+                # instantiate a second switch style or change the track/thumb locally.
+                if re.search(
+                    r"\\bnew\\s+(?:SwitchMaterial|MaterialSwitch|SwitchCompat|Switch)\\s*\\(",
+                    source,
+                ):
+                    failures.append(f"{path.relative_to(ROOT)}: construct switches using YViewLayout.switchRow")
+                if re.search(r"\\.set(?:Thumb|Track|TrackDecoration)Tint(?:List|Mode)?\\s*\\(", source):
+                    failures.append(f"{path.relative_to(ROOT)}: only YUI may style switch colors")
+                if (
+                    "import androidx.appcompat.app.AlertDialog;" in source
+                    and "new AlertDialog.Builder(" in source
+                ):
+                    failures.append(f"{path.relative_to(ROOT)}: use YViewDialogs.builder()")
     # Both modern Compose features and legacy compatibility facades must share one
     # implementation for normal-screen controls. Catch accidental future duplication.
     core = ROOT / "libs/yui/src/main/java/com/yagay/yui"
@@ -100,6 +110,16 @@ def main() -> None:
             failures.append(f"YUI {path.name} reintroduced a standalone Scaffold")
         if path.name != "YMaterialDialogs.kt" and re.search(r"^import androidx\.compose\.material3\.AlertDialog\s*$", code, re.MULTILINE):
             failures.append(f"YUI {path.name} reintroduced direct Material3 dialog rendering")
+    switch_facade = (core / "YCompactSwitch.kt").read_text(encoding="utf-8")
+    view_facade = (core / "YViewFramework.kt").read_text(encoding="utf-8")
+    if switch_facade.count("Switch(") != 1:
+        failures.append("Compose switch must be rendered exactly once in YStandardSwitch")
+    if "YDimens.SwitchSlot" in switch_facade:
+        failures.append("Compose switch slot may not use fixed YDimens")
+    if view_facade.count("MaterialSwitch(context).apply") != 1:
+        failures.append("View switch must have one MaterialSwitch implementation")
+    if "SwitchMaterial(" in view_facade:
+        failures.append("View switch may not resurrect the older SwitchMaterial renderer")
     if section_definitions != ["YUnifiedDesign.kt"]:
         failures.append(f"YSection must have exactly one implementation: {section_definitions}")
     yui_view = core / "YView.kt"

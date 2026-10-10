@@ -71,8 +71,8 @@ final class SettingsCapturePage {
         } catch (Throwable t) {
             DiagnosticLog.i(activity, "OCR_MODEL_UI",
                     "init failure=" + t.getClass().getSimpleName() + ":" + String.valueOf(t.getMessage()));
-            TextView err = YViewLayout.caption(activity,
-                    activity.getString(R.string.yfloat_local_models_unavailable), 13);
+            TextView err = YViewLayout.rowSubtitle(activity,
+                    activity.getString(R.string.yfloat_local_models_unavailable));
             LinearLayout row = YViewLayout.baseRow(activity);
             row.addView(err, new LinearLayout.LayoutParams(-1, -2));
             YViewLayout.addRow(models.body, row);
