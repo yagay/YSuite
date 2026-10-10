@@ -96,7 +96,7 @@ public final class ProfileStore {
         SharedPreferences.Editor e = remote.edit();
         e.putString(KEY_ENABLED, toJson(enabled));
         for (String pkg : enabled) {
-            e.putString(PROFILE_PREFIX + pkg, local.getString(PROFILE_PREFIX + pkg, new AppProfile(pkg).toJson().toString()));
+            e.putString(PROFILE_PREFIX + pkg, local.string(PROFILE_PREFIX + pkg, new AppProfile(pkg).toJson().toString()));
         }
         e.apply();
     }
