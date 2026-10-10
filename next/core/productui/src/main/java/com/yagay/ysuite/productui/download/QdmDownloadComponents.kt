@@ -841,8 +841,10 @@ fun QdmDownloadPropertiesDialog(
         title = { Text(title) },
         text = {
             Column(
-                verticalArrangement =
-                    Arrangement.spacedBy(YSuiteSpacing.Small),
+                modifier = Modifier
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
             ) {
                 properties.forEach { property ->
                     Column {
