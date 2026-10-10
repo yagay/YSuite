@@ -18,9 +18,16 @@ def require(path: Path, *markers: str) -> list[str]:
 def main() -> int:
     errors: list[str] = []
     errors += require(YUI / "YViewFramework.kt",
-                      "setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)",
+                      "YView.styleCaption(this)",
+                      "YView.styleLabel(this)",
+                      "YView.styleBody(this)",
                       "ViewGroup.LayoutParams.WRAP_CONTENT,",
                       "maxOf(content.paddingBottom, sectionGap(context) + YView.controlGap(context))")
+    view_source = (YUI / "YViewFramework.kt").read_text(encoding="utf-8")
+    # Old per-call SP overrides defeated the shared TextAppearance and caused YFloat
+    # subtitles/checkboxes to appear different from other feature screens.
+    if "setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)" in view_source:
+        errors.append("YViewLayout must use YUI typography roles, not caller-supplied SP values")
     errors += require(YUI / "YAdaptive.kt",
                       "BoxWithConstraints(modifier.fillMaxSize())",
                       "NavigationSuiteType.NavigationBar",
