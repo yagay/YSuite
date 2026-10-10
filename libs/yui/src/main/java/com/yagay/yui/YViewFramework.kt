@@ -795,16 +795,15 @@ object YViewLayout {
     fun text(context: Context, value: String?, sp: Float, bold: Boolean): TextView = TextView(context).apply {
         text = value.orEmpty()
         if (bold) YView.styleStrongBody(this) else YView.styleBody(this)
-        // Legacy callers explicitly supply their content hierarchy in sp.
-        // Apply it *after* the common TextAppearance, otherwise the style overrides it.
-        if (sp > 0f) setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)
+        // Compatibility argument 'sp' is intentionally ignored for standard UI.
+        // TextAppearance_YUI_Body[_Strong] provides one consistent, scalable text role.
     }
 
     @JvmStatic
     fun caption(context: Context, value: String?, sp: Float): TextView = TextView(context).apply {
         text = value.orEmpty()
         YView.styleCaption(this)
-        if (sp > 0f) setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)
+        // Caption sizing is owned by the shared YUI TextAppearance, not each module.
         setLineSpacing(0f, 1.08f)
     }
 
@@ -828,6 +827,7 @@ object YViewLayout {
     @JvmStatic
     fun statusPill(context: Context, value: String?, positive: Boolean): TextView =
         text(context, value, 12f, true).apply {
+            YView.styleLabel(this)
             setTextColor(if (positive) success(context) else warning(context))
             gravity = Gravity.CENTER
             setPadding(
@@ -992,7 +992,7 @@ object YViewLayout {
         isUseMaterialThemeColors = true
         text = title
         setTextColor(textPrimary(context))
-        textSize = 14f * YView.fontPercent(context) / 100f
+        YView.styleBody(this)
         val horizontal = YView.controlGap(context)
         val vertical = maxOf(1, YView.controlGap(context) / 2)
         setPadding(horizontal, vertical, horizontal, vertical)
