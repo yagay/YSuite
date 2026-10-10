@@ -53,6 +53,7 @@ import com.yagay.YEntryCleaner.domain.priorityCandidates
 import com.yagay.yui.YCheckboxControl
 import com.yagay.yui.YSection
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
@@ -223,7 +224,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                 )
             },
             state = listState,
-            contentPadding = PaddingValues(bottom = 16.dp)
+            contentPadding = PaddingValues(bottom = LocalYAppearance.current.sectionSpacingDp.dp)
         ) {
             item(key = "status") {
                 ModuleStatusRow(state, compact = true) { vm.setDestination(Destination.DASHBOARD) }
@@ -425,7 +426,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                 }
                             }
                             .clickable(onClickLabel = expandLabel, onClick = onExpand)
-                            .heightIn(min = 64.dp)
+                            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                             .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -448,7 +449,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             }
                         )
                         AppIcon(first.appIcon, first.appLabel)
-                        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                        Column(Modifier.weight(1f).padding(start = LocalYAppearance.current.effectiveGapDp.dp)) {
                             Text(first.appLabel, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                             val rankText = group.rank?.let {
                                 stringResource(
