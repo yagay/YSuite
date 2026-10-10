@@ -23,11 +23,11 @@ CONTROL_IMPORT = re.compile(
     re.MULTILINE,
 )
 PRODUCT_CONTROL_IMPORT = re.compile(
-    r"^import\s+androidx\.compose\.material3\.(TextField|ListItem|Text|Icon|Tab)\b",
+    r"^import\s+androidx\.compose\.material3\.(TextField|ListItem|Text|Icon|Tab|ModalDrawerSheet|ModalNavigationDrawer)\b",
     re.MULTILINE,
 )
 PRODUCT_CONTROL_FQCN = re.compile(
-    r"\bandroidx\.compose\.material3\.(TextField|ListItem|Text|Icon|Tab)\s*\("
+    r"\bandroidx\.compose\.material3\.(TextField|ListItem|Text|Icon|Tab|ModalDrawerSheet|ModalNavigationDrawer)\s*\("
 )
 CONTROL_FQCN = re.compile(
     r"\bandroidx\.compose\.material3\."

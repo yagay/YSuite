@@ -19,8 +19,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import com.yagay.yui.YUiIcon as Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
+import com.yagay.yui.YUiModalDrawerSheet as ModalDrawerSheet
+import com.yagay.yui.YUiModalNavigationDrawer as ModalNavigationDrawer
 import com.yagay.yui.YUiSurface as Surface
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable

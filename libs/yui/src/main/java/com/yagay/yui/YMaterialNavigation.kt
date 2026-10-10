@@ -27,3 +27,39 @@ fun YUiNavigationDrawerItem(
         shape = RoundedCornerShape(LocalYAppearance.current.navRadiusDp.dp),
     )
 }
+
+/**
+ * Upstream navigation behavior is preserved; only the drawer sheet geometry
+ * is supplied by the same appearance source used by all other YUI surfaces.
+ */
+@Composable
+fun YUiModalDrawerSheet(
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    androidx.compose.material3.ModalDrawerSheet(
+        modifier = modifier,
+        drawerShape = RoundedCornerShape(LocalYAppearance.current.navRadiusDp.dp),
+        content = content,
+    )
+}
+
+@Composable
+fun YUiModalNavigationDrawer(
+    drawerContent: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    drawerState: androidx.compose.material3.DrawerState =
+        androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed),
+    gesturesEnabled: Boolean = true,
+    scrimColor: androidx.compose.ui.graphics.Color = androidx.compose.material3.DrawerDefaults.scrimColor,
+    content: @Composable () -> Unit,
+) {
+    androidx.compose.material3.ModalNavigationDrawer(
+        drawerContent = drawerContent,
+        modifier = modifier,
+        drawerState = drawerState,
+        gesturesEnabled = gesturesEnabled,
+        scrimColor = scrimColor,
+        content = content,
+    )
+}
