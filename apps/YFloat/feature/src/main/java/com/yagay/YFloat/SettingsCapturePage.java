@@ -33,11 +33,14 @@ final class SettingsCapturePage {
                 FloatSettings.K_ACCESSIBILITY_SCREENSHOT, fs.accessibilityScreenshot());
         YViewLayout.addSection(root, capture);
 
-        YViewSection circleBorder = YViewLayout.section(activity,
-                activity.getString(R.string.yfloat_circle_border_section),
-                activity.getString(R.string.yfloat_circle_border_desc));
-        CircleBorderSettingsUi.add(activity, fs, circleBorder.body);
-        YViewLayout.addSection(root, circleBorder);
+        // Active selection-border visuals now belong to the YSuite appearance editor.
+        if (!"com.yagay.YSuite".equals(activity.getPackageName())) {
+            YViewSection circleBorder = YViewLayout.section(activity,
+                    activity.getString(R.string.yfloat_circle_border_section),
+                    activity.getString(R.string.yfloat_circle_border_desc));
+            CircleBorderSettingsUi.add(activity, fs, circleBorder.body);
+            YViewLayout.addSection(root, circleBorder);
+        }
 
         YViewSection circleOcr = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_native_circle_ocr_section),
