@@ -68,8 +68,11 @@ def read_source() -> dict[str, int]:
     values: dict[str, int] = {}
     for key, _ in TOKENS:
         value = raw[key]
-        if not isinstance(value, int) or value <= 0:
-            raise SystemExit(f"yui-tokens: {key} must be a positive integer dp value")
+        # A zero material-button inset is intentional at standard density.
+        # Other spacing, geometry and touch targets must remain positive.
+        is_zero_inset = key == "button_inset_vertical" and value == 0
+        if type(value) is not int or (value <= 0 and not is_zero_inset):
+            raise SystemExit(f"yui-tokens: {key} must be positive (button inset may be zero)")
         values[key] = value
     return values
 
