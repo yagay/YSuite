@@ -95,7 +95,7 @@ final class GestureTrailOverlay {
                 }
             } catch (Throwable t) {
                 paint.setShader(null);
-                paint.setColor(Color.WHITE);
+                paint.setColor(YFloatOverlayStyle.accent(getContext()));
             }
         }
 
