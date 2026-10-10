@@ -115,7 +115,7 @@ object YView {
 
     @JvmStatic fun fieldBackground(context: Context): GradientDrawable = GradientDrawable().apply {
         setColor(surfaceContainer(context))
-        cornerRadius = dp(context, 22).toFloat()
+        cornerRadius = dimen(context, R.dimen.yui_button_radius).toFloat()
         setStroke(dp(context, 1), outline(context))
     }
 

@@ -63,6 +63,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yagay.suite.core.FeatureSpec
+import com.yagay.yui.YDimens
 
 private const val HOME_SETTINGS_NAME = "ysuite_compact_home"
 private const val PINNED_IDS_KEY = "pinned_ids"
@@ -131,7 +132,7 @@ internal fun CompactSuiteHome(
                     .padding(horizontal = 10.dp, vertical = 4.dp)
                     .background(
                         MaterialTheme.colorScheme.surfaceContainerLow,
-                        RoundedCornerShape(12.dp),
+                        MaterialTheme.shapes.medium,
                     )
                     .clickable { onManage(null) }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -269,7 +270,7 @@ private fun CompactSuiteModuleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 60.dp)
+            .heightIn(min = YDimens.OptionRowHeight)
             .pointerInput(isPinned) {
                 var dragDistance = 0f
                 detectHorizontalDragGestures(
@@ -292,7 +293,7 @@ private fun CompactSuiteModuleRow(
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = RoundedCornerShape(9.dp),
+            shape = MaterialTheme.shapes.small,
             modifier = Modifier.size(34.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
