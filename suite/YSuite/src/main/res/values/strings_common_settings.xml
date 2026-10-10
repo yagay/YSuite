@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_title">Shared functionality</string>
+    <string name="common_global_desc">One place for functions used by multiple modules</string>
+    <string name="common_module_desc">Shared host controls for this module</string>
+    <string name="common_entry_title">Shared functionality</string>
+    <string name="common_entry_desc">Module switches, shared diagnostics, service access and home interactions</string>
+    <string name="common_entry_button">Manage shared functions</string>
+    <string name="common_logging_title">Shared logging</string>
+    <string name="common_logging_desc">Applies to all modules that log through the YSuite host; module overrides take precedence. Error diagnostics are always recorded.</string>
+    <string name="common_logging_level">Minimum log level</string>
+    <string name="common_log_debug">Debug (all messages)</string>
+    <string name="common_log_info">Information and above</string>
+    <string name="common_log_warning">Warnings and errors</string>
+    <string name="common_log_error">Errors only</string>
+    <string name="common_log_size">Maximum log file size</string>
+    <string name="common_log_keep_previous">Keep one previous log file</string>
+    <string name="common_log_keep_previous_desc">Retain the previous file when the current file rotates</string>
+    <string name="common_permissions_title">Shared system access</string>
+    <string name="common_permissions_desc">Actual Android authorization status for the common YSuite services</string>
+    <string name="common_permission_note">Permissions must be approved in Android settings; Root and LSPosed cannot be enabled by an in-app switch.</string>
+    <string name="common_modules_title">Module enablement</string>
+    <string name="common_modules_desc">These are the existing unified runtime switches; disabling a module also stops its Root/LSPosed gates.</string>
+    <string name="common_module_enable_desc">Use shared host runtime, Root and LSPosed state management</string>
+    <string name="common_module_customize">Shared settings for this module</string>
+    <string name="common_module_control_title">Module runtime</string>
+    <string name="common_diagnostics_title">Shared diagnostics</string>
+    <string name="common_diagnostics_desc">Export real runtime, permission, hook and module logs into Downloads/YSuite</string>
+    <string name="common_export_module">Export module diagnostics</string>
+    <string name="common_reset_title">Reset shared preferences</string>
+    <string name="common_reset_desc">Reset only logging preferences for this scope; does not change module enablement or feature data</string>
+    <string name="common_reset_action">Reset shared log settings</string>
+    <string name="common_reset_confirm">Restore default log settings for this scope? Module switches and individual feature settings stay as they are.</string>
+</resources>
