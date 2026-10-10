@@ -144,18 +144,18 @@ object YView {
 
     @JvmStatic fun color(context: Context, attr: Int, fallback: Int): Int = MaterialColors.getColor(context, attr, fallback)
     @JvmStatic fun background(context: Context): Int = color(context, com.google.android.material.R.attr.colorSurface, Color.WHITE)
-    @JvmStatic fun surface(context: Context): Int = color(context, com.google.android.material.R.attr.colorSurfaceContainer, 0xFFF5F6F8.toInt())
+    @JvmStatic fun surface(context: Context): Int = color(context, com.google.android.material.R.attr.colorSurfaceContainer, context.getColor(R.color.yui_palette_surface_container))
     @JvmStatic fun surfaceContainer(context: Context): Int = surface(context)
     @JvmStatic fun onSurface(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurface, Color.BLACK)
-    @JvmStatic fun onSurfaceVariant(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF656A73.toInt())
-    @JvmStatic fun outline(context: Context): Int = color(context, com.google.android.material.R.attr.colorOutlineVariant, 0xFFD0D5DD.toInt())
+    @JvmStatic fun onSurfaceVariant(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurfaceVariant, context.getColor(R.color.yui_palette_on_surface_variant))
+    @JvmStatic fun outline(context: Context): Int = color(context, com.google.android.material.R.attr.colorOutlineVariant, context.getColor(R.color.yui_palette_outline_variant))
     @JvmStatic fun accent(context: Context): Int = color(context, androidx.appcompat.R.attr.colorPrimary, context.getColor(R.color.yui_palette_primary))
 
-    @JvmStatic fun success(context: Context): Int = if (isDark(context)) 0xFF9BDAA8.toInt() else 0xFF146C2E.toInt()
-    @JvmStatic fun successContainer(context: Context): Int = if (isDark(context)) 0xFF005321.toInt() else 0xFFB7F2C4.toInt()
-    @JvmStatic fun warning(context: Context): Int = if (isDark(context)) 0xFFFFB95F.toInt() else 0xFF8A4D00.toInt()
-    @JvmStatic fun warningContainer(context: Context): Int = if (isDark(context)) 0xFF693900.toInt() else 0xFFFFDDB8.toInt()
-    @JvmStatic fun info(context: Context): Int = if (isDark(context)) 0xFFA7C8FF.toInt() else 0xFF285F9E.toInt()
+    @JvmStatic fun success(context: Context): Int = context.getColor(R.color.yui_palette_success)
+    @JvmStatic fun successContainer(context: Context): Int = context.getColor(R.color.yui_palette_success_container)
+    @JvmStatic fun warning(context: Context): Int = context.getColor(R.color.yui_palette_warning)
+    @JvmStatic fun warningContainer(context: Context): Int = context.getColor(R.color.yui_palette_warning_container)
+    @JvmStatic fun info(context: Context): Int = context.getColor(R.color.yui_palette_info)
 
     @JvmStatic fun isDark(context: Context): Boolean {
         val mask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
