@@ -12,13 +12,14 @@ SOURCES = (
     ROOT / "suite",
     ROOT / "next/core/ui",
     ROOT / "next/core/productui",
+    ROOT / "next/core/designsystem",
     ROOT / "next/feature",
 )
 # Navigation structures and custom product workspaces may compose other Material3 primitives.
 # Common controls instead pass through libs/yui to share geometry, defaults and accessibility.
 CONTROL_IMPORT = re.compile(
     r"^import\s+androidx\.compose\.material3\."
-    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField)\b",
+    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow)\b",
     re.MULTILINE,
 )
 PRODUCT_CONTROL_IMPORT = re.compile(
@@ -30,7 +31,7 @@ PRODUCT_CONTROL_FQCN = re.compile(
 )
 CONTROL_FQCN = re.compile(
     r"\bandroidx\.compose\.material3\."
-    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField)\s*\("
+    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow)\s*\("
 )
 
 def main() -> None:
@@ -72,6 +73,8 @@ def main() -> None:
             "fun YUiCheckbox(",
         ),
         "YMaterialInputs.kt": ("fun YUiOutlinedTextField(",),
+        "YMaterialDialogs.kt": ("fun YUiAlertDialog(",),
+        "YMaterialSelectors.kt": ("fun YUiSlider(", "fun YUiRadioButton(", "fun YUiScrollableTabRow("),
         "YViewDialogs.kt": ("fun builder(context: Context)",),
         "YTheme.kt": ("YUiButton(", "YUiOutlinedButton(", "YUiScaffold("),
         "YFeatureFramework.kt": ("YUiOutlinedTextField as OutlinedTextField",),
@@ -85,6 +88,25 @@ def main() -> None:
         for required in markers:
             if required not in implementation:
                 failures.append(f"YUI {filename} must delegate using {required}")
+
+    # Detect duplicate YUI implementations that import-only checks cannot find.
+    section_definitions = []
+    for path in core.glob("*.kt"):
+        code = path.read_text(encoding="utf-8")
+        for match in re.finditer(r"^fun YSection\\s*\\(", code, re.MULTILINE):
+            section_definitions.append(path.name)
+        if path.name != "YTheme.kt" and re.search(r"^import androidx\\.compose\\.material3\\.Scaffold\\s*$", code, re.MULTILINE):
+            failures.append(f"YUI {path.name} reintroduced a standalone Scaffold")
+        if path.name != "YMaterialDialogs.kt" and re.search(r"^import androidx\\.compose\\.material3\\.AlertDialog\\s*$", code, re.MULTILINE):
+            failures.append(f"YUI {path.name} reintroduced direct Material3 dialog rendering")
+    if section_definitions != ["YUnifiedDesign.kt"]:
+        failures.append(f"YSection must have exactly one implementation: {section_definitions}")
+    yui_view = core / "YView.kt"
+    yui_tokens = core / "YTokens.kt"
+    if yui_view.is_file() and "context.getColor(R.color.yui_palette_success)" not in yui_view.read_text(encoding="utf-8"):
+        failures.append("legacy View semantic colors must be generated from the shared palette")
+    if yui_tokens.is_file() and "YUiPalette.LightSuccess" not in yui_tokens.read_text(encoding="utf-8"):
+        failures.append("Compose semantic colors must be generated from the shared palette")
 
     chrome_path = ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/ProductChrome.kt"
     yui_theme_path = ROOT / "libs/yui/src/main/java/com/yagay/yui/YTheme.kt"
