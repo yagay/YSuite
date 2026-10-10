@@ -320,7 +320,7 @@ private fun CompactSuiteModuleRow(
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = MaterialTheme.shapes.small,
-            modifier = Modifier.size(YDimens.ListIconSize),
+            modifier = Modifier.size(appearance.listIconSizeDp.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -340,7 +340,7 @@ private fun CompactSuiteModuleRow(
                     },
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(YDimens.IconVisualSize),
+                    modifier = Modifier.size(appearance.iconVisualSizeDp.dp),
                 )
             }
         }
