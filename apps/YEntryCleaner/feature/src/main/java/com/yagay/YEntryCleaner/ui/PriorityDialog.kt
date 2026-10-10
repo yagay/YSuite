@@ -52,6 +52,7 @@ import com.yagay.YEntryCleaner.domain.priorityAppGroups
 import com.yagay.YEntryCleaner.domain.priorityCandidates
 import com.yagay.yui.YCheckboxControl
 import com.yagay.yui.YSection
+import com.yagay.yui.YDimens
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
@@ -348,7 +349,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                     else stringResource(R.string.app_list_count_type, groups.size, presetTitle),
                     subtitle = stringResource(R.string.priority_intro),
                     detail = stringResource(R.string.priority_drag_help),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall),
                     trailing = {
                         if (hasReset) {
                             TextButton(
@@ -425,7 +426,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             }
                             .clickable(onClickLabel = expandLabel, onClick = onExpand)
                             .heightIn(min = 64.dp)
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         YCheckboxControl(
@@ -466,7 +467,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             Icon(
                                 Icons.Rounded.Lock,
                                 contentDescription = stringResource(R.string.bulk_lock_full),
-                                modifier = Modifier.padding(horizontal = 8.dp).size(20.dp)
+                                modifier = Modifier.padding(horizontal = YDimens.ControlGap).size(YDimens.IconVisualSize)
                             )
                         }
                         IconButton(onClick = onExpand) {
@@ -545,7 +546,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                 else -> R.string.priority_empty_category
                             }
                         ),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall)
                     )
                 }
             }
@@ -585,7 +586,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
 private fun ComponentInfoRow(item: ComponentCandidate, customTitle: String?, onEditTitle: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-            .heightIn(min = 48.dp).padding(start = 24.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
+            .heightIn(min = YDimens.OptionRowHeight).padding(start = 24.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {

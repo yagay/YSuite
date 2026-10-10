@@ -268,7 +268,7 @@ private fun StatusSection(state: TaskManagerUiState) {
                 tone = if (state.framework.detected) YStatusTone.Good else YStatusTone.Warning,
             ),
         ),
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 4.dp),
+        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingXsmall),
     )
 }
 
@@ -284,7 +284,7 @@ private fun FilterSection(
     YSection(
         title = stringResource(R.string.ytm_process_filter),
         subtitle = stringResource(R.string.ytm_process_filter_desc),
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
+        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall),
     ) {
         YSearchField(
             value = state.query,
@@ -362,7 +362,7 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
     if (filtered.isEmpty()) {
         YEmptyMessage(
             message = stringResource(R.string.ytm_no_processes),
-            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap),
         )
         return
     }
@@ -590,8 +590,8 @@ private fun AppIcon(drawable: Drawable?) {
     if (drawable == null) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp)),
+                .size(YDimens.ListIconSize)
+                .clip(MaterialTheme.shapes.small),
             contentAlignment = Alignment.Center,
         ) {
             Icon(Icons.Default.Memory, contentDescription = null)
@@ -599,7 +599,7 @@ private fun AppIcon(drawable: Drawable?) {
         return
     }
     val density = LocalDensity.current
-    val px = with(density) { 40.dp.roundToPx() }
+    val px = with(density) { YDimens.ListIconSize.roundToPx() }
     val bitmap = remember(drawable, px) {
         drawable.toBitmap(max(1, px), max(1, px)).asImageBitmap()
     }
@@ -607,8 +607,8 @@ private fun AppIcon(drawable: Drawable?) {
         bitmap = bitmap,
         contentDescription = null,
         modifier = Modifier
-            .size(40.dp)
-            .clip(RoundedCornerShape(10.dp)),
+            .size(YDimens.ListIconSize)
+            .clip(MaterialTheme.shapes.small),
     )
 }
 
@@ -655,7 +655,7 @@ private fun ProcessDialog(
     ) {
         LazyColumn(
             modifier = Modifier.heightIn(max = 480.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(YDimens.SpacingXsmall),
         ) {
             item { CopyDetail("PID", process.pid.toString()) }
             if (process.ppid != 0) item { ParentDetail(process.ppid, parent, onOpenParent) }

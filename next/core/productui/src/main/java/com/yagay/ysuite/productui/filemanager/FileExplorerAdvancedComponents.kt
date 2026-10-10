@@ -1,5 +1,6 @@
 package com.yagay.ysuite.productui.filemanager
 
+import com.yagay.yui.YDimens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -97,20 +98,13 @@ fun FileExplorerBrowserTabs(
                                             tab.id,
                                         )
                                     },
-                                    modifier =
-                                        Modifier.size(
-                                            32.dp,
-                                        ),
                                 ) {
                                     Icon(
                                         Icons.Default
                                             .Close,
                                         contentDescription =
                                             closeLabel,
-                                        modifier =
-                                            Modifier.size(
-                                                16.dp,
-                                            ),
+                                        modifier = Modifier.size(YDimens.SpacingLarge),
                                     )
                                 }
                             }
