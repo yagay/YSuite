@@ -86,11 +86,15 @@ internal fun SuiteSettingsScreen(
             val outcome = runCatching {
                 val json = context.contentResolver.openInputStream(uri)?.use { stream ->
                     InputStreamReader(stream, Charsets.UTF_8).use { reader ->
-                        // Stop before allocating an unbounded document.
-                        val content = CharArray(262_145)
-                        val read = reader.read(content)
-                        if (read == content.size) error("Settings document too large")
-                        String(content, 0, read.coerceAtLeast(0))
+                        val buffer = CharArray(4_096)
+                        val content = StringBuilder()
+                        while (true) {
+                            val count = reader.read(buffer)
+                            if (count < 0) break
+                            content.append(buffer, 0, count)
+                            require(content.length <= 262_144) { "Settings document too large" }
+                        }
+                        content.toString()
                     }
                 } ?: error("Unable to open document")
                 store.importJson(json)
