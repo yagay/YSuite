@@ -32,7 +32,6 @@ class YSuiteApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        SuiteLocaleController.initializeLegacyDelegates(this)
 
         runCatching { SuiteCrashTracker.install(this) }
             .onFailure { Log.e(TAG, "Crash tracker initialization failed safely", it) }
@@ -43,6 +42,9 @@ class YSuiteApp : Application() {
             Log.i(TAG, "User locked; deferring YSuite host initialization until ACTION_USER_UNLOCKED")
             return
         }
+
+        runCatching { SuiteLocaleController.initializeLegacyDelegates(this) }
+            .onFailure { Log.w(TAG, "Locale delegate startup failed safely", it) }
 
         runCatching { initializeUnlockedHost() }
             .onFailure { Log.e(TAG, "YSuite host bootstrap failed safely", it) }
