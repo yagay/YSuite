@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.yagay.YFloat.GoogleCtsContract;
 import com.yagay.YFloat.LsposedRuntimeConfig;
+import com.yagay.YFloat.GoogleOverlayAppearance;
 
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModule;
@@ -85,6 +86,10 @@ final class LsposedRuntimeProvider {
 
     boolean isActive() {
         return active;
+    }
+
+    GoogleOverlayAppearance googleOverlayAppearance() {
+        return GoogleOverlayAppearance.fromPreferences(preferences);
     }
 
     boolean diagnosticsEnabled() {

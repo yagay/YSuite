@@ -585,7 +585,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
     private void addWakeViews() {
         if (wakeLeft != null || iconHost == null) return;
-        int width = dp(18);
+        int width = dp(fs.edgeWakeWidthDp());
         EdgeWakeView left = new EdgeWakeView(this, true, () -> setManualHidden(false));
         EdgeWakeView right = new EdgeWakeView(this, false, () -> setManualHidden(false));
         WindowManager.LayoutParams leftLp = wakeLp(width, Gravity.LEFT);

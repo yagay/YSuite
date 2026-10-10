@@ -1,4 +1,24 @@
 <resources>
     <string name="yfloat_accessibility_service_label">YFloat text recognition &amp; system actions</string>
     <string name="yfloat_accessibility_desc">Used for YFloat view recognition, system gestures, and user-triggered accessibility screenshots. In YSuite, enable the YFloat service rather than the YNotify accessibility service.</string>
+    <string name="yfloat_advanced_selection_title">Advanced selection settings</string>
+    <string name="yfloat_advanced_selection_summary">Fine-tune Google Circle selection visuals and YFloat recognition. Google styles apply on the next marked session.</string>
+    <string name="yfloat_google_frame_section">Google Circle selection appearance</string>
+    <string name="yfloat_google_frame_hint">Requires the Google LSPosed scope and an active YFloat-controlled Circle session. Ordinary YUI sizing remains in unified appearance settings.</string>
+    <string name="yfloat_google_corner_radius">Selection corner radius</string>
+    <string name="yfloat_google_outline_width">Selection outline width</string>
+    <string name="yfloat_google_glow_width">Glow stroke width</string>
+    <string name="yfloat_google_glow_blur">Glow blur radius</string>
+    <string name="yfloat_google_glow_alpha">Glow opacity</string>
+    <string name="yfloat_google_scrim_alpha">Outside-area dimming</string>
+    <string name="yfloat_google_trail_width">Gesture trail width</string>
+    <string name="yfloat_google_use_yui_color">Use YUI selection color</string>
+    <string name="yfloat_google_use_yui_color_desc">Replace the Google rainbow effect with YUI\'s YFloat border color.</string>
+    <string name="yfloat_selection_detection_section">Recognition and edge wake-up</string>
+    <string name="yfloat_selection_detection_hint">These are YFloat-specific behavior thresholds, not general UI dimensions.</string>
+    <string name="yfloat_image_recognition_min">Minimum image target size</string>
+    <string name="yfloat_generic_recognition_min">Minimum general view size</string>
+    <string name="yfloat_edge_wake_width">Edge wake-up strip width</string>
+    <string name="yfloat_selection_reset_section">Restore defaults</string>
+    <string name="yfloat_selection_reset_button">Restore advanced selection defaults</string>
 </resources>

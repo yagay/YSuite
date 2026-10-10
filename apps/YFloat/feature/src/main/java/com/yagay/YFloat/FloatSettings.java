@@ -71,6 +71,20 @@ public final class FloatSettings {
     public static final String K_IME_AVOID = "ime_avoid_icon";
     public static final String K_QUICK_MOVE = "quickMoveIcon";
     public static final String K_DIAGNOSTIC = "diagnostic_logging";
+    /** YFloat-only Google CTS drawing controls; YUI supplies the editor widgets. */
+    public static final String K_GOOGLE_FRAME_RADIUS_DP = "google_frame_radius_dp_v1";
+    public static final String K_GOOGLE_FRAME_OUTLINE_DP = "google_frame_outline_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_WIDTH_DP = "google_frame_glow_width_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_BLUR_DP = "google_frame_glow_blur_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_ALPHA = "google_frame_glow_alpha_v1";
+    public static final String K_GOOGLE_FRAME_SCRIM_ALPHA = "google_frame_scrim_alpha_v1";
+    public static final String K_GOOGLE_FRAME_TRAIL_WIDTH_DP = "google_frame_trail_width_dp_v1";
+    public static final String K_GOOGLE_FRAME_USE_YUI_COLOR = "google_frame_use_yui_color_v1";
+    /** Recognition/window geometry, never added to the global YUI design tokens. */
+    public static final String K_NODE_IMAGE_MIN_DP = "node_image_min_dp_v1";
+    public static final String K_NODE_GENERIC_MIN_DP = "node_generic_min_dp_v1";
+    public static final String K_EDGE_WAKE_WIDTH_DP = "edge_wake_width_dp_v1";
+
     public static final String K_GOOGLE_CTS_ACTIVE_SESSION = "google_cts_active_session_v1";
     public static final String K_GOOGLE_CTS_ACTIVE_UNTIL = "google_cts_active_until_elapsed_v1";
 
@@ -176,6 +190,39 @@ public final class FloatSettings {
     public boolean defaultHideByApp() { return p.getBoolean(K_GLOBAL_DEFAULT_HIDE, false); }
     public boolean hideWithoutNotify() { return p.getBoolean(K_HIDE_ICON_NO_NOTIFY, false); }
     public boolean edgeSwipeRecallEnabled() { return p.getBoolean(K_HIDE_MAIN_SWIPE, true); }
+
+    public int googleFrameRadiusDp() { return clamp(p.getInt(K_GOOGLE_FRAME_RADIUS_DP, 8), 0, 96); }
+    public int googleFrameOutlineDp() { return clamp(p.getInt(K_GOOGLE_FRAME_OUTLINE_DP, 1), 0, 24); }
+    public int googleFrameGlowWidthDp() { return clamp(p.getInt(K_GOOGLE_FRAME_GLOW_WIDTH_DP, 1), 0, 24); }
+    public int googleFrameGlowBlurDp() { return clamp(p.getInt(K_GOOGLE_FRAME_GLOW_BLUR_DP, 20), 0, 80); }
+    public int googleFrameGlowAlpha() { return clamp(p.getInt(K_GOOGLE_FRAME_GLOW_ALPHA, 235), 0, 255); }
+    public int googleFrameScrimAlpha() { return clamp(p.getInt(K_GOOGLE_FRAME_SCRIM_ALPHA, 102), 0, 240); }
+    public int googleFrameTrailWidthDp() { return clamp(p.getInt(K_GOOGLE_FRAME_TRAIL_WIDTH_DP, 3), 0, 24); }
+    public boolean googleFrameUseYuiColor() { return p.getBoolean(K_GOOGLE_FRAME_USE_YUI_COLOR, false); }
+    public int imageRecognitionMinDp() { return clamp(p.getInt(K_NODE_IMAGE_MIN_DP, 12), 1, 64); }
+    public int genericRecognitionMinDp() { return clamp(p.getInt(K_NODE_GENERIC_MIN_DP, 20), 1, 96); }
+    public int edgeWakeWidthDp() { return clamp(p.getInt(K_EDGE_WAKE_WIDTH_DP, 18), 1, 64); }
+
+    public static boolean isGoogleVisualKey(String key) {
+        return key != null && key.startsWith("google_frame_");
+    }
+
+    public void resetAdvancedSelectionSettings() {
+        p.edit()
+                .remove(K_GOOGLE_FRAME_RADIUS_DP)
+                .remove(K_GOOGLE_FRAME_OUTLINE_DP)
+                .remove(K_GOOGLE_FRAME_GLOW_WIDTH_DP)
+                .remove(K_GOOGLE_FRAME_GLOW_BLUR_DP)
+                .remove(K_GOOGLE_FRAME_GLOW_ALPHA)
+                .remove(K_GOOGLE_FRAME_SCRIM_ALPHA)
+                .remove(K_GOOGLE_FRAME_TRAIL_WIDTH_DP)
+                .remove(K_GOOGLE_FRAME_USE_YUI_COLOR)
+                .remove(K_NODE_IMAGE_MIN_DP)
+                .remove(K_NODE_GENERIC_MIN_DP)
+                .remove(K_EDGE_WAKE_WIDTH_DP)
+                .apply();
+        LsposedStatusManager.syncRuntimeConfigAsync();
+    }
 
     public boolean enhancedMode() { return p.getBoolean(K_ENHANCED_MODE, false); }
     public boolean rootEnabled() { return p.getBoolean(K_ROOT_ENABLED, false); }

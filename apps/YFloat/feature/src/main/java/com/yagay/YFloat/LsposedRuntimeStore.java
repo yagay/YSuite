@@ -16,7 +16,7 @@ final class LsposedRuntimeStore {
                                             boolean lsposed,
                                             boolean secureScreenshot,
                                             boolean diagnostic,
-                                            long updatedAt) {
+                                            long updatedAt, FloatSettings settings) {
         SharedPreferences remote = open(service);
         if (remote == null) return null;
         boolean committed = remote.edit()
@@ -25,6 +25,15 @@ final class LsposedRuntimeStore {
                 .putBoolean(LsposedRuntimeConfig.K_LSPOSED_ENABLED, lsposed)
                 .putBoolean(LsposedRuntimeConfig.K_SECURE_SCREENSHOT_ENABLED, secureScreenshot)
                 .putBoolean(LsposedRuntimeConfig.K_DIAGNOSTIC_ENABLED, diagnostic)
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_RADIUS_DP, settings.googleFrameRadiusDp())
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_OUTLINE_DP, settings.googleFrameOutlineDp())
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_GLOW_WIDTH_DP, settings.googleFrameGlowWidthDp())
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_GLOW_BLUR_DP, settings.googleFrameGlowBlurDp())
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_GLOW_ALPHA, settings.googleFrameGlowAlpha())
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_SCRIM_ALPHA, settings.googleFrameScrimAlpha())
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_TRAIL_WIDTH_DP, settings.googleFrameTrailWidthDp())
+                .putBoolean(LsposedRuntimeConfig.K_GOOGLE_FRAME_USE_YUI_COLOR, settings.googleFrameUseYuiColor())
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_YUI_COLOR, settings.circleBorderColor())
                 .putLong(LsposedRuntimeConfig.K_UPDATED_AT, updatedAt)
                 .commit();
         return committed ? remote : null;

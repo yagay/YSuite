@@ -1,5 +1,7 @@
 package com.yagay.YFloat.hook;
 
+import com.yagay.YFloat.GoogleOverlayAppearance;
+
 import com.yagay.YFloat.CanonicalFramePolicy;
 import android.app.Activity;
 import android.graphics.Bitmap;
@@ -44,6 +46,7 @@ final class GoogleCanonicalFrameLayer {
     private final BooleanSupplier active;
     private final Supplier<Activity> activity;
     private final BiConsumer<String, String> reporter;
+    private final Supplier<GoogleOverlayAppearance> overlayAppearance;
     private final Handler main = new Handler(Looper.getMainLooper());
     private Bitmap canonicalFrame;
     private final List<Bitmap> retiredFrames = new ArrayList<>();
@@ -55,10 +58,12 @@ final class GoogleCanonicalFrameLayer {
 
     GoogleCanonicalFrameLayer(BooleanSupplier active,
                               Supplier<Activity> activity,
-                              BiConsumer<String, String> reporter) {
+                              BiConsumer<String, String> reporter,
+                              Supplier<GoogleOverlayAppearance> overlayAppearance) {
         this.active = active;
         this.activity = activity;
         this.reporter = reporter;
+        this.overlayAppearance = overlayAppearance;
     }
 
     void offer(Bitmap candidate) {
@@ -337,37 +342,43 @@ final class GoogleCanonicalFrameLayer {
         private final Paint trail = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF localSelection = new RectF();
         private final float cornerRadius;
+        private final GoogleOverlayAppearance appearance;
 
         SelectionView(Activity context) {
             super(context);
             float density = Math.max(1f, getResources().getDisplayMetrics().density);
+            GoogleOverlayAppearance loaded = GoogleOverlayAppearance.defaults();
+            try {
+                if (overlayAppearance != null) loaded = overlayAppearance.get();
+            } catch (Throwable ignored) { }
+            appearance = loaded == null ? GoogleOverlayAppearance.defaults() : loaded;
 
             // YFloat selection frame: 1dp white rounded outline with a soft colored outer glow.
-            cornerRadius = 8f * density;
+            cornerRadius = appearance.radiusDp * density;
             border.setStyle(Paint.Style.STROKE);
-            border.setStrokeWidth(1f * density);
-            border.setColor(Color.WHITE);
+            border.setStrokeWidth(appearance.outlineDp * density);
+            border.setColor(appearance.yuiColor ? appearance.accentColor : Color.WHITE);
             border.clearShadowLayer();
 
             // Colored shadow only. Blur.OUTER suppresses the source stroke itself so this paint
             // behaves like a halo rather than becoming a second colored border.
             colorGlow.setStyle(Paint.Style.STROKE);
-            colorGlow.setStrokeWidth(1f * density);
+            colorGlow.setStrokeWidth(appearance.glowWidthDp * density);
             colorGlow.setStrokeCap(Paint.Cap.ROUND);
             colorGlow.setStrokeJoin(Paint.Join.ROUND);
-            colorGlow.setAlpha(235);
+            colorGlow.setAlpha(appearance.glowAlpha);
             colorGlow.setMaskFilter(
-                    new BlurMaskFilter(20f * density, BlurMaskFilter.Blur.OUTER));
+                    new BlurMaskFilter(Math.max(0.01f, appearance.glowBlurDp * density), BlurMaskFilter.Blur.OUTER));
 
             // Dim only outside the YFloat frame. The selected text area stays untouched.
             scrim.setStyle(Paint.Style.FILL);
-            scrim.setColor(0x66000000);
+            scrim.setColor(Color.argb(appearance.scrimAlpha, 0, 0, 0));
 
             trail.setStyle(Paint.Style.STROKE);
             trail.setStrokeCap(Paint.Cap.ROUND);
             trail.setStrokeJoin(Paint.Join.ROUND);
-            trail.setStrokeWidth(3f * density);
-            trail.setColor(Color.WHITE);
+            trail.setStrokeWidth(appearance.trailWidthDp * density);
+            trail.setColor(appearance.yuiColor ? appearance.accentColor : Color.WHITE);
             trail.setShadowLayer(1.5f * density, 0f, 0f, 0xAA000000);
 
             setLayerType(LAYER_TYPE_SOFTWARE, null);
@@ -412,13 +423,11 @@ final class GoogleCanonicalFrameLayer {
                     canvas.drawRect(0f, 0f, getWidth(), getHeight(), scrim);
                     canvas.restoreToCount(save);
 
-                    int[] glowColors = {
-                            0xFF4285F4,
-                            0xFFEA4335,
-                            0xFFFBBC04,
-                            0xFF34A853,
-                            0xFF4285F4
-                    };
+                    int[] glowColors = appearance.yuiColor
+                            ? new int[]{appearance.accentColor, appearance.accentColor,
+                                    appearance.accentColor, appearance.accentColor, appearance.accentColor}
+                            : new int[]{0xFF4285F4, 0xFFEA4335, 0xFFFBBC04,
+                                    0xFF34A853, 0xFF4285F4};
                     float[] glowStops = {0f, 0.28f, 0.52f, 0.76f, 1f};
                     Shader glowShader = new SweepGradient(
                             localSelection.centerX(),

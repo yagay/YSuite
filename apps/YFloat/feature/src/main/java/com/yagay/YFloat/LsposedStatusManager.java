@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 
 import com.yagay.suite.api.XposedHostBridge;
+import com.yagay.yui.YAppearanceStore;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -151,6 +152,14 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
     private final CopyOnWriteArraySet<Listener> listeners = new CopyOnWriteArraySet<>();
     private volatile XposedService service;
     private volatile SharedPreferences localPreferences;
+    private volatile Context applicationContext;
+    private YAppearanceStore yuiAppearance;
+    private final SharedPreferences.OnSharedPreferenceChangeListener yuiPreferenceListener =
+            (preferences, key) -> {
+                // YUI is the only owner of generic color. Keep the Google process snapshot
+                // current when a global or YFloat module border color is changed.
+                if (key != null && key.endsWith("float_border_color")) syncRuntimeConfigAsync();
+            };
     private volatile Snapshot snapshot = Snapshot.disconnected(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_e55b9875d7c0));
 
     private final SharedPreferences.OnSharedPreferenceChangeListener localPreferenceListener =
@@ -158,7 +167,8 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
                 if (FloatSettings.K_ENHANCED_MODE.equals(key)
                         || FloatSettings.K_LSPOSED_ENABLED.equals(key)
                         || FloatSettings.K_LSPOSED_SECURE_SCREENSHOT.equals(key)
-                        || FloatSettings.K_DIAGNOSTIC.equals(key)) {
+                        || FloatSettings.K_DIAGNOSTIC.equals(key)
+                        || FloatSettings.isGoogleVisualKey(key)) {
                     syncRuntimeConfigAsync();
                 }
             };
@@ -172,6 +182,9 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
         if (INITIALIZED.compareAndSet(false, true)) {
             SharedPreferences preferences = app.getSharedPreferences(FloatSettings.PREF, Context.MODE_PRIVATE);
             INSTANCE.localPreferences = preferences;
+            INSTANCE.applicationContext = app;
+            INSTANCE.yuiAppearance = new YAppearanceStore(app);
+            INSTANCE.yuiAppearance.registerPreferenceListener(INSTANCE.yuiPreferenceListener);
             preferences.registerOnSharedPreferenceChangeListener(INSTANCE.localPreferenceListener);
 
             XposedHostBridge.AttachResult result =
@@ -276,7 +289,8 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
     private void syncRuntimeConfig() {
         XposedService current = service;
         SharedPreferences local = localPreferences;
-        if (current == null || local == null) {
+        Context app = applicationContext;
+        if (current == null || local == null || app == null) {
             refreshFromService();
             return;
         }
@@ -289,7 +303,8 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
         IO.execute(() -> {
             try {
                 SharedPreferences remote = LsposedRuntimeStore.syncPersistent(
-                        current, enhanced, lsposed, secureScreenshot, diagnostic, updatedAt);
+                        current, enhanced, lsposed, secureScreenshot, diagnostic, updatedAt,
+                        new FloatSettings(app));
                 if (remote == null) {
                     publishSnapshot(current, false, false, false, false, 0L, 0L,
                             com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_490c9cedda7a));

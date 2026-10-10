@@ -99,7 +99,8 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 sessionState::regionSelectionActive,
                 () -> markedActivity.get(), this::report);
         this.canonicalFrameLayer = new GoogleCanonicalFrameLayer(
-                this::active, () -> markedActivity.get(), this::report);
+                this::active, () -> markedActivity.get(), this::report,
+                provider::googleOverlayAppearance);
         this.lifecycleHooks = new GoogleCtsLifecycleHooks(module, provider, this);
         this.frameCapture = new GoogleLensFrameCapture(
                 module, classLoader, this::active, this::sendBridgeFrame, this::report);

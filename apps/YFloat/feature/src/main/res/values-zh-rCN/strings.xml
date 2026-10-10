@@ -1,4 +1,24 @@
 <resources>
     <string name="yfloat_accessibility_service_label">YFloat 文字识别与系统操作</string>
     <string name="yfloat_accessibility_desc">用于 YFloat 的 View 识别、系统手势和由用户主动触发的无障碍截图。YSuite 中请确认开启的是 YFloat，而不是 YNotify 的无障碍服务。</string>
+    <string name="yfloat_advanced_selection_title">圈选高级设置</string>
+    <string name="yfloat_advanced_selection_summary">调整 Google 圈选外观及 YFloat 识别参数。Google 样式将在下一次 YFloat 圈选会话中生效。</string>
+    <string name="yfloat_google_frame_section">Google 圈选外观</string>
+    <string name="yfloat_google_frame_hint">需要 Google 的 LSPosed 作用域以及 YFloat 发起的圈选会话。普通控件尺寸仍由统一 YUI 外观设置管理。</string>
+    <string name="yfloat_google_corner_radius">选框圆角</string>
+    <string name="yfloat_google_outline_width">选框描边宽度</string>
+    <string name="yfloat_google_glow_width">发光描边宽度</string>
+    <string name="yfloat_google_glow_blur">发光模糊半径</string>
+    <string name="yfloat_google_glow_alpha">发光透明度</string>
+    <string name="yfloat_google_scrim_alpha">选框外遮罩深度</string>
+    <string name="yfloat_google_trail_width">手势轨迹宽度</string>
+    <string name="yfloat_google_use_yui_color">使用 YUI 选框颜色</string>
+    <string name="yfloat_google_use_yui_color_desc">使用 YUI 中 YFloat 的选框颜色，替代 Google 彩色发光效果。</string>
+    <string name="yfloat_selection_detection_section">识别与边缘唤醒</string>
+    <string name="yfloat_selection_detection_hint">以下为 YFloat 专属功能阈值，不属于通用 UI 尺寸。</string>
+    <string name="yfloat_image_recognition_min">图片识别最小尺寸</string>
+    <string name="yfloat_generic_recognition_min">普通视图识别最小尺寸</string>
+    <string name="yfloat_edge_wake_width">边缘唤醒区域宽度</string>
+    <string name="yfloat_selection_reset_section">恢复默认值</string>
+    <string name="yfloat_selection_reset_button">恢复圈选高级设置默认值</string>
 </resources>

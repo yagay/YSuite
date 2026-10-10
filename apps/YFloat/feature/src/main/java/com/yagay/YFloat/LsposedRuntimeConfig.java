@@ -23,6 +23,15 @@ public final class LsposedRuntimeConfig {
     /** Legacy v159 key retained only so current builds can scrub stale Remote Preferences. */
     public static final String K_GOOGLE_CTS_COMPONENT_BLOCK_UNTIL =
             "google_cts_component_block_until_elapsed_v1";
+    public static final String K_GOOGLE_FRAME_RADIUS_DP = "google_overlay_radius_dp_v1";
+    public static final String K_GOOGLE_FRAME_OUTLINE_DP = "google_overlay_outline_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_WIDTH_DP = "google_overlay_glow_width_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_BLUR_DP = "google_overlay_glow_blur_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_ALPHA = "google_overlay_glow_alpha_v1";
+    public static final String K_GOOGLE_FRAME_SCRIM_ALPHA = "google_overlay_scrim_alpha_v1";
+    public static final String K_GOOGLE_FRAME_TRAIL_WIDTH_DP = "google_overlay_trail_width_dp_v1";
+    public static final String K_GOOGLE_FRAME_USE_YUI_COLOR = "google_overlay_use_yui_color_v1";
+    public static final String K_GOOGLE_FRAME_YUI_COLOR = "google_overlay_yui_color_argb_v1";
     public static final int SCHEMA_VERSION = 7;
 
     /** Short lease: never leave secure capture armed after a stalled/aborted capture. */
