@@ -32,6 +32,9 @@ jobs:
       - name: Scan feature integration hazards
         run: python3 tools/scan_feature_integration.py --root . --fail-on-high-risk
 
+      - name: Verify shared feature infrastructure
+        run: python3 tools/verify_shared_infrastructure.py
+
       - name: Read shared build versions
         id: versions
         run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"
@@ -67,7 +70,7 @@ jobs:
           test -x "${ANDROID_HOME}/build-tools/${{ steps.versions.outputs.build_tools }}/aapt2"
 
       - name: Test YFiles and YDownload feature migration
-        run: gradle --no-daemon --stacktrace :yfiles-feature:testDebugUnitTest :ydownload-feature:testDebugUnitTest
+        run: gradle --no-daemon --stacktrace :api:testDebugUnitTest :yfiles-feature:testDebugUnitTest :ydownload-feature:testDebugUnitTest
 
       - name: Build YSuite debug APK
         run: gradle --no-daemon --stacktrace :suite:assembleDebug

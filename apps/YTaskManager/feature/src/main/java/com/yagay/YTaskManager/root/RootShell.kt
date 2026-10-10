@@ -2,6 +2,7 @@ package com.yagay.YTaskManager.root
 
 import com.yagay.YTaskManager.AppLogger
 import com.yagay.suite.api.FeatureServices
+import com.yagay.suite.api.FeatureRootCommands
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -46,8 +47,7 @@ class RootShell {
     private fun executeThroughHost(command: String, timeoutMs: Long): ShellResult =
         try {
             val timeoutSeconds = ((timeoutMs.coerceAtLeast(1L) + 999L) / 1000L).coerceAtLeast(1L)
-            val host = services.requireHost("Managed Root host is not attached")
-            val raw = host.rootExecute("root-shell", command, timeoutSeconds)
+            val raw = FeatureRootCommands.execute(services, "root-shell", command, timeoutSeconds)
             if (raw.timedOut) throw TimeoutException("Managed root command timed out after ${timeoutMs}ms")
             if (!raw.errorMessage.isNullOrBlank()) throw IllegalStateException(raw.errorMessage)
             if (raw.stderr.isNotBlank()) AppLogger.i("Managed root stderr: ${raw.stderr.take(240)}")

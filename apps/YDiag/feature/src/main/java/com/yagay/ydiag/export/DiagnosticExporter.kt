@@ -1,22 +1,16 @@
 package com.yagay.ydiag.export
 
-import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
-import android.os.Environment
-import android.provider.MediaStore
 import androidx.documentfile.provider.DocumentFile
 import com.yagay.ydiag.data.SessionStore
+import com.yagay.suite.api.FeatureDiagnosticArchive
 import com.yagay.ydiag.model.Issue
 import com.yagay.ydiag.model.SessionMeta
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 
 @Serializable
 private data class Summary(
@@ -54,7 +48,7 @@ class DiagnosticExporter(private val context: Context) {
 
         val exports = File(context.cacheDir, "exports").apply { mkdirs() }
         val zipFile = File(exports, "YDiag-${meta.targetPackages.firstOrNull() ?: "session"}-${meta.id}.zip")
-        zipDirectory(sessionDir, zipFile)
+        FeatureDiagnosticArchive.zipDirectory(sessionDir, zipFile)
 
         return if (customTree != null) {
             copyToTree(zipFile, customTree)
@@ -125,37 +119,10 @@ class DiagnosticExporter(private val context: Context) {
         else -> "text"
     }
 
-    private fun zipDirectory(source: File, destination: File) {
-        ZipOutputStream(FileOutputStream(destination)).use { zip ->
-            source.walkTopDown().filter { it.isFile }.forEach { file ->
-                val relative = file.relativeTo(source).invariantSeparatorsPath
-                zip.putNextEntry(ZipEntry(relative))
-                FileInputStream(file).use { input -> input.copyTo(zip) }
-                zip.closeEntry()
-            }
-        }
-    }
-
-    private fun copyToDownloads(source: File): Uri? {
-        val values = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, source.name)
-            put(MediaStore.Downloads.MIME_TYPE, "application/zip")
-            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/YDiag")
-            put(MediaStore.Downloads.IS_PENDING, 1)
-        }
-        val resolver = context.contentResolver
-        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
-        return try {
-            resolver.openOutputStream(uri)?.use { out -> source.inputStream().use { it.copyTo(out) } }
-            values.clear()
-            values.put(MediaStore.Downloads.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
-            uri
-        } catch (failure: Throwable) {
-            resolver.delete(uri, null, null)
-            null
-        }
-    }
+    private fun copyToDownloads(source: File): Uri? =
+        runCatching {
+            FeatureDiagnosticArchive.publishToDownloads(context, source, source.name, "YDiag")
+        }.getOrNull()
 
     private fun copyToTree(source: File, tree: Uri): Uri? {
         val root = DocumentFile.fromTreeUri(context, tree) ?: return null

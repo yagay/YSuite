@@ -10,7 +10,7 @@ import com.yagay.ysuite.logging.android.FeatureAndroidLogger
 
 /** YUI host bridge only. Browser, providers and tools live entirely in the rebuilt feature. */
 class MainActivity : YComposeActivity() {
-    private val platform by lazy(LazyThreadSafetyMode.NONE) { DefaultPlatformServices.create() }
+    private val platform by lazy(LazyThreadSafetyMode.NONE) { DefaultPlatformServices.create("yfiles") }
 
     @Composable
     override fun YContent() {

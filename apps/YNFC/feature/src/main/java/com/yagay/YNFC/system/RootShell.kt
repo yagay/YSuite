@@ -24,7 +24,7 @@ class RootShell(context: Context) {
         if (!result.success && showToast && result.code == -1) notifyRootUnavailable()
         return buildString {
             append(result.stdout.take(maxChars))
-            if (result.stderr.isNotBlank() && length < maxChars) {
+            if (FeatureRootCommands.errorText(result).isNotBlank() && length < maxChars) {
                 if (isNotEmpty() && last() != '\n') append('\n')
                 append(result.stderr.take(maxChars - length))
             }

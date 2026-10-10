@@ -1,19 +1,13 @@
 package com.yagay.YMiniGuard;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Log;
+import com.yagay.suite.api.FeatureDiagnosticArchive;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -23,8 +17,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 final class DiagnosticsManager {
     private static final String TAG = "YMiniGuard";
@@ -176,9 +168,9 @@ final class DiagnosticsManager {
             File zip = new File(context.getCacheDir(), fileName);
             if (zip.exists()) //noinspection ResultOfMethodCallIgnored
                 zip.delete();
-            zipDirectory(workDir, zip);
+            FeatureDiagnosticArchive.zipDirectory(workDir, zip);
 
-            Uri uri = publishToDownloads(context, zip, fileName);
+            Uri uri = FeatureDiagnosticArchive.publishToDownloads(context, zip, fileName, "YMiniGuard");
             if (uri == null) {
                 return new ExportResult(null, fileName, "MediaStore insert failed");
             }
@@ -405,70 +397,6 @@ final class DiagnosticsManager {
                 out.write(buffer, 0, read);
             }
         }
-    }
-
-    private static void zipDirectory(File sourceDir, File target) throws Exception {
-        try (ZipOutputStream zip = new ZipOutputStream(
-                new BufferedOutputStream(new FileOutputStream(target)))) {
-            addToZip(sourceDir, sourceDir, zip);
-        }
-    }
-
-    private static void addToZip(File base, File file, ZipOutputStream zip) throws Exception {
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            if (children != null) {
-                for (File child : children) addToZip(base, child, zip);
-            }
-            return;
-        }
-
-        String name = base.toPath().relativize(file.toPath())
-                .toString().replace(File.separatorChar, '/');
-        zip.putNextEntry(new ZipEntry(name));
-
-        try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(file))) {
-            byte[] buffer = new byte[32 * 1024];
-            int read;
-            while ((read = in.read(buffer)) >= 0) {
-                zip.write(buffer, 0, read);
-            }
-        }
-        zip.closeEntry();
-    }
-
-    private static Uri publishToDownloads(
-            Context context,
-            File source,
-            String fileName
-    ) throws Exception {
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
-        values.put(MediaStore.Downloads.MIME_TYPE, "application/zip");
-        values.put(
-                MediaStore.Downloads.RELATIVE_PATH,
-                Environment.DIRECTORY_DOWNLOADS + "/YMiniGuard");
-        values.put(MediaStore.Downloads.IS_PENDING, 1);
-
-        Uri uri = context.getContentResolver().insert(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                values);
-        if (uri == null) return null;
-
-        try (OutputStream out = context.getContentResolver().openOutputStream(uri);
-             BufferedInputStream in = new BufferedInputStream(new FileInputStream(source))) {
-            if (out == null) throw new IllegalStateException("openOutputStream returned null");
-            byte[] buffer = new byte[32 * 1024];
-            int read;
-            while ((read = in.read(buffer)) >= 0) {
-                out.write(buffer, 0, read);
-            }
-        }
-
-        ContentValues done = new ContentValues();
-        done.put(MediaStore.Downloads.IS_PENDING, 0);
-        context.getContentResolver().update(uri, done, null, null);
-        return uri;
     }
 
     private static String safe(String value) {

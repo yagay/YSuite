@@ -35,6 +35,36 @@ def main() -> int:
             if needle in text:
                 failures.append(f"{rel}: forbidden {needle!r} — {reason}")
 
+
+    # Enforce a single in-repository copy of the public Host API and visual system.
+    for build in sorted(FEATURE_ROOT.glob("*/feature/build.gradle.kts")):
+        source = build.read_text(encoding="utf-8")
+        for dependency in ('project(":api")', 'project(":ui")'):
+            if dependency not in source:
+                failures.append(f"{build.relative_to(ROOT)}: missing shared {dependency}")
+        if "com.github.yagay.YSuite:api" in source or "com.github.yagay.YSuite:ui" in source:
+            failures.append(f"{build.relative_to(ROOT)}: remote copy of API/YUI is forbidden")
+
+    expected_shared = {
+        "apps/YDiag/feature/src/main/java/com/yagay/ydiag/root/RootShell.kt": "FeatureRootCommands.execute",
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/system/RootShell.kt": "FeatureRootCommands.execute",
+        "apps/YPower/feature/src/main/java/com/yagay/ypower/root/RootShell.java": "FeatureRootCommands.execute",
+        "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt": "FeatureRootCommands.execute",
+        "apps/YDiag/feature/src/main/java/com/yagay/ydiag/data/Preferences.kt": "FeatureSettings.named",
+        "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/SettingsRepository.kt": "FeatureSettings.named",
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/CardRepository.kt": "FeatureSettings.named",
+        "apps/YPower/feature/src/main/java/com/yagay/ypower/data/ProfileStore.java": "FeatureSettings.named",
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/AppLogger.kt": "FeatureLogBuffer",
+        "apps/YDiag/feature/src/main/java/com/yagay/ydiag/export/DiagnosticExporter.kt": "FeatureDiagnosticArchive",
+        "apps/YNotify/feature/src/main/java/com/yagay/YNotify/util/DiagnosticsExporter.java": "FeatureDiagnosticArchive",
+        "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/DiagnosticsManager.java": "FeatureDiagnosticArchive",
+        "next/core/platform/android/src/main/java/com/yagay/ysuite/platform/android/DefaultPlatformServices.kt": "HostedRootGateway",
+    }
+    for name, marker in expected_shared.items():
+        file = ROOT / name
+        if not file.is_file() or marker not in file.read_text(encoding="utf-8"):
+            failures.append(f"{name}: expected to use shared infrastructure {marker}")
+
     if failures:
         print("Feature infrastructure boundary violations:")
         for failure in failures:

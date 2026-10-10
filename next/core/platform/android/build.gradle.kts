@@ -15,6 +15,7 @@ android {
 
 dependencies {
     api(project(":next:core:platform:api"))
+    implementation(project(":api"))
     implementation(project(":next:core:common"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("dev.rikka.shizuku:api:13.1.5")

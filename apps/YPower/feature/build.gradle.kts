@@ -4,7 +4,6 @@ plugins {
 
 val embeddedInSuite = rootProject.findProject(":suite") != null
 val hostPackage = if (embeddedInSuite) "com.yagay.YSuite" else "com.yagay.ypower"
-val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 val ciArm64Only = providers.gradleProperty("ciArm64Only").orNull == "true"
 
@@ -49,12 +48,8 @@ android {
 }
 
 dependencies {
-    implementation("com.github.yagay.YSuite:api") {
-        version { branch = sharedSuiteBranch.get() }
-    }
-    implementation("com.github.yagay.YSuite:ui") {
-        version { branch = sharedSuiteBranch.get() }
-    }
+    implementation(project(":api"))
+    implementation(project(":ui"))
 
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)

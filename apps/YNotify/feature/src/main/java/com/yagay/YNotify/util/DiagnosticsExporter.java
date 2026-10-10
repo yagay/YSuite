@@ -20,6 +20,7 @@ import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.data.NotifyDatabase;
 import com.yagay.suite.api.FeatureServices;
+import com.yagay.suite.api.FeatureDiagnosticArchive;
 import com.yagay.suite.api.HostBinaryCommandResult;
 
 import java.io.ByteArrayOutputStream;
@@ -285,27 +286,8 @@ public final class DiagnosticsExporter {
     }
 
     private static Uri publishToDownloads(Context context, File source, String fileName) throws Exception {
-        ContentResolver resolver = context.getContentResolver();
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/NotifyLens");
-        values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-        Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+        Uri uri = FeatureDiagnosticArchive.publishToDownloads(context, source, fileName, "NotifyLens");
         if (uri == null) throw new IllegalStateException("MediaStore insert returned null");
-        boolean ok = false;
-        try (InputStream in = new FileInputStream(source); OutputStream out = resolver.openOutputStream(uri, "w")) {
-            if (out == null) throw new IllegalStateException("Unable to open Downloads output");
-            byte[] buffer = new byte[32 * 1024];
-            int n;
-            while ((n = in.read(buffer)) >= 0) out.write(buffer, 0, n);
-            ok = true;
-        } finally {
-            if (!ok) resolver.delete(uri, null, null);
-        }
-        ContentValues ready = new ContentValues();
-        ready.put(MediaStore.MediaColumns.IS_PENDING, 0);
-        resolver.update(uri, ready, null, null);
         return uri;
     }
 

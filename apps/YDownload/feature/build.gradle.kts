@@ -2,7 +2,6 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
 }
-val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 android {
     namespace = "com.yagay.ydownload"
@@ -16,7 +15,7 @@ dependencies {
     implementation(project(":next:core:platform:android"))
     implementation(project(":next:core:logging:api"))
     implementation(project(":next:core:logging:android"))
-    implementation("com.github.yagay.YSuite:api") { version { branch = sharedSuiteBranch.get() } }
+    implementation(project(":api"))
     implementation(project(":ui"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

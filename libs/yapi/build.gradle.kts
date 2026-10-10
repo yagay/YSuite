@@ -19,3 +19,8 @@ android {
         targetCompatibility = sharedJavaVersion
     }
 }
+
+
+dependencies {
+    testImplementation(libs.junit)
+}

@@ -1,6 +1,10 @@
 package com.yagay.ysuite.platform.android
 
 import android.content.pm.PackageManager
+import com.yagay.suite.api.FeatureRootCommands
+import com.yagay.suite.api.FeatureServices
+import com.yagay.suite.api.HostCapability
+import com.yagay.suite.api.HostCapabilityState
 import com.yagay.ysuite.common.Outcome
 import com.yagay.ysuite.platform.api.CapabilityStatus
 import com.yagay.ysuite.platform.api.HookGateway
@@ -119,6 +123,39 @@ private object SuRootGateway : RootGateway {
         "Root command failed"
     private const val ROOT_TIMEOUT_MESSAGE =
         "Root command timed out"
+}
+
+/**
+ * The rebuilt modules must not start a second su session when a YSuite FeatureHost
+ * is present. The generic standalone host uses the same contract; pre-host fallback
+ * remains for migration/testing only.
+ */
+private class HostedRootGateway(private val services: FeatureServices) : RootGateway {
+    override suspend fun status(): CapabilityStatus {
+        val host = services.hostOrNull() ?: return SuRootGateway.status()
+        return when (host.capabilityState(HostCapability.ROOT)) {
+            HostCapabilityState.GRANTED -> CapabilityStatus.Available
+            HostCapabilityState.NOT_GRANTED -> CapabilityStatus.PermissionRequired
+            HostCapabilityState.NOT_DECLARED, HostCapabilityState.NOT_SUPPORTED ->
+                CapabilityStatus.Unavailable
+        }
+    }
+
+    override suspend fun execute(request: RootRequest): Outcome<RootResult> {
+        if (services.hostOrNull() == null) return SuRootGateway.execute(request)
+        return withContext(Dispatchers.IO) {
+            val millis = request.timeoutMillis.coerceIn(1L, 3_600_000L)
+            val seconds = (millis + 999L) / 1000L
+            val result = FeatureRootCommands.execute(
+                services, "feature-root", request.command, seconds,
+            )
+            Outcome.Success(RootResult(
+                exitCode = result.code,
+                stdout = result.stdout,
+                stderr = FeatureRootCommands.errorText(result),
+            ))
+        }
+    }
 }
 
 private object AndroidShizukuGateway :
@@ -528,12 +565,13 @@ private fun collectProcess(
 }
 
 object DefaultPlatformServices {
-    fun create(): PlatformServices =
+    @JvmOverloads
+    fun create(featureId: String? = null): PlatformServices =
         PlatformServices(
-            root = SuRootGateway,
+            root = if (featureId.isNullOrBlank()) SuRootGateway
+                else HostedRootGateway(FeatureServices.of(featureId)),
             shizuku = AndroidShizukuGateway,
-            hooks =
-                AndroidLibXposedHookGateway,
+            hooks = AndroidLibXposedHookGateway,
         )
 }
 

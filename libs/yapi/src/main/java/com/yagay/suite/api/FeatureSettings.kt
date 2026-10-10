@@ -53,6 +53,7 @@ class FeatureSettings private constructor(
     }
 
     companion object {
+        @JvmStatic
         fun named(context: Context, preferenceName: String): FeatureSettings {
             require(preferenceName.isNotBlank()) { "preferenceName must not be blank" }
             val appContext = context.applicationContext ?: context

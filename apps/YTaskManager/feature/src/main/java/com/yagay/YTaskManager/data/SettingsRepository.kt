@@ -1,44 +1,45 @@
 package com.yagay.YTaskManager.data
 
 import android.content.Context
+import com.yagay.suite.api.FeatureSettings
 import com.yagay.YTaskManager.model.ProcessSort
 
 class SettingsRepository(context: Context) {
-    private val prefs = context.getSharedPreferences("taskmanager_settings", Context.MODE_PRIVATE)
+    private val prefs = FeatureSettings.named(context, "taskmanager_settings")
 
     var autoRefresh: Boolean
-        get() = prefs.getBoolean("proc_auto_refresh", true)
-        set(value) = prefs.edit().putBoolean("proc_auto_refresh", value).apply()
+        get() = prefs.boolean("proc_auto_refresh", true)
+        set(value) = prefs.putBoolean("proc_auto_refresh", value)
 
     var refreshIntervalMs: Long
-        get() = prefs.getLong("update_frequency", 800L).coerceIn(250L, 10_000L)
-        set(value) = prefs.edit().putLong("update_frequency", value.coerceIn(250L, 10_000L)).apply()
+        get() = prefs.long("update_frequency", 800L).coerceIn(250L, 10_000L)
+        set(value) = prefs.putLong("update_frequency", value.coerceIn(250L, 10_000L))
 
     var showSystemApps: Boolean
-        get() = prefs.getBoolean("show_system_apps", true)
-        set(value) = prefs.edit().putBoolean("show_system_apps", value).apply()
+        get() = prefs.boolean("show_system_apps", true)
+        set(value) = prefs.putBoolean("show_system_apps", value)
 
     var showUserApps: Boolean
-        get() = prefs.getBoolean("show_user_apps", true)
-        set(value) = prefs.edit().putBoolean("show_user_apps", value).apply()
+        get() = prefs.boolean("show_user_apps", true)
+        set(value) = prefs.putBoolean("show_user_apps", value)
 
     var showLinuxProcesses: Boolean
-        get() = prefs.getBoolean("show_linux_process", false)
-        set(value) = prefs.edit().putBoolean("show_linux_process", value).apply()
+        get() = prefs.boolean("show_linux_process", false)
+        set(value) = prefs.putBoolean("show_linux_process", value)
 
     var confirmKill: Boolean
-        get() = prefs.getBoolean("confirm_kill", true)
-        set(value) = prefs.edit().putBoolean("confirm_kill", value).apply()
+        get() = prefs.boolean("confirm_kill", true)
+        set(value) = prefs.putBoolean("confirm_kill", value)
 
     var sort: ProcessSort
         get() = runCatching {
-            ProcessSort.valueOf(prefs.getString("sort_by", ProcessSort.MEMORY.name)!!)
+            ProcessSort.valueOf(prefs.string("sort_by", ProcessSort.MEMORY.name)!!)
         }.getOrDefault(ProcessSort.MEMORY)
-        set(value) = prefs.edit().putString("sort_by", value.name).apply()
+        set(value) = prefs.putString("sort_by", value.name)
 
     var pinnedProcesses: Set<String>
-        get() = prefs.getStringSet("pinned_processes", emptySet())?.toSet().orEmpty()
-        set(value) = prefs.edit().putStringSet("pinned_processes", value.toSet()).apply()
+        get() = prefs.stringSet("pinned_processes", emptySet())
+        set(value) = prefs.putStringSet("pinned_processes", value.toSet())
 
     fun togglePinned(key: String): Boolean {
         val current = pinnedProcesses.toMutableSet()

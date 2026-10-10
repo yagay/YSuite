@@ -2,6 +2,7 @@ package com.yagay.ypower.data;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.yagay.suite.api.FeatureSettings;
 
 import com.yagay.ypower.model.AppProfile;
 import com.yagay.ypower.model.RecommendedAppPreset;
@@ -19,10 +20,10 @@ public final class ProfileStore {
     private static final String KEY_ENABLED = "enabledPackages";
     private static final String PROFILE_PREFIX = "profile:";
     private static volatile ProfileStore instance;
-    private final SharedPreferences local;
+    private final FeatureSettings local;
 
     private ProfileStore(Context context) {
-        local = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        local = FeatureSettings.named(context, PREFS);
     }
 
     public static ProfileStore get(Context context) {
@@ -35,11 +36,11 @@ public final class ProfileStore {
     }
 
     public synchronized AppProfile getProfile(String packageName) {
-        return AppProfile.fromJson(local.getString(PROFILE_PREFIX + packageName, null), packageName);
+        return AppProfile.fromJson(local.string(PROFILE_PREFIX + packageName, null), packageName);
     }
 
     public synchronized void save(AppProfile profile) {
-        local.edit().putString(PROFILE_PREFIX + profile.packageName, profile.toJson().toString()).apply();
+        local.putString(PROFILE_PREFIX + profile.packageName, profile.toJson().toString());
         List<String> enabled = new ArrayList<>(getEnabledPackages());
         if (profile.enabled && !enabled.contains(profile.packageName)) enabled.add(profile.packageName);
         if (!profile.enabled) enabled.remove(profile.packageName);
@@ -109,8 +110,8 @@ public final class ProfileStore {
         e.apply();
     }
 
-    private static List<String> readEnabled(SharedPreferences prefs) {
-        String raw = prefs.getString(KEY_ENABLED, "[]");
+    private static List<String> readEnabled(FeatureSettings prefs) {
+        String raw = prefs.string(KEY_ENABLED, "[]");
         if (raw == null) return Collections.emptyList();
         List<String> out = new ArrayList<>();
         try {
@@ -124,8 +125,8 @@ public final class ProfileStore {
         return out;
     }
 
-    private static void writeEnabled(SharedPreferences prefs, List<String> values) {
-        prefs.edit().putString(KEY_ENABLED, toJson(values)).apply();
+    private static void writeEnabled(FeatureSettings prefs, List<String> values) {
+        prefs.putString(KEY_ENABLED, toJson(values));
     }
 
     private static String toJson(List<String> values) {

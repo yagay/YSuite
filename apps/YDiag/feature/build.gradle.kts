@@ -4,7 +4,6 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 
 android {
@@ -34,12 +33,8 @@ android {
 }
 
 dependencies {
-    implementation("com.github.yagay.YSuite:api") {
-        version { branch = sharedSuiteBranch.get() }
-    }
-    implementation("com.github.yagay.YSuite:ui") {
-        version { branch = sharedSuiteBranch.get() }
-    }
+    implementation(project(":api"))
+    implementation(project(":ui"))
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
 
