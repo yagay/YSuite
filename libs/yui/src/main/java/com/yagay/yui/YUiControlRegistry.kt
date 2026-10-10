@@ -58,6 +58,7 @@ object YUiControlRegistry {
         range(YSettingKey.ROW_VERTICAL_PADDING, YControlGroup.LISTS),
         range(YSettingKey.CARD_RADIUS, YControlGroup.CARDS),
         range(YSettingKey.CARD_PADDING, YControlGroup.CARDS),
+        range(YSettingKey.CARD_OUTLINE_WIDTH, YControlGroup.CARDS),
         range(YSettingKey.FIELD_RADIUS, YControlGroup.INPUTS),
         range(YSettingKey.SWITCH_SLOT_WIDTH, YControlGroup.SWITCHES),
         range(YSettingKey.DIALOG_RADIUS, YControlGroup.DIALOGS),

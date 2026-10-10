@@ -41,7 +41,8 @@ public final class FlPointerOperationHintOverlay {
     public FlPointerOperationHintOverlay(Context c) {
         context = c.getApplicationContext();
         windowHost = new FlOverlayWindowHost(context);
-        iconSizePx = Math.max(dp(ICON_SIZE_DP), YView.iconSize(context));
+        iconSizePx = Math.max(dp(ICON_SIZE_DP), dp(
+                YOverlayUi.appearance(context, "yfloat").getIconVisualSizeDp()));
         hintHeightPx = Math.max(dp(HINT_HEIGHT_DP), iconSizePx);
         probeXOffsetPx = dp(PROBE_X_OFFSET_DP);
 

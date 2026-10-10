@@ -72,6 +72,8 @@ class YAppearanceStoreTest {
         assertEquals(2, store.appearance("yfloat").overlayOutlineWidthDp)
         assertEquals(55, store.appearance("yfloat").overlayScrimScale)
         assertEquals(18, store.appearance("yfloat").overlayShadowElevationDp)
+        store.set(YSettingKey.CARD_OUTLINE_WIDTH, "3", "ynotify")
+        assertEquals(3, store.appearance("ynotify").cardOutlineWidthDp)
         assertEquals(12, store.appearance("ynotify").overlayContentPaddingDp)
         val json = store.exportJson()
         store.reset()

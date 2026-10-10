@@ -35,8 +35,11 @@ object YOverlayUi {
     @JvmStatic fun elevationPx(context: Context, moduleId: String): Float =
         YOverlayTokens.dp(context, appearance(context, moduleId).overlayShadowElevationDp.toFloat()).toFloat()
 
-    @JvmStatic fun actionHeightPx(context: Context, moduleId: String): Int =
-        maxOf(YView.touchTarget(context), YView.buttonHeight(context))
+    @JvmStatic fun actionHeightPx(context: Context, moduleId: String): Int {
+        val config = appearance(context, moduleId)
+        val density = context.resources.displayMetrics.density
+        return maxOf(48, config.iconTouchTargetDp, config.buttonHeightDp).times(density).toInt()
+    }
 
     /** Shared native overlay typography and padding, preserving Android text selection. */
     @JvmStatic fun styleSelectionText(view: TextView) {

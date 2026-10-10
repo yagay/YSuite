@@ -106,4 +106,5 @@
     <string name="appearance_overlay_preview_heading">悬浮面板外观预览</string>
     <string name="appearance_overlay_preview_body">这里实时显示当前的圆角、透明度、留白与描边；不会启动实际截图或悬浮权限。</string>
     <string name="appearance_overlay_shadow_elevation">悬浮面板阴影高度（dp）</string>
+    <string name="appearance_card_outline_width">卡片描边宽度（dp）</string>
 </resources>
