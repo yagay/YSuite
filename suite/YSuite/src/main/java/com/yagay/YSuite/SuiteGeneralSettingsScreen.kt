@@ -1,6 +1,8 @@
 package com.yagay.YSuite
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -32,7 +34,11 @@ internal fun SuiteGeneralSettingsScreen(
     onOpenSharedSettings: () -> Unit,
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = remember(context) {
+        var target: Context = context
+        while (target is ContextWrapper && target !is Activity) target = target.baseContext
+        target as? Activity
+    }
     val preferences = remember(context.applicationContext) { SuiteCommonSettings(context) }
     var revision by remember { mutableIntStateOf(0) }
     DisposableEffect(preferences) {
@@ -40,10 +46,16 @@ internal fun SuiteGeneralSettingsScreen(
         onDispose(close)
     }
     // The OS is authoritative on Android 13+, including changes from Android's App Languages.
-    val locale = SuiteLocaleController.selected(context)
-    val hideDisabled = preferences.value(SuiteCommonSetting.HOME_HIDE_DISABLED) == "true"
-    val showSearch = preferences.value(SuiteCommonSetting.HOME_SHOW_SEARCH) == "true"
-    val showDiagnostics = preferences.value(SuiteCommonSetting.HOME_SHOW_DIAGNOSTICS) == "true"
+    val locale = remember(context, revision) { SuiteLocaleController.selected(context) }
+    val hideDisabled = remember(preferences, revision) {
+        preferences.value(SuiteCommonSetting.HOME_HIDE_DISABLED) == "true"
+    }
+    val showSearch = remember(preferences, revision) {
+        preferences.value(SuiteCommonSetting.HOME_SHOW_SEARCH) == "true"
+    }
+    val showDiagnostics = remember(preferences, revision) {
+        preferences.value(SuiteCommonSetting.HOME_SHOW_DIAGNOSTICS) == "true"
+    }
     val version = remember(context) {
         val info = context.packageManager.getPackageInfo(context.packageName, 0)
         info.versionName.orEmpty()
