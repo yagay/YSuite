@@ -5,6 +5,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.yagay.yui.YAppearanceStore
 import com.yagay.yui.YCard
@@ -34,6 +38,7 @@ import com.yagay.yui.YControlKind
 import com.yagay.yui.YDialogConfirmButton
 import com.yagay.yui.YDialogDismissButton
 import com.yagay.yui.YHorizontalActions
+import com.yagay.yui.YResponsiveFieldAction
 import com.yagay.yui.YListItem
 import com.yagay.yui.YPageList
 import com.yagay.yui.YPrimaryButton
@@ -370,20 +375,63 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
         }
         YControlKind.RANGE -> {
             val numeric = value.toIntOrNull() ?: definition.key.default.toInt()
+            val units = if (definition.key == YSettingKey.FONT_PERCENT) "%" else "dp"
+            var draft by remember(definition.key, value) { mutableStateOf(value) }
+            val entered = draft.toIntOrNull()
+            val valid = entered != null && entered in definition.minimum..definition.maximum
+            val applyValue: () -> Unit = {
+                if (valid && entered != null) onSet(entered.toString())
+            }
             Column {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(settingTitle(definition.key)), modifier = Modifier.weight(1f))
-                    Text(numeric.toString() + if (definition.key == YSettingKey.FONT_PERCENT) "%" else " dp",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$numeric $units", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 YUiSlider(
-                    value = numeric.toFloat(),
+                    value = numeric.toFloat().coerceIn(
+                        definition.minimum.toFloat(), definition.maximum.toFloat(),
+                    ),
                     onValueChange = { raw ->
-                        val count = ((raw - definition.minimum) / definition.step).roundToInt()
-                        onSet((definition.minimum + count * definition.step)
+                        onSet(raw.roundToInt()
                             .coerceIn(definition.minimum, definition.maximum).toString())
                     },
                     valueRange = definition.minimum.toFloat()..definition.maximum.toFloat(),
+                )
+                YResponsiveFieldAction(
+                    stackedBelow = 280.dp,
+                    field = { modifier ->
+                        YUiOutlinedTextField(
+                            value = draft,
+                            onValueChange = { input ->
+                                if (input.length <= 5 && input.all { char -> char.isDigit() }) {
+                                    draft = input
+                                }
+                            },
+                            modifier = modifier,
+                            label = { Text(stringResource(R.string.appearance_exact_value)) },
+                            suffix = { Text(units) },
+                            singleLine = true,
+                            isError = draft.isNotEmpty() && !valid,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(onDone = { applyValue() }),
+                        )
+                    },
+                    action = {
+                        YSecondaryButton(
+                            text = stringResource(R.string.appearance_apply_exact),
+                            enabled = valid && entered != numeric,
+                            onClick = applyValue,
+                        )
+                    },
+                )
+                Text(
+                    text = stringResource(R.string.appearance_allowed_range,
+                        definition.minimum, definition.maximum, units),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
