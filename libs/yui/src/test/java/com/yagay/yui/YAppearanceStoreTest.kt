@@ -77,6 +77,37 @@ class YAppearanceStoreTest {
         assertFalse(store.isOverridden(YSettingKey.BUTTON_RADIUS, "ynotify"))
     }
 
+
+    @Test
+    fun catalogContainsEachAppearanceControlExactlyOnce() {
+        val definitions = YUiControlRegistry.definitions
+        assertEquals(YUiControlRegistry.groups.toSet(), definitions.map { it.group }.toSet())
+        assertEquals(definitions.size, definitions.map { it.key }.toSet().size)
+        assertFalse(definitions.any { it.key == YSettingKey.HOME_STATUS || it.key == YSettingKey.HOME_SWIPE_PIN })
+        definitions.forEach { definition ->
+            assertEquals(definition.key.default, definition.key.validate(definition.key.default))
+            if (definition.kind == YControlKind.RANGE) {
+                assertTrue(definition.key.default.toInt() in definition.minimum..definition.maximum)
+            }
+        }
+    }
+
+    @Test
+    fun controlAppearanceSettingsApplyGloballyAndCanBeOverridden() {
+        store.set(YSettingKey.BUTTON_HEIGHT, "58")
+        store.set(YSettingKey.CARD_RADIUS, "6")
+        store.set(YSettingKey.ACCENT, "teal")
+        assertEquals(58, store.appearance("yfloat").buttonHeightDp)
+        assertEquals(6, store.appearance("ynotify").cardRadiusDp)
+        assertEquals("teal", store.appearance("yentrycleaner").accent)
+        store.set(YSettingKey.BUTTON_HEIGHT, "64", "ynotify")
+        assertEquals(64, store.appearance("ynotify").buttonHeightDp)
+        assertEquals(58, store.appearance("yfloat").buttonHeightDp)
+        val serialized = store.exportJson()
+        store.importJson(serialized)
+        assertEquals(64, store.appearance("ynotify").buttonHeightDp)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsInvalidModuleIdentifier() {
         store.set(YSettingKey.THEME, "light", "../other")
