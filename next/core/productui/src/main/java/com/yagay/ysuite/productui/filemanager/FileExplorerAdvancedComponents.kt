@@ -26,7 +26,7 @@ import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiScrollableTabRow as ScrollableTabRow
-import androidx.compose.material3.Surface
+import com.yagay.yui.YUiSurface as Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable

@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material3.DropdownMenu
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
 import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import com.yagay.yui.YUiTextButton as TextButton

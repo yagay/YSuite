@@ -26,10 +26,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
 import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
 import com.yagay.yui.YUiFilterChip as FilterChip
-import androidx.compose.material3.HorizontalDivider
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
 import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.LinearProgressIndicator

@@ -17,7 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import com.yagay.yui.YUiNavigationDrawerItem as NavigationDrawerItem
-import androidx.compose.material3.Surface
+import com.yagay.yui.YUiSurface as Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable

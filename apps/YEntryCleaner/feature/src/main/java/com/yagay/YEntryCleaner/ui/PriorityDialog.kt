@@ -16,11 +16,11 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material3.HorizontalDivider
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
 import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import com.yagay.yui.YUiSurface as Surface
 import androidx.compose.material3.Text
 import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.runtime.*
