@@ -18,7 +18,8 @@ fun YStandardSwitch(
 ) {
     Box(
         modifier = modifier.size(
-            width = LocalYAppearance.current.switchSlotWidthDp.dp,
+            width = if (LocalYAppearance.current.switchSlotWidthDp == 56)
+                YDimens.SwitchSlotWidth else LocalYAppearance.current.switchSlotWidthDp.dp,
             height = YDimens.SwitchSlotHeight,
         ),
         contentAlignment = Alignment.Center,
