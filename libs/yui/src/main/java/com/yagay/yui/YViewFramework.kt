@@ -440,7 +440,7 @@ object YViewLayout {
     fun listGap(context: Context): Int = controlGap(context)
 
     @JvmStatic
-    fun listIconSize(context: Context): Int = dp(context, 32)
+    fun listIconSize(context: Context): Int = YView.listIconSize(context)
 
     @JvmStatic
     @JvmOverloads
