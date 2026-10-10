@@ -48,8 +48,8 @@ final class CircleBorderSettingsUi {
         YViewLayout.addRow(parent, YViewLayout.sliderSetting(
                 activity,
                 activity.getString(R.string.yfloat_circle_border_width),
-                1,
-                8,
+                0,
+                48,
                 fs.circleBorderWidthDp(),
                 value -> activity.getString(R.string.yfloat_dimension_dp, value),
                 value -> {
