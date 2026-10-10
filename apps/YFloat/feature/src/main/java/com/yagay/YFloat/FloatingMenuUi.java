@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YView;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -27,20 +28,20 @@ final class FloatingMenuUi {
         TextView tv = baseText(c, text);
         tv.setGravity(Gravity.CENTER);
         tv.setMinWidth(dp(c, minWidthDp));
-        tv.setPadding(dp(c, 10), 0, dp(c, 10), 0);
+        tv.setPadding(YView.controlGap(c), 0, YView.controlGap(c), 0);
         return tv;
     }
 
     static TextView row(Context c, String text, Drawable icon) {
         TextView tv = baseText(c, text);
         tv.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        tv.setPadding(dp(c, 14), 0, dp(c, 14), 0);
+        tv.setPadding(YView.cardPadding(c), 0, YView.cardPadding(c), 0);
         tv.setSingleLine(true);
         tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
         if (icon != null) {
             int s = dp(c, 24);
             icon.setBounds(0, 0, s, s);
-            tv.setCompoundDrawablePadding(dp(c, 12));
+            tv.setCompoundDrawablePadding(YView.controlGap(c));
             tv.setCompoundDrawables(icon, null, null, null);
         }
         return tv;
@@ -56,7 +57,7 @@ final class FloatingMenuUi {
         TextView tv = new TextView(c);
         tv.setText(text == null ? "" : text);
         tv.setTextColor(YOverlayTokens.menuPrimaryText(c));
-        tv.setTextSize(14);
+        tv.setTextSize(14f * YView.fontPercent(c) / 100f);
         tv.setBackground(ripple(c));
         tv.setClickable(true);
         tv.setFocusable(true);
