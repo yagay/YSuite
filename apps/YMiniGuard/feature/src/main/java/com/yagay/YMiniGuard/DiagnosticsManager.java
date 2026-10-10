@@ -7,6 +7,9 @@ import android.util.Log;
 import com.yagay.suite.api.FeatureDiagnosticArchive;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
