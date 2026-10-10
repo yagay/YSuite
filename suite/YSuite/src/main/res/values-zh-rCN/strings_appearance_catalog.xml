@@ -95,4 +95,7 @@
     <string name="appearance_float_trail_visible">显示手势轨迹</string>
     <string name="appearance_content_width_scale">页面内容宽度比例（%）</string>
     <string name="appearance_pane_width_scale">侧边栏宽度比例（%）</string>
+    <string name="appearance_inherit_all">所有模块继承全局外观</string>
+    <string name="appearance_inherit_all_confirm">清除所有模块单独保存的外观覆盖值吗？之后各模块将统一使用全局主题、尺寸和布局设置，模块功能数据不会改变。</string>
+    <string name="appearance_inherit_all_action">统一应用全局外观</string>
 </resources>
