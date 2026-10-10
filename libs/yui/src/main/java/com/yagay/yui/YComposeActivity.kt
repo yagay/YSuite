@@ -24,6 +24,10 @@ abstract class YComposeActivity : ComponentActivity() {
         onAfterYContent(savedInstanceState)
     }
 
+    /**
+     * YTheme resolves per-module appearance from the concrete Activity package.
+     * Feature screens remain responsible only for content, not preference plumbing.
+     */
     protected open fun onBeforeYContent(savedInstanceState: Bundle?) = Unit
 
     protected open fun onAfterYContent(savedInstanceState: Bundle?) = Unit

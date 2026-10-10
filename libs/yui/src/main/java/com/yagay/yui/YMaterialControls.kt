@@ -23,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.dp
 
 /**
  * Material 3 compatibility facade for existing product layouts.
@@ -37,7 +38,7 @@ fun YUiButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(YDimens.ButtonRadius),
+    shape: Shape? = null,
     colors: ButtonColors = ButtonDefaults.buttonColors(),
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
     border: BorderStroke? = null,
@@ -52,7 +53,7 @@ fun YUiButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
         enabled = enabled,
-        shape = shape,
+        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,
@@ -67,7 +68,7 @@ fun YUiOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(YDimens.ButtonRadius),
+    shape: Shape? = null,
     colors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
@@ -82,7 +83,7 @@ fun YUiOutlinedButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
         enabled = enabled,
-        shape = shape,
+        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,
@@ -97,7 +98,7 @@ fun YUiTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(YDimens.ButtonRadius),
+    shape: Shape? = null,
     colors: ButtonColors = ButtonDefaults.textButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
@@ -112,7 +113,7 @@ fun YUiTextButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
         enabled = enabled,
-        shape = shape,
+        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,

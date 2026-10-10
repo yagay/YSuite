@@ -141,7 +141,8 @@ fun YPageList(
     val template = role.template()
     // Legacy compact argument is retained for binary/source compatibility.
     // Normal-screen lists always use the role's standard row spacing.
-    val rowSpacing = template.sectionSpacing
+    val appearance = LocalYAppearance.current
+    val rowSpacing = template.sectionSpacing * (appearance.effectiveGapDp / 12f)
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val horizontal = yPageHorizontalPadding(maxWidth)
         LazyColumn(
@@ -189,7 +190,7 @@ fun YSection(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
@@ -219,7 +220,7 @@ fun YSection(
         Column(
             modifier = modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(
-                YDimens.ControlGap,
+                LocalYAppearance.current.effectiveGapDp.dp,
             ),
         ) {
             body()
@@ -267,7 +268,7 @@ fun YStatusLine(
     }
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Text(
@@ -293,7 +294,7 @@ fun YHorizontalActions(
 ) {
     Row(
         modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )
@@ -338,7 +339,7 @@ fun YListItem(
             )
             .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap / 2),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         leading?.invoke()
         Column(
@@ -637,7 +638,7 @@ fun YSecondaryActionButton(
 fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         actions.forEach { action ->

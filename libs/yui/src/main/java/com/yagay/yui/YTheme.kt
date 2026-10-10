@@ -37,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -155,21 +157,40 @@ fun YTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
+    val appearance = rememberYAppearance(YAppearanceStore.moduleIdFor(context))
+    val actualDark = when (appearance.theme) {
+        "light" -> false
+        "dark" -> true
+        else -> darkTheme
+    }
+    val actualDynamic = dynamicColor || appearance.dynamicColor
+    val systemDensity = LocalDensity.current
+    val scaledDensity = Density(
+        systemDensity.density,
+        systemDensity.fontScale * (appearance.fontPercent / 100f),
+    )
+    val shapes = if (appearance.buttonRadiusDp == 24) YShapes else Shapes(
+        small = RoundedCornerShape((appearance.buttonRadiusDp / 2).dp),
+        medium = RoundedCornerShape(appearance.buttonRadiusDp.dp),
+        large = RoundedCornerShape(appearance.buttonRadiusDp.dp),
+    )
     // A deterministic shared palette is essential for matching Compose and legacy View screens.
     // Android dynamic colors remain available only via an explicit opt-in.
     val scheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= 31 && darkTheme -> dynamicDarkColorScheme(context)
-        dynamicColor && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
-        darkTheme -> YDarkColors
+        actualDynamic && Build.VERSION.SDK_INT >= 31 && actualDark -> dynamicDarkColorScheme(context)
+        actualDynamic && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
+        actualDark -> YDarkColors
         else -> YLightColors
     }
     MaterialTheme(
         colorScheme = scheme,
         typography = YTypography,
-        shapes = YShapes,
+        shapes = shapes,
     ) {
         CompositionLocalProvider(
-            LocalYSemanticColors provides if (darkTheme) YSemanticPalette.Dark else YSemanticPalette.Light,
+            LocalDensity provides scaledDensity,
+            LocalYAppearance provides appearance,
+            LocalYSemanticColors provides if (actualDark) YSemanticPalette.Dark else YSemanticPalette.Light,
             content = content,
         )
     }
