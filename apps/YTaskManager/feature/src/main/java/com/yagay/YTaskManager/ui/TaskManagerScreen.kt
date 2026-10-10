@@ -61,7 +61,6 @@ import com.yagay.YTaskManager.model.ProcessEntry
 import com.yagay.YTaskManager.model.ProcessKind
 import com.yagay.YTaskManager.model.ProcessSort
 import com.yagay.YTaskManager.model.TaskManagerUiState
-import com.yagay.yui.YDimens
 import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YSection
 import com.yagay.yui.YToggleFilterBar
@@ -269,7 +268,7 @@ private fun StatusSection(state: TaskManagerUiState) {
                 tone = if (state.framework.detected) YStatusTone.Good else YStatusTone.Warning,
             ),
         ),
-        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = YDimens.SpacingXsmall),
+        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 3f).dp),
     )
 }
 
@@ -285,7 +284,7 @@ private fun FilterSection(
     YSection(
         title = stringResource(R.string.ytm_process_filter),
         subtitle = stringResource(R.string.ytm_process_filter_desc),
-        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = YDimens.SpacingSmall),
+        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp),
     ) {
         YSearchField(
             value = state.query,
@@ -363,7 +362,7 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
     if (filtered.isEmpty()) {
         YEmptyMessage(
             message = stringResource(R.string.ytm_no_processes),
-            modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = YDimens.ControlGap),
+            modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.effectiveGapDp.dp),
         )
         return
     }
@@ -588,10 +587,11 @@ private fun HistoryChart(values: List<Float>) {
 
 @Composable
 private fun AppIcon(drawable: Drawable?) {
+    val iconSize = LocalYAppearance.current.listIconSizeDp.dp
     if (drawable == null) {
         Box(
             modifier = Modifier
-                .size(YDimens.ListIconSize)
+                .size(iconSize)
                 .clip(MaterialTheme.shapes.small),
             contentAlignment = Alignment.Center,
         ) {
@@ -600,7 +600,7 @@ private fun AppIcon(drawable: Drawable?) {
         return
     }
     val density = LocalDensity.current
-    val px = with(density) { YDimens.ListIconSize.roundToPx() }
+    val px = with(density) { iconSize.roundToPx() }
     val bitmap = remember(drawable, px) {
         drawable.toBitmap(max(1, px), max(1, px)).asImageBitmap()
     }
@@ -608,7 +608,7 @@ private fun AppIcon(drawable: Drawable?) {
         bitmap = bitmap,
         contentDescription = null,
         modifier = Modifier
-            .size(YDimens.ListIconSize)
+            .size(iconSize)
             .clip(MaterialTheme.shapes.small),
     )
 }
