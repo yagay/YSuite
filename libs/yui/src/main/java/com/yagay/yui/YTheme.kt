@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
@@ -183,7 +184,7 @@ fun YTheme(
         else -> YLightColors
     }
     MaterialTheme(
-        colorScheme = scheme,
+        colorScheme = yAccentColorScheme(scheme, appearance.accent, actualDark),
         typography = YTypography,
         shapes = shapes,
     ) {
@@ -317,14 +318,14 @@ fun YCard(
 ) {
     Card(
         modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(LocalYAppearance.current.cardRadiusDp.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
         Column(
-            modifier = Modifier.padding(YDimens.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+            modifier = Modifier.padding(LocalYAppearance.current.cardPaddingDp.dp),
+            verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) { content() }
     }
 }
@@ -374,5 +375,37 @@ fun YEmptyState(text: String, modifier: Modifier = Modifier) {
         modifier = modifier.padding(vertical = YDimens.ScreenVertical),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+
+/** Preset primary palettes; normal state/status colors retain their semantic meanings. */
+private fun yAccentColorScheme(base: ColorScheme, accent: String, dark: Boolean): ColorScheme {
+    if (accent == "default") return base
+    val light = when (accent) {
+        "blue" -> intArrayOf(0x315FA8, 0xDCE5FF, 0x071B4D)
+        "teal" -> intArrayOf(0x006A64, 0xA7F2E7, 0x00201D)
+        "green" -> intArrayOf(0x386A20, 0xCBF6AD, 0x0E2001)
+        "purple" -> intArrayOf(0x6D4EA0, 0xEDDDFF, 0x251043)
+        "orange" -> intArrayOf(0x984B00, 0xFFDBC3, 0x321300)
+        else -> return base
+    }
+    val darkPrimary = when (accent) {
+        "blue" -> 0xAAC7FF
+        "teal" -> 0x82D5C8
+        "green" -> 0xA8D58C
+        "purple" -> 0xD3BCFF
+        else -> 0xFFB77A
+    }
+    val primary = Color(0xFF000000L or (if (dark) darkPrimary else light[0]).toLong())
+    val onPrimary = if (dark) Color(0xFF162B49) else Color.White
+    val container = if (dark) Color(0xFF354765) else Color(0xFF000000L or light[1].toLong())
+    val onContainer = if (dark) Color.White else Color(0xFF000000L or light[2].toLong())
+    return base.copy(
+        primary = primary, onPrimary = onPrimary,
+        primaryContainer = container, onPrimaryContainer = onContainer,
+        secondary = primary, onSecondary = onPrimary,
+        secondaryContainer = container, onSecondaryContainer = onContainer,
+        surfaceTint = primary, inversePrimary = primary,
     )
 }

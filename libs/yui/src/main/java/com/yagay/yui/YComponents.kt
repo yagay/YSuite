@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 fun YScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(
-        horizontal = YDimens.ScreenHorizontal,
+        horizontal = LocalYAppearance.current.screenPaddingDp.dp,
         vertical = YDimens.ScreenVertical,
     ),
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
@@ -35,7 +35,7 @@ fun YScreen(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.sectionSpacingDp.dp),
         content = content,
     )
 }
@@ -93,7 +93,7 @@ fun YBottomActionBar(
         Row(
             modifier = Modifier.fillMaxWidth().navigationBarsPadding()
                 .padding(horizontal = YDimens.ScreenHorizontal, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap, Alignment.End),
+            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )

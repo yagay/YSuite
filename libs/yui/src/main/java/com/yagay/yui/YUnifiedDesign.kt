@@ -142,9 +142,11 @@ fun YPageList(
     // Legacy compact argument is retained for binary/source compatibility.
     // Normal-screen lists always use the role's standard row spacing.
     val appearance = LocalYAppearance.current
-    val rowSpacing = template.sectionSpacing * (appearance.effectiveGapDp / 12f)
+    val rowSpacing = if (template.sectionSpacing == 0.dp) 0.dp
+        else appearance.sectionSpacingDp.dp * (template.sectionSpacing.value / 16f)
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        val horizontal = yPageHorizontalPadding(maxWidth)
+        val horizontal = if (maxWidth < YDimens.MediumBreakpoint) LocalYAppearance.current.screenPaddingDp.dp
+            else yPageHorizontalPadding(maxWidth)
         LazyColumn(
             modifier = Modifier.widthIn(max = template.maxContentWidth).fillMaxSize(),
             contentPadding = PaddingValues(
@@ -332,12 +334,13 @@ fun YListItem(
     Row(
         modifier = activeModifier
             .fillMaxWidth()
-            .heightIn(min = YDimens.OptionRowHeight)
+            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
             .background(
                 if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
                 else Color.Transparent,
             )
-            .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap / 2),
+            .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
@@ -616,8 +619,8 @@ fun YTextActionButton(
         modifier = modifier,
         enabled = enabled,
         contentPadding = PaddingValues(
-            horizontal = YDimens.ButtonTextPaddingHorizontal,
-            vertical = YDimens.ButtonPaddingVertical,
+            horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
+            vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
         ),
         content = content,
     )
@@ -645,11 +648,14 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
             when (action.style) {
                 YActionStyle.PRIMARY -> YPrimaryButton(action.label, action.onClick, enabled = action.enabled)
                 YActionStyle.SECONDARY -> YSecondaryButton(action.label, action.onClick, enabled = action.enabled)
-                YActionStyle.DANGER -> OutlinedButton(
+                YActionStyle.DANGER -> YUiOutlinedButton(
                     onClick = action.onClick,
                     enabled = action.enabled,
-                    modifier = Modifier.heightIn(min = YDimens.ButtonVisualHeight),
-                    contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
+                    modifier = Modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
+                        vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
+                    ),
                 ) {
                     Text(
                         action.label,
