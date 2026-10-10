@@ -69,8 +69,8 @@ final class GoogleRegionConfirmOverlay {
 
         TextView view = new TextView(app);
         view.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6f1359d0747a));
-        view.setTextColor(Color.WHITE);
-        view.setTextSize(15f);
+        view.setTextColor(YFloatOverlayStyle.primaryText(app));
+        view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, YFloatOverlayStyle.textSize(app, 15f));
         view.setTypeface(Typeface.DEFAULT_BOLD);
         view.setGravity(Gravity.CENTER);
         view.setClickable(true);
@@ -79,9 +79,9 @@ final class GoogleRegionConfirmOverlay {
         view.setElevation(ScreenGeometry.dp(app, 8f));
 
         GradientDrawable background = new GradientDrawable();
-        background.setColor(Color.rgb(45, 45, 48));
-        background.setCornerRadius(ScreenGeometry.dp(app, 18f));
-        background.setStroke(ScreenGeometry.dp(app, 1f), Color.argb(70, 255, 255, 255));
+        background.setColor(YFloatOverlayStyle.surface(app));
+        background.setCornerRadius(YFloatOverlayStyle.buttonRadius(app));
+        background.setStroke(ScreenGeometry.dp(app, 1f), YFloatOverlayStyle.selectionColor(app));
         view.setBackground(background);
 
         int width = ScreenGeometry.dp(app, 76f);
