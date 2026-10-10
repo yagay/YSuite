@@ -1,25 +1,19 @@
 package com.yagay.yui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.graphicsLayer
 
 /**
- * A compact YUI switch, not a scaled Material switch that still occupies a tall layout cell.
+ * Material 3's upstream Switch is now the only renderer for YSuite's Compose toggles.
  *
- * The visual track is 38x22dp; the independent touch surface is 48x40dp.
- * Settings rows remain at least 48dp high so the whole option is easy to tap.
+ * The graphics layer shrinks its *painted* geometry to match the existing compact setting
+ * rows without rewriting the track/thumb colors or animations. Switch still owns state,
+ * semantics, colors and animation; the surrounding row retains its own touch target.
  */
 @Composable
 fun YCompactSwitch(
@@ -28,41 +22,18 @@ fun YCompactSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val colors = MaterialTheme.colorScheme
-    val track = if (checked) colors.primary else colors.surfaceVariant
-    val outline = if (checked) Color.Transparent else colors.outline
-    val thumb = if (checked) colors.onPrimary else colors.onSurfaceVariant
-    val opacity = if (enabled) 1f else 0.38f
-    val switchShape = CircleShape
-
     Box(
-        modifier = modifier
-            .size(width = YDimens.TouchTarget, height = YDimens.SwitchSlotHeight)
-            .toggleable(
-                value = checked,
-                enabled = enabled,
-                role = Role.Switch,
-                onValueChange = onCheckedChange,
-            ),
+        modifier = modifier.size(
+            width = YDimens.SwitchSlotWidth,
+            height = YDimens.SwitchSlotHeight,
+        ),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = YDimens.SwitchTrackWidth, height = YDimens.SwitchTrackHeight)
-                .background(track.copy(alpha = opacity), switchShape)
-                .border(1.dp, outline.copy(alpha = opacity), switchShape),
-        ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .offset(x = if (checked) {
-                        YDimens.SwitchTrackWidth - YDimens.SwitchThumbSize - 2.dp
-                    } else {
-                        2.dp
-                    })
-                    .size(YDimens.SwitchThumbSize)
-                    .background(thumb.copy(alpha = opacity), CircleShape),
-            )
-        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
+            modifier = Modifier.graphicsLayer(scaleX = 0.75f, scaleY = 0.75f),
+        )
     }
 }
