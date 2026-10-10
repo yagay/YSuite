@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -37,6 +35,8 @@ import com.yagay.yui.YSection
 import com.yagay.yui.YSettingKey
 import com.yagay.yui.YSettingsScaffold
 import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YUiRadioButton
+import com.yagay.yui.YUiSlider
 import com.yagay.yui.YUiAlertDialog
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
@@ -280,7 +280,7 @@ private fun SettingsChoices(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                RadioButton(selected = value == selected, onClick = { onSelect(value) })
+                YUiRadioButton(selected = value == selected, onClick = { onSelect(value) })
                 Text(label, style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -301,7 +301,7 @@ private fun SettingsSlider(
             Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             Text(value.toString() + suffix, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Slider(
+        YUiSlider(
             value = value.toFloat(),
             onValueChange = { raw ->
                 val snapped = (raw.toInt() - range.first + step / 2) / step * step + range.first
