@@ -2,7 +2,7 @@ name: Validate YSuite Architecture
 
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild/material3-full-ui]
   pull_request:
   workflow_dispatch:
 
@@ -71,6 +71,9 @@ jobs:
 
       - name: Verify shared Material3 controls across all modules
         run: python3 tools/verify_yui_controls.py
+
+      - name: Verify YUI content and responsive layouts
+        run: python3 tools/verify_yui_content_compatibility.py
 
       - name: Verify repository UI screen ownership
         run: python3 tools/verify_ui_screen_ownership.py

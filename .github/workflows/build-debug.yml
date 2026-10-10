@@ -2,7 +2,7 @@ name: Build YSuite Debug
 
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild/material3-full-ui]
   pull_request:
     branches: [main]
   workflow_dispatch:
