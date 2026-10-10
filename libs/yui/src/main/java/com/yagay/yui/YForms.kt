@@ -175,7 +175,7 @@ fun YSliderField(
     valueLabel: String? = null,
     enabled: Boolean = true,
 ) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             if (!valueLabel.isNullOrBlank()) {
@@ -273,8 +273,8 @@ fun <T> YSegmentedControl(
 ) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(YUiGeometry.gap()),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.gap()),
     ) {
         options.forEach { option ->
             FilterChip(

@@ -129,7 +129,7 @@ object YView {
             button.insetBottom = dimen(context, R.dimen.yui_button_inset_vertical)
             if (outlined) {
                 button.strokeColor = ColorStateList.valueOf(colors.outline.toArgb())
-                button.strokeWidth = maxOf(button.strokeWidth, dp(context, 1))
+                button.strokeWidth = maxOf(button.strokeWidth, cardOutlineWidth(context))
             }
         }
     }
@@ -142,7 +142,7 @@ object YView {
     @JvmStatic fun fieldBackground(context: Context): GradientDrawable = GradientDrawable().apply {
         setColor(surfaceContainer(context))
         cornerRadius = dp(context, appearance(context).fieldRadiusDp).toFloat()
-        setStroke(dp(context, 1), outline(context))
+        setStroke(cardOutlineWidth(context), outline(context))
     }
 
     @JvmStatic fun styleCard(view: ViewGroup) {

@@ -59,7 +59,7 @@ internal fun YPageRole.template(): YPageTemplate = when (this) {
     // A section heading and a short description no longer need a 64dp minimum row.
     // All actionable rows still use a 48dp minimum touch target in YListItem.
     YPageRole.DASHBOARD -> YPageTemplate(
-        YDimens.ContentMaxWidth, 8.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
+        YDimens.ContentMaxWidth, YDimens.SpacingSmall, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
         emphasizeCards = true,
     )
     YPageRole.SETTINGS -> YPageTemplate(
@@ -69,7 +69,7 @@ internal fun YPageRole.template(): YPageTemplate = when (this) {
         YDimens.ContentMaxWidth, 0.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
     )
     YPageRole.DETAIL, YPageRole.EDITOR, YPageRole.WIZARD -> YPageTemplate(
-        YDimens.FormMaxWidth, 6.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
+        YDimens.FormMaxWidth, YDimens.SpacingSmall * 0.75f, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
     )
     YPageRole.LIST -> YPageTemplate(
         YDimens.ContentMaxWidth, 0.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
@@ -181,7 +181,7 @@ fun YListDetailScaffold(
             Row(Modifier.fillMaxSize()) {
                 listPane(Modifier.width(YDimens.ListDetailListWidth).fillMaxHeight())
                 Box(
-                    Modifier.fillMaxHeight().width(1.dp)
+                    Modifier.fillMaxHeight().width(LocalYAppearance.current.cardOutlineWidthDp.dp)
                         .background(androidx.compose.material3.MaterialTheme.colorScheme.outlineVariant),
                 )
                 detailPane(Modifier.weight(1f).fillMaxHeight())
@@ -220,7 +220,7 @@ fun YSupportingPaneScaffold(
 @Composable
 fun YResponsiveGrid(
     modifier: Modifier = Modifier,
-    minCellWidth: Dp = 220.dp,
+    minCellWidth: Dp = YDimens.ListDetailListWidth * 0.6f,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: LazyGridScope.() -> Unit,
 ) {
@@ -228,8 +228,8 @@ fun YResponsiveGrid(
         columns = GridCells.Adaptive(minCellWidth),
         modifier = modifier,
         contentPadding = contentPadding,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         content = content,
     )
 }

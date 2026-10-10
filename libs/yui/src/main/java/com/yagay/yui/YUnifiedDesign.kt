@@ -143,7 +143,7 @@ fun YPageList(
     // Normal-screen lists always use the role's standard row spacing.
     val appearance = LocalYAppearance.current
     val rowSpacing = if (template.sectionSpacing == 0.dp) 0.dp
-        else appearance.sectionSpacingDp.dp * (template.sectionSpacing.value / 16f)
+        else appearance.sectionSpacingDp.dp * (template.sectionSpacing.value / YDimens.SectionGap.value)
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         // The same user-controlled margin applies on phones and expanded screens.
         val horizontal = appearance.screenPaddingDp.dp
@@ -163,10 +163,10 @@ fun YPageList(
 
 @Composable
 fun YSectionHeader(title: String, modifier: Modifier = Modifier, subtitle: String? = null) {
-    val topPadding = if (LocalYPageRole.current == YPageRole.SETTINGS) 8.dp else 4.dp
+    val topPadding = if (LocalYPageRole.current == YPageRole.SETTINGS) YUiGeometry.compactGap() else YUiGeometry.tinyGap()
     Column(
-        modifier.fillMaxWidth().padding(top = topPadding, bottom = 3.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier.fillMaxWidth().padding(top = topPadding, bottom = YUiGeometry.tinyGap()),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap()),
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         if (!subtitle.isNullOrBlank()) {
@@ -194,7 +194,7 @@ fun YSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap())) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 if (!subtitle.isNullOrBlank()) {
                     Text(
@@ -269,7 +269,7 @@ fun YStatusLine(
         YStatusTone.Error -> MaterialTheme.colorScheme.error
     }
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 2.dp),
+        modifier = modifier.fillMaxWidth().padding(vertical = YUiGeometry.tinyGap()),
         horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -347,7 +347,7 @@ fun YListItem(
         leading?.invoke()
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
+            verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap()),
         ) {
             Text(
                 title,
@@ -534,7 +534,7 @@ fun YChoiceSetting(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap()),
     ) {
         Text(
             title,
@@ -749,7 +749,7 @@ fun YLogPanel(lines: List<String>, modifier: Modifier = Modifier, maxHeightDp: I
         SelectionContainer {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().padding(LocalYAppearance.current.cardPaddingDp.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap()),
             ) {
                 items(lines) { line ->
                     Text(

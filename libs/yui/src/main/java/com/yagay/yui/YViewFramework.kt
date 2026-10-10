@@ -232,7 +232,7 @@ object YViewLayout {
         }
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(screenH(context), screenV(context), screenH(context), dp(context, 28))
+            setPadding(screenH(context), screenV(context), screenH(context), YView.sectionGap(context) * 2)
         }
         scroll.addView(
             root,
@@ -278,7 +278,7 @@ object YViewLayout {
             View(parent.context).apply { setBackgroundColor(YView.outline(context)) },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(parent.context, 1),
+                YView.cardOutlineWidth(parent.context),
             ).apply {
                 bottomMargin = sectionGap(parent.context)
             },
@@ -291,7 +291,7 @@ object YViewLayout {
         val heading = TextView(parent.context).apply {
             text = title
             YView.styleSectionTitle(this)
-            setPadding(0, sectionGap(context), 0, dp(context, 4))
+            setPadding(0, sectionGap(context), 0, maxOf(0, YView.controlGap(context) / 3))
         }
         parent.addView(heading, matchWrap())
         if (!subtitle.isNullOrBlank()) {
@@ -332,7 +332,7 @@ object YViewLayout {
         TextView(context).apply {
             this.text = text
             YView.styleBody(this)
-            setPadding(0, dp(context, 5), 0, dp(context, 5))
+            setPadding(0, maxOf(0, YView.rowVerticalPadding(context)), 0, maxOf(0, YView.rowVerticalPadding(context)))
             setStatusTone(this, tone)
         }
 
@@ -348,14 +348,14 @@ object YViewLayout {
         text = message
         YView.styleBody(this)
         gravity = Gravity.CENTER
-        setPadding(0, dp(context, 22), 0, dp(context, 22))
+        setPadding(0, YView.sectionGap(context), 0, YView.sectionGap(context))
     }
 
     @JvmStatic
     fun keyValueRow(context: Context, label: String, value: String): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.TOP
-        setPadding(0, dp(context, 5), 0, dp(context, 5))
+        setPadding(0, maxOf(0, YView.rowVerticalPadding(context)), 0, maxOf(0, YView.rowVerticalPadding(context)))
         addView(
             TextView(context).apply {
                 text = label
@@ -376,7 +376,7 @@ object YViewLayout {
     @JvmStatic
     fun detailBlock(context: Context, title: String, description: String): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(0, dp(context, 7), 0, dp(context, 7))
+        setPadding(0, YView.rowVerticalPadding(context), 0, YView.rowVerticalPadding(context))
         addView(TextView(context).apply {
             text = title
             YView.styleStrongBody(this)
@@ -384,7 +384,7 @@ object YViewLayout {
         addView(TextView(context).apply {
             text = description
             YView.styleCaption(this)
-            setPadding(0, dp(context, 3), 0, 0)
+            setPadding(0, maxOf(0, YView.controlGap(context) / 4), 0, 0)
         })
     }
 
@@ -495,7 +495,7 @@ object YViewLayout {
 
     @JvmStatic
     fun listView(context: Context): ListView = ListView(context).apply {
-        dividerHeight = maxOf(1, dp(context, 1))
+        dividerHeight = maxOf(1, YView.cardOutlineWidth(context))
         setBackgroundColor(Color.TRANSPARENT)
     }
 
@@ -563,7 +563,7 @@ object YViewLayout {
                 YView.styleSectionTitle(this)
                 setTextColor(YView.onSurfaceVariant(context))
                 gravity = Gravity.CENTER
-                minimumWidth = dp(context, 28)
+                minimumWidth = YView.touchTarget(context)
             },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
@@ -586,7 +586,7 @@ object YViewLayout {
         this.hint = hint
         isSingleLine = true
         minHeight = YView.touchTarget(context)
-        setPadding(dp(context, 14), 0, dp(context, 14), 0)
+        setPadding(YView.rowHorizontalPadding(context), 0, YView.rowHorizontalPadding(context), 0)
         setTextColor(YView.onSurface(context))
         setHintTextColor(YView.onSurfaceVariant(context))
         background = YView.fieldBackground(context)
@@ -687,7 +687,7 @@ object YViewLayout {
             divider(root.context),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                maxOf(1, dp(root.context, 1)),
+                maxOf(1, YView.cardOutlineWidth(root.context)),
             ).apply {
                 topMargin = maxOf(2, YView.controlGap(root.context) / 2)
                 bottomMargin = maxOf(2, YView.controlGap(root.context) / 2)
@@ -1041,7 +1041,7 @@ object YViewLayout {
         val row = LinearLayout(parent.context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(context, 4), 0, dp(context, 4))
+            setPadding(0, maxOf(0, YView.controlGap(context) / 3), 0, maxOf(0, YView.controlGap(context) / 3))
         }
         parent.addView(row, matchWrap())
         return row
