@@ -176,7 +176,13 @@ def verify_managed_runtime(item: dict) -> None:
     project_dir = ROOT / item["project_dir"]
     build_file = first_existing(project_dir, "build.gradle.kts", "build.gradle")
     build_text = build_file.read_text(encoding="utf-8") if build_file else ""
-    if 'project(":api")' not in build_text or 'project(":ysuite-api")' not in build_text:
+    if build_file.suffix == ".kts":
+        local_api = 'project(":api")'
+        standalone_api = 'project(":ysuite-api")'
+    else:
+        local_api = "project(':api')"
+        standalone_api = "project(':ysuite-api')"
+    if local_api not in build_text or standalone_api not in build_text:
         fail(f"{feature_id}: managed feature must prefer local YSuite api in suite and standalone builds")
 
     standalone_settings = first_existing(project_dir.parent, "settings.gradle.kts", "settings.gradle")

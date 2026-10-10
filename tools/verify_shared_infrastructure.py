@@ -37,16 +37,19 @@ def main() -> int:
 
 
     # Enforce a single in-repository copy of the public Host API and visual system.
-    for build in sorted(FEATURE_ROOT.glob("*/feature/build.gradle.kts")):
+    for build in sorted(list(FEATURE_ROOT.glob("*/feature/build.gradle.kts")) +
+                        list(FEATURE_ROOT.glob("*/feature/build.gradle"))):
         source = build.read_text(encoding="utf-8")
-        for dependency in ('project(":api")', 'project(":ui")'):
-            if dependency not in source:
-                failures.append(f"{build.relative_to(ROOT)}: missing shared {dependency}")
+        groovy = build.suffix == ".gradle"
+        delimit = "'" if groovy else '"'
+        for module in ("api", "ui"):
+            local = f"project({delimit}:{module}{delimit})"
+            alias = f"project({delimit}:ysuite-{module}{delimit})"
+            if local not in source or alias not in source:
+                failures.append(f"{build.relative_to(ROOT)}: missing guarded local and standalone {module} dependency")
         if "com.github.yagay.YSuite:api" in source or "com.github.yagay.YSuite:ui" in source:
-            # External feature-only source checkouts retain an explicit fallback, never used
-            # by the monorepo or when the local standalone project aliases are available.
-            if 'rootProject.findProject(":api")' not in source or 'rootProject.findProject(":ysuite-api")' not in source:
-                failures.append(f"{build.relative_to(ROOT)}: remote API fallback is not guarded by local project selection")
+            if "findProject" not in source:
+                failures.append(f"{build.relative_to(ROOT)}: remote API fallback must be guarded by local project selection")
 
     expected_shared = {
         "apps/YDiag/feature/src/main/java/com/yagay/ydiag/root/RootShell.kt": "FeatureRootCommands.execute",

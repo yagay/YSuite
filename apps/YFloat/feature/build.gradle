@@ -61,11 +61,23 @@ android {
 }
 
 dependencies {
-    implementation('com.github.yagay.YSuite:api') {
-        version { branch = sharedSuiteBranch }
+    if (rootProject.findProject(':api') != null) {
+        implementation project(':api')
+    } else if (rootProject.findProject(':ysuite-api') != null) {
+        implementation project(':ysuite-api')
+    } else {
+        implementation('com.github.yagay.YSuite:api') {
+            version { branch = sharedSuiteBranch }
+        }
     }
-    implementation('com.github.yagay.YSuite:ui') {
-        version { branch = sharedSuiteBranch }
+    if (rootProject.findProject(':ui') != null) {
+        implementation project(':ui')
+    } else if (rootProject.findProject(':ysuite-ui') != null) {
+        implementation project(':ysuite-ui')
+    } else {
+        implementation('com.github.yagay.YSuite:ui') {
+            version { branch = sharedSuiteBranch }
+        }
     }
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
