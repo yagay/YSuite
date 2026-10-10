@@ -115,12 +115,12 @@ public final class FlProbePointOverlay {
             super(c);
             plus.setStyle(Paint.Style.STROKE);
             plus.setStrokeCap(Paint.Cap.SQUARE);
-            plus.setStrokeWidth(Math.max(1f, 1.8f * getResources().getDisplayMetrics().density));
+            plus.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
             plus.setShadowLayer(
                     Math.max(1f, 1.25f * getResources().getDisplayMetrics().density),
                     0f,
                     Math.max(.5f, .5f * getResources().getDisplayMetrics().density),
-                    0x77000000);
+                    YFloatOverlayStyle.scrim(c, 0x77));
             setLayerType(LAYER_TYPE_SOFTWARE, null);
             setBackgroundColor(Color.TRANSPARENT);
             updateColor();
