@@ -4,7 +4,7 @@ package com.yagay.yui
  * One option changes every consumer of the corresponding YUI component.
  * Sensitive functional switches (Root, hooks, NFC, download behavior) are excluded.
  */
-enum class YControlGroup { THEME, TYPOGRAPHY, LAYOUT, BUTTONS, LISTS, CARDS, INPUTS, SWITCHES, DIALOGS, NAVIGATION }
+enum class YControlGroup { THEME, TYPOGRAPHY, LAYOUT, BUTTONS, LISTS, CARDS, INPUTS, SWITCHES, DIALOGS, NAVIGATION, OVERLAYS }
 
 enum class YControlKind { CHOICE, BOOLEAN, RANGE }
 
@@ -61,6 +61,21 @@ object YUiControlRegistry {
         range(YSettingKey.DIALOG_RADIUS, YControlGroup.DIALOGS),
         range(YSettingKey.NAV_RADIUS, YControlGroup.NAVIGATION),
         range(YSettingKey.TOOLBAR_HEIGHT, YControlGroup.NAVIGATION),
+        range(YSettingKey.FLOAT_ICON_ALPHA, YControlGroup.OVERLAYS),
+        range(YSettingKey.FLOAT_ICON_SIZE, YControlGroup.OVERLAYS),
+        range(YSettingKey.FLOAT_EDGE_VISIBLE, YControlGroup.OVERLAYS),
+        range(YSettingKey.FLOAT_BORDER_WIDTH, YControlGroup.OVERLAYS),
+        range(YSettingKey.FLOAT_TRAIL_ALPHA, YControlGroup.OVERLAYS),
+        range(YSettingKey.FLOAT_TRAIL_WIDTH, YControlGroup.OVERLAYS),
+        range(YSettingKey.FLOAT_MENU_COUNT, YControlGroup.OVERLAYS),
+        YControlDefinition(YSettingKey.FLOAT_BORDER_COLOR, YControlGroup.OVERLAYS,
+            YControlKind.CHOICE, choices = listOf("blue", "green", "cyan", "purple", "orange", "red", "white")),
+        YControlDefinition(YSettingKey.FLOAT_ICON_STYLE, YControlGroup.OVERLAYS,
+            YControlKind.CHOICE, choices = listOf("blue", "dark", "light", "custom", "slideshow")),
+        YControlDefinition(YSettingKey.FLOAT_TRAIL_STYLE, YControlGroup.OVERLAYS,
+            YControlKind.CHOICE, choices = listOf("round", "square", "enhanced")),
+        YControlDefinition(YSettingKey.FLOAT_TRAIL_GRADIENT, YControlGroup.OVERLAYS,
+            YControlKind.BOOLEAN),
     )
     val groups: List<YControlGroup> = YControlGroup.entries
     fun forGroup(group: YControlGroup): List<YControlDefinition> = definitions.filter { it.group == group }
