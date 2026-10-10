@@ -65,7 +65,6 @@ import androidx.compose.ui.unit.dp
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.suite.core.SuiteCommonSetting
 import com.yagay.suite.core.SuiteCommonSettings
-import com.yagay.yui.YDimens
 import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.rememberYAppearance
 
@@ -235,7 +234,8 @@ internal fun CompactSuiteHome(
                 OutlinedTextField(
                     value = search,
                     onValueChange = { search = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingXsmall),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = appearance.screenPaddingDp.dp,
+                        vertical = (appearance.effectiveGapDp / 3f).dp),
                     singleLine = true,
                     label = { Text(stringResource(R.string.home_search)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
