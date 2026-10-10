@@ -76,7 +76,7 @@ final class FlRegionFrameOverlay {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeJoin(Paint.Join.ROUND);
             paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setStrokeWidth(dp(c, 2f));
+            paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
             paint.setColor(SelectionVisuals.FL_CONFIRMED_COLOR);
         }
 
