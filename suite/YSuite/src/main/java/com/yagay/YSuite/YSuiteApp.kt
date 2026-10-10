@@ -1,6 +1,7 @@
 package com.yagay.YSuite
 
 import android.app.Application
+import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -19,12 +20,17 @@ import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
 
 class YSuiteApp : Application() {
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(SuiteLocaleController.localizedContext(base))
+    }
+
     @Volatile
     private var initialized = false
     private var unlockReceiver: BroadcastReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
+        SuiteLocaleController.initializeLegacyDelegates(this)
 
         runCatching { SuiteCrashTracker.install(this) }
             .onFailure { Log.e(TAG, "Crash tracker initialization failed safely", it) }
