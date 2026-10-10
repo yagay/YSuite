@@ -384,6 +384,32 @@ def main() -> None:
         fail("YFloat must not override the host global theme")
     if 'stringPreferencesKey("theme_mode")' in rebuilt_settings:
         fail("rebuilt host must not maintain a second theme store")
+    # Rebuilt product layouts and legacy View activities must consume the live unified
+    # appearance rather than static shadow settings or an independent spacing scale.
+    product_spacing = text(ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt")
+    product_layout = text(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/ProductLayoutTokens.kt")
+    runtime = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt")
+    compact_home = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt")
+    for source, markers, label in (
+        (appearance_store, ("CONTENT_WIDTH_SCALE(", "PANE_WIDTH_SCALE(",
+                            "contentWidthPercent =", "paneWidthPercent ="),
+         "canonical product layout settings"),
+        (registry, ("YSettingKey.CONTENT_WIDTH_SCALE", "YSettingKey.PANE_WIDTH_SCALE"),
+         "central layout catalog"),
+        (appearance_screen, ("appearance_content_width_scale", "appearance_pane_width_scale"),
+         "central layout editor"),
+        (product_spacing, ("import com.yagay.yui.YDimens", "LocalYAppearance.current.effectiveGapDp",
+                           "@Composable get()"), "live YUI workspace spacing"),
+        (product_layout, ("LocalYAppearance.current.contentWidthPercent",
+                          "LocalYAppearance.current.paneWidthPercent",
+                          "@Composable get()"), "live YUI content and pane geometry"),
+        (runtime, ("appearance.registerPreferenceListener(listener)",
+                   "foregroundActivities", "schedule(activity)"), "live View appearance observer"),
+        (compact_home, ("appearance.screenPaddingDp.dp", "appearance.effectiveGapDp"),
+         "live home layout settings"),
+    ):
+        for required in markers:
+            require(source, required, label)
     print(
         "ui-framework: OK compose=YUI-v2 view=YViewPage/YViewLayout page-xml=forbidden "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
