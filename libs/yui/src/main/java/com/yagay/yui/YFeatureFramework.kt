@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -252,7 +252,6 @@ fun YSearchField(
         placeholder = { Text(resolvedHint) },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        shape = MaterialTheme.shapes.extraLarge,
     )
 }
 
