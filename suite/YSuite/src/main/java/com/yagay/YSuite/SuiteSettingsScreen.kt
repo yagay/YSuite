@@ -428,7 +428,8 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
             val numeric = value.toIntOrNull() ?: definition.key.default.toInt()
             val units = when (definition.key) {
                 YSettingKey.FONT_PERCENT, YSettingKey.FLOAT_ICON_ALPHA,
-                YSettingKey.FLOAT_EDGE_VISIBLE, YSettingKey.FLOAT_TRAIL_ALPHA -> "%"
+                YSettingKey.FLOAT_EDGE_VISIBLE, YSettingKey.FLOAT_TRAIL_ALPHA,
+                YSettingKey.CONTENT_WIDTH_SCALE, YSettingKey.PANE_WIDTH_SCALE -> "%"
                 YSettingKey.FLOAT_MENU_COUNT -> ""
                 else -> "dp"
             }
@@ -549,6 +550,8 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.TOOLBAR_HEIGHT -> R.string.appearance_toolbar_height
     YSettingKey.SCREEN_PADDING -> R.string.appearance_screen_padding
     YSettingKey.PAGE_VERTICAL_PADDING -> R.string.appearance_page_vertical_padding
+    YSettingKey.CONTENT_WIDTH_SCALE -> R.string.appearance_content_width_scale
+    YSettingKey.PANE_WIDTH_SCALE -> R.string.appearance_pane_width_scale
     YSettingKey.SECTION_SPACING -> R.string.appearance_section_spacing
     YSettingKey.HOME_SWIPE_PIN -> R.string.settings_swipe_pin
     YSettingKey.FLOAT_ICON_ALPHA -> R.string.appearance_float_icon_alpha
