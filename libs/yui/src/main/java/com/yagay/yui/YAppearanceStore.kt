@@ -48,16 +48,30 @@ enum class YSettingKey(
     PAGE_VERTICAL_PADDING("page_vertical_padding", "12", 0, 256),
     ICON_VISUAL_SIZE("icon_visual_size", "24", 8, 160),
     LIST_ICON_SIZE("list_icon_size", "48", 8, 160),
-    TOOLBAR_HEIGHT("toolbar_height", "64", 24, 256);
+    TOOLBAR_HEIGHT("toolbar_height", "64", 24, 256),
+    FLOAT_ICON_ALPHA("float_icon_alpha", "62", 1, 100),
+    FLOAT_ICON_SIZE("float_icon_size", "48", 16, 192),
+    FLOAT_EDGE_VISIBLE("float_edge_visible", "72", 1, 100),
+    FLOAT_BORDER_WIDTH("float_border_width", "3", 0, 48),
+    FLOAT_TRAIL_ALPHA("float_trail_alpha", "80", 0, 100),
+    FLOAT_TRAIL_WIDTH("float_trail_width", "6", 0, 64),
+    FLOAT_MENU_COUNT("float_menu_count", "6", 2, 32),
+    FLOAT_BORDER_COLOR("float_border_color", "blue"),
+    FLOAT_ICON_STYLE("float_icon_style", "blue"),
+    FLOAT_TRAIL_STYLE("float_trail_style", "round"),
+    FLOAT_TRAIL_GRADIENT("float_trail_gradient", "false");
 
     fun validate(value: String): String {
         val valid = if (minimum != null && maximum != null) {
             value.toIntOrNull()?.let { it in minimum..maximum } ?: false
         } else when (this) {
             THEME -> value in setOf("system", "light", "dark")
-            DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS -> value in setOf("true", "false")
+            DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS, FLOAT_TRAIL_GRADIENT -> value in setOf("true", "false")
             DENSITY -> value in setOf("compact", "standard", "comfortable")
             ACCENT -> value in setOf("default", "blue", "teal", "green", "purple", "orange")
+            FLOAT_BORDER_COLOR -> value in setOf("blue", "green", "cyan", "purple", "orange", "red", "white")
+            FLOAT_ICON_STYLE -> value in setOf("blue", "dark", "light", "custom", "slideshow")
+            FLOAT_TRAIL_STYLE -> value in setOf("round", "square", "enhanced")
             else -> false
         }
         require(valid) { "Invalid " + key + " value" }
@@ -94,6 +108,17 @@ data class YAppearance(
     val iconVisualSizeDp: Int = 24,
     val listIconSizeDp: Int = 48,
     val toolbarHeightDp: Int = 64,
+    val floatIconAlpha: Int = 62,
+    val floatIconSizeDp: Int = 48,
+    val floatEdgeVisiblePercent: Int = 72,
+    val floatBorderWidthDp: Int = 3,
+    val floatTrailAlpha: Int = 80,
+    val floatTrailWidthDp: Int = 6,
+    val floatMenuCount: Int = 6,
+    val floatBorderColor: String = "blue",
+    val floatIconStyle: String = "blue",
+    val floatTrailStyle: String = "round",
+    val floatTrailGradient: Boolean = false,
 ) {
     val effectiveGapDp: Int get() = when (density) {
         "compact" -> controlGapDp * 2 / 3
@@ -150,6 +175,17 @@ class YAppearanceStore(context: Context) {
         iconVisualSizeDp = value(YSettingKey.ICON_VISUAL_SIZE, moduleId).toInt(),
         listIconSizeDp = value(YSettingKey.LIST_ICON_SIZE, moduleId).toInt(),
         toolbarHeightDp = value(YSettingKey.TOOLBAR_HEIGHT, moduleId).toInt(),
+        floatIconAlpha = value(YSettingKey.FLOAT_ICON_ALPHA, moduleId).toInt(),
+        floatIconSizeDp = value(YSettingKey.FLOAT_ICON_SIZE, moduleId).toInt(),
+        floatEdgeVisiblePercent = value(YSettingKey.FLOAT_EDGE_VISIBLE, moduleId).toInt(),
+        floatBorderWidthDp = value(YSettingKey.FLOAT_BORDER_WIDTH, moduleId).toInt(),
+        floatTrailAlpha = value(YSettingKey.FLOAT_TRAIL_ALPHA, moduleId).toInt(),
+        floatTrailWidthDp = value(YSettingKey.FLOAT_TRAIL_WIDTH, moduleId).toInt(),
+        floatMenuCount = value(YSettingKey.FLOAT_MENU_COUNT, moduleId).toInt(),
+        floatBorderColor = value(YSettingKey.FLOAT_BORDER_COLOR, moduleId),
+        floatIconStyle = value(YSettingKey.FLOAT_ICON_STYLE, moduleId),
+        floatTrailStyle = value(YSettingKey.FLOAT_TRAIL_STYLE, moduleId),
+        floatTrailGradient = value(YSettingKey.FLOAT_TRAIL_GRADIENT, moduleId) == "true",
     )
 
     fun set(key: YSettingKey, value: String, moduleId: String? = null) {
