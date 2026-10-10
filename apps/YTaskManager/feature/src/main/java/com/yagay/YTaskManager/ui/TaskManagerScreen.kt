@@ -246,7 +246,7 @@ private fun ProcessPage(
         if (state.loading) {
             YListSkeleton(
                 rows = 7,
-                modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
             )
         } else {
             ProcessList(state, onSelect)
@@ -269,7 +269,7 @@ private fun StatusSection(state: TaskManagerUiState) {
                 tone = if (state.framework.detected) YStatusTone.Good else YStatusTone.Warning,
             ),
         ),
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingXsmall),
+        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = YDimens.SpacingXsmall),
     )
 }
 
@@ -285,7 +285,7 @@ private fun FilterSection(
     YSection(
         title = stringResource(R.string.ytm_process_filter),
         subtitle = stringResource(R.string.ytm_process_filter_desc),
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall),
+        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = YDimens.SpacingSmall),
     ) {
         YSearchField(
             value = state.query,
@@ -363,7 +363,7 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
     if (filtered.isEmpty()) {
         YEmptyMessage(
             message = stringResource(R.string.ytm_no_processes),
-            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap),
+            modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = YDimens.ControlGap),
         )
         return
     }
@@ -394,9 +394,9 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
                     Icon(
                         Icons.Default.PushPin,
                         contentDescription = stringResource(R.string.ytm_pinned),
-                        modifier = Modifier.size(15.dp),
+                        modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 0.625f).dp),
                     )
-                    Spacer(Modifier.size(6.dp))
+                    Spacer(Modifier.size((LocalYAppearance.current.effectiveGapDp / 2f).dp))
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent))
@@ -415,7 +415,7 @@ private fun ResourcePage(state: TaskManagerUiState) {
     val unknown = stringResource(R.string.ytm_unknown)
     val noData = stringResource(R.string.ytm_no_data)
     YPageList(
-        padding = PaddingValues(0.dp),
+        padding = PaddingValues(),
     ) {
         item {
             SectionCard("CPU") {
@@ -481,7 +481,7 @@ private fun ResourcePage(state: TaskManagerUiState) {
 private fun NetworkPage(state: TaskManagerUiState) {
     val network = state.network
     YPageList(
-        padding = PaddingValues(0.dp),
+        padding = PaddingValues(),
         compact = true,
     ) {
         item {
@@ -506,11 +506,11 @@ private fun NetworkRow(entry: NetworkEntry) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = YDimens.ScreenHorizontal, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
+            .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(entry.icon)
-        Spacer(Modifier.size(10.dp))
+        Spacer(Modifier.size(LocalYAppearance.current.effectiveGapDp.dp))
         Column(Modifier.weight(1f)) {
             Text(entry.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
@@ -536,7 +536,7 @@ private fun NetworkRow(entry: NetworkEntry) {
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
     YSection(
         title = title,
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
+        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
         content = content,
     )
 }
@@ -564,7 +564,7 @@ private fun HistoryChart(values: List<Float>) {
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp),
+            .height((LocalYAppearance.current.rowHeightDp * 1.25f).dp),
     ) {
         drawRect(guideColor, style = Stroke(width = 1f))
         if (values.size < 2) return@Canvas
@@ -655,8 +655,8 @@ private fun ProcessDialog(
         actions = actions,
     ) {
         LazyColumn(
-            modifier = Modifier.heightIn(max = 480.dp),
-            verticalArrangement = Arrangement.spacedBy(YDimens.SpacingXsmall),
+            modifier = Modifier.heightIn(max = (LocalYAppearance.current.rowHeightDp * 8.5f).dp),
+            verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 3f).dp),
         ) {
             item { CopyDetail("PID", process.pid.toString()) }
             if (process.ppid != 0) item { ParentDetail(process.ppid, parent, onOpenParent) }
@@ -698,7 +698,7 @@ private fun CopyDetail(label: String, value: String) {
                     Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
                 },
             )
-            .padding(vertical = 3.dp),
+            .padding(vertical = (LocalYAppearance.current.effectiveGapDp / 4f).dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(label, style = MaterialTheme.typography.bodySmall)
@@ -722,7 +722,7 @@ private fun ParentDetail(ppid: Int, parent: ProcessEntry?, onOpenParent: (Proces
                     Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
                 },
             )
-            .padding(vertical = 3.dp),
+            .padding(vertical = (LocalYAppearance.current.effectiveGapDp / 4f).dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(stringResource(R.string.ytm_parent_pid), style = MaterialTheme.typography.bodySmall)
