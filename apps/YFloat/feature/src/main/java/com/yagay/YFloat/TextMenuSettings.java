@@ -4,8 +4,8 @@ import android.content.Context;
 
 /** User-facing behavior settings for the floating text action menu. */
 final class TextMenuSettings {
-    static final int MIN_MAIN_ITEMS = 4;
-    static final int MAX_MAIN_ITEMS = 8;
+    static final int MIN_MAIN_ITEMS = 2;
+    static final int MAX_MAIN_ITEMS = 32;
     static final int DEFAULT_MAIN_ITEMS = 6;
 
     private static final String PREFS = "yfloat_text_menu";
