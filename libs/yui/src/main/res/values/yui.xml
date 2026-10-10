@@ -60,25 +60,28 @@
     </style>
 
     <style name="Widget.YUI.Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">@dimen/yui_button_radius</item>
         <item name="android:minHeight">@dimen/yui_button_height</item>
         <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="Widget.YUI.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
+        <item name="cornerRadius">@dimen/yui_button_radius</item>
         <item name="android:minHeight">@dimen/yui_button_height</item>
         <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="Widget.YUI.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">@dimen/yui_button_radius</item>
         <item name="android:minHeight">@dimen/yui_button_height</item>
         <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="Widget.YUI.TextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">@dimen/yui_button_radius</item>
-        <item name="boxCornerRadiusTopEnd">@dimen/yui_button_radius</item>
-        <item name="boxCornerRadiusBottomStart">@dimen/yui_button_radius</item>
-        <item name="boxCornerRadiusBottomEnd">@dimen/yui_button_radius</item>
+        <item name="boxCornerRadiusTopStart">@dimen/yui_card_radius</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/yui_card_radius</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/yui_card_radius</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/yui_card_radius</item>
     </style>
 
     <style name="TextAppearance.YUI.PageTitle" parent="TextAppearance.Material3.TitleLarge" />

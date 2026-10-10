@@ -15,7 +15,7 @@ object YDimens {
     val ToolbarHeight = 52.dp
     val ButtonHeight = 48.dp
     val TouchTarget = 48.dp
-    val CardRadius = 14.dp
+    val CardRadius = 12.dp
     val CompactBreakpoint = 420.dp
     val MediumBreakpoint = 600.dp
     val ExpandedBreakpoint = 840.dp
@@ -29,7 +29,7 @@ object YDimens {
     val ButtonPaddingVertical = 2.dp
     val ButtonInsetVertical = 4.dp
     val ButtonTextPaddingHorizontal = 8.dp
-    val ButtonRadius = 14.dp
+    val ButtonRadius = 8.dp
     val OptionRowHeight = 48.dp
     val SwitchTrackWidth = 38.dp
     val SwitchTrackHeight = 22.dp

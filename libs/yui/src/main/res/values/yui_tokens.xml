@@ -11,7 +11,7 @@
     <dimen name="yui_toolbar_height">52dp</dimen>
     <dimen name="yui_button_height">48dp</dimen>
     <dimen name="yui_touch_target">48dp</dimen>
-    <dimen name="yui_card_radius">14dp</dimen>
+    <dimen name="yui_card_radius">12dp</dimen>
     <dimen name="yui_compact_breakpoint">420dp</dimen>
     <dimen name="yui_medium_breakpoint">600dp</dimen>
     <dimen name="yui_expanded_breakpoint">840dp</dimen>
@@ -25,7 +25,7 @@
     <dimen name="yui_button_padding_vertical">2dp</dimen>
     <dimen name="yui_button_inset_vertical">4dp</dimen>
     <dimen name="yui_button_text_padding_horizontal">8dp</dimen>
-    <dimen name="yui_button_radius">14dp</dimen>
+    <dimen name="yui_button_radius">8dp</dimen>
     <dimen name="yui_option_row_height">48dp</dimen>
     <dimen name="yui_switch_track_width">38dp</dimen>
     <dimen name="yui_switch_track_height">22dp</dimen>
