@@ -93,6 +93,8 @@ internal fun CompactSuiteHome(
     onToggleEnabled: (FeatureSpec, Boolean) -> Unit,
     onExportModule: (FeatureSpec, String) -> Unit,
     onExportAll: () -> Unit,
+    onSettings: () -> Unit,
+    onCustomizeModule: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val prefs = remember(context) {
@@ -202,8 +204,14 @@ internal fun CompactSuiteHome(
                 }
                 IconButton(onClick = { onManage(null) }) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
+                        imageVector = Icons.Default.Tune,
                         contentDescription = stringResource(R.string.home_manage),
+                    )
+                }
+                IconButton(onClick = onSettings) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.settings_title),
                     )
                 }
             }
@@ -241,6 +249,7 @@ internal fun CompactSuiteHome(
                         else onManage(module.feature.id)
                     },
                     onManage = { onManage(module.feature.id) },
+                    onCustomize = { onCustomizeModule(module.feature.id) },
                     onToggleEnabled = { onToggleEnabled(module.feature, !module.enabled) },
                     onPin = { setPinned(module.feature.id) },
                     onExport = { onExportModule(module.feature, module.label) },
@@ -261,6 +270,7 @@ private fun CompactSuiteModuleRow(
     isPinned: Boolean,
     onOpen: () -> Unit,
     onManage: () -> Unit,
+    onCustomize: () -> Unit,
     onToggleEnabled: () -> Unit,
     onPin: () -> Unit,
     onExport: () -> Unit,
@@ -353,6 +363,11 @@ private fun CompactSuiteModuleRow(
                     text = { Text(stringResource(R.string.home_manage)) },
                     leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
                     onClick = { menuOpen = false; onManage() },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.settings_customize_module)) },
+                    leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    onClick = { menuOpen = false; onCustomize() },
                 )
                 DropdownMenuItem(
                     text = { Text(stringResource(if (isPinned) R.string.home_unpin else R.string.home_pin)) },

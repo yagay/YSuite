@@ -26,6 +26,7 @@ import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YComposeActivity
+import com.yagay.yui.YAppearanceStore
 import com.yagay.yui.YSection
 import com.yagay.yui.YDashboardScaffold
 import com.yagay.yui.YPageList
@@ -91,6 +92,8 @@ class MainActivity : YComposeActivity() {
         val fullDiagnosticLabel = stringResource(R.string.diagnostic_full_label)
         var managementMode by rememberSaveable { mutableStateOf(false) }
         var managingFeatureId by rememberSaveable { mutableStateOf<String?>(null) }
+        var settingsOpen by rememberSaveable { mutableStateOf(false) }
+        var settingsModuleId by rememberSaveable { mutableStateOf<String?>(null) }
         val managementFeatures =
             if (managingFeatureId == null) features
             else features.filter { it.id == managingFeatureId }
@@ -108,10 +111,16 @@ class MainActivity : YComposeActivity() {
             managingFeatureId = null
         }
 
+        BackHandler(enabled = settingsOpen) {
+            if (settingsModuleId != null) settingsModuleId = null else settingsOpen = false
+        }
+
         val openModule: (FeatureSpec, String) -> Unit = { feature, localizedName ->
             SuiteCrashTracker.markActiveFeature(this@MainActivity, feature.id)
             runCatching {
-                startActivity(feature.createIntent(this@MainActivity))
+                startActivity(feature.createIntent(this@MainActivity).apply {
+                    putExtra(YAppearanceStore.MODULE_EXTRA, feature.id)
+                })
             }.onFailure {
                 SuiteLog.e(this@MainActivity, feature.id, "open failed", it)
                 SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
@@ -167,6 +176,21 @@ class MainActivity : YComposeActivity() {
             }
         }
 
+        if (settingsOpen) {
+            SuiteSettingsScreen(
+                modules = homeModules.map { it.feature.id to it.label },
+                moduleId = settingsModuleId,
+                onBack = {
+                    if (settingsModuleId != null) settingsModuleId = null else settingsOpen = false
+                },
+                onSelectModule = { settingsModuleId = it },
+                onOpenManagement = {
+                    settingsOpen = false
+                    managingFeatureId = null
+                    managementMode = true
+                },
+            )
+        } else {
         YDashboardScaffold(
             title = stringResource(R.string.app_name),
             subtitle = if (managementMode) stringResource(R.string.home_manage) else "",
@@ -187,6 +211,14 @@ class MainActivity : YComposeActivity() {
                         exportDiagnostic(setOf(feature.id), name)
                     },
                     onExportAll = { exportDiagnostic(null, fullDiagnosticLabel) },
+                    onSettings = {
+                        settingsModuleId = null
+                        settingsOpen = true
+                    },
+                    onCustomizeModule = { id ->
+                        settingsModuleId = id
+                        settingsOpen = true
+                    },
                 )
             } else {
                 YPageList(padding = scaffoldPadding) {
@@ -196,6 +228,15 @@ class MainActivity : YComposeActivity() {
                             onClick = {
                                 managementMode = false
                                 managingFeatureId = null
+                            },
+                        )
+                    }
+                    item {
+                        YSecondaryButton(
+                            text = stringResource(R.string.settings_title),
+                            onClick = {
+                                settingsModuleId = managingFeatureId
+                                settingsOpen = true
                             },
                         )
                     }
@@ -283,6 +324,7 @@ class MainActivity : YComposeActivity() {
                     }
                 }
             }
+        }
         }
     }
 }

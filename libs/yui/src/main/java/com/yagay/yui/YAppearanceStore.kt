@@ -154,6 +154,7 @@ class YAppearanceStore(context: Context) {
     }
 
     companion object {
+        const val MODULE_EXTRA = "com.yagay.yui.MODULE_ID"
         private const val FILE = "yui_appearance_v1"
         private val MODULE_ID = Regex("[a-z][a-z0-9_-]{0,63}")
         private val MODULE_KEY = Regex("""module\.([a-z][a-z0-9_-]{0,63})\.[a-z_]+""")
@@ -168,6 +169,8 @@ class YAppearanceStore(context: Context) {
             var current: Context? = context
             while (current is ContextWrapper) {
                 if (current is Activity) {
+                    val explicit = current.intent?.getStringExtra(MODULE_EXTRA)
+                    if (explicit != null && MODULE_ID.matches(explicit)) return explicit
                     val klass = current.javaClass.name.lowercase()
                     return listOf(
                         "yentrycleaner", "ydiag", "ynotify", "ypower", "yminiguard",
