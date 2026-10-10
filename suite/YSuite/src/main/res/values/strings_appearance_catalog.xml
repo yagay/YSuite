@@ -56,4 +56,7 @@
     <string name="appearance_nav_radius">Navigation item corners</string>
     <string name="appearance_screen_padding">Page horizontal margin</string>
     <string name="appearance_section_spacing">Section spacing</string>
+    <string name="appearance_exact_value">Exact value</string>
+    <string name="appearance_apply_exact">Apply value</string>
+    <string name="appearance_allowed_range">Allowed: %1$d–%2$d %3$s, 1-unit precision</string>
 </resources>
