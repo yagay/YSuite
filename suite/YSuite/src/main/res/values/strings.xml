@@ -114,6 +114,4 @@
     <string name="shared_appearance_system">Follow system</string>
     <string name="shared_appearance_light">Light</string>
     <string name="shared_appearance_dark">Dark</string>
-    <string name="shared_appearance_components">Shared controls</string>
-    <string name="shared_appearance_components_desc">Buttons, switches, dialog shapes, spacing and colors are defined once in YUI. Module-specific operations stay in their respective modules.</string>
 </resources>
