@@ -57,7 +57,58 @@ def reject_hardcoded_normal_screen_colors(source: str, label: str) -> None:
         fail(f"{label} reintroduced hard-coded ARGB colors: {matches[:8]}")
 
 
+
+def verify_runtime_appearance() -> None:
+    """A token facade is insufficient unless real host and feature screens consume it."""
+    targets = {
+        "theme": "libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
+        "view": "libs/yui/src/main/java/com/yagay/yui/YView.kt",
+        "view_layout": "libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+        "runtime": "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt",
+        "application": "next/core/ui/src/main/java/com/yagay/ysuite/ui/YSuiteApplication.kt",
+        "float_result": "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ResultUi.java",
+        "float_menu": "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatingMenuUi.java",
+        "notify_apps": "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/AppAdapter.java",
+        "notify_events": "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/EventAdapter.java",
+        "entry_controls": "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainControls.kt",
+        "entry_components": "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt",
+        "entry_priority": "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/PriorityDialog.kt",
+        "download_dialog": "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadComponents.kt",
+        "file_rows": "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+        "host_home": "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt",
+    }
+    sources = {key: text(ROOT / path) for key, path in targets.items()}
+    assertions = {
+        "theme": ("val actualDynamic = appearance.dynamicColor", "appearance.cardRadiusDp.dp", "appearance.dialogRadiusDp.dp"),
+        "view": ("dynamicDarkColorScheme(context)", "yAccentColorScheme(base, setting.accent, dark)",
+                 "appearance(context).fieldRadiusDp", "applyFontScale(view)", "fun rowHeight(context"),
+        "view_layout": ("private fun sectionGap(context: Context): Int = YView.sectionGap(context)",
+                        "private fun controlGap(context: Context): Int = YView.controlGap(context)"),
+        "runtime": ("val dark = YView.isDark(activity)",),
+        "application": ("YSuiteRoot {",),
+        "float_result": ("YView.styleSecondaryButton(b)", "YView.dialogRadius(c)"),
+        "float_menu": ("YView.fontPercent(c)", "YView.controlGap(c)"),
+        "notify_apps": ("YView.rowHeight(c)", "YView.styleItemTitle(h.b.appName)"),
+        "notify_events": ("YView.cardRadius(c)", "YView.surfaceContainer(c)"),
+        "entry_controls": ("LocalYAppearance.current.fieldRadiusDp", "LocalYAppearance.current.rowHeightDp"),
+        "entry_components": ("LocalYAppearance.current.buttonPaddingHorizontalDp",),
+        "entry_priority": ("LocalYAppearance.current.rowHeightDp",),
+        "download_dialog": ("LocalYAppearance.current.dialogRadiusDp.dp",),
+        "file_rows": ("LocalYAppearance.current.rowHeightDp.dp",),
+        "host_home": ("appearance.cardRadiusDp.dp", "appearance.rowHeightDp.dp"),
+    }
+    for key, markers in assertions.items():
+        for marker in markers:
+            require(sources[key], marker, f"runtime appearance: {key}")
+    if "dynamicColor || appearance.dynamicColor" in sources["theme"]:
+        fail("a deprecated dynamic-color argument is overriding user appearance preferences")
+    if "darkTheme = darkTheme" in sources["application"]:
+        fail("legacy AppSettings must not override the host appearance settings")
+    print("ui-framework: OK unified appearance applied to Compose, View, XML, overlays, and rebuilt product screens")
+
+
 def main() -> None:
+    verify_runtime_appearance()
     compose = text(YUI_COMPOSE)
     view = text(YUI_VIEW)
     resources = text(YUI_RES)
