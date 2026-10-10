@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -111,7 +110,7 @@ fun YSwitchRow(
     enabled: Boolean = true,
 ) {
     YSettingRow(title = title, subtitle = subtitle, modifier = modifier) {
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        YCompactSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 

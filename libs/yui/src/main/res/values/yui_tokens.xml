@@ -27,6 +27,11 @@
     <dimen name="yui_button_text_padding_horizontal">8dp</dimen>
     <dimen name="yui_button_radius">14dp</dimen>
     <dimen name="yui_option_row_height">48dp</dimen>
+    <dimen name="yui_switch_track_width">38dp</dimen>
+    <dimen name="yui_switch_track_height">22dp</dimen>
+    <dimen name="yui_switch_thumb_size">18dp</dimen>
+    <dimen name="yui_switch_slot_width">52dp</dimen>
+    <dimen name="yui_switch_slot_height">40dp</dimen>
     <dimen name="yui_spacing_xsmall">4dp</dimen>
     <dimen name="yui_spacing_small">6dp</dimen>
     <dimen name="yui_spacing_medium">12dp</dimen>

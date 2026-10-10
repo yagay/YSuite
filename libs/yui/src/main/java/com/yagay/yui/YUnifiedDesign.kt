@@ -38,7 +38,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -412,7 +411,7 @@ fun YSwitchItem(
     modifier = modifier,
     enabled = enabled,
     onClick = { if (enabled) onCheckedChange(!checked) },
-    trailing = { Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
+    trailing = { YCompactSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
 )
 
 @Composable

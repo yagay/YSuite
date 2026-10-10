@@ -699,6 +699,27 @@ object YViewLayout {
     fun navRow(context: Context, title: String, subtitle: String?, action: Runnable?): View =
         navigationRow(context, title, subtitle) { action?.run() }
 
+    /** Sized from YUI tokens; scaled appearance does not reserve the default tall switch row. */
+    private fun compactToggle(toggle: SwitchCompat) {
+        val context = toggle.context
+        val slotWidth = YView.dimen(context, R.dimen.yui_switch_slot_width)
+        val trackWidth = YView.dimen(context, R.dimen.yui_switch_track_width)
+        val scale = trackWidth.toFloat() / slotWidth.coerceAtLeast(1)
+        toggle.showText = false
+        toggle.minWidth = 0
+        toggle.minimumWidth = 0
+        toggle.minHeight = 0
+        toggle.minimumHeight = 0
+        toggle.scaleX = scale
+        toggle.scaleY = scale
+    }
+
+    private fun switchSlot(context: Context): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(
+            YView.dimen(context, R.dimen.yui_switch_slot_width),
+            YView.dimen(context, R.dimen.yui_switch_slot_height),
+        )
+
     @JvmStatic
     fun switchRow(
         context: Context,
@@ -722,10 +743,10 @@ object YViewLayout {
         return SwitchMaterial(context).apply {
             isUseMaterialThemeColors = true
             isChecked = checked
-            minHeight = 0
-            minimumHeight = 0
+            compactToggle(this)
             if (listener != null) setOnCheckedChangeListener(listener)
-            row.addView(this, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            row.addView(this, switchSlot(context))
+            row.setOnClickListener { performClick() }
         }
     }
 
@@ -993,7 +1014,7 @@ object YViewLayout {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             minimumHeight = YView.dimen(context, R.dimen.yui_touch_target)
-            setPadding(0, dp(context, 7), 0, dp(context, 7))
+            setPadding(0, dp(context, 2), 0, dp(context, 2))
         }
         val texts = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
         texts.addView(TextView(parent.context).apply {
@@ -1010,9 +1031,11 @@ object YViewLayout {
         row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         val toggle = MaterialSwitch(parent.context).apply {
             isChecked = checked
+            compactToggle(this)
             setOnCheckedChangeListener(listener)
         }
-        row.addView(toggle)
+        row.addView(toggle, switchSlot(parent.context))
+        row.setOnClickListener { toggle.performClick() }
         parent.addView(row, matchWrap())
         return toggle
     }

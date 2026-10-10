@@ -134,6 +134,35 @@ def main() -> None:
 
     generated = read(GENERATED_TOKENS)
     tokens = json.loads(read(ROOT / "libs/yui/yui_tokens.json"))
+    # A Material default-size switch is wider/taller than most setting labels. Keep
+    # its visual geometry separate from the 48dp minimum row/touch target.
+    for key in (
+        "switch_track_width", "switch_track_height", "switch_thumb_size",
+        "switch_slot_width", "switch_slot_height",
+    ):
+        if key not in tokens:
+            fail(f"missing canonical compact-switch geometry: {key}")
+    if not (tokens["switch_track_width"] < tokens["switch_slot_width"]
+            and tokens["switch_track_height"] < tokens["switch_slot_height"]
+            and tokens["switch_thumb_size"] < tokens["switch_track_height"]):
+        fail("compact switch geometry must fit inside its touch slot")
+    if tokens["switch_slot_height"] >= tokens["option_row_height"]:
+        fail("switch touch slot must not force an oversized settings row")
+    if tokens["switch_slot_width"] < tokens["touch_target"]:
+        fail("switch touch slot must meet the minimum horizontal touch size")
+    compact_switch = read(YUI_ROOT / "YCompactSwitch.kt")
+    if "Role.Switch" not in compact_switch or "YDimens.SwitchTrackWidth" not in compact_switch:
+        fail("canonical Compose compact switch must have switch semantics and generated sizing")
+    for shared_source in (YUI, YUI_ROOT / "YComponents.kt"):
+        source = read(shared_source)
+        if "YCompactSwitch(" not in source:
+            fail(f"{shared_source.relative_to(ROOT)} must use the shared compact switch")
+        if "Switch(checked = checked" in source:
+            fail(f"{shared_source.relative_to(ROOT)} still uses the oversized Material switch")
+    view_switches = read(YUI_ROOT / "YViewFramework.kt")
+    if "compactToggle(this)" not in view_switches or "switchSlot(" not in view_switches:
+        fail("Java/View switch rows must use the shared compact geometry")
+
     # Density may evolve, but the system still needs accessible hit targets and
     # ordered compact/medium/expanded breakpoints.
     if tokens["button_height"] < 48 or tokens["touch_target"] < 48:

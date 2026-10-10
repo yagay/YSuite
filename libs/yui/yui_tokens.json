@@ -29,5 +29,10 @@
   "spacing_small": 6,
   "spacing_medium": 12,
   "spacing_large": 16,
-  "spacing_xlarge": 24
+  "spacing_xlarge": 24,
+  "switch_track_width": 38,
+  "switch_track_height": 22,
+  "switch_thumb_size": 18,
+  "switch_slot_width": 52,
+  "switch_slot_height": 40
 }
