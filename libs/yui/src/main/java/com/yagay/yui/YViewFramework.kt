@@ -111,7 +111,7 @@ object YViewLayout {
                 YView.screenHorizontal(context),
                 YView.screenHorizontal(context),
             )
-            minimumHeight = YView.dimen(context, R.dimen.yui_toolbar_height)
+            minimumHeight = YView.toolbarHeight(context)
             elevation = 0f
         }
         root.addView(
@@ -217,7 +217,7 @@ object YViewLayout {
             setTitleTextColor(YView.onSurface(context))
             setSubtitleTextColor(YView.onSurfaceVariant(context))
             setContentInsetsRelative(screenH(context), screenH(context))
-            minimumHeight = YView.dimen(context, R.dimen.yui_toolbar_height)
+            minimumHeight = YView.toolbarHeight(context)
         }
         shell.addView(
             toolbar,
@@ -588,7 +588,7 @@ object YViewLayout {
     fun searchField(context: Context, hint: String): AppCompatEditText = AppCompatEditText(context).apply {
         this.hint = hint
         isSingleLine = true
-        minHeight = YView.dimen(context, R.dimen.yui_touch_target)
+        minHeight = YView.touchTarget(context)
         setPadding(dp(context, 14), 0, dp(context, 14), 0)
         setTextColor(YView.onSurface(context))
         setHintTextColor(YView.onSurfaceVariant(context))
@@ -606,7 +606,7 @@ object YViewLayout {
         this.hint = hint
         setText(value.orEmpty())
         isSingleLine = singleLine
-        minHeight = YView.dimen(context, R.dimen.yui_touch_target)
+        minHeight = YView.touchTarget(context)
         styleInput(context, this)
     }
 
@@ -755,7 +755,7 @@ object YViewLayout {
         val horizontal = YView.cardPadding(context)
         val vertical = maxOf(1, YView.controlGap(context) / 2)
         setPadding(horizontal, vertical, horizontal, vertical)
-        minimumHeight = YView.dimen(context, R.dimen.yui_option_row_height)
+        minimumHeight = YView.rowHeight(context)
     }
 
     @JvmStatic
