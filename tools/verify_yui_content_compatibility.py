@@ -60,6 +60,11 @@ def main() -> int:
     errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
                       "IconButton(onClick = onRoot)",
                       "Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp)")
+    errors += require(YUI / "YOverlayUi.kt", "fun styleSelectionText(", "fun styleAction(",
+                      "fun styleHintText(", "fun actionRipple(", "fun actionHeightPx(")
+    errors += require(YUI / "YLogComponents.kt", "fun YUiLogSurface(", "fun YUiLogLine(")
+    errors += require(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatingMenuUi.java",
+                      'YOverlayUi.elevationPx(c, "yfloat")', 'YOverlayUi.actionRipple(c, "yfloat")')
     errors += require(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppScopePicker.kt",
                       "Modifier.size(LocalYAppearance.current.listIconSizeDp.dp)")
     errors += require(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuPickerActivity.java",

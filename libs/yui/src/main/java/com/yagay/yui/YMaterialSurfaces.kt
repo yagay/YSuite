@@ -36,7 +36,9 @@ fun YUiSurface(
         contentColor = contentColor,
         tonalElevation = tonalElevation,
         shadowElevation = shadowElevation,
-        border = border,
+        border = border ?: LocalYAppearance.current.cardOutlineWidthDp.takeIf { it > 0 }?.let {
+            BorderStroke(it.dp, MaterialTheme.colorScheme.outlineVariant)
+        },
         content = content,
     )
 }

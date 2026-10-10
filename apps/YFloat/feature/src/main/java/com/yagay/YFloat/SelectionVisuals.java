@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import com.yagay.yui.YOverlayTokens;
 
 /** Shared FL drag-selection visuals. */
 final class SelectionVisuals {
@@ -12,6 +13,11 @@ final class SelectionVisuals {
     static final int FL_ACTIVE_COLOR = 0xFFFF0000;
     /** FL confirmed/extractable selection is yellow. */
     static final int FL_CONFIRMED_COLOR = 0xFFFFFF00;
+
+    static int frameColor(Context context, SelectionVisualState state) {
+        return state == SelectionVisualState.READY
+                ? YOverlayTokens.success(context) : YOverlayTokens.accent(context);
+    }
 
     static int frameColor(SelectionVisualState state) {
         return state == SelectionVisualState.READY ? FL_CONFIRMED_COLOR : FL_ACTIVE_COLOR;
@@ -26,7 +32,7 @@ final class SelectionVisuals {
         frame.reset();
         frame.setAntiAlias(true);
         frame.setStyle(Paint.Style.STROKE);
-        frame.setColor(frameColor(state));
+        frame.setColor(frameColor(c, state));
         frame.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
         frame.setStrokeJoin(Paint.Join.MITER);
     }

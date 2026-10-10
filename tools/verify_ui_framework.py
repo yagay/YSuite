@@ -123,11 +123,30 @@ def verify_runtime_appearance() -> None:
     for marker in ("fun panelBackground(", "fun menuBackground(", "fun cornerRadiusPx(", "fun scaleScrimAlpha(", "fun YUiOverlayPanel("):
         require(overlay, marker, "central YUI overlay facade")
     confirm = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/GoogleRegionConfirmOverlay.java")
-    require(confirm, "YOverlayUi.panelBackground(", "YFloat selection confirmation overlay")
+    require(confirm, "YOverlayUi.styleAction(", "YFloat selection confirmation overlay")
     initializer = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt")
     require(initializer, 'changedKey.startsWith("overlay_")', "overlay-only settings must avoid Activity recreation")
     settings = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt")
     require(settings, "YUiOverlayPanel(", "YUI overlay live preview")
+    for path, markers in (
+        ("apps/YFloat/feature/src/main/java/com/yagay/YFloat/TextSelectionSurface.java", ("YOverlayUi.styleSelectionText(",)),
+        ("apps/YFloat/feature/src/main/java/com/yagay/YFloat/FlPointerOperationHintOverlay.java", ("YOverlayUi.styleHintText(",)),
+        ("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt", ("YUiLogSurface(", "YUiLogLine(")),
+        ("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/HistoryChart.kt", ("LocalYAppearance.current.rowHeightDp",)),
+        ("apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/EventAdapter.java", ("YView.cardOutlineWidth(c)",)),
+    ):
+        source = text(ROOT / path)
+        for identifier in markers:
+            require(source, identifier, f"YUI integration {path}")
+    for path, forbidden in (
+        ("apps/YFloat/feature/src/main/java/com/yagay/YFloat/TextSelectionSurface.java", ("textView.setTextSize(16)", "textView.setPadding(dp(8)")),
+        ("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt", ("Color(0xFF050505)", "fontSize = 9.sp", "logLineColor(")),
+        ("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/HistoryChart.kt", (".height(120.dp)",)),
+    ):
+        source = text(ROOT / path)
+        for token in forbidden:
+            if token in source:
+                fail(f"YUI integration {path} retains fixed normal UI {token}")
     action_menu = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatActionMenu.java")
     if "tv.setTextSize(13)" in action_menu or "more.setTextSize(22)" in action_menu:
         fail("YFloat action popup must use shared typography and icon visual size")
