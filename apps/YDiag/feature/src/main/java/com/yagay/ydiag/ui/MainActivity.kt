@@ -47,6 +47,7 @@ import com.yagay.ydiag.model.LoadLevel
 import com.yagay.ydiag.model.Recommendation
 import com.yagay.ydiag.model.Severity
 import com.yagay.ydiag.service.MonitorState
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YSectionHeader
@@ -365,7 +366,7 @@ private fun DiagnosticConfigScreen(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(LocalYAppearance.current.screenPaddingDp.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
@@ -422,8 +423,8 @@ private fun SettingsScreen(
     var localLimit by remember(maxSessionMb) { mutableIntStateOf(maxSessionMb) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(LocalYAppearance.current.screenPaddingDp.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         item {
             YSectionHeader(
