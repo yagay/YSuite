@@ -14,7 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiScaffold
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import com.yagay.yui.YCustomTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment

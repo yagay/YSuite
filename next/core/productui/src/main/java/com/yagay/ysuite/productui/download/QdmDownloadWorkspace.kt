@@ -18,11 +18,11 @@ import com.yagay.yui.YUiDropdownMenu as DropdownMenu
 import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.yagay.yui.YUiFloatingActionButton as FloatingActionButton
-import androidx.compose.material3.Icon
+import com.yagay.yui.YUiIcon as Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
 import com.yagay.yui.YUiSmallFloatingActionButton as SmallFloatingActionButton
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import com.yagay.yui.YTabBar
 import com.yagay.yui.YTabSpec
 import androidx.compose.runtime.Composable

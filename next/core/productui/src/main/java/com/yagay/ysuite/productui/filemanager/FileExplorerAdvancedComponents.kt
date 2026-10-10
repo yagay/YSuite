@@ -22,13 +22,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Splitscreen
 import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material3.Icon
+import com.yagay.yui.YUiIcon as Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiScrollableTabRow as ScrollableTabRow
 import com.yagay.yui.YUiSurface as Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiTab as Tab
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier

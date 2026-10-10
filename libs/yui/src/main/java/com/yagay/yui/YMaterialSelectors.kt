@@ -5,6 +5,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonColors
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Tab
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.ScrollableTabRow
@@ -83,5 +84,31 @@ fun YUiScrollableTabRow(
         containerColor = containerColor,
         divider = {},
         tabs = tabs,
+    )
+}
+
+/** Material3 tab entrypoint shared by file tabs and general settings. */
+@Composable
+fun YUiTab(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    text: (@Composable () -> Unit)? = null,
+    icon: (@Composable () -> Unit)? = null,
+    selectedContentColor: Color = MaterialTheme.colorScheme.primary,
+    unselectedContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    interactionSource: MutableInteractionSource? = null,
+) {
+    Tab(
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        text = text,
+        icon = icon,
+        selectedContentColor = selectedContentColor,
+        unselectedContentColor = unselectedContentColor,
+        interactionSource = interactionSource,
     )
 }

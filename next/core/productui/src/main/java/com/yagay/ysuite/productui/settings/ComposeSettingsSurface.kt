@@ -30,7 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiRadioButton as RadioButton
 import com.yagay.yui.YUiSlider as Slider
 import com.yagay.yui.YUiSurface as Surface
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
