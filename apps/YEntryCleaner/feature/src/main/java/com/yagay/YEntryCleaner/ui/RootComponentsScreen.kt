@@ -1,6 +1,5 @@
 package com.yagay.YEntryCleaner.ui
 
-import com.yagay.yui.YDimens
 import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -134,7 +133,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
             )
         }
         stickyHeader(key = "controls") {
-            Surface(tonalElevation = 2.dp) {
+            Surface(tonalElevation = (LocalYAppearance.current.rowVerticalPaddingDp / 3f).dp) {
                 Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
                     LazyRow(contentPadding = PaddingValues(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp)) {
                         items(listOf<CleanupKind?>(null) + CleanupKind.entries) { entry ->
@@ -147,7 +146,8 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                     )
                                 }
                                 Box(
-                                    Modifier.height(2.dp).width(24.dp).background(
+                                    Modifier.height((LocalYAppearance.current.rowVerticalPaddingDp / 3f).dp)
+                                        .width(LocalYAppearance.current.iconVisualSizeDp.dp).background(
                                         if (kind == entry) MaterialTheme.colorScheme.primary else Color.Transparent
                                     )
                                 )
@@ -155,7 +155,8 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         }
                     }
                     Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                            .padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box {
@@ -287,7 +288,9 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                             }
                         )
                         .clickable(onClickLabel = expandLabel, onClick = onExpand)
-                        .heightIn(min = 64.dp).padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
+                        .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                        .padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp,
+                            vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TriStateCheckbox(
@@ -296,7 +299,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         onClick = { vm.changeComponents(editableComponents, selectionState == ToggleableState.On) }
                     )
                     AppIcon(first.icon, first.owner)
-                    Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                    Column(Modifier.weight(1f).padding(start = LocalYAppearance.current.effectiveGapDp.dp)) {
                         Text(first.owner, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                         Text(
                             stringResource(
@@ -328,7 +331,8 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                 if (lockState == BulkLockState.PARTIAL) R.string.bulk_lock_partial
                                 else R.string.bulk_lock_full
                             ),
-                            modifier = Modifier.padding(horizontal = 8.dp).size(YDimens.IconVisualSize),
+                            modifier = Modifier.padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp)
+                                .size(LocalYAppearance.current.iconVisualSizeDp.dp),
                             tint = if (lockState == BulkLockState.PARTIAL) MaterialTheme.colorScheme.tertiary
                             else LocalContentColor.current
                         )
@@ -356,14 +360,18 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                             role = Role.Checkbox,
                             onValueChange = { checked -> vm.changeComponent(item, !checked) }
                         )
-                        .heightIn(min = YDimens.OptionRowHeight).padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                        .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                        .padding(start = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                            end = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp,
+                            top = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+                            bottom = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     YCheckboxControl(
                         checked = item.enabled == false,
                         enabled = editable,
                         onCheckedChange = null,
-                        modifier = Modifier.padding(12.dp)
+                        modifier = Modifier.padding(LocalYAppearance.current.effectiveGapDp.dp)
                     )
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -393,7 +401,8 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         Icon(
                             Icons.Rounded.Lock,
                             contentDescription = stringResource(R.string.bulk_lock_full),
-                            modifier = Modifier.padding(horizontal = 8.dp).size(18.dp)
+                            modifier = Modifier.padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp)
+                                .size((LocalYAppearance.current.iconVisualSizeDp * 0.75f).dp)
                         )
                     }
                 }
