@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.sp
 // AndroidX Material 3 owns component corner shapes. No second per-feature shape system.
 private val YShapes = Shapes()
 
-private val YLightColors = lightColorScheme(
+internal val YLightColors = lightColorScheme(
     primary = YUiPalette.LightPrimary,
     onPrimary = YUiPalette.LightOnPrimary,
     primaryContainer = YUiPalette.LightPrimaryContainer,
@@ -97,7 +97,7 @@ private val YLightColors = lightColorScheme(
     onTertiaryFixedVariant = YUiPalette.LightTertiary,
 )
 
-private val YDarkColors = darkColorScheme(
+internal val YDarkColors = darkColorScheme(
     primary = YUiPalette.DarkPrimary,
     onPrimary = YUiPalette.DarkOnPrimary,
     primaryContainer = YUiPalette.DarkPrimaryContainer,
@@ -166,7 +166,7 @@ fun YTheme(
         "dark" -> true
         else -> darkTheme
     }
-    val actualDynamic = dynamicColor || appearance.dynamicColor
+    val actualDynamic = appearance.dynamicColor
     val systemDensity = LocalDensity.current
     // Remove a parent YTheme scale before applying a nested preview's scale.
     val inheritedScale = LocalYAppearance.current.fontPercent / 100f
@@ -174,11 +174,8 @@ fun YTheme(
         systemDensity.density,
         systemDensity.fontScale / inheritedScale * (appearance.fontPercent / 100f),
     )
-    val shapes = if (appearance.buttonRadiusDp == 24) YShapes else Shapes(
-        small = RoundedCornerShape((appearance.buttonRadiusDp / 2).dp),
-        medium = RoundedCornerShape(appearance.buttonRadiusDp.dp),
-        large = RoundedCornerShape(appearance.buttonRadiusDp.dp),
-    )
+    // Per-control geometry is set by YUI components; button radius must not reshape unrelated cards.
+    val shapes = YShapes
     // A deterministic shared palette is essential for matching Compose and legacy View screens.
     // Android dynamic colors remain available only via an explicit opt-in.
     val scheme = when {
@@ -384,7 +381,7 @@ fun YEmptyState(text: String, modifier: Modifier = Modifier) {
 
 
 /** Preset primary palettes; normal state/status colors retain their semantic meanings. */
-private fun yAccentColorScheme(base: ColorScheme, accent: String, dark: Boolean): ColorScheme {
+internal fun yAccentColorScheme(base: ColorScheme, accent: String, dark: Boolean): ColorScheme {
     if (accent == "default") return base
     val light = when (accent) {
         "blue" -> intArrayOf(0x315FA8, 0xDCE5FF, 0x071B4D)
