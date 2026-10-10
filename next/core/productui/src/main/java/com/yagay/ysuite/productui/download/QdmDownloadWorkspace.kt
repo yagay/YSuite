@@ -20,7 +20,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
-import androidx.compose.material3.OutlinedTextField
+import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Tab
