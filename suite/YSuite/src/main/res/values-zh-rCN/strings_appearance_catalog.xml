@@ -93,4 +93,6 @@
     <string name="appearance_float_trail_colors">轨迹颜色（#RRGGBB，可用逗号分隔）</string>
     <string name="appearance_float_border_visible">显示选框边框</string>
     <string name="appearance_float_trail_visible">显示手势轨迹</string>
+    <string name="appearance_content_width_scale">页面内容宽度比例（%）</string>
+    <string name="appearance_pane_width_scale">侧边栏宽度比例（%）</string>
 </resources>
