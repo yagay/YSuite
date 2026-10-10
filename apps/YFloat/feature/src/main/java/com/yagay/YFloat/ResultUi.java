@@ -82,7 +82,9 @@ final class ResultUi {
     static int standardWidth(Context c, Rect usable) {
         int margin = dp(c, OUTER_MARGIN_DP);
         int available = Math.max(1, usable.width() - margin * 2);
-        return Math.min(dp(c, 410), Math.max(dp(c, 220), available));
+        int preferred = Math.round(dp(c, 410) *
+                (YOverlayUi.appearance(c, "yfloat").getContentWidthPercent() / 100f));
+        return Math.min(available, Math.max(1, Math.max(dp(c, 220), preferred)));
     }
 
     static int standardMaxHeight(Context c, Rect usable) {

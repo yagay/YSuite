@@ -70,20 +70,17 @@ final class GoogleRegionConfirmOverlay {
 
         TextView view = new TextView(app);
         view.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6f1359d0747a));
-        view.setTextColor(YFloatOverlayStyle.primaryText(app));
-        view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, YFloatOverlayStyle.textSize(app, 15f));
-        view.setTypeface(Typeface.DEFAULT_BOLD);
+        YOverlayUi.styleAction(view, "yfloat", YFloatOverlayStyle.surface(app),
+                YFloatOverlayStyle.selectionColor(app));
         view.setGravity(Gravity.CENTER);
         view.setClickable(true);
         view.setFocusable(false);
         view.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_9b6a4d50246b));
         view.setElevation(ScreenGeometry.dp(app, 8f));
 
-        view.setBackground(YOverlayUi.panelBackground(
-                app, "yfloat", YFloatOverlayStyle.surface(app), YFloatOverlayStyle.selectionColor(app)));
 
-        int width = ScreenGeometry.dp(app, 76f);
-        int height = ScreenGeometry.dp(app, 42f);
+        int width = Math.max(ScreenGeometry.dp(app, 76f), YOverlayUi.actionHeightPx(app, "yfloat"));
+        int height = YOverlayUi.actionHeightPx(app, "yfloat");
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 width, height,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,

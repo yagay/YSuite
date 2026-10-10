@@ -142,6 +142,8 @@ final class YFloatVisualSettings {
         old.edit().putBoolean(MIGRATED, true).apply();
     }
 
+    static int[] borderColors() { return BORDER_ARGB.clone(); }
+
     private static int indexOf(String[] values, String wanted) {
         for (int i = 0; i < values.length; i++) if (values[i].equals(wanted)) return i;
         return 0;

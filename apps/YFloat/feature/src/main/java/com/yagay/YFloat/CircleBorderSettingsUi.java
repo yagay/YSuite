@@ -7,10 +7,7 @@ import com.google.android.material.materialswitch.MaterialSwitch;
 
 /** Focused settings widgets for the Circle Select active-state border. */
 final class CircleBorderSettingsUi {
-    private static final int[] COLOR_VALUES = {
-            0xFF4285F4, 0xFF34A853, 0xFF00B8D4, 0xFF9C6ADE,
-            0xFFFF8A00, 0xFFEA4335, 0xFFFFFFFF
-    };
+    private static final int[] COLOR_VALUES = YFloatVisualSettings.borderColors();
 
     static void add(SettingsActivity activity, FloatSettings fs, LinearLayout parent) {
         MaterialSwitch enabled = YViewLayout.switchRow(activity,

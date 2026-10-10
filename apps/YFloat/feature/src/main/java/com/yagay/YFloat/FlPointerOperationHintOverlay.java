@@ -2,6 +2,9 @@ package com.yagay.YFloat;
 
 import android.content.Context;
 import android.graphics.Color;
+import com.yagay.yui.YOverlayUi;
+import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YView;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
@@ -21,8 +24,6 @@ public final class FlPointerOperationHintOverlay {
     private static final float ICON_SIZE_DP = 20f;
     private static final float TEXT_SIZE_DP = 10f;
     private static final float TEXT_MAX_WIDTH_DP = 120f;
-    private static final int FL_YELLOW = 0xFFFBC02D;
-    private static final int FL_PICTURE = 0xFFC2185B;
 
     private final Context context;
     private final FlOverlayWindowHost windowHost;
@@ -40,9 +41,9 @@ public final class FlPointerOperationHintOverlay {
     public FlPointerOperationHintOverlay(Context c) {
         context = c.getApplicationContext();
         windowHost = new FlOverlayWindowHost(context);
-        hintHeightPx = dp(HINT_HEIGHT_DP);
+        iconSizePx = Math.max(dp(ICON_SIZE_DP), YView.iconSize(context));
+        hintHeightPx = Math.max(dp(HINT_HEIGHT_DP), iconSizePx);
         probeXOffsetPx = dp(PROBE_X_OFFSET_DP);
-        iconSizePx = dp(ICON_SIZE_DP);
 
         root = new LinearLayout(context);
         root.setOrientation(LinearLayout.HORIZONTAL);
@@ -57,8 +58,7 @@ public final class FlPointerOperationHintOverlay {
         root.addView(icon, new LinearLayout.LayoutParams(iconSizePx, iconSizePx));
 
         text = new TextView(context);
-        text.setTextColor(Color.BLACK);
-        text.setTextSize(TypedValue.COMPLEX_UNIT_PX, YFloatOverlayStyle.textSize(context, TEXT_SIZE_DP));
+        YOverlayUi.styleHintText(text, "yfloat");
         text.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         text.setMaxWidth(dp(TEXT_MAX_WIDTH_DP));
         text.setMaxLines(1);
@@ -116,10 +116,10 @@ public final class FlPointerOperationHintOverlay {
             int drawableRes;
             int background;
             switch (next) {
-                case TEXT -> { drawableRes = R.drawable.fl_pointer_text; background = FL_YELLOW; }
-                case IMAGE -> { drawableRes = R.drawable.fl_pointer_image; background = FL_PICTURE; }
-                case SCREENSHOT -> { drawableRes = R.drawable.fl_pointer_screenshot; background = FL_YELLOW; }
-                default -> { drawableRes = R.drawable.fl_pointer_screenshot; background = FL_YELLOW; }
+                case TEXT -> { drawableRes = R.drawable.fl_pointer_text; background = YOverlayTokens.warning(context); }
+                case IMAGE -> { drawableRes = R.drawable.fl_pointer_image; background = YOverlayTokens.accent(context); }
+                case SCREENSHOT -> { drawableRes = R.drawable.fl_pointer_screenshot; background = YOverlayTokens.warning(context); }
+                default -> { drawableRes = R.drawable.fl_pointer_screenshot; background = YOverlayTokens.warning(context); }
             }
             icon.setImageResource(drawableRes);
             icon.setBackground(makeCircle(background));

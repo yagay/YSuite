@@ -1,5 +1,7 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YOverlayUi;
+
 import com.yagay.yui.YView;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -290,7 +292,10 @@ public final class FloatActionMenu {
 
     private static void buildMoreMenu(Context app, LinearLayout root, String text,
                                       Runnable selectAll) {
-        root.setPadding(dp(app, 4), dp(app, 4), dp(app, 4), dp(app, 4));
+        root.setPadding(YOverlayUi.contentPaddingPx(app, "yfloat"),
+                YOverlayUi.contentPaddingPx(app, "yfloat"),
+                YOverlayUi.contentPaddingPx(app, "yfloat"),
+                YOverlayUi.contentPaddingPx(app, "yfloat"));
         TextView back = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_f014f4d81cae), null);
         root.addView(back, new LinearLayout.LayoutParams(-1, -2));
         back.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MAIN));
@@ -318,7 +323,10 @@ public final class FloatActionMenu {
 
     private static void buildTargetMenu(Context app, LinearLayout root, String text,
                                         Runnable selectAll, int mode) {
-        root.setPadding(dp(app, 4), dp(app, 4), dp(app, 4), dp(app, 4));
+        root.setPadding(YOverlayUi.contentPaddingPx(app, "yfloat"),
+                YOverlayUi.contentPaddingPx(app, "yfloat"),
+                YOverlayUi.contentPaddingPx(app, "yfloat"),
+                YOverlayUi.contentPaddingPx(app, "yfloat"));
 
         TextView back = FloatingMenuUi.row(app,
                 mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_dfcb6e479124) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_0983c71bfdc1), null);

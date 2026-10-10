@@ -19,7 +19,7 @@ final class FloatingMenuUi {
         LinearLayout root = new LinearLayout(c);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackground(YOverlayUi.menuBackground(c, "yfloat", YOverlayTokens.menuSurface(c)));
-        root.setElevation(dp(c, 10));
+        root.setElevation(YOverlayUi.elevationPx(c, "yfloat"));
         root.setClipToOutline(false);
         root.setClickable(true);
         return root;
@@ -66,26 +66,12 @@ final class FloatingMenuUi {
         tv.setText(text == null ? "" : text);
         tv.setTextColor(YOverlayTokens.menuPrimaryText(c));
         YView.styleBody(tv);
-        tv.setBackground(ripple(c));
+        tv.setBackground(YOverlayUi.actionRipple(c, "yfloat"));
         tv.setClickable(true);
         tv.setFocusable(true);
         tv.setMinHeight(YView.rowHeight(c));
         tv.setIncludeFontPadding(true);
         return tv;
-    }
-
-    private static Drawable rounded(int color, float radius) {
-        GradientDrawable gd = new GradientDrawable();
-        gd.setColor(color);
-        gd.setCornerRadius(radius);
-        return gd;
-    }
-
-    private static Drawable ripple(Context c) {
-        GradientDrawable content = new GradientDrawable();
-        content.setColor(Color.TRANSPARENT);
-        content.setCornerRadius(999f);
-        return new RippleDrawable(ColorStateList.valueOf(YOverlayTokens.menuRipple(c)), content, null);
     }
 
     static int dp(Context c, int value) { return YOverlayTokens.dp(c, value); }
