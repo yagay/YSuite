@@ -60,6 +60,32 @@ def main() -> None:
                 and "new AlertDialog.Builder(" in source
             ):
                 failures.append(f"{path.relative_to(ROOT)}: use YViewDialogs.builder()")
+    # Both modern Compose features and legacy compatibility facades must share one
+    # implementation for normal-screen controls. Catch accidental future duplication.
+    core = ROOT / "libs/yui/src/main/java/com/yagay/yui"
+    expected_controls = {
+        "YMaterialControls.kt": (
+            "fun YUiButton(",
+            "fun YUiOutlinedButton(",
+            "fun YUiTextButton(",
+            "fun YUiIconButton(",
+            "fun YUiCheckbox(",
+        ),
+        "YMaterialInputs.kt": ("fun YUiOutlinedTextField(",),
+        "YViewDialogs.kt": ("fun builder(context: Context)",),
+        "YTheme.kt": ("YUiButton(", "YUiOutlinedButton(", "YUiScaffold("),
+        "YFeatureFramework.kt": ("YUiOutlinedTextField as OutlinedTextField",),
+    }
+    for filename, markers in expected_controls.items():
+        path = core / filename
+        if not path.is_file():
+            failures.append(f"missing YUI implementation: {filename}")
+            continue
+        implementation = path.read_text(encoding="utf-8")
+        for required in markers:
+            if required not in implementation:
+                failures.append(f"YUI {filename} must delegate using {required}")
+
     chrome_path = ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/ProductChrome.kt"
     yui_theme_path = ROOT / "libs/yui/src/main/java/com/yagay/yui/YTheme.kt"
     if not chrome_path.is_file() or not yui_theme_path.is_file():
