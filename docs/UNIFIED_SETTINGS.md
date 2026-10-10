@@ -55,3 +55,41 @@ YUI appearance and the shared functionality / Root / LSPosed area.
   leaves language and home preferences unchanged.
 
 Existing appearance controls and export/import continue to affect appearance only.
+
+## Adjustable UI parameter audit (2026-10-10)
+
+This work audited the YUI numeric setting definitions, native View and Compose control
+implementations, product settings facades and visual limits in YFloat, YDownload and
+the other bundled modules. The previous implementation had multiple unrelated layers
+restricting values: UI slider ranges, validation before persistence, render-time fixed
+minimums, template-specific padding, and old generated dimensions.
+
+### Consolidated, controllable appearance
+
+- 18 existing YUI dimensions now use much broader ranges from one `YSettingKey`
+  validator. Values can be entered in exact 1dp / 1% increments and round-trip through JSON.
+- Four additional parameter groups are exposed: page vertical spacing, visual icon size,
+  list icon size and toolbar height. These are connected to their actual View/Compose consumers.
+- Shared integer sliders (`YIntSliderField`) accept exact numeric values, and old Java View
+  sliders (`YViewLayout.sliderSetting`) expose a numeric entry beside the slider.
+- Phone and tablet list page margins use the same preference; no more unexplained
+  tablet-only fixed default. Legacy toolbar, list icons, list row dimensions, icon touch
+  slots and bottom sheet padding are no longer independently hard-coded.
+- Generated YUI JSON/Kotlin/XML defaults are synchronized at button radius 12dp, horizontal
+  padding 16dp and vertical padding 4dp, without changing existing user overrides.
+- YFloat's icon size, border, opacity, slide interval, gesture timing/distance and text-menu
+  item count use consistent input and runtime ranges.
+
+### Deliberately retained constraints
+
+- An Android button's text/content may impose an intrinsic minimum even if the requested
+  visual height is smaller. Very small interactive targets are possible but may reduce
+  accessibility and usability. The default remains standard, not compact.
+- Operational ranges such as download concurrency, worker thread count, retry policy and
+  polling frequencies are still bounded to avoid resource exhaustion. Numeric entry does
+  not bypass those **functional safety** constraints.
+- Feature-specific OCR, Root/LSPosed and NFC runtime parameters are not recast as UI
+  appearance settings. A setting without a real consumer is not exposed as a fake control.
+
+Automated coverage now checks shared validation, generated default alignment, real
+appearance consumers and exact entry controls, as well as the previous integration checks.
