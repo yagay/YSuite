@@ -1,11 +1,16 @@
-name: YUI Screenshot Baseline
+name: YUI Screenshot Preview
 
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild/material3-full-ui]
     paths:
       - "build.gradle.kts"
       - "libs/yui/**"
+      - "apps/YFloat/feature/src/main/java/**"
+      - "apps/YEntryCleaner/feature/src/main/java/**"
+      - "next/core/designsystem/**"
+      - "next/core/productui/**"
+      - "suite/YSuite/src/main/java/**"
       - ".github/workflows/yui-screenshot.yml"
   workflow_dispatch:
 
@@ -56,15 +61,16 @@ jobs:
             "build-tools;${{ steps.versions.outputs.build_tools }}" \
             "platform-tools"
 
-      # Bootstrap task: generate the first committed visual baselines. This workflow is switched to
-      # verifyRoborazziDebug once those baseline PNGs are committed.
-      - name: Record YUI screenshot baselines
+      # Capture actual catalog appearance for every relevant UI change. This
+      # previews the shared controls on compact, expanded and large-font screens;
+      # pixel-diff verification requires committed, reviewed baseline images.
+      - name: Render YUI screenshot previews
         run: gradle --no-daemon --stacktrace :ui:recordRoborazziDebug
 
-      - name: Upload YUI screenshot baselines
+      - name: Upload YUI screenshot previews
         uses: actions/upload-artifact@v4
         with:
-          name: YUI-screenshot-baselines
+          name: YUI-screenshot-previews
           path: libs/yui/src/test/screenshots/*.png
           if-no-files-found: error
           retention-days: 7
