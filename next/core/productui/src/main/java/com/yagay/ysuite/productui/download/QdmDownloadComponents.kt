@@ -1,6 +1,7 @@
 package com.yagay.ysuite.productui.download
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -44,14 +45,18 @@ import com.yagay.yui.YUiSlider as Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YTextActionButton
 import com.yagay.yui.YResponsiveFieldAction
 import com.yagay.yui.YResponsiveFieldPair
+import com.yagay.yui.YResponsiveActionBar
 import com.yagay.yui.YUiAlertDialog
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -510,6 +515,15 @@ fun QdmAddDownloadDialog(
     onStart: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var speedLimitDraft by remember {
+        mutableStateOf((model.speedLimitBytesPerSecond / 1024L).toString())
+    }
+    var speedLimitFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(model.speedLimitBytesPerSecond, speedLimitFocused) {
+        if (!speedLimitFocused) {
+            speedLimitDraft = (model.speedLimitBytesPerSecond / 1024L).toString()
+        }
+    }
     Dialog(
         onDismissRequest = onDismiss,
         properties =
@@ -671,29 +685,20 @@ fun QdmAddDownloadDialog(
                 }
 
                 OutlinedTextField(
-                    value =
-                        (
-                            model.speedLimitBytesPerSecond /
-                                1024L
-                        ).toString(),
+                    value = speedLimitDraft,
                     onValueChange = { raw ->
-                        val kbps =
-                            raw.filter(Char::isDigit)
-                                .toLongOrNull()
-                                ?: 0L
+                        speedLimitDraft = raw.filter(Char::isDigit)
+                        val kbps = speedLimitDraft.toLongOrNull() ?: 0L
                         onSpeedLimitChange(
-                            kbps
-                                .coerceAtMost(
-                                    Long.MAX_VALUE /
-                                        1024L,
-                                ) * 1024L,
+                            kbps.coerceAtMost(Long.MAX_VALUE / 1024L) * 1024L,
                         )
                     },
-                    label = {
-                        Text(labels.speedLimit)
-                    },
+                    label = { Text(labels.speedLimit) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth().onFocusChanged {
+                        speedLimitFocused = it.isFocused
+                    },
                 )
 
                 OutlinedTextField(
@@ -792,10 +797,7 @@ fun QdmAddDownloadDialog(
                 )
 
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
-                ) {
+                YResponsiveActionBar {
                     YSecondaryActionButton(
                         onClick = onAddQueue,
                         enabled =
