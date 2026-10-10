@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YListItem
+import com.yagay.yui.YIntSliderField
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.YSuiteProductPage
 
@@ -208,39 +209,10 @@ fun ComposeSettingsIntSlider(
     range: IntRange,
     onValueChange: (Int) -> Unit,
     subtitle: String? = null,
-) {
-    val safeValue = value.coerceIn(range.first, range.last)
-    Column(modifier = Modifier.fillMaxWidth()) {
-        YListItem(
-            title = title,
-            subtitle = subtitle,
-            trailing = {
-                Text(
-                    text = safeValue.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-        )
-        Slider(
-            value = safeValue.toFloat(),
-            onValueChange = {
-                onValueChange(
-                    it.toInt().coerceIn(
-                        range.first,
-                        range.last,
-                    ),
-                )
-            },
-            valueRange =
-                range.first.toFloat()..
-                    range.last.toFloat(),
-            steps =
-                (range.last - range.first - 1)
-                    .coerceAtLeast(0),
-            modifier =
-                Modifier.padding(
-                    horizontal = YSuiteSpacing.Medium,
-                ),
-        )
-    }
-}
+) = YIntSliderField(
+    title = title,
+    value = value,
+    range = range,
+    onValueChange = onValueChange,
+    subtitle = subtitle,
+)

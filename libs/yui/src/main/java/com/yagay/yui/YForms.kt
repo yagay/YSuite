@@ -192,6 +192,40 @@ fun YSliderField(
     }
 }
 
+/** Canonical integer-slider settings row shared by every product's settings page. */
+@Composable
+fun YIntSliderField(
+    title: String,
+    value: Int,
+    range: IntRange,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    enabled: Boolean = true,
+) {
+    val safeValue = value.coerceIn(range.first, range.last)
+    Column(modifier.fillMaxWidth()) {
+        YListItem(
+            title = title,
+            subtitle = subtitle,
+            trailing = {
+                Text(
+                    text = safeValue.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+        )
+        YUiSlider(
+            value = safeValue.toFloat(),
+            onValueChange = { onValueChange(it.toInt().coerceIn(range.first, range.last)) },
+            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
+            enabled = enabled,
+            valueRange = range.first.toFloat()..range.last.toFloat(),
+            steps = (range.last - range.first - 1).coerceAtLeast(0),
+        )
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun <T> YSegmentedControl(
