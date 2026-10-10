@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="general_title">General settings</string>
+    <string name="general_subtitle">Language, home screen and application information</string>
+    <string name="general_language_title">App language</string>
+    <string name="general_language_desc">Use the system language or override YSuite with English or Simplified Chinese</string>
+    <string name="general_language_system">Follow system</string>
+    <string name="general_language_chinese">简体中文</string>
+    <string name="general_language_english">English</string>
+    <string name="general_home_title">Home screen</string>
+    <string name="general_home_desc">Control which module shortcuts appear on the YSuite home screen</string>
+    <string name="general_hide_disabled">Hide disabled modules</string>
+    <string name="general_hide_disabled_desc">Disabled modules remain accessible in Module Management and can be enabled again</string>
+    <string name="general_show_search">Show search button</string>
+    <string name="general_show_search_desc">Display the module search shortcut in the home toolbar</string>
+    <string name="general_show_diagnostics">Show diagnostics shortcut</string>
+    <string name="general_show_diagnostics_desc">Show export diagnostics on the home toolbar; logs remain accessible in shared settings</string>
+    <string name="general_about_title">About &amp; app management</string>
+    <string name="general_version">Version %1$s</string>
+    <string name="general_about_desc">This page opens Android app information. Installed standalone modules use their own language and settings.</string>
+    <string name="general_shared_settings">Shared functionality and permissions</string>
+</resources>
