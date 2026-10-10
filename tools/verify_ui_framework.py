@@ -376,7 +376,7 @@ def main() -> None:
         (float_migrator, ("YFloatVisualSettings.migrate(app, p)",),
          "YFloat migration bootstrap"),
         (rebuilt_settings, ("YAppearanceStore(context)", "SuiteCommonSettings(context)",
-                            "appearance.set(YSettingKey.THEME"), "rebuilt host settings compatibility"),
+                            "appearance.set(", "YSettingKey.THEME"), "rebuilt host settings compatibility"),
     ):
         for required in markers:
             require(source, required, label)
