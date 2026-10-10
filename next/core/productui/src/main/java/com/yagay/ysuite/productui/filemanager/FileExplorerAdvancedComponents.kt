@@ -1,6 +1,7 @@
 package com.yagay.ysuite.productui.filemanager
 
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -87,7 +88,7 @@ fun FileExplorerBrowserTabs(
                         ) {
                             Text(
                                 text = tab.title,
-                                modifier = Modifier.widthIn(max = 120.dp),
+                                modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 2f).dp),
                                 maxLines = 1,
                                 overflow =
                                     TextOverflow
@@ -267,7 +268,7 @@ private fun FileExplorerGridItem(
                 ),
         ) {
             Box(
-                modifier = Modifier.size(52.dp),
+                modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
                 contentAlignment =
                     Alignment.Center,
             ) {
@@ -283,7 +284,7 @@ private fun FileExplorerGridItem(
                                 .colorScheme
                                 .primary,
                         modifier =
-                            Modifier.size(36.dp),
+                            Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                 } else {
                     Text(

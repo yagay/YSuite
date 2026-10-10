@@ -32,6 +32,7 @@ import com.yagay.YEntryCleaner.domain.VisibilityScope
 import com.yagay.YEntryCleaner.domain.listCleanerAppType
 import com.yagay.yui.YCheckboxItem
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YFilterSpec
 import com.yagay.yui.YFullScreenDialog
 import com.yagay.yui.YListSkeleton
@@ -213,7 +214,7 @@ internal fun AppScopePickerDialog(
                                     Image(
                                         bitmap = it.asImageBitmap(),
                                         contentDescription = null,
-                                        modifier = Modifier.size(40.dp),
+                                        modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
                                     )
                                 }
                             },

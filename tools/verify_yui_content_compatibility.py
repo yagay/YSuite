@@ -55,8 +55,13 @@ def main() -> int:
                       "selectedKey = effectiveTabId",
                       "content(adaptive, effectiveTabId)")
     errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/FileExplorerAdvancedComponents.kt",
-                      "modifier = Modifier.widthIn(max = 120.dp)",
+                      "modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 2f).dp)",
                       "tabs.size > 1 && tab.id == tabs[selected].id")
+    errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+                      "IconButton(onClick = onRoot)",
+                      "Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp)")
+    errors += require(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppScopePicker.kt",
+                      "Modifier.size(LocalYAppearance.current.listIconSizeDp.dp)")
     errors += require(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuPickerActivity.java",
                       "screenWidthDp < 480",
                       "PopupMenu popup",

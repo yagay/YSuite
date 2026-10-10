@@ -153,14 +153,14 @@ fun YFileBreadcrumbBar(
                 .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Default.Storage,
-                contentDescription = providerLabel,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(20.dp)
-                    .clickable(onClick = onRoot),
-            )
+            IconButton(onClick = onRoot) {
+                Icon(
+                    imageVector = Icons.Default.Storage,
+                    contentDescription = providerLabel,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
+                )
+            }
             Text(
                 text = providerLabel,
                 style = MaterialTheme.typography.labelLarge,
@@ -523,7 +523,7 @@ fun YFileEntryRow(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                 } else {
                     Icon(
@@ -535,7 +535,7 @@ fun YFileEntryRow(
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                 }
             }
