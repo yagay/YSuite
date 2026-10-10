@@ -1,5 +1,6 @@
 package com.yagay.ysuite.ui
 
+import com.yagay.yui.YDimens
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -144,15 +145,15 @@ internal fun YSuiteCompactDashboard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall)
                         .background(
                             MaterialTheme.colorScheme.surfaceContainerLow,
-                            RoundedCornerShape(12.dp),
+                            MaterialTheme.shapes.medium,
                         )
                         .clickable { onSelect(systemId) }
-                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                        .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
@@ -184,7 +185,7 @@ internal fun YSuiteCompactDashboard(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
                     singleLine = true,
                     label = { Text(stringResource(R.string.home_search_modules)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
@@ -192,7 +193,7 @@ internal fun YSuiteCompactDashboard(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = YDimens.ScreenHorizontal, end = YDimens.ControlGap, top = YDimens.ControlGap, bottom = YDimens.SpacingXsmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -253,7 +254,7 @@ private fun CompactModuleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 54.dp)
+            .heightIn(min = YDimens.OptionRowHeight)
             // Horizontal gestures do not intercept the LazyColumn's vertical scrolling.
             // Swipe right to pin, left to unpin; the menu remains the accessible fallback.
             .pointerInput(pinned) {
@@ -277,13 +278,13 @@ private fun CompactModuleRow(
                 onClick = onOpen,
                 onLongClick = { menuExpanded = true },
             )
-            .padding(start = 12.dp, end = 4.dp, top = 5.dp, bottom = 5.dp),
+            .padding(start = YDimens.ScreenHorizontal, end = YDimens.SpacingXsmall, top = YDimens.SpacingSmall, bottom = YDimens.SpacingSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = RoundedCornerShape(10.dp),
+            shape = MaterialTheme.shapes.small,
             modifier = Modifier.size(34.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {

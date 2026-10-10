@@ -1,5 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
+import com.yagay.yui.YDimens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -353,7 +354,7 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
             item {
                 YEmptyMessage(
                     message = stringResource(R.string.no_matching_components),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall)
                 )
             }
         }
@@ -392,7 +393,7 @@ private fun SummaryRow(
         },
         subtitle = stringResource(R.string.rules_page_intro),
         detail = usageText,
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall)
     ) {
         YStatusLine(
             label = stringResource(R.string.rules_summary_mode),

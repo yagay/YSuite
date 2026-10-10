@@ -1,5 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
+import com.yagay.yui.YDimens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -225,7 +226,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                 title = stringResource(R.string.root_summary, groups.size, visible.size),
                 subtitle = stringResource(R.string.root_selection_semantics),
                 detail = stringResource(R.string.root_change_semantics),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall),
             ) {
                 YStatusLine(
                     label = stringResource(R.string.view_filter),
@@ -285,7 +286,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                             }
                         )
                         .clickable(onClickLabel = expandLabel, onClick = onExpand)
-                        .heightIn(min = 64.dp).padding(horizontal = 8.dp, vertical = 4.dp),
+                        .heightIn(min = 64.dp).padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TriStateCheckbox(
@@ -354,7 +355,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                             role = Role.Checkbox,
                             onValueChange = { checked -> vm.changeComponent(item, !checked) }
                         )
-                        .heightIn(min = 48.dp).padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                        .heightIn(min = YDimens.OptionRowHeight).padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     YCheckboxControl(

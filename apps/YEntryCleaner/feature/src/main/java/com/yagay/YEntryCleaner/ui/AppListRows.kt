@@ -1,5 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
+import com.yagay.yui.YDimens
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -70,7 +71,7 @@ internal fun AppRow(
             .bulkLockSwipe(onLock = onLock, onUnlock = onUnlock)
             .clickable(onClickLabel = expandLabel, onClick = onExpand)
             .heightIn(min = 64.dp)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         TriStateCheckbox(state = selectionState, onClick = { onSelect(selectionState != ToggleableState.On) })
@@ -138,7 +139,7 @@ internal fun ComponentRow(
                 onUnlock = onUnlock
             )
             .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() })
-            .heightIn(min = 48.dp).padding(start = 24.dp, end = 16.dp),
+            .heightIn(min = YDimens.OptionRowHeight).padding(start = 24.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         ComponentSelectionMark(checked)
@@ -239,7 +240,7 @@ internal fun Modifier.bulkLockSwipe(
 @Composable
 private fun ComponentSelectionMark(checked: Boolean) {
     val colors = MaterialTheme.colorScheme
-    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(YDimens.TouchTarget), contentAlignment = Alignment.Center) {
         Box(
             Modifier.size(20.dp)
                 .background(if (checked) colors.primary else Color.Transparent, CircleShape)

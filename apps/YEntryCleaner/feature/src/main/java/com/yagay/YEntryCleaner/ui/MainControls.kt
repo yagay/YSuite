@@ -1,5 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
+import com.yagay.yui.YDimens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,8 +71,8 @@ internal fun CompactSearchField(query: String, onQueryChange: (String) -> Unit) 
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.onSurface),
         cursorBrush = SolidColor(colors.primary),
         modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
-            .heightIn(min = 48.dp)
-            .border(1.dp, colors.outlineVariant, RoundedCornerShape(12.dp)),
+            .heightIn(min = YDimens.OptionRowHeight)
+            .border(1.dp, colors.outlineVariant, MaterialTheme.shapes.medium),
         decorationBox = { innerTextField ->
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),

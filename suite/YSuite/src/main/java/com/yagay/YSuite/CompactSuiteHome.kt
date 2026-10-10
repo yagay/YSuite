@@ -129,14 +129,14 @@ internal fun CompactSuiteHome(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .padding(horizontal = YDimens.SectionGap, vertical = YDimens.SpacingXsmall)
                     .background(
                         MaterialTheme.colorScheme.surfaceContainerLow,
                         MaterialTheme.shapes.medium,
                     )
                     .clickable { onManage(null) }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap),
+                horizontalArrangement = Arrangement.spacedBy(YDimens.ScreenHorizontal),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -214,7 +214,7 @@ internal fun CompactSuiteHome(
                 OutlinedTextField(
                     value = search,
                     onValueChange = { search = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingXsmall),
                     singleLine = true,
                     label = { Text(stringResource(R.string.home_search)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
@@ -287,9 +287,9 @@ private fun CompactSuiteModuleRow(
                 )
             }
             .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
-            .padding(start = 12.dp, end = 4.dp, top = 5.dp, bottom = 5.dp),
+            .padding(start = YDimens.ScreenHorizontal, end = YDimens.SpacingXsmall, top = YDimens.SpacingSmall, bottom = YDimens.SpacingSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
