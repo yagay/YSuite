@@ -15,23 +15,28 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
 
+        boolean embeddedInSuite = "com.yagay.YSuite".equals(getPackageName());
         LinearLayout root = YViewLayout.pageRoot(this,
-                getString(R.string.yfloat_appearance_title),
-                getString(R.string.yfloat_appearance_desc));
+                getString(embeddedInSuite ? R.string.yfloat_menu_management : R.string.yfloat_appearance_title),
+                getString(embeddedInSuite ? R.string.yfloat_menu_management_desc : R.string.yfloat_appearance_desc));
 
-        YViewSection theme = YViewLayout.section(this, getString(R.string.yfloat_theme_title), null);
-        addThemeSpinner(theme.body);
-        YViewLayout.addSection(root, theme);
+        // YSuite already owns theme and visible text-action count in YAppearanceStore.
+        // Standalone YFloat still exposes local controls for its own package preferences.
+        if (!embeddedInSuite) {
+            YViewSection theme = YViewLayout.section(this, getString(R.string.yfloat_theme_title), null);
+            addThemeSpinner(theme.body);
+            YViewLayout.addSection(root, theme);
 
-        YViewSection textMenu = YViewLayout.section(this,
-                getString(R.string.yfloat_text_menu_title),
-                getString(R.string.yfloat_text_menu_desc));
-        addMainItemCountSlider(textMenu.body);
-        YViewLayout.addSection(root, textMenu);
+            YViewSection textMenu = YViewLayout.section(this,
+                    getString(R.string.yfloat_text_menu_title),
+                    getString(R.string.yfloat_text_menu_desc));
+            addMainItemCountSlider(textMenu.body);
+            YViewLayout.addSection(root, textMenu);
 
-        TextView note = YViewLayout.caption(this, getString(R.string.yfloat_text_menu_note), 12);
-        note.setPadding(Math.max(1, YView.controlGap(this) / 3), 0, Math.max(1, YView.controlGap(this) / 3), Math.max(1, YView.controlGap(this) / 3));
-        root.addView(note);
+            TextView note = YViewLayout.caption(this, getString(R.string.yfloat_text_menu_note), 12);
+            note.setPadding(Math.max(1, YView.controlGap(this) / 3), 0, Math.max(1, YView.controlGap(this) / 3), Math.max(1, YView.controlGap(this) / 3));
+            root.addView(note);
+        }
 
         YViewSection menus = YViewLayout.section(this,
                 getString(R.string.yfloat_menu_management),
