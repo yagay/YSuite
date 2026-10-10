@@ -63,6 +63,18 @@ public class FloatPreferenceImpactTest {
     }
 
     @Test
+    public void advancedSelectionPreferencesAvoidUnnecessaryIconRebuilds() {
+        assertEquals(FloatPreferenceImpact.Impact.WAKE_REGION,
+                FloatPreferenceImpact.classify(FloatSettings.K_EDGE_WAKE_WIDTH_DP));
+        assertEquals(FloatPreferenceImpact.Impact.IGNORE,
+                FloatPreferenceImpact.classify(FloatSettings.K_NODE_IMAGE_MIN_DP));
+        assertEquals(FloatPreferenceImpact.Impact.IGNORE,
+                FloatPreferenceImpact.classify(FloatSettings.K_NODE_GENERIC_MIN_DP));
+        assertEquals(FloatPreferenceImpact.Impact.IGNORE,
+                FloatPreferenceImpact.classify(FloatSettings.K_GOOGLE_FRAME_GLOW_BLUR_DP));
+    }
+
+    @Test
     public void ocrAndPrivilegeChangesAreServiceOnly() {
         assertEquals(FloatPreferenceImpact.Impact.SERVICE_SETTINGS,
                 FloatPreferenceImpact.classify(FloatSettings.K_OCR_ENGINE));

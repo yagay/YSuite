@@ -21,4 +21,8 @@
     <string name="yfloat_edge_wake_width">边缘唤醒区域宽度</string>
     <string name="yfloat_selection_reset_section">恢复默认值</string>
     <string name="yfloat_selection_reset_button">恢复圈选高级设置默认值</string>
+    <string name="yfloat_text_handle_hit">文字选框手柄触控范围</string>
+    <string name="yfloat_text_handle_snap">文字选框手柄吸附距离</string>
+    <string name="yfloat_crop_min_size">截图选区最小尺寸</string>
+    <string name="yfloat_crop_drag_slop">截图手柄拖动容差</string>
 </resources>

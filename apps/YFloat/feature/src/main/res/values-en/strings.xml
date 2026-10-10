@@ -21,4 +21,8 @@
     <string name="yfloat_edge_wake_width">Edge wake-up strip width</string>
     <string name="yfloat_selection_reset_section">Restore defaults</string>
     <string name="yfloat_selection_reset_button">Restore advanced selection defaults</string>
+    <string name="yfloat_text_handle_hit">Text handle touch target</string>
+    <string name="yfloat_text_handle_snap">Text handle snap distance</string>
+    <string name="yfloat_crop_min_size">Minimum crop rectangle</string>
+    <string name="yfloat_crop_drag_slop">Crop handle drag tolerance</string>
 </resources>

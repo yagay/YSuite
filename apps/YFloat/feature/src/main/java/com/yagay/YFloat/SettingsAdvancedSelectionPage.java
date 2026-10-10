@@ -48,6 +48,14 @@ final class SettingsAdvancedSelectionPage {
                 FloatSettings.K_NODE_GENERIC_MIN_DP, 1, 96, settings.genericRecognitionMinDp(), " dp");
         ui.seek(recognition.body, activity.getString(R.string.yfloat_edge_wake_width),
                 FloatSettings.K_EDGE_WAKE_WIDTH_DP, 1, 64, settings.edgeWakeWidthDp(), " dp");
+        ui.seek(recognition.body, activity.getString(R.string.yfloat_text_handle_hit),
+                FloatSettings.K_TEXT_HANDLE_HIT_DP, 8, 80, settings.textHandleHitDp(), " dp");
+        ui.seek(recognition.body, activity.getString(R.string.yfloat_text_handle_snap),
+                FloatSettings.K_TEXT_HANDLE_SNAP_DP, 16, 240, settings.textHandleSnapDp(), " dp");
+        ui.seek(recognition.body, activity.getString(R.string.yfloat_crop_min_size),
+                FloatSettings.K_CROP_MIN_DP, 4, 96, settings.cropMinDp(), " dp");
+        ui.seek(recognition.body, activity.getString(R.string.yfloat_crop_drag_slop),
+                FloatSettings.K_CROP_DRAG_SLOP_DP, 4, 96, settings.cropDragSlopDp(), " dp");
         YViewLayout.addSection(root, recognition);
 
         YViewSection reset = YViewLayout.section(activity,

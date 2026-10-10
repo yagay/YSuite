@@ -713,6 +713,11 @@ public class FloatService extends Service implements android.content.SharedPrefe
         switch (impact) {
             case APPEARANCE_LAYOUT -> refreshAppearance();
             case VISIBILITY -> refreshVisibilitySettings();
+            case WAKE_REGION -> mainHandler.post(() -> {
+                if (instance != this) return;
+                removeWakeViews();
+                syncWakeViews();
+            });
             case ICON_SETTINGS -> refreshIconSettingsOnly();
             case CIRCLE_OVERLAY -> {
                 CircleActiveBorderOverlay.refreshStyle(this);

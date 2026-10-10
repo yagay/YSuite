@@ -84,6 +84,10 @@ public final class FloatSettings {
     public static final String K_NODE_IMAGE_MIN_DP = "node_image_min_dp_v1";
     public static final String K_NODE_GENERIC_MIN_DP = "node_generic_min_dp_v1";
     public static final String K_EDGE_WAKE_WIDTH_DP = "edge_wake_width_dp_v1";
+    public static final String K_TEXT_HANDLE_HIT_DP = "text_handle_hit_dp_v1";
+    public static final String K_TEXT_HANDLE_SNAP_DP = "text_handle_snap_dp_v1";
+    public static final String K_CROP_MIN_DP = "crop_min_dp_v1";
+    public static final String K_CROP_DRAG_SLOP_DP = "crop_drag_slop_dp_v1";
 
     public static final String K_GOOGLE_CTS_ACTIVE_SESSION = "google_cts_active_session_v1";
     public static final String K_GOOGLE_CTS_ACTIVE_UNTIL = "google_cts_active_until_elapsed_v1";
@@ -202,6 +206,10 @@ public final class FloatSettings {
     public int imageRecognitionMinDp() { return clamp(p.getInt(K_NODE_IMAGE_MIN_DP, 12), 1, 64); }
     public int genericRecognitionMinDp() { return clamp(p.getInt(K_NODE_GENERIC_MIN_DP, 20), 1, 96); }
     public int edgeWakeWidthDp() { return clamp(p.getInt(K_EDGE_WAKE_WIDTH_DP, 18), 1, 64); }
+    public int textHandleHitDp() { return clamp(p.getInt(K_TEXT_HANDLE_HIT_DP, 28), 8, 80); }
+    public int textHandleSnapDp() { return clamp(p.getInt(K_TEXT_HANDLE_SNAP_DP, 96), 16, 240); }
+    public int cropMinDp() { return clamp(p.getInt(K_CROP_MIN_DP, 24), 4, 96); }
+    public int cropDragSlopDp() { return clamp(p.getInt(K_CROP_DRAG_SLOP_DP, 24), 4, 96); }
 
     public static boolean isGoogleVisualKey(String key) {
         return key != null && key.startsWith("google_frame_");
@@ -220,6 +228,10 @@ public final class FloatSettings {
                 .remove(K_NODE_IMAGE_MIN_DP)
                 .remove(K_NODE_GENERIC_MIN_DP)
                 .remove(K_EDGE_WAKE_WIDTH_DP)
+                .remove(K_TEXT_HANDLE_HIT_DP)
+                .remove(K_TEXT_HANDLE_SNAP_DP)
+                .remove(K_CROP_MIN_DP)
+                .remove(K_CROP_DRAG_SLOP_DP)
                 .apply();
         LsposedStatusManager.syncRuntimeConfigAsync();
     }

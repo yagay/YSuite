@@ -10,6 +10,8 @@ final class FloatPreferenceImpact {
         APPEARANCE_LAYOUT,
         /** Re-evaluate app/fullscreen/lock/IME/manual-wake visibility only. */
         VISIBILITY,
+        /** Reattach only the narrow edge-wakeup overlay windows when their size changes. */
+        WAKE_REGION,
         /** Refresh FloatIconView's touch/renderer settings without WindowManager updates. */
         ICON_SETTINGS,
         /** Refresh the live Circle border without rebuilding the floating icon. */
@@ -43,6 +45,8 @@ final class FloatPreferenceImpact {
                 FloatSettings.K_HIDE_FULLSCREEN,
                 FloatSettings.K_HIDE_PACKAGES,
                 FloatSettings.K_IME_AVOID);
+
+        register(Impact.WAKE_REGION, FloatSettings.K_EDGE_WAKE_WIDTH_DP);
 
         register(Impact.ICON_SETTINGS,
                 FloatSettings.K_LONG_PRESS,
@@ -101,6 +105,20 @@ final class FloatPreferenceImpact {
                 FloatSettings.K_ACTION_SIDE_LONG);
 
         register(Impact.IGNORE,
+                FloatSettings.K_GOOGLE_FRAME_RADIUS_DP,
+                FloatSettings.K_GOOGLE_FRAME_OUTLINE_DP,
+                FloatSettings.K_GOOGLE_FRAME_GLOW_WIDTH_DP,
+                FloatSettings.K_GOOGLE_FRAME_GLOW_BLUR_DP,
+                FloatSettings.K_GOOGLE_FRAME_GLOW_ALPHA,
+                FloatSettings.K_GOOGLE_FRAME_SCRIM_ALPHA,
+                FloatSettings.K_GOOGLE_FRAME_TRAIL_WIDTH_DP,
+                FloatSettings.K_GOOGLE_FRAME_USE_YUI_COLOR,
+                FloatSettings.K_NODE_IMAGE_MIN_DP,
+                FloatSettings.K_NODE_GENERIC_MIN_DP,
+                FloatSettings.K_TEXT_HANDLE_HIT_DP,
+                FloatSettings.K_TEXT_HANDLE_SNAP_DP,
+                FloatSettings.K_CROP_MIN_DP,
+                FloatSettings.K_CROP_DRAG_SLOP_DP,
                 FloatSettings.K_GOOGLE_CTS_ACTIVE_SESSION,
                 FloatSettings.K_GOOGLE_CTS_ACTIVE_UNTIL,
                 FloatSettings.K_ROOT_LAST_GRANTED,

@@ -53,6 +53,7 @@ public final class EditableRegionOverlay {
         private static final int A_NONE = 0, A_AUTO = 1, A_OCR = 2, A_VIEW = 3, A_CANCEL = 4;
 
         private final Context context;
+        private final FloatSettings settings;
         private final FlOverlayWindowHost host;
         private final Bitmap screenshot;
         private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -75,6 +76,7 @@ public final class EditableRegionOverlay {
         EditorView(Context c, FlOverlayWindowHost host, Bitmap screenshot) {
             super(c);
             this.context = c;
+            settings = new FloatSettings(c);
             this.host = host;
             this.screenshot = screenshot;
             setFocusable(true);
@@ -202,7 +204,7 @@ public final class EditableRegionOverlay {
                     }
                     updateSelection(x, y);
                     normalizeAndClamp();
-                    float min = dp(24);
+                    float min = dp(settings.cropMinDp());
                     if (selection.width() < min || selection.height() < min) {
                         hasSelection = false;
                         selection.setEmpty();
@@ -229,7 +231,7 @@ public final class EditableRegionOverlay {
         }
 
         private int hitHandle(float x, float y) {
-            float slop = dp(24);
+            float slop = dp(settings.cropDragSlopDp());
             boolean nearL = Math.abs(x - selection.left) <= slop;
             boolean nearR = Math.abs(x - selection.right) <= slop;
             boolean nearT = Math.abs(y - selection.top) <= slop;

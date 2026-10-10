@@ -113,9 +113,6 @@ final class FLCircleInlineOverlay {
         private static final int MODE_TEXT_START = 7;
         private static final int MODE_TEXT_END = 8;
 
-        private static final float TEXT_HANDLE_HIT_DP = 28f;
-        private static final float TEXT_HANDLE_SNAP_DP = 96f;
-
         private static final long CLOSE_MOVE_LONG_PRESS_MS = 350L;
 
         private final Context context;
@@ -713,7 +710,7 @@ final class FLCircleInlineOverlay {
             RectF last = textSelection.wordViewRect(hi, getWidth(), getHeight());
             if (first.isEmpty() || last.isEmpty()) return MODE_NONE;
             float stem = YUiGeometry.overlayHandleRadiusPx(context, "yfloat");
-            float hit = dp(TEXT_HANDLE_HIT_DP);
+            float hit = dp(settings.textHandleHitDp());
             if (distance(x, y, first.left, first.bottom + stem) <= hit) {
                 return textSelection.startIndex() <= textSelection.endIndex()
                         ? MODE_TEXT_START : MODE_TEXT_END;
@@ -727,7 +724,7 @@ final class FLCircleInlineOverlay {
 
         private void updateTextEndpoint(float x, float y) {
             int hit = textSelection.findSelectionWord(x, y, getWidth(), getHeight(),
-                    dp(TEXT_HANDLE_SNAP_DP));
+                    dp(settings.textHandleSnapDp()));
             if (hit < 0) return;
             if (editMode == MODE_TEXT_START) textSelection.updateStart(hit);
             else if (editMode == MODE_TEXT_END) textSelection.updateEnd(hit);
