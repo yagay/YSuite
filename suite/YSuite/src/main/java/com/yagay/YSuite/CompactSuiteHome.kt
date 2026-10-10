@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.rememberYAppearance
 
 private const val HOME_SETTINGS_NAME = "ysuite_compact_home"
@@ -280,6 +281,7 @@ private fun CompactSuiteModuleRow(
     onExport: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val appearance = LocalYAppearance.current
 
     Row(
         modifier = Modifier
@@ -301,9 +303,9 @@ private fun CompactSuiteModuleRow(
                 )
             } else Modifier)
             .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
-            .padding(start = YDimens.ScreenHorizontal, end = YDimens.SpacingXsmall, top = YDimens.SpacingSmall, bottom = YDimens.SpacingSmall),
+            .padding(start = appearance.rowHorizontalPaddingDp.dp, end = appearance.rowHorizontalPaddingDp.dp, top = appearance.rowVerticalPaddingDp.dp, bottom = appearance.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
+        horizontalArrangement = Arrangement.spacedBy(appearance.effectiveGapDp.dp),
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
