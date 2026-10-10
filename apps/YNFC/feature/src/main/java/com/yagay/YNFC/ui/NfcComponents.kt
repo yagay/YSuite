@@ -18,6 +18,7 @@ import com.yagay.YNFC.CardModel
 import com.yagay.YNFC.R
 import com.yagay.YNFC.RuntimeStatus
 import com.yagay.YNFC.StatusTone
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YPrimaryButton
@@ -261,7 +262,7 @@ fun ReadCardPanel(
 
 @Composable
 fun CardDetails(card: CardModel) {
-    Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(3.dp)) {
+    Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 4f).dp)) {
         Text(stringResource(R.string.ynfc_card_name, card.name), style = MaterialTheme.typography.bodyMedium)
         Text(
             stringResource(R.string.ynfc_card_uid, card.uid),
@@ -319,7 +320,7 @@ fun CardItem(
             } else {
                 YPrimaryButton(stringResource(R.string.ynfc_simulate), onSimulate)
             }
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width((LocalYAppearance.current.effectiveGapDp / 3f).dp))
             YSecondaryButton(
                 text = stringResource(R.string.ynfc_delete),
                 onClick = onDelete,
