@@ -104,8 +104,10 @@ def main() -> None:
         failures.append(f"YSection must have exactly one implementation: {section_definitions}")
     yui_view = core / "YView.kt"
     yui_tokens = core / "YTokens.kt"
-    if yui_view.is_file() and "context.getColor(R.color.yui_palette_success)" not in yui_view.read_text(encoding="utf-8"):
-        failures.append("legacy View semantic colors must be generated from the shared palette")
+    if yui_view.is_file():
+        view_source = yui_view.read_text(encoding="utf-8")
+        if "YUiPalette.LightSuccess" not in view_source or "YUiPalette.DarkSuccess" not in view_source:
+            failures.append("legacy View semantic colors must resolve both themes from the shared YUI palette")
     if yui_tokens.is_file() and "YUiPalette.LightSuccess" not in yui_tokens.read_text(encoding="utf-8"):
         failures.append("Compose semantic colors must be generated from the shared palette")
 
