@@ -59,4 +59,8 @@
     <string name="appearance_exact_value">精确输入</string>
     <string name="appearance_apply_exact">应用数值</string>
     <string name="appearance_allowed_range">可用范围：%1$d–%2$d %3$s，每次调整 1</string>
+    <string name="appearance_page_vertical_padding">页面上下边距</string>
+    <string name="appearance_icon_visual_size">图标实际大小</string>
+    <string name="appearance_list_icon_size">列表图标大小</string>
+    <string name="appearance_toolbar_height">工具栏高度</string>
 </resources>
