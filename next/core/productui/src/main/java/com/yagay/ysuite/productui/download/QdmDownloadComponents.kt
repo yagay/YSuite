@@ -36,7 +36,7 @@ import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
-import androidx.compose.material3.Slider
+import com.yagay.yui.YUiSlider as Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.input.PasswordVisualTransformation

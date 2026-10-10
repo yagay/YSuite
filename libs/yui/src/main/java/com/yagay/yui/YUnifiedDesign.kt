@@ -36,7 +36,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.ScrollableTabRow
+import com.yagay.yui.YUiScrollableTabRow as ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -694,9 +694,6 @@ fun YTabBar(tabs: List<YTabSpec>, selectedKey: String, onSelected: (YTabSpec) ->
     ScrollableTabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier.fillMaxWidth(),
-        edgePadding = 0.dp,
-        containerColor = Color.Transparent,
-        divider = {},
     ) {
         tabs.forEach { tab ->
             Tab(
