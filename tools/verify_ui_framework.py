@@ -444,6 +444,26 @@ def main() -> None:
     ):
         for required in markers:
             require(source, required, label)
+    # All regular screens identified in the fixed-dp audit must use live YUI
+    # appearance values. Keep this check as new modules are migrated.
+    runtime_sized_screens = (
+        YDIAG,
+        ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/CustomOpenTypeDialog.kt",
+        YENTRY_PRIORITY,
+        YENTRY_ROOT,
+        YNFC_SCREEN,
+        YNFC_COMPONENTS,
+        YTASK,
+    )
+    for screen in runtime_sized_screens:
+        content = text(screen)
+        local_dp = re.findall(r"(?<![A-Za-z_0-9.])\\d+(?:\\.\\d+)?\\.dp\\b", content)
+        if local_dp:
+            fail(f"{screen.relative_to(ROOT)} has fixed dp literals: {local_dp}")
+        if "YDimens." in content:
+            fail(f"{screen.relative_to(ROOT)} still depends on build-time dimensions")
+        if "LocalYAppearance.current" not in content:
+            fail(f"{screen.relative_to(ROOT)} must consume the current YUI appearance")
     print(
         "ui-framework: OK compose=YUI-v2 view=YViewPage/YViewLayout page-xml=forbidden "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
