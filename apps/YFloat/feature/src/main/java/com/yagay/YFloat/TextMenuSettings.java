@@ -14,14 +14,12 @@ final class TextMenuSettings {
 
     static int mainItemCount(Context c) {
         if (c == null) return DEFAULT_MAIN_ITEMS;
-        return clamp(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getInt(KEY_MAIN_ITEM_COUNT, DEFAULT_MAIN_ITEMS));
+        return YFloatVisualSettings.menuCount(c);
     }
 
     static void setMainItemCount(Context c, int count) {
         if (c == null) return;
-        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().putInt(KEY_MAIN_ITEM_COUNT, clamp(count)).apply();
+        YFloatVisualSettings.setMenuCount(c, count);
     }
 
     /**
@@ -33,10 +31,6 @@ final class TextMenuSettings {
         int countedBuiltIns = hasSelectAll ? 3 : 2;
         int available = Math.max(0, mainItemCount(c) - countedBuiltIns);
         return Math.min(available, Math.max(0, customSize));
-    }
-
-    private static int clamp(int count) {
-        return Math.max(MIN_MAIN_ITEMS, Math.min(MAX_MAIN_ITEMS, count));
     }
 
     private TextMenuSettings() { }
