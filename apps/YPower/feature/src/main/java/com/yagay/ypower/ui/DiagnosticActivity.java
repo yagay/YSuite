@@ -316,10 +316,10 @@ public class DiagnosticActivity extends AppCompatActivity {
                 || "NOT_HIT".equalsIgnoreCase(value);
     }
 
-    private static void applyRed(SpannableStringBuilder styled, int start, int end) {
+    private void applyRed(SpannableStringBuilder styled, int start, int end) {
         if (start < 0 || end <= start || end > styled.length()) return;
         styled.setSpan(
-                new ForegroundColorSpan(Color.RED),
+                new ForegroundColorSpan(YView.color(this, android.R.attr.colorError, YView.warning(this))),
                 start,
                 end,
                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE

@@ -42,6 +42,12 @@ PATTERNS = {
         r"IconSmallSize|ListIconSize|TouchTarget|OptionRowHeight|"
         r"SwitchSlotWidth|NavigationRailWidth|PaneGap)\b"
     ),
+    "canvas_fixed_density": re.compile(
+        r"\b(?:[1-9]\d*(?:\.\d+)?f?)\s*\*\s*(?:density|screenDensity)\b"
+    ),
+    "canvas_fixed_argb": re.compile(
+        r"\b(?:setColor|drawColor|setShadowLayer)\s*\([^\n]*0x[0-9a-fA-F]{8}\b"
+    ),
     "independent_visual_preference": re.compile(
         r"(?:getSharedPreferences|put(?:String|Int|Boolean)|get(?:String|Int|Boolean))"
         r".{0,130}(?:theme|dark_mode|appearance|corner_radius|ui_density)",
@@ -61,11 +67,23 @@ def classify(rel: str, kind: str, line: str) -> str:
     name = rel.rsplit("/", 1)[-1]
     if kind == "xml_fixed_dimension" and '"0dp"' in line:
         return "structural"
+    if kind == "numeric_dp_sp" and re.search(r"(?<!\w)0\.dp\b", line):
+        return "structural"
+    if kind == "independent_visual_preference" and "R.string." in line:
+        return "localization"
+    if name == "YTheme.kt" and kind == "hardcoded_ui_color":
+        return "canonical"
+    if name == "YSuiteLayoutTokens.kt" and kind == "numeric_dp_sp":
+        return "structural"
     if rel.startswith("libs/yui/"):
         if name in {"YUiPalette.kt", "YGeneratedTokens.kt"}:
             return "canonical"
         if kind == "direct_material_control":
             return "canonical"
+    if name == "GoogleCanonicalFrameLayer.java" and kind in {
+        "hardcoded_ui_color", "canvas_fixed_density", "canvas_fixed_argb"
+    }:
+        return "hook_visual_review"
     if name == "SecureCaptureProbeActivity.java" and kind == "hardcoded_ui_color":
         return "test_marker"
     if name == "SelectionCropper.java" and kind == "hardcoded_ui_color":

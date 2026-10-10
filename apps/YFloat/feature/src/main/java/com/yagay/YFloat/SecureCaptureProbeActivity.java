@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YView;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -47,23 +48,22 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setPadding(YViewLayout.dp(this, 28), YViewLayout.dp(this, 28),
-                YViewLayout.dp(this, 28), YViewLayout.dp(this, 28));
+        root.setPadding(YView.screenHorizontal(this), YView.screenHorizontal(this),
+                YView.screenHorizontal(this), YView.screenHorizontal(this));
         root.setBackgroundColor(Color.rgb(
                 SecureCaptureProbePolicy.MARKER_RED,
                 SecureCaptureProbePolicy.MARKER_GREEN,
                 SecureCaptureProbePolicy.MARKER_BLUE));
 
-        TextView title = YViewLayout.text(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_5c13aa73bf0a), 20, true);
+        TextView title = YViewLayout.rowTitle(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_5c13aa73bf0a));
         title.setTextColor(Color.WHITE);
         root.addView(title, new LinearLayout.LayoutParams(-2, -2));
 
-        status = YViewLayout.caption(this,
-                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_436814f4594d),
-                14);
+        status = YViewLayout.rowSubtitle(this,
+                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_436814f4594d));
         status.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
-        statusLp.topMargin = YViewLayout.dp(this, 16);
+        statusLp.topMargin = YView.sectionGap(this);
         root.addView(status, statusLp);
 
         LinearLayout buttons = YViewLayout.buttonRow(this);
@@ -77,7 +77,7 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
         buttons.addView(close, new LinearLayout.LayoutParams(0, -2, 1f));
 
         LinearLayout.LayoutParams buttonsLp = new LinearLayout.LayoutParams(-1, -2);
-        buttonsLp.topMargin = YViewLayout.dp(this, 18);
+        buttonsLp.topMargin = YView.sectionGap(this);
         root.addView(buttons, buttonsLp);
         return root;
     }

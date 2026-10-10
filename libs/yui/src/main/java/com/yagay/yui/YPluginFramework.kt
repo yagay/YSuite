@@ -72,7 +72,7 @@ fun YPluginHeader(
     modifier: Modifier = Modifier,
     detail: String? = null,
 ) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(YUiGeometry.gap())) {
         Text(name, style = MaterialTheme.typography.titleMedium)
         Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (!detail.isNullOrBlank()) {

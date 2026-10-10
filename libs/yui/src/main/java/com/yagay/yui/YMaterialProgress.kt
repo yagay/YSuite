@@ -33,7 +33,7 @@ fun YUiLinearProgressIndicator(
 fun YUiCircularProgressIndicator(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
-    strokeWidth: Dp = 4.dp,
+    strokeWidth: Dp = (LocalYAppearance.current.iconVisualSizeDp / 6f).dp,
 ) {
     CircularProgressIndicator(modifier = modifier, color = color, strokeWidth = strokeWidth)
 }
@@ -43,7 +43,7 @@ fun YUiCircularProgressIndicator(
     progress: () -> Float,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
-    strokeWidth: Dp = 4.dp,
+    strokeWidth: Dp = (LocalYAppearance.current.iconVisualSizeDp / 6f).dp,
 ) {
     CircularProgressIndicator(progress = progress, modifier = modifier, color = color, strokeWidth = strokeWidth)
 }

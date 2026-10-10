@@ -37,11 +37,11 @@ fun YExpandableItem(
         AnimatedVisibility(visible = expanded) {
             Column(
                 Modifier.fillMaxWidth().padding(
-                    start = YDimens.ScreenHorizontal,
-                    end = YDimens.ScreenHorizontal,
-                    bottom = YDimens.ControlGap,
+                    start = LocalYAppearance.current.screenPaddingDp.dp,
+                    end = LocalYAppearance.current.screenPaddingDp.dp,
+                    bottom = LocalYAppearance.current.effectiveGapDp.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
             ) { content() }
         }
     }
@@ -60,7 +60,7 @@ fun YTreeItem(
     YListItem(
         title = title,
         subtitle = subtitle,
-        modifier = modifier.padding(start = (depth.coerceAtLeast(0) * 16).dp),
+        modifier = modifier.padding(start = (depth.coerceAtLeast(0) * LocalYAppearance.current.rowHorizontalPaddingDp).dp),
         selected = selected,
         onClick = onClick,
         trailing = trailing,
@@ -83,8 +83,8 @@ fun YGridCard(
         color = container,
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(YDimens.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            Modifier.fillMaxWidth().padding(LocalYAppearance.current.cardPaddingDp.dp),
+            verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap()),
         ) {
             if (content != null) content()
             Text(title, style = MaterialTheme.typography.titleMedium)

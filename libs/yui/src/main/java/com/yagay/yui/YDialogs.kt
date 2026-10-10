@@ -66,8 +66,8 @@ fun YFullScreenDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(
-                                        horizontal = YDimens.ScreenHorizontal,
-                                        vertical = YDimens.ControlGap,
+                                        horizontal = LocalYAppearance.current.screenPaddingDp.dp,
+                                        vertical = LocalYAppearance.current.effectiveGapDp.dp,
                                     ),
                             )
                         }
@@ -115,7 +115,7 @@ fun YFormDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
             ) { content() }
         },
         confirmButton = { YActionGroup(actions) },

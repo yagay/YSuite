@@ -196,7 +196,8 @@ fun YStatusPill(
         val text = if (label.isBlank()) value else stringResource(R.string.yui_status_pair, label, value)
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp * 0.7f).dp,
+                vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
             style = MaterialTheme.typography.labelLarge,
             color = foreground,
             maxLines = 1,
