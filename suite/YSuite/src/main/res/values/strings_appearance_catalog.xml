@@ -103,4 +103,6 @@
     <string name="appearance_overlay_content_padding">Overlay content padding (dp)</string>
     <string name="appearance_overlay_outline_width">Overlay outline width (dp)</string>
     <string name="appearance_overlay_scrim_scale">Selection mask strength (%)</string>
+    <string name="appearance_overlay_preview_heading">Floating overlay preview</string>
+    <string name="appearance_overlay_preview_body">Panel corners, opacity, padding and outline reflect current settings. Live screen capture is not started.</string>
 </resources>

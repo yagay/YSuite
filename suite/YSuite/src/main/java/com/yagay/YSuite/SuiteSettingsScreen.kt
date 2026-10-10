@@ -55,6 +55,7 @@ import com.yagay.yui.YUiOutlinedTextField
 import com.yagay.yui.YUiRadioButton
 import com.yagay.yui.YUiSlider
 import com.yagay.yui.YUiControlRegistry
+import com.yagay.yui.YUiOverlayPanel
 import com.yagay.yui.YTheme
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
@@ -343,9 +344,15 @@ internal fun SuiteSettingsScreen(
                                 YPrimaryButton(stringResource(R.string.appearance_sample_dialog), onClick = { sampleDialog = true })
                             }
                             YControlGroup.OVERLAYS -> {
-                                YCard {
-                                    Text(stringResource(R.string.appearance_group_overlays_desc),
-                                        style = MaterialTheme.typography.bodyMedium)
+                                YUiOverlayPanel(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        stringResource(R.string.appearance_overlay_preview_heading),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                    Text(
+                                        stringResource(R.string.appearance_overlay_preview_body),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
                                 }
                             }
                             YControlGroup.NAVIGATION -> {

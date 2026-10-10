@@ -108,8 +108,8 @@ def verify_runtime_appearance() -> None:
                         "private fun controlGap(context: Context): Int = YView.controlGap(context)"),
         "runtime": ("val dark = YView.isDark(activity)", "activity.recreate()"),
         "application": ("YSuiteRoot {",),
-        "float_result": ("YView.styleSecondaryButton(b)", "YView.dialogRadius(c)"),
-        "float_menu": ("YView.styleBody(tv)", "YView.controlGap(c)", "YView.iconSize(c)"),
+        "float_result": ("YView.styleSecondaryButton(b)", "YOverlayUi.panelBackground(", "YOverlayUi.cornerRadiusPx("),
+        "float_menu": ("YView.styleBody(tv)", "YOverlayUi.menuBackground(", "YOverlayUi.contentPaddingPx(", "YView.iconSize(c)"),
         "notify_apps": ("YView.rowHeight(c)", "YView.styleItemTitle(h.b.appName)"),
         "notify_events": ("YView.cardRadius(c)", "YView.surfaceContainer(c)"),
         "entry_controls": ("YUiOutlinedTextField as OutlinedTextField", "YFilterBar("),
@@ -119,6 +119,11 @@ def verify_runtime_appearance() -> None:
         "file_rows": ("LocalYAppearance.current.rowHeightDp.dp",),
         "host_home": ("appearance.cardRadiusDp.dp", "appearance.rowHeightDp.dp"),
     }
+    overlay = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YOverlayUi.kt")
+    for marker in ("fun panelBackground(", "fun menuBackground(", "fun cornerRadiusPx(", "fun scaleScrimAlpha(", "fun YUiOverlayPanel("):
+        require(overlay, marker, "central YUI overlay facade")
+    settings = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt")
+    require(settings, "YUiOverlayPanel(", "YUI overlay live preview")
     action_menu = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatActionMenu.java")
     if "tv.setTextSize(13)" in action_menu or "more.setTextSize(22)" in action_menu:
         fail("YFloat action popup must use shared typography and icon visual size")
