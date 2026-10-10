@@ -28,9 +28,11 @@ class YAppearanceStoreTest {
     fun defaultsKeepStandardGeometryAndSystemTheme() {
         assertEquals("system", store.appearance().theme)
         assertEquals("standard", store.appearance().density)
-        assertEquals(24, store.appearance().buttonRadiusDp)
-        assertEquals(24, store.appearance().buttonPaddingHorizontalDp)
+        assertEquals(12, store.appearance().buttonRadiusDp)
+        assertEquals(16, store.appearance().buttonPaddingHorizontalDp)
         assertEquals(12, store.appearance().effectiveGapDp)
+        assertEquals(48, store.appearance().buttonHeightDp)
+        assertEquals(4, store.appearance().buttonVerticalPaddingDp)
         assertEquals(100, store.appearance().fontPercent)
         assertTrue(store.appearance().homeSwipePin)
         assertTrue(store.appearance().homeStatusVisible)
@@ -49,7 +51,7 @@ class YAppearanceStoreTest {
         assertEquals("comfortable", store.appearance("yfloat").density)
         store.set(YSettingKey.BUTTON_PADDING, "10", "yfloat")
         store.reset("yfloat")
-        assertEquals(24, store.appearance("yfloat").buttonPaddingHorizontalDp)
+        assertEquals(16, store.appearance("yfloat").buttonPaddingHorizontalDp)
         assertEquals("comfortable", store.appearance().density)
     }
 
