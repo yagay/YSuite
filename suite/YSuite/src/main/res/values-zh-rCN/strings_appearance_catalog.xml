@@ -90,4 +90,7 @@
     <string name="appearance_overlay_round">圆形</string>
     <string name="appearance_overlay_square">方形</string>
     <string name="appearance_overlay_enhanced">增强</string>
+    <string name="appearance_float_trail_colors">轨迹颜色（#RRGGBB，可用逗号分隔）</string>
+    <string name="appearance_float_border_visible">显示选框边框</string>
+    <string name="appearance_float_trail_visible">显示手势轨迹</string>
 </resources>
