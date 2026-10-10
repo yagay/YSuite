@@ -14,6 +14,8 @@ touch targets, standard dialogs and compatibility with Java/View modules.
 - `YMaterialControls.kt`: upstream Material 3 button, text button, outline button,
   icon button and checkbox adapters; all default geometry comes from `YDimens`.
 - `YMaterialInputs.kt`: standard outlined text fields with the same shape on every screen.
+- `YUiScaffold` and `YCustomTopBar`: shared page background, edge-to-edge insets,
+  title-bar colors and navigation/action slot behavior for YUI and ProductUI.
 - `YDialogs.kt`, `YViewDialogs.kt`: shared Compose and View dialog entry points.
 - `YViewLayout`: legacy Java/View layouts, buttons, forms and switches use YUI XML tokens.
 - `next/core/designsystem`: backwards-compatible aliases and adapters, **not** a parallel
@@ -36,7 +38,11 @@ when a product-specific composable expects the upstream slot API.
 - Routed standard dialogs from YNotify, YFloat and YParam through the Material 3
   View dialog builder while retaining existing dialog content and actions.
 - Added `tools/verify_yui_controls.py` to architecture CI so feature UI cannot
-  reintroduce independent Material 3 button/input imports.
+  reintroduce independent Material 3 button/input imports. The check also rejects
+  default Material 3 large text fields/list rows within ProductUI and requires
+  product page chrome to delegate to the common YUI renderer.
+- File-explorer search and detail rows, downloader tabs, and ordinary product
+  Scaffold/TopAppBar now use shared YUI controls without rewriting their data logic.
 
 ## Known boundaries and validation
 

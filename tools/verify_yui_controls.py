@@ -21,6 +21,13 @@ CONTROL_IMPORT = re.compile(
     r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField)\b",
     re.MULTILINE,
 )
+PRODUCT_CONTROL_IMPORT = re.compile(
+    r"^import\\s+androidx\\.compose\\.material3\\.(TextField|ListItem)\\b",
+    re.MULTILINE,
+)
+PRODUCT_CONTROL_FQCN = re.compile(
+    r"\\bandroidx\\.compose\\.material3\\.(TextField|ListItem)\\s*\\("
+)
 CONTROL_FQCN = re.compile(
     r"\bandroidx\.compose\.material3\."
     r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField)\s*\("
@@ -41,6 +48,9 @@ def main() -> None:
             scanned += 1
             if path.suffix == ".kt":
                 bad = sorted(set(CONTROL_IMPORT.findall(source) + CONTROL_FQCN.findall(source)))
+                if path.is_relative_to(ROOT / "next/core/productui"):
+                    bad.extend(PRODUCT_CONTROL_IMPORT.findall(source))
+                    bad.extend(PRODUCT_CONTROL_FQCN.findall(source))
                 if "import androidx.compose.material3.*" in source:
                     bad.append("material3 wildcard import")
                 if bad:
@@ -50,6 +60,19 @@ def main() -> None:
                 and "new AlertDialog.Builder(" in source
             ):
                 failures.append(f"{path.relative_to(ROOT)}: use YViewDialogs.builder()")
+    chrome_path = ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/ProductChrome.kt"
+    yui_theme_path = ROOT / "libs/yui/src/main/java/com/yagay/yui/YTheme.kt"
+    if not chrome_path.is_file() or not yui_theme_path.is_file():
+        failures.append("missing shared page chrome")
+    else:
+        chrome = chrome_path.read_text(encoding="utf-8")
+        theme = yui_theme_path.read_text(encoding="utf-8")
+        if "YUiScaffold(" not in chrome or "YCustomTopBar(" not in chrome:
+            failures.append("ProductChrome must delegate both page Scaffold and TopAppBar to YUI")
+        if "import androidx.compose.material3.Scaffold" in chrome or "import androidx.compose.material3.TopAppBar" in chrome:
+            failures.append("ProductChrome cannot own independent Material3 page chrome")
+        if "fun YUiScaffold(" not in theme or "fun YCustomTopBar(" not in theme:
+            failures.append("YUI common Scaffold/TopAppBar entry points missing")
     if failures:
         print("yui-controls: independent Material3 controls found:", file=sys.stderr)
         for failure in failures:
