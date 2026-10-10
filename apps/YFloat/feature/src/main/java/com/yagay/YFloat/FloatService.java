@@ -28,6 +28,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
     private FlOverlayWindowHost iconHost;
     private FloatingIconLayoutPolicy layout;
     private FloatSettings fs;
+    private com.yagay.yui.YAppearanceStore appearanceStore;
     private FloatVisibilityController visibility;
     private FloatIconView primary, secondary;
     private WindowManager.LayoutParams primaryLp, secondaryLp;
@@ -58,6 +59,8 @@ public class FloatService extends Service implements android.content.SharedPrefe
         fs = new FloatSettings(this);
         visibility = new FloatVisibilityController();
         fs.registerChangeListener(this);
+        appearanceStore = new com.yagay.yui.YAppearanceStore(this);
+        appearanceStore.registerPreferenceListener(this);
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         iconHost = new FlOverlayWindowHost(this);
         layout = new FloatingIconLayoutPolicy(this, fs);
@@ -688,6 +691,15 @@ public class FloatService extends Service implements android.content.SharedPrefe
     }
 
     @Override public void onSharedPreferenceChanged(android.content.SharedPreferences prefs, String key) {
+        if (key != null && (key.startsWith("global.") || key.startsWith("module.yfloat."))) {
+            mainHandler.post(() -> {
+                if (instance != this) return;
+                refreshAppearance();
+                CircleActiveBorderOverlay.refreshStyle(this);
+                updateNotification();
+            });
+            return;
+        }
         FloatPreferenceImpact.Impact impact = FloatPreferenceImpact.classify(key);
         if (impact == FloatPreferenceImpact.Impact.IGNORE) {
             DiagnosticLog.i(this, "PREF_REFRESH", "ignore key=" + key);
@@ -844,6 +856,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
         // can happen while IME avoidance or another temporary layout projection is active.
         removeIcons();
         try { fs.unregisterChangeListener(this); } catch (Throwable ignored) { }
+        if (appearanceStore != null) appearanceStore.unregisterPreferenceListener(this);
         if (screenReceiver != null) try { unregisterReceiver(screenReceiver); } catch (Throwable ignored) { }
         if (instance == this) instance = null;
         super.onDestroy();
