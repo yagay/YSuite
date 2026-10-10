@@ -1,5 +1,6 @@
 package com.yagay.YSuite
 
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : YComposeActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(SuiteLocaleController.localizedContext(newBase))
+    }
+
     @Composable
     override fun YContent() {
         FeatureManagerScreen()
