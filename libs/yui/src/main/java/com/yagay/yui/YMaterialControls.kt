@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -141,7 +142,8 @@ fun YUiIconButton(
 ) {
     IconButton(
         onClick = onClick,
-        modifier = modifier.sizeIn(
+        modifier = if (LocalYAppearance.current.iconTouchTargetDp < 48) modifier.size(LocalYAppearance.current.iconTouchTargetDp.dp)
+        else modifier.sizeIn(
             minWidth = LocalYAppearance.current.iconTouchTargetDp.dp,
             minHeight = LocalYAppearance.current.iconTouchTargetDp.dp,
         ),
