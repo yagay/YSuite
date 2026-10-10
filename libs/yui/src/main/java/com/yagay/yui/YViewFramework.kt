@@ -118,7 +118,7 @@ object YViewLayout {
             toolbar,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                YView.toolbarHeight(context),
             ),
         )
         val content = FrameLayout(context).apply {
@@ -223,7 +223,7 @@ object YViewLayout {
             toolbar,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                YView.toolbarHeight(context),
             ),
         )
         val scroll = ScrollView(context).apply {
