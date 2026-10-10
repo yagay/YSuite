@@ -105,17 +105,17 @@ private fun YFeatureStateContent(
     when (state) {
         YPageState.Ready -> content(padding)
         is YPageState.Loading -> Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) { YLoadingState(state.message) }
         is YPageState.Empty -> Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) { YEmptyState(state.message) }
         is YPageState.Error -> Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) { YErrorState(state.message) }
