@@ -3,6 +3,7 @@ package com.yagay.ysuite.productui.filemanager
 import com.yagay.ysuite.productui.YSuiteProductTopBar
 
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -506,8 +507,11 @@ fun YFileEntryRow(
                     },
                     onLongClick = onToggleSelection,
                 )
-                .heightIn(min = YDimens.OptionRowHeight)
-                .padding(horizontal = YDimens.SpacingLarge, vertical = YDimens.SectionGap),
+                .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                .padding(
+                    horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                    vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
