@@ -700,19 +700,11 @@ object YViewLayout {
     fun navRow(context: Context, title: String, subtitle: String?, action: Runnable?): View =
         navigationRow(context, title, subtitle) { action?.run() }
 
-    /** Sized from YUI tokens; scaled appearance does not reserve the default tall switch row. */
-    private fun compactToggle(toggle: SwitchCompat) {
-        val context = toggle.context
-        val slotWidth = YView.dimen(context, R.dimen.yui_switch_slot_width)
-        val trackWidth = YView.dimen(context, R.dimen.yui_switch_track_width)
-        val scale = trackWidth.toFloat() / slotWidth.coerceAtLeast(1)
+    /** Use the native SwitchMaterial size and animations; never scale the view down. */
+    private fun styleStandardToggle(toggle: SwitchCompat) {
         toggle.showText = false
-        toggle.minWidth = 0
-        toggle.minimumWidth = 0
-        toggle.minHeight = 0
-        toggle.minimumHeight = 0
-        toggle.scaleX = scale
-        toggle.scaleY = scale
+        toggle.scaleX = 1f
+        toggle.scaleY = 1f
     }
 
     private fun switchSlot(context: Context): LinearLayout.LayoutParams =
@@ -744,7 +736,7 @@ object YViewLayout {
         return SwitchMaterial(context).apply {
             isUseMaterialThemeColors = true
             isChecked = checked
-            compactToggle(this)
+            styleStandardToggle(this)
             if (listener != null) setOnCheckedChangeListener(listener)
             row.addView(this, switchSlot(context))
             row.setOnClickListener { performClick() }
@@ -761,9 +753,9 @@ object YViewLayout {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         val horizontal = YView.cardPadding(context)
-        val vertical = if (compact) 0 else maxOf(1, YView.controlGap(context) / 2)
+        val vertical = maxOf(1, YView.controlGap(context) / 2)
         setPadding(horizontal, vertical, horizontal, vertical)
-        minimumHeight = YView.touchTarget(context)
+        minimumHeight = YView.dimen(context, R.dimen.yui_option_row_height)
     }
 
     @JvmStatic
@@ -820,12 +812,10 @@ object YViewLayout {
         }
 
     @JvmStatic
-    fun compactButton(context: Context, value: String): MaterialButton = secondaryButton(context, value).apply {
-        minHeight = YView.buttonHeight(context)
-        minimumHeight = YView.buttonHeight(context)
-        minimumWidth = 0
-        setPadding(YView.controlGap(context), 0, YView.controlGap(context), 0)
-    }
+    /** Kept for Java call sites: this now uses the same standard size as secondaryButton. */
+    @Deprecated("Use secondaryButton; compact button density has been removed.")
+    @JvmStatic
+    fun compactButton(context: Context, value: String): MaterialButton = secondaryButton(context, value)
 
     @JvmStatic
     @JvmOverloads
@@ -1036,7 +1026,7 @@ object YViewLayout {
         row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         val toggle = MaterialSwitch(parent.context).apply {
             isChecked = checked
-            compactToggle(this)
+            styleStandardToggle(this)
             setOnCheckedChangeListener(listener)
         }
         row.addView(toggle, switchSlot(parent.context))

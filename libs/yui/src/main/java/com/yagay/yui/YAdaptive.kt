@@ -83,7 +83,7 @@ fun yPageHorizontalPadding(width: Dp): Dp = when {
 }
 
 internal fun YPageRole.maxContentWidth(): Dp = template().maxContentWidth
-internal fun YPageRole.prefersCompactRows(): Boolean = template().minimumRowHeight <= 56.dp
+internal fun YPageRole.prefersCompactRows(): Boolean = template().minimumRowHeight < YDimens.OptionRowHeight
 internal fun YPageRole.sectionSpacing(): Dp = template().sectionSpacing
 
 @Composable

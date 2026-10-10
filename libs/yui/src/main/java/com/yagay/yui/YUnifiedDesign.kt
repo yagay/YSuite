@@ -217,7 +217,7 @@ fun YSection(
         Column(
             modifier = modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(
-                if (role.prefersCompactRows()) 4.dp else YDimens.ControlGap,
+                YDimens.ControlGap,
             ),
         ) {
             body()
@@ -334,7 +334,7 @@ fun YListItem(
                 if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
                 else Color.Transparent,
             )
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap / 2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
     ) {
@@ -414,7 +414,7 @@ fun YSwitchItem(
     modifier = modifier,
     enabled = enabled,
     onClick = { if (enabled) onCheckedChange(!checked) },
-    trailing = { YCompactSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
+    trailing = { YStandardSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
 )
 
 @Composable
@@ -600,7 +600,7 @@ fun YPrimaryActionButton(
     YUiButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
 }
 
-/** Shared compact text-action for dialogs and inline file/download operations. */
+/** Standard Material3 text-action for dialogs and inline file/download operations. */
 @Composable
 fun YTextActionButton(
     onClick: () -> Unit,

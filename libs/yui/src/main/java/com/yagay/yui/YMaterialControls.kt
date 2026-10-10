@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -36,7 +37,7 @@ fun YUiButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = MaterialTheme.shapes.small,
+    shape: Shape = RoundedCornerShape(YDimens.ButtonRadius),
     colors: ButtonColors = ButtonDefaults.buttonColors(),
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
     border: BorderStroke? = null,
@@ -66,7 +67,7 @@ fun YUiOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = MaterialTheme.shapes.small,
+    shape: Shape = RoundedCornerShape(YDimens.ButtonRadius),
     colors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
@@ -96,7 +97,7 @@ fun YUiTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = MaterialTheme.shapes.small,
+    shape: Shape = RoundedCornerShape(YDimens.ButtonRadius),
     colors: ButtonColors = ButtonDefaults.textButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
