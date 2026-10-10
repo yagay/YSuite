@@ -2,50 +2,35 @@ package com.yagay.YFloat;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.Configuration;
 
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
-/** Persistent app appearance preference with system/light/dark modes. */
+import com.yagay.yui.YAppearanceSettings;
+
+/**
+ * Backward-compatible facade for existing YFloat callers. The setting is owned by YUI.
+ * Do not add feature-local theme preferences here.
+ */
 final class ThemeSettings {
-    static final int MODE_SYSTEM = 0;
-    static final int MODE_LIGHT = 1;
-    static final int MODE_DARK = 2;
+    static final int MODE_SYSTEM = YAppearanceSettings.MODE_SYSTEM;
+    static final int MODE_LIGHT = YAppearanceSettings.MODE_LIGHT;
+    static final int MODE_DARK = YAppearanceSettings.MODE_DARK;
 
-    private static final String PREFS = "yfloat_ui";
-    private static final String KEY_THEME_MODE = "theme_mode";
-
-    static int mode(Context c) {
-        if (c == null) return MODE_SYSTEM;
-        return clamp(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getInt(KEY_THEME_MODE, MODE_SYSTEM));
+    static int mode(Context context) {
+        return context == null ? MODE_SYSTEM : YAppearanceSettings.mode(context);
     }
 
-    static boolean setMode(Context c, int mode) {
-        if (c == null) return false;
-        int next = clamp(mode);
-        int old = mode(c);
-        if (old == next) return false;
-        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().putInt(KEY_THEME_MODE, next).apply();
-        applyMode(next);
-        return true;
+    static boolean setMode(Context context, int value) {
+        return context != null && YAppearanceSettings.setMode(context, value);
     }
 
-    static void applySavedMode(Context c) {
-        applyMode(mode(c));
+    static void applySavedMode(Context context) {
+        if (context != null) YAppearanceSettings.applySavedMode(context);
     }
 
-    static boolean isDark(Context c) {
-        int mode = mode(c);
-        if (mode == MODE_DARK) return true;
-        if (mode == MODE_LIGHT) return false;
-        if (c == null) return false;
-        int night = c.getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK;
-        return night == Configuration.UI_MODE_NIGHT_YES;
+    static boolean isDark(Context context) {
+        return context != null && YAppearanceSettings.isDark(context);
     }
 
     static void applySystemBars(Activity activity) {
@@ -57,20 +42,6 @@ final class ThemeSettings {
             controller.setAppearanceLightStatusBars(light);
             controller.setAppearanceLightNavigationBars(light);
         } catch (Throwable ignored) { }
-    }
-
-    private static void applyMode(int mode) {
-        int appCompatMode = switch (clamp(mode)) {
-            case MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO;
-            case MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES;
-            default -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
-        };
-        AppCompatDelegate.setDefaultNightMode(appCompatMode);
-    }
-
-    private static int clamp(int mode) {
-        if (mode < MODE_SYSTEM || mode > MODE_DARK) return MODE_SYSTEM;
-        return mode;
     }
 
     private ThemeSettings() { }
