@@ -86,6 +86,7 @@ internal fun SuiteSettingsScreen(
     var commonMode by rememberSaveable { mutableStateOf(false) }
     var generalMode by rememberSaveable { mutableStateOf(false) }
     var resetConfirm by remember(moduleId) { mutableStateOf(false) }
+    var inheritAllConfirm by remember { mutableStateOf(false) }
     var sampleDialog by remember { mutableStateOf(false) }
     var exampleText by remember { mutableStateOf("") }
     var previewSwitch by remember { mutableStateOf(true) }
@@ -247,6 +248,12 @@ internal fun SuiteSettingsScreen(
                 }
                 item(key = "reset") {
                     YSection(title = stringResource(R.string.settings_reset_title)) {
+                        if (moduleId == null) {
+                            YSecondaryButton(
+                                text = stringResource(R.string.appearance_inherit_all),
+                                onClick = { inheritAllConfirm = true },
+                            )
+                        }
                         YSecondaryButton(
                             text = stringResource(if (moduleId == null)
                                 R.string.settings_reset_global else R.string.settings_reset_module),
@@ -353,6 +360,23 @@ internal fun SuiteSettingsScreen(
             }
         }
     }
+    }
+    if (inheritAllConfirm) {
+        YUiAlertDialog(
+            onDismissRequest = { inheritAllConfirm = false },
+            title = { Text(stringResource(R.string.appearance_inherit_all)) },
+            text = { Text(stringResource(R.string.appearance_inherit_all_confirm)) },
+            confirmButton = {
+                YDialogConfirmButton(stringResource(R.string.appearance_inherit_all_action), onClick = {
+                    store.inheritGlobalAppearanceForAllModules()
+                    revision++
+                    inheritAllConfirm = false
+                })
+            },
+            dismissButton = {
+                YDialogDismissButton(stringResource(R.string.settings_cancel)) { inheritAllConfirm = false }
+            },
+        )
     }
     if (resetConfirm) {
         YUiAlertDialog(
