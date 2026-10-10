@@ -1007,8 +1007,8 @@ object YViewLayout {
         val row = LinearLayout(parent.context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = YView.dimen(context, R.dimen.yui_touch_target)
-            setPadding(0, dp(context, 2), 0, dp(context, 2))
+            minimumHeight = YView.rowHeight(context)
+            setPadding(0, YView.rowVerticalPadding(context), 0, YView.rowVerticalPadding(context))
         }
         val texts = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
         texts.addView(TextView(parent.context).apply {
@@ -1044,7 +1044,7 @@ object YViewLayout {
             when (tone) {
                 YViewStatusTone.Neutral -> YView.onSurfaceVariant(view.context)
                 YViewStatusTone.Good -> YView.color(view.context, androidx.appcompat.R.attr.colorPrimary, 0xFF16794A.toInt())
-                YViewStatusTone.Warning -> YView.color(view.context, com.google.android.material.R.attr.colorTertiary, 0xFF9A6700.toInt())
+                YViewStatusTone.Warning -> YView.warning(view.context)
                 YViewStatusTone.Error -> YView.color(view.context, android.R.attr.colorError, 0xFFB3261E.toInt())
             },
         )
@@ -1055,9 +1055,9 @@ object YViewLayout {
         ViewGroup.LayoutParams.WRAP_CONTENT,
     )
 
-    private fun screenH(context: Context): Int = YView.dimen(context, R.dimen.yui_screen_horizontal)
+    private fun screenH(context: Context): Int = YView.screenHorizontal(context)
     private fun screenV(context: Context): Int = YView.dimen(context, R.dimen.yui_screen_vertical)
-    private fun sectionGap(context: Context): Int = YView.dimen(context, R.dimen.yui_section_gap)
-    private fun controlGap(context: Context): Int = YView.dimen(context, R.dimen.yui_control_gap)
+    private fun sectionGap(context: Context): Int = YView.sectionGap(context)
+    private fun controlGap(context: Context): Int = YView.controlGap(context)
     @JvmStatic fun dp(context: Context, value: Int): Int = YView.dp(context, value)
 }
