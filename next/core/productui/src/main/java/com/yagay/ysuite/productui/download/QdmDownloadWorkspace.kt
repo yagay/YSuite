@@ -17,11 +17,11 @@ import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import com.yagay.yui.YUiFloatingActionButton as FloatingActionButton
 import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
-import androidx.compose.material3.SmallFloatingActionButton
+import com.yagay.yui.YUiSmallFloatingActionButton as SmallFloatingActionButton
 import androidx.compose.material3.Text
 import com.yagay.yui.YTabBar
 import com.yagay.yui.YTabSpec
