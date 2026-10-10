@@ -85,7 +85,7 @@ def main() -> None:
         "YMaterialInputs.kt": ("fun YUiOutlinedTextField(",),
         "YMaterialMenus.kt": ("fun YUiDropdownMenu(", "fun YUiDropdownMenuItem(", "fun YUiFilterChip(", "fun YUiTriStateCheckbox("),
         "YMaterialDividers.kt": ("fun YUiHorizontalDivider(",),
-        "YMaterialBottomSheets.kt": ("fun YUiModalBottomSheet(",)
+        "YMaterialBottomSheets.kt": ("fun YUiModalBottomSheet(",),
         "YMaterialSurfaces.kt": ("fun YUiSurface(",),
         "YMaterialFloatingActions.kt": ("fun YUiFloatingActionButton(", "fun YUiSmallFloatingActionButton("),
         "YMaterialDialogs.kt": ("fun YUiAlertDialog(",),
