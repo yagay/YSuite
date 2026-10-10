@@ -32,6 +32,17 @@ when a product-specific composable expects the upstream slot API.
 
 - Moved theme defaults and button/switch sizing to common Material 3 + YUI sources.
 - Aligned old View corner radii with Material 3: 8dp for buttons, 12dp for cards and outlined fields; YUI tokens remain generated from one JSON file.
+- Consolidated two YSection renderers into the role-aware component; old setting rows now
+  delegate to YListItem/YSwitchItem instead of drawing another row implementation.
+- Consolidated regular and full-screen Scaffold/TopBar rendering and all normal Compose
+  dialog entry points into YUI, including the shared product settings adapter.
+- Centralized radio buttons, sliders, integer slider rows, tab strips and suite drawer
+  item presentation alongside existing button and text-field facades.
+- Generated ListIconSize, IconVisualSize and IconSmallSize so XML/View and Compose rows
+  share the same icon geometry; normal YFloat picker rows reuse common touch heights.
+- Generated success/warning/info semantic colors from the same JSON source as
+  Material3 light/dark palettes and bound YView to those XML resources.
+- Expanded the YUI preview catalog to cover radio, checkbox, slider and tabs.
 - Removed recursive runtime restyling of View trees.
 - Centralized button, icon button, checkbox and outlined text-field default geometry
   in the suite host, YEntryCleaner and the rebuilt YFiles/YDownload product workspaces.
@@ -55,4 +66,6 @@ hard-coded size or layout is gone.
 
 Before merging, verify architecture checks, Gradle debug build, light/dark mode,
 dialog focus, accessibility touch targets, back navigation and the working
-file/download UI on an actual device.
+file/download UI on an actual device. GitHub Actions did not yet report a run
+for the migration branch after its initial successful commit; the original
+success runs cannot establish build success for this version.

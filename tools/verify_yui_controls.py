@@ -75,6 +75,7 @@ def main() -> None:
         "YMaterialInputs.kt": ("fun YUiOutlinedTextField(",),
         "YMaterialDialogs.kt": ("fun YUiAlertDialog(",),
         "YMaterialSelectors.kt": ("fun YUiSlider(", "fun YUiRadioButton(", "fun YUiScrollableTabRow("),
+        "YMaterialNavigation.kt": ("fun YUiNavigationDrawerItem(",),
         "YViewDialogs.kt": ("fun builder(context: Context)",),
         "YTheme.kt": ("YUiButton(", "YUiOutlinedButton(", "YUiScaffold("),
         "YFeatureFramework.kt": ("YUiOutlinedTextField as OutlinedTextField",),

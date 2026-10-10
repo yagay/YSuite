@@ -150,6 +150,20 @@ def main() -> None:
         fail("switch touch slot must not force an oversized settings row")
     if tokens["switch_slot_width"] < tokens["touch_target"]:
         fail("switch touch slot must meet the minimum horizontal touch size")
+    for key in ("list_icon_size", "icon_visual_size", "icon_small_size"):
+        if key not in tokens or not 12 <= tokens[key] <= tokens["touch_target"]:
+            fail(f"invalid shared icon size token {key}")
+    generated_palette = read(YUI_ROOT / "YUiPalette.kt")
+    semantic_roles = (
+        "Success", "OnSuccess", "SuccessContainer", "OnSuccessContainer",
+        "Warning", "OnWarning", "WarningContainer", "OnWarningContainer",
+        "Info", "OnInfo", "InfoContainer", "OnInfoContainer",
+    )
+    for mode in ("Light", "Dark"):
+        for role in semantic_roles:
+            if f"val {mode}{role} = " not in generated_palette:
+                fail(f"generated YUI semantic color missing: {mode}{role}")
+
     compact_switch = read(YUI_ROOT / "YCompactSwitch.kt")
     # The official Material3 Switch now supplies role/semantics/animation; YUI only
     # constrains its visual layer inside the compact token-sized layout slot.
