@@ -156,7 +156,7 @@ object YView {
 
     @JvmStatic fun screenHorizontal(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).screenPaddingDp)
-    @JvmStatic fun screenVertical(context: Context): Int = dimen(context, R.dimen.yui_screen_vertical)
+    @JvmStatic fun screenVertical(context: Context): Int = dp(context, appearance(context).pageVerticalPaddingDp)
     @JvmStatic fun sectionGap(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).sectionSpacingDp)
     @JvmStatic fun controlGap(context: Context): Int =
@@ -171,6 +171,9 @@ object YView {
     @JvmStatic fun rowVerticalPadding(context: Context): Int = dp(context, appearance(context).rowVerticalPaddingDp)
     @JvmStatic fun dialogRadius(context: Context): Int = dp(context, appearance(context).dialogRadiusDp)
     @JvmStatic fun fontPercent(context: Context): Int = appearance(context).fontPercent
+    @JvmStatic fun toolbarHeight(context: Context): Int = dp(context, appearance(context).toolbarHeightDp)
+    @JvmStatic fun iconSize(context: Context): Int = dp(context, appearance(context).iconVisualSizeDp)
+    @JvmStatic fun listIconSize(context: Context): Int = dp(context, appearance(context).listIconSizeDp)
     @JvmStatic fun buttonHeight(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).buttonHeightDp)
 
