@@ -330,6 +330,12 @@ internal fun SuiteSettingsScreen(
                             YControlGroup.DIALOGS -> {
                                 YPrimaryButton(stringResource(R.string.appearance_sample_dialog), onClick = { sampleDialog = true })
                             }
+                            YControlGroup.OVERLAYS -> {
+                                YCard {
+                                    Text(stringResource(R.string.appearance_group_overlays_desc),
+                                        style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
                             YControlGroup.NAVIGATION -> {
                                 YUiNavigationDrawerItem(
                                     label = { Text(stringResource(R.string.appearance_sample_navigation)) },
@@ -469,6 +475,7 @@ private fun groupTitle(group: YControlGroup): Int = when (group) {
     YControlGroup.SWITCHES -> R.string.appearance_group_switches
     YControlGroup.DIALOGS -> R.string.appearance_group_dialogs
     YControlGroup.NAVIGATION -> R.string.appearance_group_navigation
+    YControlGroup.OVERLAYS -> R.string.appearance_group_overlays
 }
 
 private fun groupSubtitle(group: YControlGroup): Int = when (group) {
@@ -482,6 +489,7 @@ private fun groupSubtitle(group: YControlGroup): Int = when (group) {
     YControlGroup.SWITCHES -> R.string.appearance_group_switches_desc
     YControlGroup.DIALOGS -> R.string.appearance_group_dialogs_desc
     YControlGroup.NAVIGATION -> R.string.appearance_group_navigation_desc
+    YControlGroup.OVERLAYS -> R.string.appearance_group_overlays_desc
 }
 
 private fun settingTitle(key: YSettingKey): Int = when (key) {
@@ -512,10 +520,43 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.PAGE_VERTICAL_PADDING -> R.string.appearance_page_vertical_padding
     YSettingKey.SECTION_SPACING -> R.string.appearance_section_spacing
     YSettingKey.HOME_SWIPE_PIN -> R.string.settings_swipe_pin
+    YSettingKey.FLOAT_ICON_ALPHA -> R.string.appearance_float_icon_alpha
+    YSettingKey.FLOAT_ICON_SIZE -> R.string.appearance_float_icon_size
+    YSettingKey.FLOAT_EDGE_VISIBLE -> R.string.appearance_float_edge_visible
+    YSettingKey.FLOAT_BORDER_WIDTH -> R.string.appearance_float_border_width
+    YSettingKey.FLOAT_TRAIL_ALPHA -> R.string.appearance_float_trail_alpha
+    YSettingKey.FLOAT_TRAIL_WIDTH -> R.string.appearance_float_trail_width
+    YSettingKey.FLOAT_MENU_COUNT -> R.string.appearance_float_menu_count
+    YSettingKey.FLOAT_BORDER_COLOR -> R.string.appearance_float_border_color
+    YSettingKey.FLOAT_ICON_STYLE -> R.string.appearance_float_icon_style
+    YSettingKey.FLOAT_TRAIL_STYLE -> R.string.appearance_float_trail_style
+    YSettingKey.FLOAT_TRAIL_GRADIENT -> R.string.appearance_float_trail_gradient
     YSettingKey.HOME_STATUS -> R.string.settings_home_status
 }
 
 private fun choiceTitle(key: YSettingKey, choice: String): Int = when (key) {
+    YSettingKey.FLOAT_BORDER_COLOR -> when (choice) {
+        "green" -> R.string.appearance_overlay_green
+        "cyan" -> R.string.appearance_overlay_cyan
+        "purple" -> R.string.appearance_overlay_purple
+        "orange" -> R.string.appearance_overlay_orange
+        "red" -> R.string.appearance_overlay_red
+        "white" -> R.string.appearance_overlay_white
+        else -> R.string.appearance_overlay_blue
+    }
+    YSettingKey.FLOAT_ICON_STYLE -> when (choice) {
+        "dark" -> R.string.appearance_overlay_dark
+        "light" -> R.string.appearance_overlay_light
+        "custom" -> R.string.appearance_overlay_custom
+        "slideshow" -> R.string.appearance_overlay_slideshow
+        else -> R.string.appearance_overlay_blue
+    }
+    YSettingKey.FLOAT_TRAIL_STYLE -> when (choice) {
+        "square" -> R.string.appearance_overlay_square
+        "enhanced" -> R.string.appearance_overlay_enhanced
+        else -> R.string.appearance_overlay_round
+    }
+
     YSettingKey.THEME -> when (choice) {
         "light" -> R.string.settings_theme_light
         "dark" -> R.string.settings_theme_dark
