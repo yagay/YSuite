@@ -84,6 +84,7 @@ internal fun SuiteSettingsScreen(
     }
     var group by rememberSaveable(moduleId) { mutableStateOf<YControlGroup?>(null) }
     var commonMode by rememberSaveable { mutableStateOf(false) }
+    var generalMode by rememberSaveable { mutableStateOf(false) }
     var resetConfirm by remember(moduleId) { mutableStateOf(false) }
     var sampleDialog by remember { mutableStateOf(false) }
     var exampleText by remember { mutableStateOf("") }
@@ -91,10 +92,12 @@ internal fun SuiteSettingsScreen(
     var previewSelected by remember { mutableStateOf(false) }
     val scopeName = modules.firstOrNull { it.first == moduleId }?.second
     val title = scopeName ?: stringResource(R.string.settings_title)
-    val back: () -> Unit = { if (group != null) group = null else onBack() }
+    val back: () -> Unit = { if (generalMode) generalMode = false else if (group != null) group = null else onBack() }
 
-    BackHandler(enabled = commonMode || group != null) {
-        if (commonMode) commonMode = false else group = null
+    BackHandler(enabled = generalMode || commonMode || group != null) {
+        if (generalMode) generalMode = false
+        else if (commonMode) commonMode = false
+        else group = null
     }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -137,7 +140,12 @@ internal fun SuiteSettingsScreen(
         }
     }
 
-    if (commonMode) {
+    if (generalMode) {
+        SuiteGeneralSettingsScreen(
+            onBack = { generalMode = false },
+            onOpenSharedSettings = { generalMode = false; commonMode = true },
+        )
+    } else if (commonMode) {
         SuiteCommonSettingsScreen(
             modules = modules,
             moduleId = moduleId,
@@ -162,6 +170,18 @@ internal fun SuiteSettingsScreen(
                 YSecondaryButton(stringResource(R.string.settings_back), onClick = back)
             }
             if (group == null) {
+                if (moduleId == null) {
+                    item(key = "general-settings-entry") {
+                        YListItem(
+                            title = stringResource(R.string.general_title),
+                            subtitle = stringResource(R.string.general_subtitle),
+                            onClick = { generalMode = true },
+                            trailing = {
+                                Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            },
+                        )
+                    }
+                }
                 item(key = "common-feature-entry") {
                     YSection(
                         title = stringResource(R.string.common_entry_title),
