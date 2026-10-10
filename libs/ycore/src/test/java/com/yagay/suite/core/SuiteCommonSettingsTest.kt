@@ -68,6 +68,34 @@ class SuiteCommonSettingsTest {
         store.set(SuiteCommonSetting.LOG_MAX_FILE_MB, "999")
     }
 
+    @Test
+    fun globalLanguageAndHomePreferencesAreValidatedAndSurviveLoggingReset() {
+        assertEquals("system", store.value(SuiteCommonSetting.LANGUAGE))
+        assertEquals("false", store.value(SuiteCommonSetting.HOME_HIDE_DISABLED))
+        assertEquals("true", store.value(SuiteCommonSetting.HOME_SHOW_SEARCH))
+        assertEquals("true", store.value(SuiteCommonSetting.HOME_SHOW_DIAGNOSTICS))
+        store.set(SuiteCommonSetting.LANGUAGE, "zh-CN")
+        store.set(SuiteCommonSetting.HOME_HIDE_DISABLED, "true")
+        store.set(SuiteCommonSetting.HOME_SHOW_SEARCH, "false")
+        store.set(SuiteCommonSetting.HOME_SHOW_DIAGNOSTICS, "false")
+        store.set(SuiteCommonSetting.LOG_LEVEL, "warning")
+        assertEquals("zh-CN", store.value(SuiteCommonSetting.LANGUAGE, "ynotify"))
+        assertFalse(store.isOverridden(SuiteCommonSetting.LANGUAGE, "ynotify"))
+        assertTrue(runCatching {
+            store.set(SuiteCommonSetting.LANGUAGE, "en", "ynotify")
+        }.isFailure)
+        assertTrue(runCatching {
+            store.set(SuiteCommonSetting.LANGUAGE, "xx")
+        }.isFailure)
+        store.reset()
+        store.reset("ynotify")
+        assertEquals("debug", store.value(SuiteCommonSetting.LOG_LEVEL))
+        assertEquals("zh-CN", store.value(SuiteCommonSetting.LANGUAGE))
+        assertEquals("true", store.value(SuiteCommonSetting.HOME_HIDE_DISABLED))
+        assertEquals("false", store.value(SuiteCommonSetting.HOME_SHOW_SEARCH))
+        assertEquals("false", store.value(SuiteCommonSetting.HOME_SHOW_DIAGNOSTICS))
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsInvalidModuleId() {
         store.set(SuiteCommonSetting.LOG_LEVEL, "info", "../other")
