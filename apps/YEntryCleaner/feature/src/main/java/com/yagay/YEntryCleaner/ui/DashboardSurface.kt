@@ -10,9 +10,9 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import com.yagay.yui.YUiCircularProgressIndicator as CircularProgressIndicator
 import com.yagay.yui.YUiDropdownMenu as DropdownMenu
 import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
-import androidx.compose.material3.Icon
+import com.yagay.yui.YUiIcon as Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment

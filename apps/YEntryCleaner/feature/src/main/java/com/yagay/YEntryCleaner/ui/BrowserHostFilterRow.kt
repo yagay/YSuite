@@ -11,10 +11,10 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandMore
 import com.yagay.yui.YUiDropdownMenu as DropdownMenu
 import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
-import androidx.compose.material3.Icon
+import com.yagay.yui.YUiIcon as Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment

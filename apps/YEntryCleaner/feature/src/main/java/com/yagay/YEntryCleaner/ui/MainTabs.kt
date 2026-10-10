@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import com.yagay.yui.YUiSurface as Surface
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable

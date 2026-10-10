@@ -19,11 +19,11 @@ import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Lock
 import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
-import androidx.compose.material3.Icon
+import com.yagay.yui.YUiIcon as Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import com.yagay.yui.YUiTriStateCheckbox as TriStateCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
