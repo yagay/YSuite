@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +63,39 @@ private val YLightColors = lightColorScheme(
     surfaceVariant = YUiPalette.LightSurfaceVariant,
     onSurfaceVariant = YUiPalette.LightOnSurfaceVariant,
     outline = YUiPalette.LightOutline,
+    // Never fall back to Material 3's default purple/error/tertiary/surface roles.
+    tertiary = YUiPalette.LightTertiary,
+    onTertiary = YUiPalette.LightOnTertiary,
+    tertiaryContainer = YUiPalette.LightTertiaryContainer,
+    onTertiaryContainer = YUiPalette.LightOnTertiaryContainer,
+    error = YUiPalette.LightError,
+    onError = YUiPalette.LightOnError,
+    errorContainer = YUiPalette.LightErrorContainer,
+    onErrorContainer = YUiPalette.LightOnErrorContainer,
+    outlineVariant = YUiPalette.LightOutlineVariant,
+    surfaceTint = YUiPalette.LightPrimary,
+    inverseSurface = YUiPalette.DarkSurface,
+    inverseOnSurface = YUiPalette.DarkOnSurface,
+    inversePrimary = YUiPalette.DarkPrimary,
+    surfaceDim = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.25f),
+    surfaceBright = YUiPalette.LightSurface,
+    surfaceContainerLowest = YUiPalette.LightSurface,
+    surfaceContainerLow = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.16f),
+    surfaceContainer = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.26f),
+    surfaceContainerHigh = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.38f),
+    surfaceContainerHighest = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.55f),
+    primaryFixed = YUiPalette.LightPrimaryContainer,
+    primaryFixedDim = YUiPalette.DarkPrimary,
+    onPrimaryFixed = YUiPalette.LightOnPrimaryContainer,
+    onPrimaryFixedVariant = YUiPalette.LightPrimary,
+    secondaryFixed = YUiPalette.LightSecondaryContainer,
+    secondaryFixedDim = YUiPalette.DarkSecondary,
+    onSecondaryFixed = YUiPalette.LightOnSecondaryContainer,
+    onSecondaryFixedVariant = YUiPalette.LightSecondary,
+    tertiaryFixed = YUiPalette.LightTertiaryContainer,
+    tertiaryFixedDim = YUiPalette.DarkTertiary,
+    onTertiaryFixed = YUiPalette.LightOnTertiaryContainer,
+    onTertiaryFixedVariant = YUiPalette.LightTertiary,
 )
 
 private val YDarkColors = darkColorScheme(
@@ -80,6 +114,39 @@ private val YDarkColors = darkColorScheme(
     surfaceVariant = YUiPalette.DarkSurfaceVariant,
     onSurfaceVariant = YUiPalette.DarkOnSurfaceVariant,
     outline = YUiPalette.DarkOutline,
+    // Never fall back to Material 3's default purple/error/tertiary/surface roles.
+    tertiary = YUiPalette.DarkTertiary,
+    onTertiary = YUiPalette.DarkOnTertiary,
+    tertiaryContainer = YUiPalette.DarkTertiaryContainer,
+    onTertiaryContainer = YUiPalette.DarkOnTertiaryContainer,
+    error = YUiPalette.DarkError,
+    onError = YUiPalette.DarkOnError,
+    errorContainer = YUiPalette.DarkErrorContainer,
+    onErrorContainer = YUiPalette.DarkOnErrorContainer,
+    outlineVariant = YUiPalette.DarkOutlineVariant,
+    surfaceTint = YUiPalette.DarkPrimary,
+    inverseSurface = YUiPalette.LightSurface,
+    inverseOnSurface = YUiPalette.LightOnSurface,
+    inversePrimary = YUiPalette.LightPrimary,
+    surfaceDim = YUiPalette.DarkSurface,
+    surfaceBright = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.60f),
+    surfaceContainerLowest = YUiPalette.DarkSurface,
+    surfaceContainerLow = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.16f),
+    surfaceContainer = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.26f),
+    surfaceContainerHigh = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.38f),
+    surfaceContainerHighest = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.55f),
+    primaryFixed = YUiPalette.LightPrimaryContainer,
+    primaryFixedDim = YUiPalette.DarkPrimary,
+    onPrimaryFixed = YUiPalette.LightOnPrimaryContainer,
+    onPrimaryFixedVariant = YUiPalette.LightPrimary,
+    secondaryFixed = YUiPalette.LightSecondaryContainer,
+    secondaryFixedDim = YUiPalette.DarkSecondary,
+    onSecondaryFixed = YUiPalette.LightOnSecondaryContainer,
+    onSecondaryFixedVariant = YUiPalette.LightSecondary,
+    tertiaryFixed = YUiPalette.LightTertiaryContainer,
+    tertiaryFixedDim = YUiPalette.DarkTertiary,
+    onTertiaryFixed = YUiPalette.LightOnTertiaryContainer,
+    onTertiaryFixedVariant = YUiPalette.LightTertiary,
 )
 
 // Keep upstream Material 3 typography unmodified so every feature has matching text metrics.
