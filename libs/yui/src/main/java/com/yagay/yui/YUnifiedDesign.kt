@@ -593,35 +593,15 @@ fun YPrimaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-        content = content,
-    )
-}
+) = YMaterialButton(onClick, modifier, enabled, YButtonVariant.FILLED, content)
 
-/** Shared compact text-action for dialogs and inline file/download operations. */
 @Composable
 fun YTextActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        contentPadding = PaddingValues(
-            horizontal = YDimens.ButtonTextPaddingHorizontal,
-            vertical = YDimens.ButtonPaddingVertical,
-        ),
-        content = content,
-    )
-}
+) = YMaterialButton(onClick, modifier, enabled, YButtonVariant.TEXT, content)
 
 @Composable
 fun YSecondaryActionButton(
@@ -629,15 +609,7 @@ fun YSecondaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-        content = content,
-    )
-}
+) = YMaterialButton(onClick, modifier, enabled, YButtonVariant.OUTLINED, content)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -651,18 +623,12 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
             when (action.style) {
                 YActionStyle.PRIMARY -> YPrimaryButton(action.label, action.onClick, enabled = action.enabled)
                 YActionStyle.SECONDARY -> YSecondaryButton(action.label, action.onClick, enabled = action.enabled)
-                YActionStyle.DANGER -> OutlinedButton(
+                YActionStyle.DANGER -> YMaterialButton(
                     onClick = action.onClick,
                     enabled = action.enabled,
-                    modifier = Modifier.heightIn(min = YDimens.ButtonVisualHeight),
-                    contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
+                    variant = YButtonVariant.DANGER,
                 ) {
-                    Text(
-                        action.label,
-                        color = if (action.enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Text(action.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -676,7 +642,7 @@ fun YFilterBar(options: List<String>, selectedIndex: Int, onSelected: (Int) -> U
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         options.forEachIndexed { index, label ->
-            FilterChip(selected = selectedIndex == index, onClick = { onSelected(index) }, label = { Text(label) })
+            YMaterialFilterChip(label = label, selected = selectedIndex == index, onClick = { onSelected(index) })
         }
     }
 }
@@ -688,11 +654,11 @@ fun YToggleFilterBar(filters: List<YFilterSpec>, modifier: Modifier = Modifier) 
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         filters.forEach { filter ->
-            FilterChip(
+            YMaterialFilterChip(
+                label = filter.label,
                 selected = filter.selected,
                 onClick = filter.onClick,
                 enabled = filter.enabled,
-                label = { Text(filter.label) },
             )
         }
     }

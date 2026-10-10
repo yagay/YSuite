@@ -2,6 +2,7 @@ package com.yagay.yui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -111,3 +112,33 @@ fun YFormDialog(
         confirmButton = { YActionGroup(actions) },
     )
 }
+
+/** Canonical read-only details dialog for download/file/system properties. */
+@Composable
+fun YContentDialog(
+    title: String,
+    closeLabel: String,
+    onDismissRequest: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                content = content,
+            )
+        },
+        confirmButton = {
+            YMaterialButton(
+                onClick = onDismissRequest,
+                variant = YButtonVariant.TEXT,
+            ) { Text(closeLabel) }
+        },
+    )
+}
+

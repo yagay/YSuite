@@ -236,11 +236,11 @@ fun <T> YDropdownField(
     var expanded by remember { mutableStateOf(false) }
     val selected = options.firstOrNull { it.value == value }
     Box(modifier.fillMaxWidth()) {
-        OutlinedButton(
+        YMaterialButton(
             onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth().heightIn(min = YDimens.ButtonVisualHeight),
+            modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
+            variant = YButtonVariant.OUTLINED,
         ) {
             Column(Modifier.fillMaxWidth()) {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -299,19 +299,21 @@ fun YConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(message) },
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+        text = { Text(message, style = MaterialTheme.typography.bodyMedium) },
         confirmButton = {
-            Button(
+            YMaterialButton(
                 onClick = onConfirm,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-                colors = if (dangerous) ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ) else ButtonDefaults.buttonColors(),
+                variant = if (dangerous) YButtonVariant.DANGER else YButtonVariant.FILLED,
             ) { Text(confirmLabel) }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical)) { Text(dismissLabel) } },
+        dismissButton = {
+            YMaterialButton(onClick = onDismiss, variant = YButtonVariant.TEXT) {
+                Text(dismissLabel)
+            }
+        },
     )
 }
 

@@ -19,7 +19,7 @@
   "screen_horizontal_medium": 18,
   "screen_horizontal_expanded": 24,
   "button_visual_height": 40,
-  "button_padding_horizontal": 10,
+  "button_padding_horizontal": 8,
   "button_padding_vertical": 2,
   "button_inset_vertical": 4,
   "button_text_padding_horizontal": 8,
@@ -30,9 +30,12 @@
   "spacing_medium": 12,
   "spacing_large": 16,
   "spacing_xlarge": 24,
-  "switch_track_width": 38,
-  "switch_track_height": 22,
-  "switch_thumb_size": 18,
-  "switch_slot_width": 52,
-  "switch_slot_height": 40
+  "switch_track_width": 34,
+  "switch_track_height": 20,
+  "switch_thumb_size": 16,
+  "switch_slot_width": 48,
+  "switch_slot_height": 36,
+  "field_radius": 14,
+  "dialog_radius": 20,
+  "chip_radius": 12
 }

@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 /**
  * A compact YUI switch, not a scaled Material switch that still occupies a tall layout cell.
  *
- * The visual track is 38x22dp; the independent touch surface is 48x40dp.
+ * The visible track is 34x20dp; its independent touch surface is 48x48dp.
  * Settings rows remain at least 48dp high so the whole option is easy to tap.
  */
 @Composable
@@ -37,7 +37,7 @@ fun YCompactSwitch(
 
     Box(
         modifier = modifier
-            .size(width = YDimens.TouchTarget, height = YDimens.SwitchSlotHeight)
+            .size(width = YDimens.SwitchSlotWidth, height = YDimens.OptionRowHeight)
             .toggleable(
                 value = checked,
                 enabled = enabled,

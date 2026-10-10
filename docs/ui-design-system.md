@@ -7,7 +7,7 @@
 * **生成器**：`python3 tools/generate_yui_tokens.py`
 * **审计**：`python3 tools/generate_yui_tokens.py --check` 和 `python3 tools/verify_yui_single_source.py`
 
-生成器输出的 Kotlin `YDimens`、`YUiPalette` 和 Android View `dimen/color` 资源均视为自动产物，不手工修改。Android 12+ 的动态取色可以覆盖静态配色。
+生成器输出的 Kotlin `YDimens`、`YUiPalette` 和 Android View `dimen/color` 资源均视为自动产物，不手工修改。默认使用统一的静态 Material 3 品牌色，**不自动按壁纸取色**，避免 Compose 与 Java/View 及不同模块出现不一致颜色。动态取色仅可由显式传参开启。
 
 **YFiles / YDownload 没有第二套按钮、输入框、设置行和静态主题。** 它们的 `next/core/designsystem` 只保留与旧调用约定兼容的轻量转发层，实际调用 `libs/yui`：
 
@@ -37,5 +37,9 @@ YFiles 和 YDownload 仍可以设计不同的**产品页面结构和专用业务
 ### 常用调节值
 
 `button_padding_horizontal`：按钮文字左右留白；`button_padding_vertical`：上下留白；`button_visual_height`：可见按钮高度；`button_radius`：圆角；`option_row_height`：设置行高度；`card_padding`、`section_gap`：卡片与列表密度；`touch_target`：触控区域，须至少 48dp。
+
+`field_radius`、`dialog_radius`、`chip_radius`：输入框、对话框和筛选芯片圆角；`switch_track_width`、`switch_track_height`、`switch_thumb_size`、`switch_slot_width`、`switch_slot_height`：紧凑开关视觉尺寸与 View 插槽。
+
+Compose 侧的主按钮、描边、文字、强调和危险按钮统一调用 `YMaterialControls.kt` 的 `YMaterialButton`，筛选项调用 `YMaterialFilterChip`，对话框调用 `YConfirmDialog`/`YFormDialog`/`YContentDialog`。View 侧通过 `Theme.YUI` 的 Material3 系列 Widget 属性统一配置按钮、开关、复选框、输入框和对话框，并继续通过 `YView`/`YViewLayout` 创建控件。
 
 以后修改只更改 JSON 并重新运行生成器、CI；不要批量在各个 feature 的 Compose 源码中替换硬编码值。

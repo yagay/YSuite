@@ -27,11 +27,11 @@ object YOverlayTokens {
         YView.color(context, android.R.attr.colorControlHighlight, if (dark(context)) 0x33FFFFFF else 0x22000000)
 
     @JvmStatic fun menuSurface(context: Context): Int =
-        if (dark(context)) 0xFF2B2B2B.toInt() else 0xFFF8F8F8.toInt()
+        surfaceAlt(context)
     @JvmStatic fun menuPrimaryText(context: Context): Int =
-        if (dark(context)) 0xFFF5F5F5.toInt() else 0xFF202124.toInt()
+        textPrimary(context)
     @JvmStatic fun menuSecondaryText(context: Context): Int =
-        if (dark(context)) 0xFFB8B8B8.toInt() else 0xFF5F6368.toInt()
+        textSecondary(context)
     @JvmStatic fun menuRipple(context: Context): Int =
         if (dark(context)) 0x33FFFFFF else 0x22000000
     @JvmStatic fun resultSurface(context: Context): Int =

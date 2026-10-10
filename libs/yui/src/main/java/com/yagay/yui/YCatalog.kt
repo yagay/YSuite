@@ -15,6 +15,8 @@ fun YComponentCatalogScreen() {
     var text by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(0) }
     var enabled by remember { mutableStateOf(true) }
+    var checked by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
     val title = stringResource(R.string.yui_catalog_title)
     val subtitle = stringResource(R.string.yui_catalog_subtitle)
     val primary = stringResource(R.string.yui_catalog_primary)
@@ -34,6 +36,7 @@ fun YComponentCatalogScreen() {
                         YActionSpec(primary, style = YActionStyle.PRIMARY, onClick = {}),
                         YActionSpec(secondary, style = YActionStyle.SECONDARY, onClick = {}),
                         YActionSpec(error, style = YActionStyle.DANGER, onClick = {}),
+                        YActionSpec(optionB, style = YActionStyle.SECONDARY, onClick = { showDialog = true }),
                     ),
                 )
             }
@@ -49,6 +52,14 @@ fun YComponentCatalogScreen() {
                     subtitle = secondary,
                     checked = enabled,
                     onCheckedChange = { enabled = it },
+                )
+            }
+            item {
+                YCheckboxItem(
+                    title = optionB,
+                    subtitle = secondary,
+                    checked = checked,
+                    onCheckedChange = { checked = it },
                 )
             }
             item {
@@ -74,6 +85,16 @@ fun YComponentCatalogScreen() {
                 )
             }
         }
+    }
+    if (showDialog) {
+        YConfirmDialog(
+            title = title,
+            message = subtitle,
+            confirmLabel = primary,
+            dismissLabel = secondary,
+            onConfirm = { showDialog = false },
+            onDismiss = { showDialog = false },
+        )
     }
 }
 

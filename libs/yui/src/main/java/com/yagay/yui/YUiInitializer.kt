@@ -17,7 +17,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.startup.Initializer
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.color.DynamicColors
 import java.util.WeakHashMap
 
 class YUiInitializer : Initializer<Unit> {
@@ -44,7 +43,8 @@ object YUiRuntime {
     fun install(application: Application) {
         if (installed) return
         installed = true
-        DynamicColors.applyToActivitiesIfAvailable(application)
+        // Fixed Material 3 semantic palette is shared with Compose and Android Views.
+        // Automatic wallpaper recoloring made the same component differ between modules.
         application.registerActivityLifecycleCallbacks(
             object : Application.ActivityLifecycleCallbacks {
                 override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = schedule(activity)

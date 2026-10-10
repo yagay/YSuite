@@ -43,11 +43,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val YShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
+    extraSmall = RoundedCornerShape(YDimens.ChipRadius),
     small = RoundedCornerShape(YDimens.ButtonRadius),
     medium = RoundedCornerShape(YDimens.CardRadius),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(28.dp),
+    large = RoundedCornerShape(YDimens.DialogRadius),
+    extraLarge = RoundedCornerShape(YDimens.DialogRadius),
 )
 
 private val YLightColors = lightColorScheme(
@@ -66,6 +66,15 @@ private val YLightColors = lightColorScheme(
     surfaceVariant = YUiPalette.LightSurfaceVariant,
     onSurfaceVariant = YUiPalette.LightOnSurfaceVariant,
     outline = YUiPalette.LightOutline,
+    tertiary = YUiPalette.LightTertiary,
+    onTertiary = YUiPalette.LightOnTertiary,
+    tertiaryContainer = YUiPalette.LightTertiaryContainer,
+    onTertiaryContainer = YUiPalette.LightOnTertiaryContainer,
+    outlineVariant = YUiPalette.LightOutlineVariant,
+    error = YUiPalette.LightError,
+    onError = YUiPalette.LightOnError,
+    errorContainer = YUiPalette.LightErrorContainer,
+    onErrorContainer = YUiPalette.LightOnErrorContainer,
 )
 
 private val YDarkColors = darkColorScheme(
@@ -84,6 +93,15 @@ private val YDarkColors = darkColorScheme(
     surfaceVariant = YUiPalette.DarkSurfaceVariant,
     onSurfaceVariant = YUiPalette.DarkOnSurfaceVariant,
     outline = YUiPalette.DarkOutline,
+    tertiary = YUiPalette.DarkTertiary,
+    onTertiary = YUiPalette.DarkOnTertiary,
+    tertiaryContainer = YUiPalette.DarkTertiaryContainer,
+    onTertiaryContainer = YUiPalette.DarkOnTertiaryContainer,
+    outlineVariant = YUiPalette.DarkOutlineVariant,
+    error = YUiPalette.DarkError,
+    onError = YUiPalette.DarkOnError,
+    errorContainer = YUiPalette.DarkErrorContainer,
+    onErrorContainer = YUiPalette.DarkOnErrorContainer,
 )
 
 private val YTypography = Typography(
@@ -98,7 +116,7 @@ private val YTypography = Typography(
 
 @Composable
 fun YTheme(
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
@@ -227,13 +245,9 @@ fun YPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        shape = MaterialTheme.shapes.small,
-        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-    ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    YMaterialButton(onClick = onClick, modifier = modifier, enabled = enabled) {
+        Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
 
 @Composable
@@ -243,14 +257,12 @@ fun YSecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        shape = MaterialTheme.shapes.small,
-        colors = ButtonDefaults.outlinedButtonColors(),
-        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-    ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    YMaterialButton(
+        onClick = onClick, modifier = modifier, enabled = enabled,
+        variant = YButtonVariant.OUTLINED,
+    ) {
+        Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
 
 @Composable

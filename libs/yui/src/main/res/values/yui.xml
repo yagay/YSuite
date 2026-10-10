@@ -34,6 +34,14 @@
         <item name="colorOnSurfaceVariant">@color/yui_on_surface_variant</item>
         <item name="colorOutline">@color/yui_outline</item>
         <item name="colorError">@color/yui_error</item>
+        <item name="colorTertiary">@color/yui_tertiary</item>
+        <item name="colorOnTertiary">@color/yui_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/yui_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/yui_on_tertiary_container</item>
+        <item name="colorOutlineVariant">@color/yui_outline_variant</item>
+        <item name="colorOnError">@color/yui_on_error</item>
+        <item name="colorErrorContainer">@color/yui_error_container</item>
+        <item name="colorOnErrorContainer">@color/yui_on_error_container</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -44,12 +52,21 @@
         <item name="android:windowLightNavigationBar">?attr/isLightTheme</item>
         <item name="materialCardViewStyle">@style/Widget.YUI.Card</item>
         <item name="materialButtonStyle">@style/Widget.YUI.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.YUI.Button.Outlined</item>
+        <item name="materialButtonToggleGroupStyle">@style/Widget.Material3.MaterialButtonToggleGroup</item>
+        <item name="switchStyle">@style/Widget.YUI.Switch</item>
+        <item name="materialSwitchStyle">@style/Widget.YUI.MaterialSwitch</item>
+        <item name="checkboxStyle">@style/Widget.YUI.Checkbox</item>
+        <item name="textInputStyle">@style/Widget.YUI.TextInput</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.Material3.Dialog.Alert</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Material3.MaterialAlertDialog</item>
+        <item name="buttonBarButtonStyle">@style/Widget.YUI.Button.Dialog</item>
     </style>
 
     <style name="Widget.YUI.Card" parent="Widget.Material3.CardView.Filled">
-        <item name="cardCornerRadius">0dp</item>
+        <item name="cardCornerRadius">@dimen/yui_card_radius</item>
         <item name="cardElevation">0dp</item>
-        <item name="cardBackgroundColor">@android:color/transparent</item>
+        <item name="cardBackgroundColor">?attr/colorSurfaceContainer</item>
         <item name="strokeWidth">0dp</item>
     </style>
 
@@ -62,23 +79,57 @@
     <style name="Widget.YUI.Button" parent="Widget.Material3.Button">
         <item name="android:minHeight">@dimen/yui_button_height</item>
         <item name="android:textAllCaps">false</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">@dimen/yui_button_padding_horizontal</item>
+        <item name="android:paddingEnd">@dimen/yui_button_padding_horizontal</item>
+        <item name="cornerRadius">@dimen/yui_button_radius</item>
     </style>
 
     <style name="Widget.YUI.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
         <item name="android:minHeight">@dimen/yui_button_height</item>
         <item name="android:textAllCaps">false</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">@dimen/yui_button_padding_horizontal</item>
+        <item name="android:paddingEnd">@dimen/yui_button_padding_horizontal</item>
+        <item name="cornerRadius">@dimen/yui_button_radius</item>
     </style>
 
     <style name="Widget.YUI.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
         <item name="android:minHeight">@dimen/yui_button_height</item>
         <item name="android:textAllCaps">false</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">@dimen/yui_button_padding_horizontal</item>
+        <item name="android:paddingEnd">@dimen/yui_button_padding_horizontal</item>
+        <item name="cornerRadius">@dimen/yui_button_radius</item>
     </style>
 
     <style name="Widget.YUI.TextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">22dp</item>
+        <item name="boxCornerRadiusTopStart">@dimen/yui_field_radius</item>
         <item name="boxCornerRadiusTopEnd">22dp</item>
         <item name="boxCornerRadiusBottomStart">22dp</item>
         <item name="boxCornerRadiusBottomEnd">22dp</item>
+    </style>
+
+    <style name="Widget.YUI.Button.Dialog" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:minHeight">@dimen/yui_button_height</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">@dimen/yui_button_text_padding_horizontal</item>
+        <item name="android:paddingEnd">@dimen/yui_button_text_padding_horizontal</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.YUI.Switch" parent="Widget.Material3.CompoundButton.Switch">
+        <item name="android:minHeight">@dimen/yui_switch_slot_height</item>
+        <item name="android:minWidth">@dimen/yui_switch_slot_width</item>
+    </style>
+
+    <style name="Widget.YUI.MaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="android:minHeight">@dimen/yui_switch_slot_height</item>
+        <item name="android:minWidth">@dimen/yui_switch_slot_width</item>
+    </style>
+
+    <style name="Widget.YUI.Checkbox" parent="Widget.Material3.CompoundButton.CheckBox">
+        <item name="android:minHeight">@dimen/yui_touch_target</item>
     </style>
 
     <style name="TextAppearance.YUI.PageTitle" parent="TextAppearance.Material3.TitleLarge" />

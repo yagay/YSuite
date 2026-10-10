@@ -52,6 +52,9 @@ TOKENS = [
     ("spacing_medium", "SpacingMedium"),
     ("spacing_large", "SpacingLarge"),
     ("spacing_xlarge", "SpacingXlarge"),
+    ("field_radius", "FieldRadius"),
+    ("dialog_radius", "DialogRadius"),
+    ("chip_radius", "ChipRadius"),
 ]
 
 

@@ -840,10 +840,11 @@ fun QdmDownloadPropertiesDialog(
     closeLabel: String,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.AlertDialog(
+    com.yagay.yui.YContentDialog(
+        title = title,
+        closeLabel = closeLabel,
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
+    ) {
             Column(
                 verticalArrangement =
                     Arrangement.spacedBy(YSuiteSpacing.Small),
@@ -865,11 +866,5 @@ fun QdmDownloadPropertiesDialog(
                     }
                 }
             }
-        },
-        confirmButton = {
-            YTextActionButton(onClick = onDismiss) {
-                Text(closeLabel)
-            }
-        },
-    )
+    }
 }

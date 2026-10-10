@@ -13,7 +13,7 @@ import com.yagay.yui.YTheme
 @Composable
 fun YSuiteTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColorEnabled: Boolean = true,
+    dynamicColorEnabled: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val view = LocalView.current

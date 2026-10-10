@@ -202,6 +202,26 @@ def main() -> None:
             if token not in content:
                 fail(f"reusable feature component in {source.relative_to(ROOT)} must delegate to shared YUI: {token}")
 
+    # One official Material 3 component set must own all normal control metrics.
+    material_controls = read(YUI_ROOT / "YMaterialControls.kt")
+    for name in ("YMaterialButton(", "YMaterialFilterChip(", "YButtonVariant.DANGER"):
+        if name not in material_controls:
+            fail(f"YUI Material 3 kit is missing {name}")
+    yui_theme = read(YUI_ROOT / "YTheme.kt")
+    if "dynamicColor: Boolean = false" not in yui_theme:
+        fail("YUI should use the shared brand palette by default (dynamic color opt-in only)")
+    if "YMaterialButton(" not in yui_theme:
+        fail("YUI primary/secondary buttons must delegate to the canonical Material 3 kit")
+    if "YMaterialButton(" not in read(YUI_FORMS):
+        fail("YUI form dialogs must use canonical action buttons")
+    view_styles = read(ROOT / "libs/yui/src/main/res/values/yui.xml")
+    for style in ("Widget.YUI.Button.Dialog", "Widget.YUI.Switch", "Widget.YUI.MaterialSwitch", "Widget.YUI.Checkbox"):
+        if style not in view_styles:
+            fail(f"YUI View theme is missing shared Material 3 component {style}")
+    for token in ("field_radius", "dialog_radius", "chip_radius"):
+        if token not in tokens:
+            fail(f"YUI is missing shared component shape token: {token}")
+
     catalog = read(YUI_CATALOG)
     if "fun YComponentCatalogScreen(" not in catalog or catalog.count("@Preview") < 3:
         fail("YUI catalog must include the living screen plus compact/dark/large-font previews")
