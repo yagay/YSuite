@@ -30,7 +30,19 @@
     "surfaceContainerLow": "#F7F4FB",
     "surfaceContainer": "#F5F2F9",
     "surfaceContainerHigh": "#F2F0F7",
-    "surfaceContainerHighest": "#EEECF3"
+    "surfaceContainerHighest": "#EEECF3",
+    "success": "#146C2E",
+    "onSuccess": "#FFFFFF",
+    "successContainer": "#B7F2C4",
+    "onSuccessContainer": "#00210A",
+    "warning": "#8A4D00",
+    "onWarning": "#FFFFFF",
+    "warningContainer": "#FFDDB8",
+    "onWarningContainer": "#2C1600",
+    "info": "#285F9E",
+    "onInfo": "#FFFFFF",
+    "infoContainer": "#D5E3FF",
+    "onInfoContainer": "#001B3C"
   },
   "dark": {
     "primary": "#B7C4FF",
@@ -63,6 +75,18 @@
     "surfaceContainerLow": "#1A1B21",
     "surfaceContainer": "#202026",
     "surfaceContainerHigh": "#26262D",
-    "surfaceContainerHighest": "#2F2F36"
+    "surfaceContainerHighest": "#2F2F36",
+    "success": "#9BDAA8",
+    "onSuccess": "#003915",
+    "successContainer": "#005321",
+    "onSuccessContainer": "#B7F2C4",
+    "warning": "#FFB95F",
+    "onWarning": "#492900",
+    "warningContainer": "#693900",
+    "onWarningContainer": "#FFDDB8",
+    "info": "#A7C8FF",
+    "onInfo": "#003062",
+    "infoContainer": "#08477C",
+    "onInfoContainer": "#D5E3FF"
   }
 }
