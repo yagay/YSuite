@@ -384,6 +384,40 @@ def main() -> None:
         fail("YFloat must not override the host global theme")
     if 'stringPreferencesKey("theme_mode")' in rebuilt_settings:
         fail("rebuilt host must not maintain a second theme store")
+
+    # Integrated YFloat must not duplicate controls already editable in YSuite.
+    # Standalone YFloat keeps local editors because its preferences are app-private.
+    float_appearance_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppearanceSettingsActivity.java")
+    float_capture = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsCapturePage.java")
+    float_main = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MainActivity.java")
+    for source, markers, label in (
+        (float_appearance_page, (
+            'boolean embeddedInSuite = "com.yagay.YSuite".equals(getPackageName())',
+            'if (!embeddedInSuite)', 'addThemeSpinner(theme.body)',
+            'addMainItemCountSlider(textMenu.body)', 'MenuPickerActivity.customIntent(this)',
+        ), "YFloat combined menu and standalone appearance page"),
+        (float_icon, (
+            'boolean embeddedInSuite = "com.yagay.YSuite".equals(activity.getPackageName())',
+            'if (!embeddedInSuite)', 'ui.styleSpinner(appearance.body)',
+            'FloatSettings.K_SIZE', 'FloatSettings.K_SHOW_PERCENT',
+        ), "YFloat integrated icon appearance cleanup"),
+        (float_gesture, (
+            'if (!"com.yagay.YSuite".equals(activity.getPackageName()))',
+            'FloatSettings.K_LINE_ALPHA', 'FloatSettings.K_LINE_WIDTH',
+            'ui.lineStyleSpinner(feedback.body)', 'FloatSettings.K_VIBRATE',
+        ), "YFloat integrated trail appearance cleanup"),
+        (float_capture, (
+            'if (!"com.yagay.YSuite".equals(activity.getPackageName()))',
+            'CircleBorderSettingsUi.add(activity, fs, circleBorder.body)',
+            'ui.circleFullOcrEngineSpinner(circleOcr.body)',
+        ), "YFloat integrated border cleanup without affecting OCR"),
+        (float_main, (
+            '? R.string.yfloat_menu_management : R.string.yfloat_interface_settings',
+        ), "YFloat integrated appearance navigation label"),
+    ):
+        for marker in markers:
+            require(source, marker, label)
+
     # Rebuilt product layouts and legacy View activities must consume the live unified
     # appearance rather than static shadow settings or an independent spacing scale.
     product_spacing = text(ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt")
