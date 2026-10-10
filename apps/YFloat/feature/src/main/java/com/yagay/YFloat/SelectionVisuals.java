@@ -18,8 +18,8 @@ final class SelectionVisuals {
     }
 
     static int edgeThicknessPx(Context c) {
-        // FL selection frame uses an exact 2dp Paint stroke width.
-        return Math.max(1, Math.round(dp(c, 2f)));
+        // Track/ready colors retain their semantic meaning; border geometry belongs to YUI.
+        return Math.max(1, Math.round(YFloatOverlayStyle.selectionStroke(c)));
     }
 
     static void configureFramePaint(Context c, Paint frame, SelectionVisualState state) {
@@ -27,7 +27,7 @@ final class SelectionVisuals {
         frame.setAntiAlias(true);
         frame.setStyle(Paint.Style.STROKE);
         frame.setColor(frameColor(state));
-        frame.setStrokeWidth(dp(c, 2f));
+        frame.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
         frame.setStrokeJoin(Paint.Join.MITER);
     }
 
@@ -36,8 +36,8 @@ final class SelectionVisuals {
         text.reset();
         text.setAntiAlias(true);
         text.setStyle(Paint.Style.FILL);
-        text.setColor(Color.WHITE);
-        text.setTextSize(sp * c.getResources().getDisplayMetrics().scaledDensity);
+        text.setColor(YFloatOverlayStyle.primaryText(c));
+        text.setTextSize(YFloatOverlayStyle.textSize(c, sp));
     }
 
     static void drawFrame(Canvas c, Rect rect, Paint frame) {
@@ -60,10 +60,6 @@ final class SelectionVisuals {
     static void drawEdge(Canvas c, int width, int height, Paint frame) {
         if (c == null || width <= 0 || height <= 0) return;
         c.drawRect(0, 0, width, height, frame);
-    }
-
-    private static float dp(Context c, float value) {
-        return value * c.getResources().getDisplayMetrics().density;
     }
 
     private SelectionVisuals() {}
