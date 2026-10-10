@@ -30,7 +30,9 @@ internal object SuiteLocaleController {
 
     fun localizedContext(base: Context): Context {
         if (Build.VERSION.SDK_INT >= 33) return base
-        val tag = SuiteCommonSettings(base).value(SuiteCommonSetting.LANGUAGE)
+        // Device-protected bootstrap can run before credential-encrypted preferences unlock.
+        val tag = runCatching { SuiteCommonSettings(base).value(SuiteCommonSetting.LANGUAGE) }
+            .getOrDefault(SYSTEM)
         if (tag == SYSTEM) return base
         val language = Locale.forLanguageTag(tag)
         val config = Configuration(base.resources.configuration)
@@ -41,7 +43,8 @@ internal object SuiteLocaleController {
 
     fun initializeLegacyDelegates(context: Context) {
         if (Build.VERSION.SDK_INT >= 33) return
-        val tag = SuiteCommonSettings(context).value(SuiteCommonSetting.LANGUAGE)
+        val tag = runCatching { SuiteCommonSettings(context).value(SuiteCommonSetting.LANGUAGE) }
+            .getOrDefault(SYSTEM)
         val requested = if (tag == SYSTEM) "" else tag
         if (AppCompatDelegate.getApplicationLocales().toLanguageTags() != requested) {
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(requested))
