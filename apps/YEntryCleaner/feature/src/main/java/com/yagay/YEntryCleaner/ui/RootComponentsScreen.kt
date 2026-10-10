@@ -21,7 +21,7 @@ import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
 import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
 import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import com.yagay.yui.YUiLinearProgressIndicator as LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiSurface as Surface
