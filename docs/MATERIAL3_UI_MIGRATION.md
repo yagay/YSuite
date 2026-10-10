@@ -29,6 +29,7 @@ when a product-specific composable expects the upstream slot API.
 ## What has changed on this branch
 
 - Moved theme defaults and button/switch sizing to common Material 3 + YUI sources.
+- Aligned old View corner radii with Material 3: 8dp for buttons, 12dp for cards and outlined fields; YUI tokens remain generated from one JSON file.
 - Removed recursive runtime restyling of View trees.
 - Centralized button, icon button, checkbox and outlined text-field default geometry
   in the suite host, YEntryCleaner and the rebuilt YFiles/YDownload product workspaces.
