@@ -29,6 +29,9 @@ final class YFloatVisualSettings {
             case FloatSettings.K_STYLE -> YSettingKey.FLOAT_ICON_STYLE;
             case FloatSettings.K_LINE_STYLE -> YSettingKey.FLOAT_TRAIL_STYLE;
             case FloatSettings.K_LINE_GRADIENT -> YSettingKey.FLOAT_TRAIL_GRADIENT;
+            case FloatSettings.K_LINE_COLORS -> YSettingKey.FLOAT_TRAIL_COLORS;
+            case FloatSettings.K_CIRCLE_BORDER_ENABLED -> YSettingKey.FLOAT_BORDER_VISIBLE;
+            case FloatSettings.K_TRACK -> YSettingKey.FLOAT_TRAIL_VISIBLE;
             default -> null;
         };
     }
@@ -45,13 +48,17 @@ final class YFloatVisualSettings {
 
     static boolean readBoolean(Context context, String legacy, boolean fallback) {
         YSettingKey key = key(legacy);
-        return key == YSettingKey.FLOAT_TRAIL_GRADIENT
+        return key == YSettingKey.FLOAT_TRAIL_GRADIENT ||
+            key == YSettingKey.FLOAT_BORDER_VISIBLE ||
+            key == YSettingKey.FLOAT_TRAIL_VISIBLE
             ? "true".equals(new YAppearanceStore(context).value(key, MODULE)) : fallback;
     }
 
     static boolean writeInt(Context context, String legacy, int value) {
         YSettingKey key = key(legacy);
-        if (key == null || key == YSettingKey.FLOAT_TRAIL_GRADIENT) return false;
+        if (key == null || key == YSettingKey.FLOAT_TRAIL_GRADIENT ||
+            key == YSettingKey.FLOAT_BORDER_VISIBLE || key == YSettingKey.FLOAT_TRAIL_VISIBLE ||
+            key == YSettingKey.FLOAT_TRAIL_COLORS) return false;
         String raw = Integer.toString(value);
         if (key == YSettingKey.FLOAT_ICON_STYLE) raw = ICON_STYLES[index(value, ICON_STYLES.length)];
         if (key == YSettingKey.FLOAT_TRAIL_STYLE) raw = TRAIL_STYLES[index(value, TRAIL_STYLES.length)];
@@ -66,9 +73,23 @@ final class YFloatVisualSettings {
     }
 
     static boolean writeBoolean(Context context, String legacy, boolean value) {
-        if (key(legacy) != YSettingKey.FLOAT_TRAIL_GRADIENT) return false;
-        new YAppearanceStore(context).set(YSettingKey.FLOAT_TRAIL_GRADIENT,
-            Boolean.toString(value), MODULE);
+        YSettingKey key = key(legacy);
+        if (key != YSettingKey.FLOAT_TRAIL_GRADIENT &&
+            key != YSettingKey.FLOAT_BORDER_VISIBLE &&
+            key != YSettingKey.FLOAT_TRAIL_VISIBLE) return false;
+        new YAppearanceStore(context).set(key, Boolean.toString(value), MODULE);
+        return true;
+    }
+
+    static String readString(Context context, String legacy, String fallback) {
+        if (key(legacy) != YSettingKey.FLOAT_TRAIL_COLORS) return fallback;
+        return new YAppearanceStore(context).value(YSettingKey.FLOAT_TRAIL_COLORS, MODULE);
+    }
+
+    static boolean writeString(Context context, String legacy, String value) {
+        if (key(legacy) != YSettingKey.FLOAT_TRAIL_COLORS) return false;
+        new YAppearanceStore(context).set(YSettingKey.FLOAT_TRAIL_COLORS,
+            value == null ? "" : value, MODULE);
         return true;
     }
 
@@ -91,6 +112,7 @@ final class YFloatVisualSettings {
             FloatSettings.K_CIRCLE_BORDER_WIDTH_DP, FloatSettings.K_CIRCLE_BORDER_COLOR,
             FloatSettings.K_LINE_ALPHA, FloatSettings.K_LINE_WIDTH, FloatSettings.K_STYLE,
             FloatSettings.K_LINE_STYLE, FloatSettings.K_LINE_GRADIENT,
+            FloatSettings.K_LINE_COLORS, FloatSettings.K_CIRCLE_BORDER_ENABLED, FloatSettings.K_TRACK,
         }) {
             YSettingKey setting = key(key);
             if (!old.contains(key) || store.isOverridden(setting, MODULE)) continue;
@@ -98,6 +120,7 @@ final class YFloatVisualSettings {
             try {
                 if (raw instanceof Number number) writeInt(context, key, number.intValue());
                 else if (raw instanceof Boolean booleanValue) writeBoolean(context, key, booleanValue);
+                else if (raw instanceof String text) writeString(context, key, text);
             } catch (IllegalArgumentException ignored) {
                 // Invalid legacy values revert to YUI's validated default.
             }
