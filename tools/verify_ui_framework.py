@@ -457,7 +457,7 @@ def main() -> None:
     )
     for screen in runtime_sized_screens:
         content = text(screen)
-        local_dp = re.findall(r"(?<![A-Za-z_0-9.])\\d+(?:\\.\\d+)?\\.dp\\b", content)
+        local_dp = re.findall(r"(?<![A-Za-z_0-9.])\d+(?:\.\d+)?\.dp\b", content)
         if local_dp:
             fail(f"{screen.relative_to(ROOT)} has fixed dp literals: {local_dp}")
         if "YDimens." in content:
