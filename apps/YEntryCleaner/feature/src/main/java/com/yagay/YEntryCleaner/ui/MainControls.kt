@@ -1,6 +1,7 @@
 package com.yagay.YEntryCleaner.ui
 
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -71,13 +72,13 @@ internal fun CompactSearchField(query: String, onQueryChange: (String) -> Unit) 
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.onSurface),
         cursorBrush = SolidColor(colors.primary),
         modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
-            .heightIn(min = YDimens.OptionRowHeight)
-            .border(1.dp, colors.outlineVariant, MaterialTheme.shapes.medium),
+            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+            .border(1.dp, colors.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(LocalYAppearance.current.fieldRadiusDp.dp)),
         decorationBox = { innerTextField ->
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp)
             ) {
                 Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(YDimens.IconVisualSize), tint = colors.onSurfaceVariant)
                 Box(Modifier.weight(1f)) {
@@ -202,7 +203,7 @@ internal fun ListControls(
             Box {
                 TextButton(
                     onClick = { appTypeMenu = true },
-                    contentPadding = PaddingValues(horizontal = 6.dp)
+                    contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
                 ) {
                     Text(
                         stringResource(
@@ -226,7 +227,7 @@ internal fun ListControls(
             Box {
                 TextButton(
                     onClick = { menu = true },
-                    contentPadding = PaddingValues(horizontal = 6.dp)
+                    contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
                 ) {
                     Text(
                         stringResource(
@@ -252,7 +253,7 @@ internal fun ListControls(
                 Box {
                     TextButton(
                         onClick = { selectionMenu = true },
-                        contentPadding = PaddingValues(horizontal = 6.dp)
+                        contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
                     ) {
                         Text(stringResource(R.string.selection_actions))
                         Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
