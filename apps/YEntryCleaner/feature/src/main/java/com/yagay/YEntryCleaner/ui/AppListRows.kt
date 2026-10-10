@@ -106,7 +106,7 @@ internal fun AppRow(
                     if (lockState == BulkLockState.PARTIAL) R.string.bulk_lock_partial
                     else R.string.bulk_lock_full
                 ),
-                modifier = Modifier.padding(horizontal = 8.dp).size(20.dp),
+                modifier = Modifier.padding(horizontal = 8.dp).size(YDimens.IconVisualSize),
                 tint = if (lockState == BulkLockState.PARTIAL) MaterialTheme.colorScheme.tertiary
                 else LocalContentColor.current
             )
@@ -242,7 +242,7 @@ private fun ComponentSelectionMark(checked: Boolean) {
     val colors = MaterialTheme.colorScheme
     Box(Modifier.size(YDimens.TouchTarget), contentAlignment = Alignment.Center) {
         Box(
-            Modifier.size(20.dp)
+            Modifier.size(YDimens.IconVisualSize)
                 .background(if (checked) colors.primary else Color.Transparent, CircleShape)
                 .border(1.5.dp, if (checked) colors.primary else colors.outline, CircleShape),
             contentAlignment = Alignment.Center
@@ -257,13 +257,13 @@ private fun ComponentSelectionMark(checked: Boolean) {
 @Composable
 internal fun AppIcon(bitmap: Bitmap?, appLabel: String) {
     if (bitmap == null) {
-        Icon(Icons.Rounded.Apps, null, Modifier.size(40.dp))
+        Icon(Icons.Rounded.Apps, null, Modifier.size(YDimens.ListIconSize))
         return
     }
     Image(
         bitmap = bitmap.asImageBitmap(),
         contentDescription = stringResource(R.string.app_icon_description, appLabel),
-        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(9.dp)),
+        modifier = Modifier.size(YDimens.ListIconSize).clip(MaterialTheme.shapes.small),
         contentScale = ContentScale.Fit
     )
 }

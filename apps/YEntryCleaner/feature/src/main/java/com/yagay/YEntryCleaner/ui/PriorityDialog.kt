@@ -507,7 +507,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                     },
                                     enabled = index > 0
                                 ) {
-                                    Icon(Icons.Rounded.ArrowUpward, null, Modifier.size(18.dp))
+                                    Icon(Icons.Rounded.ArrowUpward, null, Modifier.size(YDimens.IconVisualSize))
                                     Text(stringResource(R.string.priority_move_up))
                                 }
                                 TextButton(
@@ -522,7 +522,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                     },
                                     enabled = index >= 0 && index < moveTargets.lastIndex
                                 ) {
-                                    Icon(Icons.Rounded.ArrowDownward, null, Modifier.size(18.dp))
+                                    Icon(Icons.Rounded.ArrowDownward, null, Modifier.size(YDimens.IconVisualSize))
                                     Text(stringResource(R.string.priority_move_down))
                                 }
                             }

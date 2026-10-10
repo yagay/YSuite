@@ -169,7 +169,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                         stringResource(appTypeFilter.titleRes())
                                     )
                                 )
-                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
                             }
                             DropdownMenu(expanded = appTypeMenu, onDismissRequest = { appTypeMenu = false }) {
                                 AppTypeFilter.entries.forEach { filter ->
@@ -193,7 +193,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                         stringResource(viewFilter.titleRes())
                                     )
                                 )
-                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
                             }
                             DropdownMenu(expanded = filterMenu, onDismissRequest = { filterMenu = false }) {
                                 UiFilter.entries.forEach { filter ->
@@ -327,7 +327,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                 if (lockState == BulkLockState.PARTIAL) R.string.bulk_lock_partial
                                 else R.string.bulk_lock_full
                             ),
-                            modifier = Modifier.padding(horizontal = 8.dp).size(20.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp).size(YDimens.IconVisualSize),
                             tint = if (lockState == BulkLockState.PARTIAL) MaterialTheme.colorScheme.tertiary
                             else LocalContentColor.current
                         )

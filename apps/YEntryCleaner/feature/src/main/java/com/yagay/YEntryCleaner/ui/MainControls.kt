@@ -79,7 +79,7 @@ internal fun CompactSearchField(query: String, onQueryChange: (String) -> Unit) 
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(20.dp), tint = colors.onSurfaceVariant)
+                Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(YDimens.IconVisualSize), tint = colors.onSurfaceVariant)
                 Box(Modifier.weight(1f)) {
                     if (query.isEmpty()) {
                         Text(
@@ -211,7 +211,7 @@ internal fun ListControls(
                             stringResource(appTypeFilter.titleRes())
                         )
                     )
-                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
                 }
                 DropdownMenu(expanded = appTypeMenu, onDismissRequest = { appTypeMenu = false }) {
                     AppTypeFilter.entries.forEach { mode ->
@@ -235,7 +235,7 @@ internal fun ListControls(
                             viewTitle(state.uiFilter)
                         )
                     )
-                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     UiFilter.entries.forEach { mode ->
@@ -255,7 +255,7 @@ internal fun ListControls(
                         contentPadding = PaddingValues(horizontal = 6.dp)
                     ) {
                         Text(stringResource(R.string.selection_actions))
-                        Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                        Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
                     }
                     DropdownMenu(
                         expanded = selectionMenu,
