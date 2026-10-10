@@ -5,21 +5,27 @@ import android.content.SharedPreferences
 import java.util.Locale
 
 /**
- * Functional controls already shared by YSuite's central host: diagnostic logging only.
+ * Shared host logging and validated global language/home controls.
  *
  * Do not add per-feature business options here; they belong to feature stores. All readers use
  * the same preference file and a module override falls back to its global value.
  */
-enum class SuiteCommonSetting(val key: String, val defaultValue: String) {
+enum class SuiteCommonSetting(val key: String, val defaultValue: String, val globalOnly: Boolean = false) {
     LOG_LEVEL("log_level", "debug"),
     LOG_MAX_FILE_MB("log_max_file_mb", "1"),
-    LOG_KEEP_PREVIOUS("log_keep_previous", "true");
+    LOG_KEEP_PREVIOUS("log_keep_previous", "true"),
+    LANGUAGE("language", "system", globalOnly = true),
+    HOME_HIDE_DISABLED("home_hide_disabled", "false", globalOnly = true),
+    HOME_SHOW_SEARCH("home_show_search", "true", globalOnly = true),
+    HOME_SHOW_DIAGNOSTICS("home_show_diagnostics", "true", globalOnly = true);
 
     fun validated(value: String): String {
         val valid = when (this) {
             LOG_LEVEL -> value in setOf("debug", "info", "warning", "error")
             LOG_MAX_FILE_MB -> (value.toIntOrNull() ?: 0) in 1..10
-            LOG_KEEP_PREVIOUS -> value == "true" || value == "false"
+            LOG_KEEP_PREVIOUS, HOME_HIDE_DISABLED, HOME_SHOW_SEARCH, HOME_SHOW_DIAGNOSTICS ->
+                value == "true" || value == "false"
+            LANGUAGE -> value in setOf("system", "en", "zh-CN")
         }
         require(valid) { "Invalid shared setting: $key" }
         return value
@@ -54,7 +60,7 @@ class SuiteCommonSettings(context: Context) {
         context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     fun value(setting: SuiteCommonSetting, moduleId: String? = null): String {
-        val moduleOverride = moduleId?.let {
+        val moduleOverride = moduleId?.takeUnless { setting.globalOnly }?.let {
             preferences.getString(prefix(it) + setting.key, null)
         }
         val global = preferences.getString("global." + setting.key, null)
@@ -63,20 +69,24 @@ class SuiteCommonSettings(context: Context) {
     }
 
     fun set(setting: SuiteCommonSetting, value: String, moduleId: String? = null) {
+        require(!setting.globalOnly || moduleId == null) { "Global setting cannot be overridden per module" }
         preferences.edit().putString(prefix(moduleId) + setting.key, setting.validated(value)).apply()
     }
 
     fun isOverridden(setting: SuiteCommonSetting, moduleId: String): Boolean =
-        preferences.contains(prefix(moduleId) + setting.key)
+        !setting.globalOnly && preferences.contains(prefix(moduleId) + setting.key)
 
     fun inherit(setting: SuiteCommonSetting, moduleId: String) {
+        require(!setting.globalOnly) { "Global setting cannot be inherited per module" }
         preferences.edit().remove(prefix(moduleId) + setting.key).apply()
     }
 
-    /** Reset only common settings; feature enablement, permissions and feature data are untouched. */
+    /** Reset only logging settings; language, home, feature states and data stay untouched. */
     fun reset(moduleId: String? = null) {
         val edit = preferences.edit()
-        SuiteCommonSetting.entries.forEach { edit.remove(prefix(moduleId) + it.key) }
+        SuiteCommonSetting.entries.filterNot { it.globalOnly }.forEach {
+            edit.remove(prefix(moduleId) + it.key)
+        }
         edit.apply()
     }
 
