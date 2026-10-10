@@ -133,14 +133,14 @@ internal fun CompactSuiteHome(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = YDimens.SectionGap, vertical = YDimens.SpacingXsmall)
+                    .padding(horizontal = appearance.screenPaddingDp.dp, vertical = appearance.rowVerticalPaddingDp.dp)
                     .background(
                         MaterialTheme.colorScheme.surfaceContainerLow,
-                        MaterialTheme.shapes.medium,
+                        RoundedCornerShape(appearance.cardRadiusDp.dp),
                     )
                     .clickable { onManage(null) }
-                    .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ControlGap),
-                horizontalArrangement = Arrangement.spacedBy(YDimens.ScreenHorizontal),
+                    .padding(horizontal = appearance.screenPaddingDp.dp, vertical = appearance.effectiveGapDp.dp),
+                horizontalArrangement = Arrangement.spacedBy(appearance.effectiveGapDp.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -176,7 +176,7 @@ internal fun CompactSuiteHome(
 
         item(key = "home_actions") {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 2.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = appearance.screenPaddingDp.dp, end = appearance.rowVerticalPaddingDp.dp, top = appearance.rowVerticalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -236,7 +236,7 @@ internal fun CompactSuiteHome(
             item(key = "home_empty") {
                 Text(
                     text = stringResource(R.string.home_no_match),
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(appearance.cardPaddingDp.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -284,7 +284,7 @@ private fun CompactSuiteModuleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = YDimens.OptionRowHeight)
+            .heightIn(min = appearance.rowHeightDp.dp)
             .then(if (swipePinEnabled) Modifier.pointerInput(isPinned) {
                 var dragDistance = 0f
                 detectHorizontalDragGestures(
