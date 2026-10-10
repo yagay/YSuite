@@ -34,5 +34,7 @@
   "switch_track_height": 22,
   "switch_thumb_size": 18,
   "switch_slot_width": 52,
-  "switch_slot_height": 40
+  "switch_slot_height": 40,
+  "list_icon_size": 40,
+  "icon_visual_size": 20
 }

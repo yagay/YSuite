@@ -27,6 +27,8 @@
     <dimen name="yui_button_text_padding_horizontal">8dp</dimen>
     <dimen name="yui_button_radius">8dp</dimen>
     <dimen name="yui_option_row_height">48dp</dimen>
+    <dimen name="yui_list_icon_size">40dp</dimen>
+    <dimen name="yui_icon_visual_size">20dp</dimen>
     <dimen name="yui_switch_track_width">38dp</dimen>
     <dimen name="yui_switch_track_height">22dp</dimen>
     <dimen name="yui_switch_thumb_size">18dp</dimen>

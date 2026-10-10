@@ -31,6 +31,8 @@ object YDimens {
     val ButtonTextPaddingHorizontal = 8.dp
     val ButtonRadius = 8.dp
     val OptionRowHeight = 48.dp
+    val ListIconSize = 40.dp
+    val IconVisualSize = 20.dp
     val SwitchTrackWidth = 38.dp
     val SwitchTrackHeight = 22.dp
     val SwitchThumbSize = 18.dp

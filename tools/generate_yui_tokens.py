@@ -42,6 +42,8 @@ TOKENS = [
     ("button_text_padding_horizontal", "ButtonTextPaddingHorizontal"),
     ("button_radius", "ButtonRadius"),
     ("option_row_height", "OptionRowHeight"),
+    ("list_icon_size", "ListIconSize"),
+    ("icon_visual_size", "IconVisualSize"),
     ("switch_track_width", "SwitchTrackWidth"),
     ("switch_track_height", "SwitchTrackHeight"),
     ("switch_thumb_size", "SwitchThumbSize"),
