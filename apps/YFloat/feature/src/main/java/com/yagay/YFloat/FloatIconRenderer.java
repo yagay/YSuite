@@ -1,7 +1,6 @@
 package com.yagay.YFloat;
 
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ImageDecoder;
 import android.graphics.Paint;
 import android.graphics.drawable.AnimatedImageDrawable;
@@ -92,11 +91,11 @@ final class FloatIconRenderer {
         float r = Math.min(w, h) * .47f;
         if (pressed) r *= .90f;
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(style == 1 ? 0xEE202124 : style == 2 ? 0xCCFFFFFF : 0xDD1976D2);
+        paint.setColor(YFloatOverlayStyle.iconBackground(owner.getContext(), style));
         canvas.drawCircle(w / 2f, h / 2f, r, paint);
-        paint.setStrokeWidth(Math.max(3f, w * .07f));
+        paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(owner.getContext()));
         paint.setStyle(Paint.Style.STROKE);
-        paint.setColor(style == 2 ? 0xFF1976D2 : Color.WHITE);
+        paint.setColor(YFloatOverlayStyle.iconForeground(owner.getContext(), style));
         canvas.drawCircle(w / 2f, h / 2f, r * .53f, paint);
         canvas.drawLine(w * .68f, h * .68f, w * .83f, h * .83f, paint);
     }
