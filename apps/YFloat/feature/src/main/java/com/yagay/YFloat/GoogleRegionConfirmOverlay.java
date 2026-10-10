@@ -1,11 +1,12 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YOverlayUi;
+
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.view.Gravity;
 import android.view.WindowManager;
@@ -78,11 +79,8 @@ final class GoogleRegionConfirmOverlay {
         view.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_9b6a4d50246b));
         view.setElevation(ScreenGeometry.dp(app, 8f));
 
-        GradientDrawable background = new GradientDrawable();
-        background.setColor(YFloatOverlayStyle.surface(app));
-        background.setCornerRadius(YFloatOverlayStyle.buttonRadius(app));
-        background.setStroke(ScreenGeometry.dp(app, 1f), YFloatOverlayStyle.selectionColor(app));
-        view.setBackground(background);
+        view.setBackground(YOverlayUi.panelBackground(
+                app, "yfloat", YFloatOverlayStyle.surface(app), YFloatOverlayStyle.selectionColor(app)));
 
         int width = ScreenGeometry.dp(app, 76f);
         int height = ScreenGeometry.dp(app, 42f);

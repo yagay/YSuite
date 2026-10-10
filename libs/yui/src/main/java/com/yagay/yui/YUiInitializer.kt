@@ -51,6 +51,7 @@ object YUiRuntime {
             if (key == null) return@OnSharedPreferenceChangeListener
             val changedKey = key.substringAfterLast('.')
             if (changedKey.startsWith("float_") ||
+                changedKey.startsWith("overlay_") ||
                 changedKey == "home_swipe_pin" || changedKey == "home_status") {
                 // Overlay rendering has its own listener, not Activity chrome.
                 return@OnSharedPreferenceChangeListener

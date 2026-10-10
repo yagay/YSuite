@@ -122,6 +122,10 @@ def verify_runtime_appearance() -> None:
     overlay = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YOverlayUi.kt")
     for marker in ("fun panelBackground(", "fun menuBackground(", "fun cornerRadiusPx(", "fun scaleScrimAlpha(", "fun YUiOverlayPanel("):
         require(overlay, marker, "central YUI overlay facade")
+    confirm = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/GoogleRegionConfirmOverlay.java")
+    require(confirm, "YOverlayUi.panelBackground(", "YFloat selection confirmation overlay")
+    initializer = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt")
+    require(initializer, 'changedKey.startsWith("overlay_")', "overlay-only settings must avoid Activity recreation")
     settings = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt")
     require(settings, "YUiOverlayPanel(", "YUI overlay live preview")
     action_menu = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatActionMenu.java")
