@@ -3,7 +3,6 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
@@ -72,9 +71,9 @@ public final class RegionOverlay {
             this.source = source;
             this.ocr = ocr;
             this.host = host;
-            paint.setStrokeWidth(dp(2));
-            textPaint.setColor(Color.WHITE);
-            textPaint.setTextSize(dp(16));
+            paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
+            textPaint.setColor(YFloatOverlayStyle.primaryText(c));
+            textPaint.setTextSize(YFloatOverlayStyle.textSize(c, 16f));
             textPaint.setShadowLayer(dp(3), 0, dp(1), Color.BLACK);
         }
 
@@ -83,12 +82,12 @@ public final class RegionOverlay {
                 canvas.drawBitmap(source, null, new Rect(0, 0, getWidth(), getHeight()), paint);
             }
             paint.setStyle(Paint.Style.FILL);
-            paint.setColor(0x77000000);
+            paint.setColor(YFloatOverlayStyle.scrim(getContext(), 0x77));
             canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
             if (selecting) {
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(dp(3));
-                paint.setColor(Color.WHITE);
+                paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(getContext()));
+                paint.setColor(YFloatOverlayStyle.selectionColor(getContext()));
                 if (ocr) canvas.drawPath(lasso, paint);
                 else canvas.drawRect(rect(), paint);
             }
