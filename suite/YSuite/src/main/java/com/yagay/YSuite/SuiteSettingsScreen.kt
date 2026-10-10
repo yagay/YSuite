@@ -381,6 +381,28 @@ internal fun SuiteSettingsScreen(
 @Composable
 private fun AppearanceEditor(definition: YControlDefinition, value: String, onSet: (String) -> Unit) {
     when (definition.kind) {
+        YControlKind.TEXT -> {
+            var draft by remember(definition.key, value) { mutableStateOf(value) }
+            Column {
+                YUiOutlinedTextField(
+                    value = draft,
+                    onValueChange = { if (it.length <= 256) draft = it },
+                    label = { Text(stringResource(settingTitle(definition.key))) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        if (runCatching { definition.key.validate(draft) }.isSuccess) onSet(draft)
+                    }),
+                )
+                YSecondaryButton(
+                    text = stringResource(R.string.appearance_apply_exact),
+                    enabled = draft != value &&
+                        runCatching { definition.key.validate(draft) }.isSuccess,
+                    onClick = { onSet(draft) },
+                )
+            }
+        }
         YControlKind.BOOLEAN -> YSwitchItem(
             title = stringResource(settingTitle(definition.key)),
             checked = value == "true",
@@ -531,6 +553,9 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.FLOAT_ICON_STYLE -> R.string.appearance_float_icon_style
     YSettingKey.FLOAT_TRAIL_STYLE -> R.string.appearance_float_trail_style
     YSettingKey.FLOAT_TRAIL_GRADIENT -> R.string.appearance_float_trail_gradient
+    YSettingKey.FLOAT_TRAIL_COLORS -> R.string.appearance_float_trail_colors
+    YSettingKey.FLOAT_BORDER_VISIBLE -> R.string.appearance_float_border_visible
+    YSettingKey.FLOAT_TRAIL_VISIBLE -> R.string.appearance_float_trail_visible
     YSettingKey.HOME_STATUS -> R.string.settings_home_status
 }
 
