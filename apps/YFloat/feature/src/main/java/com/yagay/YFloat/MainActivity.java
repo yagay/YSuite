@@ -289,14 +289,12 @@ public class MainActivity extends AppCompatActivity {
 
         LinearLayout copy = new LinearLayout(this);
         copy.setOrientation(LinearLayout.VERTICAL);
-        TextView titleView = YViewLayout.text(this, title, 15, false);
+        TextView titleView = YViewLayout.rowTitle(this, title);
         copy.addView(titleView);
-        TextView sub = YViewLayout.caption(this, subtitle, 12.5f);
-        sub.setPadding(0, Math.max(1, YView.controlGap(this) / 4), YView.controlGap(this), 0);
+        TextView sub = YViewLayout.rowSubtitle(this, subtitle);
         copy.addView(sub);
-        TextView status = YViewLayout.caption(this,
-                getString(R.string.yfloat_permission_not_authorized), 12.5f);
-        status.setPadding(0, Math.max(1, YView.controlGap(this) / 4), 0, 0);
+        TextView status = YViewLayout.rowSubtitle(this,
+                getString(R.string.yfloat_permission_not_authorized));
         copy.addView(status);
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
 

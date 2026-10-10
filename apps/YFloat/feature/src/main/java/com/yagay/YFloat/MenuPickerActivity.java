@@ -573,15 +573,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView titleView = YViewLayout.text(this, title, 14, false);
-        titleView.setMaxLines(Integer.MAX_VALUE);
-        titleView.setEllipsize(null);
+        TextView titleView = YViewLayout.rowTitle(this, title);
         texts.addView(titleView);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = YViewLayout.caption(this, subtitle, 11);
-            sub.setMaxLines(Integer.MAX_VALUE);
-            sub.setEllipsize(null);
-            sub.setPadding(0, dp(2), 0, 0);
+            TextView sub = YViewLayout.rowSubtitle(this, subtitle);
             texts.addView(sub);
         }
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -643,13 +638,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView a = YViewLayout.text(this, title, 15, false);
-        a.setSingleLine(false);
+        TextView a = YViewLayout.rowTitle(this, title);
         texts.addView(a);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView b = YViewLayout.caption(this, subtitle, 12);
-            b.setSingleLine(false);
-            b.setPadding(0, dp(2), dp(8), 0);
+            TextView b = YViewLayout.rowSubtitle(this, subtitle);
             texts.addView(b);
         }
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -679,7 +671,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
 
     private void addEmpty(LinearLayout parent, String message) {
         LinearLayout row = YViewLayout.baseRow(this);
-        TextView empty = YViewLayout.caption(this, message, 13);
+        TextView empty = YViewLayout.rowSubtitle(this, message);
         empty.setGravity(Gravity.CENTER_VERTICAL);
         row.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         YViewLayout.addRow(parent, row);

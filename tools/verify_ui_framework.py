@@ -483,6 +483,31 @@ def main() -> None:
         for marker in required_markers:
             require(source, marker, label)
 
+    # A YUI import alone does not mean the typography/layout are unified.
+    # Enforce the semantic row and footnote factories, not mere file membership.
+    yui_view = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt")
+    float_main = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MainActivity.java")
+    float_icon_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsIconPage.java")
+    float_appearance_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppearanceSettingsActivity.java")
+    float_picker_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuPickerActivity.java")
+    float_label_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuLabelEditorActivity.java")
+    for marker in ("fun rowTitle(", "fun rowSubtitle(", "fun sectionNote(",
+                   "copy.addView(rowTitle(context, title))",
+                   "copy.addView(rowSubtitle(context, description))",
+                   "addView(rowSubtitle(context, subtitle), matchWrap())"):
+        require(yui_view, marker, "canonical View text hierarchy")
+    for source, label in ((float_main, "YFloat main and permission rows"),
+                          (float_picker_page, "YFloat menu picker"),
+                          (float_label_page, "YFloat label editor")):
+        for token in ("YViewLayout.caption(", "setEllipsize(", "setMaxLines("):
+            if token in source:
+                fail(f"{label} bypasses the shared YUI text role: {token}")
+        require(source, "YViewLayout.rowSubtitle(", label)
+    for source, label in ((float_icon_page, "YFloat position settings"),
+                          (float_appearance_page, "YFloat appearance settings"),
+                          (float_main, "YFloat main page")):
+        require(source, "YViewLayout.sectionNote(", label)
+
     # All regular screens identified in the fixed-dp audit must use live YUI
     # appearance values. Keep this check as new modules are migrated.
     runtime_sized_screens = (

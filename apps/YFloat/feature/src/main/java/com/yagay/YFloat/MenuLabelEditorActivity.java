@@ -160,15 +160,10 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView name = YViewLayout.text(this, title, 14, false);
-        name.setSingleLine(false);
-        name.setEllipsize(null);
+        TextView name = YViewLayout.rowTitle(this, title);
         texts.addView(name);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = YViewLayout.caption(this, subtitle, 11);
-            sub.setSingleLine(false);
-            sub.setEllipsize(null);
-            sub.setPadding(0, YViewLayout.dp(this, 2), YViewLayout.dp(this, 8), 0);
+            TextView sub = YViewLayout.rowSubtitle(this, subtitle);
             texts.addView(sub);
         }
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -184,7 +179,7 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
 
     private void addEmpty(LinearLayout parent, String message) {
         LinearLayout row = YViewLayout.baseRow(this);
-        TextView empty = YViewLayout.caption(this, message, 13);
+        TextView empty = YViewLayout.rowSubtitle(this, message);
         row.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         YViewLayout.addRow(parent, row);
     }
@@ -205,8 +200,8 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
                 YViewLayout.dp(this, 20), 0);
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
         if (systemLabel != null && !systemLabel.isBlank()) {
-            TextView system = YViewLayout.caption(this,
-                    getString(R.string.yfloat_menu_system_name, systemLabel), 11);
+            TextView system = YViewLayout.rowSubtitle(this,
+                    getString(R.string.yfloat_menu_system_name, systemLabel));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = YViewLayout.dp(this, 6);
             box.addView(system, lp);

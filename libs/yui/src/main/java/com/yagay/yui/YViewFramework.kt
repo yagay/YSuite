@@ -430,11 +430,33 @@ object YViewLayout {
         maxLines = 1
     }
 
+    /** Canonical title for a selectable row in all Java/View feature screens. */
     @JvmStatic
-    fun listSubtitle(context: Context): TextView = TextView(context).apply {
-        YView.styleCaption(this)
-        maxLines = 2
+    fun rowTitle(context: Context, value: String?): TextView = TextView(context).apply {
+        text = value.orEmpty()
+        YView.styleItemTitle(this)
+        isSingleLine = false
+        maxLines = Int.MAX_VALUE
+        ellipsize = null
     }
+
+    /**
+     * Canonical description beneath a row title. Typography, line height and
+     * spacing come from YUI, including module-specific appearance settings.
+     */
+    @JvmStatic
+    fun rowSubtitle(context: Context, value: String?): TextView =
+        caption(context, value, 12.5f).apply {
+            gravity = Gravity.START
+            isSingleLine = false
+            maxLines = Int.MAX_VALUE
+            ellipsize = null
+            setPadding(0, maxOf(1, YView.controlGap(context) / 4),
+                YView.controlGap(context), 0)
+        }
+
+    @JvmStatic
+    fun listSubtitle(context: Context): TextView = rowSubtitle(context, null)
 
     @JvmStatic
     fun listGap(context: Context): Int = controlGap(context)
@@ -555,19 +577,9 @@ object YViewLayout {
         val copy = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
         }
-        copy.addView(listTitle(context).apply {
-            text = title
-            maxLines = Int.MAX_VALUE
-            isSingleLine = false
-            ellipsize = null
-        })
+        copy.addView(rowTitle(context, title))
         if (!description.isNullOrBlank()) {
-            copy.addView(listSubtitle(context).apply {
-                text = description
-                maxLines = Int.MAX_VALUE
-                isSingleLine = false
-                ellipsize = null
-            })
+            copy.addView(rowSubtitle(context, description))
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(
@@ -741,11 +753,9 @@ object YViewLayout {
         val copy = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(text(context, title, 15f, false), matchWrap())
+            addView(rowTitle(context, title), matchWrap())
             if (!subtitle.isNullOrBlank()) {
-                addView(caption(context, subtitle, 12.5f).apply {
-                    setPadding(0, dp(context, 3), dp(context, 10), 0)
-                }, matchWrap())
+                addView(rowSubtitle(context, subtitle), matchWrap())
             }
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -1074,16 +1084,9 @@ object YViewLayout {
             setPadding(0, YView.rowVerticalPadding(context), 0, YView.rowVerticalPadding(context))
         }
         val texts = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
-        texts.addView(TextView(parent.context).apply {
-            text = title
-            YView.styleItemTitle(this)
-        })
+        texts.addView(rowTitle(parent.context, title))
         if (!description.isNullOrBlank()) {
-            texts.addView(TextView(parent.context).apply {
-                text = description
-                YView.styleCaption(this)
-                setPadding(0, dp(context, 3), controlGap(context), 0)
-            })
+            texts.addView(rowSubtitle(parent.context, description))
         }
         row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         val toggle = MaterialSwitch(parent.context).apply {
