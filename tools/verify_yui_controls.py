@@ -59,6 +59,10 @@ def main() -> None:
                 if any(path.is_relative_to(ui_root) for ui_root in app_ui_roots):
                     bad.extend(re.findall(r"^import\s+androidx\.compose\.material3\.(Text|Icon)\b", source, re.MULTILINE))
                     bad.extend(re.findall(r"\bandroidx\.compose\.material3\.(Text|Icon)\s*\(", source))
+                if (path.is_relative_to(ROOT / "next/core/ui")
+                        or path.is_relative_to(ROOT / "next/core/designsystem")):
+                    bad.extend(re.findall(r"^import\s+androidx\.compose\.material3\.(Text|Icon|ModalDrawerSheet|ModalNavigationDrawer)\b", source, re.MULTILINE))
+                    bad.extend(re.findall(r"\bandroidx\.compose\.material3\.(Text|Icon|ModalDrawerSheet|ModalNavigationDrawer)\s*\(", source))
                 if path.is_relative_to(ROOT / "suite/YSuite"):
                     bad.extend(re.findall(r"^import\s+androidx\.compose\.material3\.(Text|Icon|Tab)\b", source, re.MULTILINE))
                     bad.extend(re.findall(r"\bandroidx\.compose\.material3\.(Text|Icon|Tab)\s*\(", source))

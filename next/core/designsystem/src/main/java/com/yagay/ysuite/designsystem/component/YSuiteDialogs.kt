@@ -3,7 +3,7 @@ package com.yagay.ysuite.designsystem.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import com.yagay.yui.YUiAlertDialog as AlertDialog
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import com.yagay.yui.YConfirmDialog
 import com.yagay.yui.YDialogConfirmButton

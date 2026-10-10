@@ -4,7 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Icon
+import com.yagay.yui.YUiIcon as Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
