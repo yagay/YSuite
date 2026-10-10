@@ -114,6 +114,4 @@
     <string name="shared_appearance_system">跟随系统</string>
     <string name="shared_appearance_light">浅色</string>
     <string name="shared_appearance_dark">深色</string>
-    <string name="shared_appearance_components">统一控件</string>
-    <string name="shared_appearance_components_desc">按钮、开关、对话框、圆角、间距及颜色统一由 YUI 定义，模块专属业务设置仍在各模块内。</string>
 </resources>
