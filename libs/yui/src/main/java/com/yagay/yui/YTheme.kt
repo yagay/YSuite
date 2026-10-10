@@ -42,13 +42,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val YShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(YDimens.ButtonRadius),
-    medium = RoundedCornerShape(YDimens.CardRadius),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(28.dp),
-)
+// AndroidX Material 3 owns component corner shapes. No second per-feature shape system.
+private val YShapes = Shapes()
 
 private val YLightColors = lightColorScheme(
     primary = YUiPalette.LightPrimary,
@@ -86,23 +81,18 @@ private val YDarkColors = darkColorScheme(
     outline = YUiPalette.DarkOutline,
 )
 
-private val YTypography = Typography(
-    headlineSmall = Typography().headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
-    titleLarge = Typography().titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 21.sp),
-    titleMedium = Typography().titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
-    bodyLarge = Typography().bodyLarge.copy(fontSize = 16.sp),
-    bodyMedium = Typography().bodyMedium.copy(fontSize = 14.sp),
-    bodySmall = Typography().bodySmall.copy(fontSize = 12.sp),
-    labelLarge = Typography().labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
-)
+// Keep upstream Material 3 typography unmodified so every feature has matching text metrics.
+private val YTypography = Typography()
 
 @Composable
 fun YTheme(
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
+    // A deterministic shared palette is essential for matching Compose and legacy View screens.
+    // Android dynamic colors remain available only via an explicit opt-in.
     val scheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= 31 && darkTheme -> dynamicDarkColorScheme(context)
         dynamicColor && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)

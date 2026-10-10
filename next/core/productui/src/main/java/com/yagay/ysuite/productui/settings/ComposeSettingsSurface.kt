@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YListItem
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.YSuiteProductPage
 
@@ -101,7 +102,7 @@ fun ComposeSettingsSurface(
                                 ),
                         verticalArrangement =
                             Arrangement.spacedBy(
-                                YSuiteSpacing.Large,
+                                YSuiteSpacing.Medium,
                             ),
                     ) {
                         content(paneAdaptive)
@@ -162,17 +163,12 @@ fun ComposeSettingsLink(
     action: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent =
-            subtitle?.let { value ->
-                { Text(value) }
-            },
-        trailingContent = action,
-        modifier = Modifier.clickable(
-            enabled = enabled,
-            onClick = onClick,
-        ),
+    YListItem(
+        title = title,
+        subtitle = subtitle,
+        enabled = enabled,
+        trailing = action,
+        onClick = onClick,
     )
 }
 
@@ -190,16 +186,15 @@ fun ComposeSettingsChoiceGroup(
 ) {
     ComposeSettingsGroup(title = title) {
         choices.forEach { choice ->
-            ListItem(
-                headlineContent = { Text(choice.label) },
-                leadingContent = {
+            YListItem(
+                title = choice.label,
+                selected = choice.id == selectedId,
+                onClick = { onSelected(choice.id) },
+                leading = {
                     RadioButton(
                         selected = choice.id == selectedId,
                         onClick = null,
                     )
-                },
-                modifier = Modifier.clickable {
-                    onSelected(choice.id)
                 },
             )
         }
@@ -217,13 +212,10 @@ fun ComposeSettingsIntSlider(
 ) {
     val safeValue = value.coerceIn(range.first, range.last)
     Column(modifier = Modifier.fillMaxWidth()) {
-        ListItem(
-            headlineContent = { Text(title) },
-            supportingContent =
-                subtitle?.let { valueText ->
-                    { Text(valueText) }
-                },
-            trailingContent = {
+        YListItem(
+            title = title,
+            subtitle = subtitle,
+            trailing = {
                 Text(
                     text = safeValue.toString(),
                     style = MaterialTheme.typography.titleMedium,

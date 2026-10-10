@@ -9,15 +9,12 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.startup.Initializer
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.color.DynamicColors
 import java.util.WeakHashMap
 
 class YUiInitializer : Initializer<Unit> {
@@ -44,7 +41,8 @@ object YUiRuntime {
     fun install(application: Application) {
         if (installed) return
         installed = true
-        DynamicColors.applyToActivitiesIfAvailable(application)
+        // Do not auto-apply system dynamic colors to only the View side of a mixed UI.
+        // The shared Material 3 scheme is applied by theme resources and YTheme.
         application.registerActivityLifecycleCallbacks(
             object : Application.ActivityLifecycleCallbacks {
                 override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = schedule(activity)
@@ -88,7 +86,7 @@ object YUiRuntime {
 
         val content = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
         YView.applyRoot(content)
-        normalizeTree(content)
+        // Never mutate component sizes/backgrounds after inflation. Material 3 owns widgets.
 
         // Compose owns its insets through YScaffold/Scaffold. Traditional View Activities receive
         // exactly one system-bar padding layer here so every standalone app and YSuite behave alike.
@@ -125,16 +123,4 @@ object YUiRuntime {
         return false
     }
 
-    private fun normalizeTree(view: View) {
-        when (view) {
-            is MaterialCardView -> {
-                view.radius = YView.dimen(view.context, R.dimen.yui_card_radius).toFloat()
-                view.setCardBackgroundColor(YView.surfaceContainer(view.context))
-            }
-            is Button -> YView.stylePrimaryButton(view)
-        }
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) normalizeTree(view.getChildAt(i))
-        }
-    }
 }

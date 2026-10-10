@@ -75,10 +75,10 @@
     </style>
 
     <style name="Widget.YUI.TextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">22dp</item>
-        <item name="boxCornerRadiusTopEnd">22dp</item>
-        <item name="boxCornerRadiusBottomStart">22dp</item>
-        <item name="boxCornerRadiusBottomEnd">22dp</item>
+        <item name="boxCornerRadiusTopStart">@dimen/yui_button_radius</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/yui_button_radius</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/yui_button_radius</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/yui_button_radius</item>
     </style>
 
     <style name="TextAppearance.YUI.PageTitle" parent="TextAppearance.Material3.TitleLarge" />

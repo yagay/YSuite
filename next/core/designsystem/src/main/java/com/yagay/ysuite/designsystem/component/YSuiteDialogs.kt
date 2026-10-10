@@ -6,6 +6,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.yagay.yui.YConfirmDialog
+import com.yagay.yui.YDialogConfirmButton
+import com.yagay.yui.YDialogDismissButton
 import com.yagay.yui.YTextField
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 
@@ -37,8 +39,8 @@ fun YSuiteTextInputDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { YTextField(value = value, onValueChange = onValueChange, label = label) },
-        confirmButton = { YSuitePrimaryButton(confirmText, onConfirm) },
-        dismissButton = { YSuiteSecondaryButton(dismissText, onDismiss) },
+        confirmButton = { YDialogConfirmButton(confirmText, onConfirm) },
+        dismissButton = { YDialogDismissButton(dismissText, onDismiss) },
     )
 }
 
@@ -56,8 +58,8 @@ fun YSuiteTextEditorDialog(
                 label = title, singleLine = false, minLines = 8, maxLines = 18,
             )
         },
-        confirmButton = { YSuitePrimaryButton(confirmText, onConfirm) },
-        dismissButton = { YSuiteSecondaryButton(dismissText, onDismiss) },
+        confirmButton = { YDialogConfirmButton(confirmText, onConfirm) },
+        dismissButton = { YDialogDismissButton(dismissText, onDismiss) },
     )
 }
 
@@ -84,7 +86,7 @@ fun YSuiteTextFormDialog(
                 extraContent?.invoke()
             }
         },
-        confirmButton = { YSuitePrimaryButton(confirmText, onConfirm) },
-        dismissButton = { YSuiteSecondaryButton(dismissText, onDismiss) },
+        confirmButton = { YDialogConfirmButton(confirmText, onConfirm) },
+        dismissButton = { YDialogDismissButton(dismissText, onDismiss) },
     )
 }

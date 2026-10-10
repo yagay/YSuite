@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -87,6 +88,26 @@ fun YFullScreenDialog(
             )
         }
     }
+}
+
+/** Official Material 3 text actions shared by all normal dialogs. */
+@Composable
+fun YDialogConfirmButton(
+    label: String,
+    onClick: () -> Unit,
+    dangerous: Boolean = false,
+) {
+    TextButton(onClick = onClick, modifier = Modifier) {
+        Text(
+            label,
+            color = if (dangerous) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
+fun YDialogDismissButton(label: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick) { Text(label) }
 }
 
 /** Canonical content dialog with YUI actions and spacing. */

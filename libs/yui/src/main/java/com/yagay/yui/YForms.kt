@@ -302,16 +302,9 @@ fun YConfirmDialog(
         title = { Text(title) },
         text = { Text(message) },
         confirmButton = {
-            Button(
-                onClick = onConfirm,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-                colors = if (dangerous) ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ) else ButtonDefaults.buttonColors(),
-            ) { Text(confirmLabel) }
+            YDialogConfirmButton(confirmLabel, onConfirm, dangerous = dangerous)
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical)) { Text(dismissLabel) } },
+        dismissButton = { YDialogDismissButton(dismissLabel, onDismiss) },
     )
 }
 
