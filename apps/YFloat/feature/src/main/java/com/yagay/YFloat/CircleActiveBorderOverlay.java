@@ -263,7 +263,7 @@ final class CircleActiveBorderOverlay {
         }
 
         void applyStyle(int color, int widthDp) {
-            stroke = Math.max(1f, Math.max(1, Math.min(8, widthDp)) * density);
+            stroke = Math.max(1f, Math.max(0, widthDp) * density);
             dashLength = Math.max(6f * density, stroke * 3.2f);
             dashGap = Math.max(4f * density, stroke * 2.2f);
             paint.setColor(color);
