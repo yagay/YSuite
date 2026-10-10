@@ -34,3 +34,24 @@ YUI 负责主题、字体、按钮、列表、卡片、输入框、开关、对�
 - **验证**：`tools/verify_ui_framework.py`、`verify_yui_controls.py` 与 `verify_yui_content_compatibility.py` 在架构 CI 中执行，保护统一配置入口与功能交互边界。
 
 以上共享配置只在同一个 Android 应用包的私有配置中继承；独立安装的 APK 不会自动跨应用同步 YSuite 的设置。
+
+## General settings, language and home (2026-10-10)
+
+The root YSuite settings screen now has a **General settings** destination, distinct from
+YUI appearance and the shared functionality / Root / LSPosed area.
+
+- **App language**: Follow system, English or Simplified Chinese. Android 13+ delegates to
+  Android's per-app LocaleManager so that system App Languages and in-app selection stay in sync.
+  On Android 12 / 12L the YSuite Application and all shared YComposeActivity feature screens
+  inherit the host's localized Context; AppCompat screens also receive the requested locale.
+  The user-facing choice is global to the integrated host, not a per-feature override.
+  Independent APKs have independent package locales.
+- **Home behavior**: hide disabled feature entries without disabling or removing their runtime
+  configuration; show/hide search and diagnostics toolbar shortcuts. Module Management and shared
+  diagnostics remain reachable regardless of shortcut visibility.
+- **About and app management**: the installed version and a link to Android's App Info page.
+- All four options reuse SuiteCommonSettings' existing validated preference store. General settings
+  cannot be overridden by modules, and the **Reset shared log settings** action deliberately
+  leaves language and home preferences unchanged.
+
+Existing appearance controls and export/import continue to affect appearance only.
