@@ -63,6 +63,9 @@ jobs:
       - name: Verify unified UI framework
         run: python3 tools/verify_ui_framework.py
 
+      - name: Verify live YUI visual contracts
+        run: python3 tools/verify_yui_visual_contracts.py
+
       - name: Verify YUI single source for current and future features
         run: python3 tools/verify_yui_single_source.py
 

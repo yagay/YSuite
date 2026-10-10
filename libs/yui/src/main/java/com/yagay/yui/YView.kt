@@ -177,6 +177,16 @@ object YView {
     @JvmStatic fun toolbarHeight(context: Context): Int = dp(context, appearance(context).toolbarHeightDp)
     @JvmStatic fun iconSize(context: Context): Int = dp(context, appearance(context).iconVisualSizeDp)
     @JvmStatic fun listIconSize(context: Context): Int = dp(context, appearance(context).listIconSizeDp)
+    /** Synchronise inflated row icons with the central YUI appearance settings. */
+    @JvmStatic fun styleListIcon(view: android.widget.ImageView) {
+        val size = listIconSize(view.context)
+        val layout = view.layoutParams ?: return
+        if (layout.width != size || layout.height != size) {
+            layout.width = size
+            layout.height = size
+            view.layoutParams = layout
+        }
+    }
     @JvmStatic fun buttonHeight(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).buttonHeightDp)
 

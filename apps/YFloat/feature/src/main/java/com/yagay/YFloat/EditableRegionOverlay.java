@@ -121,7 +121,10 @@ public final class EditableRegionOverlay {
             Paint p = new Paint(textPaint);
             p.setTextAlign(Paint.Align.LEFT);
             p.setTextSize(YFloatOverlayStyle.textSize(context, 15f));
-            c.drawText(tip, dp(16), dp(34), p);
+            float inset = YFloatOverlayStyle.controlGap(context);
+            float baseline = Math.max(inset - p.ascent(), dp(34));
+            SelectionVisuals.drawFittedText(c, tip, inset, baseline,
+                    Math.max(0f, getWidth() - inset * 2), p);
         }
 
         private void drawHandles(Canvas c, RectF r) {
@@ -147,7 +150,10 @@ public final class EditableRegionOverlay {
                 buttons[i].set(left, top, left + w, top + h);
                 buttonPaint.setColor(YFloatOverlayStyle.actionSurface(context, pressedAction == actions[i]));
                 c.drawRoundRect(buttons[i], YFloatOverlayStyle.buttonRadius(context), YFloatOverlayStyle.buttonRadius(context), buttonPaint);
-                c.drawText(labels[i], buttons[i].centerX(), buttons[i].centerY() + dp(5), textPaint);
+                float baseline = buttons[i].centerY()
+                        - (textPaint.ascent() + textPaint.descent()) / 2f;
+                SelectionVisuals.drawFittedText(c, labels[i], buttons[i].centerX(), baseline,
+                        Math.max(0f, w - YFloatOverlayStyle.controlGap(context)), textPaint);
             }
         }
 

@@ -61,6 +61,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
         YView.styleBody(h.b.text);
         YView.styleCaption(h.b.details);
         YView.styleCaption(h.b.time);
+        YView.styleListIcon(h.b.appIcon);
         h.b.appIcon.setImageDrawable(AppInfoUtil.icon(c, r.packageName));
         h.b.appName.setText(first(r.appLabel, r.packageName, c.getString(R.string.ynotify_unknown_app)));
         h.b.type.setText(typeLabel(c, r));

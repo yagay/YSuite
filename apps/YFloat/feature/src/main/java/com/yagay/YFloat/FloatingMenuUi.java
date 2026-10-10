@@ -70,7 +70,8 @@ final class FloatingMenuUi {
         tv.setBackground(YOverlayUi.actionRipple(c, "yfloat"));
         tv.setClickable(true);
         tv.setFocusable(true);
-        tv.setMinHeight(YView.rowHeight(c));
+        tv.setMinHeight(Math.max(YView.rowHeight(YOverlayUi.scopedContext(c, "yfloat")),
+                YOverlayUi.actionHeightPx(c, "yfloat")));
         tv.setIncludeFontPadding(true);
         return tv;
     }

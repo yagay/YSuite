@@ -18,12 +18,18 @@ import android.widget.TextView;
 final class ResultUi {
     static final int OUTER_MARGIN_DP = 12;
     static final int BOX_HPAD_DP = 14;
-    static final int TITLE_H_DP = 38;
-    static final int ACTION_H_DP = 50;
-    static final int ROOT_VPAD_DP = 16;
+    /** Result panel uses the same live row/button metrics as normal YUI surfaces. */
+    static int titleHeight(Context c) {
+        return YView.rowHeight(YOverlayUi.scopedContext(c, "yfloat"));
+    }
 
-    /** One visible corner radius for Screenshot / View / OCR result popups. */
-    static final int POPUP_RADIUS_DP = 22;
+    static int actionHeight(Context c) {
+        return YOverlayUi.actionHeightPx(c, "yfloat");
+    }
+
+    static int verticalPadding(Context c) {
+        return YView.controlGap(YOverlayUi.scopedContext(c, "yfloat")) * 2;
+    }
 
     static LinearLayout box(Context c) {
         LinearLayout box = new LinearLayout(c);
@@ -97,7 +103,7 @@ final class ResultUi {
 
     static int imageHeight(Context c, Bitmap image, int width, int maxHeight) {
         if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0) return 0;
-        int innerWidth = Math.max(dp(c, 120), width - dp(c, BOX_HPAD_DP * 2));
+        int innerWidth = Math.max(1, width - YOverlayUi.contentPaddingPx(c, "yfloat") * 2);
         int h = Math.round(innerWidth * (image.getHeight() / (float) image.getWidth()));
         return clamp(h, dp(c, 72), Math.max(dp(c, 72), maxHeight));
     }

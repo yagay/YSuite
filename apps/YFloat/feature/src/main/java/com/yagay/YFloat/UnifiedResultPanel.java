@@ -47,10 +47,10 @@ final class UnifiedResultPanel {
         Rect usable = ResultUi.usableBounds(context);
         width = ResultUi.standardWidth(context, usable);
         int maxHeight = ResultUi.standardMaxHeight(context, usable);
-        titleHeight = ResultUi.dp(context, ResultUi.TITLE_H_DP);
-        actionsHeight = ResultUi.dp(context, ResultUi.ACTION_H_DP);
-        contentBudget = Math.max(ResultUi.dp(context, 90),
-                maxHeight - titleHeight - actionsHeight - ResultUi.dp(context, ResultUi.ROOT_VPAD_DP));
+        titleHeight = ResultUi.titleHeight(context);
+        actionsHeight = ResultUi.actionHeight(context);
+        contentBudget = Math.max(1,
+                maxHeight - titleHeight - actionsHeight - ResultUi.verticalPadding(context));
 
         root = ResultUi.box(context);
 

@@ -56,6 +56,22 @@ final class SelectionVisuals {
         c.drawText(text, x, y, fill);
     }
 
+    /** Fit Canvas labels by measured width, retaining complete Unicode codepoints. */
+    static void drawFittedText(Canvas canvas, String value, float x, float baseline,
+                               float maxWidth, Paint paint) {
+        if (canvas == null || value == null || value.isEmpty() || paint == null || maxWidth <= 0) return;
+        String text = value;
+        if (paint.measureText(text) > maxWidth) {
+            final String ellipsis = "\u2026";
+            if (paint.measureText(ellipsis) > maxWidth) return;
+            while (!text.isEmpty() && paint.measureText(text + ellipsis) > maxWidth) {
+                text = text.substring(0, text.offsetByCodePoints(text.length(), -1));
+            }
+            text += ellipsis;
+        }
+        canvas.drawText(text, x, baseline, paint);
+    }
+
     static void configureEdgePaint(Paint frame, SelectionVisualState state) {
         frame.reset();
         frame.setAntiAlias(false);

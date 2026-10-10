@@ -19,11 +19,7 @@ import android.widget.TextView;
 public final class FlPointerOperationHintOverlay {
     public enum Mode { TEXT, IMAGE, SCREENSHOT }
 
-    private static final float HINT_HEIGHT_DP = 20f;
-    private static final float PROBE_X_OFFSET_DP = 15f;
-    private static final float ICON_SIZE_DP = 20f;
-    private static final float TEXT_SIZE_DP = 10f;
-    private static final float TEXT_MAX_WIDTH_DP = 120f;
+    private static final float PROBE_X_OFFSET_DP = 15f; // Physical probe geometry, not UI styling.
 
     private final Context context;
     private final FlOverlayWindowHost windowHost;
@@ -41,9 +37,9 @@ public final class FlPointerOperationHintOverlay {
     public FlPointerOperationHintOverlay(Context c) {
         context = c.getApplicationContext();
         windowHost = new FlOverlayWindowHost(context);
-        iconSizePx = Math.max(dp(ICON_SIZE_DP), dp(
-                YOverlayUi.appearance(context, "yfloat").getIconVisualSizeDp()));
-        hintHeightPx = Math.max(dp(HINT_HEIGHT_DP), iconSizePx);
+        iconSizePx = YView.iconSize(YOverlayUi.scopedContext(context, "yfloat"));
+        hintHeightPx = Math.max(iconSizePx,
+                YOverlayUi.actionHeightPx(context, "yfloat") / 2);
         probeXOffsetPx = dp(PROBE_X_OFFSET_DP);
 
         root = new LinearLayout(context);
@@ -61,7 +57,8 @@ public final class FlPointerOperationHintOverlay {
         text = new TextView(YOverlayUi.scopedContext(context, "yfloat"));
         YOverlayUi.styleHintText(text, "yfloat");
         text.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        text.setMaxWidth(dp(TEXT_MAX_WIDTH_DP));
+        text.setMaxWidth(Math.max(iconSizePx * 3,
+                ScreenGeometry.usableBounds(context).width() / 3));
         text.setMaxLines(1);
         text.setVisibility(View.GONE);
         root.addView(text, new LinearLayout.LayoutParams(

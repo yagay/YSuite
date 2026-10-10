@@ -37,6 +37,9 @@ jobs:
       - name: Verify shared feature infrastructure
         run: python3 tools/verify_shared_infrastructure.py
 
+      - name: Verify live YUI visual contracts
+        run: python3 tools/verify_yui_visual_contracts.py
+
       - name: Read shared build versions
         id: versions
         run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"

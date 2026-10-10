@@ -58,6 +58,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         YView.styleCaption(h.b.packageName);
         YView.styleCaption(h.b.lastTime);
         YView.styleSectionTitle(h.b.count);
+        YView.styleListIcon(h.b.appIcon);
         h.b.appIcon.setImageDrawable(AppInfoUtil.icon(c, s.packageName));
         h.b.appName.setText(s.appLabel == null || s.appLabel.isBlank()
                 ? c.getString(R.string.ynotify_unknown_app)

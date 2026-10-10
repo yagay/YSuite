@@ -646,7 +646,8 @@ object YViewLayout {
             // Use the same Material 3 card surface, radius and elevation as Compose pages.
             setCardBackgroundColor(YView.surfaceContainer(context))
             radius = YView.cardRadius(context).toFloat()
-            strokeWidth = 0
+            strokeWidth = YView.cardOutlineWidth(context)
+            setStrokeColor(ColorStateList.valueOf(YView.outline(context)))
             cardElevation = 0f
             useCompatPadding = false
         }

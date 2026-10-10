@@ -33,16 +33,17 @@ public final class ImageActionMenu {
         FlOverlayWindowHost host = new FlOverlayWindowHost(app);
 
         LinearLayout root = FloatingMenuUi.root(app);
-        root.setPadding(dp(app, 4), dp(app, 4), dp(app, 4), dp(app, 4));
+        int inset = com.yagay.yui.YOverlayUi.contentPaddingPx(app, "yfloat");
+        root.setPadding(inset, inset, inset, inset);
 
         TextView copy = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2141db002cc3), null);
         TextView share = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bd0e3d6f4b1d), null);
         TextView openWith = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c41a0fcaa12b), null);
         TextView save = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_34cebf59ef93), null);
-        root.addView(copy, new LinearLayout.LayoutParams(-1, dp(app, 48)));
-        root.addView(share, new LinearLayout.LayoutParams(-1, dp(app, 48)));
-        root.addView(openWith, new LinearLayout.LayoutParams(-1, dp(app, 48)));
-        root.addView(save, new LinearLayout.LayoutParams(-1, dp(app, 48)));
+        root.addView(copy, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
+        root.addView(share, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
+        root.addView(openWith, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
+        root.addView(save, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         root.setOnTouchListener((v, e) -> {
             if (e.getActionMasked() == MotionEvent.ACTION_OUTSIDE) {
@@ -53,8 +54,15 @@ public final class ImageActionMenu {
         });
 
         Rect usable = ScreenGeometry.usableBounds(app);
-        int width = Math.min(dp(app, 176), Math.max(dp(app, 132), usable.width() - dp(app, 16)));
-        int height = dp(app, 200);
+        int maxAvailableWidth = Math.max(1, usable.width() - inset * 2);
+        float widthScale = com.yagay.yui.YOverlayUi.appearance(app, "yfloat")
+                .getContentWidthPercent() / 100f;
+        int width = Math.min(maxAvailableWidth, Math.max(dp(app, 132),
+                Math.round(dp(app, 176) * widthScale)));
+        int rowHeight = Math.max(com.yagay.yui.YOverlayUi.actionHeightPx(app, "yfloat"),
+                com.yagay.yui.YView.rowHeight(
+                        com.yagay.yui.YOverlayUi.scopedContext(app, "yfloat")));
+        int height = Math.min(usable.height(), rowHeight * 4 + inset * 2);
         int[] pos = FloatingMenuPositioner.aroundAnchor(app, usable, anchor, width, height, true);
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(

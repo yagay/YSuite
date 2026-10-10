@@ -237,11 +237,15 @@ public final class ViewHoverOverlay {
             SelectionVisuals.drawFrame(canvas, r, border);
             String text = (candidate.type() == ScreenCandidate.Type.ROOT || candidate.fullscreenLike())
                     ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a195841cb3e3) : candidate.label();
-            float x = Math.max(dp(8), Math.min(r.left, getWidth() - dp(180)));
-            float y = r.top > dp(28) ? r.top - dp(8)
-                    : Math.min(getHeight() - dp(8), r.bottom + dp(20));
-            if (text.length() > 90) text = text.substring(0, 90) + "...";
-            SelectionVisuals.drawText(canvas, text, x, y, label);
+            float inset = Math.max(dp(4), YFloatOverlayStyle.controlGap(getContext()));
+            float maxWidth = Math.max(0f, getWidth() - inset * 2);
+            if (maxWidth <= 0) return;
+            float estimatedWidth = Math.min(maxWidth, label.measureText(text));
+            float x = Math.max(inset, Math.min(r.left, getWidth() - inset - estimatedWidth));
+            float minBaseline = inset - label.ascent();
+            float maxBaseline = getHeight() - inset - label.descent();
+            float y = Math.max(minBaseline, Math.min(r.top - inset, maxBaseline));
+            SelectionVisuals.drawFittedText(canvas, text, x, y, maxWidth, label);
         }
 
         private float dp(float v) { return v * getResources().getDisplayMetrics().density; }
