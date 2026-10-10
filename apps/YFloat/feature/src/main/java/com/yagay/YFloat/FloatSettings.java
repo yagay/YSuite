@@ -126,16 +126,16 @@ public final class FloatSettings {
         return FloatingPositionMath.basisPointsFromY(y, availableHeight, 3333);
     }
 
-    public float alpha() { return clamp(p.getInt(K_ALPHA, 62), 10, 100) / 100f; }
-    public int sizeDp() { return clamp(p.getInt(K_SIZE, 48), 24, 96); }
-    public int showPercentage() { return clamp(p.getInt(K_SHOW_PERCENT, 72), 10, 100); }
+    public float alpha() { return clamp(p.getInt(K_ALPHA, 62), 1, 100) / 100f; }
+    public int sizeDp() { return clamp(p.getInt(K_SIZE, 48), 16, 192); }
+    public int showPercentage() { return clamp(p.getInt(K_SHOW_PERCENT, 72), 1, 100); }
     public int hiddenPercent() { return 100 - showPercentage(); }
-    public int longPressMs() { return clamp(p.getInt(K_LONG_PRESS, 300), 100, 1500); }
-    public int doubleTapMs() { return clamp(p.getInt(K_DOUBLE_TAP, 200), 120, 800); }
-    public int tapMaxMs() { return clamp(p.getInt(K_TAP_MAX_MS, 150), 80, 400); }
-    public int downShortDistance() { return clamp(p.getInt(K_DOWN_SHORT_DISTANCE, 200), 30, 900); }
-    public int sideShortDistance() { return clamp(p.getInt(K_SIDE_SHORT_DISTANCE, 320), 30, 1200); }
-    public int gestureStartDistance() { return clamp(p.getInt(K_GESTURE_START_DISTANCE, 30), 5, 100); }
+    public int longPressMs() { return clamp(p.getInt(K_LONG_PRESS, 300), 50, 2500); }
+    public int doubleTapMs() { return clamp(p.getInt(K_DOUBLE_TAP, 200), 50, 1500); }
+    public int tapMaxMs() { return clamp(p.getInt(K_TAP_MAX_MS, 150), 40, 1000); }
+    public int downShortDistance() { return clamp(p.getInt(K_DOWN_SHORT_DISTANCE, 200), 0, 1500); }
+    public int sideShortDistance() { return clamp(p.getInt(K_SIDE_SHORT_DISTANCE, 320), 0, 1500); }
+    public int gestureStartDistance() { return clamp(p.getInt(K_GESTURE_START_DISTANCE, 30), 1, 300); }
     public float verticalBias() { return clamp(p.getInt(K_VERTICAL_BIAS, 120), 100, 300) / 100f; }
     public int style() { return clamp(p.getInt(K_STYLE, 0), 0, 4); }
 
@@ -154,7 +154,7 @@ public final class FloatSettings {
     public int circleEngine() { return clamp(p.getInt(K_CIRCLE_ENGINE, 0), 0, 1); }
     public boolean circleBorderEnabled() { return p.getBoolean(K_CIRCLE_BORDER_ENABLED, true); }
     public int circleBorderColor() { return p.getInt(K_CIRCLE_BORDER_COLOR, DEFAULT_CIRCLE_BORDER_COLOR); }
-    public int circleBorderWidthDp() { return clamp(p.getInt(K_CIRCLE_BORDER_WIDTH_DP, 3), 1, 8); }
+    public int circleBorderWidthDp() { return clamp(p.getInt(K_CIRCLE_BORDER_WIDTH_DP, 3), 0, 48); }
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
@@ -200,8 +200,8 @@ public final class FloatSettings {
     }
     public boolean hideWhenFullscreen() { return fullscreenHideMode() != 0; }
     public boolean clickScreenUnderIcon() { return p.getBoolean(K_CLICK_UNDER, false); }
-    public int lineAlpha() { return clamp(p.getInt(K_LINE_ALPHA, 80), 10, 100); }
-    public int lineWidthDp() { return clamp(p.getInt(K_LINE_WIDTH, 6), 1, 24); }
+    public int lineAlpha() { return clamp(p.getInt(K_LINE_ALPHA, 80), 0, 100); }
+    public int lineWidthDp() { return clamp(p.getInt(K_LINE_WIDTH, 6), 0, 64); }
     public int lineStyle() { return clamp(p.getInt(K_LINE_STYLE, 0), 0, 2); }
     public String lineColors() { return p.getString(K_LINE_COLORS, "#FFFFFF"); }
     public boolean lineGradient() { return p.getBoolean(K_LINE_GRADIENT, false); }
@@ -217,7 +217,7 @@ public final class FloatSettings {
     }
     public String customIconUri() { return p.getString(K_CUSTOM_ICON, ""); }
     public String slidePics() { return p.getString(K_SLIDE_PICS, ""); }
-    public int slideIntervalMs() { return clamp(p.getInt(K_SLIDE_INTERVAL, 3000), 500, 60000); }
+    public int slideIntervalMs() { return clamp(p.getInt(K_SLIDE_INTERVAL, 3000), 100, 600000); }
     public String action(String key, String def) { return p.getString(key, def); }
     public String hiddenPackagesRaw() { return p.getString(K_HIDE_PACKAGES, ""); }
     public int circleCancelXBp() { return p.getInt(K_CIRCLE_CANCEL_X_BP, -1); }
