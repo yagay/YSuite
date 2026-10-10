@@ -130,3 +130,12 @@ are not silently tied to button corner radius or a global card padding setting.
 Such values must be exposed only when a real shared visual consumer exists.
 Standalone APKs keep their own private Android preference files and do not
 automatically synchronize values between different package names.
+
+
+## 清理集成版重复外观入口（2026-10-10）
+
+- 在 `rebuild/material3-full-ui` 分支中，YSuite 集成版 YFloat 不再分别显示主题、文字菜单显示数量、浮动图标样式／大小／透明度／边缘露出比例、手势轨迹的显示／透明度／宽度／渐变／样式／颜色，以及文字选区边框的显示／颜色／宽度。
+- 上述控件的真实配置和模块覆盖均已接入 `YAppearanceStore`；用户在 YSuite 的统一设置（全局或 YFloat 模块专属覆盖）修改。**这里只删除重复 UI 入口，不删除设置键、服务端读取、旧值迁移、Hook 或运行时逻辑。**
+- YFloat 独立 APK 仍显示这些外观选项：不同 APK 没有跨包共享私有偏好存储。独立版界面继续写入同一 YUI 数据结构在其自身沙箱中的实例。
+- 图标素材选择、幻灯片切换间隔、手势识别、震动、OCR、截图、权限及文字菜单内容管理不是通用外观选项，仍在 YFloat 模块内。
+- 现有 `tools/verify_ui_framework.py` 在架构 CI 中校验集成版重复选项有独立版条件保护，避免回归；Debug CI 仍运行 `:ui:testDebugUnitTest` 外观存储测试和 `:suite:assembleDebug`。
