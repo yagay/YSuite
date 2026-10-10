@@ -7,6 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.yagay.yui.YAppearanceStore
+import com.yagay.yui.rememberYAppearance
 import com.yagay.yui.YTheme
 
 /** Compatibility entry point. Rebuilt YFiles/YDownload now render with the same YUI theme. */
@@ -17,12 +19,18 @@ fun YSuiteTheme(
     content: @Composable () -> Unit,
 ) {
     val view = LocalView.current
+    val appearance = rememberYAppearance(YAppearanceStore.moduleIdFor(view.context))
+    val effectiveDark = when (appearance.theme) {
+        "dark" -> true
+        "light" -> false
+        else -> darkTheme
+    }
     SideEffect {
         if (!view.isInEditMode) {
             (view.context as? Activity)?.window?.let { window ->
                 WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = !darkTheme
-                    isAppearanceLightNavigationBars = !darkTheme
+                    isAppearanceLightStatusBars = !effectiveDark
+                    isAppearanceLightNavigationBars = !effectiveDark
                 }
                 if (Build.VERSION.SDK_INT >= 29) {
                     window.isStatusBarContrastEnforced = false
