@@ -47,6 +47,8 @@ import com.yagay.yui.YSecondaryButton
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YTabBar
 import com.yagay.yui.YTabSpec
+import com.yagay.yui.YUiLogSurface
+import com.yagay.yui.YUiLogLine
 
 /** Stateless Activity boundary for the complete NFC screen; operation state stays screen-local. */
 @Composable
@@ -182,23 +184,13 @@ fun NfcAppScreen(
                                 }
                             },
                         )
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height((LocalYAppearance.current.rowHeightDp * 6f).dp)
-                                .background(Color(0xFF050505), RoundedCornerShape(LocalYAppearance.current.fieldRadiusDp.dp))
-                                .padding((LocalYAppearance.current.effectiveGapDp / 2f).dp),
+                        YUiLogSurface(
+                            modifier = Modifier.fillMaxWidth()
+                                .height((LocalYAppearance.current.rowHeightDp * 6f).dp),
                         ) {
                             LazyColumn(state = logListState, modifier = Modifier.fillMaxSize()) {
                                 items(logLines.size) { index ->
-                                    val line = logLines[index]
-                                    Text(
-                                        line,
-                                        color = logLineColor(line),
-                                        fontSize = 9.sp,
-                                        lineHeight = 11.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                    )
+                                    YUiLogLine(logLines[index])
                                 }
                             }
                             LaunchedEffect(selectedSource, logLines.size) {
@@ -236,14 +228,3 @@ fun NfcAppScreen(
     }
 }
 
-private fun logLineColor(line: String): Color = when {
-    line.contains("SUCCESS") || line.contains("APPLIED") || line.contains("ACCEPTED") ||
-        line.contains("READY") -> Color.Cyan
-    line.contains("FAILED") || line.contains("ERROR") || line.contains("STALE") ||
-        line.contains("FATAL") -> Color.Red
-    line.contains("WAITING") || line.contains("IDLE") || line.contains("RUNNING") ||
-        line.contains("TRIGGERED") -> Color.Yellow
-    line.contains("RF") || line.contains("NFCID1") || line.contains("NfcUIDSim") ||
-        line.contains("COMMAND") -> Color.Green
-    else -> Color(0xFFD4D4D4)
-}

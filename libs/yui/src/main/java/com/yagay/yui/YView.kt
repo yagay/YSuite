@@ -163,6 +163,8 @@ object YView {
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).effectiveGapDp)
     @JvmStatic fun cardRadius(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardRadiusDp)
+    @JvmStatic fun cardOutlineWidth(context: Context): Int =
+        dp(context, appearance(context).cardOutlineWidthDp)
     @JvmStatic fun cardPadding(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardPaddingDp)
     @JvmStatic fun touchTarget(context: Context): Int = dp(context, appearance(context).iconTouchTargetDp)
