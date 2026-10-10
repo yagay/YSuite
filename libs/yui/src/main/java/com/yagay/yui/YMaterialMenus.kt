@@ -1,6 +1,13 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +27,28 @@ import androidx.compose.ui.unit.dp
  * One AndroidX Material3 implementation for feature menus and selection controls.
  * YUI supplies geometry; upstream owns animation, semantics, colors and interaction.
  */
+/** Upstream Material3 menu popup shared across all features. */
+@Composable
+fun YUiDropdownMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    offset: DpOffset = DpOffset.Zero,
+    scrollState: ScrollState = rememberScrollState(),
+    properties: PopupProperties = PopupProperties(focusable = true),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier.clip(RoundedCornerShape(LocalYAppearance.current.cardRadiusDp.dp)),
+        offset = offset,
+        scrollState = scrollState,
+        properties = properties,
+        content = content,
+    )
+}
+
 @Composable
 fun YUiDropdownMenuItem(
     text: @Composable () -> Unit,

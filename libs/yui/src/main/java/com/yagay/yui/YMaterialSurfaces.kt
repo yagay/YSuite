@@ -1,6 +1,7 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,6 +37,36 @@ fun YUiSurface(
         tonalElevation = tonalElevation,
         shadowElevation = shadowElevation,
         border = border,
+        content = content,
+    )
+}
+
+/** Interactive variant, using upstream Material3 Surface click semantics. */
+@Composable
+fun YUiSurface(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape? = null,
+    color: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = contentColorFor(color),
+    tonalElevation: Dp = 0.dp,
+    shadowElevation: Dp = 0.dp,
+    border: BorderStroke? = null,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.cardRadiusDp.dp),
+        color = color,
+        contentColor = contentColor,
+        tonalElevation = tonalElevation,
+        shadowElevation = shadowElevation,
+        border = border,
+        interactionSource = interactionSource,
         content = content,
     )
 }

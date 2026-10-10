@@ -19,7 +19,7 @@ SOURCES = (
 # Common controls instead pass through libs/yui to share geometry, defaults and accessibility.
 CONTROL_IMPORT = re.compile(
     r"^import\s+androidx\.compose\.material3\."
-    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch|DropdownMenuItem|FilterChip|TriStateCheckbox|FloatingActionButton|SmallFloatingActionButton)\b",
+    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch|DropdownMenuItem|DropdownMenu|FilterChip|TriStateCheckbox|FloatingActionButton|SmallFloatingActionButton|HorizontalDivider|ModalBottomSheet)\b",
     re.MULTILINE,
 )
 PRODUCT_CONTROL_IMPORT = re.compile(
@@ -31,7 +31,7 @@ PRODUCT_CONTROL_FQCN = re.compile(
 )
 CONTROL_FQCN = re.compile(
     r"\bandroidx\.compose\.material3\."
-    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch|DropdownMenuItem|FilterChip|TriStateCheckbox|FloatingActionButton|SmallFloatingActionButton)\s*\("
+    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch|DropdownMenuItem|DropdownMenu|FilterChip|TriStateCheckbox|FloatingActionButton|SmallFloatingActionButton|HorizontalDivider|ModalBottomSheet)\s*\("
 )
 
 def main() -> None:
@@ -83,7 +83,9 @@ def main() -> None:
             "fun YUiCheckbox(",
         ),
         "YMaterialInputs.kt": ("fun YUiOutlinedTextField(",),
-        "YMaterialMenus.kt": ("fun YUiDropdownMenuItem(", "fun YUiFilterChip(", "fun YUiTriStateCheckbox("),
+        "YMaterialMenus.kt": ("fun YUiDropdownMenu(", "fun YUiDropdownMenuItem(", "fun YUiFilterChip(", "fun YUiTriStateCheckbox("),
+        "YMaterialDividers.kt": ("fun YUiHorizontalDivider(",),
+        "YMaterialBottomSheets.kt": ("fun YUiModalBottomSheet(",)
         "YMaterialSurfaces.kt": ("fun YUiSurface(",),
         "YMaterialFloatingActions.kt": ("fun YUiFloatingActionButton(", "fun YUiSmallFloatingActionButton("),
         "YMaterialDialogs.kt": ("fun YUiAlertDialog(",),
