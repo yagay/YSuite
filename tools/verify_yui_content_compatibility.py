@@ -18,7 +18,7 @@ def require(path: Path, *markers: str) -> list[str]:
 def main() -> int:
     errors: list[str] = []
     errors += require(YUI / "YViewFramework.kt",
-                      "setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp)")
+                      "setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)")
     errors += require(YUI / "YAdaptive.kt",
                       "BoxWithConstraints(modifier.fillMaxSize())",
                       "NavigationSuiteType.NavigationBar",
