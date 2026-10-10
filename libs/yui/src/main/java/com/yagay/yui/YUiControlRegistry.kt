@@ -6,7 +6,7 @@ package com.yagay.yui
  */
 enum class YControlGroup { THEME, TYPOGRAPHY, LAYOUT, BUTTONS, LISTS, CARDS, INPUTS, SWITCHES, DIALOGS, NAVIGATION, OVERLAYS }
 
-enum class YControlKind { CHOICE, BOOLEAN, RANGE }
+enum class YControlKind { CHOICE, BOOLEAN, RANGE, TEXT }
 
 data class YControlDefinition(
     val key: YSettingKey,
@@ -76,6 +76,12 @@ object YUiControlRegistry {
             YControlKind.CHOICE, choices = listOf("round", "square", "enhanced")),
         YControlDefinition(YSettingKey.FLOAT_TRAIL_GRADIENT, YControlGroup.OVERLAYS,
             YControlKind.BOOLEAN),
+        YControlDefinition(YSettingKey.FLOAT_BORDER_VISIBLE, YControlGroup.OVERLAYS,
+            YControlKind.BOOLEAN),
+        YControlDefinition(YSettingKey.FLOAT_TRAIL_VISIBLE, YControlGroup.OVERLAYS,
+            YControlKind.BOOLEAN),
+        YControlDefinition(YSettingKey.FLOAT_TRAIL_COLORS, YControlGroup.OVERLAYS,
+            YControlKind.TEXT),
     )
     val groups: List<YControlGroup> = YControlGroup.entries
     fun forGroup(group: YControlGroup): List<YControlDefinition> = definitions.filter { it.group == group }
