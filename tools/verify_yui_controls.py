@@ -19,7 +19,7 @@ SOURCES = (
 # Common controls instead pass through libs/yui to share geometry, defaults and accessibility.
 CONTROL_IMPORT = re.compile(
     r"^import\s+androidx\.compose\.material3\."
-    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch|DropdownMenuItem|DropdownMenu|FilterChip|TriStateCheckbox|FloatingActionButton|SmallFloatingActionButton|HorizontalDivider|ModalBottomSheet|Surface|Card|OutlinedCard|ElevatedCard|TextField|LinearProgressIndicator|CircularProgressIndicator|ElevatedButton|FilledTonalButton|AssistChip|SuggestionChip|InputChip|NavigationBar|NavigationBarItem|NavigationRail|NavigationRailItem|Badge|BadgedBox|SnackbarHost)\b",
+    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch|DropdownMenuItem|DropdownMenu|FilterChip|TriStateCheckbox|FloatingActionButton|SmallFloatingActionButton|HorizontalDivider|ModalBottomSheet|Surface|Card|OutlinedCard|ElevatedCard|TextField|LinearProgressIndicator|CircularProgressIndicator|ElevatedButton|FilledTonalButton|AssistChip|SuggestionChip|InputChip|NavigationBar|NavigationBarItem|NavigationRail|NavigationRailItem|Badge|BadgedBox|SnackbarHost|Text|Icon|Tab|ModalDrawerSheet|ModalNavigationDrawer)\b",
     re.MULTILINE,
 )
 PRODUCT_CONTROL_IMPORT = re.compile(
@@ -31,7 +31,7 @@ PRODUCT_CONTROL_FQCN = re.compile(
 )
 CONTROL_FQCN = re.compile(
     r"\bandroidx\.compose\.material3\."
-    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch|DropdownMenuItem|DropdownMenu|FilterChip|TriStateCheckbox|FloatingActionButton|SmallFloatingActionButton|HorizontalDivider|ModalBottomSheet|Surface|Card|OutlinedCard|ElevatedCard|TextField|LinearProgressIndicator|CircularProgressIndicator|ElevatedButton|FilledTonalButton|AssistChip|SuggestionChip|InputChip|NavigationBar|NavigationBarItem|NavigationRail|NavigationRailItem|Badge|BadgedBox|SnackbarHost)\s*\("
+    r"(Button|OutlinedButton|TextButton|IconButton|Checkbox|OutlinedTextField|AlertDialog|Slider|RadioButton|ScrollableTabRow|Switch|DropdownMenuItem|DropdownMenu|FilterChip|TriStateCheckbox|FloatingActionButton|SmallFloatingActionButton|HorizontalDivider|ModalBottomSheet|Surface|Card|OutlinedCard|ElevatedCard|TextField|LinearProgressIndicator|CircularProgressIndicator|ElevatedButton|FilledTonalButton|AssistChip|SuggestionChip|InputChip|NavigationBar|NavigationBarItem|NavigationRail|NavigationRailItem|Badge|BadgedBox|SnackbarHost|Text|Icon|Tab|ModalDrawerSheet|ModalNavigationDrawer)\s*\("
 )
 
 def main() -> None:
