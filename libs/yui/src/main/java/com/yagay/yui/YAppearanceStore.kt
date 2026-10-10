@@ -234,7 +234,7 @@ class YAppearanceStore(context: Context) {
      * Allows older migrated feature preferences to explicitly inherit one unified theme. */
     fun inheritGlobalAppearanceForAllModules() {
         val editor = prefs.edit()
-        prefs.all.keys.filter { MODULE_KEY.matches(it) }.forEach(editor::remove)
+        prefs.all.keys.filter { MODULE_KEY.matches(it) }.forEach { editor.remove(it) }
         check(editor.commit()) { "Unable to synchronize module appearance" }
     }
 
