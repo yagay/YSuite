@@ -164,6 +164,31 @@ class YAppearanceStoreTest {
     }
 
     @Test
+    fun productLayoutGeometryReadsSingleStoreAndInheritsGlobalChanges() {
+        assertEquals(100, store.appearance("yfiles").contentWidthPercent)
+        assertEquals(100, store.appearance("ydownload").paneWidthPercent)
+        store.set(YSettingKey.CONTENT_WIDTH_SCALE, "145")
+        store.set(YSettingKey.PANE_WIDTH_SCALE, "65")
+        assertEquals(145, store.appearance("ydownload").contentWidthPercent)
+        assertEquals(145, store.appearance("yfiles").contentWidthPercent)
+        assertEquals(65, store.appearance("yfiles").paneWidthPercent)
+        store.set(YSettingKey.PANE_WIDTH_SCALE, "120", "yfiles")
+        assertEquals(120, store.appearance("yfiles").paneWidthPercent)
+        assertEquals(65, store.appearance("ydownload").paneWidthPercent)
+        val json = store.exportJson()
+        store.reset()
+        store.reset("yfiles")
+        store.importJson(json)
+        assertEquals(145, store.appearance("yfiles").contentWidthPercent)
+        assertEquals(120, store.appearance("yfiles").paneWidthPercent)
+        store.inherit(YSettingKey.PANE_WIDTH_SCALE, "yfiles")
+        assertEquals(65, store.appearance("yfiles").paneWidthPercent)
+        assertTrue(runCatching {
+            store.set(YSettingKey.PANE_WIDTH_SCALE, "251")
+        }.isFailure)
+    }
+
+    @Test
     fun overlayAppearancesAreGlobalByDefaultAndOverridePerModule() {
         val keys = listOf(
             YSettingKey.FLOAT_ICON_ALPHA, YSettingKey.FLOAT_ICON_SIZE,
