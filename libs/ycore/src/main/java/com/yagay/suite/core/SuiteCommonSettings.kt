@@ -54,11 +54,11 @@ class SuiteCommonSettings(context: Context) {
         context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     fun value(setting: SuiteCommonSetting, moduleId: String? = null): String {
-        val override = moduleId?.let {
+        val moduleOverride = moduleId?.let {
             preferences.getString(prefix(it) + setting.key, null)
         }
         val global = preferences.getString("global." + setting.key, null)
-        return runCatching { setting.validated(override ?: global ?: setting.defaultValue) }
+        return runCatching { setting.validated(moduleOverride ?: global ?: setting.defaultValue) }
             .getOrDefault(setting.defaultValue)
     }
 
