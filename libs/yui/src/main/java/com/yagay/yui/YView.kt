@@ -192,7 +192,7 @@ object YView {
         val dark = when (setting.theme) {
             "dark" -> true
             "light" -> false
-            else -> context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            else -> (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                 Configuration.UI_MODE_NIGHT_YES
         }
         synchronized(paletteCache) {
