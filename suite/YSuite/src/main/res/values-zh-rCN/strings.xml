@@ -106,4 +106,14 @@
     <string name="home_enable">启用功能</string>
     <string name="home_disable">停用功能</string>
     <string name="home_disabled">已停用 · 点击进入管理</string>
+
+    <string name="shared_appearance_title">统一外观设置</string>
+    <string name="shared_appearance_desc">YSuite 和所有内置模块共用主题</string>
+    <string name="shared_appearance_theme">主题模式</string>
+    <string name="shared_appearance_theme_desc">统一应用于 Compose 和传统 View 页面</string>
+    <string name="shared_appearance_system">跟随系统</string>
+    <string name="shared_appearance_light">浅色</string>
+    <string name="shared_appearance_dark">深色</string>
+    <string name="shared_appearance_components">统一控件</string>
+    <string name="shared_appearance_components_desc">按钮、开关、对话框、圆角、间距及颜色统一由 YUI 定义，模块专属业务设置仍在各模块内。</string>
 </resources>
