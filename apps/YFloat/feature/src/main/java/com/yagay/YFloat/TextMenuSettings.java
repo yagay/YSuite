@@ -8,10 +8,6 @@ final class TextMenuSettings {
     static final int MAX_MAIN_ITEMS = 32;
     static final int DEFAULT_MAIN_ITEMS = 6;
 
-    private static final String PREFS = "yfloat_text_menu";
-    // v2 deliberately uses a new key because the old value meant "custom items only".
-    private static final String KEY_MAIN_ITEM_COUNT = "main_item_count_v2";
-
     static int mainItemCount(Context c) {
         if (c == null) return DEFAULT_MAIN_ITEMS;
         return YFloatVisualSettings.menuCount(c);
