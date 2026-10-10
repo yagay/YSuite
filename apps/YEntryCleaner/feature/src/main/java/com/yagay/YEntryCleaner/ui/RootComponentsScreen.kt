@@ -171,7 +171,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                         stringResource(appTypeFilter.titleRes())
                                     )
                                 )
-                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
+                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 0.75f).dp))
                             }
                             DropdownMenu(expanded = appTypeMenu, onDismissRequest = { appTypeMenu = false }) {
                                 AppTypeFilter.entries.forEach { filter ->
@@ -195,7 +195,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                         stringResource(viewFilter.titleRes())
                                     )
                                 )
-                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
+                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 0.75f).dp))
                             }
                             DropdownMenu(expanded = filterMenu, onDismissRequest = { filterMenu = false }) {
                                 UiFilter.entries.forEach { filter ->
@@ -228,7 +228,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                 title = stringResource(R.string.root_summary, groups.size, visible.size),
                 subtitle = stringResource(R.string.root_selection_semantics),
                 detail = stringResource(R.string.root_change_semantics),
-                modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall),
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp),
             ) {
                 YStatusLine(
                     label = stringResource(R.string.view_filter),
