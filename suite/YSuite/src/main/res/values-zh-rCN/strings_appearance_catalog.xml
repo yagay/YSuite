@@ -56,4 +56,7 @@
     <string name="appearance_nav_radius">导航选项圆角</string>
     <string name="appearance_screen_padding">页面左右边距</string>
     <string name="appearance_section_spacing">区块间距</string>
+    <string name="appearance_exact_value">精确输入</string>
+    <string name="appearance_apply_exact">应用数值</string>
+    <string name="appearance_allowed_range">可用范围：%1$d–%2$d %3$s，每次调整 1</string>
 </resources>
