@@ -62,6 +62,7 @@ import com.yagay.YTaskManager.model.ProcessKind
 import com.yagay.YTaskManager.model.ProcessSort
 import com.yagay.YTaskManager.model.TaskManagerUiState
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YSection
 import com.yagay.yui.YToggleFilterBar
 import com.yagay.yui.YStatusStrip
@@ -472,7 +473,7 @@ private fun ResourcePage(state: TaskManagerUiState) {
                 MetricLine(stringResource(R.string.ytm_gpu_max), formatHz(g.maxHz))
             }
         }
-        item { Spacer(Modifier.height(12.dp)) }
+        item { Spacer(Modifier.height(LocalYAppearance.current.effectiveGapDp.dp)) }
     }
 }
 
@@ -505,7 +506,7 @@ private fun NetworkRow(entry: NetworkEntry) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 9.dp),
+            .padding(horizontal = YDimens.ScreenHorizontal, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(entry.icon)
