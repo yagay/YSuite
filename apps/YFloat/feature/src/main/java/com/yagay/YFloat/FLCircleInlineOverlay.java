@@ -198,49 +198,49 @@ final class FLCircleInlineOverlay {
             setFocusable(true);
             setFocusableInTouchMode(true);
 
-            shadePaint.setColor(0x50000000);
-            lightShadePaint.setColor(0x18000000);
+            shadePaint.setColor(YFloatOverlayStyle.scrim(c, 0x50));
+            lightShadePaint.setColor(YFloatOverlayStyle.scrim(c, 0x18));
 
-            strokeGlow.setColor(0x664285F4);
+            strokeGlow.setColor(YFloatOverlayStyle.accentWithAlpha(c, 0x66));
             strokeGlow.setStyle(Paint.Style.STROKE);
             strokeGlow.setStrokeWidth(dp(10));
             strokeGlow.setStrokeCap(Paint.Cap.ROUND);
             strokeGlow.setStrokeJoin(Paint.Join.ROUND);
 
-            strokePaint.setColor(Color.WHITE);
+            strokePaint.setColor(YFloatOverlayStyle.selectionColor(c));
             strokePaint.setStyle(Paint.Style.STROKE);
-            strokePaint.setStrokeWidth(dp(3));
+            strokePaint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
             strokePaint.setStrokeCap(Paint.Cap.ROUND);
             strokePaint.setStrokeJoin(Paint.Join.ROUND);
 
-            screenshotFramePaint.setColor(Color.WHITE);
+            screenshotFramePaint.setColor(YFloatOverlayStyle.selectionColor(c));
             screenshotFramePaint.setStyle(Paint.Style.STROKE);
-            screenshotFramePaint.setStrokeWidth(dp(2));
+            screenshotFramePaint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
 
-            screenshotHandlePaint.setColor(0xFF4285F4);
+            screenshotHandlePaint.setColor(YFloatOverlayStyle.accent(c));
             screenshotHandlePaint.setStyle(Paint.Style.FILL);
 
-            textSelectedPaint.setColor(0x884285F4);
+            textSelectedPaint.setColor(YFloatOverlayStyle.accentWithAlpha(c, 0x88));
             textSelectedPaint.setStyle(Paint.Style.FILL);
 
-            textHandlePaint.setColor(0xFF4285F4);
+            textHandlePaint.setColor(YFloatOverlayStyle.accent(c));
             textHandlePaint.setStyle(Paint.Style.FILL);
 
-            closePaint.setColor(0xD9222222);
-            closeGlyphPaint.setColor(Color.WHITE);
+            closePaint.setColor(YFloatOverlayStyle.surface(c));
+            closeGlyphPaint.setColor(YFloatOverlayStyle.primaryText(c));
             closeGlyphPaint.setStyle(Paint.Style.STROKE);
             closeGlyphPaint.setStrokeWidth(dp(2));
             closeGlyphPaint.setStrokeCap(Paint.Cap.ROUND);
 
-            hintPaint.setColor(0xD9222222);
-            hintTextPaint.setColor(Color.WHITE);
-            hintTextPaint.setTextSize(dp(14));
+            hintPaint.setColor(YFloatOverlayStyle.surface(c));
+            hintTextPaint.setColor(YFloatOverlayStyle.primaryText(c));
+            hintTextPaint.setTextSize(YFloatOverlayStyle.textSize(c, 14f));
             hintTextPaint.setTextAlign(Paint.Align.CENTER);
 
-            confirmPaint.setColor(0xFF4285F4);
+            confirmPaint.setColor(YFloatOverlayStyle.accent(c));
             confirmPaint.setStyle(Paint.Style.FILL);
-            confirmTextPaint.setColor(Color.WHITE);
-            confirmTextPaint.setTextSize(dp(14));
+            confirmTextPaint.setColor(YFloatOverlayStyle.primaryText(c));
+            confirmTextPaint.setTextSize(YFloatOverlayStyle.textSize(c, 14f));
             confirmTextPaint.setTextAlign(Paint.Align.CENTER);
 
             DiagnosticLog.i(context, "FL_CIRCLE_TEXT_SELECT",
