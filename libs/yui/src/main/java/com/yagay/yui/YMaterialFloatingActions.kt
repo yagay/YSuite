@@ -1,6 +1,6 @@
 package com.yagay.yui
 
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.SmallFloatingActionButton
@@ -22,7 +22,7 @@ fun YUiFloatingActionButton(
     val appearance = LocalYAppearance.current
     FloatingActionButton(
         onClick = onClick,
-        modifier = modifier.size(appearance.buttonHeightDp.dp),
+        modifier = modifier.sizeIn(minWidth = appearance.buttonHeightDp.dp, minHeight = appearance.buttonHeightDp.dp),
         shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
         content = content,
     )
@@ -37,7 +37,7 @@ fun YUiSmallFloatingActionButton(
     val appearance = LocalYAppearance.current
     SmallFloatingActionButton(
         onClick = onClick,
-        modifier = modifier.size(appearance.iconTouchTargetDp.dp),
+        modifier = modifier.sizeIn(minWidth = appearance.iconTouchTargetDp.dp, minHeight = appearance.iconTouchTargetDp.dp),
         shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
         content = content,
     )

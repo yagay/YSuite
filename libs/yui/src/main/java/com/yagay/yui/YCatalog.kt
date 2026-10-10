@@ -1,6 +1,8 @@
 package com.yagay.yui
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +76,23 @@ fun YComponentCatalogScreen() {
                     options = listOf(YChoiceSpec(0, optionA), YChoiceSpec(1, optionB)),
                     onSelected = { selected = it },
                 )
+            }
+            item {
+                YUiFilterChip(
+                    selected = selected == 0,
+                    onClick = { selected = if (selected == 0) 1 else 0 },
+                    label = { androidx.compose.material3.Text(optionA) },
+                )
+            }
+            item {
+                YUiSurface {
+                    androidx.compose.material3.Text(
+                        subtitle,
+                        modifier = androidx.compose.ui.Modifier.padding(
+                            LocalYAppearance.current.cardPaddingDp.dp,
+                        ),
+                    )
+                }
             }
             item {
                 YCheckboxItem(

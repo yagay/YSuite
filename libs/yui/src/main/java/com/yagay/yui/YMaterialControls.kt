@@ -4,9 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -50,9 +48,7 @@ fun YUiButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = if (LocalYAppearance.current.buttonHeightDp < 48)
-            modifier.height(LocalYAppearance.current.buttonHeightDp.dp)
-        else modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
@@ -82,9 +78,7 @@ fun YUiOutlinedButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = if (LocalYAppearance.current.buttonHeightDp < 48)
-            modifier.height(LocalYAppearance.current.buttonHeightDp.dp)
-        else modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
@@ -114,9 +108,7 @@ fun YUiTextButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = if (LocalYAppearance.current.buttonHeightDp < 48)
-            modifier.height(LocalYAppearance.current.buttonHeightDp.dp)
-        else modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
@@ -142,8 +134,7 @@ fun YUiIconButton(
 ) {
     IconButton(
         onClick = onClick,
-        modifier = if (LocalYAppearance.current.iconTouchTargetDp < 48) modifier.size(LocalYAppearance.current.iconTouchTargetDp.dp)
-        else modifier.sizeIn(
+        modifier = modifier.sizeIn(
             minWidth = LocalYAppearance.current.iconTouchTargetDp.dp,
             minHeight = LocalYAppearance.current.iconTouchTargetDp.dp,
         ),

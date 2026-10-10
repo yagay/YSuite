@@ -27,15 +27,15 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
+import com.yagay.yui.YUiFilterChip as FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
+import com.yagay.yui.YUiSurface as Surface
 import com.yagay.yui.YUiScrollableTabRow as ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -651,7 +651,7 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
                 YActionStyle.DANGER -> YUiOutlinedButton(
                     onClick = action.onClick,
                     enabled = action.enabled,
-                    modifier = if (LocalYAppearance.current.buttonHeightDp < 48) Modifier.height(LocalYAppearance.current.buttonHeightDp.dp) else Modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+                    modifier = Modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
                     contentPadding = PaddingValues(
                         horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
                         vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
