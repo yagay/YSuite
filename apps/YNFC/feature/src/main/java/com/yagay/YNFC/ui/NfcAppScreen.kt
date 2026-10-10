@@ -35,6 +35,7 @@ import com.yagay.YNFC.R
 import com.yagay.YNFC.RuntimeStatus
 import com.yagay.YNFC.RuntimeStatusViewModel
 import com.yagay.YNFC.RuntimeText
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YEmptyMessage
@@ -185,7 +186,7 @@ fun NfcAppScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .height(340.dp)
-                                .background(Color(0xFF050505), RoundedCornerShape(4.dp))
+                                .background(Color(0xFF050505), RoundedCornerShape(LocalYAppearance.current.fieldRadiusDp.dp))
                                 .padding(6.dp),
                         ) {
                             LazyColumn(state = logListState, modifier = Modifier.fillMaxSize()) {
