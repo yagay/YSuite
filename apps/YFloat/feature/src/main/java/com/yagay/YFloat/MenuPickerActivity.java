@@ -2,6 +2,7 @@ package com.yagay.YFloat;
 
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
+import com.yagay.yui.YView;
 import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.Context;
@@ -551,8 +552,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
                              Runnable moveDown,
                              Runnable remove) {
         LinearLayout row = YViewLayout.baseRow(this);
-        row.setPadding(YViewLayout.dp(this, 6), YViewLayout.dp(this, 7),
-                YViewLayout.dp(this, 6), YViewLayout.dp(this, 7));
+        row.setPadding(YView.controlGap(this), YView.controlGap(this) / 2,
+                YView.controlGap(this), YView.controlGap(this) / 2);
 
         ImageView handle = iconButton(
                 R.drawable.yfloat_ic_drag_handle,
@@ -563,7 +564,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
             ClipData clip = ClipData.newPlainText("YFloat menu item", dragKey);
             return row.startDragAndDrop(clip, new View.DragShadowBuilder(row), dragKey, 0);
         });
-        row.addView(handle, new LinearLayout.LayoutParams(dp(36), dp(52)));
+        row.addView(handle, new LinearLayout.LayoutParams(dp(36), YView.touchTarget(this)));
 
         addIcon(row, icon, 34, 10);
 
@@ -579,28 +580,28 @@ public final class MenuPickerActivity extends AppCompatActivity {
             sub.setPadding(0, dp(2), 0, 0);
             texts.addView(sub);
         }
-        row.addView(texts, new LinearLayout.LayoutParams(0, dp(52), 1f));
+        row.addView(texts, new LinearLayout.LayoutParams(0, YView.touchTarget(this), 1f));
 
         ImageView up = iconButton(
                 R.drawable.yfloat_ic_arrow_up,
                 index > 0,
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a283bf829d2e));
         up.setOnClickListener(v -> { if (moveUp != null) moveUp.run(); });
-        row.addView(up, new LinearLayout.LayoutParams(dp(34), dp(42)));
+        row.addView(up, new LinearLayout.LayoutParams(dp(34), YView.touchTarget(this)));
 
         ImageView down = iconButton(
                 R.drawable.yfloat_ic_arrow_down,
                 index < total - 1,
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e8ccedf0f78c));
         down.setOnClickListener(v -> { if (moveDown != null) moveDown.run(); });
-        row.addView(down, new LinearLayout.LayoutParams(dp(34), dp(42)));
+        row.addView(down, new LinearLayout.LayoutParams(dp(34), YView.touchTarget(this)));
 
         ImageView delete = iconButton(
                 R.drawable.yfloat_ic_close,
                 true,
                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a5758272df8c));
         delete.setOnClickListener(v -> { if (remove != null) remove.run(); });
-        row.addView(delete, new LinearLayout.LayoutParams(dp(36), dp(42)));
+        row.addView(delete, new LinearLayout.LayoutParams(dp(36), YView.touchTarget(this)));
         return row;
     }
 
@@ -637,7 +638,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         } else {
             ImageView arrow = iconButton(R.drawable.yfloat_ic_chevron_right, true, null);
             arrow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            row.addView(arrow, new LinearLayout.LayoutParams(dp(28), dp(42)));
+            row.addView(arrow, new LinearLayout.LayoutParams(dp(28), YView.touchTarget(this)));
         }
         row.setOnClickListener(v -> { if (action != null) action.run(); });
         return row;

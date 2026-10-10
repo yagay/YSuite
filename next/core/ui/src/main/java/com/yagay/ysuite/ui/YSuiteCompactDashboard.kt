@@ -159,7 +159,7 @@ internal fun YSuiteCompactDashboard(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(YDimens.IconVisualSize),
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -285,7 +285,7 @@ private fun CompactModuleRow(
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = MaterialTheme.shapes.small,
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(YDimens.ListIconSize),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
