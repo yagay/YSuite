@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.yui.YDimens
+import com.yagay.yui.rememberYAppearance
 
 private const val HOME_SETTINGS_NAME = "ysuite_compact_home"
 private const val PINNED_IDS_KEY = "pinned_ids"
@@ -97,6 +98,7 @@ internal fun CompactSuiteHome(
     onCustomizeModule: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    val appearance = rememberYAppearance()
     val prefs = remember(context) {
         context.getSharedPreferences(HOME_SETTINGS_NAME, Context.MODE_PRIVATE)
     }
@@ -127,7 +129,7 @@ internal fun CompactSuiteHome(
         modifier = Modifier.fillMaxSize(),
         contentPadding = padding,
     ) {
-        item(key = "home_status") {
+        if (appearance.homeStatusVisible) item(key = "home_status") {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -244,6 +246,7 @@ internal fun CompactSuiteHome(
                 CompactSuiteModuleRow(
                     module = module,
                     isPinned = module.feature.id in pinned,
+                    swipePinEnabled = appearance.homeSwipePin,
                     onOpen = {
                         if (module.enabled) onOpen(module.feature, module.label)
                         else onManage(module.feature.id)
@@ -268,6 +271,7 @@ internal fun CompactSuiteHome(
 private fun CompactSuiteModuleRow(
     module: HomeModuleEntry,
     isPinned: Boolean,
+    swipePinEnabled: Boolean,
     onOpen: () -> Unit,
     onManage: () -> Unit,
     onCustomize: () -> Unit,
@@ -281,7 +285,7 @@ private fun CompactSuiteModuleRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = YDimens.OptionRowHeight)
-            .pointerInput(isPinned) {
+            .then(if (swipePinEnabled) Modifier.pointerInput(isPinned) {
                 var dragDistance = 0f
                 detectHorizontalDragGestures(
                     onDragStart = { dragDistance = 0f },
@@ -295,7 +299,7 @@ private fun CompactSuiteModuleRow(
                         change.consume()
                     },
                 )
-            }
+            } else Modifier)
             .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
             .padding(start = YDimens.ScreenHorizontal, end = YDimens.SpacingXsmall, top = YDimens.SpacingSmall, bottom = YDimens.SpacingSmall),
         verticalAlignment = Alignment.CenterVertically,

@@ -19,6 +19,11 @@
     <string name="settings_sizing_title">尺寸与间距</string>
     <string name="settings_sizing_subtitle">修改后实时应用到统一 Compose 组件</string>
     <string name="settings_button_radius">按钮圆角</string>
+    <string name="settings_button_padding">按钮左右内边距</string>
+    <string name="settings_home_title">首页交互</string>
+    <string name="settings_home_subtitle">自定义 YSuite 模块列表的行为</string>
+    <string name="settings_swipe_pin">左右滑动置顶或取消置顶</string>
+    <string name="settings_home_status">在顶部显示 Root 与 LSPosed 状态</string>
     <string name="settings_control_gap">控件间距</string>
     <string name="settings_font_scale">字体比例</string>
     <string name="settings_modules">模块独立覆盖</string>

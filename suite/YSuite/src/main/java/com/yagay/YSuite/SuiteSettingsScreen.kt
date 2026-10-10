@@ -166,6 +166,14 @@ internal fun SuiteSettingsScreen(
                     )
                     InheritSetting(moduleId, store, YSettingKey.BUTTON_RADIUS, revision)
                     SettingsSlider(
+                        label = stringResource(R.string.settings_button_padding),
+                        value = appearance.buttonPaddingHorizontalDp,
+                        range = 8..32,
+                        step = 2,
+                        onChange = { store.set(YSettingKey.BUTTON_PADDING, it.toString(), moduleId) },
+                    )
+                    InheritSetting(moduleId, store, YSettingKey.BUTTON_PADDING, revision)
+                    SettingsSlider(
                         label = stringResource(R.string.settings_control_gap),
                         value = appearance.controlGapDp,
                         range = 4..24,
@@ -185,6 +193,23 @@ internal fun SuiteSettingsScreen(
                 }
             }
             if (moduleId == null) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.settings_home_title),
+                        subtitle = stringResource(R.string.settings_home_subtitle),
+                    ) {
+                        YSwitchItem(
+                            title = stringResource(R.string.settings_swipe_pin),
+                            checked = appearance.homeSwipePin,
+                            onCheckedChange = { store.set(YSettingKey.HOME_SWIPE_PIN, it.toString()) },
+                        )
+                        YSwitchItem(
+                            title = stringResource(R.string.settings_home_status),
+                            checked = appearance.homeStatusVisible,
+                            onCheckedChange = { store.set(YSettingKey.HOME_STATUS, it.toString()) },
+                        )
+                    }
+                }
                 item {
                     YSection(
                         title = stringResource(R.string.settings_modules),

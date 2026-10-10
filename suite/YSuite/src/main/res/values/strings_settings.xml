@@ -19,6 +19,11 @@
     <string name="settings_sizing_title">Sizes &amp; spacing</string>
     <string name="settings_sizing_subtitle">Changes update shared Compose components immediately</string>
     <string name="settings_button_radius">Button corners</string>
+    <string name="settings_button_padding">Button horizontal padding</string>
+    <string name="settings_home_title">Home interactions</string>
+    <string name="settings_home_subtitle">Choose how the YSuite module list behaves</string>
+    <string name="settings_swipe_pin">Swipe to pin or unpin modules</string>
+    <string name="settings_home_status">Show Root and LSPosed status at top</string>
     <string name="settings_control_gap">Control spacing</string>
     <string name="settings_font_scale">Text scale</string>
     <string name="settings_modules">Per-module overrides</string>

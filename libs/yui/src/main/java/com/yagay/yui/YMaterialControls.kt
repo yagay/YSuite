@@ -42,10 +42,7 @@ fun YUiButton(
     colors: ButtonColors = ButtonDefaults.buttonColors(),
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
     border: BorderStroke? = null,
-    contentPadding: PaddingValues = PaddingValues(
-        horizontal = YDimens.ButtonPaddingHorizontal,
-        vertical = YDimens.ButtonPaddingVertical,
-    ),
+    contentPadding: PaddingValues? = null,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -57,7 +54,10 @@ fun YUiButton(
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding,
+        contentPadding = contentPadding ?: PaddingValues(
+            horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
+            vertical = YDimens.ButtonPaddingVertical,
+        ),
         interactionSource = interactionSource,
         content = content,
     )
@@ -72,10 +72,7 @@ fun YUiOutlinedButton(
     colors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
-    contentPadding: PaddingValues = PaddingValues(
-        horizontal = YDimens.ButtonPaddingHorizontal,
-        vertical = YDimens.ButtonPaddingVertical,
-    ),
+    contentPadding: PaddingValues? = null,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -87,7 +84,10 @@ fun YUiOutlinedButton(
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding,
+        contentPadding = contentPadding ?: PaddingValues(
+            horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
+            vertical = YDimens.ButtonPaddingVertical,
+        ),
         interactionSource = interactionSource,
         content = content,
     )
@@ -102,10 +102,7 @@ fun YUiTextButton(
     colors: ButtonColors = ButtonDefaults.textButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
-    contentPadding: PaddingValues = PaddingValues(
-        horizontal = YDimens.ButtonPaddingHorizontal,
-        vertical = YDimens.ButtonPaddingVertical,
-    ),
+    contentPadding: PaddingValues? = null,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -117,7 +114,10 @@ fun YUiTextButton(
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding,
+        contentPadding = contentPadding ?: PaddingValues(
+            horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
+            vertical = YDimens.ButtonPaddingVertical,
+        ),
         interactionSource = interactionSource,
         content = content,
     )

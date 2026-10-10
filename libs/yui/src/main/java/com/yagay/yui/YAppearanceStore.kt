@@ -20,15 +20,19 @@ enum class YSettingKey(val key: String, val default: String) {
     DYNAMIC_COLOR("dynamic_color", "false"),
     DENSITY("density", "standard"),
     BUTTON_RADIUS("button_radius", "24"),
+    BUTTON_PADDING("button_horizontal_padding", "24"),
+    HOME_SWIPE_PIN("home_swipe_pin", "true"),
+    HOME_STATUS("home_status", "true"),
     CONTROL_GAP("control_gap", "12"),
     FONT_PERCENT("font_percent", "100");
 
     fun validate(value: String): String {
         val valid = when (this) {
             THEME -> value in setOf("system", "light", "dark")
-            DYNAMIC_COLOR -> value in setOf("true", "false")
+            DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS -> value in setOf("true", "false")
             DENSITY -> value in setOf("compact", "standard", "comfortable")
             BUTTON_RADIUS -> (value.toIntOrNull() ?: -1) in 0..32
+            BUTTON_PADDING -> (value.toIntOrNull() ?: -1) in 8..32
             CONTROL_GAP -> (value.toIntOrNull() ?: -1) in 4..24
             FONT_PERCENT -> (value.toIntOrNull() ?: -1) in 85..130
         }
@@ -42,6 +46,9 @@ data class YAppearance(
     val dynamicColor: Boolean = false,
     val density: String = "standard",
     val buttonRadiusDp: Int = 24,
+    val buttonPaddingHorizontalDp: Int = 24,
+    val homeSwipePin: Boolean = true,
+    val homeStatusVisible: Boolean = true,
     val controlGapDp: Int = 12,
     val fontPercent: Int = 100,
 ) {
@@ -76,6 +83,9 @@ class YAppearanceStore(context: Context) {
         dynamicColor = value(YSettingKey.DYNAMIC_COLOR, moduleId) == "true",
         density = value(YSettingKey.DENSITY, moduleId),
         buttonRadiusDp = value(YSettingKey.BUTTON_RADIUS, moduleId).toInt(),
+        buttonPaddingHorizontalDp = value(YSettingKey.BUTTON_PADDING, moduleId).toInt(),
+        homeSwipePin = value(YSettingKey.HOME_SWIPE_PIN, moduleId) == "true",
+        homeStatusVisible = value(YSettingKey.HOME_STATUS, moduleId) == "true",
         controlGapDp = value(YSettingKey.CONTROL_GAP, moduleId).toInt(),
         fontPercent = value(YSettingKey.FONT_PERCENT, moduleId).toInt(),
     )
