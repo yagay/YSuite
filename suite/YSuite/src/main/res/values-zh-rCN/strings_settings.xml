@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">设置中心</string>
+    <string name="settings_global">YUI 模块共用外观参数</string>
+    <string name="settings_module_override">为此内置模块单独覆盖全局外观</string>
+    <string name="settings_back">返回</string>
+    <string name="settings_theme_title">外观与主题</string>
+    <string name="settings_theme_subtitle">主题及 Android 动态颜色</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_dynamic_title">动态取色</string>
+    <string name="settings_dynamic_subtitle">Android 12 及以上使用壁纸主题色</string>
+    <string name="settings_density_title">布局密度</string>
+    <string name="settings_density_subtitle">默认标准布局，保持至少 48dp 的触控目标</string>
+    <string name="settings_density_compact">紧凑</string>
+    <string name="settings_density_standard">标准（默认）</string>
+    <string name="settings_density_comfortable">宽松</string>
+    <string name="settings_sizing_title">尺寸与间距</string>
+    <string name="settings_sizing_subtitle">修改后实时应用到统一 Compose 组件</string>
+    <string name="settings_button_radius">按钮圆角</string>
+    <string name="settings_control_gap">控件间距</string>
+    <string name="settings_font_scale">字体比例</string>
+    <string name="settings_modules">模块独立覆盖</string>
+    <string name="settings_modules_help">可为内置模块单独设置外观，模块自身功能设置仍在对应模块中。</string>
+    <string name="settings_inherit_global">使用全局值</string>
+    <string name="settings_advanced_title">权限与诊断</string>
+    <string name="settings_advanced_desc">Root、LSPosed、无障碍、模块启用与日志仍在模块管理页面</string>
+    <string name="settings_backup_title">配置备份</string>
+    <string name="settings_backup_desc">只导出 YUI 外观设置，不包含模块隐私数据与权限</string>
+    <string name="settings_export">导出 JSON</string>
+    <string name="settings_import">导入 JSON</string>
+    <string name="settings_export_ok">外观配置已导出</string>
+    <string name="settings_export_failed">导出外观配置失败</string>
+    <string name="settings_import_ok">已导入外观配置</string>
+    <string name="settings_import_failed">外观配置文件无效或读取失败</string>
+    <string name="settings_reset_title">恢复默认</string>
+    <string name="settings_reset_global">重置全局外观</string>
+    <string name="settings_reset_module">清除本模块全部覆盖</string>
+    <string name="settings_reset_confirm">确定恢复此范围的默认值吗？其他模块与原有功能设置不受影响。</string>
+    <string name="settings_reset_action">恢复</string>
+    <string name="settings_cancel">取消</string>
+    <string name="settings_scope_notice">外观参数适用于使用 YUI 的页面；部分旧 View 页面及独立 APK 目前各自保存设置。</string>
+    <string name="settings_customize_module">自定义外观</string>
+</resources>

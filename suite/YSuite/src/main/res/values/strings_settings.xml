@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_global">Shared appearance for YUI-based modules</string>
+    <string name="settings_module_override">Override global appearance for this built-in module</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_theme_title">Appearance &amp; theme</string>
+    <string name="settings_theme_subtitle">Choose a theme and optional Android dynamic color</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_dynamic_title">Dynamic colors</string>
+    <string name="settings_dynamic_subtitle">Use wallpaper colors on Android 12+</string>
+    <string name="settings_density_title">Layout density</string>
+    <string name="settings_density_subtitle">Standard is the default; 48dp touch targets are preserved</string>
+    <string name="settings_density_compact">Compact</string>
+    <string name="settings_density_standard">Standard (default)</string>
+    <string name="settings_density_comfortable">Comfortable</string>
+    <string name="settings_sizing_title">Sizes &amp; spacing</string>
+    <string name="settings_sizing_subtitle">Changes update shared Compose components immediately</string>
+    <string name="settings_button_radius">Button corners</string>
+    <string name="settings_control_gap">Control spacing</string>
+    <string name="settings_font_scale">Text scale</string>
+    <string name="settings_modules">Per-module overrides</string>
+    <string name="settings_modules_help">Set a different appearance for an integrated module. Its own functional settings remain in that module.</string>
+    <string name="settings_inherit_global">Use global value</string>
+    <string name="settings_advanced_title">Permissions &amp; diagnostics</string>
+    <string name="settings_advanced_desc">Root, LSPosed, accessibility, module enablement and logs stay in module management</string>
+    <string name="settings_backup_title">Configuration backup</string>
+    <string name="settings_backup_desc">Only YUI appearance settings are exported; feature secrets and permissions are excluded</string>
+    <string name="settings_export">Export JSON</string>
+    <string name="settings_import">Import JSON</string>
+    <string name="settings_export_ok">Appearance settings exported</string>
+    <string name="settings_export_failed">Unable to export appearance settings</string>
+    <string name="settings_import_ok">Appearance settings imported</string>
+    <string name="settings_import_failed">Invalid or unreadable appearance settings file</string>
+    <string name="settings_reset_title">Restore defaults</string>
+    <string name="settings_reset_global">Reset global appearance</string>
+    <string name="settings_reset_module">Remove all module overrides</string>
+    <string name="settings_reset_confirm">Restore default values for this scope? Other modules and existing feature settings will be preserved.</string>
+    <string name="settings_reset_action">Restore</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_scope_notice">Appearance changes affect YUI-based screens. Some legacy Views and standalone APKs have separate settings until migrated.</string>
+    <string name="settings_customize_module">Customize appearance</string>
+</resources>
