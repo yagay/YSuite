@@ -39,6 +39,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
         Context c = h.itemView.getContext();
         // Bind XML templates to runtime YUI preferences; don't freeze rows at resource dp.
         h.b.getRoot().setRadius(YView.cardRadius(c));
+        h.b.getRoot().setCardBackgroundColor(YView.surfaceContainer(c));
         if (h.b.getRoot().getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
             ViewGroup.MarginLayoutParams lp =
                     (ViewGroup.MarginLayoutParams) h.b.getRoot().getLayoutParams();
