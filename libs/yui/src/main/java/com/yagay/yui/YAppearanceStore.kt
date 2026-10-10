@@ -69,7 +69,8 @@ enum class YSettingKey(
     OVERLAY_SURFACE_ALPHA("overlay_surface_alpha", "100", 10, 100),
     OVERLAY_CONTENT_PADDING("overlay_content_padding", "12", 0, 128),
     OVERLAY_OUTLINE_WIDTH("overlay_outline_width", "1", 0, 24),
-    OVERLAY_SCRIM_SCALE("overlay_scrim_scale", "100", 0, 100);
+    OVERLAY_SCRIM_SCALE("overlay_scrim_scale", "100", 0, 100),
+    OVERLAY_SHADOW_ELEVATION("overlay_shadow_elevation", "10", 0, 64);
 
     fun validate(value: String): String {
         val valid = if (minimum != null && maximum != null) {
@@ -140,6 +141,7 @@ data class YAppearance(
     val overlayContentPaddingDp: Int = 12,
     val overlayOutlineWidthDp: Int = 1,
     val overlayScrimScale: Int = 100,
+    val overlayShadowElevationDp: Int = 10,
 ) {
     val effectiveGapDp: Int get() = when (density) {
         "compact" -> controlGapDp * 2 / 3
@@ -217,6 +219,7 @@ class YAppearanceStore(context: Context) {
         overlayContentPaddingDp = value(YSettingKey.OVERLAY_CONTENT_PADDING, moduleId).toInt(),
         overlayOutlineWidthDp = value(YSettingKey.OVERLAY_OUTLINE_WIDTH, moduleId).toInt(),
         overlayScrimScale = value(YSettingKey.OVERLAY_SCRIM_SCALE, moduleId).toInt(),
+        overlayShadowElevationDp = value(YSettingKey.OVERLAY_SHADOW_ELEVATION, moduleId).toInt(),
     )
 
     fun set(key: YSettingKey, value: String, moduleId: String? = null) {

@@ -593,6 +593,7 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.OVERLAY_CONTENT_PADDING -> R.string.appearance_overlay_content_padding
     YSettingKey.OVERLAY_OUTLINE_WIDTH -> R.string.appearance_overlay_outline_width
     YSettingKey.OVERLAY_SCRIM_SCALE -> R.string.appearance_overlay_scrim_scale
+    YSettingKey.OVERLAY_SHADOW_ELEVATION -> R.string.appearance_overlay_shadow_elevation
     YSettingKey.FLOAT_ICON_ALPHA -> R.string.appearance_float_icon_alpha
     YSettingKey.FLOAT_ICON_SIZE -> R.string.appearance_float_icon_size
     YSettingKey.FLOAT_EDGE_VISIBLE -> R.string.appearance_float_edge_visible

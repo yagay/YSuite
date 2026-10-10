@@ -68,6 +68,7 @@ object YUiControlRegistry {
         range(YSettingKey.OVERLAY_CONTENT_PADDING, YControlGroup.OVERLAYS),
         range(YSettingKey.OVERLAY_OUTLINE_WIDTH, YControlGroup.OVERLAYS),
         range(YSettingKey.OVERLAY_SCRIM_SCALE, YControlGroup.OVERLAYS),
+        range(YSettingKey.OVERLAY_SHADOW_ELEVATION, YControlGroup.OVERLAYS),
         range(YSettingKey.FLOAT_ICON_ALPHA, YControlGroup.OVERLAYS),
         range(YSettingKey.FLOAT_ICON_SIZE, YControlGroup.OVERLAYS),
         range(YSettingKey.FLOAT_EDGE_VISIBLE, YControlGroup.OVERLAYS),
