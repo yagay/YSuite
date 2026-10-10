@@ -3,7 +3,6 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
@@ -80,15 +79,15 @@ public final class EditableRegionOverlay {
             this.screenshot = screenshot;
             setFocusable(true);
             setClickable(true);
-            shadePaint.setColor(0x99000000);
+            shadePaint.setColor(YFloatOverlayStyle.scrim(c, 0x99));
             shadePaint.setStyle(Paint.Style.FILL);
-            borderPaint.setColor(Color.WHITE);
+            borderPaint.setColor(YFloatOverlayStyle.selectionColor(c));
             borderPaint.setStyle(Paint.Style.STROKE);
-            borderPaint.setStrokeWidth(dp(2.5f));
-            handlePaint.setColor(Color.WHITE);
+            borderPaint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
+            handlePaint.setColor(YFloatOverlayStyle.accent(c));
             handlePaint.setStyle(Paint.Style.FILL);
-            textPaint.setColor(Color.WHITE);
-            textPaint.setTextSize(dp(14));
+            textPaint.setColor(YFloatOverlayStyle.primaryText(c));
+            textPaint.setTextSize(YFloatOverlayStyle.textSize(c, 14f));
             textPaint.setTextAlign(Paint.Align.CENTER);
             textPaint.setShadowLayer(dp(3), 0, dp(1), Color.BLACK);
             buttonPaint.setStyle(Paint.Style.FILL);
@@ -121,12 +120,12 @@ public final class EditableRegionOverlay {
         private void drawTopTip(Canvas c, String tip) {
             Paint p = new Paint(textPaint);
             p.setTextAlign(Paint.Align.LEFT);
-            p.setTextSize(dp(15));
+            p.setTextSize(YFloatOverlayStyle.textSize(context, 15f));
             c.drawText(tip, dp(16), dp(34), p);
         }
 
         private void drawHandles(Canvas c, RectF r) {
-            float radius = dp(5.5f);
+            float radius = YFloatOverlayStyle.handleRadius(context);
             float cx = r.centerX(), cy = r.centerY();
             float[][] pts = {
                     {r.left, r.top}, {cx, r.top}, {r.right, r.top},
@@ -137,17 +136,17 @@ public final class EditableRegionOverlay {
         }
 
         private void drawActions(Canvas c) {
-            float margin = dp(10), gap = dp(7), h = dp(48);
+            float margin = YFloatOverlayStyle.controlGap(context), gap = YFloatOverlayStyle.controlGap(context), h = YFloatOverlayStyle.buttonHeight(context);
             float totalW = getWidth() - margin * 2 - gap * 3;
             float w = totalW / 4f;
-            float top = getHeight() - h - dp(16);
+            float top = getHeight() - h - YFloatOverlayStyle.controlGap(context);
             String[] labels = {com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a6e1a6b89308), "OCR", com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c597f44da8a0), com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bd576c86d82c)};
             int[] actions = {A_AUTO, A_OCR, A_VIEW, A_CANCEL};
             for (int i = 0; i < 4; i++) {
                 float left = margin + i * (w + gap);
                 buttons[i].set(left, top, left + w, top + h);
-                buttonPaint.setColor(pressedAction == actions[i] ? 0xEE4C86F7 : 0xDD202124);
-                c.drawRoundRect(buttons[i], dp(10), dp(10), buttonPaint);
+                buttonPaint.setColor(YFloatOverlayStyle.actionSurface(context, pressedAction == actions[i]));
+                c.drawRoundRect(buttons[i], YFloatOverlayStyle.buttonRadius(context), YFloatOverlayStyle.buttonRadius(context), buttonPaint);
                 c.drawText(labels[i], buttons[i].centerX(), buttons[i].centerY() + dp(5), textPaint);
             }
         }
