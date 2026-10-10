@@ -32,7 +32,7 @@ UI_MIGRATED_KOTLIN = [
     "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppListRows.kt",
     "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/HistoryChart.kt",
 ]
-visual_literal = re.compile(r"(?<![\\w.])(?<!0)([1-9][0-9]*(?:\\.[0-9]+)?)\\.dp\\b")
+visual_literal = re.compile(r"(?<![\w.])(?<!0)([1-9][0-9]*(?:\.[0-9]+)?)\.dp\b")
 for path in UI_MIGRATED_KOTLIN:
     source = (root / path).read_text(encoding="utf-8")
     matches = visual_literal.findall(source)
@@ -43,6 +43,6 @@ for path in [
     "apps/YFloat/feature/src/main/java/com/yagay/YFloat/UnifiedResultPanel.java",
 ]:
     source = (root / path).read_text(encoding="utf-8")
-    if re.search(r"(?:ResultUi\\.)?dp\\(\\s*(?:context|c|app|this)\\s*,\\s*\\d+", source):
+    if re.search(r"(?:ResultUi\.)?dp\(\s*(?:context|c|app|this)\s*,\s*\d+", source):
         raise SystemExit(f"YUI overlay geometry regression in {path}")
 print("YUI migrated visual constants: OK")
