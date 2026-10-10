@@ -182,6 +182,11 @@ class MainActivity : YComposeActivity() {
                         managingFeatureId = featureId
                         managementMode = true
                     },
+                    onAppearanceSettings = {
+                        startActivity(
+                            android.content.Intent(this@MainActivity, AppearanceSettingsActivity::class.java)
+                        )
+                    },
                     onToggleEnabled = updateFeatureEnabled,
                     onExportModule = { feature, name ->
                         exportDiagnostic(setOf(feature.id), name)
