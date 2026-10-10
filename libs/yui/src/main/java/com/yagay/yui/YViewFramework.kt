@@ -792,12 +792,16 @@ object YViewLayout {
     fun text(context: Context, value: String?, sp: Float, bold: Boolean): TextView = TextView(context).apply {
         text = value.orEmpty()
         if (bold) YView.styleStrongBody(this) else YView.styleBody(this)
+        // Legacy callers explicitly supply their content hierarchy in sp.
+        // Apply it *after* the common TextAppearance, otherwise the style overrides it.
+        if (sp > 0f) setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp)
     }
 
     @JvmStatic
     fun caption(context: Context, value: String?, sp: Float): TextView = TextView(context).apply {
         text = value.orEmpty()
         YView.styleCaption(this)
+        if (sp > 0f) setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp)
         setLineSpacing(0f, 1.08f)
     }
 

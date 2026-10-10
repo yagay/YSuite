@@ -311,6 +311,9 @@ fun YListItem(
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    titleMaxLines: Int = 2,
+    subtitleMaxLines: Int = 2,
+    detailMaxLines: Int = 2,
 ) {
     // Material3 ListItem adds substantial fixed internal padding. An explicit row keeps the
     // same actions and accessibility while sizing to its actual content.
@@ -345,7 +348,7 @@ fun YListItem(
                 color = foreground,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                maxLines = 2,
+                maxLines = titleMaxLines.coerceAtLeast(1),
                 overflow = TextOverflow.Ellipsis,
             )
             if (!subtitle.isNullOrBlank()) {
@@ -353,7 +356,7 @@ fun YListItem(
                     subtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
+                    maxLines = subtitleMaxLines.coerceAtLeast(1),
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -362,7 +365,7 @@ fun YListItem(
                     detail,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
-                    maxLines = 2,
+                    maxLines = detailMaxLines.coerceAtLeast(1),
                     overflow = TextOverflow.Ellipsis,
                 )
             }
