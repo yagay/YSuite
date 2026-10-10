@@ -163,6 +163,57 @@ class YAppearanceStoreTest {
         assertEquals(0, store.appearance().pageVerticalPaddingDp)
     }
 
+    @Test
+    fun overlayAppearancesAreGlobalByDefaultAndOverridePerModule() {
+        val keys = listOf(
+            YSettingKey.FLOAT_ICON_ALPHA, YSettingKey.FLOAT_ICON_SIZE,
+            YSettingKey.FLOAT_EDGE_VISIBLE, YSettingKey.FLOAT_BORDER_WIDTH,
+            YSettingKey.FLOAT_TRAIL_ALPHA, YSettingKey.FLOAT_TRAIL_WIDTH,
+            YSettingKey.FLOAT_MENU_COUNT, YSettingKey.FLOAT_BORDER_COLOR,
+            YSettingKey.FLOAT_ICON_STYLE, YSettingKey.FLOAT_TRAIL_STYLE,
+            YSettingKey.FLOAT_TRAIL_GRADIENT, YSettingKey.FLOAT_TRAIL_COLORS,
+            YSettingKey.FLOAT_BORDER_VISIBLE, YSettingKey.FLOAT_TRAIL_VISIBLE,
+        )
+        val controls = YUiControlRegistry.forGroup(YControlGroup.OVERLAYS)
+        assertEquals(keys.toSet(), controls.map { it.key }.toSet())
+        assertEquals("62", store.value(YSettingKey.FLOAT_ICON_ALPHA, "yfloat"))
+        store.set(YSettingKey.FLOAT_ICON_ALPHA, "19")
+        store.set(YSettingKey.FLOAT_TRAIL_COLORS, "#123456,#ABCDEF")
+        store.set(YSettingKey.FLOAT_BORDER_VISIBLE, "false")
+        assertEquals(19, store.appearance("yfloat").floatIconAlpha)
+        assertEquals("#123456,#ABCDEF", store.appearance("yfloat").floatTrailColors)
+        assertFalse(store.appearance("yfloat").floatBorderVisible)
+
+        store.set(YSettingKey.FLOAT_ICON_ALPHA, "87", "yfloat")
+        assertEquals(87, store.appearance("yfloat").floatIconAlpha)
+        assertEquals(19, store.appearance("ynotify").floatIconAlpha)
+        store.inherit(YSettingKey.FLOAT_ICON_ALPHA, "yfloat")
+        assertEquals(19, store.appearance("yfloat").floatIconAlpha)
+        val exported = store.exportJson()
+        store.reset()
+        store.importJson(exported)
+        assertEquals(19, store.appearance("yfloat").floatIconAlpha)
+        assertFalse(store.appearance("yfloat").floatBorderVisible)
+        assertEquals("#123456,#ABCDEF", store.appearance("yfloat").floatTrailColors)
+    }
+
+    @Test
+    fun appearanceInputRejectsInvalidColorsAndOutOfRangeValues() {
+        assertTrue(runCatching {
+            store.set(YSettingKey.FLOAT_ICON_ALPHA, "101")
+        }.isFailure)
+        assertTrue(runCatching {
+            store.set(YSettingKey.FLOAT_BORDER_COLOR, "invalid")
+        }.isFailure)
+        assertTrue(runCatching {
+            store.set(YSettingKey.FLOAT_TRAIL_COLORS, "a".repeat(257))
+        }.isFailure)
+        store.set(YSettingKey.FLOAT_TRAIL_GRADIENT, "true")
+        store.set(YSettingKey.FLOAT_TRAIL_VISIBLE, "true")
+        assertTrue(store.appearance("yfloat").floatTrailGradient)
+        assertTrue(store.appearance("yfloat").floatTrailVisible)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsInvalidModuleIdentifier() {
         store.set(YSettingKey.THEME, "light", "../other")
