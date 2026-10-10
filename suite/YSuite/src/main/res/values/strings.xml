@@ -106,4 +106,14 @@
     <string name="home_enable">Enable feature</string>
     <string name="home_disable">Disable feature</string>
     <string name="home_disabled">Disabled · open management to enable</string>
+
+    <string name="shared_appearance_title">Appearance settings</string>
+    <string name="shared_appearance_desc">One theme for YSuite and all built-in modules</string>
+    <string name="shared_appearance_theme">Theme</string>
+    <string name="shared_appearance_theme_desc">Applies to shared Compose and View interfaces</string>
+    <string name="shared_appearance_system">Follow system</string>
+    <string name="shared_appearance_light">Light</string>
+    <string name="shared_appearance_dark">Dark</string>
+    <string name="shared_appearance_components">Shared controls</string>
+    <string name="shared_appearance_components_desc">Buttons, switches, dialog shapes, spacing and colors are defined once in YUI. Module-specific operations stay in their respective modules.</string>
 </resources>
