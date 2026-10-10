@@ -51,14 +51,7 @@ fun YIconAction(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier.sizeIn(
-            minWidth = YAccessibility.MinimumTouchTarget,
-            minHeight = YAccessibility.MinimumTouchTarget,
-        ),
-        enabled = enabled,
-    ) {
+    YUiIconButton(onClick = onClick, modifier = modifier, enabled = enabled) {
         Icon(icon, contentDescription = contentDescription)
     }
 }
@@ -78,7 +71,7 @@ fun YTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
-    OutlinedTextField(
+    YUiOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),

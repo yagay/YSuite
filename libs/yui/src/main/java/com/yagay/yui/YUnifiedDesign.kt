@@ -594,13 +594,7 @@ fun YPrimaryActionButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-        content = content,
-    )
+    YUiButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
 }
 
 /** Shared compact text-action for dialogs and inline file/download operations. */
@@ -611,9 +605,9 @@ fun YTextActionButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
-    TextButton(
+    YUiTextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
+        modifier = modifier,
         enabled = enabled,
         contentPadding = PaddingValues(
             horizontal = YDimens.ButtonTextPaddingHorizontal,
@@ -630,13 +624,7 @@ fun YSecondaryActionButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-        content = content,
-    )
+    YUiOutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
 }
 
 @OptIn(ExperimentalLayoutApi::class)

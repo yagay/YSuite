@@ -97,7 +97,7 @@ fun YDialogConfirmButton(
     onClick: () -> Unit,
     dangerous: Boolean = false,
 ) {
-    TextButton(onClick = onClick, modifier = Modifier) {
+    YUiTextButton(onClick = onClick, modifier = Modifier) {
         Text(
             label,
             color = if (dangerous) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
@@ -107,7 +107,7 @@ fun YDialogConfirmButton(
 
 @Composable
 fun YDialogDismissButton(label: String, onClick: () -> Unit) {
-    TextButton(onClick = onClick) { Text(label) }
+    YUiTextButton(onClick = onClick) { Text(label) }
 }
 
 /** Canonical content dialog with YUI actions and spacing. */

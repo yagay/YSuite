@@ -217,13 +217,9 @@ fun YPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        shape = MaterialTheme.shapes.small,
-        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-    ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    YUiButton(onClick = onClick, modifier = modifier, enabled = enabled) {
+        Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
 
 @Composable
@@ -233,14 +229,9 @@ fun YSecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
-        enabled = enabled,
-        shape = MaterialTheme.shapes.small,
-        colors = ButtonDefaults.outlinedButtonColors(),
-        contentPadding = PaddingValues(horizontal = YDimens.ButtonPaddingHorizontal, vertical = YDimens.ButtonPaddingVertical),
-    ) { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    YUiOutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled) {
+        Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
 
 @Composable
