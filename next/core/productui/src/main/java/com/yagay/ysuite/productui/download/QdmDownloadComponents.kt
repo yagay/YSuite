@@ -3,10 +3,14 @@ package com.yagay.ysuite.productui.download
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -57,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+import androidx.compose.ui.unit.dp
 
 data class QdmDownloadRowModel(
     val id: String,
@@ -514,23 +519,19 @@ fun QdmAddDownloadDialog(
                 dismissOnClickOutside = false,
             ),
     ) {
+        BoxWithConstraints(Modifier.fillMaxSize().imePadding()) {
         Surface(
             modifier = Modifier
+                .align(Alignment.Center)
                 .fillMaxWidth()
-                .padding(YSuiteSpacing.Medium),
+                .padding(YSuiteSpacing.Medium)
+                .heightIn(max = maxHeight - 24.dp),
             shape = MaterialTheme.shapes.large,
             tonalElevation = YSuiteSpacing.XSmall,
         ) {
             Column(
-                modifier = Modifier
-                    .verticalScroll(
-                        rememberScrollState(),
-                    )
-                    .padding(YSuiteSpacing.Large),
-                verticalArrangement =
-                    Arrangement.spacedBy(
-                        YSuiteSpacing.Small,
-                    ),
+                modifier = Modifier.padding(YSuiteSpacing.Large),
+                verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -548,6 +549,13 @@ fun QdmAddDownloadDialog(
                     }
                 }
 
+                // Long form scrolls separately from its title and actions.
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+                ) {
                 OutlinedTextField(
                     value = model.url,
                     onValueChange = onUrlChange,
@@ -783,12 +791,10 @@ fun QdmAddDownloadDialog(
                     },
                 )
 
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(
-                            YSuiteSpacing.Small,
-                        ),
+                    horizontalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
                 ) {
                     YSecondaryActionButton(
                         onClick = onAddQueue,
@@ -810,6 +816,7 @@ fun QdmAddDownloadDialog(
                     }
                 }
             }
+        }
         }
     }
 }
