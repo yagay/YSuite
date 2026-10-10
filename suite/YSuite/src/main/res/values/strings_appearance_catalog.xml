@@ -90,4 +90,7 @@
     <string name="appearance_overlay_round">Round</string>
     <string name="appearance_overlay_square">Square</string>
     <string name="appearance_overlay_enhanced">Enhanced</string>
+    <string name="appearance_float_trail_colors">Trail colors (comma-separated #RRGGBB)</string>
+    <string name="appearance_float_border_visible">Show selection border</string>
+    <string name="appearance_float_trail_visible">Show gesture trail</string>
 </resources>
