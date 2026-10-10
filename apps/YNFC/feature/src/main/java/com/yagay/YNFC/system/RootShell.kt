@@ -6,6 +6,8 @@ import android.os.Looper
 import android.os.SystemClock
 import android.widget.Toast
 import com.yagay.suite.api.FeatureServices
+import com.yagay.suite.api.FeatureRootCommands
+import com.yagay.suite.api.HostCommandResult
 
 class RootShell(context: Context) {
     companion object {
@@ -59,34 +61,8 @@ class RootShell(context: Context) {
         return ok
     }
 
-    private fun hostRun(command: String, timeoutSeconds: Long): HostRootResult =
-        runCatching {
-            val raw = services.requireHost("Managed Root host is not attached")
-                .rootExecute("root-shell", command, timeoutSeconds)
-            HostRootResult(
-                code = raw.code,
-                stdout = raw.stdout,
-                stderr = raw.stderr.ifBlank { raw.errorMessage.orEmpty() },
-                timedOut = raw.timedOut,
-                success = raw.success,
-            )
-        }.getOrElse { error ->
-            HostRootResult(
-                code = -1,
-                stdout = "",
-                stderr = "Managed root error: ${error.javaClass.simpleName}: ${error.message}",
-                timedOut = false,
-                success = false,
-            )
-        }
-
-    private data class HostRootResult(
-        val code: Int,
-        val stdout: String,
-        val stderr: String,
-        val timedOut: Boolean,
-        val success: Boolean,
-    )
+    private fun hostRun(command: String, timeoutSeconds: Long): HostCommandResult =
+        FeatureRootCommands.execute(services, "root-shell", command, timeoutSeconds)
 
     private fun notifyRootUnavailable() {
         val now = SystemClock.elapsedRealtime()

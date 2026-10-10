@@ -16,8 +16,9 @@ YParam、YPower、YTaskManager、YFiles、YDownload。
 | 新模块 Root | DefaultPlatformServices(featureId) → FeatureServices | 无宿主时兼容 |
 | Hook 传输 | next/core/platform/api / XposedHostBridge | 各 Hook 的远端协议 |
 
-所有 apps/*/feature/build.gradle.kts 的 YUI/API 改为 project(":ui") /
-project(":api")，不再通过远程 JitPack 引入可能不一致的公共源码。
+所有 apps/*/feature/build.gradle.kts 的 YUI/API 优先使用 project(":ui") /
+project(":api")；独立 APK 的本地 settings 使用 :ysuite-ui / :ysuite-api 别名。
+仅当 feature-only 源码不包含共享仓库时，保留原有 Git 源依赖兜底。
 
 ## 必须保留独立的业务边界
 

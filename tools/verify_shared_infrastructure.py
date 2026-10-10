@@ -43,7 +43,10 @@ def main() -> int:
             if dependency not in source:
                 failures.append(f"{build.relative_to(ROOT)}: missing shared {dependency}")
         if "com.github.yagay.YSuite:api" in source or "com.github.yagay.YSuite:ui" in source:
-            failures.append(f"{build.relative_to(ROOT)}: remote copy of API/YUI is forbidden")
+            # External feature-only source checkouts retain an explicit fallback, never used
+            # by the monorepo or when the local standalone project aliases are available.
+            if 'rootProject.findProject(":api")' not in source or 'rootProject.findProject(":ysuite-api")' not in source:
+                failures.append(f"{build.relative_to(ROOT)}: remote API fallback is not guarded by local project selection")
 
     expected_shared = {
         "apps/YDiag/feature/src/main/java/com/yagay/ydiag/root/RootShell.kt": "FeatureRootCommands.execute",

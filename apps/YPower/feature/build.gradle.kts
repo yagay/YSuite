@@ -4,6 +4,7 @@ plugins {
 
 val embeddedInSuite = rootProject.findProject(":suite") != null
 val hostPackage = if (embeddedInSuite) "com.yagay.YSuite" else "com.yagay.ypower"
+val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 val ciArm64Only = providers.gradleProperty("ciArm64Only").orNull == "true"
 
@@ -48,8 +49,24 @@ android {
 }
 
 dependencies {
-    implementation(project(":api"))
-    implementation(project(":ui"))
+    if (rootProject.findProject(":api") != null) {
+        implementation(project(":api"))
+    } else if (rootProject.findProject(":ysuite-api") != null) {
+        implementation(project(":ysuite-api"))
+    } else {
+        implementation("com.github.yagay.YSuite:api") {
+            version { branch = sharedSuiteBranch.get() }
+        }
+    }
+    if (rootProject.findProject(":ui") != null) {
+        implementation(project(":ui"))
+    } else if (rootProject.findProject(":ysuite-ui") != null) {
+        implementation(project(":ysuite-ui"))
+    } else {
+        implementation("com.github.yagay.YSuite:ui") {
+            version { branch = sharedSuiteBranch.get() }
+        }
+    }
 
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)

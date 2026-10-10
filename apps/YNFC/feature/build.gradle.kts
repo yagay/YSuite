@@ -9,6 +9,7 @@ val configAuthority = providers.gradleProperty("ynfcConfigAuthority").orNull
 val standaloneVersionCode = 57
 val runtimeVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
     .orNull?.toIntOrNull() ?: standaloneVersionCode
+val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 
 android {
@@ -41,8 +42,24 @@ android {
 }
 
 dependencies {
-    implementation(project(":api"))
-    implementation(project(":ui"))
+    if (rootProject.findProject(":api") != null) {
+        implementation(project(":api"))
+    } else if (rootProject.findProject(":ysuite-api") != null) {
+        implementation(project(":ysuite-api"))
+    } else {
+        implementation("com.github.yagay.YSuite:api") {
+            version { branch = sharedSuiteBranch.get() }
+        }
+    }
+    if (rootProject.findProject(":ui") != null) {
+        implementation(project(":ui"))
+    } else if (rootProject.findProject(":ysuite-ui") != null) {
+        implementation(project(":ysuite-ui"))
+    } else {
+        implementation("com.github.yagay.YSuite:ui") {
+            version { branch = sharedSuiteBranch.get() }
+        }
+    }
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.gson)
     compileOnly(libs.libxposed.api)
