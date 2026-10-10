@@ -290,6 +290,27 @@ def main() -> None:
 
     # Specialized diagnostic text highlighting in YPower Diagnostic and YNFC's log console may
     # keep semantic high-contrast colors. Normal cards/status/chrome remain YUI-owned.
+    # General settings must reach the shared host and preserve language on feature screens.
+    general = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteGeneralSettingsScreen.kt")
+    locale = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteLocaleController.kt")
+    host = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/YSuiteApp.kt")
+    compose_activity = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YComposeActivity.kt")
+    home = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt")
+    general_store = text(ROOT / "libs/ycore/src/main/java/com/yagay/suite/core/SuiteCommonSettings.kt")
+    for source, markers, label in (
+        (general, ("SuiteLocaleController.set(", "HOME_HIDE_DISABLED", "HOME_SHOW_SEARCH",
+                   "HOME_SHOW_DIAGNOSTICS"), "YSuite general settings"),
+        (locale, ("LocaleManager::class.java", "localizedContext(", "AppCompatDelegate"),
+         "YSuite locale controller"),
+        (host, ("YUiLocaleBridge.install(",), "YSuite locale bootstrap"),
+        (compose_activity, ("YUiLocaleBridge.wrap(",), "embedded Compose locale"),
+        (home, ("hideDisabled", "if (showSearch)", "if (showDiagnostics)"),
+         "general home preferences"),
+        (general_store, ("globalOnly", "LANGUAGE(", "HOME_HIDE_DISABLED("),
+         "validated general settings"),
+    ):
+        for required in markers:
+            require(source, required, label)
     print(
         "ui-framework: OK compose=YUI-v2 view=YViewPage/YViewLayout page-xml=forbidden "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
