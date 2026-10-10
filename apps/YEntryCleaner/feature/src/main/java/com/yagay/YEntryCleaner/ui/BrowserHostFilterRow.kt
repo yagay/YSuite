@@ -36,6 +36,7 @@ import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YTextField
 import com.yagay.yui.LocalYAppearance
+import com.yagay.yui.YDimens
 import androidx.compose.ui.platform.LocalConfiguration
 import com.yagay.yui.YSettingRow
 
@@ -52,8 +53,9 @@ fun BrowserHostFilterMenu(
     var hostQuery by remember { mutableStateOf("") }
     var anchorWidthPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
-    val menuWidth = minOf(296f, LocalConfiguration.current.screenWidthDp.toFloat() -
-        2f * LocalYAppearance.current.screenPaddingDp).coerceAtLeast(160f).dp
+    val menuWidth = minOf(LocalYAppearance.current.rowHeightDp * 6f,
+        LocalConfiguration.current.screenWidthDp.toFloat() - 2f * LocalYAppearance.current.screenPaddingDp)
+        .coerceAtLeast(LocalYAppearance.current.rowHeightDp * 3f).dp
     val menuHorizontalOffset = with(density) {
         ((anchorWidthPx.toDp() - menuWidth) / 2)
     }
@@ -107,14 +109,14 @@ fun BrowserHostFilterMenu(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier.width(24.dp),
+                    modifier = Modifier.width(YDimens.IconVisualSize),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     if (selected == null) {
                         Icon(
                             Icons.Rounded.Check,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(YDimens.IconSmallSize)
                         )
                     }
                 }
@@ -132,7 +134,7 @@ fun BrowserHostFilterMenu(
                     .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(Modifier.width(24.dp))
+                Spacer(Modifier.width(YDimens.IconVisualSize))
                 Text(stringResource(R.string.browser_hosts_manage))
             }
             HorizontalDivider()
@@ -140,12 +142,14 @@ fun BrowserHostFilterMenu(
                 value = hostQuery,
                 onValueChange = { hostQuery = it },
                 hint = stringResource(R.string.browser_domain_search),
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                    vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)
             )
             if (visibleHosts.isEmpty()) {
                 YEmptyMessage(
                     message = stringResource(R.string.browser_domain_search_empty),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                    vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)
                 )
             } else {
                 visibleHosts.forEach { host ->
@@ -162,14 +166,14 @@ fun BrowserHostFilterMenu(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
-                            modifier = Modifier.width(24.dp),
+                            modifier = Modifier.width(YDimens.IconVisualSize),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (selected == host) {
                                 Icon(
                                     Icons.Rounded.Check,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(YDimens.IconSmallSize)
                                 )
                             }
                         }
@@ -227,7 +231,7 @@ fun BrowserHostDialog(
                     stringResource(R.string.browser_host_invalid)
                 } else null,
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(LocalYAppearance.current.effectiveGapDp.dp))
             YPrimaryButton(
                 text = stringResource(R.string.common_add),
                 enabled = canAdd,

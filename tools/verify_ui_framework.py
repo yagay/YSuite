@@ -35,6 +35,18 @@ YENTRY_PRIORITY = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEn
 YENTRY_ROWS = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppListRows.kt"
 
 
+def verify_yentry_uses_shared_controls() -> None:
+    """Reject reintroduction of local control geometry in normal feature UI."""
+    controls = text(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainControls.kt")
+    if "BasicTextField(" in controls or "OutlinedTextField(" not in controls:
+        fail("YEntryCleaner search must use the shared YUI outlined input")
+    if "YFilterBar(" not in controls or "LazyRow(contentPadding = PaddingValues(horizontal = 12.dp))" in controls:
+        fail("YEntryCleaner filter tabs must use YUI FilterBar")
+    host = text(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/BrowserHostFilterRow.kt")
+    for banned in ("Modifier.width(24.dp)", "Modifier.size(16.dp)", "horizontal = 8.dp", "vertical = 4.dp"):
+        if banned in host:
+            fail(f"browser host normal UI must use live YUI appearance instead of {banned}")
+
 def fail(message: str) -> None:
     print(f"ui-framework: ERROR: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -109,6 +121,7 @@ def verify_runtime_appearance() -> None:
 
 
 def main() -> None:
+    verify_yentry_uses_shared_controls()
     verify_runtime_appearance()
     compose = text(YUI_COMPOSE)
     view = text(YUI_VIEW)

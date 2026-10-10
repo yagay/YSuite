@@ -79,7 +79,7 @@ internal fun UnifiedDashboardTabContent(
                 Box {
                     TextButton(onClick = { modeMenu = true }) {
                         Text(stringResource(R.string.dashboard_switch))
-                        Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.size(YDimens.IconVisualSize))
                     }
                     DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
                         DisplayMode.entries.forEach { mode ->
@@ -215,7 +215,7 @@ internal fun UnifiedDashboardTabContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (collectingDiagnostics) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(YDimens.IconSmallSize), strokeWidth = 2.dp)
                     Spacer(Modifier.width(YDimens.ControlGap))
                 }
                 Text(stringResource(if (collectingDiagnostics) R.string.dashboard_collecting else R.string.dashboard_export_diagnostics))

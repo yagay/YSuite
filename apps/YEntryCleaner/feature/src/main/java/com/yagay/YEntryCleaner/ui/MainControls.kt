@@ -1,6 +1,8 @@
 package com.yagay.YEntryCleaner.ui
 
 import com.yagay.yui.YDimens
+import com.yagay.yui.YFilterBar
+import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
 import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,7 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -40,8 +41,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,45 +58,26 @@ import com.yagay.yui.YOverflowMenu
 
 @Composable
 internal fun CompactSearchField(query: String, onQueryChange: (String) -> Unit) {
-    val colors = MaterialTheme.colorScheme
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
-    BasicTextField(
+    OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
         singleLine = true,
+        placeholder = {
+            Text(
+                stringResource(R.string.search_apps_components_packages),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-        textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.onSurface),
-        cursorBrush = SolidColor(colors.primary),
-        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
-            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
-            .border(1.dp, colors.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(LocalYAppearance.current.fieldRadiusDp.dp)),
-        decorationBox = { innerTextField ->
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp)
-            ) {
-                Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(YDimens.IconVisualSize), tint = colors.onSurfaceVariant)
-                Box(Modifier.weight(1f)) {
-                    if (query.isEmpty()) {
-                        Text(
-                            stringResource(R.string.search_apps_components_packages),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    innerTextField()
-                }
-            }
-        }
     )
 }
-
 @Composable
 internal fun MainToolbar(
     query: String,
@@ -178,26 +158,19 @@ internal fun ListControls(
     var appTypeMenu by remember { mutableStateOf(false) }
     var selectionMenu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-        LazyRow(contentPadding = PaddingValues(horizontal = 12.dp)) {
-            items((if (includeAllKinds) listOf<IntentKind?>(null) else emptyList()) + IntentKind.entries) { kind ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    TextButton(onClick = { onFilter(kind) }) {
-                        Text(
-                            kind?.let { stringResource(it.titleRes()) } ?: stringResource(R.string.common_all),
-                            fontWeight = if (state.filter == kind) FontWeight.Bold else FontWeight.Normal,
-                            color = if (state.filter == kind) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Box(
-                        Modifier.height(2.dp).width(24.dp).background(
-                            if (state.filter == kind) MaterialTheme.colorScheme.primary else Color.Transparent
-                        )
-                    )
-                }
-            }
+        val kinds: List<IntentKind?> =
+            (if (includeAllKinds) listOf<IntentKind?>(null) else emptyList()) + IntentKind.entries
+        val kindLabels = kinds.map { kind ->
+            kind?.let { stringResource(it.titleRes()) } ?: stringResource(R.string.common_all)
         }
+        YFilterBar(
+            options = kindLabels,
+            selectedIndex = kinds.indexOf(state.filter),
+            onSelected = { index -> onFilter(kinds[index]) },
+            modifier = Modifier.padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
+        )
         Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box {
@@ -309,7 +282,7 @@ internal fun ModuleStatusRow(state: MainState, compact: Boolean = false, onClick
         else -> R.string.module_lsposed_connected
     }
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
