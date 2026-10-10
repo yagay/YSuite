@@ -495,7 +495,8 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.ACCENT -> R.string.appearance_accent
     YSettingKey.BUTTON_HEIGHT -> R.string.appearance_button_height
     YSettingKey.BUTTON_VERTICAL_PADDING -> R.string.appearance_button_vertical_padding
-    YSettingKey.ROW_HEIGHT -> R.string.appearance_row_height
+    YSettingKey.ROW_HEIGHT ->
+    YSettingKey.LIST_ICON_SIZE -> R.string.appearance_list_icon_size R.string.appearance_row_height
     YSettingKey.ROW_HORIZONTAL_PADDING -> R.string.appearance_row_horizontal_padding
     YSettingKey.ROW_VERTICAL_PADDING -> R.string.appearance_row_vertical_padding
     YSettingKey.CARD_RADIUS -> R.string.appearance_card_radius
@@ -503,9 +504,12 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.FIELD_RADIUS -> R.string.appearance_field_radius
     YSettingKey.DIALOG_RADIUS -> R.string.appearance_dialog_radius
     YSettingKey.SWITCH_SLOT_WIDTH -> R.string.appearance_switch_slot_width
-    YSettingKey.ICON_TOUCH_TARGET -> R.string.appearance_icon_touch_target
-    YSettingKey.NAV_RADIUS -> R.string.appearance_nav_radius
-    YSettingKey.SCREEN_PADDING -> R.string.appearance_screen_padding
+    YSettingKey.ICON_TOUCH_TARGET ->
+    YSettingKey.ICON_VISUAL_SIZE -> R.string.appearance_icon_visual_size R.string.appearance_icon_touch_target
+    YSettingKey.NAV_RADIUS ->
+    YSettingKey.TOOLBAR_HEIGHT -> R.string.appearance_toolbar_height R.string.appearance_nav_radius
+    YSettingKey.SCREEN_PADDING ->
+    YSettingKey.PAGE_VERTICAL_PADDING -> R.string.appearance_page_vertical_padding R.string.appearance_screen_padding
     YSettingKey.SECTION_SPACING -> R.string.appearance_section_spacing
     YSettingKey.HOME_SWIPE_PIN -> R.string.settings_swipe_pin
     YSettingKey.HOME_STATUS -> R.string.settings_home_status
