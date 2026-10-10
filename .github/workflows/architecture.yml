@@ -81,6 +81,12 @@ jobs:
       - name: Verify repository UI screen ownership
         run: python3 tools/verify_ui_screen_ownership.py
 
+      - name: Audit every YSuite source for non-YUI visual constants
+        run: >-
+          python3 tools/audit_yui_repository.py
+          --json build/reports/yui-source-audit.json
+          --markdown build/reports/yui-source-audit.md
+
       - name: Verify YSuite host ownership
         run: python3 tools/verify_host_ownership.py
 
@@ -89,3 +95,14 @@ jobs:
 
       - name: Scan feature integration hazards
         run: python3 tools/scan_feature_integration.py --root . --fail-on-high-risk
+
+      - name: Upload complete YUI source audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yui-full-source-audit
+          path: |
+            build/reports/yui-source-audit.json
+            build/reports/yui-source-audit.md
+          if-no-files-found: warn
+          retention-days: 14
