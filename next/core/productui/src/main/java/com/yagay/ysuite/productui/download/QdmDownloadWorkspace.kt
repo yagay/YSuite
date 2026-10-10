@@ -21,10 +21,10 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SmallFloatingActionButton
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import com.yagay.yui.YTabBar
+import com.yagay.yui.YTabSpec
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -268,24 +268,11 @@ fun QdmDownloadWorkspace(
         },
         headerContent = {
             if (tabs.isNotEmpty()) {
-                val selectedIndex =
-                    tabs.indexOfFirst {
-                        it.id == selectedTabId
-                    }.coerceAtLeast(0)
-                ScrollableTabRow(
-                    selectedTabIndex = selectedIndex,
-                ) {
-                    tabs.forEach { tab ->
-                        Tab(
-                            selected =
-                                tab.id == selectedTabId,
-                            onClick = {
-                                onTabSelected(tab.id)
-                            },
-                            text = { Text(tab.label) },
-                        )
-                    }
-                }
+                YTabBar(
+                    tabs = tabs.map { YTabSpec(key = it.id, label = it.label) },
+                    selectedKey = selectedTabId,
+                    onSelected = { onTabSelected(it.key) },
+                )
             }
         },
         floatingActionButton = {
