@@ -644,7 +644,7 @@ object YViewLayout {
     fun section(context: Context, title: String? = null, subtitle: String? = null): YViewSection {
         val card = MaterialCardView(context).apply {
             // Use the same Material 3 card surface, radius and elevation as Compose pages.
-            setCardBackgroundColor(YView.surfaceContainer(context))
+            setCardBackgroundColor(YView.cardSurface(context))
             radius = YView.cardRadius(context).toFloat()
             strokeWidth = YView.cardOutlineWidth(context)
             setStrokeColor(ColorStateList.valueOf(YView.outline(context)))

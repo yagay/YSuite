@@ -135,7 +135,7 @@ object YView {
     }
 
     @JvmStatic fun cardBackground(context: Context): GradientDrawable = GradientDrawable().apply {
-        setColor(surfaceContainer(context))
+        setColor(cardSurface(context))
         cornerRadius = dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardRadiusDp).toFloat()
     }
 
@@ -256,6 +256,8 @@ object YView {
     @JvmStatic fun background(context: Context): Int = palette(context).surface.toArgb()
     @JvmStatic fun surface(context: Context): Int = palette(context).surfaceContainer.toArgb()
     @JvmStatic fun surfaceContainer(context: Context): Int = surface(context)
+    /** Match the Compose YCard surface role without changing input fields or overlays. */
+    @JvmStatic fun cardSurface(context: Context): Int = palette(context).surfaceContainerLow.toArgb()
     @JvmStatic fun onSurface(context: Context): Int = palette(context).onSurface.toArgb()
     @JvmStatic fun onSurfaceVariant(context: Context): Int = palette(context).onSurfaceVariant.toArgb()
     @JvmStatic fun outline(context: Context): Int = palette(context).outlineVariant.toArgb()

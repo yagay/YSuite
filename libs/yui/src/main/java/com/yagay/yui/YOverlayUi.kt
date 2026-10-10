@@ -125,7 +125,7 @@ fun YUiOverlayPanel(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(config.overlayPanelRadiusDp.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = config.overlaySurfaceAlpha / 100f),
+        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = config.overlaySurfaceAlpha / 100f),
         contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = config.overlayShadowElevationDp.dp,
         border = if (config.overlayOutlineWidthDp > 0)
