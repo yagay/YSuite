@@ -58,7 +58,7 @@ public final class FlPointerOperationHintOverlay {
         icon.setVisibility(View.GONE);
         root.addView(icon, new LinearLayout.LayoutParams(iconSizePx, iconSizePx));
 
-        text = new TextView(context);
+        text = new TextView(YOverlayUi.scopedContext(context, "yfloat"));
         YOverlayUi.styleHintText(text, "yfloat");
         text.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         text.setMaxWidth(dp(TEXT_MAX_WIDTH_DP));
@@ -117,10 +117,10 @@ public final class FlPointerOperationHintOverlay {
             int drawableRes;
             int background;
             switch (next) {
-                case TEXT -> { drawableRes = R.drawable.fl_pointer_text; background = YOverlayTokens.warning(context); }
-                case IMAGE -> { drawableRes = R.drawable.fl_pointer_image; background = YOverlayTokens.accent(context); }
-                case SCREENSHOT -> { drawableRes = R.drawable.fl_pointer_screenshot; background = YOverlayTokens.warning(context); }
-                default -> { drawableRes = R.drawable.fl_pointer_screenshot; background = YOverlayTokens.warning(context); }
+                case TEXT -> { drawableRes = R.drawable.fl_pointer_text; background = YOverlayTokens.warning(YOverlayUi.scopedContext(context, "yfloat")); }
+                case IMAGE -> { drawableRes = R.drawable.fl_pointer_image; background = YOverlayTokens.accent(YOverlayUi.scopedContext(context, "yfloat")); }
+                case SCREENSHOT -> { drawableRes = R.drawable.fl_pointer_screenshot; background = YOverlayTokens.warning(YOverlayUi.scopedContext(context, "yfloat")); }
+                default -> { drawableRes = R.drawable.fl_pointer_screenshot; background = YOverlayTokens.warning(YOverlayUi.scopedContext(context, "yfloat")); }
             }
             icon.setImageResource(drawableRes);
             icon.setBackground(makeCircle(background));

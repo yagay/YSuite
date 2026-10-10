@@ -119,8 +119,10 @@ def verify_runtime_appearance() -> None:
         "file_rows": ("LocalYAppearance.current.rowHeightDp.dp",),
         "host_home": ("appearance.cardRadiusDp.dp", "appearance.rowHeightDp.dp"),
     }
+    appearance = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YAppearanceStore.kt")
+    require(appearance, "if (current is YAppearanceScopeContext)", "scoped overlay module theme")
     overlay = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YOverlayUi.kt")
-    for marker in ("fun panelBackground(", "fun menuBackground(", "fun cornerRadiusPx(", "fun scaleScrimAlpha(", "fun YUiOverlayPanel("):
+    for marker in ("fun scopedContext(", "fun panelBackground(", "fun menuBackground(", "fun cornerRadiusPx(", "fun scaleScrimAlpha(", "fun YUiOverlayPanel("):
         require(overlay, marker, "central YUI overlay facade")
     confirm = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/GoogleRegionConfirmOverlay.java")
     require(confirm, "YOverlayUi.styleAction(", "YFloat selection confirmation overlay")

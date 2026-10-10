@@ -18,7 +18,8 @@ final class FloatingMenuUi {
     static LinearLayout root(Context c) {
         LinearLayout root = new LinearLayout(c);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackground(YOverlayUi.menuBackground(c, "yfloat", YOverlayTokens.menuSurface(c)));
+        root.setBackground(YOverlayUi.menuBackground(c, "yfloat",
+                YOverlayTokens.menuSurface(YOverlayUi.scopedContext(c, "yfloat"))));
         root.setElevation(YOverlayUi.elevationPx(c, "yfloat"));
         root.setClipToOutline(false);
         root.setClickable(true);
@@ -57,14 +58,14 @@ final class FloatingMenuUi {
 
     static TextView secondaryRow(Context c, String text) {
         TextView tv = row(c, text, null);
-        tv.setTextColor(YOverlayTokens.menuSecondaryText(c));
+        tv.setTextColor(YOverlayTokens.menuSecondaryText(YOverlayUi.scopedContext(c, "yfloat")));
         return tv;
     }
 
     private static TextView baseText(Context c, String text) {
-        TextView tv = new TextView(c);
+        TextView tv = new TextView(YOverlayUi.scopedContext(c, "yfloat"));
         tv.setText(text == null ? "" : text);
-        tv.setTextColor(YOverlayTokens.menuPrimaryText(c));
+        tv.setTextColor(YOverlayTokens.menuPrimaryText(YOverlayUi.scopedContext(c, "yfloat")));
         YView.styleBody(tv);
         tv.setBackground(YOverlayUi.actionRipple(c, "yfloat"));
         tv.setClickable(true);

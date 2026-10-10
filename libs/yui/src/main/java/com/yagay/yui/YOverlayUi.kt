@@ -1,6 +1,8 @@
 package com.yagay.yui
 
 import android.content.Context
+import java.lang.ref.WeakReference
+import java.util.WeakHashMap
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
@@ -23,6 +25,17 @@ import androidx.compose.ui.unit.dp
  * inside feature modules. All configurable dimensions come from YAppearanceStore.
  */
 object YOverlayUi {
+    private val scopedContexts = WeakHashMap<Context, MutableMap<String, WeakReference<Context>>>()
+
+    /** Shared module-aware theme context, cache weakly to avoid retaining Activity or Service. */
+    @JvmStatic fun scopedContext(context: Context, moduleId: String): Context =
+        synchronized(scopedContexts) {
+            val scopes = scopedContexts.getOrPut(context) { mutableMapOf() }
+            scopes[moduleId]?.get() ?: YAppearanceScopeContext(context, moduleId).also {
+                scopes[moduleId] = WeakReference(it)
+            }
+        }
+
     @JvmStatic fun appearance(context: Context, moduleId: String): YAppearance =
         YAppearanceStore(context).appearance(moduleId)
 
@@ -44,7 +57,7 @@ object YOverlayUi {
     /** Shared native overlay typography and padding, preserving Android text selection. */
     @JvmStatic fun styleSelectionText(view: TextView) {
         YView.styleBody(view)
-        view.setTextColor(YOverlayTokens.textPrimary(view.context))
+        view.setTextColor(YOverlayTokens.textPrimary(scopedContext(view.context, "yfloat")))
         val inset = contentPaddingPx(view.context, "yfloat")
         view.setPadding(inset, maxOf(1, inset / 2), inset, maxOf(1, inset / 2))
     }
@@ -52,8 +65,9 @@ object YOverlayUi {
     @JvmStatic fun styleHintText(view: TextView, moduleId: String) {
         val context = view.context
         YView.styleCaption(view)
-        view.setTextColor(YOverlayTokens.textPrimary(context))
-        view.background = menuBackground(context, moduleId, YOverlayTokens.surface(context))
+        val themed = scopedContext(context, moduleId)
+        view.setTextColor(YOverlayTokens.textPrimary(themed))
+        view.background = menuBackground(context, moduleId, YOverlayTokens.surface(themed))
         val inset = contentPaddingPx(context, moduleId)
         view.setPadding(inset, 0, inset, 0)
     }
@@ -61,7 +75,7 @@ object YOverlayUi {
     @JvmStatic fun styleAction(view: TextView, moduleId: String, surface: Int, outline: Int) {
         val context = view.context
         YView.styleStrongBody(view)
-        view.setTextColor(YOverlayTokens.textPrimary(context))
+        view.setTextColor(YOverlayTokens.textPrimary(scopedContext(context, moduleId)))
         view.minHeight = actionHeightPx(context, moduleId)
         view.background = panelBackground(context, moduleId, surface, outline)
     }
@@ -71,7 +85,7 @@ object YOverlayUi {
             setColor(Color.TRANSPARENT)
             cornerRadius = cornerRadiusPx(context, moduleId)
         }
-        return RippleDrawable(ColorStateList.valueOf(YOverlayTokens.menuRipple(context)), normal, null)
+        return RippleDrawable(ColorStateList.valueOf(YOverlayTokens.menuRipple(scopedContext(context, moduleId))), normal, null)
     }
 
     @JvmStatic fun surfaceColor(context: Context, moduleId: String, color: Int): Int {

@@ -17,24 +17,8 @@ import com.yagay.yui.YOverlayUi;
  * write local visual preferences. Geometry/hit testing remains owned by each overlay.
  */
 final class YFloatOverlayStyle {
-    // The YUI View palette resolves module scope from a Context's feature identity.
-    // WindowManager overlays often receive the Suite Application context instead of an
-    // Activity, so wrap it under YFloat's package to read module-specific theme/accent.
-    private static final WeakHashMap<Context, WeakReference<Context>> MODULE_CONTEXTS =
-            new WeakHashMap<>();
-
-    private static final class ModuleContext extends ContextWrapper {
-        ModuleContext(Context base) { super(base); }
-    }
-
-    private static synchronized Context moduleContext(Context context) {
-        WeakReference<Context> reference = MODULE_CONTEXTS.get(context);
-        Context wrapper = reference == null ? null : reference.get();
-        if (wrapper == null) {
-            wrapper = new ModuleContext(context);
-            MODULE_CONTEXTS.put(context, new WeakReference<>(wrapper));
-        }
-        return wrapper;
+    private static Context moduleContext(Context context) {
+        return YOverlayUi.scopedContext(context, "yfloat");
     }
 
     private static YAppearance appearance(Context c) {

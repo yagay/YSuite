@@ -30,7 +30,8 @@ final class ResultUi {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(YOverlayUi.contentPaddingPx(c, "yfloat"), YView.controlGap(c),
                 YOverlayUi.contentPaddingPx(c, "yfloat"), YView.controlGap(c));
-        box.setBackground(popupBackground(c, YOverlayTokens.resultSurface(c)));
+        box.setBackground(popupBackground(c,
+                YOverlayTokens.resultSurface(YOverlayUi.scopedContext(c, "yfloat"))));
         // Do not use platform elevation here. The result card fills the dialog window closely,
         // so Android clips the elevation shadow at the rectangular window bounds and leaves
         // square dark corners outside the rounded surface.
@@ -53,9 +54,9 @@ final class ResultUi {
     }
 
     static TextView heading(Context c, String text) {
-        TextView title = new TextView(c);
+        TextView title = new TextView(YOverlayUi.scopedContext(c, "yfloat"));
         title.setText(text == null ? "" : text);
-        title.setTextColor(YOverlayTokens.textPrimary(c));
+        title.setTextColor(YOverlayTokens.textPrimary(YOverlayUi.scopedContext(c, "yfloat")));
         YView.styleSectionTitle(title);
         title.setGravity(Gravity.CENTER_VERTICAL);
         return title;
@@ -69,7 +70,7 @@ final class ResultUi {
     }
 
     static Button button(Context c, String text) {
-        MaterialButton b = new MaterialButton(c);
+        MaterialButton b = new MaterialButton(YOverlayUi.scopedContext(c, "yfloat"));
         b.setText(text);
         YView.styleSecondaryButton(b);
         return b;

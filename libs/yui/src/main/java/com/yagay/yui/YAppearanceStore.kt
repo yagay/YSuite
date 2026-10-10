@@ -154,6 +154,9 @@ data class YAppearance(
 
 val LocalYAppearance = staticCompositionLocalOf { YAppearance() }
 
+/** Context marker for overlay windows hosted by a Suite application rather than feature Activity. */
+class YAppearanceScopeContext(base: Context, val appearanceModuleId: String) : ContextWrapper(base)
+
 class YAppearanceStore(context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -330,6 +333,7 @@ class YAppearanceStore(context: Context) {
         fun moduleIdFor(context: Context): String? {
             var current: Context? = context
             while (current is ContextWrapper) {
+                if (current is YAppearanceScopeContext) return current.appearanceModuleId
                 if (current is Activity) {
                     val explicit = current.intent?.getStringExtra(MODULE_EXTRA)
                     if (explicit != null && MODULE_ID.matches(explicit)) return explicit
