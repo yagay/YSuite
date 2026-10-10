@@ -1,5 +1,6 @@
 package com.yagay.yui
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,6 +13,10 @@ import androidx.compose.runtime.Composable
  * policy remains in YUI, so fixing it once fixes all apps.
  */
 abstract class YComposeActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(YUiLocaleBridge.wrap(newBase))
+    }
+
     final override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         onBeforeYContent(savedInstanceState)
