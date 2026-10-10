@@ -39,35 +39,39 @@ final class SettingsGesturePage {
                 activity.getString(R.string.yfloat_feedback_trail_section), null);
         ui.check(feedback.body, activity.getString(R.string.yfloat_vibration_feedback), null,
                 FloatSettings.K_VIBRATE, fs.vibrate());
-        ui.check(feedback.body, activity.getString(R.string.yfloat_show_gesture_trail), null,
-                FloatSettings.K_TRACK, fs.track());
-        ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_opacity),
-                FloatSettings.K_LINE_ALPHA, 0, 100, fs.lineAlpha(), "%");
-        ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_width),
-                FloatSettings.K_LINE_WIDTH, 0, 64, fs.lineWidthDp(), " dp");
-        ui.check(feedback.body, activity.getString(R.string.yfloat_trail_gradient), null,
-                FloatSettings.K_LINE_GRADIENT, fs.lineGradient());
-        ui.lineStyleSpinner(feedback.body);
-
-        LinearLayout colorsBlock = YViewLayout.settingBlock(activity);
-        colorsBlock.addView(YViewLayout.text(activity,
-                activity.getString(R.string.yfloat_trail_colors), 14, false));
-        EditText lineColors = YViewLayout.textInput(
-                activity,
-                activity.getString(R.string.yfloat_trail_colors_hint),
-                fs.lineColors(),
-                true);
-        lineColors.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                fs.setLineColors(s == null ? "" : s.toString());
-            }
-            @Override public void afterTextChanged(Editable s) { }
-        });
-        LinearLayout.LayoutParams colorLp = new LinearLayout.LayoutParams(-1, -2);
-        colorLp.topMargin = YViewLayout.dp(activity, 7);
-        colorsBlock.addView(lineColors, colorLp);
-        YViewLayout.addRow(feedback.body, colorsBlock);
+        // Trail style/opacity/colors and visibility are YUI overlay parameters.
+        // Keep these local editors only in the independently installed APK.
+        if (!"com.yagay.YSuite".equals(activity.getPackageName())) {
+            ui.check(feedback.body, activity.getString(R.string.yfloat_show_gesture_trail), null,
+                    FloatSettings.K_TRACK, fs.track());
+            ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_opacity),
+                    FloatSettings.K_LINE_ALPHA, 0, 100, fs.lineAlpha(), "%");
+            ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_width),
+                    FloatSettings.K_LINE_WIDTH, 0, 64, fs.lineWidthDp(), " dp");
+            ui.check(feedback.body, activity.getString(R.string.yfloat_trail_gradient), null,
+                    FloatSettings.K_LINE_GRADIENT, fs.lineGradient());
+            ui.lineStyleSpinner(feedback.body);
+    
+            LinearLayout colorsBlock = YViewLayout.settingBlock(activity);
+            colorsBlock.addView(YViewLayout.text(activity,
+                    activity.getString(R.string.yfloat_trail_colors), 14, false));
+            EditText lineColors = YViewLayout.textInput(
+                    activity,
+                    activity.getString(R.string.yfloat_trail_colors_hint),
+                    fs.lineColors(),
+                    true);
+            lineColors.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    fs.setLineColors(s == null ? "" : s.toString());
+                }
+                @Override public void afterTextChanged(Editable s) { }
+            });
+            LinearLayout.LayoutParams colorLp = new LinearLayout.LayoutParams(-1, -2);
+            colorLp.topMargin = YViewLayout.dp(activity, 7);
+            colorsBlock.addView(lineColors, colorLp);
+            YViewLayout.addRow(feedback.body, colorsBlock);
+        }
         YViewLayout.addSection(root, feedback);
         return root;
     }
