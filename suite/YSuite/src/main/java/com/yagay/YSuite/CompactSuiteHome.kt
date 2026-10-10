@@ -272,7 +272,7 @@ internal fun CompactSuiteHome(
                 )
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant,
-                    thickness = 0.5.dp,
+                    thickness = (LocalYAppearance.current.cardOutlineWidthDp / 2f).dp,
                 )
             }
         }

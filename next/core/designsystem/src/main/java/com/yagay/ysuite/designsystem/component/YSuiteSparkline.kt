@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.yagay.yui.LocalYAppearance
 
 @Composable
 fun YSuiteSparkline(
@@ -20,17 +21,20 @@ fun YSuiteSparkline(
     val guideColor =
         MaterialTheme.colorScheme.outlineVariant
 
+    val gridStroke = LocalYAppearance.current.cardOutlineWidthDp.dp
+    val lineStroke = LocalYAppearance.current.floatBorderWidthDp.dp
+
     Canvas(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(LocalYAppearance.current.rowHeightDp.dp),
     ) {
         drawLine(
             color = guideColor,
             start = Offset(0f, size.height / 2f),
             end = Offset(size.width, size.height / 2f),
-            strokeWidth = 1f,
+            strokeWidth = gridStroke.toPx(),
         )
         if (values.size < 2) {
             return@Canvas
@@ -57,7 +61,7 @@ fun YSuiteSparkline(
                 color = lineColor,
                 start = previous,
                 end = next,
-                strokeWidth = 3f,
+                strokeWidth = lineStroke.toPx(),
             )
             previous = next
         }

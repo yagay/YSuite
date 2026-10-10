@@ -56,6 +56,27 @@ UI_PATH = re.compile(
 )
 EXCLUDE_PARTS = {"build", ".gradle", ".git", "node_modules", "generated"}
 
+def classify(rel: str, kind: str, line: str) -> str:
+    """Separate canonical YUI definitions from genuine feature review candidates."""
+    name = rel.rsplit("/", 1)[-1]
+    if kind == "xml_fixed_dimension" and '"0dp"' in line:
+        return "structural"
+    if rel.startswith("libs/yui/"):
+        if name in {"YUiPalette.kt", "YGeneratedTokens.kt"}:
+            return "canonical"
+        if kind == "direct_material_control":
+            return "canonical"
+    if name == "SecureCaptureProbeActivity.java" and kind == "hardcoded_ui_color":
+        return "test_marker"
+    if name == "SelectionCropper.java" and kind == "hardcoded_ui_color":
+        return "image_processing"
+    if name == "YFloatVisualSettings.java" and "oldTheme.getInt" in line:
+        return "legacy_migration"
+    if name in {"FloatIconView.java", "RegionOverlay.java", "FloatService.java",
+                "EditableRegionOverlay.java"} and kind == "java_fixed_dp":
+        return "functional_or_visual_review"
+    return "review"
+
 def module_of(path: Path) -> str:
     parts = path.relative_to(ROOT).parts
     if not parts:
@@ -101,7 +122,9 @@ def scan() -> tuple[dict, list]:
                 entry["findings"][kind] += 1
                 findings.append({
                     "file": rel, "line": number, "module": module,
-                    "kind": kind, "ui": in_ui, "excerpt": line.strip()[:180],
+                    "kind": kind, "ui": in_ui,
+                    "classification": classify(rel, kind, line),
+                    "excerpt": line.strip()[:180],
                 })
     return inventory, findings
 
@@ -121,11 +144,15 @@ def main() -> None:
         })
     modules.sort(key=lambda row: (-row["findings"], row["module"]))
     totals = Counter(f["kind"] for f in findings)
+    classifications = Counter(f["classification"] for f in findings)
+    review = [f for f in findings if f["classification"] == "review"]
     report = {
         "source_files_scanned": sum(row["files"] for row in modules),
         "ui_files_scanned": sum(row["ui_files"] for row in modules),
         "candidate_lines": len(findings),
         "by_kind": dict(sorted(totals.items())),
+        "by_classification": dict(sorted(classifications.items())),
+        "review_candidates": len(review),
         "modules": modules,
         "findings": findings,
     }
@@ -148,11 +175,14 @@ def main() -> None:
         f"| {item['module']} | {item['files']} | {item['ui_files']} | {item['findings']} |"
         for item in modules
     )
+    md += ["", f"Strict review candidates: {len(review)}", "",
+           "## Classification", ""]
+    md.extend(f"- {kind}: {amount}" for kind, amount in sorted(classifications.items()))
     md += ["", "## Candidate kinds", ""]
     md.extend(f"- {kind}: {amount}" for kind, amount in sorted(totals.items()))
     md += ["", "## Candidate locations", ""]
     md.extend(
-        f"- [{item['kind']}] {item['file']}:{item['line']} — "
+        f"- [{item['classification']}/{item['kind']}] {item['file']}:{item['line']} — "
         f"{item['excerpt'].replace('|', chr(92) + '|')}"
         for item in findings
     )
@@ -162,12 +192,14 @@ def main() -> None:
     print(
         f"yui-full-audit: scanned {report['source_files_scanned']} source files; "
         f"{report['ui_files_scanned']} UI-related; "
-        f"{len(findings)} review candidates"
+        f"{len(findings)} matches; {len(review)} strict review candidates"
     )
-    for item in modules:
-        if item["findings"]:
-            print(f"  {item['module']}: {item['findings']} candidates "
-                  f"({item['files']} source files)")
+    print("  classifications: " + ", ".join(
+        f"{kind}={amount}" for kind, amount in sorted(classifications.items())
+    ))
+    per_module = Counter(f["module"] for f in review)
+    for module, count in per_module.most_common():
+        print(f"  {module}: {count} strict review candidates")
     print("yui-full-audit: inventory complete; see JSON/Markdown for exact locations")
 
 if __name__ == "__main__":

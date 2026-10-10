@@ -196,14 +196,14 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(YViewLayout.dp(this, 20), YViewLayout.dp(this, 4),
-                YViewLayout.dp(this, 20), 0);
+        box.setPadding(com.yagay.yui.YView.cardPadding(this), com.yagay.yui.YView.controlGap(this) / 3,
+                com.yagay.yui.YView.cardPadding(this), 0);
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
         if (systemLabel != null && !systemLabel.isBlank()) {
             TextView system = YViewLayout.rowSubtitle(this,
                     getString(R.string.yfloat_menu_system_name, systemLabel));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-            lp.topMargin = YViewLayout.dp(this, 6);
+            lp.topMargin = com.yagay.yui.YView.controlGap(this) / 2;
             box.addView(system, lp);
         }
 

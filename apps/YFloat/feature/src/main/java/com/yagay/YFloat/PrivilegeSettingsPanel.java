@@ -316,7 +316,7 @@ public final class PrivilegeSettingsPanel {
         LinearLayout block = YViewLayout.settingBlock(activity);
         block.addView(YViewLayout.rowTitle(activity, title));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.topMargin = YViewLayout.dp(activity, 4);
+        lp.topMargin = com.yagay.yui.YView.controlGap(activity) / 3;
         block.addView(status, lp);
         return block;
     }

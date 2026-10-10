@@ -65,11 +65,11 @@ public final class DiagnosticsActivity extends AppCompatActivity {
         LinearLayout row = YViewLayout.buttonRow(this);
         LinearLayout.LayoutParams leftLp = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        leftLp.setMarginEnd(YViewLayout.dp(this, 6));
+        leftLp.setMarginEnd(com.yagay.yui.YView.controlGap(this) / 2);
         row.addView(left, leftLp);
         LinearLayout.LayoutParams rightLp = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        rightLp.setMarginStart(YViewLayout.dp(this, 6));
+        rightLp.setMarginStart(com.yagay.yui.YView.controlGap(this) / 2);
         row.addView(right, rightLp);
         YViewLayout.addRow(parent, row);
     }

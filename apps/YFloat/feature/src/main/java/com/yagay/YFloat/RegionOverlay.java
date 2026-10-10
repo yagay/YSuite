@@ -74,7 +74,8 @@ public final class RegionOverlay {
             paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
             textPaint.setColor(YFloatOverlayStyle.primaryText(c));
             textPaint.setTextSize(YFloatOverlayStyle.textSize(c, 16f));
-            textPaint.setShadowLayer(dp(3), 0, dp(1), YFloatOverlayStyle.scrim(getContext(), 0xFF));
+            textPaint.setShadowLayer(YFloatOverlayStyle.selectionStroke(c), 0f,
+                    YFloatOverlayStyle.selectionStroke(c) / 3f, YFloatOverlayStyle.scrim(c, 0xFF));
         }
 
         @Override protected void onDraw(Canvas canvas) {
@@ -91,8 +92,11 @@ public final class RegionOverlay {
                 if (ocr) canvas.drawPath(lasso, paint);
                 else canvas.drawRect(rect(), paint);
             }
-            canvas.drawText(ocr ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3f8a53bd11e3) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_08a8b2b534b5),
-                    dp(18), dp(38), textPaint);
+            String tip = ocr ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3f8a53bd11e3)
+                    : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_08a8b2b534b5);
+            float inset = YFloatOverlayStyle.controlGap(getContext());
+            SelectionVisuals.drawFittedText(canvas, tip, inset, inset - textPaint.ascent(),
+                    Math.max(0f, getWidth() - inset * 2), textPaint);
         }
 
         @Override public boolean onTouchEvent(MotionEvent e) {

@@ -89,7 +89,8 @@ public final class EditableRegionOverlay {
             textPaint.setColor(YFloatOverlayStyle.primaryText(c));
             textPaint.setTextSize(YFloatOverlayStyle.textSize(c, 14f));
             textPaint.setTextAlign(Paint.Align.CENTER);
-            textPaint.setShadowLayer(dp(3), 0, dp(1), YFloatOverlayStyle.scrim(getContext(), 0xFF));
+            textPaint.setShadowLayer(YFloatOverlayStyle.selectionStroke(c), 0f,
+                    YFloatOverlayStyle.selectionStroke(c) / 3f, YFloatOverlayStyle.scrim(c, 0xFF));
             buttonPaint.setStyle(Paint.Style.FILL);
         }
 

@@ -530,7 +530,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
         }
         if (visibility.imeVisible() && visibility.imeTopPx() > 0) {
             if (imeRestoreY == null) imeRestoreY = primaryLp.y;
-            int target = Math.max(0, visibility.imeTopPx() - primaryLp.height - dp(8));
+            int target = Math.max(0, visibility.imeTopPx() - primaryLp.height - Math.round(YFloatOverlayStyle.controlGap(this)));
             if (primaryLp.y > target) {
                 primaryLp.y = target;
                 safeUpdate(primary, primaryLp);

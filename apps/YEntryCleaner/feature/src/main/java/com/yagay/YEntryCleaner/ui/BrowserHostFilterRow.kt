@@ -109,14 +109,14 @@ fun BrowserHostFilterMenu(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier.width(YDimens.IconVisualSize),
+                    modifier = Modifier.width(LocalYAppearance.current.iconVisualSizeDp.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     if (selected == null) {
                         Icon(
                             Icons.Rounded.Check,
                             contentDescription = null,
-                            modifier = Modifier.size(YDimens.IconSmallSize)
+                            modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp)
                         )
                     }
                 }
@@ -134,7 +134,7 @@ fun BrowserHostFilterMenu(
                     .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(Modifier.width(YDimens.IconVisualSize))
+                Spacer(Modifier.width(LocalYAppearance.current.iconVisualSizeDp.dp))
                 Text(stringResource(R.string.browser_hosts_manage))
             }
             HorizontalDivider()
@@ -166,14 +166,14 @@ fun BrowserHostFilterMenu(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
-                            modifier = Modifier.width(YDimens.IconVisualSize),
+                            modifier = Modifier.width(LocalYAppearance.current.iconVisualSizeDp.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (selected == host) {
                                 Icon(
                                     Icons.Rounded.Check,
                                     contentDescription = null,
-                                    modifier = Modifier.size(YDimens.IconSmallSize)
+                                    modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp)
                                 )
                             }
                         }

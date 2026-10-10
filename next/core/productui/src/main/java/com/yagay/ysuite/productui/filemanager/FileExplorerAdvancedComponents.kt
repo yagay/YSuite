@@ -109,7 +109,7 @@ fun FileExplorerBrowserTabs(
                                             .Close,
                                         contentDescription =
                                             closeLabel,
-                                        modifier = Modifier.size(YDimens.IconSmallSize),
+                                        modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp),
                                     )
                                 }
                             }
