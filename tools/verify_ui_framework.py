@@ -339,8 +339,10 @@ def main() -> None:
         (module_slider, ('fun sliderSetting(', 'val precise = AppCompatEditText(context)',
                          'YView.toolbarHeight(context)', 'YView.listIconSize(context)'),
          "View slider and controls"),
-        (float_settings, ('clamp(p.getInt(K_SIZE, 48), 16, 192)',
-                          'clamp(p.getInt(K_LINE_WIDTH, 6), 0, 64)'),
+        (float_settings, ('YFloatVisualSettings.readInt(context, K_SIZE, 48)',
+                          'YFloatVisualSettings.readInt(context, K_LINE_WIDTH, 6)',
+                          'YFloatVisualSettings.readString(context, K_LINE_COLORS',
+                          'YFloatVisualSettings.writeBoolean(context, key, value)'),
          "YFloat runtime values"),
         (float_icon, ('16, 192, fs.sizeDp()',), "YFloat appearance UI"),
         (float_gesture, ('K_LINE_WIDTH, 0, 64',), "YFloat gesture UI"),
@@ -349,6 +351,39 @@ def main() -> None:
     ):
         for required in markers:
             require(source, required, label)
+    # Feature appearance settings must have one owner and one observable runtime value.
+    overlay_bridge = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatVisualSettings.java")
+    float_theme = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ThemeSettings.java")
+    float_service = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatService.java")
+    float_migrator = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsMigrator.java")
+    rebuilt_settings = text(ROOT / "next/core/settings/src/main/java/com/yagay/ysuite/settings/DataStoreAppSettingsRepository.kt")
+    for source, markers, label in (
+        (appearance_store, ("FLOAT_ICON_ALPHA(", "FLOAT_TRAIL_COLORS(",
+                            "FLOAT_MENU_COUNT(", "FLOAT_BORDER_VISIBLE("),
+         "YUI owns feature appearance parameters"),
+        (registry, ("YControlGroup.OVERLAYS", "YControlKind.TEXT",
+                    "YSettingKey.FLOAT_TRAIL_COLORS"), "overlay appearance catalog"),
+        (appearance_screen, ("YControlGroup.OVERLAYS", "YControlKind.TEXT"),
+         "central appearance editor"),
+        (overlay_bridge, ("new YAppearanceStore(context).set(",
+                          "YSettingKey.FLOAT_MENU_COUNT", "YSettingKey.FLOAT_TRAIL_COLORS",
+                          "static void migrate("), "YFloat YUI bridge and migration"),
+        (float_theme, ("new com.yagay.yui.YAppearanceStore(c)",),
+         "YFloat theme facade"),
+        (float_service, ("appearanceStore.registerPreferenceListener(this)",
+                         "appearanceStore.unregisterPreferenceListener(this)",
+                         "refreshAppearance();"), "YFloat runtime appearance updates"),
+        (float_migrator, ("YFloatVisualSettings.migrate(app, p)",),
+         "YFloat migration bootstrap"),
+        (rebuilt_settings, ("YAppearanceStore(context)", "SuiteCommonSettings(context)",
+                            "appearance.set(YSettingKey.THEME"), "rebuilt host settings compatibility"),
+    ):
+        for required in markers:
+            require(source, required, label)
+    if 'AppCompatDelegate.setDefaultNightMode' in float_theme:
+        fail("YFloat must not override the host global theme")
+    if 'stringPreferencesKey("theme_mode")' in rebuilt_settings:
+        fail("rebuilt host must not maintain a second theme store")
     print(
         "ui-framework: OK compose=YUI-v2 view=YViewPage/YViewLayout page-xml=forbidden "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "
