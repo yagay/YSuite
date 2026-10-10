@@ -1,6 +1,8 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YView;
+import com.google.android.material.button.MaterialButton;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
@@ -25,7 +27,7 @@ final class ResultUi {
     static LinearLayout box(Context c) {
         LinearLayout box = new LinearLayout(c);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(c, BOX_HPAD_DP), dp(c, 8), dp(c, BOX_HPAD_DP), dp(c, 8));
+        box.setPadding(YView.cardPadding(c), YView.controlGap(c), YView.cardPadding(c), YView.controlGap(c));
         box.setBackground(popupBackground(c, YOverlayTokens.resultSurface(c)));
         // Do not use platform elevation here. The result card fills the dialog window closely,
         // so Android clips the elevation shadow at the rectangular window bounds and leaves
@@ -33,7 +35,7 @@ final class ResultUi {
         box.setElevation(0f);
         box.setTranslationZ(0f);
         box.setStateListAnimator(null);
-        final float radius = dp(c, POPUP_RADIUS_DP);
+        final float radius = YView.dialogRadius(c);
         box.setOutlineProvider(new ViewOutlineProvider() {
             @Override public void getOutline(android.view.View view, android.graphics.Outline outline) {
                 if (view.getWidth() <= 0 || view.getHeight() <= 0) return;
@@ -48,7 +50,7 @@ final class ResultUi {
         GradientDrawable background = new GradientDrawable();
         background.setShape(GradientDrawable.RECTANGLE);
         background.setColor(color);
-        background.setCornerRadius(dp(c, POPUP_RADIUS_DP));
+        background.setCornerRadius(YView.dialogRadius(c));
         background.setStroke(dp(c, 1), YOverlayTokens.outline(c));
         return background;
     }
@@ -57,7 +59,7 @@ final class ResultUi {
         TextView title = new TextView(c);
         title.setText(text == null ? "" : text);
         title.setTextColor(YOverlayTokens.textPrimary(c));
-        title.setTextSize(17);
+        YView.styleSectionTitle(title);
         title.setGravity(Gravity.CENTER_VERTICAL);
         return title;
     }
@@ -70,12 +72,9 @@ final class ResultUi {
     }
 
     static Button button(Context c, String text) {
-        Button b = new Button(c);
+        MaterialButton b = new MaterialButton(c);
         b.setText(text);
-        b.setTextSize(14);
-        b.setMinHeight(0);
-        b.setMinimumHeight(0);
-        b.setPadding(dp(c, 6), 0, dp(c, 6), 0);
+        YView.styleSecondaryButton(b);
         return b;
     }
 
