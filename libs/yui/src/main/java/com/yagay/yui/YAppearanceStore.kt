@@ -24,27 +24,31 @@ enum class YSettingKey(
     THEME("theme", "system"),
     DYNAMIC_COLOR("dynamic_color", "false"),
     DENSITY("density", "standard"),
-    BUTTON_RADIUS("button_radius", "12", 0, 128),
-    BUTTON_PADDING("button_horizontal_padding", "16", 0, 128),
+    BUTTON_RADIUS("button_radius", "12", 0, 512),
+    BUTTON_PADDING("button_horizontal_padding", "16", 0, 512),
     HOME_SWIPE_PIN("home_swipe_pin", "true"),
     HOME_STATUS("home_status", "true"),
-    CONTROL_GAP("control_gap", "12", 0, 128),
-    FONT_PERCENT("font_percent", "100", 50, 250),
+    CONTROL_GAP("control_gap", "12", 0, 512),
+    FONT_PERCENT("font_percent", "100", 25, 400),
     ACCENT("accent", "default"),
-    BUTTON_HEIGHT("button_height", "48", 24, 160),
-    BUTTON_VERTICAL_PADDING("button_vertical_padding", "4", 0, 80),
-    ROW_HEIGHT("row_height", "56", 24, 160),
-    ROW_HORIZONTAL_PADDING("row_horizontal_padding", "16", 0, 128),
-    ROW_VERTICAL_PADDING("row_vertical_padding", "6", 0, 80),
-    CARD_RADIUS("card_radius", "16", 0, 128),
-    CARD_PADDING("card_padding", "16", 0, 128),
-    FIELD_RADIUS("field_radius", "12", 0, 128),
-    DIALOG_RADIUS("dialog_radius", "28", 0, 128),
-    SWITCH_SLOT_WIDTH("switch_slot_width", "56", 40, 160),
-    ICON_TOUCH_TARGET("icon_touch_target", "48", 32, 128),
-    NAV_RADIUS("nav_radius", "12", 0, 128),
-    SCREEN_PADDING("screen_padding", "16", 0, 128),
-    SECTION_SPACING("section_spacing", "16", 0, 128);
+    BUTTON_HEIGHT("button_height", "48", 16, 320),
+    BUTTON_VERTICAL_PADDING("button_vertical_padding", "4", 0, 256),
+    ROW_HEIGHT("row_height", "56", 0, 320),
+    ROW_HORIZONTAL_PADDING("row_horizontal_padding", "16", 0, 512),
+    ROW_VERTICAL_PADDING("row_vertical_padding", "6", 0, 256),
+    CARD_RADIUS("card_radius", "16", 0, 512),
+    CARD_PADDING("card_padding", "16", 0, 512),
+    FIELD_RADIUS("field_radius", "12", 0, 512),
+    DIALOG_RADIUS("dialog_radius", "28", 0, 512),
+    SWITCH_SLOT_WIDTH("switch_slot_width", "56", 0, 320),
+    ICON_TOUCH_TARGET("icon_touch_target", "48", 16, 256),
+    NAV_RADIUS("nav_radius", "12", 0, 512),
+    SCREEN_PADDING("screen_padding", "16", 0, 512),
+    SECTION_SPACING("section_spacing", "16", 0, 512),
+    PAGE_VERTICAL_PADDING("page_vertical_padding", "12", 0, 256),
+    ICON_VISUAL_SIZE("icon_visual_size", "24", 8, 160),
+    LIST_ICON_SIZE("list_icon_size", "48", 8, 160),
+    TOOLBAR_HEIGHT("toolbar_height", "64", 24, 256);
 
     fun validate(value: String): String {
         val valid = if (minimum != null && maximum != null) {
@@ -86,6 +90,10 @@ data class YAppearance(
     val navRadiusDp: Int = 12,
     val screenPaddingDp: Int = 16,
     val sectionSpacingDp: Int = 16,
+    val pageVerticalPaddingDp: Int = 12,
+    val iconVisualSizeDp: Int = 24,
+    val listIconSizeDp: Int = 48,
+    val toolbarHeightDp: Int = 64,
 ) {
     val effectiveGapDp: Int get() = when (density) {
         "compact" -> controlGapDp * 2 / 3
@@ -138,6 +146,10 @@ class YAppearanceStore(context: Context) {
         navRadiusDp = value(YSettingKey.NAV_RADIUS, moduleId).toInt(),
         screenPaddingDp = value(YSettingKey.SCREEN_PADDING, moduleId).toInt(),
         sectionSpacingDp = value(YSettingKey.SECTION_SPACING, moduleId).toInt(),
+        pageVerticalPaddingDp = value(YSettingKey.PAGE_VERTICAL_PADDING, moduleId).toInt(),
+        iconVisualSizeDp = value(YSettingKey.ICON_VISUAL_SIZE, moduleId).toInt(),
+        listIconSizeDp = value(YSettingKey.LIST_ICON_SIZE, moduleId).toInt(),
+        toolbarHeightDp = value(YSettingKey.TOOLBAR_HEIGHT, moduleId).toInt(),
     )
 
     fun set(key: YSettingKey, value: String, moduleId: String? = null) {
