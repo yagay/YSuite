@@ -209,7 +209,7 @@ private fun QdmDownloadItemRow(
                     } else {
                         MaterialTheme.colorScheme.primary
                     },
-                modifier = Modifier.size(YSuiteSpacing.XLarge),
+                modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
             )
             Spacer(Modifier.width(YSuiteSpacing.Medium))
             Column(
@@ -541,7 +541,7 @@ fun QdmAddDownloadDialog(
                 .align(Alignment.Center)
                 .fillMaxWidth()
                 .padding(YSuiteSpacing.Medium)
-                .heightIn(max = maxHeight - 24.dp),
+                .heightIn(max = maxHeight - (LocalYAppearance.current.effectiveGapDp * 2f).dp),
             shape = RoundedCornerShape(LocalYAppearance.current.dialogRadiusDp.dp),
             tonalElevation = YSuiteSpacing.XSmall,
         ) {
