@@ -146,8 +146,8 @@ fun YPageList(
     val rowSpacing = if (template.sectionSpacing == 0.dp) 0.dp
         else appearance.sectionSpacingDp.dp * (template.sectionSpacing.value / 16f)
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        val horizontal = if (maxWidth < YDimens.MediumBreakpoint) LocalYAppearance.current.screenPaddingDp.dp
-            else yPageHorizontalPadding(maxWidth)
+        // The same user-controlled margin applies on phones and expanded screens.
+        val horizontal = appearance.screenPaddingDp.dp
         LazyColumn(
             modifier = Modifier.widthIn(max = template.maxContentWidth).fillMaxSize(),
             contentPadding = PaddingValues(
