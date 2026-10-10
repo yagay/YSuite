@@ -22,6 +22,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Shapes
@@ -123,10 +124,12 @@ fun YTopBar(
         YTopBarStyle.PROMINENT -> MediumTopAppBar(
             title = { YTopBarCopy(title, subtitle) },
             actions = actions,
+            colors = yTopBarColors(),
         )
         YTopBarStyle.COMPACT -> TopAppBar(
             title = { YTopBarCopy(title, subtitle) },
             actions = actions,
+            colors = yTopBarColors(),
         )
     }
 }
@@ -142,8 +145,16 @@ fun YCustomTopBar(
         title = title,
         navigationIcon = navigationIcon,
         actions = actions,
+        colors = yTopBarColors(),
     )
 }
+
+/** Single color policy for the suite host and all product workspaces. */
+@Composable
+private fun yTopBarColors() = TopAppBarDefaults.topAppBarColors(
+    containerColor = MaterialTheme.colorScheme.background,
+    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+)
 
 @Composable
 private fun YTopBarCopy(title: String, subtitle: String?) {
@@ -166,6 +177,34 @@ private fun YTopBarCopy(title: String, subtitle: String?) {
     }
 }
 
+/**
+ * Universal normal-screen container used by YUI pages and product-specific workspaces.
+ * Insets, background and edge-to-edge behavior must not be reimplemented in features.
+ */
+@Composable
+fun YUiScaffold(
+    modifier: Modifier = Modifier,
+    topBar: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    contentWindowInsets: WindowInsets = WindowInsets.safeDrawing.only(
+        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+    ),
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = topBar,
+        bottomBar = bottomBar,
+        snackbarHost = snackbarHost,
+        floatingActionButton = floatingActionButton,
+        contentWindowInsets = contentWindowInsets,
+        containerColor = MaterialTheme.colorScheme.background,
+        content = content,
+    )
+}
+
 @Composable
 fun YScaffold(
     title: String,
@@ -177,16 +216,12 @@ fun YScaffold(
     floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
+    YUiScaffold(
         modifier = modifier,
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-        ),
         topBar = { YTopBar(title = title, subtitle = subtitle, actions = actions) },
         bottomBar = bottomBar,
         snackbarHost = snackbarHost,
         floatingActionButton = floatingActionButton,
-        containerColor = MaterialTheme.colorScheme.background,
         content = content,
     )
 }
