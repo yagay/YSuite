@@ -25,7 +25,6 @@ import androidx.compose.material3.ModalBottomSheet
 import com.yagay.yui.YUiOutlinedButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import com.yagay.yui.YUiRadioButton as RadioButton
-import com.yagay.yui.YUiSlider as Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -182,7 +181,7 @@ fun YSliderField(
                 Text(valueLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Slider(
+        YUiSlider(
             value = value.coerceIn(valueRange.start, valueRange.endInclusive),
             onValueChange = onValueChange,
             valueRange = valueRange,
