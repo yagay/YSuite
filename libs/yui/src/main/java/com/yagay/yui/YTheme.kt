@@ -174,8 +174,14 @@ fun YTheme(
         systemDensity.density,
         systemDensity.fontScale / inheritedScale * (appearance.fontPercent / 100f),
     )
-    // Per-control geometry is set by YUI components; button radius must not reshape unrelated cards.
-    val shapes = YShapes
+    // Global Material3 defaults follow their own domain settings; button radii stay separate.
+    val shapes = Shapes(
+        extraSmall = RoundedCornerShape((appearance.fieldRadiusDp / 2).dp),
+        small = RoundedCornerShape(appearance.fieldRadiusDp.dp),
+        medium = RoundedCornerShape(appearance.cardRadiusDp.dp),
+        large = RoundedCornerShape(appearance.dialogRadiusDp.dp),
+        extraLarge = RoundedCornerShape(appearance.dialogRadiusDp.dp),
+    )
     // A deterministic shared palette is essential for matching Compose and legacy View screens.
     // Android dynamic colors remain available only via an explicit opt-in.
     val scheme = when {
