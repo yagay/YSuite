@@ -92,6 +92,9 @@ internal fun SuiteSettingsScreen(
     var previewSelected by remember { mutableStateOf(false) }
     val scopeName = modules.firstOrNull { it.first == moduleId }?.second
     val title = scopeName ?: stringResource(R.string.settings_title)
+    val availableAppearanceGroups = YUiControlRegistry.groups.filter {
+        it != YControlGroup.OVERLAYS || moduleId == null || moduleId == "yfloat"
+    }
     val back: () -> Unit = { if (generalMode) generalMode = false else if (group != null) group = null else onBack() }
 
     BackHandler(enabled = generalMode || commonMode || group != null) {
@@ -200,8 +203,8 @@ internal fun SuiteSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                items(YUiControlRegistry.groups.size, key = { YUiControlRegistry.groups[it].name }) { index ->
-                    val family = YUiControlRegistry.groups[index]
+                items(availableAppearanceGroups.size, key = { availableAppearanceGroups[it].name }) { index ->
+                    val family = availableAppearanceGroups[index]
                     YListItem(
                         title = stringResource(groupTitle(family)),
                         subtitle = stringResource(groupSubtitle(family)),
