@@ -93,11 +93,11 @@ def main() -> None:
     section_definitions = []
     for path in core.glob("*.kt"):
         code = path.read_text(encoding="utf-8")
-        for match in re.finditer(r"^fun YSection\\s*\\(", code, re.MULTILINE):
+        for match in re.finditer(r"^fun YSection\s*\(", code, re.MULTILINE):
             section_definitions.append(path.name)
-        if path.name != "YTheme.kt" and re.search(r"^import androidx\\.compose\\.material3\\.Scaffold\\s*$", code, re.MULTILINE):
+        if path.name != "YTheme.kt" and re.search(r"^import androidx\.compose\.material3\.Scaffold\s*$", code, re.MULTILINE):
             failures.append(f"YUI {path.name} reintroduced a standalone Scaffold")
-        if path.name != "YMaterialDialogs.kt" and re.search(r"^import androidx\\.compose\\.material3\\.AlertDialog\\s*$", code, re.MULTILINE):
+        if path.name != "YMaterialDialogs.kt" and re.search(r"^import androidx\.compose\.material3\.AlertDialog\s*$", code, re.MULTILINE):
             failures.append(f"YUI {path.name} reintroduced direct Material3 dialog rendering")
     if section_definitions != ["YUnifiedDesign.kt"]:
         failures.append(f"YSection must have exactly one implementation: {section_definitions}")
