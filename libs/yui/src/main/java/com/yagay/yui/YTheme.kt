@@ -36,7 +36,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -77,13 +76,13 @@ private val YLightColors = lightColorScheme(
     inverseSurface = YUiPalette.DarkSurface,
     inverseOnSurface = YUiPalette.DarkOnSurface,
     inversePrimary = YUiPalette.DarkPrimary,
-    surfaceDim = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.25f),
-    surfaceBright = YUiPalette.LightSurface,
-    surfaceContainerLowest = YUiPalette.LightSurface,
-    surfaceContainerLow = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.16f),
-    surfaceContainer = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.26f),
-    surfaceContainerHigh = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.38f),
-    surfaceContainerHighest = lerp(YUiPalette.LightSurface, YUiPalette.LightSurfaceVariant, 0.55f),
+    surfaceDim = YUiPalette.LightSurfaceDim,
+    surfaceBright = YUiPalette.LightSurfaceBright,
+    surfaceContainerLowest = YUiPalette.LightSurfaceContainerLowest,
+    surfaceContainerLow = YUiPalette.LightSurfaceContainerLow,
+    surfaceContainer = YUiPalette.LightSurfaceContainer,
+    surfaceContainerHigh = YUiPalette.LightSurfaceContainerHigh,
+    surfaceContainerHighest = YUiPalette.LightSurfaceContainerHighest,
     primaryFixed = YUiPalette.LightPrimaryContainer,
     primaryFixedDim = YUiPalette.DarkPrimary,
     onPrimaryFixed = YUiPalette.LightOnPrimaryContainer,
@@ -128,13 +127,13 @@ private val YDarkColors = darkColorScheme(
     inverseSurface = YUiPalette.LightSurface,
     inverseOnSurface = YUiPalette.LightOnSurface,
     inversePrimary = YUiPalette.LightPrimary,
-    surfaceDim = YUiPalette.DarkSurface,
-    surfaceBright = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.60f),
-    surfaceContainerLowest = YUiPalette.DarkSurface,
-    surfaceContainerLow = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.16f),
-    surfaceContainer = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.26f),
-    surfaceContainerHigh = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.38f),
-    surfaceContainerHighest = lerp(YUiPalette.DarkSurface, YUiPalette.DarkSurfaceVariant, 0.55f),
+    surfaceDim = YUiPalette.DarkSurfaceDim,
+    surfaceBright = YUiPalette.DarkSurfaceBright,
+    surfaceContainerLowest = YUiPalette.DarkSurfaceContainerLowest,
+    surfaceContainerLow = YUiPalette.DarkSurfaceContainerLow,
+    surfaceContainer = YUiPalette.DarkSurfaceContainer,
+    surfaceContainerHigh = YUiPalette.DarkSurfaceContainerHigh,
+    surfaceContainerHighest = YUiPalette.DarkSurfaceContainerHighest,
     primaryFixed = YUiPalette.LightPrimaryContainer,
     primaryFixedDim = YUiPalette.DarkPrimary,
     onPrimaryFixed = YUiPalette.LightOnPrimaryContainer,
