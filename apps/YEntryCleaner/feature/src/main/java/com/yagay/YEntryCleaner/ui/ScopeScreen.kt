@@ -11,6 +11,7 @@ import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.yagay.YEntryCleaner.R
 import com.yagay.yui.YActionSpec
 import com.yagay.yui.YActionStyle
