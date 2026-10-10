@@ -53,7 +53,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
-import androidx.compose.material3.ListItem
+import com.yagay.yui.YListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -633,15 +633,10 @@ fun FileExplorerDetailRow(
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent =
-            subtitle?.let { value ->
-                { Text(value) }
-            },
-        modifier =
-            if (onClick == null) Modifier
-            else Modifier.clickable(onClick = onClick),
+    YListItem(
+        title = title,
+        subtitle = subtitle,
+        onClick = onClick,
     )
 }
 

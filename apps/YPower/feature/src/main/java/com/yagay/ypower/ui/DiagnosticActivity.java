@@ -1,6 +1,6 @@
 package com.yagay.ypower.ui;
 
-import android.app.AlertDialog;
+import com.yagay.yui.YViewDialogs;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -330,7 +330,7 @@ public class DiagnosticActivity extends AppCompatActivity {
             return;
         }
 
-        new AlertDialog.Builder(this)
+        YViewDialogs.builder(this)
                 .setTitle(R.string.yp_export_json)
                 .setItems(
                         new String[]{
