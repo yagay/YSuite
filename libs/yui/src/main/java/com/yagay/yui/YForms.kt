@@ -254,7 +254,7 @@ fun YIntSliderField(
                 singleLine = true,
                 enabled = enabled,
             )
-            YUiOutlinedButton(
+            OutlinedButton(
                 onClick = applyExact,
                 enabled = enabled && valid && entered != safeValue,
             ) { Text(androidx.compose.ui.res.stringResource(R.string.yui_apply_value)) }
