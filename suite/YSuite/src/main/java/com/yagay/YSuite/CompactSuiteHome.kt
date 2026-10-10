@@ -89,6 +89,7 @@ internal fun CompactSuiteHome(
     padding: PaddingValues,
     onOpen: (FeatureSpec, String) -> Unit,
     onManage: (String?) -> Unit,
+    onAppearanceSettings: () -> Unit,
     onToggleEnabled: (FeatureSpec, Boolean) -> Unit,
     onExportModule: (FeatureSpec, String) -> Unit,
     onExportAll: () -> Unit,
@@ -197,6 +198,12 @@ internal fun CompactSuiteHome(
                     Icon(
                         imageVector = Icons.Default.Description,
                         contentDescription = stringResource(R.string.export_full_diagnostic),
+                    )
+                }
+                IconButton(onClick = onAppearanceSettings) {
+                    Icon(
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = stringResource(R.string.shared_appearance_title),
                     )
                 }
                 IconButton(onClick = { onManage(null) }) {
