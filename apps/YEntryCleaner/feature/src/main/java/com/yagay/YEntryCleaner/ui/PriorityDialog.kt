@@ -353,7 +353,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                     else stringResource(R.string.app_list_count_type, groups.size, presetTitle),
                     subtitle = stringResource(R.string.priority_intro),
                     detail = stringResource(R.string.priority_drag_help),
-                    modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall),
+                    modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp),
                     trailing = {
                         if (hasReset) {
                             TextButton(
@@ -471,7 +471,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             Icon(
                                 Icons.Rounded.Lock,
                                 contentDescription = stringResource(R.string.bulk_lock_full),
-                                modifier = Modifier.padding(horizontal = YDimens.ControlGap).size(YDimens.IconVisualSize)
+                                modifier = Modifier.padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp).size(LocalYAppearance.current.iconVisualSizeDp.dp)
                             )
                         }
                         IconButton(onClick = onExpand) {
@@ -511,7 +511,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                     },
                                     enabled = index > 0
                                 ) {
-                                    Icon(Icons.Rounded.ArrowUpward, null, Modifier.size(YDimens.IconVisualSize))
+                                    Icon(Icons.Rounded.ArrowUpward, null, Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp))
                                     Text(stringResource(R.string.priority_move_up))
                                 }
                                 TextButton(
@@ -526,7 +526,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                     },
                                     enabled = index >= 0 && index < moveTargets.lastIndex
                                 ) {
-                                    Icon(Icons.Rounded.ArrowDownward, null, Modifier.size(YDimens.IconVisualSize))
+                                    Icon(Icons.Rounded.ArrowDownward, null, Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp))
                                     Text(stringResource(R.string.priority_move_down))
                                 }
                             }
@@ -550,7 +550,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                 else -> R.string.priority_empty_category
                             }
                         ),
-                        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SpacingSmall)
+                        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp)
                     )
                 }
             }
