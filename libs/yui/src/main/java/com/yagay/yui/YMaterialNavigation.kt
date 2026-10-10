@@ -63,3 +63,18 @@ fun YUiModalNavigationDrawer(
         content = content,
     )
 }
+
+/** Upstream overload supports predictive-back and shares the same drawer state. */
+@Composable
+fun YUiModalDrawerSheet(
+    drawerState: androidx.compose.material3.DrawerState,
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    androidx.compose.material3.ModalDrawerSheet(
+        drawerState = drawerState,
+        modifier = modifier,
+        drawerShape = RoundedCornerShape(LocalYAppearance.current.navRadiusDp.dp),
+        content = content,
+    )
+}

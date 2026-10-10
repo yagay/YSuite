@@ -2,6 +2,7 @@ package com.yagay.yui
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
@@ -28,7 +29,9 @@ fun YUiElevatedButton(
 ) {
     val appearance = LocalYAppearance.current
     ElevatedButton(onClick = onClick, modifier = modifier.heightIn(min = appearance.buttonHeightDp.dp),
-        enabled = enabled, shape = RoundedCornerShape(appearance.buttonRadiusDp.dp), content = content)
+        enabled = enabled, shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
+        contentPadding = PaddingValues(horizontal = appearance.buttonPaddingHorizontalDp.dp,
+            vertical = appearance.buttonVerticalPaddingDp.dp), content = content)
 }
 
 @Composable
@@ -40,7 +43,9 @@ fun YUiFilledTonalButton(
 ) {
     val appearance = LocalYAppearance.current
     FilledTonalButton(onClick = onClick, modifier = modifier.heightIn(min = appearance.buttonHeightDp.dp),
-        enabled = enabled, shape = RoundedCornerShape(appearance.buttonRadiusDp.dp), content = content)
+        enabled = enabled, shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
+        contentPadding = PaddingValues(horizontal = appearance.buttonPaddingHorizontalDp.dp,
+            vertical = appearance.buttonVerticalPaddingDp.dp), content = content)
 }
 
 @Composable
@@ -94,7 +99,8 @@ fun YUiListItem(
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    ListItem(headlineContent = headlineContent, modifier = modifier,
+    ListItem(headlineContent = headlineContent,
+        modifier = modifier.heightIn(min = LocalYAppearance.current.rowHeightDp.dp),
         overlineContent = overlineContent, supportingContent = supportingContent,
         leadingContent = leadingContent, trailingContent = trailingContent)
 }

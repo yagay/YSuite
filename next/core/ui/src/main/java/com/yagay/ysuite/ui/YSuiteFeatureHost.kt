@@ -141,7 +141,7 @@ fun YSuiteFeatureHost(
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
-                    ModalDrawerSheet {
+                    ModalDrawerSheet(drawerState = drawerState) {
                         Column(
                             modifier =
                                 Modifier

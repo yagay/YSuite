@@ -102,7 +102,7 @@ fun FileExplorerWorkspace(
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
-                    ModalDrawerSheet {
+                    ModalDrawerSheet(drawerState = drawerState) {
                         drawerContent(adaptive) {
                             scope.launch { drawerState.close() }
                         }
