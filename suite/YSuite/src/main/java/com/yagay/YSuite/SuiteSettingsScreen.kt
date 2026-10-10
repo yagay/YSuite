@@ -63,6 +63,12 @@ internal fun SuiteSettingsScreen(
     moduleId: String?,
     onBack: () -> Unit,
     onSelectModule: (String) -> Unit,
+    moduleStates: Map<String, Boolean>,
+    permissions: SuitePermissionState.Snapshot,
+    rootAvailable: Boolean?,
+    xposedConnected: Boolean,
+    onToggleModule: (String, Boolean) -> Unit,
+    onExportDiagnostic: (String?) -> Unit,
 ) {
     val context = LocalContext.current
     val store = remember(context.applicationContext) { YAppearanceStore(context) }
@@ -72,6 +78,7 @@ internal fun SuiteSettingsScreen(
         onDispose(dispose)
     }
     var group by rememberSaveable(moduleId) { mutableStateOf<YControlGroup?>(null) }
+    var commonMode by rememberSaveable { mutableStateOf(false) }
     var resetConfirm by remember(moduleId) { mutableStateOf(false) }
     var sampleDialog by remember { mutableStateOf(false) }
     var exampleText by remember { mutableStateOf("") }
@@ -81,7 +88,9 @@ internal fun SuiteSettingsScreen(
     val title = scopeName ?: stringResource(R.string.settings_title)
     val back: () -> Unit = { if (group != null) group = null else onBack() }
 
-    BackHandler(enabled = group != null) { group = null }
+    BackHandler(enabled = commonMode || group != null) {
+        if (commonMode) commonMode = false else group = null
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
@@ -123,6 +132,20 @@ internal fun SuiteSettingsScreen(
         }
     }
 
+    if (commonMode) {
+        SuiteCommonSettingsScreen(
+            modules = modules,
+            moduleId = moduleId,
+            moduleStates = moduleStates,
+            permissions = permissions,
+            rootAvailable = rootAvailable,
+            xposedConnected = xposedConnected,
+            onBack = { commonMode = false },
+            onSelectModule = onSelectModule,
+            onToggleModule = onToggleModule,
+            onExportDiagnostic = onExportDiagnostic,
+        )
+    } else {
     YSettingsScaffold(
         title = if (group == null) title else stringResource(groupTitle(group!!)),
         subtitle = if (moduleId == null)
@@ -134,6 +157,17 @@ internal fun SuiteSettingsScreen(
                 YSecondaryButton(stringResource(R.string.settings_back), onClick = back)
             }
             if (group == null) {
+                item(key = "common-feature-entry") {
+                    YSection(
+                        title = stringResource(R.string.common_entry_title),
+                        subtitle = stringResource(R.string.common_entry_desc),
+                    ) {
+                        YSecondaryButton(
+                            text = stringResource(R.string.common_entry_button),
+                            onClick = { commonMode = true },
+                        )
+                    }
+                }
                 item(key = "intro") {
                     Text(
                         stringResource(R.string.appearance_catalog_intro),
@@ -284,6 +318,7 @@ internal fun SuiteSettingsScreen(
                 }
             }
         }
+    }
     }
     if (resetConfirm) {
         YUiAlertDialog(
