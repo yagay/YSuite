@@ -48,7 +48,7 @@ fun YUiButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
@@ -56,7 +56,7 @@ fun YUiButton(
         border = border,
         contentPadding = contentPadding ?: PaddingValues(
             horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
-            vertical = YDimens.ButtonPaddingVertical,
+            vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
         ),
         interactionSource = interactionSource,
         content = content,
@@ -78,7 +78,7 @@ fun YUiOutlinedButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
@@ -86,7 +86,7 @@ fun YUiOutlinedButton(
         border = border,
         contentPadding = contentPadding ?: PaddingValues(
             horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
-            vertical = YDimens.ButtonPaddingVertical,
+            vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
         ),
         interactionSource = interactionSource,
         content = content,
@@ -108,7 +108,7 @@ fun YUiTextButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = YDimens.ButtonVisualHeight),
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
@@ -116,7 +116,7 @@ fun YUiTextButton(
         border = border,
         contentPadding = contentPadding ?: PaddingValues(
             horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
-            vertical = YDimens.ButtonPaddingVertical,
+            vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
         ),
         interactionSource = interactionSource,
         content = content,
@@ -135,8 +135,8 @@ fun YUiIconButton(
     IconButton(
         onClick = onClick,
         modifier = modifier.sizeIn(
-            minWidth = YDimens.TouchTarget,
-            minHeight = YDimens.TouchTarget,
+            minWidth = LocalYAppearance.current.iconTouchTargetDp.dp,
+            minHeight = LocalYAppearance.current.iconTouchTargetDp.dp,
         ),
         enabled = enabled,
         colors = colors,

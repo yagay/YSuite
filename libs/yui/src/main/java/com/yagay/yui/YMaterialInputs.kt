@@ -10,6 +10,8 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
@@ -38,7 +40,7 @@ fun YUiOutlinedTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource? = null,
-    shape: Shape = MaterialTheme.shapes.medium,
+    shape: Shape? = null,
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
 ) {
     OutlinedTextField(
@@ -63,7 +65,7 @@ fun YUiOutlinedTextField(
         maxLines = maxLines,
         minLines = minLines,
         interactionSource = interactionSource,
-        shape = shape,
+        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.fieldRadiusDp.dp),
         colors = colors,
     )
 }

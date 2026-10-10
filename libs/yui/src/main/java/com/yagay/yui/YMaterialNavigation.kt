@@ -4,6 +4,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 
 /** The host chooses navigation destinations; YUI owns the normal drawer item visual contract. */
 @Composable
@@ -22,6 +24,6 @@ fun YUiNavigationDrawerItem(
         modifier = modifier,
         icon = icon,
         badge = badge,
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(LocalYAppearance.current.navRadiusDp.dp),
     )
 }

@@ -6,6 +6,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 /** Standard-size Material 3 switch. YUI owns only the surrounding accessible slot. */
 @Composable
@@ -17,7 +18,7 @@ fun YStandardSwitch(
 ) {
     Box(
         modifier = modifier.size(
-            width = YDimens.SwitchSlotWidth,
+            width = LocalYAppearance.current.switchSlotWidthDp.dp,
             height = YDimens.SwitchSlotHeight,
         ),
         contentAlignment = Alignment.Center,
