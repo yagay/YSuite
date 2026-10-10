@@ -34,6 +34,7 @@ object YUiRuntime {
     )
 
     private val originalPadding = WeakHashMap<View, BasePadding>()
+    private val lastViewAppearance = WeakHashMap<Activity, YAppearance>()
     private var installed = false
 
     @JvmStatic
@@ -83,12 +84,27 @@ object YUiRuntime {
         }
 
         val content = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
+        val compose = containsComposeView(content)
+        if (!compose) {
+            // Existing XML/View trees retain inflated text and theme values. Rebuild them only
+            // after a real visual preference change; Compose reacts via rememberYAppearance.
+            val current = YAppearanceStore(activity)
+                .appearance(YAppearanceStore.moduleIdFor(activity))
+                .copy(homeSwipePin = true, homeStatusVisible = true)
+            val previous = synchronized(lastViewAppearance) {
+                lastViewAppearance.put(activity, current)
+            }
+            if (previous != null && previous != current) {
+                activity.recreate()
+                return
+            }
+        }
         YView.applyRoot(content)
         // Never mutate component sizes/backgrounds after inflation. Material 3 owns widgets.
 
         // Compose owns its insets through YScaffold/Scaffold. Traditional View Activities receive
         // exactly one system-bar padding layer here so every standalone app and YSuite behave alike.
-        if (containsComposeView(content)) {
+        if (compose) {
             ViewCompat.setOnApplyWindowInsetsListener(content, null)
             return
         }
