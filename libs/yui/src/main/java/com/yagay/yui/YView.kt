@@ -22,6 +22,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.ui.graphics.toArgb
+import java.util.WeakHashMap
 
 /** Shared View-system renderer for Java/legacy YSuite modules. */
 object YView {
@@ -176,17 +177,37 @@ object YView {
         )
     }
 
+    private data class PaletteEntry(
+        val settings: YAppearance,
+        val dark: Boolean,
+        val scheme: ColorScheme,
+    )
+    // Color schemes are immutable; keep one per active Context/appearance to avoid repeatedly
+    // resolving Android dynamic colors during RecyclerView binding and overlay drawing.
+    private val paletteCache = WeakHashMap<Context, PaletteEntry>()
+
     /** The same scheme, accents, and module overrides used by the Compose renderer. */
     private fun palette(context: Context): ColorScheme {
         val setting = appearance(context)
-        val dark = isDark(context)
+        val dark = when (setting.theme) {
+            "dark" -> true
+            "light" -> false
+            else -> context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+                Configuration.UI_MODE_NIGHT_YES
+        }
+        synchronized(paletteCache) {
+            paletteCache[context]?.takeIf { it.settings == setting && it.dark == dark }
+                ?.let { return it.scheme }
+        }
         val base = when {
             setting.dynamicColor && Build.VERSION.SDK_INT >= 31 && dark -> dynamicDarkColorScheme(context)
             setting.dynamicColor && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
             dark -> YDarkColors
             else -> YLightColors
         }
-        return yAccentColorScheme(base, setting.accent, dark)
+        val scheme = yAccentColorScheme(base, setting.accent, dark)
+        synchronized(paletteCache) { paletteCache[context] = PaletteEntry(setting, dark, scheme) }
+        return scheme
     }
 
     @JvmStatic fun color(context: Context, attr: Int, fallback: Int): Int {
