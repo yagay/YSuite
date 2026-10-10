@@ -22,6 +22,13 @@
     <color name="yui_palette_secondary">#585E71</color>
     <color name="yui_palette_secondary_container">#DDE1F9</color>
     <color name="yui_palette_surface">#FBF8FF</color>
+    <color name="yui_palette_surface_bright">#FBF8FF</color>
+    <color name="yui_palette_surface_container">#F5F2F9</color>
+    <color name="yui_palette_surface_container_high">#F2F0F7</color>
+    <color name="yui_palette_surface_container_highest">#EEECF3</color>
+    <color name="yui_palette_surface_container_low">#F7F4FB</color>
+    <color name="yui_palette_surface_container_lowest">#FBF8FF</color>
+    <color name="yui_palette_surface_dim">#F5F3FA</color>
     <color name="yui_palette_surface_variant">#E3E2E9</color>
     <color name="yui_palette_tertiary">#6B5778</color>
     <color name="yui_palette_tertiary_container">#F2DAFF</color>
