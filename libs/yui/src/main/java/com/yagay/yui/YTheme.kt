@@ -155,10 +155,12 @@ private val YTypography = Typography()
 fun YTheme(
     dynamicColor: Boolean = false,
     darkTheme: Boolean = isSystemInDarkTheme(),
+    appearanceOverride: YAppearance? = null,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val appearance = rememberYAppearance(YAppearanceStore.moduleIdFor(context))
+    val storedAppearance = rememberYAppearance(YAppearanceStore.moduleIdFor(context))
+    val appearance = appearanceOverride ?: storedAppearance
     val actualDark = when (appearance.theme) {
         "light" -> false
         "dark" -> true
@@ -166,9 +168,11 @@ fun YTheme(
     }
     val actualDynamic = dynamicColor || appearance.dynamicColor
     val systemDensity = LocalDensity.current
+    // Remove a parent YTheme scale before applying a nested preview's scale.
+    val inheritedScale = LocalYAppearance.current.fontPercent / 100f
     val scaledDensity = Density(
         systemDensity.density,
-        systemDensity.fontScale * (appearance.fontPercent / 100f),
+        systemDensity.fontScale / inheritedScale * (appearance.fontPercent / 100f),
     )
     val shapes = if (appearance.buttonRadiusDp == 24) YShapes else Shapes(
         small = RoundedCornerShape((appearance.buttonRadiusDp / 2).dp),

@@ -48,6 +48,7 @@ import com.yagay.yui.YUiOutlinedTextField
 import com.yagay.yui.YUiRadioButton
 import com.yagay.yui.YUiSlider
 import com.yagay.yui.YUiControlRegistry
+import com.yagay.yui.YTheme
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import kotlin.math.roundToInt
@@ -229,6 +230,7 @@ internal fun SuiteSettingsScreen(
                         title = stringResource(R.string.appearance_preview_title),
                         subtitle = stringResource(R.string.appearance_preview_desc),
                     ) {
+                        YTheme(appearanceOverride = store.appearance(moduleId)) {
                         when (family) {
                             YControlGroup.BUTTONS, YControlGroup.THEME, YControlGroup.TYPOGRAPHY -> {
                                 YHorizontalActions {
@@ -276,6 +278,7 @@ internal fun SuiteSettingsScreen(
                                     onClick = { previewSelected = !previewSelected },
                                 )
                             }
+                        }
                         }
                     }
                 }
