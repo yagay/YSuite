@@ -380,11 +380,11 @@ fun YBottomSheet(
     ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier) {
         Column(
             Modifier.fillMaxWidth().padding(
-                start = YDimens.ScreenHorizontal,
-                end = YDimens.ScreenHorizontal,
-                bottom = YDimens.ScreenVertical,
+                start = LocalYAppearance.current.screenPaddingDp.dp,
+                end = LocalYAppearance.current.screenPaddingDp.dp,
+                bottom = LocalYAppearance.current.pageVerticalPaddingDp.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+            verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) { content() }
     }
 }
