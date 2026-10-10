@@ -93,3 +93,40 @@ minimums, template-specific padding, and old generated dimensions.
 
 Automated coverage now checks shared validation, generated default alignment, real
 appearance consumers and exact entry controls, as well as the previous integration checks.
+
+## Centralized appearance across feature modules (2026-10-10)
+
+**One visual preference owner:** `YAppearanceStore` is the only writable owner of UI
+theme, typography, components and feature overlay appearance. The settings UI reads
+`YUiControlRegistry` and writes validated `YSettingKey` values; those values can
+be set globally, inherited per module, or overridden explicitly for one module.
+Existing settings JSON export/import, scoped reset and inheritance work for the new
+visual controls without introducing a second settings format.
+
+**YFloat migration:** the floating icon's size, opacity, visible-edge percentage,
+icon style, selection border color, width and visibility, gesture trail opacity,
+width, color string, drawing style, gradient and visibility, and the text action
+menu item count now use the same YUI store as YSuite. YFloat's old settings pages
+remain usable as alternate *views* of those same values, rather than separate
+owners. A one-time migration imports prior local values as YFloat module overrides
+so user customizations survive. After migration, they may choose "inherit global"
+per control in YSuite to remove the override.
+
+The floating service observes changes to global or YFloat-module appearance and
+refreshes its icon/window dimensions, alpha, selection border and notification.
+Gesture trail styling is read again at the start of each stroke.
+
+**Rebuilt features:** the YFiles/YDownload design-system theme keeps Material 3 and
+YUI appearance, including status bar color contrast. The compatibility
+`DataStoreAppSettingsRepository` now delegates its theme and dynamic-color values
+to `YAppearanceStore` and language to `SuiteCommonSettings`, instead of storing
+another independent theme or language preference.
+
+**Deliberate boundaries:** download concurrency, app privileges, gesture meanings,
+NFC routing, selected files, selected custom icon images and OCR/capture engines are
+functional data and remain owned by their feature implementations. File browser
+pane proportions, physical viewfinder geometry and other interaction-only values
+are not silently tied to button corner radius or a global card padding setting.
+Such values must be exposed only when a real shared visual consumer exists.
+Standalone APKs keep their own private Android preference files and do not
+automatically synchronize values between different package names.
