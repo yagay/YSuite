@@ -200,6 +200,8 @@ object YView {
             com.google.android.material.R.attr.colorOutlineVariant -> p.outlineVariant.toArgb()
             com.google.android.material.R.attr.colorOutline -> p.outline.toArgb()
             androidx.appcompat.R.attr.colorPrimary -> p.primary.toArgb()
+            android.R.attr.colorError -> p.error.toArgb()
+            com.google.android.material.R.attr.colorTertiary -> p.tertiary.toArgb()
             else -> MaterialColors.getColor(context, attr, fallback)
         }
     }
