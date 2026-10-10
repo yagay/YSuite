@@ -49,6 +49,10 @@ def main() -> None:
             scanned += 1
             if path.suffix == ".kt":
                 bad = sorted(set(CONTROL_IMPORT.findall(source) + CONTROL_FQCN.findall(source)))
+                # Host pages also reuse the identical YUI text/icon/tab renderers.
+                if path.is_relative_to(ROOT / "suite/YSuite"):
+                    bad.extend(re.findall(r"^import\\s+androidx\\.compose\\.material3\\.(Text|Icon|Tab)\\b", source, re.MULTILINE))
+                    bad.extend(re.findall(r"\\bandroidx\\.compose\\.material3\\.(Text|Icon|Tab)\\s*\\(", source))
                 if path.is_relative_to(ROOT / "next/core/productui"):
                     bad.extend(PRODUCT_CONTROL_IMPORT.findall(source))
                     bad.extend(PRODUCT_CONTROL_FQCN.findall(source))

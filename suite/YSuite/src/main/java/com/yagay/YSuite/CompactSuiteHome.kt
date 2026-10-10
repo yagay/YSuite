@@ -43,12 +43,12 @@ import androidx.compose.material.icons.filled.Tune
 import com.yagay.yui.YUiDropdownMenu as DropdownMenu
 import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
 import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
-import androidx.compose.material3.Icon
+import com.yagay.yui.YUiIcon as Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
 import com.yagay.yui.YUiSurface as Surface
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

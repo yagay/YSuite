@@ -3,7 +3,7 @@ package com.yagay.YSuite
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue

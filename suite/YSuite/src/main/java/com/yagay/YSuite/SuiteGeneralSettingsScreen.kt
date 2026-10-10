@@ -8,7 +8,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
