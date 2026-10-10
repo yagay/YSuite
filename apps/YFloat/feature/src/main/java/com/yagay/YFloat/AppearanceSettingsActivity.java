@@ -16,12 +16,17 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
         super.onCreate(state);
 
         LinearLayout root = YViewLayout.pageRoot(this,
-                getString(R.string.yfloat_appearance_title),
-                getString(R.string.yfloat_appearance_desc));
+                getString(R.string.yfloat_text_menu_title),
+                getString(R.string.yfloat_text_menu_desc));
 
-        YViewSection theme = YViewLayout.section(this, getString(R.string.yfloat_theme_title), null);
-        addThemeSpinner(theme.body);
-        YViewLayout.addSection(root, theme);
+        // The integrated YSuite build is configured from the host's unified appearance page.
+        // Retain the selector only for an independently installed YFloat APK, which has its
+        // own application sandbox and cannot read the host's private preferences.
+        if (!"com.yagay.YSuite".equals(getPackageName())) {
+            YViewSection theme = YViewLayout.section(this, getString(R.string.yfloat_theme_title), null);
+            addThemeSpinner(theme.body);
+            YViewLayout.addSection(root, theme);
+        }
 
         YViewSection textMenu = YViewLayout.section(this,
                 getString(R.string.yfloat_text_menu_title),
