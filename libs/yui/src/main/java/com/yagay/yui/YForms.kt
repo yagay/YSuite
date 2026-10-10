@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @Composable
 fun YIconAction(
@@ -202,26 +203,62 @@ fun YIntSliderField(
     subtitle: String? = null,
     enabled: Boolean = true,
 ) {
+    require(!range.isEmpty()) { "YIntSliderField needs a nonempty range" }
     val safeValue = value.coerceIn(range.first, range.last)
+    var exact by remember(value, range.first, range.last) { mutableStateOf(safeValue.toString()) }
+    val entered = exact.toIntOrNull()
+    val valid = entered != null && entered in range
+    val applyExact = {
+        if (enabled && valid && entered != null) onValueChange(entered)
+    }
     Column(modifier.fillMaxWidth()) {
         YListItem(
             title = title,
             subtitle = subtitle,
             trailing = {
-                Text(
-                    text = safeValue.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Text(text = safeValue.toString(), style = MaterialTheme.typography.titleMedium)
             },
         )
-        YUiSlider(
-            value = safeValue.toFloat(),
-            onValueChange = { onValueChange(it.toInt().coerceIn(range.first, range.last)) },
-            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
-            enabled = enabled,
-            valueRange = range.first.toFloat()..range.last.toFloat(),
-            steps = (range.last - range.first - 1).coerceAtLeast(0),
-        )
+        if (range.first != range.last) {
+            YUiSlider(
+                value = safeValue.toFloat(),
+                onValueChange = { onValueChange(it.roundToInt().coerceIn(range.first, range.last)) },
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
+                enabled = enabled,
+                valueRange = range.first.toFloat()..range.last.toFloat(),
+                steps = 0,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
+            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            YUiOutlinedTextField(
+                value = exact,
+                onValueChange = { input ->
+                    if (input.length <= 11 && input.all { it.isDigit() || it == '-' }) exact = input
+                },
+                modifier = Modifier.weight(1f),
+                label = { Text(androidx.compose.ui.res.stringResource(R.string.yui_exact_value)) },
+                supportingText = { Text("${range.first}–${range.last}") },
+                isError = exact.isNotEmpty() && !valid,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    onDone = { applyExact() },
+                ),
+                singleLine = true,
+                enabled = enabled,
+            )
+            YUiOutlinedButton(
+                onClick = applyExact,
+                enabled = enabled && valid && entered != safeValue,
+            ) { Text(androidx.compose.ui.res.stringResource(R.string.yui_apply_value)) }
+        }
     }
 }
 
