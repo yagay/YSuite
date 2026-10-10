@@ -444,6 +444,45 @@ def main() -> None:
     ):
         for required in markers:
             require(source, required, label)
+    # Self-painted YFloat overlays must resolve YUI settings through one bridge;
+    # incoming download links must use the same shared product dialog as manual tasks.
+    overlay_style = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatOverlayStyle.java")
+    icon_renderer = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatIconRenderer.java")
+    region_overlay = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/RegionOverlay.java")
+    editable_region = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/EditableRegionOverlay.java")
+    circle_overlay = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FLCircleInlineOverlay.java")
+    download_vm = text(ROOT / "next/feature/ydownload/impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadViewModel.kt")
+    download_screen = text(ROOT / "next/feature/ydownload/impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadFeatureScreen.kt")
+    download_ui = text(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadComponents.kt")
+    download_workspace = text(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadWorkspace.kt")
+    shared_fabs = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YMaterialFloatingActions.kt")
+    for source, required_markers, label in (
+        (overlay_style, ("new YAppearanceStore(c).appearance(\"yfloat\")",
+                         "YOverlayTokens.", "getFloatBorderWidthDp()",
+                         "getButtonRadiusDp()", "getFontPercent()"), "YFloat Canvas YUI bridge"),
+        (icon_renderer, ("YFloatOverlayStyle.iconBackground(", "YFloatOverlayStyle.iconForeground("),
+         "floating icon palette"),
+        (region_overlay, ("YFloatOverlayStyle.scrim(", "YFloatOverlayStyle.selectionStroke("),
+         "region selection Canvas"),
+        (editable_region, ("YFloatOverlayStyle.selectionColor(", "YFloatOverlayStyle.actionSurface(",
+                           "YFloatOverlayStyle.buttonRadius("), "editable selection Canvas"),
+        (circle_overlay, ("YFloatOverlayStyle.scrim(", "YFloatOverlayStyle.accentWithAlpha("),
+         "Circle workspace Canvas"),
+        (download_vm, ("YDownloadIncomingUrlStore", "showAddDialog(url)"), "incoming URL UI routing"),
+        (download_screen, ("QdmDownloadWorkspace(", "QdmAddDownloadDialog("), "download product UI"),
+        (download_workspace, ("YUiFloatingActionButton as FloatingActionButton",
+                              "YUiSmallFloatingActionButton as SmallFloatingActionButton"),
+         "shared download FABs"),
+        (download_ui, ("LocalYAppearance.current.dialogRadiusDp",
+                       "LocalYAppearance.current.iconVisualSizeDp",
+                       "LocalYAppearance.current.effectiveGapDp"), "shared download dialog"),
+        (shared_fabs, ("LocalYAppearance.current", "appearance.buttonHeightDp",
+                       "appearance.buttonRadiusDp", "appearance.iconTouchTargetDp"),
+         "shared FAB facade"),
+    ):
+        for marker in required_markers:
+            require(source, marker, label)
+
     # All regular screens identified in the fixed-dp audit must use live YUI
     # appearance values. Keep this check as new modules are migrated.
     runtime_sized_screens = (
