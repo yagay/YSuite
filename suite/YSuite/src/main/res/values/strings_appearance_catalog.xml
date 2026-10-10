@@ -59,4 +59,8 @@
     <string name="appearance_exact_value">Exact value</string>
     <string name="appearance_apply_exact">Apply value</string>
     <string name="appearance_allowed_range">Allowed: %1$d–%2$d %3$s, 1-unit precision</string>
+    <string name="appearance_page_vertical_padding">Page vertical padding</string>
+    <string name="appearance_icon_visual_size">Icon visual size</string>
+    <string name="appearance_list_icon_size">List icon size</string>
+    <string name="appearance_toolbar_height">Toolbar height</string>
 </resources>
