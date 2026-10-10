@@ -103,7 +103,7 @@ def verify_runtime_appearance() -> None:
         "float_menu": ("YView.fontPercent(c)", "YView.controlGap(c)"),
         "notify_apps": ("YView.rowHeight(c)", "YView.styleItemTitle(h.b.appName)"),
         "notify_events": ("YView.cardRadius(c)", "YView.surfaceContainer(c)"),
-        "entry_controls": ("LocalYAppearance.current.fieldRadiusDp", "LocalYAppearance.current.rowHeightDp"),
+        "entry_controls": ("YUiOutlinedTextField as OutlinedTextField", "YFilterBar("),
         "entry_components": ("LocalYAppearance.current.buttonPaddingHorizontalDp",),
         "entry_priority": ("LocalYAppearance.current.rowHeightDp",),
         "download_dialog": ("LocalYAppearance.current.dialogRadiusDp.dp",),
