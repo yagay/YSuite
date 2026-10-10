@@ -24,17 +24,42 @@ enum class YSettingKey(val key: String, val default: String) {
     HOME_SWIPE_PIN("home_swipe_pin", "true"),
     HOME_STATUS("home_status", "true"),
     CONTROL_GAP("control_gap", "12"),
-    FONT_PERCENT("font_percent", "100");
+    FONT_PERCENT("font_percent", "100"),
+    ACCENT("accent", "default"),
+    BUTTON_HEIGHT("button_height", "48"),
+    BUTTON_VERTICAL_PADDING("button_vertical_padding", "8"),
+    ROW_HEIGHT("row_height", "56"),
+    ROW_HORIZONTAL_PADDING("row_horizontal_padding", "16"),
+    ROW_VERTICAL_PADDING("row_vertical_padding", "6"),
+    CARD_RADIUS("card_radius", "16"),
+    CARD_PADDING("card_padding", "16"),
+    FIELD_RADIUS("field_radius", "12"),
+    DIALOG_RADIUS("dialog_radius", "28"),
+    SWITCH_SLOT_WIDTH("switch_slot_width", "56"),
+    ICON_TOUCH_TARGET("icon_touch_target", "48"),
+    NAV_RADIUS("nav_radius", "12"),
+    SCREEN_PADDING("screen_padding", "16"),
+    SECTION_SPACING("section_spacing", "16");
 
     fun validate(value: String): String {
         val valid = when (this) {
             THEME -> value in setOf("system", "light", "dark")
             DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS -> value in setOf("true", "false")
             DENSITY -> value in setOf("compact", "standard", "comfortable")
+            ACCENT -> value in setOf("default", "blue", "teal", "green", "purple", "orange")
             BUTTON_RADIUS -> (value.toIntOrNull() ?: -1) in 0..32
             BUTTON_PADDING -> (value.toIntOrNull() ?: -1) in 8..32
             CONTROL_GAP -> (value.toIntOrNull() ?: -1) in 4..24
             FONT_PERCENT -> (value.toIntOrNull() ?: -1) in 85..130
+            BUTTON_HEIGHT, ICON_TOUCH_TARGET -> (value.toIntOrNull() ?: -1) in 48..72
+            BUTTON_VERTICAL_PADDING -> (value.toIntOrNull() ?: -1) in 0..16
+            ROW_HEIGHT -> (value.toIntOrNull() ?: -1) in 48..88
+            ROW_HORIZONTAL_PADDING, SCREEN_PADDING -> (value.toIntOrNull() ?: -1) in 8..32
+            ROW_VERTICAL_PADDING -> (value.toIntOrNull() ?: -1) in 2..16
+            CARD_RADIUS, FIELD_RADIUS, DIALOG_RADIUS, NAV_RADIUS -> (value.toIntOrNull() ?: -1) in 0..32
+            CARD_PADDING -> (value.toIntOrNull() ?: -1) in 8..32
+            SWITCH_SLOT_WIDTH -> (value.toIntOrNull() ?: -1) in 56..84
+            SECTION_SPACING -> (value.toIntOrNull() ?: -1) in 0..32
         }
         require(valid) { "Invalid " + key + " value" }
         return value
@@ -51,6 +76,21 @@ data class YAppearance(
     val homeStatusVisible: Boolean = true,
     val controlGapDp: Int = 12,
     val fontPercent: Int = 100,
+    val accent: String = "default",
+    val buttonHeightDp: Int = 48,
+    val buttonVerticalPaddingDp: Int = 8,
+    val rowHeightDp: Int = 56,
+    val rowHorizontalPaddingDp: Int = 16,
+    val rowVerticalPaddingDp: Int = 6,
+    val cardRadiusDp: Int = 16,
+    val cardPaddingDp: Int = 16,
+    val fieldRadiusDp: Int = 12,
+    val dialogRadiusDp: Int = 28,
+    val switchSlotWidthDp: Int = 56,
+    val iconTouchTargetDp: Int = 48,
+    val navRadiusDp: Int = 12,
+    val screenPaddingDp: Int = 16,
+    val sectionSpacingDp: Int = 16,
 ) {
     val effectiveGapDp: Int get() = when (density) {
         "compact" -> (controlGapDp * 2 / 3).coerceAtLeast(4)
@@ -88,6 +128,21 @@ class YAppearanceStore(context: Context) {
         homeStatusVisible = value(YSettingKey.HOME_STATUS, moduleId) == "true",
         controlGapDp = value(YSettingKey.CONTROL_GAP, moduleId).toInt(),
         fontPercent = value(YSettingKey.FONT_PERCENT, moduleId).toInt(),
+        accent = value(YSettingKey.ACCENT, moduleId),
+        buttonHeightDp = value(YSettingKey.BUTTON_HEIGHT, moduleId).toInt(),
+        buttonVerticalPaddingDp = value(YSettingKey.BUTTON_VERTICAL_PADDING, moduleId).toInt(),
+        rowHeightDp = value(YSettingKey.ROW_HEIGHT, moduleId).toInt(),
+        rowHorizontalPaddingDp = value(YSettingKey.ROW_HORIZONTAL_PADDING, moduleId).toInt(),
+        rowVerticalPaddingDp = value(YSettingKey.ROW_VERTICAL_PADDING, moduleId).toInt(),
+        cardRadiusDp = value(YSettingKey.CARD_RADIUS, moduleId).toInt(),
+        cardPaddingDp = value(YSettingKey.CARD_PADDING, moduleId).toInt(),
+        fieldRadiusDp = value(YSettingKey.FIELD_RADIUS, moduleId).toInt(),
+        dialogRadiusDp = value(YSettingKey.DIALOG_RADIUS, moduleId).toInt(),
+        switchSlotWidthDp = value(YSettingKey.SWITCH_SLOT_WIDTH, moduleId).toInt(),
+        iconTouchTargetDp = value(YSettingKey.ICON_TOUCH_TARGET, moduleId).toInt(),
+        navRadiusDp = value(YSettingKey.NAV_RADIUS, moduleId).toInt(),
+        screenPaddingDp = value(YSettingKey.SCREEN_PADDING, moduleId).toInt(),
+        sectionSpacingDp = value(YSettingKey.SECTION_SPACING, moduleId).toInt(),
     )
 
     fun set(key: YSettingKey, value: String, moduleId: String? = null) {
