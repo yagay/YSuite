@@ -21,6 +21,7 @@ import com.yagay.YNotify.data.NotificationRevision;
 import com.yagay.YNotify.data.NotifyDatabase;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewDialogs;
 import com.yagay.yui.YViewPage;
 
 import java.util.Collections;
@@ -132,7 +133,7 @@ public class EventDetailActivity extends AppCompatActivity {
                 getString(R.string.ynotify_filter_snackbar),
                 getString(R.string.ynotify_class_other_ui)
         };
-        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+        AlertDialog.Builder builder = YViewDialogs.builder(this)
                 .setTitle(R.string.ynotify_correct_classification)
                 .setSingleChoiceItems(labels, selectedIndex(r), (dialog, which) -> {
                     String type;

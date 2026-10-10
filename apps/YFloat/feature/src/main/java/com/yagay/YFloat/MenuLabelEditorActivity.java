@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewDialogs;
 import com.yagay.yui.YViewSection;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -211,7 +212,7 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
             box.addView(system, lp);
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+        AlertDialog.Builder builder = YViewDialogs.builder(this)
                 .setTitle(R.string.yfloat_menu_edit_name)
                 .setView(box)
                 .setNegativeButton(R.string.yfloat_menu_cancel, null)

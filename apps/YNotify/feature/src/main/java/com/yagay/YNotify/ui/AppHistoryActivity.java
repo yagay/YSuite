@@ -21,6 +21,7 @@ import com.yagay.YNotify.data.NotifyDatabase;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewFilterBar;
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewDialogs;
 import com.yagay.yui.YViewPage;
 
 import java.util.List;
@@ -95,7 +96,7 @@ public class AppHistoryActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         Button clear = YViewLayout.secondaryButton(this, getString(R.string.ynotify_clear_app_history));
-        clear.setOnClickListener(v -> new AlertDialog.Builder(this)
+        clear.setOnClickListener(v -> YViewDialogs.builder(this)
                 .setTitle(R.string.ynotify_clear_app_confirm)
                 .setMessage(pkg)
                 .setNegativeButton(R.string.ynotify_cancel, null)

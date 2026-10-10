@@ -28,6 +28,7 @@ import com.yagay.yparam.data.AppConfig;
 import com.yagay.yparam.data.ConfigRepository;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewDialogs;
 import com.yagay.yui.YViewScreen;
 import com.yagay.yui.YViewStatusTone;
 
@@ -164,7 +165,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         rawInfo.addView(text(buildRawInfo(), 13, false));
 
         Button reset = YViewLayout.secondaryButton(this, getString(R.string.yparam_reset_all));
-        reset.setOnClickListener(v -> new AlertDialog.Builder(this)
+        reset.setOnClickListener(v -> YViewDialogs.builder(this)
                 .setTitle(R.string.yparam_reset_title)
                 .setMessage(R.string.yparam_reset_message)
                 .setNegativeButton(R.string.yparam_cancel, null)

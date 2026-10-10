@@ -41,6 +41,7 @@ import com.google.android.material.chip.ChipGroup;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewFilterBar;
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewDialogs;
 import com.yagay.yui.YViewPage;
 import com.yagay.yui.YViewSection;
 import com.yagay.yui.YViewRadioGroup;
@@ -123,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         setupRetention();
         setupHistoryRepair();
         setupDiagnosticsExport();
-        btnClearAll.setOnClickListener(v -> new AlertDialog.Builder(this)
+        btnClearAll.setOnClickListener(v -> YViewDialogs.builder(this)
                 .setTitle(R.string.ynotify_clear_confirm_title)
                 .setMessage(R.string.ynotify_clear_confirm_message)
                 .setNegativeButton(R.string.ynotify_cancel, null)
