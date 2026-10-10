@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.UserManager
 import android.util.Log
+import com.yagay.yui.YUiLocaleBridge
 import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureRuntimeManager
 import com.yagay.suite.core.FeatureStateStore
@@ -21,6 +22,7 @@ import com.yagay.suite.core.SuiteXposedServiceBroker
 
 class YSuiteApp : Application() {
     override fun attachBaseContext(base: Context) {
+        YUiLocaleBridge.install(SuiteLocaleController::localizedContext)
         super.attachBaseContext(SuiteLocaleController.localizedContext(base))
     }
 
