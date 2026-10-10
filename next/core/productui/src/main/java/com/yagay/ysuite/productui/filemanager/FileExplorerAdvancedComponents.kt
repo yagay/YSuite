@@ -104,7 +104,7 @@ fun FileExplorerBrowserTabs(
                                             .Close,
                                         contentDescription =
                                             closeLabel,
-                                        modifier = Modifier.size(YDimens.SpacingLarge),
+                                        modifier = Modifier.size(YDimens.IconSmallSize),
                                     )
                                 }
                             }

@@ -44,6 +44,7 @@ TOKENS = [
     ("option_row_height", "OptionRowHeight"),
     ("list_icon_size", "ListIconSize"),
     ("icon_visual_size", "IconVisualSize"),
+    ("icon_small_size", "IconSmallSize"),
     ("switch_track_width", "SwitchTrackWidth"),
     ("switch_track_height", "SwitchTrackHeight"),
     ("switch_thumb_size", "SwitchThumbSize"),

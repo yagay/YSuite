@@ -36,5 +36,6 @@
   "switch_slot_width": 52,
   "switch_slot_height": 40,
   "list_icon_size": 40,
-  "icon_visual_size": 20
+  "icon_visual_size": 20,
+  "icon_small_size": 16
 }
