@@ -236,12 +236,15 @@ class YAppearanceStore(context: Context) {
                 if (current is Activity) {
                     val explicit = current.intent?.getStringExtra(MODULE_EXTRA)
                     if (explicit != null && MODULE_ID.matches(explicit)) return explicit
-                    val klass = current.javaClass.name.lowercase()
-                    return listOf(
-                        "yentrycleaner", "ydiag", "ynotify", "ypower", "yminiguard",
-                        "ynfc", "ytaskmanager", "yparam", "yfloat", "ydownload", "yfiles",
-                    ).firstOrNull { klass.contains("." + it + ".") }
                 }
+                // Also resolve feature services (not only Activities), so overlays inherit their
+                // module-specific appearance even when inflated with a Service context.
+                val klass = current.javaClass.name.lowercase()
+                val feature = listOf(
+                    "yentrycleaner", "ydiag", "ynotify", "ypower", "yminiguard",
+                    "ynfc", "ytaskmanager", "yparam", "yfloat", "ydownload", "yfiles",
+                ).firstOrNull { klass.contains("." + it + ".") }
+                if (feature != null) return feature
                 current = current.baseContext
             }
             return null
