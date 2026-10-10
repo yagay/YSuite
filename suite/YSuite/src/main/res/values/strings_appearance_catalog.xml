@@ -93,4 +93,6 @@
     <string name="appearance_float_trail_colors">Trail colors (comma-separated #RRGGBB)</string>
     <string name="appearance_float_border_visible">Show selection border</string>
     <string name="appearance_float_trail_visible">Show gesture trail</string>
+    <string name="appearance_content_width_scale">Content width scale (%)</string>
+    <string name="appearance_pane_width_scale">Side pane width scale (%)</string>
 </resources>
