@@ -35,7 +35,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.slider.Slider
@@ -728,16 +727,27 @@ object YViewLayout {
     fun navRow(context: Context, title: String, subtitle: String?, action: Runnable?): View =
         navigationRow(context, title, subtitle) { action?.run() }
 
-    /** Use the native SwitchMaterial size and animations; never scale the view down. */
+    /**
+     * One M3 MaterialSwitch renderer for *both* legacy View overloads.
+     * Checked/unchecked colors use the same YUI appearance as Compose Switch.
+     */
     private fun styleStandardToggle(toggle: SwitchCompat) {
         toggle.showText = false
         toggle.scaleX = 1f
         toggle.scaleY = 1f
+        val c = toggle.context
+        val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
+        toggle.thumbTintList = ColorStateList(
+            states, intArrayOf(YView.surface(c), YView.onSurfaceVariant(c)),
+        )
+        toggle.trackTintList = ColorStateList(
+            states, intArrayOf(YView.accent(c), YView.surfaceContainer(c)),
+        )
     }
 
     private fun switchSlot(context: Context): LinearLayout.LayoutParams =
         LinearLayout.LayoutParams(
-            YView.dimen(context, R.dimen.yui_switch_slot_width),
+            YView.switchSlotWidth(context),
             ViewGroup.LayoutParams.WRAP_CONTENT,
         )
 
@@ -748,7 +758,7 @@ object YViewLayout {
         subtitle: String?,
         checked: Boolean,
         listener: CompoundButton.OnCheckedChangeListener?,
-    ): SwitchMaterial {
+    ): MaterialSwitch {
         val row = baseRow(context, subtitle.isNullOrBlank()).apply { background = rowBackground(context) }
         val copy = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -759,7 +769,7 @@ object YViewLayout {
             }
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        return SwitchMaterial(context).apply {
+        return MaterialSwitch(context).apply {
             isUseMaterialThemeColors = true
             isChecked = checked
             styleStandardToggle(this)
@@ -770,7 +780,7 @@ object YViewLayout {
     }
 
     @JvmStatic
-    fun switchContainer(toggle: SwitchMaterial): LinearLayout = toggle.parent as LinearLayout
+    fun switchContainer(toggle: MaterialSwitch): LinearLayout = toggle.parent as LinearLayout
 
     @JvmStatic
     fun baseRow(context: Context): LinearLayout = baseRow(context, false)
@@ -1077,26 +1087,10 @@ object YViewLayout {
         checked: Boolean,
         listener: CompoundButton.OnCheckedChangeListener,
     ): SwitchCompat {
-        val row = LinearLayout(parent.context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = YView.rowHeight(context)
-            setPadding(0, YView.rowVerticalPadding(context), 0, YView.rowVerticalPadding(context))
-        }
-        val texts = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
-        texts.addView(rowTitle(parent.context, title))
-        if (!description.isNullOrBlank()) {
-            texts.addView(rowSubtitle(parent.context, description))
-        }
-        row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        val toggle = MaterialSwitch(parent.context).apply {
-            isChecked = checked
-            styleStandardToggle(this)
-            setOnCheckedChangeListener(listener)
-        }
-        row.addView(toggle, switchSlot(parent.context))
-        row.setOnClickListener { toggle.performClick() }
-        parent.addView(row, matchWrap())
+        // No separate parent-based renderer: identical shape, typography, spacing,
+        // colors, and click behavior to switchRow(Context, ...).
+        val toggle = switchRow(parent.context, title, description, checked, listener)
+        parent.addView(switchContainer(toggle), matchWrap())
         return toggle
     }
 

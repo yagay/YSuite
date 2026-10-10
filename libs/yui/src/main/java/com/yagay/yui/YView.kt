@@ -167,6 +167,7 @@ object YView {
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardPaddingDp)
     @JvmStatic fun touchTarget(context: Context): Int = dp(context, appearance(context).iconTouchTargetDp)
     @JvmStatic fun rowHeight(context: Context): Int = dp(context, appearance(context).rowHeightDp)
+    @JvmStatic fun switchSlotWidth(context: Context): Int = dp(context, appearance(context).switchSlotWidthDp)
     @JvmStatic fun rowHorizontalPadding(context: Context): Int = dp(context, appearance(context).rowHorizontalPaddingDp)
     @JvmStatic fun rowVerticalPadding(context: Context): Int = dp(context, appearance(context).rowVerticalPaddingDp)
     @JvmStatic fun dialogRadius(context: Context): Int = dp(context, appearance(context).dialogRadiusDp)

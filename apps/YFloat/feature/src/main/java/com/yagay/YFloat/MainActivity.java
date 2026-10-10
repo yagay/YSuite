@@ -18,11 +18,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 /** Compact YFloat control center. Detailed configuration lives in short category pages. */
 public class MainActivity extends AppCompatActivity {
-    private SwitchMaterial overlaySwitch;
+    private MaterialSwitch overlaySwitch;
     private TextView serviceStatus;
     private boolean syncingOverlaySwitch;
     private boolean awaitingAccessibilityGrant;

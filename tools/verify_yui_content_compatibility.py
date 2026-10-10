@@ -54,8 +54,8 @@ def main() -> int:
                       "screenWidthDp < 480",
                       "PopupMenu popup",
                       "YView.touchTarget(this)",
-                      "titleView.setMaxLines(Integer.MAX_VALUE)",
-                      "sub.setMaxLines(Integer.MAX_VALUE)")
+                      "YViewLayout.rowTitle(this, title)",
+                      "YViewLayout.rowSubtitle(this, subtitle)")
     if errors:
         print("yui-content: incompatible or missing UI contracts:", file=sys.stderr)
         for error in errors:

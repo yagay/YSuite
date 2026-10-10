@@ -3,7 +3,7 @@ package com.yagay.YFloat;
 import com.yagay.yui.YViewLayout;
 import android.widget.LinearLayout;
 
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 /** Focused settings widgets for the Circle Select active-state border. */
 final class CircleBorderSettingsUi {
@@ -13,7 +13,7 @@ final class CircleBorderSettingsUi {
     };
 
     static void add(SettingsActivity activity, FloatSettings fs, LinearLayout parent) {
-        SwitchMaterial enabled = YViewLayout.switchRow(activity,
+        MaterialSwitch enabled = YViewLayout.switchRow(activity,
                 activity.getString(R.string.yfloat_circle_border_show),
                 activity.getString(R.string.yfloat_circle_border_show_desc),
                 fs.circleBorderEnabled(),

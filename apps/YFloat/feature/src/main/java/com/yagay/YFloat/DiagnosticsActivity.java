@@ -15,7 +15,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -38,7 +38,7 @@ public final class DiagnosticsActivity extends AppCompatActivity {
         YViewSection logging = YViewLayout.section(this,
                 getString(R.string.yfloat_diag_log_title),
                 getString(R.string.yfloat_diag_log_desc));
-        SwitchMaterial loggingSwitch = YViewLayout.switchRow(this,
+        MaterialSwitch loggingSwitch = YViewLayout.switchRow(this,
                 getString(R.string.yfloat_diag_logging),
                 getString(R.string.yfloat_diag_logging_desc),
                 fs.diagnosticLogging(),

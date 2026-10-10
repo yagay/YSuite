@@ -7,7 +7,7 @@ import android.widget.Toast;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,13 +26,13 @@ final class SettingsPageUi {
 
     void check(LinearLayout parent, String title, String subtitle,
                String key, boolean current) {
-        SwitchMaterial toggle = YViewLayout.switchRow(activity, title, subtitle, current,
+        MaterialSwitch toggle = YViewLayout.switchRow(activity, title, subtitle, current,
                 (button, checked) -> fs.setBoolean(key, checked));
         YViewLayout.addRow(parent, YViewLayout.switchContainer(toggle));
     }
 
     void fullscreenModeCheck(LinearLayout parent) {
-        SwitchMaterial toggle = YViewLayout.switchRow(activity,
+        MaterialSwitch toggle = YViewLayout.switchRow(activity,
                 activity.getString(R.string.yfloat_fullscreen_auto_hide),
                 activity.getString(R.string.yfloat_fullscreen_auto_hide_desc),
                 fs.fullscreenHideMode() != 0,

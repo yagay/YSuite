@@ -12,7 +12,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 /** Builds the optional Root and LSPosed settings page. */
 public final class PrivilegeSettingsPanel {
@@ -30,7 +30,7 @@ public final class PrivilegeSettingsPanel {
         YViewSection master = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_priv_master_title),
                 activity.getString(R.string.yfloat_priv_master_desc));
-        SwitchMaterial enhanced = preferenceSwitch(activity, fs,
+        MaterialSwitch enhanced = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_enable_enhanced),
                 activity.getString(R.string.yfloat_priv_enable_enhanced_desc),
                 FloatSettings.K_ENHANCED_MODE, fs.enhancedMode(),
@@ -45,7 +45,7 @@ public final class PrivilegeSettingsPanel {
 
         YViewSection rootSection = YViewLayout.section(activity, "Root",
                 activity.getString(R.string.yfloat_priv_root_desc));
-        SwitchMaterial rootSwitch = preferenceSwitch(activity, fs,
+        MaterialSwitch rootSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_use_root),
                 activity.getString(R.string.yfloat_priv_use_root_desc),
                 FloatSettings.K_ROOT_ENABLED, fs.rootEnabled(),
@@ -55,7 +55,7 @@ public final class PrivilegeSettingsPanel {
                 });
         YViewLayout.addRow(rootSection.body, YViewLayout.switchContainer(rootSwitch));
 
-        SwitchMaterial rootScreenshotSwitch = preferenceSwitch(activity, fs,
+        MaterialSwitch rootScreenshotSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_root_screenshot),
                 activity.getString(R.string.yfloat_priv_root_screenshot_desc),
                 FloatSettings.K_ROOT_SCREENSHOT, fs.rootScreenshot(),
@@ -188,7 +188,7 @@ public final class PrivilegeSettingsPanel {
         TextView lsposedStatus = YViewLayout.caption(activity, "", 13);
         YViewSection lsposedSection = YViewLayout.section(activity, "LSPosed",
                 activity.getString(R.string.yfloat_priv_lsposed_desc));
-        SwitchMaterial lsposedSwitch = preferenceSwitch(activity, fs,
+        MaterialSwitch lsposedSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_enable_lsposed),
                 activity.getString(R.string.yfloat_priv_enable_lsposed_desc),
                 FloatSettings.K_LSPOSED_ENABLED, fs.lsposedEnabled(),
@@ -199,7 +199,7 @@ public final class PrivilegeSettingsPanel {
         lsposedSwitch.setEnabled(PrivilegeManager.lsposedProviderAvailable());
         YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(lsposedSwitch));
 
-        SwitchMaterial googleCircleSwitch = YViewLayout.switchRow(activity,
+        MaterialSwitch googleCircleSwitch = YViewLayout.switchRow(activity,
                 activity.getString(R.string.yfloat_priv_google_circle),
                 activity.getString(R.string.yfloat_priv_google_circle_desc),
                 fs.circleEngine() == 1,
@@ -213,7 +213,7 @@ public final class PrivilegeSettingsPanel {
                 });
         YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(googleCircleSwitch));
 
-        SwitchMaterial secureScreenshotSwitch = preferenceSwitch(activity, fs,
+        MaterialSwitch secureScreenshotSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_secure_screenshot),
                 activity.getString(R.string.yfloat_priv_secure_screenshot_desc),
                 FloatSettings.K_LSPOSED_SECURE_SCREENSHOT, fs.lsposedSecureScreenshot(),
@@ -291,7 +291,7 @@ public final class PrivilegeSettingsPanel {
         YViewSection fallback = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_priv_fallback_title),
                 activity.getString(R.string.yfloat_priv_fallback_desc));
-        SwitchMaterial fallbackSwitch = preferenceSwitch(activity, fs,
+        MaterialSwitch fallbackSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_fallback_switch),
                 activity.getString(R.string.yfloat_priv_fallback_switch_desc),
                 FloatSettings.K_PRIVILEGE_FALLBACK, fs.privilegeFallback(),
@@ -305,7 +305,7 @@ public final class PrivilegeSettingsPanel {
         return root;
     }
 
-    private static SwitchMaterial preferenceSwitch(AppCompatActivity activity, FloatSettings fs,
+    private static MaterialSwitch preferenceSwitch(AppCompatActivity activity, FloatSettings fs,
                                                     String title, String subtitle,
                                                     String key, boolean current, Runnable changed) {
         return YViewLayout.switchRow(activity, title, subtitle, current, (button, checked) -> {
