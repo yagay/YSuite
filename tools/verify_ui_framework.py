@@ -480,6 +480,7 @@ def main() -> None:
     # appearance rather than static shadow settings or an independent spacing scale.
     product_spacing = text(ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt")
     product_layout = text(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/ProductLayoutTokens.kt")
+    yui_geometry = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiGeometry.kt")
     runtime = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt")
     compact_home = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt")
     for source, markers, label in (
@@ -492,9 +493,11 @@ def main() -> None:
          "central layout editor"),
         (product_spacing, ("import com.yagay.yui.YDimens", "LocalYAppearance.current.effectiveGapDp",
                            "@Composable get()"), "live YUI workspace spacing"),
-        (product_layout, ("LocalYAppearance.current.contentWidthPercent",
-                          "LocalYAppearance.current.paneWidthPercent",
-                          "@Composable get()"), "live YUI content and pane geometry"),
+        (product_layout, ("YUiGeometry.contentWidth(base)", "YUiGeometry.paneWidth(base)",
+                          "@Composable get()"), "product pages delegate geometry to YUI"),
+        (yui_geometry, ("LocalYAppearance.current.contentWidthPercent",
+                         "LocalYAppearance.current.paneWidthPercent"),
+         "canonical YUI responsive geometry"),
         (runtime, ("appearance.registerPreferenceListener(listener)",
                    "foregroundActivities", "schedule(activity)"), "live View appearance observer"),
         (compact_home, ("appearance.screenPaddingDp.dp", "appearance.effectiveGapDp"),
