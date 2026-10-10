@@ -185,9 +185,9 @@ fun NfcAppScreen(
                         Box(
                             Modifier
                                 .fillMaxWidth()
-                                .height(340.dp)
+                                .height((LocalYAppearance.current.rowHeightDp * 6f).dp)
                                 .background(Color(0xFF050505), RoundedCornerShape(LocalYAppearance.current.fieldRadiusDp.dp))
-                                .padding(6.dp),
+                                .padding((LocalYAppearance.current.effectiveGapDp / 2f).dp),
                         ) {
                             LazyColumn(state = logListState, modifier = Modifier.fillMaxSize()) {
                                 items(logLines.size) { index ->
