@@ -57,7 +57,7 @@ data class SuiteLoggingOptions(
 
 class SuiteCommonSettings(context: Context) {
     private val preferences: SharedPreferences =
-        (context.applicationContext ?: context).getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     fun value(setting: SuiteCommonSetting, moduleId: String? = null): String {
         val moduleOverride = moduleId?.takeUnless { setting.globalOnly }?.let {
