@@ -630,6 +630,8 @@ fun FileExplorerDetailRow(
         title = title,
         subtitle = subtitle,
         onClick = onClick,
+        titleMaxLines = 3,
+        subtitleMaxLines = 6,
     )
 }
 

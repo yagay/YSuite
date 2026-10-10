@@ -1,6 +1,8 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,5 +74,21 @@ fun YResponsiveFieldPair(
                 second(Modifier.weight(1f))
             }
         }
+    }
+}
+
+// Long localized action labels can wrap without shrinking sibling buttons to zero.
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun YResponsiveActionBar(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+    ) {
+        content()
     }
 }

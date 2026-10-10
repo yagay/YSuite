@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -57,7 +58,7 @@ fun FileExplorerBrowserTabs(
     val selected =
         tabs.indexOfFirst {
             it.id == activeTabId
-        }.coerceAtLeast(0)
+        }.coerceIn(0, tabs.lastIndex)
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment =
@@ -74,7 +75,7 @@ fun FileExplorerBrowserTabs(
             tabs.forEach { tab ->
                 Tab(
                     selected =
-                        tab.id == activeTabId,
+                        tab.id == tabs[selected].id,
                     onClick = {
                         onSelect(tab.id)
                     },
@@ -86,12 +87,15 @@ fun FileExplorerBrowserTabs(
                         ) {
                             Text(
                                 text = tab.title,
+                                modifier = Modifier.widthIn(max = 120.dp),
                                 maxLines = 1,
                                 overflow =
                                     TextOverflow
                                         .Ellipsis,
                             )
-                            if (tabs.size > 1) {
+                            // Inactive tabs remain closable after selecting them first.
+                            // Showing 48dp close targets on every tab would hide names.
+                            if (tabs.size > 1 && tab.id == tabs[selected].id) {
                                 IconButton(
                                     onClick = {
                                         onClose(

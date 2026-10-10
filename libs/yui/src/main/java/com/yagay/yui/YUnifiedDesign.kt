@@ -694,13 +694,14 @@ fun YToggleFilterBar(filters: List<YFilterSpec>, modifier: Modifier = Modifier) 
 fun YTabBar(tabs: List<YTabSpec>, selectedKey: String, onSelected: (YTabSpec) -> Unit, modifier: Modifier = Modifier) {
     if (tabs.isEmpty()) return
     val selectedIndex = tabs.indexOfFirst { it.key == selectedKey }.coerceIn(0, tabs.lastIndex)
+    val effectiveKey = tabs[selectedIndex].key
     ScrollableTabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier.fillMaxWidth(),
     ) {
         tabs.forEach { tab ->
             Tab(
-                selected = tab.key == selectedKey,
+                selected = tab.key == effectiveKey,
                 onClick = { onSelected(tab) },
                 text = {
                     Text(
