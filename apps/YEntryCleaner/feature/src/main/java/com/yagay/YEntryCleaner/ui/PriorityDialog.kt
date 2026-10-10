@@ -52,7 +52,6 @@ import com.yagay.YEntryCleaner.domain.priorityAppGroups
 import com.yagay.YEntryCleaner.domain.priorityCandidates
 import com.yagay.yui.YCheckboxControl
 import com.yagay.yui.YSection
-import com.yagay.yui.YDimens
 import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YStatusLine
@@ -174,8 +173,12 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
     val currentVisible by rememberUpdatedState(moveTargets)
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val edge = with(density) { 56.dp.toPx() }
-    val speed = with(density) { 640.dp.toPx() }
+    val appearance = LocalYAppearance.current
+    // Drag parameters follow the same editable row geometry as the visible list.
+    val edge = with(density) { appearance.rowHeightDp.dp.toPx() }
+    val speed = with(density) { (appearance.rowHeightDp * 12f).dp.toPx() }
+    val markerInsetPx = with(density) { (appearance.rowVerticalPaddingDp / 3f).dp.toPx() }
+    val markerStrokePx = with(density) { (appearance.rowVerticalPaddingDp / 2f).dp.toPx() }
     LaunchedEffect(kind, openPreset, browserHost, viewFilter, appTypeFilter, state.query, rankedRaw, moveTargets) { dragState.cancel() }
     DisposableEffect(dragState) { onDispose { dragState.cancel() } }
     LaunchedEffect(drag?.packageName) {
@@ -231,7 +234,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                 if (state.runtime.needsDecision) RuntimePanel(state, vm, showUpdateTools = false)
             }
             stickyHeader(key = "controls") {
-                Surface(tonalElevation = 2.dp) {
+                Surface(tonalElevation = (LocalYAppearance.current.rowVerticalPaddingDp / 3f).dp) {
                     Column {
                         ListControls(
                             state.copy(filter = kind, uiFilter = viewFilter),
@@ -421,13 +424,13 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             .drawWithContent {
                                 drawContent()
                                 if (drag?.target == packageName && drag.packageName != packageName) {
-                                    val y = if (drag.movingDown) size.height - 2.dp.toPx() else 2.dp.toPx()
-                                    drawLine(marker, Offset(0f, y), Offset(size.width, y), 3.dp.toPx())
+                                    val y = if (drag.movingDown) size.height - markerInsetPx else markerInsetPx
+                                    drawLine(marker, Offset(0f, y), Offset(size.width, y), markerStrokePx)
                                 }
                             }
                             .clickable(onClickLabel = expandLabel, onClick = onExpand)
                             .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
-                            .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
+                            .padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         YCheckboxControl(
@@ -485,7 +488,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                         item(key = "order|$key") {
                             val index = moveTargets.indexOf(packageName)
                             Row(
-                                Modifier.fillMaxWidth().padding(start = 24.dp, end = 16.dp),
+                                Modifier.fillMaxWidth().padding(start = (LocalYAppearance.current.rowHorizontalPaddingDp * 1.5f).dp, end = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
@@ -558,15 +561,16 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                 val first = group.components.first()
                 Surface(
                     Modifier.fillMaxWidth().offset { IntOffset(0, moving.top.roundToInt()) }.zIndex(1f),
-                    tonalElevation = 6.dp,
-                    shadowElevation = 8.dp
+                    tonalElevation = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+                    shadowElevation = (LocalYAppearance.current.effectiveGapDp * 2f / 3f).dp
                 ) {
                     Row(
-                        Modifier.heightIn(min = 64.dp).padding(horizontal = 16.dp, vertical = 8.dp),
+                        Modifier.heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                            .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         AppIcon(first.appIcon, first.appLabel)
-                        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                        Column(Modifier.weight(1f).padding(start = LocalYAppearance.current.effectiveGapDp.dp)) {
                             Text(first.appLabel, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                             Text(
                                 stringResource(
@@ -587,7 +591,13 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
 private fun ComponentInfoRow(item: ComponentCandidate, customTitle: String?, onEditTitle: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-            .heightIn(min = YDimens.OptionRowHeight).padding(start = 24.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
+            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+            .padding(
+                start = (LocalYAppearance.current.rowHorizontalPaddingDp * 1.5f).dp,
+                end = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                top = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+                bottom = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
