@@ -233,6 +233,9 @@ class YAppearanceStoreTest {
     @Test
     fun overlayAppearancesAreGlobalByDefaultAndOverridePerModule() {
         val keys = listOf(
+            YSettingKey.OVERLAY_PANEL_RADIUS, YSettingKey.OVERLAY_SURFACE_ALPHA,
+            YSettingKey.OVERLAY_CONTENT_PADDING, YSettingKey.OVERLAY_OUTLINE_WIDTH,
+            YSettingKey.OVERLAY_SCRIM_SCALE,
             YSettingKey.FLOAT_ICON_ALPHA, YSettingKey.FLOAT_ICON_SIZE,
             YSettingKey.FLOAT_EDGE_VISIBLE, YSettingKey.FLOAT_BORDER_WIDTH,
             YSettingKey.FLOAT_TRAIL_ALPHA, YSettingKey.FLOAT_TRAIL_WIDTH,
