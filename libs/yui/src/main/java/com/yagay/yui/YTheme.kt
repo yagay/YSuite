@@ -117,14 +117,15 @@ private val YTypography = Typography(
 @Composable
 fun YTheme(
     dynamicColor: Boolean = false,
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean? = null,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
+    val resolvedDarkTheme = darkTheme ?: YAppearanceSettings.isDark(context, isSystemInDarkTheme())
     val scheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= 31 && darkTheme -> dynamicDarkColorScheme(context)
+        dynamicColor && Build.VERSION.SDK_INT >= 31 && resolvedDarkTheme -> dynamicDarkColorScheme(context)
         dynamicColor && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
-        darkTheme -> YDarkColors
+        resolvedDarkTheme -> YDarkColors
         else -> YLightColors
     }
     MaterialTheme(
@@ -133,7 +134,7 @@ fun YTheme(
         shapes = YShapes,
     ) {
         CompositionLocalProvider(
-            LocalYSemanticColors provides if (darkTheme) YSemanticPalette.Dark else YSemanticPalette.Light,
+            LocalYSemanticColors provides if (resolvedDarkTheme) YSemanticPalette.Dark else YSemanticPalette.Light,
             content = content,
         )
     }
