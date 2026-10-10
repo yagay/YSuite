@@ -426,7 +426,12 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
         }
         YControlKind.RANGE -> {
             val numeric = value.toIntOrNull() ?: definition.key.default.toInt()
-            val units = if (definition.key == YSettingKey.FONT_PERCENT) "%" else "dp"
+            val units = when (definition.key) {
+                YSettingKey.FONT_PERCENT, YSettingKey.FLOAT_ICON_ALPHA,
+                YSettingKey.FLOAT_EDGE_VISIBLE, YSettingKey.FLOAT_TRAIL_ALPHA -> "%"
+                YSettingKey.FLOAT_MENU_COUNT -> ""
+                else -> "dp"
+            }
             var draft by remember(definition.key, value) { mutableStateOf(value) }
             val entered = draft.toIntOrNull()
             val valid = entered != null && entered in definition.minimum..definition.maximum
@@ -436,7 +441,8 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
             Column {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(settingTitle(definition.key)), modifier = Modifier.weight(1f))
-                    Text("$numeric $units", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (units.isBlank()) "$numeric" else "$numeric $units",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 YUiSlider(
                     value = numeric.toFloat().coerceIn(
@@ -460,7 +466,7 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
                             },
                             modifier = modifier,
                             label = { Text(stringResource(R.string.appearance_exact_value)) },
-                            suffix = { Text(units) },
+                            suffix = { if (units.isNotBlank()) Text(units) },
                             singleLine = true,
                             isError = draft.isNotEmpty() && !valid,
                             keyboardOptions = KeyboardOptions(
