@@ -98,4 +98,9 @@
     <string name="appearance_inherit_all">Apply global appearance to all modules</string>
     <string name="appearance_inherit_all_confirm">Remove every module-specific appearance override? All modules will then use the unified global theme, sizing and layout settings. Feature data will not change.</string>
     <string name="appearance_inherit_all_action">Apply global appearance</string>
+    <string name="appearance_overlay_panel_radius">Overlay panel corners (dp)</string>
+    <string name="appearance_overlay_surface_alpha">Overlay panel opacity (%)</string>
+    <string name="appearance_overlay_content_padding">Overlay content padding (dp)</string>
+    <string name="appearance_overlay_outline_width">Overlay outline width (dp)</string>
+    <string name="appearance_overlay_scrim_scale">Selection mask strength (%)</string>
 </resources>

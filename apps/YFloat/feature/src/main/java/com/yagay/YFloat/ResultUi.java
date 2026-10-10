@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YOverlayUi;
 import com.yagay.yui.YView;
 import com.google.android.material.button.MaterialButton;
 import android.content.Context;
@@ -27,7 +28,8 @@ final class ResultUi {
     static LinearLayout box(Context c) {
         LinearLayout box = new LinearLayout(c);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(YView.cardPadding(c), YView.controlGap(c), YView.cardPadding(c), YView.controlGap(c));
+        box.setPadding(YOverlayUi.contentPaddingPx(c, "yfloat"), YView.controlGap(c),
+                YOverlayUi.contentPaddingPx(c, "yfloat"), YView.controlGap(c));
         box.setBackground(popupBackground(c, YOverlayTokens.resultSurface(c)));
         // Do not use platform elevation here. The result card fills the dialog window closely,
         // so Android clips the elevation shadow at the rectangular window bounds and leaves
@@ -35,7 +37,7 @@ final class ResultUi {
         box.setElevation(0f);
         box.setTranslationZ(0f);
         box.setStateListAnimator(null);
-        final float radius = YView.dialogRadius(c);
+        final float radius = YOverlayUi.cornerRadiusPx(c, "yfloat");
         box.setOutlineProvider(new ViewOutlineProvider() {
             @Override public void getOutline(android.view.View view, android.graphics.Outline outline) {
                 if (view.getWidth() <= 0 || view.getHeight() <= 0) return;
@@ -47,12 +49,7 @@ final class ResultUi {
     }
 
     static android.graphics.drawable.Drawable popupBackground(Context c, int color) {
-        GradientDrawable background = new GradientDrawable();
-        background.setShape(GradientDrawable.RECTANGLE);
-        background.setColor(color);
-        background.setCornerRadius(YView.dialogRadius(c));
-        background.setStroke(dp(c, 1), YOverlayTokens.outline(c));
-        return background;
+        return YOverlayUi.panelBackground(c, "yfloat", color, YOverlayTokens.outline(c));
     }
 
     static TextView heading(Context c, String text) {

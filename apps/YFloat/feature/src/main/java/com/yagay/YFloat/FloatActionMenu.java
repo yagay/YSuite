@@ -92,7 +92,7 @@ public final class FloatActionMenu {
         if (wm == null) return;
         FlOverlayWindowHost host = new FlOverlayWindowHost(app);
 
-        LinearLayout root = FloatingMenuUi.root(app, mode == MODE_MAIN ? 24 : 20);
+        LinearLayout root = FloatingMenuUi.root(app);
 
         if (mode == MODE_MAIN) {
             buildMainToolbar(app, root, text, selectAll);

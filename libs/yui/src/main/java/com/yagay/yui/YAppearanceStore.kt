@@ -64,7 +64,12 @@ enum class YSettingKey(
     FLOAT_TRAIL_GRADIENT("float_trail_gradient", "false"),
     FLOAT_TRAIL_COLORS("float_trail_colors", "#FFFFFF"),
     FLOAT_BORDER_VISIBLE("float_border_visible", "true"),
-    FLOAT_TRAIL_VISIBLE("float_trail_visible", "false");
+    FLOAT_TRAIL_VISIBLE("float_trail_visible", "false"),
+    OVERLAY_PANEL_RADIUS("overlay_panel_radius", "22", 0, 256),
+    OVERLAY_SURFACE_ALPHA("overlay_surface_alpha", "100", 10, 100),
+    OVERLAY_CONTENT_PADDING("overlay_content_padding", "12", 0, 128),
+    OVERLAY_OUTLINE_WIDTH("overlay_outline_width", "1", 0, 24),
+    OVERLAY_SCRIM_SCALE("overlay_scrim_scale", "100", 0, 100);
 
     fun validate(value: String): String {
         val valid = if (minimum != null && maximum != null) {
@@ -130,6 +135,11 @@ data class YAppearance(
     val floatTrailColors: String = "#FFFFFF",
     val floatBorderVisible: Boolean = true,
     val floatTrailVisible: Boolean = false,
+    val overlayPanelRadiusDp: Int = 22,
+    val overlaySurfaceAlpha: Int = 100,
+    val overlayContentPaddingDp: Int = 12,
+    val overlayOutlineWidthDp: Int = 1,
+    val overlayScrimScale: Int = 100,
 ) {
     val effectiveGapDp: Int get() = when (density) {
         "compact" -> controlGapDp * 2 / 3
@@ -202,6 +212,11 @@ class YAppearanceStore(context: Context) {
         floatTrailColors = value(YSettingKey.FLOAT_TRAIL_COLORS, moduleId),
         floatBorderVisible = value(YSettingKey.FLOAT_BORDER_VISIBLE, moduleId) == "true",
         floatTrailVisible = value(YSettingKey.FLOAT_TRAIL_VISIBLE, moduleId) == "true",
+        overlayPanelRadiusDp = value(YSettingKey.OVERLAY_PANEL_RADIUS, moduleId).toInt(),
+        overlaySurfaceAlpha = value(YSettingKey.OVERLAY_SURFACE_ALPHA, moduleId).toInt(),
+        overlayContentPaddingDp = value(YSettingKey.OVERLAY_CONTENT_PADDING, moduleId).toInt(),
+        overlayOutlineWidthDp = value(YSettingKey.OVERLAY_OUTLINE_WIDTH, moduleId).toInt(),
+        overlayScrimScale = value(YSettingKey.OVERLAY_SCRIM_SCALE, moduleId).toInt(),
     )
 
     fun set(key: YSettingKey, value: String, moduleId: String? = null) {

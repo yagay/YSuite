@@ -32,7 +32,7 @@ public final class ImageActionMenu {
         if (wm == null) return;
         FlOverlayWindowHost host = new FlOverlayWindowHost(app);
 
-        LinearLayout root = FloatingMenuUi.root(app, 18);
+        LinearLayout root = FloatingMenuUi.root(app);
         root.setPadding(dp(app, 4), dp(app, 4), dp(app, 4), dp(app, 4));
 
         TextView copy = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2141db002cc3), null);

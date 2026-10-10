@@ -56,6 +56,30 @@ class YAppearanceStoreTest {
     }
 
     @Test
+    fun overlayAppearanceFlowsFromGlobalIntoModuleAndExports() {
+        assertEquals(22, store.appearance("yfloat").overlayPanelRadiusDp)
+        assertEquals(100, store.appearance("yfloat").overlaySurfaceAlpha)
+        store.set(YSettingKey.OVERLAY_PANEL_RADIUS, "40")
+        store.set(YSettingKey.OVERLAY_SURFACE_ALPHA, "75")
+        store.set(YSettingKey.OVERLAY_CONTENT_PADDING, "18", "yfloat")
+        store.set(YSettingKey.OVERLAY_OUTLINE_WIDTH, "2", "yfloat")
+        store.set(YSettingKey.OVERLAY_SCRIM_SCALE, "55", "yfloat")
+        assertEquals(40, store.appearance("yfloat").overlayPanelRadiusDp)
+        assertEquals(75, store.appearance("yfloat").overlaySurfaceAlpha)
+        assertEquals(18, store.appearance("yfloat").overlayContentPaddingDp)
+        assertEquals(2, store.appearance("yfloat").overlayOutlineWidthDp)
+        assertEquals(55, store.appearance("yfloat").overlayScrimScale)
+        assertEquals(12, store.appearance("ynotify").overlayContentPaddingDp)
+        val json = store.exportJson()
+        store.reset()
+        store.reset("yfloat")
+        store.importJson(json)
+        assertEquals(18, store.appearance("yfloat").overlayContentPaddingDp)
+        store.inherit(YSettingKey.OVERLAY_CONTENT_PADDING, "yfloat")
+        assertEquals(12, store.appearance("yfloat").overlayContentPaddingDp)
+    }
+
+    @Test
     fun exportImportPreservesGlobalAndModuleSettings() {
         store.set(YSettingKey.FONT_PERCENT, "115")
         store.set(YSettingKey.BUTTON_RADIUS, "8", "ynotify")

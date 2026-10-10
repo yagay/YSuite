@@ -455,6 +455,7 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
             val units = when (definition.key) {
                 YSettingKey.FONT_PERCENT, YSettingKey.FLOAT_ICON_ALPHA,
                 YSettingKey.FLOAT_EDGE_VISIBLE, YSettingKey.FLOAT_TRAIL_ALPHA,
+                YSettingKey.OVERLAY_SURFACE_ALPHA, YSettingKey.OVERLAY_SCRIM_SCALE,
                 YSettingKey.CONTENT_WIDTH_SCALE, YSettingKey.PANE_WIDTH_SCALE -> "%"
                 YSettingKey.FLOAT_MENU_COUNT -> ""
                 else -> "dp"
@@ -580,6 +581,11 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.PANE_WIDTH_SCALE -> R.string.appearance_pane_width_scale
     YSettingKey.SECTION_SPACING -> R.string.appearance_section_spacing
     YSettingKey.HOME_SWIPE_PIN -> R.string.settings_swipe_pin
+    YSettingKey.OVERLAY_PANEL_RADIUS -> R.string.appearance_overlay_panel_radius
+    YSettingKey.OVERLAY_SURFACE_ALPHA -> R.string.appearance_overlay_surface_alpha
+    YSettingKey.OVERLAY_CONTENT_PADDING -> R.string.appearance_overlay_content_padding
+    YSettingKey.OVERLAY_OUTLINE_WIDTH -> R.string.appearance_overlay_outline_width
+    YSettingKey.OVERLAY_SCRIM_SCALE -> R.string.appearance_overlay_scrim_scale
     YSettingKey.FLOAT_ICON_ALPHA -> R.string.appearance_float_icon_alpha
     YSettingKey.FLOAT_ICON_SIZE -> R.string.appearance_float_icon_size
     YSettingKey.FLOAT_EDGE_VISIBLE -> R.string.appearance_float_edge_visible

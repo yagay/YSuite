@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YOverlayUi;
 import com.yagay.yui.YView;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -14,10 +15,10 @@ import android.widget.TextView;
 
 /** Single visual factory for YFloat floating text/image action menus. */
 final class FloatingMenuUi {
-    static LinearLayout root(Context c, int radiusDp) {
+    static LinearLayout root(Context c) {
         LinearLayout root = new LinearLayout(c);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackground(rounded(YOverlayTokens.menuSurface(c), dp(c, radiusDp)));
+        root.setBackground(YOverlayUi.menuBackground(c, "yfloat", YOverlayTokens.menuSurface(c)));
         root.setElevation(dp(c, 10));
         root.setClipToOutline(false);
         root.setClickable(true);
@@ -28,16 +29,20 @@ final class FloatingMenuUi {
         TextView tv = baseText(c, text);
         tv.setGravity(Gravity.CENTER);
         tv.setMinWidth(dp(c, minWidthDp));
-        tv.setPadding(YView.controlGap(c), Math.max(1, YView.controlGap(c) / 2),
-                YView.controlGap(c), Math.max(1, YView.controlGap(c) / 2));
+        tv.setPadding(YOverlayUi.contentPaddingPx(c, "yfloat"),
+                Math.max(1, YView.controlGap(c) / 2),
+                YOverlayUi.contentPaddingPx(c, "yfloat"),
+                Math.max(1, YView.controlGap(c) / 2));
         return tv;
     }
 
     static TextView row(Context c, String text, Drawable icon) {
         TextView tv = baseText(c, text);
         tv.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        tv.setPadding(YView.cardPadding(c), Math.max(1, YView.controlGap(c) / 2),
-                YView.cardPadding(c), Math.max(1, YView.controlGap(c) / 2));
+        tv.setPadding(YOverlayUi.contentPaddingPx(c, "yfloat"),
+                Math.max(1, YView.controlGap(c) / 2),
+                YOverlayUi.contentPaddingPx(c, "yfloat"),
+                Math.max(1, YView.controlGap(c) / 2));
         tv.setSingleLine(false);
         tv.setMaxLines(Integer.MAX_VALUE);
         tv.setEllipsize(null);

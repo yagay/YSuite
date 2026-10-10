@@ -9,6 +9,7 @@ import android.graphics.Color;
 import com.yagay.yui.YAppearance;
 import com.yagay.yui.YAppearanceStore;
 import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YOverlayUi;
 
 /**
  * The sole Java/Canvas bridge to YUI's live visual preferences.
@@ -99,7 +100,7 @@ final class YFloatOverlayStyle {
      */
     static int scrim(Context c, int opacity) {
         int base = YOverlayTokens.background(moduleContext(c));
-        return Color.argb(Math.max(0, Math.min(255, opacity)),
+        return Color.argb(YOverlayUi.scaleScrimAlpha(c, "yfloat", opacity),
                 Color.red(base), Color.green(base), Color.blue(base));
     }
 
