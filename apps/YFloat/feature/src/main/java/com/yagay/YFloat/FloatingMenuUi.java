@@ -42,7 +42,7 @@ final class FloatingMenuUi {
         tv.setMaxLines(Integer.MAX_VALUE);
         tv.setEllipsize(null);
         if (icon != null) {
-            int s = dp(c, 24);
+            int s = YView.iconSize(c);
             icon.setBounds(0, 0, s, s);
             tv.setCompoundDrawablePadding(YView.controlGap(c));
             tv.setCompoundDrawables(icon, null, null, null);
@@ -60,7 +60,7 @@ final class FloatingMenuUi {
         TextView tv = new TextView(c);
         tv.setText(text == null ? "" : text);
         tv.setTextColor(YOverlayTokens.menuPrimaryText(c));
-        tv.setTextSize(14f * YView.fontPercent(c) / 100f);
+        YView.styleBody(tv);
         tv.setBackground(ripple(c));
         tv.setClickable(true);
         tv.setFocusable(true);

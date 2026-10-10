@@ -238,7 +238,7 @@ public final class FloatActionMenu {
         }
 
         TextView more = FloatingMenuUi.action(app, "⋮", 46);
-        more.setTextSize(22);
+        more.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, YView.iconSize(app));
         items.add(more);
 
         copy.setOnClickListener(v -> {
@@ -265,13 +265,11 @@ public final class FloatActionMenu {
         for (View item : items) {
             if (item instanceof TextView tv) {
                 tv.setMinWidth(0);
-                tv.setPadding(dp(app, 4), 0, dp(app, 4), 0);
+                tv.setPadding(Math.max(1, YView.controlGap(app) / 3), 0,
+                        Math.max(1, YView.controlGap(app) / 3), 0);
                 tv.setSingleLine(false);
                 tv.setMaxLines(2);
                 tv.setEllipsize(null);
-                if (items.size() >= 7 && !"⋮".contentEquals(tv.getText())) {
-                    tv.setTextSize(13);
-                }
             }
             row.addView(item, new LinearLayout.LayoutParams(slotWidth, -2));
         }
