@@ -307,47 +307,23 @@ object YViewLayout {
         return heading
     }
 
+    /**
+     * Legacy Java facade backed by the exact same MaterialCardView used by
+     * section().  Returned LinearLayout stays source/binary compatible with the
+     * old callers, but backgrounds, radius, headers and dividers are not separate.
+     */
     @JvmStatic
     @JvmOverloads
     fun card(parent: LinearLayout, title: String, subtitle: String? = null): LinearLayout {
-        val section = LinearLayout(parent.context).apply {
+        val unified = section(parent.context, title, subtitle)
+        addSection(parent, unified)
+        val content = LinearLayout(parent.context).apply {
             orientation = LinearLayout.VERTICAL
+            val horizontal = YView.cardPadding(context)
+            setPadding(horizontal, 0, horizontal, 0)
         }
-        parent.addView(
-            section,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-        section.addView(
-            TextView(parent.context).apply {
-                text = title
-                YView.styleSectionTitle(this)
-            },
-            matchWrap(),
-        )
-        if (!subtitle.isNullOrBlank()) {
-            section.addView(
-                TextView(parent.context).apply {
-                    text = subtitle
-                    YView.styleCaption(this)
-                    setPadding(0, Math.max(1, controlGap(context) / 4), 0, controlGap(context))
-                },
-                matchWrap(),
-            )
-        }
-        parent.addView(
-            View(parent.context).apply { setBackgroundColor(YView.outline(context)) },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(parent.context, 1),
-            ).apply {
-                topMargin = controlGap(parent.context)
-                bottomMargin = sectionGap(parent.context)
-            },
-        )
-        return section
+        unified.body.addView(content, matchWrap())
+        return content
     }
 
     @JvmStatic
@@ -1089,7 +1065,11 @@ object YViewLayout {
         // No separate parent-based renderer: identical shape, typography, spacing,
         // colors, and click behavior to switchRow(Context, ...).
         val toggle = switchRow(parent.context, title, description, checked, listener)
-        parent.addView(switchContainer(toggle), matchWrap())
+        val row = switchContainer(toggle)
+        // Parent-based rows inherit the parent's existing content inset. The
+        // context-based overload provides its own inset within section.body.
+        row.setPadding(0, row.paddingTop, 0, row.paddingBottom)
+        parent.addView(row, matchWrap())
         return toggle
     }
 
