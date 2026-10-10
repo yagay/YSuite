@@ -111,7 +111,7 @@ def verify_runtime_appearance() -> None:
         "float_result": ("YView.styleSecondaryButton(b)", "YOverlayUi.panelBackground(", "YOverlayUi.cornerRadiusPx("),
         "float_menu": ("YView.styleBody(tv)", "YOverlayUi.menuBackground(", "YOverlayUi.contentPaddingPx(", "YView.iconSize(c)"),
         "notify_apps": ("YView.rowHeight(c)", "YView.styleItemTitle(h.b.appName)"),
-        "notify_events": ("YView.cardRadius(c)", "YView.surfaceContainer(c)"),
+        "notify_events": ("YView.cardRadius(c)", "YView.cardSurface(c)"),
         "entry_controls": ("YUiOutlinedTextField as OutlinedTextField", "YFilterBar("),
         "entry_components": ("LocalYAppearance.current.buttonPaddingHorizontalDp",),
         "entry_priority": ("LocalYAppearance.current.rowHeightDp",),
