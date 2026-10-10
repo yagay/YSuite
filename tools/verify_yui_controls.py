@@ -60,11 +60,11 @@ def main() -> None:
                 # Non-YUI screen modules may hold SwitchCompat references, but cannot
                 # instantiate a second switch style or change the track/thumb locally.
                 if re.search(
-                    r"\\bnew\\s+(?:SwitchMaterial|MaterialSwitch|SwitchCompat|Switch)\\s*\\(",
+                    r"\bnew\s+(?:SwitchMaterial|MaterialSwitch|SwitchCompat|Switch)\s*\(",
                     source,
                 ):
                     failures.append(f"{path.relative_to(ROOT)}: construct switches using YViewLayout.switchRow")
-                if re.search(r"\\.set(?:Thumb|Track|TrackDecoration)Tint(?:List|Mode)?\\s*\\(", source):
+                if re.search(r"\.set(?:Thumb|Track|TrackDecoration)Tint(?:List|Mode)?\s*\(", source):
                     failures.append(f"{path.relative_to(ROOT)}: only YUI may style switch colors")
                 if (
                     "import androidx.appcompat.app.AlertDialog;" in source
@@ -112,7 +112,7 @@ def main() -> None:
             failures.append(f"YUI {path.name} reintroduced direct Material3 dialog rendering")
     switch_facade = (core / "YCompactSwitch.kt").read_text(encoding="utf-8")
     view_facade = (core / "YViewFramework.kt").read_text(encoding="utf-8")
-    if switch_facade.count("Switch(") != 1:
+    if len(re.findall(r"(?<![A-Za-z0-9_])Switch\s*\(", switch_facade)) != 1:
         failures.append("Compose switch must be rendered exactly once in YStandardSwitch")
     if "YDimens.SwitchSlot" in switch_facade:
         failures.append("Compose switch slot may not use fixed YDimens")
