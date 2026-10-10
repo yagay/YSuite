@@ -4,11 +4,9 @@ import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
 import android.os.Bundle;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.yagay.yui.YView;
 
 /** App appearance plus text-toolbar density and menu-management settings. */
 public final class AppearanceSettingsActivity extends AppCompatActivity {
@@ -31,11 +29,9 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
                     getString(R.string.yfloat_text_menu_title),
                     getString(R.string.yfloat_text_menu_desc));
             addMainItemCountSlider(textMenu.body);
+            YViewLayout.addRow(textMenu.body, YViewLayout.sectionNote(this,
+                    getString(R.string.yfloat_text_menu_note)));
             YViewLayout.addSection(root, textMenu);
-
-            TextView note = YViewLayout.caption(this, getString(R.string.yfloat_text_menu_note), 12);
-            note.setPadding(Math.max(1, YView.controlGap(this) / 3), 0, Math.max(1, YView.controlGap(this) / 3), Math.max(1, YView.controlGap(this) / 3));
-            textMenu.body.addView(note);
         }
 
         YViewSection menus = YViewLayout.section(this,
@@ -88,9 +84,8 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
                 value -> getString(R.string.yfloat_item_count, value),
                 value -> TextMenuSettings.setMainItemCount(this, value)));
 
-        TextView hint = YViewLayout.caption(this, getString(R.string.yfloat_main_menu_count_hint), 12);
-        hint.setPadding(0, Math.max(1, YView.controlGap(this) / 4), 0, 0);
-        parent.addView(hint);
+        YViewLayout.addRow(parent, YViewLayout.sectionNote(this,
+                getString(R.string.yfloat_main_menu_count_hint)));
     }
 
 }

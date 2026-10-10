@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
-import android.view.Gravity;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -135,14 +134,9 @@ public class MainActivity extends AppCompatActivity {
                 getString(R.string.yfloat_diagnostics),
                 getString(R.string.yfloat_diagnostics_desc),
                 () -> startActivity(new Intent(this, DiagnosticsActivity.class))));
+        YViewLayout.addRow(advanced.body, YViewLayout.sectionNote(this,
+                getString(R.string.yfloat_version, BuildConfig.VERSION_NAME)));
         YViewLayout.addSection(root, advanced);
-
-        TextView footer = YViewLayout.caption(this,
-                getString(R.string.yfloat_version, BuildConfig.VERSION_NAME),
-                12);
-        footer.setGravity(Gravity.CENTER_HORIZONTAL);
-        footer.setPadding(0, 2, 0, YViewLayout.dp(this, 4));
-        advanced.body.addView(footer);
 
         setContentView(YViewLayout.scrollPage(this, root));
     }
@@ -297,11 +291,12 @@ public class MainActivity extends AppCompatActivity {
         copy.setOrientation(LinearLayout.VERTICAL);
         TextView titleView = YViewLayout.text(this, title, 15, false);
         copy.addView(titleView);
-        TextView sub = YViewLayout.caption(this, subtitle, 12);
-        sub.setPadding(0, YViewLayout.dp(this, 2), YViewLayout.dp(this, 8), 0);
+        TextView sub = YViewLayout.caption(this, subtitle, 12.5f);
+        sub.setPadding(0, Math.max(1, YView.controlGap(this) / 4), YView.controlGap(this), 0);
         copy.addView(sub);
-        TextView status = YViewLayout.caption(this, getString(R.string.yfloat_permission_not_authorized), 12);
-        status.setPadding(0, YViewLayout.dp(this, 2), 0, 0);
+        TextView status = YViewLayout.caption(this,
+                getString(R.string.yfloat_permission_not_authorized), 12.5f);
+        status.setPadding(0, Math.max(1, YView.controlGap(this) / 4), 0, 0);
         copy.addView(status);
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
 

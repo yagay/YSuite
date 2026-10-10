@@ -813,6 +813,23 @@ object YViewLayout {
         setLineSpacing(0f, 1.08f)
     }
 
+    /**
+     * Canonical explanation row inside a YUI section card. The card header and
+     * its footnote share one horizontal inset, font role and dynamic text height.
+     * Keep module screens from hand-placing captions flush against card borders.
+     */
+    @JvmStatic
+    fun sectionNote(context: Context, value: String?): TextView =
+        caption(context, value, 12.5f).apply {
+            gravity = Gravity.START
+            isSingleLine = false
+            maxLines = Int.MAX_VALUE
+            ellipsize = null
+            val horizontal = YView.cardPadding(context)
+            val vertical = maxOf(1, YView.rowVerticalPadding(context))
+            setPadding(horizontal, vertical, horizontal, vertical)
+        }
+
     @JvmStatic
     fun statusPill(context: Context, value: String?, positive: Boolean): TextView =
         text(context, value, 12f, true).apply {

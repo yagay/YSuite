@@ -4,7 +4,6 @@ import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
 import android.content.Intent;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import com.google.android.material.button.MaterialButton;
 
@@ -80,10 +79,8 @@ final class SettingsIconPage {
                 activity.getString(R.string.yfloat_click_under_icon),
                 activity.getString(R.string.yfloat_click_under_icon_desc),
                 FloatSettings.K_CLICK_UNDER, fs.clickScreenUnderIcon());
-        TextView note = YViewLayout.caption(activity,
-                activity.getString(R.string.yfloat_position_save_note), 12);
-        note.setPadding(YViewLayout.dp(activity, 4), 0, YViewLayout.dp(activity, 4), YViewLayout.dp(activity, 4));
-        position.body.addView(note);
+        YViewLayout.addRow(position.body, YViewLayout.sectionNote(activity,
+                activity.getString(R.string.yfloat_position_save_note)));
         YViewLayout.addSection(root, position);
         return root;
     }
