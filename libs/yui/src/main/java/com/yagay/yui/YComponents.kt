@@ -40,19 +40,7 @@ fun YScreen(
     )
 }
 
-@Composable
-fun YSection(
-    title: String,
-    modifier: Modifier = Modifier,
-    subtitle: String? = null,
-    content: @Composable () -> Unit,
-) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
-        YSectionTitle(title, subtitle)
-        content()
-    }
-}
-
+/** All sections are rendered by the role-aware YSection in YUnifiedDesign.kt. */
 @Composable
 fun YStatusCard(
     title: String,
@@ -69,6 +57,7 @@ fun YStatusCard(
     }
 }
 
+/** Legacy settings-row API routed to the same content and sizing as YListItem. */
 @Composable
 fun YSettingRow(
     title: String,
@@ -76,30 +65,15 @@ fun YSettingRow(
     subtitle: String? = null,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = YDimens.TouchTarget).padding(vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-    ) {
-        Column(Modifier.weight(1f)) { YSettingCopy(title, subtitle) }
-        trailing()
-    }
+    YListItem(
+        title = title,
+        modifier = modifier,
+        subtitle = subtitle,
+        trailing = { Row { trailing() } },
+    )
 }
 
-@Composable
-private fun YSettingCopy(title: String, subtitle: String?) {
-    Text(title, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-    if (!subtitle.isNullOrBlank()) {
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
+/** Legacy switch-row API routed through the canonical setting row. */
 @Composable
 fun YSwitchRow(
     title: String,
@@ -108,11 +82,7 @@ fun YSwitchRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     enabled: Boolean = true,
-) {
-    YSettingRow(title = title, subtitle = subtitle, modifier = modifier) {
-        YCompactSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
-    }
-}
+) = YSwitchItem(title, checked, onCheckedChange, modifier, subtitle, enabled)
 
 @Composable
 fun YBottomActionBar(

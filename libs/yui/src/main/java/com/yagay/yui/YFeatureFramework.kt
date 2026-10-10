@@ -69,14 +69,12 @@ fun YCustomScaffold(
     content: @Composable (PaddingValues) -> Unit,
 ) {
     CompositionLocalProvider(LocalYPageRole provides role) {
-        Scaffold(
+        YUiScaffold(
             modifier = modifier,
-            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
             topBar = topBar,
             bottomBar = bottomBar,
             snackbarHost = snackbarHost,
             floatingActionButton = floatingActionButton,
-            containerColor = MaterialTheme.colorScheme.background,
         ) { padding -> YFeatureStateContent(padding, state, content) }
     }
 }
