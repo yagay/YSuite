@@ -215,6 +215,15 @@ class YAppearanceStore(context: Context) {
         editor.apply()
     }
 
+    /** Java/Service bridge for notifications from the same centralized appearance store. */
+    fun registerPreferenceListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+    }
+
+    fun unregisterPreferenceListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+        prefs.unregisterOnSharedPreferenceChangeListener(listener)
+    }
+
     fun listen(onChange: () -> Unit): () -> Unit {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> onChange() }
         prefs.registerOnSharedPreferenceChangeListener(listener)
