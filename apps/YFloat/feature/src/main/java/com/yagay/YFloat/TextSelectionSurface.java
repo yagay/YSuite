@@ -37,7 +37,7 @@ public class TextSelectionSurface extends FrameLayout {
         textView = new SelectionEditText(context);
         textView.owner = this;
         textView.setTextColor(YOverlayTokens.textPrimary(context));
-        YOverlayUi.styleSelectionText(textView);
+        YOverlayUi.styleSelectionText(textView, "yfloat");
         textView.setBackgroundColor(Color.TRANSPARENT);
         textView.setSingleLine(false);
         textView.setHorizontallyScrolling(false);

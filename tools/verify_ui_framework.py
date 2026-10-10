@@ -121,6 +121,8 @@ def verify_runtime_appearance() -> None:
     }
     appearance = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YAppearanceStore.kt")
     require(appearance, "if (current is YAppearanceScopeContext)", "scoped overlay module theme")
+    card = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YTheme.kt")
+    require(card, "border = LocalYAppearance.current.cardOutlineWidthDp", "YUI Card outline appearance")
     overlay = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YOverlayUi.kt")
     for marker in ("fun scopedContext(", "fun panelBackground(", "fun menuBackground(", "fun cornerRadiusPx(", "fun scaleScrimAlpha(", "fun YUiOverlayPanel("):
         require(overlay, marker, "central YUI overlay facade")

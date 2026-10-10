@@ -56,6 +56,18 @@ class YAppearanceStoreTest {
     }
 
     @Test
+    fun overlayNativeScopedContextTracksModuleOverrides() {
+        val app = RuntimeEnvironment.getApplication() as Context
+        val base = YAppearanceStore.moduleIdFor(app)
+        val scoped = YOverlayUi.scopedContext(app, "yfloat")
+        assertEquals("yfloat", YAppearanceStore.moduleIdFor(scoped))
+        assertTrue(scoped === YOverlayUi.scopedContext(app, "yfloat"))
+        store.set(YSettingKey.ACCENT, "purple", "yfloat")
+        assertEquals("purple", store.appearance(YAppearanceStore.moduleIdFor(scoped)).accent)
+        assertEquals(base, YAppearanceStore.moduleIdFor(app))
+    }
+
+    @Test
     fun overlayAppearanceFlowsFromGlobalIntoModuleAndExports() {
         assertEquals(22, store.appearance("yfloat").overlayPanelRadiusDp)
         assertEquals(100, store.appearance("yfloat").overlaySurfaceAlpha)

@@ -55,10 +55,10 @@ object YOverlayUi {
     }
 
     /** Shared native overlay typography and padding, preserving Android text selection. */
-    @JvmStatic fun styleSelectionText(view: TextView) {
+    @JvmStatic fun styleSelectionText(view: TextView, moduleId: String) {
         YView.styleBody(view)
-        view.setTextColor(YOverlayTokens.textPrimary(scopedContext(view.context, "yfloat")))
-        val inset = contentPaddingPx(view.context, "yfloat")
+        view.setTextColor(YOverlayTokens.textPrimary(scopedContext(view.context, moduleId)))
+        val inset = contentPaddingPx(view.context, moduleId)
         view.setPadding(inset, maxOf(1, inset / 2), inset, maxOf(1, inset / 2))
     }
 

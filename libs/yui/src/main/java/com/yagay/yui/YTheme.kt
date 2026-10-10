@@ -1,6 +1,7 @@
 package com.yagay.yui
 
 import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -329,6 +330,9 @@ fun YCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
+        border = LocalYAppearance.current.cardOutlineWidthDp.takeIf { it > 0 }?.let {
+            BorderStroke(it.dp, MaterialTheme.colorScheme.outlineVariant)
+        },
     ) {
         Column(
             modifier = Modifier.padding(LocalYAppearance.current.cardPaddingDp.dp),
