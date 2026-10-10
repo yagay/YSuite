@@ -59,6 +59,25 @@ object SuiteDiagnostics {
             }
         }
         write("runtime.txt") { runtimeSnapshot(app, selected) }
+        write("shared-settings.txt") {
+            val settings = SuiteCommonSettings(app)
+            val states = FeatureStateStore(app)
+            buildString {
+                appendLine("Shared YSuite configuration (no private feature preferences)")
+                appendLine("Global logging level=" + settings.value(SuiteCommonSetting.LOG_LEVEL))
+                appendLine("Global max log file MB=" + settings.value(SuiteCommonSetting.LOG_MAX_FILE_MB))
+                appendLine("Global keep previous=" + settings.value(SuiteCommonSetting.LOG_KEEP_PREVIOUS))
+                selected.sorted().forEach { id ->
+                    val feature = FeatureRegistry.find(id)
+                    appendLine()
+                    appendLine("Module: $id")
+                    appendLine("Enabled: " + (feature?.let { states.isEnabled(it) } ?: "unknown"))
+                    appendLine("Log level: " + settings.value(SuiteCommonSetting.LOG_LEVEL, id))
+                    appendLine("Max log file MB: " + settings.value(SuiteCommonSetting.LOG_MAX_FILE_MB, id))
+                    appendLine("Keep previous: " + settings.value(SuiteCommonSetting.LOG_KEEP_PREVIOUS, id))
+                }
+            }
+        }
         write("permissions.txt") { permissionSnapshot(app) }
         write("components.txt") { componentSnapshot(app) }
         write("accessibility.txt") { accessibilitySnapshot(app) }
