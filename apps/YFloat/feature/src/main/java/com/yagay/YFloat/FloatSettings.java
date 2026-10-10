@@ -126,9 +126,9 @@ public final class FloatSettings {
         return FloatingPositionMath.basisPointsFromY(y, availableHeight, 3333);
     }
 
-    public float alpha() { return clamp(p.getInt(K_ALPHA, 62), 1, 100) / 100f; }
-    public int sizeDp() { return clamp(p.getInt(K_SIZE, 48), 16, 192); }
-    public int showPercentage() { return clamp(p.getInt(K_SHOW_PERCENT, 72), 1, 100); }
+    public float alpha() { return YFloatVisualSettings.readInt(context, K_ALPHA, 62) / 100f; }
+    public int sizeDp() { return YFloatVisualSettings.readInt(context, K_SIZE, 48); }
+    public int showPercentage() { return YFloatVisualSettings.readInt(context, K_SHOW_PERCENT, 72); }
     public int hiddenPercent() { return 100 - showPercentage(); }
     public int longPressMs() { return clamp(p.getInt(K_LONG_PRESS, 300), 50, 2500); }
     public int doubleTapMs() { return clamp(p.getInt(K_DOUBLE_TAP, 200), 50, 1500); }
@@ -137,7 +137,7 @@ public final class FloatSettings {
     public int sideShortDistance() { return clamp(p.getInt(K_SIDE_SHORT_DISTANCE, 320), 0, 1500); }
     public int gestureStartDistance() { return clamp(p.getInt(K_GESTURE_START_DISTANCE, 30), 1, 300); }
     public float verticalBias() { return clamp(p.getInt(K_VERTICAL_BIAS, 120), 100, 300) / 100f; }
-    public int style() { return clamp(p.getInt(K_STYLE, 0), 0, 4); }
+    public int style() { return YFloatVisualSettings.readInt(context, K_STYLE, 0); }
 
     public float downShortDistancePx(float density) { return downShortDistance() * density; }
     public float sideShortDistancePx(float density) { return sideShortDistance() * density; }
@@ -153,8 +153,8 @@ public final class FloatSettings {
     public boolean accessibilityScreenshot() { return p.getBoolean(K_ACCESSIBILITY_SCREENSHOT, true); }
     public int circleEngine() { return clamp(p.getInt(K_CIRCLE_ENGINE, 0), 0, 1); }
     public boolean circleBorderEnabled() { return p.getBoolean(K_CIRCLE_BORDER_ENABLED, true); }
-    public int circleBorderColor() { return p.getInt(K_CIRCLE_BORDER_COLOR, DEFAULT_CIRCLE_BORDER_COLOR); }
-    public int circleBorderWidthDp() { return clamp(p.getInt(K_CIRCLE_BORDER_WIDTH_DP, 3), 0, 48); }
+    public int circleBorderColor() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_COLOR, DEFAULT_CIRCLE_BORDER_COLOR); }
+    public int circleBorderWidthDp() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_WIDTH_DP, 3); }
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
@@ -200,11 +200,11 @@ public final class FloatSettings {
     }
     public boolean hideWhenFullscreen() { return fullscreenHideMode() != 0; }
     public boolean clickScreenUnderIcon() { return p.getBoolean(K_CLICK_UNDER, false); }
-    public int lineAlpha() { return clamp(p.getInt(K_LINE_ALPHA, 80), 0, 100); }
-    public int lineWidthDp() { return clamp(p.getInt(K_LINE_WIDTH, 6), 0, 64); }
-    public int lineStyle() { return clamp(p.getInt(K_LINE_STYLE, 0), 0, 2); }
+    public int lineAlpha() { return YFloatVisualSettings.readInt(context, K_LINE_ALPHA, 80); }
+    public int lineWidthDp() { return YFloatVisualSettings.readInt(context, K_LINE_WIDTH, 6); }
+    public int lineStyle() { return YFloatVisualSettings.readInt(context, K_LINE_STYLE, 0); }
     public String lineColors() { return p.getString(K_LINE_COLORS, "#FFFFFF"); }
-    public boolean lineGradient() { return p.getBoolean(K_LINE_GRADIENT, false); }
+    public boolean lineGradient() { return YFloatVisualSettings.readBoolean(context, K_LINE_GRADIENT, false); }
     public boolean ocrShowText() { return p.getBoolean(K_OCR_SHOW_TEXT, true); }
     public boolean ocrShowImage() { return p.getBoolean(K_OCR_SHOW_IMAGE, true); }
     public boolean ocrCollapse() { return p.getBoolean(K_OCR_COLLAPSE, false); }
@@ -238,10 +238,12 @@ public final class FloatSettings {
     }
 
     public void setBoolean(String key, boolean value) {
+        if (YFloatVisualSettings.writeBoolean(context, key, value)) return;
         if (key != null && !key.isBlank()) p.edit().putBoolean(key, value).apply();
     }
 
     public void setInt(String key, int value) {
+        if (YFloatVisualSettings.writeInt(context, key, value)) return;
         if (key != null && !key.isBlank()) p.edit().putInt(key, value).apply();
     }
 
@@ -293,12 +295,14 @@ public final class FloatSettings {
 
     /** Compound icon selection stays atomic so URI and style cannot drift apart. */
     public void selectCustomIcon(String uri) {
-        p.edit().putString(K_CUSTOM_ICON, uri == null ? "" : uri).putInt(K_STYLE, 3).apply();
+        p.edit().putString(K_CUSTOM_ICON, uri == null ? "" : uri).apply();
+        YFloatVisualSettings.writeInt(context, K_STYLE, 3);
     }
 
     /** Compound slideshow selection stays atomic so URI list and style cannot drift apart. */
     public void selectSlideIcons(String joinedUris) {
-        p.edit().putString(K_SLIDE_PICS, joinedUris == null ? "" : joinedUris).putInt(K_STYLE, 4).apply();
+        p.edit().putString(K_SLIDE_PICS, joinedUris == null ? "" : joinedUris).apply();
+        YFloatVisualSettings.writeInt(context, K_STYLE, 4);
     }
 
     public Set<String> hiddenPackages() {
