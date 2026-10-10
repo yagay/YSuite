@@ -58,7 +58,7 @@ public final class FlPointerOperationHintOverlay {
 
         text = new TextView(context);
         text.setTextColor(Color.BLACK);
-        text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DP);
+        text.setTextSize(TypedValue.COMPLEX_UNIT_PX, YFloatOverlayStyle.textSize(context, TEXT_SIZE_DP));
         text.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         text.setMaxWidth(dp(TEXT_MAX_WIDTH_DP));
         text.setMaxLines(1);
