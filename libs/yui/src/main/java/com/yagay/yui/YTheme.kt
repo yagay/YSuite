@@ -397,10 +397,10 @@ private fun yAccentColorScheme(base: ColorScheme, accent: String, dark: Boolean)
         "purple" -> 0xD3BCFF
         else -> 0xFFB77A
     }
-    val primary = Color(0xFF000000L or (if (dark) darkPrimary else light[0]).toLong())
+    val primary = Color((0xFF000000L or (if (dark) darkPrimary else light[0]).toLong()).toInt())
     val onPrimary = if (dark) Color(0xFF162B49) else Color.White
-    val container = if (dark) Color(0xFF354765) else Color(0xFF000000L or light[1].toLong())
-    val onContainer = if (dark) Color.White else Color(0xFF000000L or light[2].toLong())
+    val container = if (dark) Color(0xFF354765) else Color((0xFF000000L or light[1].toLong()).toInt())
+    val onContainer = if (dark) Color.White else Color((0xFF000000L or light[2].toLong()).toInt())
     return base.copy(
         primary = primary, onPrimary = onPrimary,
         primaryContainer = container, onPrimaryContainer = onContainer,
