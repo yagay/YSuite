@@ -43,6 +43,7 @@ object YUiRuntime {
     fun install(application: Application) {
         if (installed) return
         installed = true
+        YAppearanceSettings.applySavedMode(application)
         // Fixed Material 3 semantic palette is shared with Compose and Android Views.
         // Automatic wallpaper recoloring made the same component differ between modules.
         application.registerActivityLifecycleCallbacks(
@@ -79,8 +80,7 @@ object YUiRuntime {
             window.isNavigationBarContrastEnforced = false
         }
 
-        val nightMask = activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val dark = nightMask == Configuration.UI_MODE_NIGHT_YES
+        val dark = YAppearanceSettings.isDark(activity)
         WindowCompat.getInsetsController(window, decor).apply {
             isAppearanceLightStatusBars = !dark
             isAppearanceLightNavigationBars = !dark
