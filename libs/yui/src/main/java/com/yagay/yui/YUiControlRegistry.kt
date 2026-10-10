@@ -42,6 +42,8 @@ object YUiControlRegistry {
         YControlDefinition(YSettingKey.DENSITY, YControlGroup.LAYOUT, YControlKind.CHOICE, choices = listOf("compact","standard","comfortable")),
         range(YSettingKey.SCREEN_PADDING, YControlGroup.LAYOUT),
         range(YSettingKey.PAGE_VERTICAL_PADDING, YControlGroup.LAYOUT),
+        range(YSettingKey.CONTENT_WIDTH_SCALE, YControlGroup.LAYOUT),
+        range(YSettingKey.PANE_WIDTH_SCALE, YControlGroup.LAYOUT),
         range(YSettingKey.SECTION_SPACING, YControlGroup.LAYOUT),
         range(YSettingKey.CONTROL_GAP, YControlGroup.LAYOUT),
         range(YSettingKey.BUTTON_HEIGHT, YControlGroup.BUTTONS),
