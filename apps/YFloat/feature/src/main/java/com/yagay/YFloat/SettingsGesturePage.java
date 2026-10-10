@@ -18,21 +18,21 @@ final class SettingsGesturePage {
         YViewSection timing = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_tap_hold_section), null);
         ui.seek(timing.body, activity.getString(R.string.yfloat_long_press_time),
-                FloatSettings.K_LONG_PRESS, 150, 1000, fs.longPressMs(), " ms");
+                FloatSettings.K_LONG_PRESS, 50, 2500, fs.longPressMs(), " ms");
         ui.seek(timing.body, activity.getString(R.string.yfloat_double_tap_interval),
-                FloatSettings.K_DOUBLE_TAP, 150, 600, fs.doubleTapMs(), " ms");
+                FloatSettings.K_DOUBLE_TAP, 50, 1500, fs.doubleTapMs(), " ms");
         ui.seek(timing.body, activity.getString(R.string.yfloat_tap_max_duration),
-                FloatSettings.K_TAP_MAX_MS, 80, 400, fs.tapMaxMs(), " ms");
+                FloatSettings.K_TAP_MAX_MS, 40, 1000, fs.tapMaxMs(), " ms");
         ui.seek(timing.body, activity.getString(R.string.yfloat_gesture_start_distance),
-                FloatSettings.K_GESTURE_START_DISTANCE, 10, 80, fs.gestureStartDistance(), " dp");
+                FloatSettings.K_GESTURE_START_DISTANCE, 1, 300, fs.gestureStartDistance(), " dp");
         YViewLayout.addSection(root, timing);
 
         YViewSection distance = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_swipe_distance_section), null);
         ui.seek(distance.body, activity.getString(R.string.yfloat_down_swipe_split),
-                FloatSettings.K_DOWN_SHORT_DISTANCE, 50, 600, fs.downShortDistance(), " dp");
+                FloatSettings.K_DOWN_SHORT_DISTANCE, 0, 1500, fs.downShortDistance(), " dp");
         ui.seek(distance.body, activity.getString(R.string.yfloat_side_swipe_split),
-                FloatSettings.K_SIDE_SHORT_DISTANCE, 50, 700, fs.sideShortDistance(), " dp");
+                FloatSettings.K_SIDE_SHORT_DISTANCE, 0, 1500, fs.sideShortDistance(), " dp");
         YViewLayout.addSection(root, distance);
 
         YViewSection feedback = YViewLayout.section(activity,
@@ -42,9 +42,9 @@ final class SettingsGesturePage {
         ui.check(feedback.body, activity.getString(R.string.yfloat_show_gesture_trail), null,
                 FloatSettings.K_TRACK, fs.track());
         ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_opacity),
-                FloatSettings.K_LINE_ALPHA, 10, 100, fs.lineAlpha(), "%");
+                FloatSettings.K_LINE_ALPHA, 0, 100, fs.lineAlpha(), "%");
         ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_width),
-                FloatSettings.K_LINE_WIDTH, 1, 24, fs.lineWidthDp(), " dp");
+                FloatSettings.K_LINE_WIDTH, 0, 64, fs.lineWidthDp(), " dp");
         ui.check(feedback.body, activity.getString(R.string.yfloat_trail_gradient), null,
                 FloatSettings.K_LINE_GRADIENT, fs.lineGradient());
         ui.lineStyleSpinner(feedback.body);
