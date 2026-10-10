@@ -418,9 +418,9 @@ object YViewLayout {
     fun listRow(context: Context, insetHorizontal: Boolean = false): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        minimumHeight = YView.dimen(context, R.dimen.yui_touch_target)
-        val horizontal = if (insetHorizontal) screenH(context) else 0
-        val vertical = (controlGap(context) / 2).coerceAtLeast(1)
+        minimumHeight = YView.rowHeight(context)
+        val horizontal = if (insetHorizontal) YView.rowHorizontalPadding(context) else 0
+        val vertical = YView.rowVerticalPadding(context)
         setPadding(horizontal, vertical, horizontal, vertical)
     }
 
@@ -786,14 +786,14 @@ object YViewLayout {
         if (bold) YView.styleStrongBody(this) else YView.styleBody(this)
         // Legacy callers explicitly supply their content hierarchy in sp.
         // Apply it *after* the common TextAppearance, otherwise the style overrides it.
-        if (sp > 0f) setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp)
+        if (sp > 0f) setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)
     }
 
     @JvmStatic
     fun caption(context: Context, value: String?, sp: Float): TextView = TextView(context).apply {
         text = value.orEmpty()
         YView.styleCaption(this)
-        if (sp > 0f) setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp)
+        if (sp > 0f) setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)
         setLineSpacing(0f, 1.08f)
     }
 
@@ -934,7 +934,7 @@ object YViewLayout {
         isUseMaterialThemeColors = true
         text = title
         setTextColor(textPrimary(context))
-        textSize = 14f
+        textSize = 14f * YView.fontPercent(context) / 100f
         val horizontal = YView.controlGap(context)
         val vertical = maxOf(1, YView.controlGap(context) / 2)
         setPadding(horizontal, vertical, horizontal, vertical)
