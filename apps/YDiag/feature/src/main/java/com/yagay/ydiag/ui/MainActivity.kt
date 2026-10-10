@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -216,7 +218,7 @@ private fun MonitorScreen(
     onExport: () -> Unit,
 ) {
     YPageList(
-        padding = PaddingValues(0.dp),
+        padding = PaddingValues(),
     ) {
         item {
             YStatusStrip(
@@ -243,7 +245,7 @@ private fun MonitorScreen(
             ) {
                 if (selected.isNotEmpty()) {
                     selected.take(5).forEach { pkg ->
-                        Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(vertical = (LocalYAppearance.current.effectiveGapDp / 6f).dp)) {
                             Text(
                                 appLabels[pkg] ?: pkg,
                                 style = MaterialTheme.typography.bodySmall,
@@ -272,7 +274,7 @@ private fun MonitorScreen(
         }
 
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp)) {
                 YMetricCard(stringResource(R.string.ydiag_errors), monitor.errorCount.toString(), Modifier.weight(1f), YStatusTone.Error)
                 YMetricCard(stringResource(R.string.ydiag_warnings), monitor.warningCount.toString(), Modifier.weight(1f), YStatusTone.Warning)
                 YMetricCard(stringResource(R.string.ydiag_events), monitor.eventCount.toString(), Modifier.weight(1f))
@@ -332,7 +334,7 @@ private fun MonitorScreen(
 @Composable
 private fun HistoryScreen(history: List<HistoryItem>, onExport: (HistoryItem) -> Unit) {
     YPageList(
-        padding = PaddingValues(0.dp),
+        padding = PaddingValues(),
     ) {
         item {
             YSectionHeader(
@@ -367,7 +369,7 @@ private fun DiagnosticConfigScreen(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(LocalYAppearance.current.screenPaddingDp.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         item {
             YSectionHeader(
@@ -390,7 +392,7 @@ private fun DiagnosticConfigScreen(
         DiagnosticCategory.entries.forEach { category ->
             val options = DiagnosticCatalog.options.filter { it.category == category }
             if (options.isNotEmpty()) {
-                item { YSectionHeader(categoryTitle(category), Modifier.padding(top = 8.dp)) }
+                item { YSectionHeader(categoryTitle(category), Modifier.padding(top = LocalYAppearance.current.rowVerticalPaddingDp.dp)) }
                 items(options, key = { it.id }) { option ->
                     YSwitchItem(
                         title = option.title,
@@ -498,8 +500,8 @@ private fun SettingsScreen(
                             onMaxSessionMb(localLimit)
                         },
                     )
-                    Spacer(Modifier.width(12.dp))
-                    Text(stringResource(R.string.ydiag_size_mb, localLimit), modifier = Modifier.width(90.dp))
+                    Spacer(Modifier.width(LocalYAppearance.current.effectiveGapDp.dp))
+                    Text(stringResource(R.string.ydiag_size_mb, localLimit), modifier = Modifier.widthIn(min = (LocalYAppearance.current.rowHeightDp * 1.5f).dp))
                     YSecondaryButton(
                         stringResource(R.string.ydiag_increase),
                         {
@@ -570,7 +572,7 @@ private fun AppPickerDialog(
         if (visible.isEmpty()) {
             YEmptyMessage(stringResource(R.string.ydiag_no_filtered_apps))
         } else {
-            LazyColumn(Modifier.height(480.dp)) {
+            LazyColumn(Modifier.heightIn(max = (LocalYAppearance.current.rowHeightDp * 8.5f).dp)) {
                 items(visible, key = { it.packageName }) { app ->
                     val systemSuffix = if (app.system) {
                         " · " + stringResource(R.string.ydiag_system_app)
