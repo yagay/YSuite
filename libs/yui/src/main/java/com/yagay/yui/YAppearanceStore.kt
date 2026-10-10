@@ -59,19 +59,23 @@ enum class YSettingKey(
     FLOAT_BORDER_COLOR("float_border_color", "blue"),
     FLOAT_ICON_STYLE("float_icon_style", "blue"),
     FLOAT_TRAIL_STYLE("float_trail_style", "round"),
-    FLOAT_TRAIL_GRADIENT("float_trail_gradient", "false");
+    FLOAT_TRAIL_GRADIENT("float_trail_gradient", "false"),
+    FLOAT_TRAIL_COLORS("float_trail_colors", "#FFFFFF"),
+    FLOAT_BORDER_VISIBLE("float_border_visible", "true"),
+    FLOAT_TRAIL_VISIBLE("float_trail_visible", "false");
 
     fun validate(value: String): String {
         val valid = if (minimum != null && maximum != null) {
             value.toIntOrNull()?.let { it in minimum..maximum } ?: false
         } else when (this) {
             THEME -> value in setOf("system", "light", "dark")
-            DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS, FLOAT_TRAIL_GRADIENT -> value in setOf("true", "false")
+            DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS, FLOAT_TRAIL_GRADIENT, FLOAT_BORDER_VISIBLE, FLOAT_TRAIL_VISIBLE -> value in setOf("true", "false")
             DENSITY -> value in setOf("compact", "standard", "comfortable")
             ACCENT -> value in setOf("default", "blue", "teal", "green", "purple", "orange")
             FLOAT_BORDER_COLOR -> value in setOf("blue", "green", "cyan", "purple", "orange", "red", "white")
             FLOAT_ICON_STYLE -> value in setOf("blue", "dark", "light", "custom", "slideshow")
             FLOAT_TRAIL_STYLE -> value in setOf("round", "square", "enhanced")
+            FLOAT_TRAIL_COLORS -> value.length <= 256 && value.none { it == '\u0000' }
             else -> false
         }
         require(valid) { "Invalid " + key + " value" }
@@ -119,6 +123,9 @@ data class YAppearance(
     val floatIconStyle: String = "blue",
     val floatTrailStyle: String = "round",
     val floatTrailGradient: Boolean = false,
+    val floatTrailColors: String = "#FFFFFF",
+    val floatBorderVisible: Boolean = true,
+    val floatTrailVisible: Boolean = false,
 ) {
     val effectiveGapDp: Int get() = when (density) {
         "compact" -> controlGapDp * 2 / 3
@@ -186,6 +193,9 @@ class YAppearanceStore(context: Context) {
         floatIconStyle = value(YSettingKey.FLOAT_ICON_STYLE, moduleId),
         floatTrailStyle = value(YSettingKey.FLOAT_TRAIL_STYLE, moduleId),
         floatTrailGradient = value(YSettingKey.FLOAT_TRAIL_GRADIENT, moduleId) == "true",
+        floatTrailColors = value(YSettingKey.FLOAT_TRAIL_COLORS, moduleId),
+        floatBorderVisible = value(YSettingKey.FLOAT_BORDER_VISIBLE, moduleId) == "true",
+        floatTrailVisible = value(YSettingKey.FLOAT_TRAIL_VISIBLE, moduleId) == "true",
     )
 
     fun set(key: YSettingKey, value: String, moduleId: String? = null) {
