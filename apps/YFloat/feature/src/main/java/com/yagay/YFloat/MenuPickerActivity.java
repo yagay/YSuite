@@ -20,6 +20,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
@@ -564,44 +565,66 @@ public final class MenuPickerActivity extends AppCompatActivity {
             ClipData clip = ClipData.newPlainText("YFloat menu item", dragKey);
             return row.startDragAndDrop(clip, new View.DragShadowBuilder(row), dragKey, 0);
         });
-        row.addView(handle, new LinearLayout.LayoutParams(dp(36), YView.touchTarget(this)));
+        // Dragging remains available. Every actionable target is at least 48dp wide.
+        row.addView(handle, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
 
-        addIcon(row, icon, 34, 10);
+        addIcon(row, icon, 34, 8);
 
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
         TextView titleView = YViewLayout.text(this, title, 14, false);
-        titleView.setSingleLine(true);
+        titleView.setMaxLines(2);
+        titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
         texts.addView(titleView);
         if (subtitle != null && !subtitle.isBlank()) {
             TextView sub = YViewLayout.caption(this, subtitle, 11);
-            sub.setSingleLine(true);
+            sub.setMaxLines(2);
+            sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
             sub.setPadding(0, dp(2), 0, 0);
             texts.addView(sub);
         }
-        row.addView(texts, new LinearLayout.LayoutParams(0, YView.touchTarget(this), 1f));
+        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        ImageView up = iconButton(
-                R.drawable.yfloat_ic_arrow_up,
-                index > 0,
-                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a283bf829d2e));
-        up.setOnClickListener(v -> { if (moveUp != null) moveUp.run(); });
-        row.addView(up, new LinearLayout.LayoutParams(dp(34), YView.touchTarget(this)));
+        String upLabel = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a283bf829d2e);
+        String downLabel = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e8ccedf0f78c);
+        String removeLabel = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a5758272df8c);
+        if (getResources().getConfiguration().screenWidthDp < 480) {
+            // Three 48dp buttons would leave almost no room for app/component names.
+            // Compact layouts keep all commands in one accessible overflow menu.
+            TextView more = YViewLayout.text(this, "⋮", 22, false);
+            more.setGravity(Gravity.CENTER);
+            more.setContentDescription(upLabel + ", " + downLabel + ", " + removeLabel);
+            more.setClickable(true);
+            more.setFocusable(true);
+            more.setBackground(YViewLayout.rowBackground(this));
+            more.setOnClickListener(v -> {
+                PopupMenu popup = new PopupMenu(this, more);
+                popup.getMenu().add(0, 1, 0, upLabel).setEnabled(index > 0 && moveUp != null);
+                popup.getMenu().add(0, 2, 1, downLabel).setEnabled(index < total - 1 && moveDown != null);
+                popup.getMenu().add(0, 3, 2, removeLabel).setEnabled(remove != null);
+                popup.setOnMenuItemClickListener(item -> {
+                    if (item.getItemId() == 1 && moveUp != null) moveUp.run();
+                    else if (item.getItemId() == 2 && moveDown != null) moveDown.run();
+                    else if (item.getItemId() == 3 && remove != null) remove.run();
+                    return true;
+                });
+                popup.show();
+            });
+            row.addView(more, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
+        } else {
+            ImageView up = iconButton(R.drawable.yfloat_ic_arrow_up, index > 0, upLabel);
+            up.setOnClickListener(v -> { if (moveUp != null) moveUp.run(); });
+            row.addView(up, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
 
-        ImageView down = iconButton(
-                R.drawable.yfloat_ic_arrow_down,
-                index < total - 1,
-                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e8ccedf0f78c));
-        down.setOnClickListener(v -> { if (moveDown != null) moveDown.run(); });
-        row.addView(down, new LinearLayout.LayoutParams(dp(34), YView.touchTarget(this)));
+            ImageView down = iconButton(R.drawable.yfloat_ic_arrow_down, index < total - 1, downLabel);
+            down.setOnClickListener(v -> { if (moveDown != null) moveDown.run(); });
+            row.addView(down, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
 
-        ImageView delete = iconButton(
-                R.drawable.yfloat_ic_close,
-                true,
-                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a5758272df8c));
-        delete.setOnClickListener(v -> { if (remove != null) remove.run(); });
-        row.addView(delete, new LinearLayout.LayoutParams(dp(36), YView.touchTarget(this)));
+            ImageView delete = iconButton(R.drawable.yfloat_ic_close, true, removeLabel);
+            delete.setOnClickListener(v -> { if (remove != null) remove.run(); });
+            row.addView(delete, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
+        }
         return row;
     }
 
