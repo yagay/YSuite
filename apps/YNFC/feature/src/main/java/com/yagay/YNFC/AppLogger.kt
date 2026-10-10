@@ -28,8 +28,7 @@ object AppLogger {
     fun e(message: String, error: Throwable? = null) {
         val detail = if (error == null) message else "$message ${error.javaClass.simpleName}: ${error.message}"
         val line = "[${format.format(Date())}] APP: $detail"
-        lines.addLast(line)
-        while (lines.size > 1000) lines.removeFirst()
+        lines.append(line)
         services.error(message, error)
     }
 
