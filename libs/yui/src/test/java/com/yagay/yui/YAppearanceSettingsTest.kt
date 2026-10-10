@@ -1,7 +1,7 @@
 package com.yagay.yui
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
+import org.robolectric.RuntimeEnvironment
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -16,7 +16,7 @@ class YAppearanceSettingsTest {
 
     @Before
     fun prepare() {
-        context = ApplicationProvider.getApplicationContext()
+        context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("yui_appearance", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("yfloat_ui", Context.MODE_PRIVATE).edit().clear().commit()
     }
