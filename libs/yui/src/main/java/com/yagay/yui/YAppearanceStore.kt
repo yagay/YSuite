@@ -15,51 +15,46 @@ import androidx.compose.ui.platform.LocalContext
 import org.json.JSONObject
 
 /** Host-wide validated appearance parameters. Existing feature preferences are untouched. */
-enum class YSettingKey(val key: String, val default: String) {
+enum class YSettingKey(
+    val key: String,
+    val default: String,
+    val minimum: Int? = null,
+    val maximum: Int? = null,
+) {
     THEME("theme", "system"),
     DYNAMIC_COLOR("dynamic_color", "false"),
     DENSITY("density", "standard"),
-    BUTTON_RADIUS("button_radius", "12"),
-    BUTTON_PADDING("button_horizontal_padding", "16"),
+    BUTTON_RADIUS("button_radius", "12", 0, 128),
+    BUTTON_PADDING("button_horizontal_padding", "16", 0, 128),
     HOME_SWIPE_PIN("home_swipe_pin", "true"),
     HOME_STATUS("home_status", "true"),
-    CONTROL_GAP("control_gap", "12"),
-    FONT_PERCENT("font_percent", "100"),
+    CONTROL_GAP("control_gap", "12", 0, 128),
+    FONT_PERCENT("font_percent", "100", 50, 250),
     ACCENT("accent", "default"),
-    BUTTON_HEIGHT("button_height", "48"),
-    BUTTON_VERTICAL_PADDING("button_vertical_padding", "4"),
-    ROW_HEIGHT("row_height", "56"),
-    ROW_HORIZONTAL_PADDING("row_horizontal_padding", "16"),
-    ROW_VERTICAL_PADDING("row_vertical_padding", "6"),
-    CARD_RADIUS("card_radius", "16"),
-    CARD_PADDING("card_padding", "16"),
-    FIELD_RADIUS("field_radius", "12"),
-    DIALOG_RADIUS("dialog_radius", "28"),
-    SWITCH_SLOT_WIDTH("switch_slot_width", "56"),
-    ICON_TOUCH_TARGET("icon_touch_target", "48"),
-    NAV_RADIUS("nav_radius", "12"),
-    SCREEN_PADDING("screen_padding", "16"),
-    SECTION_SPACING("section_spacing", "16");
+    BUTTON_HEIGHT("button_height", "48", 24, 160),
+    BUTTON_VERTICAL_PADDING("button_vertical_padding", "4", 0, 80),
+    ROW_HEIGHT("row_height", "56", 24, 160),
+    ROW_HORIZONTAL_PADDING("row_horizontal_padding", "16", 0, 128),
+    ROW_VERTICAL_PADDING("row_vertical_padding", "6", 0, 80),
+    CARD_RADIUS("card_radius", "16", 0, 128),
+    CARD_PADDING("card_padding", "16", 0, 128),
+    FIELD_RADIUS("field_radius", "12", 0, 128),
+    DIALOG_RADIUS("dialog_radius", "28", 0, 128),
+    SWITCH_SLOT_WIDTH("switch_slot_width", "56", 40, 160),
+    ICON_TOUCH_TARGET("icon_touch_target", "48", 32, 128),
+    NAV_RADIUS("nav_radius", "12", 0, 128),
+    SCREEN_PADDING("screen_padding", "16", 0, 128),
+    SECTION_SPACING("section_spacing", "16", 0, 128);
 
     fun validate(value: String): String {
-        val valid = when (this) {
+        val valid = if (minimum != null && maximum != null) {
+            value.toIntOrNull()?.let { it in minimum..maximum } ?: false
+        } else when (this) {
             THEME -> value in setOf("system", "light", "dark")
             DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS -> value in setOf("true", "false")
             DENSITY -> value in setOf("compact", "standard", "comfortable")
             ACCENT -> value in setOf("default", "blue", "teal", "green", "purple", "orange")
-            BUTTON_RADIUS -> (value.toIntOrNull() ?: -1) in 0..32
-            BUTTON_PADDING -> (value.toIntOrNull() ?: -1) in 8..32
-            CONTROL_GAP -> (value.toIntOrNull() ?: -1) in 4..24
-            FONT_PERCENT -> (value.toIntOrNull() ?: -1) in 85..130
-            BUTTON_HEIGHT, ICON_TOUCH_TARGET -> (value.toIntOrNull() ?: -1) in 48..72
-            BUTTON_VERTICAL_PADDING -> (value.toIntOrNull() ?: -1) in 0..16
-            ROW_HEIGHT -> (value.toIntOrNull() ?: -1) in 48..88
-            ROW_HORIZONTAL_PADDING, SCREEN_PADDING -> (value.toIntOrNull() ?: -1) in 8..32
-            ROW_VERTICAL_PADDING -> (value.toIntOrNull() ?: -1) in 2..16
-            CARD_RADIUS, FIELD_RADIUS, DIALOG_RADIUS, NAV_RADIUS -> (value.toIntOrNull() ?: -1) in 0..32
-            CARD_PADDING -> (value.toIntOrNull() ?: -1) in 8..32
-            SWITCH_SLOT_WIDTH -> (value.toIntOrNull() ?: -1) in 56..84
-            SECTION_SPACING -> (value.toIntOrNull() ?: -1) in 0..32
+            else -> false
         }
         require(valid) { "Invalid " + key + " value" }
         return value
@@ -93,8 +88,8 @@ data class YAppearance(
     val sectionSpacingDp: Int = 16,
 ) {
     val effectiveGapDp: Int get() = when (density) {
-        "compact" -> (controlGapDp * 2 / 3).coerceAtLeast(4)
-        "comfortable" -> (controlGapDp * 4 / 3).coerceAtMost(32)
+        "compact" -> controlGapDp * 2 / 3
+        "comfortable" -> controlGapDp * 4 / 3
         else -> controlGapDp
     }
 }

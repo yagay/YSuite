@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,7 +49,9 @@ fun YUiButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = if (LocalYAppearance.current.buttonHeightDp < 48)
+            modifier.height(LocalYAppearance.current.buttonHeightDp.dp)
+        else modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
@@ -78,7 +81,9 @@ fun YUiOutlinedButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = if (LocalYAppearance.current.buttonHeightDp < 48)
+            modifier.height(LocalYAppearance.current.buttonHeightDp.dp)
+        else modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,
@@ -108,7 +113,9 @@ fun YUiTextButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = if (LocalYAppearance.current.buttonHeightDp < 48)
+            modifier.height(LocalYAppearance.current.buttonHeightDp.dp)
+        else modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
         colors = colors,

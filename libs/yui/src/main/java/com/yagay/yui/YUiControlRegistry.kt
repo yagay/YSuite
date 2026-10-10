@@ -18,7 +18,10 @@ data class YControlDefinition(
     val choices: List<String> = emptyList(),
 ) {
     init {
-        if (kind == YControlKind.RANGE) require(minimum <= maximum && step > 0)
+        if (kind == YControlKind.RANGE) {
+            require(minimum <= maximum && step > 0)
+            require(minimum == key.minimum && maximum == key.maximum)
+        }
         if (kind == YControlKind.CHOICE) require(choices.isNotEmpty())
         if (kind == YControlKind.BOOLEAN) require(key.default in setOf("true", "false"))
         require(key.validate(key.default) == key.default)
@@ -26,29 +29,34 @@ data class YControlDefinition(
 }
 
 object YUiControlRegistry {
+    /** Numeric limits are defined once in YSettingKey, including persistence validation. */
+    private fun range(key: YSettingKey, group: YControlGroup): YControlDefinition =
+        YControlDefinition(key, group, YControlKind.RANGE,
+            minimum = requireNotNull(key.minimum), maximum = requireNotNull(key.maximum))
+
     val definitions: List<YControlDefinition> = listOf(
         YControlDefinition(YSettingKey.THEME, YControlGroup.THEME, YControlKind.CHOICE, choices = listOf("system","light","dark")),
         YControlDefinition(YSettingKey.ACCENT, YControlGroup.THEME, YControlKind.CHOICE, choices = listOf("default","blue","teal","green","purple","orange")),
         YControlDefinition(YSettingKey.DYNAMIC_COLOR, YControlGroup.THEME, YControlKind.BOOLEAN),
-        YControlDefinition(YSettingKey.FONT_PERCENT, YControlGroup.TYPOGRAPHY, YControlKind.RANGE,85,130,5),
+        range(YSettingKey.FONT_PERCENT, YControlGroup.TYPOGRAPHY),
         YControlDefinition(YSettingKey.DENSITY, YControlGroup.LAYOUT, YControlKind.CHOICE, choices = listOf("compact","standard","comfortable")),
-        YControlDefinition(YSettingKey.SCREEN_PADDING, YControlGroup.LAYOUT, YControlKind.RANGE,8,32,2),
-        YControlDefinition(YSettingKey.SECTION_SPACING, YControlGroup.LAYOUT, YControlKind.RANGE,0,32,2),
-        YControlDefinition(YSettingKey.CONTROL_GAP, YControlGroup.LAYOUT, YControlKind.RANGE,4,24,1),
-        YControlDefinition(YSettingKey.BUTTON_HEIGHT, YControlGroup.BUTTONS, YControlKind.RANGE,48,72,2),
-        YControlDefinition(YSettingKey.BUTTON_RADIUS, YControlGroup.BUTTONS, YControlKind.RANGE,0,32,2),
-        YControlDefinition(YSettingKey.BUTTON_PADDING, YControlGroup.BUTTONS, YControlKind.RANGE,8,32,2),
-        YControlDefinition(YSettingKey.BUTTON_VERTICAL_PADDING, YControlGroup.BUTTONS, YControlKind.RANGE,0,16,2),
-        YControlDefinition(YSettingKey.ICON_TOUCH_TARGET, YControlGroup.BUTTONS, YControlKind.RANGE,48,72,2),
-        YControlDefinition(YSettingKey.ROW_HEIGHT, YControlGroup.LISTS, YControlKind.RANGE,48,88,2),
-        YControlDefinition(YSettingKey.ROW_HORIZONTAL_PADDING, YControlGroup.LISTS, YControlKind.RANGE,8,32,2),
-        YControlDefinition(YSettingKey.ROW_VERTICAL_PADDING, YControlGroup.LISTS, YControlKind.RANGE,2,16,2),
-        YControlDefinition(YSettingKey.CARD_RADIUS, YControlGroup.CARDS, YControlKind.RANGE,0,32,2),
-        YControlDefinition(YSettingKey.CARD_PADDING, YControlGroup.CARDS, YControlKind.RANGE,8,32,2),
-        YControlDefinition(YSettingKey.FIELD_RADIUS, YControlGroup.INPUTS, YControlKind.RANGE,0,32,2),
-        YControlDefinition(YSettingKey.SWITCH_SLOT_WIDTH, YControlGroup.SWITCHES, YControlKind.RANGE,56,84,2),
-        YControlDefinition(YSettingKey.DIALOG_RADIUS, YControlGroup.DIALOGS, YControlKind.RANGE,0,32,2),
-        YControlDefinition(YSettingKey.NAV_RADIUS, YControlGroup.NAVIGATION, YControlKind.RANGE,0,32,2),
+        range(YSettingKey.SCREEN_PADDING, YControlGroup.LAYOUT),
+        range(YSettingKey.SECTION_SPACING, YControlGroup.LAYOUT),
+        range(YSettingKey.CONTROL_GAP, YControlGroup.LAYOUT),
+        range(YSettingKey.BUTTON_HEIGHT, YControlGroup.BUTTONS),
+        range(YSettingKey.BUTTON_RADIUS, YControlGroup.BUTTONS),
+        range(YSettingKey.BUTTON_PADDING, YControlGroup.BUTTONS),
+        range(YSettingKey.BUTTON_VERTICAL_PADDING, YControlGroup.BUTTONS),
+        range(YSettingKey.ICON_TOUCH_TARGET, YControlGroup.BUTTONS),
+        range(YSettingKey.ROW_HEIGHT, YControlGroup.LISTS),
+        range(YSettingKey.ROW_HORIZONTAL_PADDING, YControlGroup.LISTS),
+        range(YSettingKey.ROW_VERTICAL_PADDING, YControlGroup.LISTS),
+        range(YSettingKey.CARD_RADIUS, YControlGroup.CARDS),
+        range(YSettingKey.CARD_PADDING, YControlGroup.CARDS),
+        range(YSettingKey.FIELD_RADIUS, YControlGroup.INPUTS),
+        range(YSettingKey.SWITCH_SLOT_WIDTH, YControlGroup.SWITCHES),
+        range(YSettingKey.DIALOG_RADIUS, YControlGroup.DIALOGS),
+        range(YSettingKey.NAV_RADIUS, YControlGroup.NAVIGATION),
     )
     val groups: List<YControlGroup> = YControlGroup.entries
     fun forGroup(group: YControlGroup): List<YControlDefinition> = definitions.filter { it.group == group }

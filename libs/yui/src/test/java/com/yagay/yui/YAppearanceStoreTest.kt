@@ -110,6 +110,33 @@ class YAppearanceStoreTest {
         assertEquals(64, store.appearance("ynotify").buttonHeightDp)
     }
 
+    @Test
+    fun fullRangeAllowsExactOneDpStepsWithSharedValidation() {
+        val controls = YUiControlRegistry.definitions.filter { it.kind == YControlKind.RANGE }
+        assertTrue(controls.isNotEmpty())
+        controls.forEach { definition ->
+            assertEquals(1, definition.step)
+            val key = definition.key
+            assertEquals(key.minimum, definition.minimum)
+            assertEquals(key.maximum, definition.maximum)
+            store.set(key, definition.minimum.toString())
+            assertEquals(definition.minimum.toString(), store.value(key))
+            store.set(key, definition.maximum.toString())
+            assertEquals(definition.maximum.toString(), store.value(key))
+            assertTrue(runCatching { store.set(key, (definition.maximum + 1).toString()) }.isFailure)
+            assertEquals(definition.maximum.toString(), store.value(key))
+        }
+        store.set(YSettingKey.BUTTON_RADIUS, "1")
+        store.set(YSettingKey.BUTTON_HEIGHT, "27")
+        store.set(YSettingKey.BUTTON_PADDING, "0")
+        assertEquals(1, store.appearance().buttonRadiusDp)
+        assertEquals(27, store.appearance().buttonHeightDp)
+        assertEquals(0, store.appearance().buttonPaddingHorizontalDp)
+        store.set(YSettingKey.DENSITY, "comfortable")
+        store.set(YSettingKey.CONTROL_GAP, "96")
+        assertEquals(128, store.appearance().effectiveGapDp)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsInvalidModuleIdentifier() {
         store.set(YSettingKey.THEME, "light", "../other")
