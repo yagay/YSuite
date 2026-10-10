@@ -95,4 +95,7 @@
     <string name="appearance_float_trail_visible">Show gesture trail</string>
     <string name="appearance_content_width_scale">Content width scale (%)</string>
     <string name="appearance_pane_width_scale">Side pane width scale (%)</string>
+    <string name="appearance_inherit_all">Apply global appearance to all modules</string>
+    <string name="appearance_inherit_all_confirm">Remove every module-specific appearance override? All modules will then use the unified global theme, sizing and layout settings. Feature data will not change.</string>
+    <string name="appearance_inherit_all_action">Apply global appearance</string>
 </resources>
