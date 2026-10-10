@@ -119,8 +119,10 @@ public class MainActivity extends AppCompatActivity {
                 getString(R.string.yfloat_environment_settings_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_ENVIRONMENT))));
         YViewLayout.addRow(settings.body, YViewLayout.navRow(this,
-                getString(R.string.yfloat_interface_settings),
-                getString(R.string.yfloat_interface_settings_desc),
+                getString("com.yagay.YSuite".equals(getPackageName())
+                        ? R.string.yfloat_menu_management : R.string.yfloat_interface_settings),
+                getString("com.yagay.YSuite".equals(getPackageName())
+                        ? R.string.yfloat_menu_management_desc : R.string.yfloat_interface_settings_desc),
                 () -> startActivity(new Intent(this, AppearanceSettingsActivity.class))));
         YViewLayout.addSection(root, settings);
 
