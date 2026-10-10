@@ -712,7 +712,7 @@ final class FLCircleInlineOverlay {
             RectF first = textSelection.wordViewRect(lo, getWidth(), getHeight());
             RectF last = textSelection.wordViewRect(hi, getWidth(), getHeight());
             if (first.isEmpty() || last.isEmpty()) return MODE_NONE;
-            float stem = dp(7);
+            float stem = YUiGeometry.overlayHandleRadiusPx(context, "yfloat");
             float hit = dp(TEXT_HANDLE_HIT_DP);
             if (distance(x, y, first.left, first.bottom + stem) <= hit) {
                 return textSelection.startIndex() <= textSelection.endIndex()

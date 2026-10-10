@@ -1,5 +1,6 @@
 package com.yagay.YFloat;
 
+import com.yagay.yui.YUiGeometry;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
@@ -55,10 +56,7 @@ public final class ImageActionMenu {
 
         Rect usable = ScreenGeometry.usableBounds(app);
         int maxAvailableWidth = Math.max(1, usable.width() - inset * 2);
-        float widthScale = com.yagay.yui.YOverlayUi.appearance(app, "yfloat")
-                .getContentWidthPercent() / 100f;
-        int width = Math.min(maxAvailableWidth, Math.max(dp(app, 132),
-                Math.round(dp(app, 176) * widthScale)));
+        int width = YUiGeometry.overlayMenuWidthPx(app, "yfloat", maxAvailableWidth);
         int rowHeight = Math.max(com.yagay.yui.YOverlayUi.actionHeightPx(app, "yfloat"),
                 com.yagay.yui.YView.rowHeight(
                         com.yagay.yui.YOverlayUi.scopedContext(app, "yfloat")));

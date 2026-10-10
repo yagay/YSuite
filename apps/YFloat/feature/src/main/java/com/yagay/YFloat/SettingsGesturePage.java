@@ -68,7 +68,7 @@ final class SettingsGesturePage {
                 @Override public void afterTextChanged(Editable s) { }
             });
             LinearLayout.LayoutParams colorLp = new LinearLayout.LayoutParams(-1, -2);
-            colorLp.topMargin = YViewLayout.dp(activity, 7);
+            colorLp.topMargin = com.yagay.yui.YView.controlGap(activity);
             colorsBlock.addView(lineColors, colorLp);
             YViewLayout.addRow(feedback.body, colorsBlock);
         }

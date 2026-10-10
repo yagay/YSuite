@@ -151,7 +151,7 @@ fun YFileBreadcrumbBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(scroll)
-                .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
+                .padding(horizontal = YUiGeometry.gap(), vertical = YUiGeometry.tinyGap()),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onRoot) {
@@ -168,7 +168,7 @@ fun YFileBreadcrumbBar(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .clickable(onClick = onRoot)
-                    .padding(horizontal = YDimens.SpacingSmall, vertical = YDimens.SpacingSmall),
+                    .padding(horizontal = YUiGeometry.compactGap(), vertical = YUiGeometry.compactGap()),
             )
 
             if (absolutePath) {
@@ -191,7 +191,7 @@ fun YFileBreadcrumbBar(
                             .clickable(enabled = !last) {
                                 onNavigatePath(segment.path)
                             }
-                            .padding(horizontal = YDimens.SpacingSmall, vertical = YDimens.SpacingSmall),
+                            .padding(horizontal = YUiGeometry.compactGap(), vertical = YUiGeometry.compactGap()),
                     )
                 }
             } else {
@@ -232,7 +232,7 @@ fun FileExplorerSearchBar(
         onValueChange = onQueryChange,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = YDimens.ControlGap, vertical = YDimens.SpacingXsmall),
+            .padding(horizontal = YUiGeometry.gap(), vertical = YUiGeometry.tinyGap()),
         singleLine = true,
         placeholder = { Text(searchLabel) },
         leadingIcon = {
@@ -461,9 +461,9 @@ private fun SourceRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.SectionGap),
+                .padding(horizontal = YUiGeometry.pagePadding(), vertical = YUiGeometry.sectionGap()),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YDimens.ScreenHorizontal),
+            horizontalArrangement = Arrangement.spacedBy(YUiGeometry.pagePadding()),
         ) {
             Icon(icon, contentDescription = null)
             Text(
@@ -516,7 +516,7 @@ fun YFileEntryRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier.size(YDimens.ListIconSize),
+                modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 if (selectionMode && selected) {

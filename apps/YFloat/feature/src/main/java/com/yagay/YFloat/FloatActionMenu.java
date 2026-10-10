@@ -384,7 +384,8 @@ public final class FloatActionMenu {
             }
         }
         scroll.addView(list);
-        int visibleRows = Math.min(Math.max(1, resolved.size()), 6);
+        int visibleRows = Math.min(Math.max(1, resolved.size()),
+                YOverlayUi.appearance(app, "yfloat").getFloatMenuCount());
         root.addView(scroll, new LinearLayout.LayoutParams(-1,
                 visibleRows <= 3 ? -2 : Math.min(ScreenGeometry.usableBounds(app).height() * 2 / 3,
                         Math.max(YView.rowHeight(app), YOverlayUi.actionHeightPx(app, "yfloat")) * visibleRows)));

@@ -68,8 +68,8 @@ internal fun UnifiedDashboardTabContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = YDimens.ScreenHorizontal, vertical = YDimens.ScreenVertical),
-        verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap)
+            .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.pageVerticalPaddingDp.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.sectionSpacingDp.dp)
     ) {
         RuntimePanel(state, vm)
 
@@ -80,7 +80,7 @@ internal fun UnifiedDashboardTabContent(
                 Box {
                     TextButton(onClick = { modeMenu = true }) {
                         Text(stringResource(R.string.dashboard_switch))
-                        Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.size(YDimens.IconVisualSize))
+                        Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp))
                     }
                     DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
                         DisplayMode.entries.forEach { mode ->
@@ -216,8 +216,8 @@ internal fun UnifiedDashboardTabContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (collectingDiagnostics) {
-                    CircularProgressIndicator(Modifier.size(YDimens.IconSmallSize), strokeWidth = LocalYAppearance.current.cardOutlineWidthDp.dp)
-                    Spacer(Modifier.width(YDimens.ControlGap))
+                    CircularProgressIndicator(Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp), strokeWidth = LocalYAppearance.current.cardOutlineWidthDp.dp)
+                    Spacer(Modifier.width(LocalYAppearance.current.effectiveGapDp.dp))
                 }
                 Text(stringResource(if (collectingDiagnostics) R.string.dashboard_collecting else R.string.dashboard_export_diagnostics))
             }
@@ -225,7 +225,7 @@ internal fun UnifiedDashboardTabContent(
 
         Text(
             stringResource(R.string.app_version_format, stringResource(R.string.app_name), BuildConfig.VERSION_NAME),
-            modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = YDimens.SectionGap),
+            modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = LocalYAppearance.current.sectionSpacingDp.dp),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

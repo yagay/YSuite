@@ -51,7 +51,7 @@ object YOverlayUi {
     @JvmStatic fun actionHeightPx(context: Context, moduleId: String): Int {
         val config = appearance(context, moduleId)
         val density = context.resources.displayMetrics.density
-        return maxOf(48, config.iconTouchTargetDp, config.buttonHeightDp).times(density).toInt()
+        return maxOf(config.iconTouchTargetDp, config.buttonHeightDp).times(density).toInt()
     }
 
     /** Shared native overlay typography and padding, preserving Android text selection. */

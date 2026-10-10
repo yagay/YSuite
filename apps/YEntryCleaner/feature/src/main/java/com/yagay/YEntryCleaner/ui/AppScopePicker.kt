@@ -142,8 +142,8 @@ internal fun AppScopePickerDialog(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = YDimens.ScreenHorizontal),
-            verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
+            verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) {
             YSectionHeader(
                 title = stringResource(R.string.visibility_match_categories),

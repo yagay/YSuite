@@ -177,7 +177,7 @@ internal fun CompactSuiteHome(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    modifier = Modifier.size(YDimens.IconVisualSize),
+                    modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                 )
             }
         }
@@ -366,7 +366,7 @@ private fun CompactSuiteModuleRow(
                 imageVector = Icons.Default.Star,
                 contentDescription = stringResource(R.string.home_pinned),
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(YDimens.IconSmallSize),
+                modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp),
             )
         }
         Box {

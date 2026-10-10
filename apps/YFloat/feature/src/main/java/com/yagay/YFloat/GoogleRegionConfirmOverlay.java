@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YOverlayUi;
+import com.yagay.yui.YUiGeometry;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -76,10 +77,13 @@ final class GoogleRegionConfirmOverlay {
         view.setClickable(true);
         view.setFocusable(false);
         view.setContentDescription(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_9b6a4d50246b));
-        view.setElevation(ScreenGeometry.dp(app, 8f));
+        view.setElevation(YOverlayUi.elevationPx(app, "yfloat"));
 
 
-        int width = Math.max(ScreenGeometry.dp(app, 76f), YOverlayUi.actionHeightPx(app, "yfloat"));
+        int width = YUiGeometry.overlayActionWidthPx(
+                app, "yfloat", view.getPaint().measureText(view.getText().toString()));
+        width = Math.min(width, Math.max(1, ScreenGeometry.usableBounds(app).width()
+                - YOverlayUi.contentPaddingPx(app, "yfloat") * 2));
         int height = YOverlayUi.actionHeightPx(app, "yfloat");
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 width, height,
@@ -143,7 +147,7 @@ final class GoogleRegionConfirmOverlay {
                 GoogleRegionConfirmPositioner.place(
                         selection.left, selection.top, selection.right, selection.bottom,
                         usable.left, usable.top, usable.right, usable.bottom,
-                        lp.width, lp.height, ScreenGeometry.dp(app, 10f));
+                        lp.width, lp.height, YOverlayUi.contentPaddingPx(app, "yfloat"));
         lp.x = placement.left - display.left;
         lp.y = placement.top - display.top;
         if (button != null && host != null && button.getParent() != null) {

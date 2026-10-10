@@ -185,7 +185,7 @@ internal fun ListControls(
                             stringResource(appTypeFilter.titleRes())
                         )
                     )
-                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
+                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp))
                 }
                 DropdownMenu(expanded = appTypeMenu, onDismissRequest = { appTypeMenu = false }) {
                     AppTypeFilter.entries.forEach { mode ->
@@ -209,7 +209,7 @@ internal fun ListControls(
                             viewTitle(state.uiFilter)
                         )
                     )
-                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
+                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     UiFilter.entries.forEach { mode ->
@@ -229,7 +229,7 @@ internal fun ListControls(
                         contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
                     ) {
                         Text(stringResource(R.string.selection_actions))
-                        Icon(Icons.Rounded.ExpandMore, null, Modifier.size(YDimens.IconSmallSize))
+                        Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp))
                     }
                     DropdownMenu(
                         expanded = selectionMenu,

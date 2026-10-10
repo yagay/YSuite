@@ -122,7 +122,7 @@ public final class EditableRegionOverlay {
             p.setTextAlign(Paint.Align.LEFT);
             p.setTextSize(YFloatOverlayStyle.textSize(context, 15f));
             float inset = YFloatOverlayStyle.controlGap(context);
-            float baseline = Math.max(inset - p.ascent(), dp(34));
+            float baseline = Math.max(inset - p.ascent(), YFloatOverlayStyle.controlGap(context) - p.ascent());
             SelectionVisuals.drawFittedText(c, tip, inset, baseline,
                     Math.max(0f, getWidth() - inset * 2), p);
         }

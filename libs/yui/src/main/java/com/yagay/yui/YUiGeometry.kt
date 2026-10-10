@@ -52,6 +52,13 @@ object YUiGeometry {
             context.resources.displayMetrics.density
     }
 
+    @JvmStatic fun overlayMenuWidthPx(context: Context, moduleId: String, availablePx: Int): Int {
+        val config = YOverlayUi.appearance(context, moduleId)
+        val action = YOverlayUi.actionHeightPx(context, moduleId)
+        val preferred = (action * 3.5f * config.contentWidthPercent / 100f).toInt()
+        return preferred.coerceIn(1, availablePx.coerceAtLeast(1))
+    }
+
     @JvmStatic fun overlayResultWidthPx(context: Context, moduleId: String, availablePx: Int): Int {
         val config = YOverlayUi.appearance(context, moduleId)
         val density = context.resources.displayMetrics.density
