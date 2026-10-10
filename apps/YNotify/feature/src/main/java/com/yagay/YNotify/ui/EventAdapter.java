@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.yagay.YNotify.R;
+import com.yagay.yui.YView;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.databinding.ItemEventBinding;
@@ -36,6 +37,28 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
     @Override public void onBindViewHolder(@NonNull Holder h, int position) {
         EventRecord r = items.get(position);
         Context c = h.itemView.getContext();
+        // Bind XML templates to runtime YUI preferences; don't freeze rows at resource dp.
+        h.b.getRoot().setRadius(YView.cardRadius(c));
+        if (h.b.getRoot().getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams lp =
+                    (ViewGroup.MarginLayoutParams) h.b.getRoot().getLayoutParams();
+            lp.leftMargin = YView.screenHorizontal(c);
+            lp.rightMargin = YView.screenHorizontal(c);
+            lp.topMargin = YView.rowVerticalPadding(c);
+            lp.bottomMargin = YView.rowVerticalPadding(c);
+            h.b.getRoot().setLayoutParams(lp);
+        }
+        if (h.b.getRoot().getChildCount() > 0) {
+            View body = h.b.getRoot().getChildAt(0);
+            int gap = YView.controlGap(c);
+            body.setPadding(gap, gap, gap, gap);
+        }
+        YView.styleItemTitle(h.b.appName);
+        YView.styleCaption(h.b.type);
+        YView.styleStrongBody(h.b.title);
+        YView.styleBody(h.b.text);
+        YView.styleCaption(h.b.details);
+        YView.styleCaption(h.b.time);
         h.b.appIcon.setImageDrawable(AppInfoUtil.icon(c, r.packageName));
         h.b.appName.setText(first(r.appLabel, r.packageName, c.getString(R.string.ynotify_unknown_app)));
         h.b.type.setText(typeLabel(c, r));
