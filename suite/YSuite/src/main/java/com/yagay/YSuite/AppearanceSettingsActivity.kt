@@ -60,12 +60,6 @@ class AppearanceSettingsActivity : YComposeActivity() {
                         )
                     }
                 }
-                item {
-                    YSection(
-                        title = stringResource(R.string.shared_appearance_components),
-                        subtitle = stringResource(R.string.shared_appearance_components_desc),
-                    )
-                }
             }
         }
     }
