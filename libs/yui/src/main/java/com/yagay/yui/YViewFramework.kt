@@ -900,6 +900,19 @@ object YViewLayout {
         top.addView(value, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         block.addView(top, matchWrap())
 
+        val precise = AppCompatEditText(context).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or
+                android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+            setSingleLine(true)
+            setText(initial.toString())
+            hint = context.getString(R.string.yui_allowed_range, min, max)
+            setTextColor(YView.onSurface(context))
+            background = YView.fieldBackground(context)
+            setPadding(YView.controlGap(context), YView.rowVerticalPadding(context),
+                YView.controlGap(context), YView.rowVerticalPadding(context))
+            setSelectAllOnFocus(true)
+        }
         val slider = Slider(context).apply {
             valueFrom = min.toFloat()
             valueTo = max.toFloat()
@@ -911,6 +924,7 @@ object YViewLayout {
                 if (!fromUser) return@addOnChangeListener
                 val intValue = next.toInt().coerceIn(min, max)
                 value.text = valueLabel?.apply(intValue) ?: intValue.toString()
+                precise.setText(intValue.toString())
                 onChanged?.accept(intValue)
             }
         }
@@ -921,6 +935,21 @@ object YViewLayout {
                 dp(context, 34),
             ).apply { topMargin = dp(context, -1) },
         )
+        precise.setOnEditorActionListener { _, _, _ ->
+            val entered = precise.text?.toString()?.toIntOrNull()
+            if (entered != null && entered in min..max) {
+                slider.value = entered.toFloat()
+                value.text = valueLabel?.apply(entered) ?: entered.toString()
+                onChanged?.accept(entered)
+                precise.error = null
+            } else {
+                precise.error = context.getString(R.string.yui_allowed_range, min, max)
+            }
+            true
+        }
+        block.addView(precise, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ))
         return block
     }
 
