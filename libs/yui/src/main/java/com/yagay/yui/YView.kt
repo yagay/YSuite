@@ -18,6 +18,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.TextViewCompat
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.button.MaterialButton
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.ui.graphics.toArgb
 
 /** Shared View-system renderer for Java/legacy YSuite modules. */
 object YView {
@@ -53,43 +57,50 @@ object YView {
     }
 
     @JvmStatic fun applyRoot(view: View) {
-        view.setBackgroundColor(color(view.context, com.google.android.material.R.attr.colorSurface, Color.WHITE))
+        view.setBackgroundColor(background(view.context))
     }
 
     @JvmStatic fun styleTitle(view: TextView) = stylePageTitle(view)
 
     @JvmStatic fun stylePageTitle(view: TextView) {
         TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_PageTitle)
+        applyFontScale(view)
         view.setTextColor(onSurface(view.context))
     }
 
     @JvmStatic fun styleSectionTitle(view: TextView) {
         TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_SectionTitle)
+        applyFontScale(view)
         view.setTextColor(onSurface(view.context))
     }
 
     @JvmStatic fun styleItemTitle(view: TextView) {
         TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_ItemTitle)
+        applyFontScale(view)
         view.setTextColor(onSurface(view.context))
     }
 
     @JvmStatic fun styleBody(view: TextView) {
         TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_Body)
+        applyFontScale(view)
         view.setTextColor(onSurfaceVariant(view.context))
     }
 
     @JvmStatic fun styleStrongBody(view: TextView) {
         TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_Body_Strong)
+        applyFontScale(view)
         view.setTextColor(onSurface(view.context))
     }
 
     @JvmStatic fun styleCaption(view: TextView) {
         TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_Caption)
+        applyFontScale(view)
         view.setTextColor(onSurfaceVariant(view.context))
     }
 
     @JvmStatic fun styleLabel(view: TextView) {
         TextViewCompat.setTextAppearance(view, R.style.TextAppearance_YUI_Label)
+        applyFontScale(view)
         view.setTextColor(onSurface(view.context))
     }
 
@@ -118,7 +129,7 @@ object YView {
 
     @JvmStatic fun fieldBackground(context: Context): GradientDrawable = GradientDrawable().apply {
         setColor(surfaceContainer(context))
-        cornerRadius = dimen(context, R.dimen.yui_card_radius).toFloat()
+        cornerRadius = dp(context, appearance(context).fieldRadiusDp).toFloat()
         setStroke(dp(context, 1), outline(context))
     }
 
@@ -142,7 +153,12 @@ object YView {
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardRadiusDp)
     @JvmStatic fun cardPadding(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardPaddingDp)
-    @JvmStatic fun touchTarget(context: Context): Int = dimen(context, R.dimen.yui_touch_target)
+    @JvmStatic fun touchTarget(context: Context): Int = dp(context, appearance(context).iconTouchTargetDp)
+    @JvmStatic fun rowHeight(context: Context): Int = dp(context, appearance(context).rowHeightDp)
+    @JvmStatic fun rowHorizontalPadding(context: Context): Int = dp(context, appearance(context).rowHorizontalPaddingDp)
+    @JvmStatic fun rowVerticalPadding(context: Context): Int = dp(context, appearance(context).rowVerticalPaddingDp)
+    @JvmStatic fun dialogRadius(context: Context): Int = dp(context, appearance(context).dialogRadiusDp)
+    @JvmStatic fun fontPercent(context: Context): Int = appearance(context).fontPercent
     @JvmStatic fun buttonHeight(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).buttonHeightDp)
 
@@ -150,24 +166,68 @@ object YView {
     @JvmStatic fun dp(context: Context, value: Int): Int =
         (value * context.resources.displayMetrics.density).toInt()
 
-    @JvmStatic fun color(context: Context, attr: Int, fallback: Int): Int = MaterialColors.getColor(context, attr, fallback)
-    @JvmStatic fun background(context: Context): Int = color(context, com.google.android.material.R.attr.colorSurface, Color.WHITE)
-    @JvmStatic fun surface(context: Context): Int = color(context, com.google.android.material.R.attr.colorSurfaceContainer, context.getColor(R.color.yui_palette_surface_container))
+    private fun appearance(context: Context): YAppearance =
+        YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context))
+
+    private fun applyFontScale(view: TextView) {
+        val percent = fontPercent(view.context)
+        if (percent != 100) view.setTextSize(
+            android.util.TypedValue.COMPLEX_UNIT_PX, view.textSize * (percent / 100f),
+        )
+    }
+
+    /** The same scheme, accents, and module overrides used by the Compose renderer. */
+    private fun palette(context: Context): ColorScheme {
+        val setting = appearance(context)
+        val dark = isDark(context)
+        val base = when {
+            setting.dynamicColor && Build.VERSION.SDK_INT >= 31 && dark -> dynamicDarkColorScheme(context)
+            setting.dynamicColor && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
+            dark -> YDarkColors
+            else -> YLightColors
+        }
+        return yAccentColorScheme(base, setting.accent, dark)
+    }
+
+    @JvmStatic fun color(context: Context, attr: Int, fallback: Int): Int {
+        val p = palette(context)
+        return when (attr) {
+            com.google.android.material.R.attr.colorSurface -> p.surface.toArgb()
+            com.google.android.material.R.attr.colorSurfaceContainer -> p.surfaceContainer.toArgb()
+            com.google.android.material.R.attr.colorSurfaceContainerHigh -> p.surfaceContainerHigh.toArgb()
+            com.google.android.material.R.attr.colorOnSurface -> p.onSurface.toArgb()
+            com.google.android.material.R.attr.colorOnSurfaceVariant -> p.onSurfaceVariant.toArgb()
+            com.google.android.material.R.attr.colorOutlineVariant -> p.outlineVariant.toArgb()
+            com.google.android.material.R.attr.colorOutline -> p.outline.toArgb()
+            androidx.appcompat.R.attr.colorPrimary -> p.primary.toArgb()
+            else -> MaterialColors.getColor(context, attr, fallback)
+        }
+    }
+    @JvmStatic fun background(context: Context): Int = palette(context).surface.toArgb()
+    @JvmStatic fun surface(context: Context): Int = palette(context).surfaceContainer.toArgb()
     @JvmStatic fun surfaceContainer(context: Context): Int = surface(context)
-    @JvmStatic fun onSurface(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurface, Color.BLACK)
-    @JvmStatic fun onSurfaceVariant(context: Context): Int = color(context, com.google.android.material.R.attr.colorOnSurfaceVariant, context.getColor(R.color.yui_palette_on_surface_variant))
-    @JvmStatic fun outline(context: Context): Int = color(context, com.google.android.material.R.attr.colorOutlineVariant, context.getColor(R.color.yui_palette_outline_variant))
-    @JvmStatic fun accent(context: Context): Int = color(context, androidx.appcompat.R.attr.colorPrimary, context.getColor(R.color.yui_palette_primary))
+    @JvmStatic fun onSurface(context: Context): Int = palette(context).onSurface.toArgb()
+    @JvmStatic fun onSurfaceVariant(context: Context): Int = palette(context).onSurfaceVariant.toArgb()
+    @JvmStatic fun outline(context: Context): Int = palette(context).outlineVariant.toArgb()
+    @JvmStatic fun accent(context: Context): Int = palette(context).primary.toArgb()
+    @JvmStatic fun success(context: Context): Int =
+        (if (isDark(context)) YUiPalette.DarkSuccess else YUiPalette.LightSuccess).toArgb()
+    @JvmStatic fun successContainer(context: Context): Int =
+        (if (isDark(context)) YUiPalette.DarkSuccessContainer else YUiPalette.LightSuccessContainer).toArgb()
+    @JvmStatic fun warning(context: Context): Int =
+        (if (isDark(context)) YUiPalette.DarkWarning else YUiPalette.LightWarning).toArgb()
+    @JvmStatic fun warningContainer(context: Context): Int =
+        (if (isDark(context)) YUiPalette.DarkWarningContainer else YUiPalette.LightWarningContainer).toArgb()
+    @JvmStatic fun info(context: Context): Int =
+        (if (isDark(context)) YUiPalette.DarkInfo else YUiPalette.LightInfo).toArgb()
 
-    @JvmStatic fun success(context: Context): Int = context.getColor(R.color.yui_palette_success)
-    @JvmStatic fun successContainer(context: Context): Int = context.getColor(R.color.yui_palette_success_container)
-    @JvmStatic fun warning(context: Context): Int = context.getColor(R.color.yui_palette_warning)
-    @JvmStatic fun warningContainer(context: Context): Int = context.getColor(R.color.yui_palette_warning_container)
-    @JvmStatic fun info(context: Context): Int = context.getColor(R.color.yui_palette_info)
-
-    @JvmStatic fun isDark(context: Context): Boolean {
-        val mask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return mask == Configuration.UI_MODE_NIGHT_YES
+    @JvmStatic fun isDark(context: Context): Boolean = when (appearance(context).theme) {
+        "dark" -> true
+        "light" -> false
+        else -> {
+            val mask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            mask == Configuration.UI_MODE_NIGHT_YES
+        }
     }
 
     private fun applyBarAppearance(activity: Activity) {
