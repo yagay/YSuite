@@ -770,7 +770,6 @@ object YViewLayout {
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         return MaterialSwitch(context).apply {
-            isUseMaterialThemeColors = true
             isChecked = checked
             styleStandardToggle(this)
             if (listener != null) setOnCheckedChangeListener(listener)
