@@ -35,6 +35,15 @@ YENTRY_PRIORITY = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEn
 YENTRY_ROWS = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppListRows.kt"
 
 
+def verify_suite_setting_rows_use_live_yui() -> None:
+    home = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt")
+    if "Modifier.size(18.dp)" in home or "Modifier.size(16.dp)" in home:
+        fail("suite home icons must use YUI visual sizes")
+    for filename in ("SuiteCommonSettingsScreen.kt", "SuiteSettingsScreen.kt"):
+        src = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite" / filename)
+        if "heightIn(min = 48.dp)" in src or "Arrangement.spacedBy(8.dp)" in src:
+            fail(f"{filename} must use YUI row height and gap")
+
 def verify_yentry_uses_shared_controls() -> None:
     """Reject reintroduction of local control geometry in normal feature UI."""
     controls = text(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainControls.kt")
@@ -122,6 +131,7 @@ def verify_runtime_appearance() -> None:
 
 def main() -> None:
     verify_yentry_uses_shared_controls()
+    verify_suite_setting_rows_use_live_yui()
     verify_runtime_appearance()
     compose = text(YUI_COMPOSE)
     view = text(YUI_VIEW)

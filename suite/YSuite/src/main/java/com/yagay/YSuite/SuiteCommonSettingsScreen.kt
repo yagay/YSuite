@@ -1,5 +1,7 @@
 package com.yagay.YSuite
 
+import com.yagay.yui.LocalYAppearance
+
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -109,9 +111,9 @@ internal fun SuiteCommonSettingsScreen(
                         "error" to R.string.common_log_error,
                     ).forEach { (level, labelRes) ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                            modifier = Modifier.fillMaxWidth().heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                                 .clickable { store.set(SuiteCommonSetting.LOG_LEVEL, level, moduleId); revision++ },
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             YUiRadioButton(

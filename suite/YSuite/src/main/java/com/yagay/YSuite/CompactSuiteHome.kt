@@ -1,5 +1,7 @@
 package com.yagay.YSuite
 
+import com.yagay.yui.YDimens
+
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -175,7 +177,7 @@ internal fun CompactSuiteHome(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(YDimens.IconVisualSize),
                 )
             }
         }
@@ -364,7 +366,7 @@ private fun CompactSuiteModuleRow(
                 imageVector = Icons.Default.Star,
                 contentDescription = stringResource(R.string.home_pinned),
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(YDimens.IconSmallSize),
             )
         }
         Box {

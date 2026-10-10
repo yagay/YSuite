@@ -1,5 +1,7 @@
 package com.yagay.YSuite
 
+import com.yagay.yui.LocalYAppearance
+
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -438,9 +440,9 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
         YControlKind.CHOICE -> Column {
             definition.choices.forEach { option ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    modifier = Modifier.fillMaxWidth().heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                         .clickable { onSet(option) },
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     YUiRadioButton(selected = option == value, onClick = { onSet(option) })
