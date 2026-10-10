@@ -164,6 +164,24 @@ class YAppearanceStoreTest {
     }
 
     @Test
+    fun applyGlobalAppearanceRemovesEveryModuleOverrideWithoutChangingGlobal() {
+        store.set(YSettingKey.BUTTON_RADIUS, "21")
+        store.set(YSettingKey.BUTTON_RADIUS, "48", "yfloat")
+        store.set(YSettingKey.BUTTON_RADIUS, "60", "yfiles")
+        store.set(YSettingKey.PANE_WIDTH_SCALE, "180", "ydownload")
+        assertEquals(48, store.appearance("yfloat").buttonRadiusDp)
+        assertEquals(60, store.appearance("yfiles").buttonRadiusDp)
+        store.inheritGlobalAppearanceForAllModules()
+        assertEquals(21, store.appearance("yfloat").buttonRadiusDp)
+        assertEquals(21, store.appearance("yfiles").buttonRadiusDp)
+        assertEquals(100, store.appearance("ydownload").paneWidthPercent)
+        assertFalse(store.isOverridden(YSettingKey.BUTTON_RADIUS, "yfloat"))
+        assertFalse(store.isOverridden(YSettingKey.BUTTON_RADIUS, "yfiles"))
+        assertFalse(store.isOverridden(YSettingKey.PANE_WIDTH_SCALE, "ydownload"))
+        assertEquals(21, store.appearance().buttonRadiusDp)
+    }
+
+    @Test
     fun productLayoutGeometryReadsSingleStoreAndInheritsGlobalChanges() {
         assertEquals(100, store.appearance("yfiles").contentWidthPercent)
         assertEquals(100, store.appearance("ydownload").paneWidthPercent)
