@@ -148,7 +148,7 @@ fun YPageList(
         // The same user-controlled margin applies on phones and expanded screens.
         val horizontal = appearance.screenPaddingDp.dp
         LazyColumn(
-            modifier = Modifier.widthIn(max = template.maxContentWidth).fillMaxSize(),
+            modifier = Modifier.widthIn(max = template.maxContentWidth * (appearance.contentWidthPercent / 100f)).fillMaxSize(),
             contentPadding = PaddingValues(
                 start = horizontal,
                 top = padding.calculateTopPadding() + LocalYAppearance.current.pageVerticalPaddingDp.dp,

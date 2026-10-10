@@ -179,7 +179,7 @@ fun YListDetailScaffold(
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (maxWidth >= YDimens.ExpandedBreakpoint) {
             Row(Modifier.fillMaxSize()) {
-                listPane(Modifier.width(YDimens.ListDetailListWidth).fillMaxHeight())
+                listPane(Modifier.width(YUiGeometry.paneWidth(YDimens.ListDetailListWidth)).fillMaxHeight())
                 Box(
                     Modifier.fillMaxHeight().width(LocalYAppearance.current.cardOutlineWidthDp.dp)
                         .background(androidx.compose.material3.MaterialTheme.colorScheme.outlineVariant),
@@ -206,7 +206,7 @@ fun YSupportingPaneScaffold(
         if (showSupportingPane && maxWidth >= YDimens.ExpandedBreakpoint) {
             Row(
                 Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(YDimens.PaneGap),
+                horizontalArrangement = Arrangement.spacedBy(YUiGeometry.gap()),
             ) {
                 mainPane(Modifier.weight(0.64f).fillMaxHeight())
                 supportingPane(Modifier.weight(0.36f).fillMaxHeight())
