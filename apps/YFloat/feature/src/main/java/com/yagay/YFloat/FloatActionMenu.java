@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YOverlayUi;
+import com.yagay.yui.YUiGeometry;
 
 import com.yagay.yui.YView;
 import android.content.ClipData;
@@ -113,21 +114,21 @@ public final class FloatActionMenu {
         });
 
         Rect usable = ScreenGeometry.usableBounds(app);
-        int maxPopupWidth = Math.max(dp(app, 120), usable.width() - dp(app, 16));
+        int maxPopupWidth = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), usable.width() - YUiGeometry.overlayMenuInsetPx(app, "yfloat") * 2);
         int width = mode == MODE_MAIN
                 ? WindowManager.LayoutParams.WRAP_CONTENT
                 : contentAdaptiveWidth(app, root, mode, maxPopupWidth);
 
-        int maxMeasureW = Math.max(dp(app, 46), usable.width() - dp(app, 16));
-        int maxMeasureH = Math.max(dp(app, 46), usable.height() - dp(app, 16));
+        int maxMeasureW = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), usable.width() - YUiGeometry.overlayMenuInsetPx(app, "yfloat") * 2);
+        int maxMeasureH = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), usable.height() - YUiGeometry.overlayMenuInsetPx(app, "yfloat") * 2);
         int widthSpec = width == WindowManager.LayoutParams.WRAP_CONTENT
                 ? View.MeasureSpec.makeMeasureSpec(maxMeasureW, View.MeasureSpec.AT_MOST)
                 : View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY);
         int heightSpec = View.MeasureSpec.makeMeasureSpec(maxMeasureH, View.MeasureSpec.AT_MOST);
         root.measure(widthSpec, heightSpec);
         int menuWidth = width == WindowManager.LayoutParams.WRAP_CONTENT
-                ? Math.max(dp(app, 46), root.getMeasuredWidth()) : width;
-        int menuHeight = Math.max(dp(app, 46), root.getMeasuredHeight());
+                ? Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), root.getMeasuredWidth()) : width;
+        int menuHeight = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), root.getMeasuredHeight());
 
         int[] pos = hasLockedRow()
                 ? FloatingMenuPositioner.lockedRow(app, usable, lockedCenterX, lockedTopY,
@@ -173,8 +174,10 @@ public final class FloatActionMenu {
 
     /** Match Android's compact popup feel without forcing every submenu to a fixed wide size. */
     private static int contentAdaptiveWidth(Context app, View root, int mode, int screenMax) {
-        int min = dp(app, mode == MODE_MORE ? 156 : 188);
-        int cap = Math.min(screenMax, dp(app, mode == MODE_MORE ? 260 : 300));
+        int min = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"),
+                YUiGeometry.overlayMenuInsetPx(app, "yfloat") * (mode == MODE_MORE ? 8 : 9));
+        int cap = Math.min(screenMax,
+                YUiGeometry.overlayResultWidthPx(app, "yfloat", screenMax));
         cap = Math.max(min, cap);
         int desired = widestTextRow(root) + root.getPaddingLeft() + root.getPaddingRight();
         return ScreenGeometry.clamp(Math.max(min, desired), min, cap);
@@ -259,10 +262,9 @@ public final class FloatActionMenu {
         more.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MORE));
 
         Rect usable = ScreenGeometry.usableBounds(app);
-        int maxRowWidth = Math.max(dp(app, 180), usable.width() - dp(app, 16));
+        int maxRowWidth = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), usable.width() - YUiGeometry.overlayMenuInsetPx(app, "yfloat") * 2);
 
-        int slotWidth = Math.max(dp(app, 32),
-                Math.min(dp(app, 72), maxRowWidth / Math.max(1, items.size())));
+        int slotWidth = Math.max(1, maxRowWidth / Math.max(1, items.size()));
         LinearLayout row = toolbarRow(app);
         for (View item : items) {
             if (item instanceof TextView tv) {
@@ -282,7 +284,8 @@ public final class FloatActionMenu {
         LinearLayout row = new LinearLayout(app);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(app, 2), dp(app, 2), dp(app, 2), dp(app, 2));
+        int inset = Math.max(0, YUiGeometry.overlayMenuInsetPx(app, "yfloat") / 4);
+        row.setPadding(inset, inset, inset, inset);
         return row;
     }
 
@@ -361,7 +364,8 @@ public final class FloatActionMenu {
             TextView none = FloatingMenuUi.secondaryRow(app,
                     mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_2e9a9b8c88ad) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_89aaeb63f4fd));
             none.setGravity(Gravity.CENTER_VERTICAL);
-            none.setPadding(dp(app, 16), 0, dp(app, 16), 0);
+            int inset = YUiGeometry.overlayMenuInsetPx(app, "yfloat");
+        none.setPadding(inset, 0, inset, 0);
             list.addView(none, new LinearLayout.LayoutParams(-1, -2));
         } else {
             for (ResolveInfo ri : resolved) {
@@ -383,7 +387,7 @@ public final class FloatActionMenu {
         int visibleRows = Math.min(Math.max(1, resolved.size()), 6);
         root.addView(scroll, new LinearLayout.LayoutParams(-1,
                 visibleRows <= 3 ? -2 : Math.min(ScreenGeometry.usableBounds(app).height() * 2 / 3,
-                        Math.max(YView.rowHeight(app) * visibleRows, dp(app, 50 * visibleRows)))));
+                        Math.max(YView.rowHeight(app), YOverlayUi.actionHeightPx(app, "yfloat")) * visibleRows)));
 
         TextView moreApps = FloatingMenuUi.row(app,
                 mode == MODE_SHARE ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_ff5514843724) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_c34d1ed979ed), null);

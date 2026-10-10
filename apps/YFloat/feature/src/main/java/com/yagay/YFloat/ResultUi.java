@@ -3,6 +3,7 @@ package com.yagay.YFloat;
 import com.yagay.yui.YOverlayTokens;
 import com.yagay.yui.YOverlayUi;
 import com.yagay.yui.YView;
+import com.yagay.yui.YUiGeometry;
 import com.google.android.material.button.MaterialButton;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -16,8 +17,6 @@ import android.widget.TextView;
 
 /** Shared geometry and widget helpers for every result surface. */
 final class ResultUi {
-    static final int OUTER_MARGIN_DP = 12;
-    static final int BOX_HPAD_DP = 14;
     /** Result panel uses the same live row/button metrics as normal YUI surfaces. */
     static int titleHeight(Context c) {
         return YView.rowHeight(YOverlayUi.scopedContext(c, "yfloat"));
@@ -87,25 +86,18 @@ final class ResultUi {
     }
 
     static int standardWidth(Context c, Rect usable) {
-        int margin = dp(c, OUTER_MARGIN_DP);
-        int available = Math.max(1, usable.width() - margin * 2);
-        int preferred = Math.round(dp(c, 410) *
-                (YOverlayUi.appearance(c, "yfloat").getContentWidthPercent() / 100f));
-        return Math.min(available, Math.max(1, Math.max(dp(c, 220), preferred)));
+        return YUiGeometry.overlayResultWidthPx(c, "yfloat", usable.width());
     }
 
     static int standardMaxHeight(Context c, Rect usable) {
-        int byScreen = Math.round(usable.height() * .52f);
-        int hardCap = dp(c, 430);
-        int available = Math.max(dp(c, 170), usable.height() - dp(c, OUTER_MARGIN_DP * 2));
-        return Math.min(available, Math.max(dp(c, 190), Math.min(byScreen, hardCap)));
+        return YUiGeometry.overlayResultHeightPx(c, "yfloat", usable.height());
     }
 
     static int imageHeight(Context c, Bitmap image, int width, int maxHeight) {
         if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0) return 0;
         int innerWidth = Math.max(1, width - YOverlayUi.contentPaddingPx(c, "yfloat") * 2);
         int h = Math.round(innerWidth * (image.getHeight() / (float) image.getWidth()));
-        return clamp(h, dp(c, 72), Math.max(dp(c, 72), maxHeight));
+        return clamp(h, 1, Math.max(1, maxHeight));
     }
 
     static int dp(Context c, int v) {

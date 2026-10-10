@@ -189,7 +189,7 @@ fun FileExplorerGrid(
     LazyVerticalGrid(
         columns =
             GridCells.Adaptive(
-                minSize = 112.dp,
+                minSize = (LocalYAppearance.current.rowHeightDp * 2).dp,
             ),
         modifier = modifier,
         horizontalArrangement =

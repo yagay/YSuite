@@ -3,7 +3,7 @@ package com.yagay.ysuite.productui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.yagay.yui.LocalYAppearance
+import com.yagay.yui.YUiGeometry
 import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
 
 /**
@@ -13,23 +13,21 @@ import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
  */
 object ProductLayoutTokens {
     @Composable
-    private fun content(base: Dp): Dp =
-        base * (LocalYAppearance.current.contentWidthPercent / 100f)
+    private fun content(base: Dp): Dp = YUiGeometry.contentWidth(base)
 
     @Composable
-    private fun pane(base: Dp): Dp =
-        base * (LocalYAppearance.current.paneWidthPercent / 100f)
+    private fun pane(base: Dp): Dp = YUiGeometry.paneWidth(base)
 
-    val DashboardContentMaxWidth: Dp @Composable get() = content(1280.dp)
-    val ToolContentMaxWidth: Dp @Composable get() = content(880.dp)
-    val DetailContentMaxWidth: Dp @Composable get() = content(900.dp)
+    val DashboardContentMaxWidth: Dp @Composable get() = content(YUiGeometry.dashboardContentBase)
+    val ToolContentMaxWidth: Dp @Composable get() = content(YUiGeometry.toolContentBase)
+    val DetailContentMaxWidth: Dp @Composable get() = content(YUiGeometry.detailContentBase)
     val SettingsContentMaxWidth: Dp @Composable get() =
         content(YSuiteLayoutTokens.DetailMaxWidth)
 
     val NavigationPaneWidth: Dp @Composable get() =
         pane(YSuiteLayoutTokens.NavigationPaneWidth)
-    val CompactSidePaneWidth: Dp @Composable get() = pane(240.dp)
-    val DetailPaneWidth: Dp @Composable get() = pane(360.dp)
+    val CompactSidePaneWidth: Dp @Composable get() = pane(YUiGeometry.compactPaneBase)
+    val DetailPaneWidth: Dp @Composable get() = pane(YUiGeometry.detailPaneBase)
 
     val SettingsCategoryPaneWidth: Dp @Composable get() = NavigationPaneWidth
     val FileLocationPaneWidth: Dp @Composable get() = NavigationPaneWidth

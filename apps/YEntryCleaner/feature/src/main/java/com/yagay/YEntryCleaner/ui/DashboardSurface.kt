@@ -25,6 +25,7 @@ import com.yagay.YEntryCleaner.domain.DisplayMode
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YSwitchItem
@@ -215,7 +216,7 @@ internal fun UnifiedDashboardTabContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (collectingDiagnostics) {
-                    CircularProgressIndicator(Modifier.size(YDimens.IconSmallSize), strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(YDimens.IconSmallSize), strokeWidth = LocalYAppearance.current.cardOutlineWidthDp.dp)
                     Spacer(Modifier.width(YDimens.ControlGap))
                 }
                 Text(stringResource(if (collectingDiagnostics) R.string.dashboard_collecting else R.string.dashboard_export_diagnostics))

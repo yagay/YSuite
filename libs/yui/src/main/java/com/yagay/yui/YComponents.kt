@@ -28,7 +28,7 @@ fun YScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(
         horizontal = LocalYAppearance.current.screenPaddingDp.dp,
-        vertical = YDimens.ScreenVertical,
+        vertical = LocalYAppearance.current.pageVerticalPaddingDp.dp,
     ),
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
 ) {
@@ -89,10 +89,10 @@ fun YBottomActionBar(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
-    Surface(modifier = modifier.fillMaxWidth(), tonalElevation = 2.dp, shadowElevation = 1.dp) {
+    Surface(modifier = modifier.fillMaxWidth(), tonalElevation = YUiGeometry.cardElevation(), shadowElevation = YUiGeometry.cardElevation()) {
         Row(
             modifier = Modifier.fillMaxWidth().navigationBarsPadding()
-                .padding(horizontal = YDimens.ScreenHorizontal, vertical = 5.dp),
+                .padding(horizontal = YUiGeometry.pagePadding(), vertical = YUiGeometry.compactGap()),
             horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
@@ -104,9 +104,9 @@ fun YBottomActionBar(
 fun YLoadingState(text: String? = null, modifier: Modifier = Modifier) {
     val resolvedText = text ?: stringResource(R.string.yui_loading)
     Column(
-        modifier = modifier.fillMaxWidth().padding(vertical = 24.dp),
+        modifier = modifier.fillMaxWidth().padding(vertical = YUiGeometry.sectionGap()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.gap()),
     ) {
         CircularProgressIndicator()
         Text(resolvedText, style = MaterialTheme.typography.bodyMedium)

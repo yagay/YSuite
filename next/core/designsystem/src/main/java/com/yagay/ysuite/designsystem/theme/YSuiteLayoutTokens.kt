@@ -2,6 +2,7 @@ package com.yagay.ysuite.designsystem.theme
 
 import androidx.compose.ui.unit.dp
 import com.yagay.yui.YDimens
+import com.yagay.yui.YUiGeometry
 
 /** Breakpoints and shared maxima are owned by YUI; product-specific pane widths remain local. */
 object YSuiteLayoutTokens {
@@ -11,5 +12,5 @@ object YSuiteLayoutTokens {
     val MediumMaxWidth = YDimens.ExpandedBreakpoint - 1.dp
     val ContentMaxWidth = YDimens.ContentMaxWidth
     val DetailMaxWidth = YDimens.FormMaxWidth
-    val NavigationPaneWidth = 280.dp
+    val NavigationPaneWidth = YUiGeometry.navigationPaneBase
 }

@@ -21,6 +21,8 @@ fun HistoryChart(
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val gridStroke = LocalYAppearance.current.cardOutlineWidthDp.dp
+    val lineStroke = LocalYAppearance.current.floatBorderWidthDp.dp
     Canvas(modifier = modifier.fillMaxWidth().height(
         maxOf(64f, LocalYAppearance.current.rowHeightDp * 2f).dp)) {
         if (size.width <= 0f || size.height <= 0f) return@Canvas
@@ -31,7 +33,7 @@ fun HistoryChart(
                 color = gridColor,
                 start = Offset(0f, y),
                 end = Offset(size.width, y),
-                strokeWidth = 1.dp.toPx(),
+                strokeWidth = gridStroke.toPx(),
             )
         }
 
@@ -48,7 +50,7 @@ fun HistoryChart(
         drawPath(
             path = path,
             color = lineColor,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
+            style = Stroke(width = lineStroke.toPx(), cap = StrokeCap.Round),
         )
     }
 }

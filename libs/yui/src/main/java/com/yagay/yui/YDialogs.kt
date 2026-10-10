@@ -59,7 +59,7 @@ fun YFullScreenDialog(
                     if (actions.isNotEmpty()) {
                         Surface(
                             color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 2.dp,
+                            tonalElevation = com.yagay.yui.YUiGeometry.cardElevation(),
                         ) {
                             YActionGroup(
                                 actions = actions,

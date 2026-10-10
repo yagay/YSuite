@@ -65,7 +65,8 @@ final class UnifiedResultPanel {
 
         textPanel = new LinearLayout(context);
         textPanel.setOrientation(LinearLayout.VERTICAL);
-        textPanel.setPadding(0, ResultUi.dp(context, 4), 0, ResultUi.dp(context, 4));
+        int inset = com.yagay.yui.YOverlayUi.contentPaddingPx(context, "yfloat");
+        textPanel.setPadding(0, inset / 2, 0, inset / 2);
         selection = new TextSelectionSurface(context);
         textPanel.addView(selection, new LinearLayout.LayoutParams(-1, 0, 1f));
         textPanel.setVisibility(View.GONE);
@@ -114,14 +115,13 @@ final class UnifiedResultPanel {
             imageView.setVisibility(View.VISIBLE);
             int cap;
             if (showText) {
-                cap = Math.min(ResultUi.dp(context, 130),
-                        Math.max(ResultUi.dp(context, 72), contentBudget / 2));
+                cap = contentBudget / 2;
             } else if (next.mode() == ResultSession.Mode.SCREENSHOT) {
                 cap = contentBudget;
             } else if (next.mode() == ResultSession.Mode.VIEW_IMAGE) {
-                cap = Math.min(ResultUi.dp(context, 190), contentBudget);
+                cap = contentBudget;
             } else {
-                cap = Math.min(ResultUi.dp(context, 135), contentBudget);
+                cap = contentBudget;
             }
             imageHeight = ResultUi.imageHeight(context, next.image(), width, cap);
             imageView.setLayoutParams(new LinearLayout.LayoutParams(-1, imageHeight));
@@ -138,9 +138,8 @@ final class UnifiedResultPanel {
 
         int textHeight = 0;
         if (showText) {
-            int remaining = Math.max(ResultUi.dp(context, 72), contentBudget - imageHeight);
-            textHeight = Math.max(ResultUi.dp(context, 96), remaining);
-            textHeight = Math.min(textHeight, Math.max(ResultUi.dp(context, 72), contentBudget));
+            int remaining = Math.max(1, contentBudget - imageHeight);
+            textHeight = Math.min(contentBudget, Math.max(1, remaining));
             textPanel.setVisibility(View.VISIBLE);
             textPanel.setLayoutParams(new LinearLayout.LayoutParams(-1, textHeight));
             selection.setText(next.displayText());

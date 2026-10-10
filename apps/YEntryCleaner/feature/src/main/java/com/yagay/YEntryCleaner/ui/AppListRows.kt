@@ -245,7 +245,7 @@ private fun ComponentSelectionMark(checked: Boolean) {
         Box(
             Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp)
                 .background(if (checked) colors.primary else Color.Transparent, CircleShape)
-                .border(1.5.dp, if (checked) colors.primary else colors.outline, CircleShape),
+                .border(LocalYAppearance.current.cardOutlineWidthDp.dp, if (checked) colors.primary else colors.outline, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             if (checked) {

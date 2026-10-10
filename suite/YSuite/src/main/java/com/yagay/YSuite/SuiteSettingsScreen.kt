@@ -490,7 +490,7 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
                     valueRange = definition.minimum.toFloat()..definition.maximum.toFloat(),
                 )
                 YResponsiveFieldAction(
-                    stackedBelow = 280.dp,
+                    stackedBelow = com.yagay.yui.YDimens.CompactBreakpoint,
                     field = { modifier ->
                         YUiOutlinedTextField(
                             value = draft,

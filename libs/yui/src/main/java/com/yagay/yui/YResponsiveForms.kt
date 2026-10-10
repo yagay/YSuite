@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun YResponsiveFieldAction(
     modifier: Modifier = Modifier,
-    stackedBelow: Dp = 440.dp,
+    stackedBelow: Dp = YDimens.MediumBreakpoint * 0.75f,
     field: @Composable (Modifier) -> Unit,
     action: @Composable () -> Unit,
 ) {
@@ -52,7 +52,7 @@ fun YResponsiveFieldAction(
 @Composable
 fun YResponsiveFieldPair(
     modifier: Modifier = Modifier,
-    stackedBelow: Dp = 520.dp,
+    stackedBelow: Dp = YDimens.MediumBreakpoint * 0.875f,
     first: @Composable (Modifier) -> Unit,
     second: @Composable (Modifier) -> Unit,
 ) {

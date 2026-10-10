@@ -151,7 +151,7 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
             if (state.runtime.needsDecision) RuntimePanel(state, vm, showUpdateTools = false)
         }
         stickyHeader(key = "list-controls") {
-            Surface(tonalElevation = 2.dp) {
+            Surface(tonalElevation = (LocalYAppearance.current.cardOutlineWidthDp / 2f).dp) {
                 Column {
                     ListControls(
                         state,
@@ -220,7 +220,7 @@ fun RulesTab(state: MainState, vm: MainViewModel) {
                         vm.setQuery("")
                         vm.setUiFilter(UiFilter.SHOW_SELECTED)
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp)
                 ) {
                     Text(stringResource(R.string.rules_view_unmatched))
                 }

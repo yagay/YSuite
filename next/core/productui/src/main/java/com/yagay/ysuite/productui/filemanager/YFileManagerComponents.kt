@@ -3,6 +3,7 @@ package com.yagay.ysuite.productui.filemanager
 import com.yagay.ysuite.productui.YSuiteProductTopBar
 
 import com.yagay.yui.YDimens
+import com.yagay.yui.YUiGeometry
 import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -144,7 +145,7 @@ fun YFileBreadcrumbBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 1.dp,
+        tonalElevation = YUiGeometry.cardElevation(),
     ) {
         Row(
             modifier = Modifier
@@ -175,7 +176,7 @@ fun YFileBreadcrumbBar(
                     Text(
                         text = "›",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 2.dp),
+                        modifier = Modifier.padding(horizontal = YUiGeometry.tinyGap()),
                     )
                     val last = index == segments.lastIndex
                     Text(
@@ -200,7 +201,7 @@ fun YFileBreadcrumbBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 8.dp),
+                    modifier = Modifier.padding(horizontal = YUiGeometry.compactGap()),
                 )
             }
 
@@ -384,7 +385,7 @@ fun YFileSourcePane(
         modifier = modifier
             .fillMaxWidth()
             .padding(YSuiteSpacing.Medium),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap()),
     ) {
         sources.forEach { source ->
             SourceRow(
@@ -397,7 +398,7 @@ fun YFileSourcePane(
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = YUiGeometry.compactGap()))
 
         SourceRow(
             label = browserLabel,
@@ -424,7 +425,7 @@ fun YFileSourcePane(
             onClick = { onSectionSelected("trash") },
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = YUiGeometry.compactGap()))
 
         SourceRow(
             label = toolsLabel,
@@ -542,7 +543,7 @@ fun YFileEntryRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 12.dp),
+                    .padding(start = YUiGeometry.gap()),
             ) {
                 Text(
                     text = title,
@@ -618,7 +619,7 @@ fun FileExplorerDetailsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
+                .padding(bottom = YUiGeometry.sectionGap()),
             content = content,
         )
     }

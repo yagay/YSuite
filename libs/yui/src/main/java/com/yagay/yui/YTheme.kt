@@ -251,7 +251,7 @@ private fun yTopBarColors() = TopAppBarDefaults.topAppBarColors(
 
 @Composable
 private fun YTopBarCopy(title: String, subtitle: String?) {
-    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap())) {
         Text(
             title,
             style = MaterialTheme.typography.titleMedium,
@@ -367,7 +367,7 @@ fun YSecondaryButton(
 
 @Composable
 fun YSectionTitle(title: String, subtitle: String? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap())) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         if (!subtitle.isNullOrBlank()) {
             Text(

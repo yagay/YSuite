@@ -18,6 +18,8 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import com.yagay.yui.YUiGeometry;
+import com.yagay.yui.YOverlayUi;
 
 /**
  * Frozen-screen Circle workspace with cached OCR text, gesture selection and editable screenshots.
@@ -114,9 +116,6 @@ final class FLCircleInlineOverlay {
         private static final float TEXT_HANDLE_HIT_DP = 28f;
         private static final float TEXT_HANDLE_SNAP_DP = 96f;
 
-        private static final float CLOSE_SIZE_DP = 42f;
-        private static final float CLOSE_EDGE_MARGIN_DP = 14f;
-        private static final float CLOSE_BOTTOM_GAP_DP = 18f;
         private static final long CLOSE_MOVE_LONG_PRESS_MS = 350L;
 
         private final Context context;
@@ -203,7 +202,7 @@ final class FLCircleInlineOverlay {
 
             strokeGlow.setColor(YFloatOverlayStyle.accentWithAlpha(c, 0x66));
             strokeGlow.setStyle(Paint.Style.STROKE);
-            strokeGlow.setStrokeWidth(dp(10));
+            strokeGlow.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c) * 3f);
             strokeGlow.setStrokeCap(Paint.Cap.ROUND);
             strokeGlow.setStrokeJoin(Paint.Join.ROUND);
 
@@ -229,7 +228,7 @@ final class FLCircleInlineOverlay {
             closePaint.setColor(YFloatOverlayStyle.surface(c));
             closeGlyphPaint.setColor(YFloatOverlayStyle.primaryText(c));
             closeGlyphPaint.setStyle(Paint.Style.STROKE);
-            closeGlyphPaint.setStrokeWidth(dp(2));
+            closeGlyphPaint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
             closeGlyphPaint.setStrokeCap(Paint.Cap.ROUND);
 
             hintPaint.setColor(YFloatOverlayStyle.surface(c));
@@ -295,7 +294,7 @@ final class FLCircleInlineOverlay {
         }
 
         private void drawScreenshotHandles(Canvas canvas, RectF selected) {
-            float radius = dp(6);
+            float radius = YUiGeometry.overlayHandleRadiusPx(context, "yfloat");
             canvas.drawCircle(selected.left, selected.centerY(), radius, screenshotHandlePaint);
             canvas.drawCircle(selected.right, selected.centerY(), radius, screenshotHandlePaint);
             canvas.drawCircle(selected.centerX(), selected.top, radius, screenshotHandlePaint);
@@ -304,25 +303,27 @@ final class FLCircleInlineOverlay {
 
         private void drawScreenshotConfirm(Canvas canvas, RectF selected) {
             String label = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6f1359d0747a);
-            float width = dp(64);
-            float height = dp(36);
-            float gap = dp(8);
-            float left = Math.max(dp(4), Math.min(getWidth() - width - dp(4), selected.right - width));
+            float inset = YOverlayUi.contentPaddingPx(context, "yfloat");
+            float width = Math.min(Math.max(1f, getWidth() - inset * 2),
+                    YUiGeometry.overlayActionWidthPx(context, "yfloat", confirmTextPaint.measureText(label)));
+            float height = YOverlayUi.actionHeightPx(context, "yfloat");
+            float gap = YFloatOverlayStyle.controlGap(context);
+            float left = Math.max(inset, Math.min(getWidth() - width - inset, selected.right - width));
             float top = selected.bottom + gap;
-            if (top + height > getHeight() - dp(4)) top = selected.top - gap - height;
-            if (top < dp(4)) top = dp(4);
+            if (top + height > getHeight() - inset) top = selected.top - gap - height;
+            if (top < inset) top = inset;
             confirmRect.set(left, top, left + width, top + height);
-            canvas.drawRoundRect(confirmRect, height / 2f, height / 2f, confirmPaint);
+            canvas.drawRoundRect(confirmRect, YFloatOverlayStyle.buttonRadius(context), YFloatOverlayStyle.buttonRadius(context), confirmPaint);
             Paint.FontMetrics fm = confirmTextPaint.getFontMetrics();
             float baseline = confirmRect.centerY() - (fm.ascent + fm.descent) / 2f;
-            canvas.drawText(label, confirmRect.centerX(), baseline, confirmTextPaint);
+            SelectionVisuals.drawFittedText(canvas, label, confirmRect.centerX(), baseline, Math.max(0f, width - inset * 2), confirmTextPaint);
         }
 
         private void drawTextSelection(Canvas canvas) {
             if (!textSelection.hasSelection()) return;
             for (int index : textSelection.selectionIndices()) {
                 RectF box = textSelection.wordViewRect(index, getWidth(), getHeight());
-                if (!box.isEmpty()) canvas.drawRoundRect(box, dp(2), dp(2), textSelectedPaint);
+                if (!box.isEmpty()) canvas.drawRoundRect(box, YFloatOverlayStyle.buttonRadius(context) / 4f, YFloatOverlayStyle.buttonRadius(context) / 4f, textSelectedPaint);
             }
             drawTextHandles(canvas, textSelection.low(), textSelection.high());
         }
@@ -332,8 +333,8 @@ final class FLCircleInlineOverlay {
             RectF first = textSelection.wordViewRect(lo, getWidth(), getHeight());
             RectF last = textSelection.wordViewRect(hi, getWidth(), getHeight());
             if (first.isEmpty() || last.isEmpty()) return;
-            float stem = dp(7);
-            float radius = dp(7);
+            float radius = YUiGeometry.overlayHandleRadiusPx(context, "yfloat");
+            float stem = radius;
             canvas.drawLine(first.left, first.bottom, first.left, first.bottom + stem, textHandlePaint);
             canvas.drawCircle(first.left, first.bottom + stem, radius, textHandlePaint);
             canvas.drawLine(last.right, last.bottom, last.right, last.bottom + stem, textHandlePaint);
@@ -361,7 +362,7 @@ final class FLCircleInlineOverlay {
             canvas.drawOval(closeRect, closePaint);
             float cx = closeRect.centerX();
             float cy = closeRect.centerY();
-            float d = dp(7);
+            float d = YUiGeometry.overlayHandleRadiusPx(context, "yfloat");
             canvas.drawLine(cx - d, cy - d, cx + d, cy + d, closeGlyphPaint);
             canvas.drawLine(cx + d, cy - d, cx - d, cy + d, closeGlyphPaint);
         }
@@ -377,7 +378,7 @@ final class FLCircleInlineOverlay {
                 closeCenterY = getHeight() * (yBp / 10000f);
             } else {
                 closeCenterX = getWidth() / 2f;
-                closeCenterY = getHeight() - dp(CLOSE_BOTTOM_GAP_DP) - dp(CLOSE_SIZE_DP) / 2f;
+                closeCenterY = getHeight() - YFloatOverlayStyle.controlGap(context) - YUiGeometry.overlayCloseSizePx(context, "yfloat") / 2f;
             }
         }
 
@@ -385,8 +386,8 @@ final class FLCircleInlineOverlay {
             ensureClosePosition();
             if (Float.isNaN(closeCenterX) || Float.isNaN(closeCenterY)) return;
 
-            float half = dp(CLOSE_SIZE_DP) / 2f;
-            float margin = dp(CLOSE_EDGE_MARGIN_DP);
+            float half = YUiGeometry.overlayCloseSizePx(context, "yfloat") / 2f;
+            float margin = YOverlayUi.contentPaddingPx(context, "yfloat");
             float minX = margin + half;
             float maxX = Math.max(minX, getWidth() - margin - half);
             float minY = margin + half;
@@ -432,28 +433,31 @@ final class FLCircleInlineOverlay {
                 text = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fd87268d0c52);
             }
 
-            float width = Math.min(getWidth() - dp(32), hintTextPaint.measureText(text) + dp(30));
-            float height = dp(38);
+            float inset = YOverlayUi.contentPaddingPx(context, "yfloat");
+            float width = Math.max(1f, Math.min(getWidth() - inset * 2,
+                    YUiGeometry.overlayActionWidthPx(context, "yfloat", hintTextPaint.measureText(text))));
+            float height = YOverlayUi.actionHeightPx(context, "yfloat");
             float left = (getWidth() - width) / 2f;
-            float top = Math.max(dp(70), getHeight() - height - dp(22));
+            float topLimit = YFloatOverlayStyle.controlGap(context) + height;
+            float top = Math.max(topLimit, getHeight() - height - inset);
             RectF pill = new RectF(left, top, left + width, top + height);
 
             if (!closeRect.isEmpty() && RectF.intersects(pill, closeRect)) {
-                float gap = dp(12);
+                float gap = YFloatOverlayStyle.controlGap(context);
                 float above = closeRect.top - gap - height;
                 float below = closeRect.bottom + gap;
-                if (above >= dp(70)) {
+                if (above >= topLimit) {
                     top = above;
-                } else if (below + height <= getHeight() - dp(4)) {
+                } else if (below + height <= getHeight() - inset) {
                     top = below;
                 }
                 pill.set(left, top, left + width, top + height);
             }
 
-            canvas.drawRoundRect(pill, height / 2f, height / 2f, hintPaint);
+            canvas.drawRoundRect(pill, YOverlayUi.cornerRadiusPx(context, "yfloat"), YOverlayUi.cornerRadiusPx(context, "yfloat"), hintPaint);
             Paint.FontMetrics fm = hintTextPaint.getFontMetrics();
             float baseline = pill.centerY() - (fm.ascent + fm.descent) / 2f;
-            canvas.drawText(text, pill.centerX(), baseline, hintTextPaint);
+            SelectionVisuals.drawFittedText(canvas, text, pill.centerX(), baseline, Math.max(0f, width - inset * 2), hintTextPaint);
         }
 
         @Override public boolean onTouchEvent(MotionEvent event) {

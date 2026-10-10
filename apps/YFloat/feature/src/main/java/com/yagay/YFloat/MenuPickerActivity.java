@@ -254,8 +254,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
                                                    String hint,
                                                    java.util.function.Consumer<String> onQuery) {
         LinearLayout box = YViewLayout.settingBlock(this);
-        box.setPadding(YViewLayout.dp(this, 2), YViewLayout.dp(this, 2),
-                YViewLayout.dp(this, 2), YViewLayout.dp(this, 7));
+        box.setPadding(Math.max(0, YView.controlGap(this) / 4), Math.max(0, YView.controlGap(this) / 4),
+                Math.max(0, YView.controlGap(this) / 4), YView.controlGap(this));
 
         android.widget.EditText input = new android.widget.EditText(this);
         YViewLayout.styleInput(this, input);
@@ -266,7 +266,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = YViewLayout.dp(this, 3);
+        lp.bottomMargin = Math.max(0, YView.controlGap(this) / 4);
         root.addView(box, lp);
 
         input.addTextChangedListener(new android.text.TextWatcher() {
@@ -401,8 +401,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
         YViewSection tools = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1e1616217b08), null);
         LinearLayout buttons = new LinearLayout(this);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setPadding(YViewLayout.dp(this, 14), YViewLayout.dp(this, 8),
-                YViewLayout.dp(this, 14), YViewLayout.dp(this, 8));
+        buttons.setPadding(YView.cardPadding(this), Math.max(0, YView.controlGap(this) / 2),
+                YView.cardPadding(this), Math.max(0, YView.controlGap(this) / 2));
         MaterialButton add = YViewLayout.secondaryButton(this,
                 isShareTarget() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c));
         add.setOnClickListener(v -> showTargetAdd());
@@ -414,10 +414,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
             showTargetManager();
         });
         LinearLayout.LayoutParams aLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        aLp.setMarginEnd(YViewLayout.dp(this, 6));
+        aLp.setMarginEnd(Math.max(0, YView.controlGap(this) / 2));
         buttons.addView(add, aLp);
         LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        rLp.setMarginStart(YViewLayout.dp(this, 6));
+        rLp.setMarginStart(Math.max(0, YView.controlGap(this) / 2));
         buttons.addView(reset, rLp);
         YViewLayout.addRow(tools.body, buttons);
         YViewLayout.addSection(root, tools);
@@ -653,7 +653,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         } else {
             ImageView arrow = iconButton(R.drawable.yfloat_ic_chevron_right, true, null);
             arrow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            row.addView(arrow, new LinearLayout.LayoutParams(dp(28), YView.touchTarget(this)));
+            row.addView(arrow, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
         }
         row.setOnClickListener(v -> { if (action != null) action.run(); });
         return row;
@@ -690,13 +690,13 @@ public final class MenuPickerActivity extends AppCompatActivity {
         MaterialButton back = YViewLayout.secondaryButton(this, label);
         back.setIconResource(R.drawable.yfloat_ic_arrow_back);
         back.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
-        back.setIconPadding(dp(8));
+        back.setIconPadding(Math.max(0, YView.controlGap(this) / 2));
         back.setOnClickListener(v -> {
             Runnable action = localBackAction;
             if (action != null) action.run();
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = YViewLayout.dp(this, 12);
+        lp.bottomMargin = YView.sectionGap(this);
         root.addView(back, lp);
     }
 
@@ -717,7 +717,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
         view.setClickable(enabled);
         view.setFocusable(enabled);
         view.setContentDescription(contentDescription);
-        view.setPadding(dp(8), dp(8), dp(8), dp(8));
+        int padding = Math.max(0, YView.controlGap(this) / 2);
+        view.setPadding(padding, padding, padding, padding);
         view.setAlpha(enabled ? 1f : 0.38f);
         view.setColorFilter(enabled ? YViewLayout.textPrimary(this) : YViewLayout.textSecondary(this));
         android.util.TypedValue out = new android.util.TypedValue();
