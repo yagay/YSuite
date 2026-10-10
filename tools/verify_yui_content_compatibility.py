@@ -41,6 +41,10 @@ def main() -> int:
                       "BoxWithConstraints(Modifier.fillMaxSize().imePadding())",
                       "speedLimitDraft",
                       "YUiAlertDialog(")
+    errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadWorkspace.kt",
+                      "val effectiveTabId =",
+                      "selectedKey = effectiveTabId",
+                      "content(adaptive, effectiveTabId)")
     errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/FileExplorerAdvancedComponents.kt",
                       "modifier = Modifier.widthIn(max = 120.dp)",
                       "tabs.size > 1 && tab.id == tabs[selected].id")

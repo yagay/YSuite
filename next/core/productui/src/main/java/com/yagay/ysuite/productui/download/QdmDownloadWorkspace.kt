@@ -91,6 +91,11 @@ fun QdmDownloadWorkspace(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var fabExpanded by remember { mutableStateOf(false) }
+    // Visual selection and filtered content must never disagree for stale saved tab IDs.
+    val effectiveTabId =
+        tabs.firstOrNull { it.id == selectedTabId }?.id
+            ?: tabs.firstOrNull()?.id
+            ?: selectedTabId
 
     YSuiteProductPage(
         surfaceKind = ProductSurfaceKind.DownloadManager,
@@ -270,7 +275,7 @@ fun QdmDownloadWorkspace(
             if (tabs.isNotEmpty()) {
                 YTabBar(
                     tabs = tabs.map { YTabSpec(key = it.id, label = it.label) },
-                    selectedKey = selectedTabId,
+                    selectedKey = effectiveTabId,
                     onSelected = { onTabSelected(it.key) },
                 )
             }
@@ -351,6 +356,6 @@ fun QdmDownloadWorkspace(
             }
         },
     ) { adaptive ->
-        content(adaptive, selectedTabId)
+        content(adaptive, effectiveTabId)
     }
  }

@@ -71,6 +71,9 @@ jobs:
           test -s "${ANDROID_HOME}/platforms/android-${{ steps.versions.outputs.android_platform }}/android.jar"
           test -x "${ANDROID_HOME}/build-tools/${{ steps.versions.outputs.build_tools }}/aapt2"
 
+      - name: Verify responsive YUI field geometry
+        run: gradle --no-daemon --stacktrace :ui:testDebugUnitTest --tests com.yagay.yui.YResponsiveContentTest
+
       - name: Test YFiles and YDownload feature migration
         run: gradle --no-daemon --stacktrace :api:testDebugUnitTest :yfiles-feature:testDebugUnitTest :ydownload-feature:testDebugUnitTest
 
