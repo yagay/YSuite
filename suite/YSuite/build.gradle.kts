@@ -4,7 +4,7 @@ plugins {
 }
 
 val suiteHostVersionCode = providers.gradleProperty("ySuiteHostVersionCode")
-    .orNull?.toIntOrNull() ?: 54
+    .orNull?.toIntOrNull() ?: 55
 val suiteAbiFilters = providers.gradleProperty("ySuiteAbiFilters")
     .orNull
     ?.split(',')
