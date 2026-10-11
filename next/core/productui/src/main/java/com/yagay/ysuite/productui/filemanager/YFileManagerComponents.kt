@@ -544,7 +544,8 @@ fun YFileEntryRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
+                    maxLines = LocalYAppearance.current.fileItemTitleMaxLines.takeIf { it > 0 }
+                        ?: Int.MAX_VALUE,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (!subtitle.isNullOrBlank()) {
@@ -552,7 +553,8 @@ fun YFileEntryRow(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = LocalYAppearance.current.fileItemSubtitleMaxLines.takeIf { it > 0 }
+                            ?: Int.MAX_VALUE,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -631,8 +633,10 @@ fun FileExplorerDetailRow(
         title = title,
         subtitle = subtitle,
         onClick = onClick,
-        titleMaxLines = 3,
-        subtitleMaxLines = 6,
+        titleMaxLines = LocalYAppearance.current.fileDetailTitleMaxLines.takeIf { it > 0 }
+            ?: Int.MAX_VALUE,
+        subtitleMaxLines = LocalYAppearance.current.fileDetailSubtitleMaxLines.takeIf { it > 0 }
+            ?: Int.MAX_VALUE,
     )
 }
 

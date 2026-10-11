@@ -121,4 +121,14 @@
     <string name="appearance_switch_track_height">Switch track height (dp)</string>
     <string name="appearance_switch_thumb_size">Switch thumb diameter (dp)</string>
     <string name="appearance_switch_label_gap">Extra space before switch (dp)</string>
+    <string name="appearance_button_label_max_lines">Button label maximum lines (0 = unlimited)</string>
+    <string name="appearance_action_row_mode">Action button row layout</string>
+    <string name="appearance_action_row_auto">Automatic: wrap into vertical rows when needed</string>
+    <string name="appearance_action_row_stacked">Always stack action buttons vertically</string>
+    <string name="appearance_file_item_title_max_lines">File list name maximum lines (0 = unlimited)</string>
+    <string name="appearance_file_item_subtitle_max_lines">File list description maximum lines (0 = unlimited)</string>
+    <string name="appearance_file_detail_title_max_lines">File details heading maximum lines (0 = unlimited)</string>
+    <string name="appearance_file_detail_subtitle_max_lines">File details description maximum lines (0 = unlimited)</string>
+    <string name="appearance_tab_label_max_lines">Tab label maximum lines (0 = unlimited)</string>
+    <string name="appearance_unit_lines">lines</string>
 </resources>

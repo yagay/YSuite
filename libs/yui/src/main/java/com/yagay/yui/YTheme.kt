@@ -386,7 +386,12 @@ fun YPrimaryButton(
     enabled: Boolean = true,
 ) {
     YUiButton(onClick = onClick, modifier = modifier, enabled = enabled) {
-        Text(text, softWrap = true)
+        Text(
+            text,
+            softWrap = true,
+            maxLines = LocalYAppearance.current.buttonLabelMaxLines.takeIf { it > 0 } ?: Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -398,7 +403,12 @@ fun YSecondaryButton(
     enabled: Boolean = true,
 ) {
     YUiOutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled) {
-        Text(text, softWrap = true)
+        Text(
+            text,
+            softWrap = true,
+            maxLines = LocalYAppearance.current.buttonLabelMaxLines.takeIf { it > 0 } ?: Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

@@ -327,6 +327,51 @@ class YAppearanceStoreTest {
     }
 
     @Test
+    fun specialButtonAndFileLayoutSettingsAreEditableAndScoped() {
+        val defaults = store.appearance()
+        assertEquals(0, defaults.buttonLabelMaxLines)
+        assertEquals("auto", defaults.actionRowMode)
+        assertEquals(1, defaults.fileItemTitleMaxLines)
+        assertEquals(1, defaults.fileItemSubtitleMaxLines)
+        assertEquals(3, defaults.fileDetailTitleMaxLines)
+        assertEquals(6, defaults.fileDetailSubtitleMaxLines)
+        assertEquals(1, defaults.tabLabelMaxLines)
+
+        store.set(YSettingKey.BUTTON_LABEL_MAX_LINES, "4")
+        store.set(YSettingKey.ACTION_ROW_MODE, "stacked", "ypower")
+        store.set(YSettingKey.FILE_ITEM_TITLE_MAX_LINES, "0", "yfiles")
+        store.set(YSettingKey.FILE_ITEM_SUBTITLE_MAX_LINES, "3", "yfiles")
+        store.set(YSettingKey.FILE_DETAIL_TITLE_MAX_LINES, "0", "yfiles")
+        store.set(YSettingKey.FILE_DETAIL_SUBTITLE_MAX_LINES, "12", "yfiles")
+        store.set(YSettingKey.TAB_LABEL_MAX_LINES, "2")
+        assertEquals(4, store.appearance("ypower").buttonLabelMaxLines)
+        assertEquals("stacked", store.appearance("ypower").actionRowMode)
+        assertEquals("auto", store.appearance("yfiles").actionRowMode)
+        assertEquals(0, store.appearance("yfiles").fileItemTitleMaxLines)
+        assertEquals(3, store.appearance("yfiles").fileItemSubtitleMaxLines)
+        assertEquals(0, store.appearance("yfiles").fileDetailTitleMaxLines)
+        assertEquals(12, store.appearance("yfiles").fileDetailSubtitleMaxLines)
+        assertEquals(1, store.appearance("ynotify").fileItemTitleMaxLines)
+        assertEquals(2, store.appearance().tabLabelMaxLines)
+
+        val json = store.exportJson()
+        store.reset()
+        store.reset("ypower")
+        store.reset("yfiles")
+        store.importJson(json)
+        assertEquals("stacked", store.appearance("ypower").actionRowMode)
+        assertEquals(0, store.appearance("yfiles").fileItemTitleMaxLines)
+        assertEquals(12, store.appearance("yfiles").fileDetailSubtitleMaxLines)
+        assertEquals(4, store.appearance().buttonLabelMaxLines)
+        assertTrue(YUiControlRegistry.forGroup(YControlGroup.BUTTONS)
+            .any { it.key == YSettingKey.BUTTON_LABEL_MAX_LINES })
+        assertTrue(YUiControlRegistry.forGroup(YControlGroup.LISTS)
+            .any { it.key == YSettingKey.FILE_DETAIL_SUBTITLE_MAX_LINES })
+        assertTrue(runCatching { store.set(YSettingKey.ACTION_ROW_MODE, "grid") }.isFailure)
+        assertTrue(runCatching { store.set(YSettingKey.FILE_ITEM_TITLE_MAX_LINES, "21") }.isFailure)
+    }
+
+    @Test
     fun productLayoutGeometryReadsSingleStoreAndInheritsGlobalChanges() {
         assertEquals(100, store.appearance("yfiles").contentWidthPercent)
         assertEquals(100, store.appearance("ydownload").paneWidthPercent)

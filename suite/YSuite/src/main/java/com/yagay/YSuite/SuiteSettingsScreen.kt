@@ -466,6 +466,10 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
                 YSettingKey.CONTENT_WIDTH_SCALE, YSettingKey.PANE_WIDTH_SCALE,
                 YSettingKey.SWITCH_SCALE_PERCENT -> "%"
                 YSettingKey.FLOAT_MENU_COUNT -> ""
+                YSettingKey.BUTTON_LABEL_MAX_LINES, YSettingKey.FILE_ITEM_TITLE_MAX_LINES,
+                YSettingKey.FILE_ITEM_SUBTITLE_MAX_LINES, YSettingKey.FILE_DETAIL_TITLE_MAX_LINES,
+                YSettingKey.FILE_DETAIL_SUBTITLE_MAX_LINES, YSettingKey.TAB_LABEL_MAX_LINES ->
+                    stringResource(R.string.appearance_unit_lines)
                 else -> "dp"
             }
             var draft by remember(definition.key, value) { mutableStateOf(value) }
@@ -570,10 +574,17 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.ACCENT -> R.string.appearance_accent
     YSettingKey.BUTTON_HEIGHT -> R.string.appearance_button_height
     YSettingKey.BUTTON_VERTICAL_PADDING -> R.string.appearance_button_vertical_padding
+    YSettingKey.BUTTON_LABEL_MAX_LINES -> R.string.appearance_button_label_max_lines
+    YSettingKey.ACTION_ROW_MODE -> R.string.appearance_action_row_mode
     YSettingKey.ROW_HEIGHT -> R.string.appearance_row_height
     YSettingKey.LIST_ICON_SIZE -> R.string.appearance_list_icon_size
     YSettingKey.ROW_HORIZONTAL_PADDING -> R.string.appearance_row_horizontal_padding
     YSettingKey.ROW_VERTICAL_PADDING -> R.string.appearance_row_vertical_padding
+    YSettingKey.FILE_ITEM_TITLE_MAX_LINES -> R.string.appearance_file_item_title_max_lines
+    YSettingKey.FILE_ITEM_SUBTITLE_MAX_LINES -> R.string.appearance_file_item_subtitle_max_lines
+    YSettingKey.FILE_DETAIL_TITLE_MAX_LINES -> R.string.appearance_file_detail_title_max_lines
+    YSettingKey.FILE_DETAIL_SUBTITLE_MAX_LINES -> R.string.appearance_file_detail_subtitle_max_lines
+    YSettingKey.TAB_LABEL_MAX_LINES -> R.string.appearance_tab_label_max_lines
     YSettingKey.CARD_RADIUS -> R.string.appearance_card_radius
     YSettingKey.CARD_PADDING -> R.string.appearance_card_padding
     YSettingKey.CARD_OUTLINE_WIDTH -> R.string.appearance_card_outline_width
@@ -628,6 +639,10 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
 }
 
 private fun choiceTitle(key: YSettingKey, choice: String): Int = when (key) {
+    YSettingKey.ACTION_ROW_MODE -> when (choice) {
+        "stacked" -> R.string.appearance_action_row_stacked
+        else -> R.string.appearance_action_row_auto
+    }
     YSettingKey.FLOAT_BORDER_COLOR -> when (choice) {
         "green" -> R.string.appearance_overlay_green
         "cyan" -> R.string.appearance_overlay_cyan

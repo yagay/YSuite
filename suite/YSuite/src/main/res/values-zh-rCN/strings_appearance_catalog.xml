@@ -121,4 +121,14 @@
     <string name="appearance_switch_track_height">开关轨道高度（dp）</string>
     <string name="appearance_switch_thumb_size">开关圆点直径（dp）</string>
     <string name="appearance_switch_label_gap">开关与文字额外间距（dp）</string>
+    <string name="appearance_button_label_max_lines">按钮文字最大行数（0 = 不限制）</string>
+    <string name="appearance_action_row_mode">操作按钮排列方式</string>
+    <string name="appearance_action_row_auto">自动：空间不足时纵向排列</string>
+    <string name="appearance_action_row_stacked">始终纵向排列操作按钮</string>
+    <string name="appearance_file_item_title_max_lines">文件列表名称最大行数（0 = 不限制）</string>
+    <string name="appearance_file_item_subtitle_max_lines">文件列表说明最大行数（0 = 不限制）</string>
+    <string name="appearance_file_detail_title_max_lines">文件详情标题最大行数（0 = 不限制）</string>
+    <string name="appearance_file_detail_subtitle_max_lines">文件详情说明最大行数（0 = 不限制）</string>
+    <string name="appearance_tab_label_max_lines">标签栏文字最大行数（0 = 不限制）</string>
+    <string name="appearance_unit_lines">行</string>
 </resources>

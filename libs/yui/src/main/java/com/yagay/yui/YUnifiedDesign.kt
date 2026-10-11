@@ -655,6 +655,9 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
                         action.label,
                         color = if (action.enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         softWrap = true,
+                        maxLines = LocalYAppearance.current.buttonLabelMaxLines.takeIf { it > 0 }
+                            ?: Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -708,6 +711,9 @@ fun YTabBar(tabs: List<YTabSpec>, selectedKey: String, onSelected: (YTabSpec) ->
                 text = {
                     Text(
                         tab.label,
+                        maxLines = LocalYAppearance.current.tabLabelMaxLines.takeIf { it > 0 }
+                            ?: Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
             )

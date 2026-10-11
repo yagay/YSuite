@@ -154,8 +154,9 @@ object YView {
         // MaterialButton/AppCompat themes may force a single line or ellipsis. Let
         // the TextView measure its entire label; WRAP_CONTENT rows then grow safely.
         button.isSingleLine = false
-        button.maxLines = Int.MAX_VALUE
-        button.ellipsize = null
+        val labelLimit = displayRules(context).appearance.buttonLabelMaxLines
+        button.maxLines = labelLimit.takeIf { it > 0 } ?: Int.MAX_VALUE
+        button.ellipsize = if (labelLimit > 0) android.text.TextUtils.TruncateAt.END else null
         button.setHorizontallyScrolling(false)
         button.minWidth = 0
         val horizontal = buttonHorizontalPadding(context)

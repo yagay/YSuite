@@ -33,9 +33,16 @@ enum class YSettingKey(
     ACCENT("accent", "default"),
     BUTTON_HEIGHT("button_height", "48", 16, 320),
     BUTTON_VERTICAL_PADDING("button_vertical_padding", "4", 0, 256),
+    BUTTON_LABEL_MAX_LINES("button_label_max_lines", "0", 0, 20),
+    ACTION_ROW_MODE("action_row_mode", "auto"),
     ROW_HEIGHT("row_height", "56", 0, 320),
     ROW_HORIZONTAL_PADDING("row_horizontal_padding", "16", 0, 512),
     ROW_VERTICAL_PADDING("row_vertical_padding", "6", 0, 256),
+    FILE_ITEM_TITLE_MAX_LINES("file_item_title_max_lines", "1", 0, 20),
+    FILE_ITEM_SUBTITLE_MAX_LINES("file_item_subtitle_max_lines", "1", 0, 20),
+    FILE_DETAIL_TITLE_MAX_LINES("file_detail_title_max_lines", "3", 0, 20),
+    FILE_DETAIL_SUBTITLE_MAX_LINES("file_detail_subtitle_max_lines", "6", 0, 20),
+    TAB_LABEL_MAX_LINES("tab_label_max_lines", "1", 0, 12),
     CARD_RADIUS("card_radius", "16", 0, 512),
     CARD_PADDING("card_padding", "16", 0, 512),
     CARD_OUTLINE_WIDTH("card_outline_width", "1", 0, 24),
@@ -94,6 +101,7 @@ enum class YSettingKey(
             THEME -> value in setOf("system", "light", "dark")
             DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS, FLOAT_TRAIL_GRADIENT, FLOAT_BORDER_VISIBLE, FLOAT_TRAIL_VISIBLE, GOOGLE_FRAME_YUI_COLOR -> value in setOf("true", "false")
             DENSITY -> value in setOf("compact", "standard", "comfortable")
+            ACTION_ROW_MODE -> value in setOf("auto", "stacked")
             ACCENT -> value in setOf("default", "blue", "teal", "green", "purple", "orange")
             FLOAT_BORDER_COLOR -> value in setOf("blue", "green", "cyan", "purple", "orange", "red", "white")
             FLOAT_ICON_STYLE -> value in setOf("blue", "dark", "light", "custom", "slideshow")
@@ -119,9 +127,16 @@ data class YAppearance(
     val accent: String = "default",
     val buttonHeightDp: Int = 48,
     val buttonVerticalPaddingDp: Int = 4,
+    val buttonLabelMaxLines: Int = 0,
+    val actionRowMode: String = "auto",
     val rowHeightDp: Int = 56,
     val rowHorizontalPaddingDp: Int = 16,
     val rowVerticalPaddingDp: Int = 6,
+    val fileItemTitleMaxLines: Int = 1,
+    val fileItemSubtitleMaxLines: Int = 1,
+    val fileDetailTitleMaxLines: Int = 3,
+    val fileDetailSubtitleMaxLines: Int = 6,
+    val tabLabelMaxLines: Int = 1,
     val cardRadiusDp: Int = 16,
     val cardPaddingDp: Int = 16,
     val cardOutlineWidthDp: Int = 1,
@@ -215,9 +230,16 @@ class YAppearanceStore(context: Context) {
         accent = value(YSettingKey.ACCENT, moduleId),
         buttonHeightDp = value(YSettingKey.BUTTON_HEIGHT, moduleId).toInt(),
         buttonVerticalPaddingDp = value(YSettingKey.BUTTON_VERTICAL_PADDING, moduleId).toInt(),
+        buttonLabelMaxLines = value(YSettingKey.BUTTON_LABEL_MAX_LINES, moduleId).toInt(),
+        actionRowMode = value(YSettingKey.ACTION_ROW_MODE, moduleId),
         rowHeightDp = value(YSettingKey.ROW_HEIGHT, moduleId).toInt(),
         rowHorizontalPaddingDp = value(YSettingKey.ROW_HORIZONTAL_PADDING, moduleId).toInt(),
         rowVerticalPaddingDp = value(YSettingKey.ROW_VERTICAL_PADDING, moduleId).toInt(),
+        fileItemTitleMaxLines = value(YSettingKey.FILE_ITEM_TITLE_MAX_LINES, moduleId).toInt(),
+        fileItemSubtitleMaxLines = value(YSettingKey.FILE_ITEM_SUBTITLE_MAX_LINES, moduleId).toInt(),
+        fileDetailTitleMaxLines = value(YSettingKey.FILE_DETAIL_TITLE_MAX_LINES, moduleId).toInt(),
+        fileDetailSubtitleMaxLines = value(YSettingKey.FILE_DETAIL_SUBTITLE_MAX_LINES, moduleId).toInt(),
+        tabLabelMaxLines = value(YSettingKey.TAB_LABEL_MAX_LINES, moduleId).toInt(),
         cardRadiusDp = value(YSettingKey.CARD_RADIUS, moduleId).toInt(),
         cardPaddingDp = value(YSettingKey.CARD_PADDING, moduleId).toInt(),
         cardOutlineWidthDp = value(YSettingKey.CARD_OUTLINE_WIDTH, moduleId).toInt(),

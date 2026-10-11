@@ -196,6 +196,53 @@ def run() -> None:
             "YViewLayout.secondaryButton(this, sideText)")
     require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/ResultUi.java",
             'YViewLayout.secondaryButton(YOverlayUi.scopedContext(c, "yfloat"), text)')
+    # Special layouts are not visual exceptions without controls. Every independent
+    # constraint must be exposed by YUiControlRegistry and consumed in its renderer.
+    special = {
+        "BUTTON_LABEL_MAX_LINES": ("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
+                                    "buttonLabelMaxLines"),
+        "ACTION_ROW_MODE": ("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+                            'actionRowMode == "stacked"'),
+        "FILE_ITEM_TITLE_MAX_LINES": (
+            "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+            "fileItemTitleMaxLines"),
+        "FILE_ITEM_SUBTITLE_MAX_LINES": (
+            "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+            "fileItemSubtitleMaxLines"),
+        "FILE_DETAIL_TITLE_MAX_LINES": (
+            "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+            "fileDetailTitleMaxLines"),
+        "FILE_DETAIL_SUBTITLE_MAX_LINES": (
+            "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+            "fileDetailSubtitleMaxLines"),
+        "TAB_LABEL_MAX_LINES": ("libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
+                                "tabLabelMaxLines"),
+    }
+    for key, (path, consumer) in special.items():
+        if f"YSettingKey.{key}" not in registry:
+            raise AssertionError(f"Special visual option is not listed in YUI: {key}")
+        if f"YSettingKey.{key} ->" not in settings:
+            raise AssertionError(f"Special visual option lacks a settings editor label: {key}")
+        if f"value(YSettingKey.{key}, moduleId)" not in store:
+            raise AssertionError(f"Special visual option is not read from the shared store: {key}")
+        require(path, consumer)
+    require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
+            "appearance.buttonLabelMaxLines")
+    require("libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
+            "buttonLabelMaxLines")
+    require("next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/FileExplorerAdvancedComponents.kt",
+            "fileItemTitleMaxLines", "fileItemSubtitleMaxLines", "tabLabelMaxLines")
+    for locale in ("values", "values-zh-rCN"):
+        catalog = "suite/YSuite/src/main/res/" + locale + "/strings_appearance_catalog.xml"
+        for entry in ("button_label_max_lines", "action_row_mode",
+                      "file_item_title_max_lines", "file_item_subtitle_max_lines",
+                      "file_detail_title_max_lines", "file_detail_subtitle_max_lines",
+                      "tab_label_max_lines", "unit_lines"):
+            require(catalog, 'name="appearance_' + entry + '"')
+    file_rows = source("next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt")
+    if "titleMaxLines = 3," in file_rows or "subtitleMaxLines = 6," in file_rows:
+        raise AssertionError("File detail max lines must be configured, not hard-coded")
+
     print(f"YUI appearance coverage: OK settings={len(keys)}, all exposed style keys "
           "registered, View/Compose input, buttons, chips, cards, overlays linked")
 

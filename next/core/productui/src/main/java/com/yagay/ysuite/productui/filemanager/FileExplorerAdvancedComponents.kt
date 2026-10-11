@@ -88,6 +88,9 @@ fun FileExplorerBrowserTabs(
                         ) {
                             Text(
                                 text = tab.title,
+                                maxLines = LocalYAppearance.current.tabLabelMaxLines.takeIf { it > 0 }
+                                    ?: Int.MAX_VALUE,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             // Inactive tabs remain closable after selecting them first.
                             // Showing 48dp close targets on every tab would hide names.
@@ -305,7 +308,8 @@ private fun FileExplorerGridItem(
                 style =
                     MaterialTheme.typography
                         .bodyMedium,
-                maxLines = 2,
+                maxLines = LocalYAppearance.current.fileItemTitleMaxLines.takeIf { it > 0 }
+                    ?: Int.MAX_VALUE,
                 overflow =
                     TextOverflow.Ellipsis,
             )
@@ -324,7 +328,8 @@ private fun FileExplorerGridItem(
                             MaterialTheme
                                 .colorScheme
                                 .onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = LocalYAppearance.current.fileItemSubtitleMaxLines.takeIf { it > 0 }
+                            ?: Int.MAX_VALUE,
                         overflow =
                             TextOverflow
                                 .Ellipsis,

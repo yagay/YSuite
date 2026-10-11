@@ -90,6 +90,22 @@ class YViewFilterBar(
 internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
     // Keep non-button form controls flexible while every action button sizes to its label.
     private val flexibleWeights = mutableMapOf<View, Float>()
+    private val appearanceStore = YAppearanceStore(context)
+    private val appearanceListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        post { if (isAttachedToWindow) requestLayout() }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        appearanceStore.registerPreferenceListener(appearanceListener)
+        requestLayout()
+    }
+
+    override fun onDetachedFromWindow() {
+        appearanceStore.unregisterPreferenceListener(appearanceListener)
+        super.onDetachedFromWindow()
+    }
+
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -118,7 +134,8 @@ internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
             )
             required += child.measuredWidth + if (index == 0) 0 else gap
         }
-        val stack = required > available
+        val stack = YView.displayRules(context).appearance.actionRowMode == "stacked" ||
+            required > available
         orientation = if (stack) VERTICAL else HORIZONTAL
         for (index in 0 until childCount) {
             val child = getChildAt(index)
