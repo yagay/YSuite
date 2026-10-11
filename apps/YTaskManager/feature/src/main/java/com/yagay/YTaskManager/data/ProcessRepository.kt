@@ -62,7 +62,15 @@ class ProcessRepository(
             done
         """.trimIndent()
 
-        val raw = shell.execute(script, 18_000).stdout
+        val raw = try {
+            shell.execute(script, 18_000).stdout
+        } catch (cancel: kotlinx.coroutines.CancellationException) {
+            throw cancel
+        } catch (_: Exception) {
+            // Some OEM procfs scans time out or restrict access. Still try the
+            // independent Android ps command rather than treating this as fatal.
+            ""
+        }
         val parsed = parseProcDump(raw)
         if (parsed.isNotEmpty()) parsed else listProcessesFromPs()
     }
@@ -70,7 +78,7 @@ class ProcessRepository(
     /** Fallback for modern OEM kernels restricting /proc/<pid>/stat. */
     private suspend fun listProcessesFromPs(): List<ProcessEntry> {
         val first = shell.execute("ps -A -o PID,PPID,UID,NAME 2>/dev/null", 8_000).stdout
-        val raw = if (first.isNotBlank()) first
+        val raw = if (first.lineSequence().count() > 1) first
             else shell.execute("ps -A -o PID,PPID,USER,NAME 2>/dev/null", 8_000).stdout
         val byCommand = packageCache.flatMap { (uid, entries) ->
             entries.map { entry -> entry.packageName to (uid to entry) }

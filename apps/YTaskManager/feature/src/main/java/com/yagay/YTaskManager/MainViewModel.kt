@@ -77,12 +77,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 loading = rootGranted,
                 error = if (rootGranted) null else getApplication<Application>().getString(R.string.ytm_root_required)
             )
+            // Populate CPU/RAM immediately, without waiting for privileged /proc enumeration.
+            refreshPublicSnapshot(rootRequired = !rootGranted)
             if (rootGranted) {
                 refreshInternal()
                 startNetworkMonitor()
-            } else {
-                // A denied or not-yet-attached managed Root host must not freeze the UI.
-                refreshPublicSnapshot()
             }
             var lastRootProbe = android.os.SystemClock.elapsedRealtime()
             while (isActive) {
@@ -98,6 +97,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                     message = getApplication<Application>().getString(R.string.ytm_root_granted)
                                 ), loading = true, error = null
                             )
+                            refreshPublicSnapshot(rootRequired = false)
                             refreshInternal()
                             startNetworkMonitor()
                         } else refreshPublicSnapshot()
@@ -134,12 +134,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         start()
     }
 
-    private suspend fun refreshPublicSnapshot() {
+    private suspend fun refreshPublicSnapshot(rootRequired: Boolean = true) {
         val snapshot = runCatching { statsRepository.readUnprivileged(getApplication()) }.getOrNull()
             ?: return
         val old = _state.value
         _state.value = old.copy(system = snapshot, loading = false,
-            error = getApplication<Application>().getString(R.string.ytm_root_required))
+            error = if (rootRequired) getApplication<Application>().getString(R.string.ytm_root_required) else null)
     }
 
     fun loadProcessDetails(process: ProcessEntry, onLoaded: (ProcessEntry) -> Unit) {
