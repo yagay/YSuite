@@ -212,7 +212,7 @@ class NetworkRepository(
             map.getOrPut(app.uid) { mutableListOf() } += PackageIdentity(
                 packageName = app.packageName,
                 label = app.label,
-                icon = InstalledAppCatalog.icon(application, app.packageName, 64),
+                icon = null, // Visible network rows load from the shared icon cache.
                 system = app.system ||
                     (app.info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
             )

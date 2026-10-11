@@ -238,7 +238,7 @@ def main() -> None:
     require(ysuite, "YDashboardScaffold(", "YSuite main screen")
     require(ysuite, "YPageList(", "YSuite main screen")
     require(ysuite, "YSection(", "YSuite main screen")
-    require(ypower, "YViewLayout.install(", "YPower main screen")
+    require(ypower, "YViewLayout.installPage(", "YPower main screen")
     require(ypower, "YViewLayout.card(", "YPower main screen")
     require(yminiguard, "YViewLayout.install(", "YMiniGuard main screen")
     require(yminiguard, "YViewLayout.switchRow(", "YMiniGuard main screen")

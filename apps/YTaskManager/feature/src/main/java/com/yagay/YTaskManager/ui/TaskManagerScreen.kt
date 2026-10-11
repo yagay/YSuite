@@ -43,6 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import com.yagay.suite.api.InstalledAppCatalog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -397,7 +400,7 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
         title = title,
         subtitle = stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
         detail = stringResource(R.string.ytm_download_upload, formatSpeed(process.rxBytesPerSecond), formatSpeed(process.txBytesPerSecond)),
-        leading = { AppIcon(process.icon) },
+        leading = { AppIcon(process.icon, process.packageName) },
         trailing = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (process.isPinned) {
@@ -519,7 +522,7 @@ private fun NetworkRow(entry: NetworkEntry) {
             .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(entry.icon)
+        AppIcon(entry.icon, entry.packageNames.firstOrNull())
         Spacer(Modifier.size(LocalYAppearance.current.effectiveGapDp.dp))
         Column(Modifier.weight(1f)) {
             Text(entry.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -597,31 +600,42 @@ private fun HistoryChart(values: List<Float>) {
 }
 
 @Composable
-private fun AppIcon(drawable: Drawable?) {
+private fun AppIcon(drawable: Drawable?, packageName: String? = null) {
     val iconSize = LocalYAppearance.current.listIconSizeDp.dp
-    if (drawable == null) {
+    val density = LocalDensity.current
+    val px = with(density) { max(1, iconSize.roundToPx()) }
+    val context = LocalContext.current.applicationContext
+    // LazyColumn only composes visible rows. Decode through the shared app cache
+    // off the UI thread, rather than decoding every process during /proc enumeration.
+    var bitmap by remember(drawable, packageName, px) {
+        mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
+    }
+    LaunchedEffect(drawable, packageName, px) {
+        bitmap = withContext(Dispatchers.IO) {
+            when {
+                packageName != null -> InstalledAppCatalog.iconBitmap(
+                    context, packageName, px
+                )?.asImageBitmap()
+                drawable != null -> drawable.toBitmap(px, px).asImageBitmap()
+                else -> null
+            }
+        }
+    }
+    val loaded = bitmap
+    if (loaded == null) {
         Box(
-            modifier = Modifier
-                .size(iconSize)
-                .clip(MaterialTheme.shapes.small),
+            modifier = Modifier.size(iconSize).clip(MaterialTheme.shapes.small),
             contentAlignment = Alignment.Center,
         ) {
             Icon(Icons.Default.Memory, contentDescription = null)
         }
-        return
+    } else {
+        Image(
+            bitmap = loaded,
+            contentDescription = null,
+            modifier = Modifier.size(iconSize).clip(MaterialTheme.shapes.small),
+        )
     }
-    val density = LocalDensity.current
-    val px = with(density) { iconSize.roundToPx() }
-    val bitmap = remember(drawable, px) {
-        drawable.toBitmap(max(1, px), max(1, px)).asImageBitmap()
-    }
-    Image(
-        bitmap = bitmap,
-        contentDescription = null,
-        modifier = Modifier
-            .size(iconSize)
-            .clip(MaterialTheme.shapes.small),
-    )
 }
 
 @Composable

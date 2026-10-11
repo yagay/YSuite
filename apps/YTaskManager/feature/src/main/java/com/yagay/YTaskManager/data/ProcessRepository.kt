@@ -86,8 +86,10 @@ class ProcessRepository(
     /** Fallback for modern OEM kernels restricting /proc/<pid>/stat. */
     private suspend fun listProcessesFromPs(): List<ProcessEntry> {
         val first = shell.execute("ps -A -o PID,PPID,UID,RSS,NAME 2>/dev/null", 4_000).stdout
-        val raw = if (first.lineSequence().count() > 1) first
-            else shell.execute("ps -A -o PID,PPID,USER,RSS,NAME 2>/dev/null", 4_000).stdout
+        val raw = if (first.lineSequence().count() > 1) first else {
+            val names = shell.execute("ps -A -o PID,PPID,USER,RSS,NAME 2>/dev/null", 4_000).stdout
+            if (names.lineSequence().count() > 1) names else ""
+        }
         val byCommand = packageCache.flatMap { (uid, entries) ->
             entries.map { entry -> entry.packageName to (uid to entry) }
         }.toMap()

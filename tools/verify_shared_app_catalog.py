@@ -55,7 +55,9 @@ icon_consumers = {
     "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/RecommendedAppsActivity.java":
         ("InstalledAppCatalog.icon(this, preset.packageName",),
     "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/ProcessRepository.kt":
-        ("InstalledAppCatalog.icon(appContext, it, 64)",),
+        ("icon = null",),
+    "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt":
+        ("InstalledAppCatalog.iconBitmap(", "LaunchedEffect(drawable, packageName, px)"),
 }
 for rel, markers in icon_consumers.items():
     body = (ROOT / rel).read_text(encoding="utf-8")
