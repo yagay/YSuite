@@ -585,33 +585,26 @@ private fun NetworkPage(state: TaskManagerUiState) {
 
 @Composable
 private fun NetworkRow(entry: NetworkEntry) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppIcon(entry.icon, entry.packageNames.firstOrNull())
-        Spacer(Modifier.size(LocalYAppearance.current.effectiveGapDp.dp))
-        Column(Modifier.weight(1f)) {
-            Text(entry.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                stringResource(
-                    R.string.ytm_network_identity,
-                    entry.uid,
-                    if (entry.system) stringResource(R.string.ytm_system_suffix) else "",
-                    if (entry.packageNames.isNotEmpty()) stringResource(R.string.ytm_package_suffix, entry.packageNames.joinToString(", ")) else "",
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(stringResource(R.string.ytm_download_value, formatSpeed(entry.rxBytesPerSecond)), fontWeight = FontWeight.Medium)
-            Text(stringResource(R.string.ytm_upload_value, formatSpeed(entry.txBytesPerSecond)), style = MaterialTheme.typography.bodySmall)
-        }
-    }
+    YListItem(
+        title = entry.label,
+        subtitle = stringResource(
+            R.string.ytm_network_identity,
+            entry.uid,
+            if (entry.system) stringResource(R.string.ytm_system_suffix) else "",
+            if (entry.packageNames.isNotEmpty())
+                stringResource(R.string.ytm_package_suffix, entry.packageNames.joinToString(", "))
+            else "",
+        ),
+        leading = { AppIcon(entry.icon, entry.packageNames.firstOrNull()) },
+        trailing = {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(stringResource(R.string.ytm_download_value, formatSpeed(entry.rxBytesPerSecond)),
+                    style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.ytm_upload_value, formatSpeed(entry.txBytesPerSecond)),
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        },
+    )
 }
 
 @Composable
@@ -749,13 +742,16 @@ private fun ProcessDialog(
         actions = actions,
     ) {
         LazyColumn(
-            modifier = Modifier.heightIn(max = (LocalYAppearance.current.rowHeightDp * 8.5f).dp),
+            modifier = Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.58f).dp),
             verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 3f).dp),
         ) {
+            item { YNotice(stringResource(R.string.ytm_long_press_copy)) }
+            item { YSectionHeader(stringResource(R.string.ytm_process_identity)) }
             item { CopyDetail("PID", process.pid.toString()) }
             if (process.ppid != 0) item { ParentDetail(process.ppid, parent, onOpenParent) }
             item { CopyDetail("UID", process.uid.toString()) }
             item { CopyDetail(stringResource(R.string.ytm_user), process.userName) }
+            item { YSectionHeader(stringResource(R.string.ytm_process_performance)) }
             item { CopyDetail(stringResource(R.string.ytm_cpu_usage), String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent)) }
             item { CopyDetail(stringResource(R.string.ytm_ram_usage), formatBytes(process.rssKb * 1024L)) }
             item { CopyDetail(stringResource(R.string.ytm_realtime_download), formatSpeed(process.rxBytesPerSecond)) }
@@ -763,6 +759,7 @@ private fun ProcessDialog(
             if (process.virtualMemoryKb > 0L) item { CopyDetail(stringResource(R.string.ytm_virtual_memory), formatBytes(process.virtualMemoryKb * 1024L)) }
             item { CopyDetail(stringResource(R.string.ytm_foreground), if (process.isForeground) stringResource(R.string.ytm_yes) else stringResource(R.string.ytm_no)) }
             item { CopyDetail(stringResource(R.string.ytm_threads), process.threads.toString()) }
+            item { YSectionHeader(stringResource(R.string.ytm_process_advanced)) }
             item { CopyDetail(stringResource(R.string.ytm_nice_value), process.nice.toString()) }
             item { CopyDetail(stringResource(R.string.ytm_status), process.state) }
             item { CopyDetail(stringResource(R.string.ytm_start_time), formatStartTime(process.startTimeMillis, stringResource(R.string.ytm_unknown))) }
@@ -782,7 +779,7 @@ private fun CopyDetail(label: String, value: String) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val copied = stringResource(R.string.ytm_copied, label)
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -793,10 +790,11 @@ private fun CopyDetail(label: String, value: String) {
                 },
             )
             .padding(vertical = (LocalYAppearance.current.effectiveGapDp / 4f).dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 4f).dp),
     ) {
-        Text(label, style = MaterialTheme.typography.bodySmall)
-        Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

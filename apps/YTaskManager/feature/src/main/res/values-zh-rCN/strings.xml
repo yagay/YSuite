@@ -92,8 +92,18 @@
     <string name="ytm_auto_refresh">自动刷新</string>
     <string name="ytm_confirm_before_kill">结束前确认</string>
     <string name="ytm_refresh_interval">刷新间隔</string>
-    <string name="ytm_network_sampling">网络速度独立采样，大约每秒一次。</string>
+    <string name="ytm_network_sampling">网络数据独立刷新，大约每五秒一次。</string>
     <string name="ytm_done">完成</string>
     <string name="ytm_sort_download">下载</string>
     <string name="ytm_sort_upload">上传</string>
+    <string name="ytm_filter_and_sort">筛选和排序进程</string>
+    <string name="ytm_sort_by">排序方式</string>
+    <string name="ytm_sort_current">排序：%1$s</string>
+    <string name="ytm_filter_types_selected">已显示 %1$d 种进程类型</string>
+    <string name="ytm_auto_refresh_desc">自动更新进程列表</string>
+    <string name="ytm_confirm_kill_desc">结束进程或强制停止应用前再次确认</string>
+    <string name="ytm_process_identity">进程信息</string>
+    <string name="ytm_process_performance">资源使用</string>
+    <string name="ytm_process_advanced">高级信息</string>
+    <string name="ytm_long_press_copy">长按信息可复制对应值</string>
 </resources>

@@ -55,7 +55,7 @@
     <string name="ytm_gpu_max">GPU maximum</string>
     <string name="ytm_realtime_speed">Realtime app speed</string>
     <string name="ytm_realtime_speed_desc">Current download and current upload</string>
-    <string name="ytm_backend_detail">Backend: %1$s. Sampling about once per second.</string>
+    <string name="ytm_backend_detail">Backend: %1$s. Updated about every five seconds.</string>
     <string name="ytm_no_traffic">No active app traffic yet.</string>
     <string name="ytm_network_identity">UID %1$d%2$s%3$s</string>
     <string name="ytm_system_suffix"> System</string>
@@ -92,8 +92,18 @@
     <string name="ytm_auto_refresh">Auto refresh</string>
     <string name="ytm_confirm_before_kill">Confirm before kill</string>
     <string name="ytm_refresh_interval">Refresh interval</string>
-    <string name="ytm_network_sampling">Network speed is sampled independently about once per second.</string>
+    <string name="ytm_network_sampling">Network counters update separately about every five seconds.</string>
     <string name="ytm_done">Done</string>
     <string name="ytm_sort_download">Download</string>
     <string name="ytm_sort_upload">Upload</string>
+    <string name="ytm_filter_and_sort">Filter and sort processes</string>
+    <string name="ytm_sort_by">Sort by</string>
+    <string name="ytm_sort_current">Sort: %1$s</string>
+    <string name="ytm_filter_types_selected">%1$d process types visible</string>
+    <string name="ytm_auto_refresh_desc">Update the process list automatically</string>
+    <string name="ytm_confirm_kill_desc">Ask before killing a process or stopping an app</string>
+    <string name="ytm_process_identity">Process identity</string>
+    <string name="ytm_process_performance">Resource usage</string>
+    <string name="ytm_process_advanced">Advanced information</string>
+    <string name="ytm_long_press_copy">Long press a field to copy its value</string>
 </resources>
