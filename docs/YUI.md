@@ -118,3 +118,11 @@ remain feature-owned and are **not** substituted with this ordinary inventory.
 checks consumers. Root, LSPosed, accessibility permission, and runtime state
 use their existing host facade when appropriate, but heterogeneous
 privileged operations are not forced into a single unsafe loader.
+
+The same installed-app data source is also used by MiniGuard's launchable
+target picker, YTaskManager's UID/process mapping, YFiles' installed APK
+view (which retains its additional package/version lookup flags) and YNotify's
+notification-history label/icon helper. Their feature-specific filtering,
+UID joining, historical-uninstalled fallback, and Root/component enumeration
+remain separate. Standard application labels and 64px icon bitmaps are cached
+centrally rather than within each feature.

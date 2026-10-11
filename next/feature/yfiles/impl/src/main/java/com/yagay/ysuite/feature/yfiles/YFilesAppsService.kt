@@ -5,6 +5,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import com.yagay.ysuite.common.Outcome
+import com.yagay.suite.api.InstalledAppCatalog
 import com.yagay.ysuite.feature.yfiles.api.YFileRef
 import com.yagay.ysuite.feature.yfiles.api.YFilesEngine
 import java.io.File
@@ -58,9 +59,10 @@ class YFilesAppsService(
                     .MATCH_DISABLED_COMPONENTS or
                     PackageManager
                         .MATCH_UNINSTALLED_PACKAGES
-            packageManager
-                .getInstalledApplications(flags)
-                .map { info ->
+            InstalledAppCatalog
+                .list(appContext, flags)
+                .map { entry ->
+                    val info = entry.info
                     val packageInfo =
                         runCatching {
                             packageManager
@@ -72,11 +74,7 @@ class YFilesAppsService(
                     YInstalledApp(
                         packageName =
                             info.packageName,
-                        label =
-                            packageManager
-                                .getApplicationLabel(
-                                    info,
-                                ).toString(),
+                        label = entry.label,
                         versionName =
                             packageInfo
                                 ?.versionName,

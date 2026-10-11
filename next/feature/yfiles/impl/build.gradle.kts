@@ -20,6 +20,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":api"))
     implementation(project(":next:core:runtime"))
     implementation(project(":next:feature:yfiles:api"))
     implementation(project(":next:core:ui"))

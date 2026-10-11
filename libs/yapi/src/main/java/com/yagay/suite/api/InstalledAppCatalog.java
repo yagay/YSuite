@@ -8,7 +8,6 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.PixelFormat;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -54,6 +53,7 @@ public final class InstalledAppCatalog {
     private static final long FRESH_MS = 30_000L;
     private static final Map<String, Snapshot> CACHE = new HashMap<>();
     private static final LruCache<String, Bitmap> ICONS = new LruCache<>(128);
+    private static final LruCache<String, String> LABELS = new LruCache<>(512);
     private static Context observedApplication;
     private static BroadcastReceiver packageReceiver;
 
@@ -99,6 +99,10 @@ public final class InstalledAppCatalog {
                 result.add(new Entry(info, label));
             }
             final Snapshot next = new Snapshot(now, result);
+            for (Entry entry : result) {
+                LABELS.put(app.getPackageName() + "/" + entry.packageName + "/"
+                        + app.getResources().getConfiguration().getLocales().toLanguageTags(), entry.label);
+            }
             CACHE.put(cacheKey, next);
             return next.apps;
         }
@@ -111,6 +115,31 @@ public final class InstalledAppCatalog {
             if (packageName.equals(entry.packageName)) return entry;
         }
         return null;
+    }
+
+    /**
+     * Shared label lookup for notification history, including packages that are
+     * not in the current installed-app snapshot. Null signals a missing package
+     * so callers may keep their own domain-specific fallback names.
+     */
+    public static String label(Context context, String packageName) {
+        if (packageName == null || packageName.isEmpty()) return null;
+        final String key = context.getPackageName() + "/" + packageName + "/"
+                + context.getResources().getConfiguration().getLocales().toLanguageTags();
+        synchronized (LOCK) {
+            String cached = LABELS.get(key);
+            if (cached != null) return cached;
+        }
+        try {
+            PackageManager pm = context.getPackageManager();
+            ApplicationInfo app = pm.getApplicationInfo(packageName, 0);
+            CharSequence text = pm.getApplicationLabel(app);
+            String value = text == null ? packageName : text.toString();
+            synchronized (LOCK) { LABELS.put(key, value); }
+            return value;
+        } catch (RuntimeException missing) {
+            return null;
+        }
     }
 
     /** A shared size-aware bitmap cache for both Compose and Java/View rows. */
@@ -147,6 +176,7 @@ public final class InstalledAppCatalog {
         synchronized (LOCK) {
             CACHE.clear();
             ICONS.evictAll();
+            LABELS.evictAll();
         }
     }
 

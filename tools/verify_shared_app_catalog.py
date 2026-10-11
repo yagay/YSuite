@@ -11,6 +11,9 @@ consumers = [
     "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppScopePicker.kt",
     "apps/YParam/feature/src/main/java/com/yagay/yparam/ui/MainActivity.java",
     "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java",
+    "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/TargetAppsActivity.java",
+    "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/ProcessRepository.kt",
+    "next/feature/yfiles/impl/src/main/java/com/yagay/ysuite/feature/yfiles/YFilesAppsService.kt",
 ]
 issues = []
 if not catalog.is_file():
@@ -33,6 +36,9 @@ for rel in consumers:
         issues.append(rel + " calls PackageManager.getInstalledApplications directly")
     if re.search(r"\bgetApplicationLabel\s*\(", src):
         issues.append(rel + " duplicates shared label decoding")
+notification = (ROOT / "apps/YNotify/feature/src/main/java/com/yagay/YNotify/util/AppInfoUtil.java").read_text(encoding="utf-8")
+if "InstalledAppCatalog.label(" not in notification or "InstalledAppCatalog.icon(" not in notification:
+    issues.append("YNotify must reuse the shared label and icon data source")
 if issues:
     print("Shared installed-app catalog FAILED:")
     for issue in issues:

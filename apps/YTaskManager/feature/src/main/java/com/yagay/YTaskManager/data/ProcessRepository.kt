@@ -3,6 +3,7 @@ package com.yagay.YTaskManager.data
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import com.yagay.suite.api.InstalledAppCatalog
 import com.yagay.YTaskManager.model.ProcessEntry
 import com.yagay.YTaskManager.model.ProcessKind
 import com.yagay.YTaskManager.root.RootShell
@@ -14,7 +15,7 @@ class ProcessRepository(
     context: Context,
     private val shell: RootShell,
 ) {
-    private val packageManager = context.packageManager
+    private val appContext = context.applicationContext
     private var packageCache: Map<Int, List<PackageIdentity>> = emptyMap()
     private var packageCacheInitialized = false
     private var previousTicks: Map<Int, Long> = emptyMap()
@@ -225,18 +226,16 @@ class ProcessRepository(
     private fun refreshPackageCacheIfNeeded() {
         if (packageCacheInitialized) return
 
-        @Suppress("DEPRECATION")
-        val apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+        val apps = InstalledAppCatalog.list(appContext, PackageManager.GET_META_DATA)
         val map = HashMap<Int, MutableList<PackageIdentity>>()
 
         for (app in apps) {
             map.getOrPut(app.uid) { mutableListOf() } += PackageIdentity(
                 packageName = app.packageName,
-                label = runCatching { packageManager.getApplicationLabel(app).toString() }
-                    .getOrDefault(app.packageName),
-                icon = runCatching { packageManager.getApplicationIcon(app) }.getOrNull(),
-                system = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
-                    (app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
+                label = app.label,
+                icon = InstalledAppCatalog.icon(appContext, app.packageName, 64),
+                system = app.system ||
+                    (app.info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
             )
         }
 
