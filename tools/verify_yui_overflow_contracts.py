@@ -29,11 +29,16 @@ def check_view() -> None:
                     "orientation = if (stack) VERTICAL else HORIZONTAL",
                     "YAdaptiveActionLayout(parent.context)",
                     "YAdaptiveActionLayout(context)",
-                    "ColorUtils.blendARGB(", "android.R.attr.state_enabled",
+                    "YUiMaterialSwitch(context).apply", "switchSlot(context)",
                     "YView.navigationAccessoryWidth(context)",
                     "val needsVertical = vertical")
     if "LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, weight)" not in shared:
         raise AssertionError("View action buttons lost their equal-width layout where space allows")
+    painter = source("libs/yui/src/main/java/com/yagay/yui/YSwitchPainter.kt",
+                     "override fun onMeasure(", "View.resolveSize(", "geometry.touchWidthDp",
+                     "geometry.touchHeightDp", "YSwitchPainter.draw(")
+    if "override fun onDraw(canvas: Canvas)" not in painter:
+        raise AssertionError("View switch must draw through the shared painter")
     source("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/DiagnosticActivity.java",
            "getWindow().getDecorView().addOnLayoutChangeListener(", "windowHeight * 2 / 3")
 

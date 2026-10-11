@@ -144,16 +144,19 @@ def main() -> None:
             failures.append(f"YUI {path.name} reintroduced direct Material3 dialog rendering")
     switch_facade = (core / "YCompactSwitch.kt").read_text(encoding="utf-8")
     view_facade = (core / "YViewFramework.kt").read_text(encoding="utf-8")
-    if len(re.findall(r"(?<![A-Za-z0-9_])Switch\s*\(", switch_facade)) != 1:
-        failures.append("Compose switch must be rendered exactly once in YStandardSwitch")
+    if switch_facade.count("YSwitchPainter.draw(") != 1:
+        failures.append("Compose switch must use exactly one shared YSwitchPainter")
     if "YDimens.SwitchSlot" in switch_facade:
         failures.append("Compose switch slot may not use fixed YDimens")
-    if "defaultMinSize(" not in switch_facade or "modifier.size(" in switch_facade:
-        failures.append("Compose switch slot must use minimum size, never crop a fixed width")
-    if view_facade.count("MaterialSwitch(context).apply") != 1:
-        failures.append("View switch must have one MaterialSwitch implementation")
-    if "minWidth = maxOf(" not in view_facade:
-        failures.append("View switch must not crop the MaterialSwitch drawable")
+    if "defaultMinSize(" not in switch_facade or "role = Role.Switch" not in switch_facade:
+        failures.append("Compose switch must preserve a minimum accessible target and semantics")
+    if view_facade.count("YUiMaterialSwitch(context).apply") != 1:
+        failures.append("View switch must have one canonical YUI implementation")
+    painter = (core / "YSwitchPainter.kt").read_text(encoding="utf-8")
+    if "override fun onMeasure(" not in painter or "touchWidthDp" not in painter or "touchHeightDp" not in painter:
+        failures.append("View switch must retain at least 48dp of hit-target size")
+    if painter.count("YSwitchPainter.draw(") != 1 or "override fun onDraw(canvas: Canvas)" not in painter:
+        failures.append("View switch must draw through the same painter as Compose")
     if "SwitchMaterial(" in view_facade:
         failures.append("View switch may not resurrect the older SwitchMaterial renderer")
     if section_definitions != ["YUnifiedDesign.kt"]:
