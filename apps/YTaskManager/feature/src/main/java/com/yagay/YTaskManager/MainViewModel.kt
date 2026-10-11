@@ -133,20 +133,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }.getOrElse {
                     runCatching { statsRepository.readUnprivileged(getApplication()) }.getOrNull()
                 }
-                val gpu = if (root) runCatching { gpuRepository.read() }.getOrNull() else null
                 if (system != null) {
                     val previous = _state.value
                     _state.value = previous.copy(
                         system = system,
-                        gpu = gpu ?: previous.gpu,
                         cpuHistory = appendHistory(previous.cpuHistory, system.cpuPercent),
                         ramHistory = appendHistory(previous.ramHistory,
                             percent(system.ramUsedBytes, system.ramTotalBytes)),
                         swapHistory = appendHistory(previous.swapHistory,
                             percent(system.swapUsedBytes, system.swapTotalBytes)),
-                        gpuHistory = appendHistory(previous.gpuHistory,
-                            (gpu ?: previous.gpu).usagePercent ?: 0f),
                     )
+                }
+                if (root) {
+                    val gpu = runCatching { gpuRepository.read() }.getOrNull()
+                    if (gpu != null) {
+                        val previous = _state.value
+                        _state.value = previous.copy(
+                            gpu = gpu,
+                            gpuHistory = appendHistory(previous.gpuHistory, gpu.usagePercent ?: 0f),
+                        )
+                    }
                 }
                 delay(2_000L)
             }
