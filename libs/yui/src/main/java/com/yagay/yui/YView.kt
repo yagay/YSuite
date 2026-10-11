@@ -151,6 +151,12 @@ object YView {
         styleLabel(button)
         button.minHeight = dp(context, geometry.touchHeightDp)
         button.isAllCaps = false
+        // MaterialButton/AppCompat themes may force a single line or ellipsis. Let
+        // the TextView measure its entire label; WRAP_CONTENT rows then grow safely.
+        button.isSingleLine = false
+        button.maxLines = Int.MAX_VALUE
+        button.ellipsize = null
+        button.setHorizontallyScrolling(false)
         button.minWidth = 0
         val horizontal = buttonHorizontalPadding(context)
         button.setPadding(horizontal, dp(context, geometry.verticalPaddingDp),

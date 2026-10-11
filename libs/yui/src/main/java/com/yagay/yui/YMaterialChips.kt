@@ -3,7 +3,6 @@ package com.yagay.yui
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
@@ -29,7 +28,7 @@ fun YUiElevatedButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val appearance = LocalYAppearance.current
-    ElevatedButton(onClick = onClick, modifier = modifier.height(appearance.buttonGeometry().visualHeightDp.dp),
+    ElevatedButton(onClick = onClick, modifier = modifier.yActionButtonSize(),
         enabled = enabled, shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
         contentPadding = PaddingValues(horizontal = appearance.buttonPaddingHorizontalDp.dp,
             vertical = appearance.buttonVerticalPaddingDp.dp), content = content)
@@ -43,7 +42,7 @@ fun YUiFilledTonalButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val appearance = LocalYAppearance.current
-    FilledTonalButton(onClick = onClick, modifier = modifier.height(appearance.buttonGeometry().visualHeightDp.dp),
+    FilledTonalButton(onClick = onClick, modifier = modifier.yActionButtonSize(),
         enabled = enabled, shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
         contentPadding = PaddingValues(horizontal = appearance.buttonPaddingHorizontalDp.dp,
             vertical = appearance.buttonVerticalPaddingDp.dp), content = content)
@@ -59,7 +58,7 @@ fun YUiAssistChip(
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     AssistChip(onClick = onClick, label = label,
-        modifier = modifier.height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp), enabled = enabled,
+        modifier = modifier.yActionButtonSize(), enabled = enabled,
         leadingIcon = leadingIcon, trailingIcon = trailingIcon,
         shape = RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp))
 }
@@ -73,7 +72,7 @@ fun YUiSuggestionChip(
     icon: (@Composable () -> Unit)? = null,
 ) {
     SuggestionChip(onClick = onClick, label = label,
-        modifier = modifier.height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp), enabled = enabled,
+        modifier = modifier.yActionButtonSize(), enabled = enabled,
         icon = icon, shape = RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp))
 }
 
@@ -89,7 +88,7 @@ fun YUiInputChip(
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     InputChip(selected = selected, onClick = onClick, label = label,
-        modifier = modifier.height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp),
+        modifier = modifier.yActionButtonSize(),
         enabled = enabled, avatar = avatar, leadingIcon = leadingIcon,
         trailingIcon = trailingIcon, shape = RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp))
 }

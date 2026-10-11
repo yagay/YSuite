@@ -83,13 +83,11 @@ class YViewFilterBar(
 }
 
 /** Java/View compatibility renderer backed by the generated YUI geometry resources. */
-/** Shared View button group: keep equal-weight rows when labels fit, stack full width
- * when available measured width is insufficient (font scaling, multi-window, translations).
- * It deliberately preserves the public LinearLayout API of YViewLayout.actionRow/buttonRow.
+/** Shared View button group: size each action by its text plus YUI padding when labels fit,
+ * and stack to available width when content requires wrapping (large fonts, translations).
+ * It preserves the public LinearLayout API of YViewLayout.actionRow/buttonRow.
  */
 internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
-    private val rememberedWeights = mutableMapOf<View, Float>()
-
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -109,9 +107,6 @@ internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
             val child = getChildAt(index)
             if (child.visibility == View.GONE) continue
             val params = child.layoutParams as LinearLayout.LayoutParams
-            if (!rememberedWeights.containsKey(child)) {
-                rememberedWeights[child] = params.weight.takeIf { it > 0f } ?: 1f
-            }
             child.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
@@ -123,8 +118,11 @@ internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
         for (index in 0 until childCount) {
             val child = getChildAt(index)
             val params = child.layoutParams as LinearLayout.LayoutParams
-            params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT else 0
-            params.weight = if (stack) 0f else rememberedWeights[child] ?: 1f
+            // Do not distribute equal weights: a short action should be narrower
+            // than a long one. A stacked action can use the entire row and wrap.
+            params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT
+                else ViewGroup.LayoutParams.WRAP_CONTENT
+            params.weight = 0f
             params.marginStart = if (!stack && index > 0) gap else 0
             params.topMargin = if (stack && index > 0) gap else 0
         }

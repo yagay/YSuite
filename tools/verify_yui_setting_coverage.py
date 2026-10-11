@@ -42,7 +42,9 @@ def run() -> None:
             "buttonHorizontalPadding(context)", "displayRules(context).button",
             "button.insetTop = inset", "button.insetBottom = inset",
             "store.registerPreferenceListener(listener)",
-            "store.unregisterPreferenceListener(listener)")
+            "store.unregisterPreferenceListener(listener)",
+            "button.isSingleLine = false", "button.maxLines = Int.MAX_VALUE",
+            "button.ellipsize = null", "button.setHorizontallyScrolling(false)")
     yui = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
                   "fun listActionButton(context: Context, label: String): MaterialButton =",
                   "secondaryButton(context, label)", "YView.inputHeight(context)",
@@ -57,10 +59,29 @@ def run() -> None:
             "visualHeightDp = visual", "touchHeightDp = touch",
             "backgroundInsetDp = (touch - visual) / 2f",
             "iconVisualSizeDp = iconVisualSizeDp")
-    require("libs/yui/src/main/java/com/yagay/yui/YMaterialControls.kt",
-            "minimumInteractiveComponentSize().height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp)")
-    require("libs/yui/src/main/java/com/yagay/yui/YMaterialChips.kt",
-            "modifier.height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp)")
+    sizing = require("libs/yui/src/main/java/com/yagay/yui/YActionSizing.kt",
+            "fun Modifier.yActionButtonSize(): Modifier",
+            "minimumInteractiveComponentSize().heightIn(min = minimumVisualHeight)")
+    controls = require("libs/yui/src/main/java/com/yagay/yui/YMaterialControls.kt",
+            "modifier = modifier.yActionButtonSize()")
+    chips = require("libs/yui/src/main/java/com/yagay/yui/YMaterialChips.kt",
+            "modifier.yActionButtonSize()")
+    theme_buttons = require("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
+            "Text(text, softWrap = true)")
+    action_layout = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+            "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT",
+            "ViewGroup.LayoutParams.WRAP_CONTENT", "params.weight = 0f")
+    # Guard *all* button variants against a future fixed-height/truncated-label regression.
+    if re.search(r"\.height\(\s*(?:LocalYAppearance\.current\.)?(?:buttonGeometry\(\)\.)?visualHeightDp", controls + chips + sizing):
+        raise AssertionError("YUI action buttons must grow beyond the configured minimum height")
+    if controls.count("modifier = modifier.yActionButtonSize()") != 3:
+        raise AssertionError("All filled/outlined/text buttons must share intrinsic YUI sizing")
+    if chips.count("modifier.yActionButtonSize()") != 5:
+        raise AssertionError("Elevated/tonal/chip buttons must share intrinsic YUI sizing")
+    if "Text(text, maxLines = 2" in theme_buttons:
+        raise AssertionError("Standard YUI button labels must not be truncated at two lines")
+    if "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT else 0" in action_layout:
+        raise AssertionError("Native action row must size buttons by content, not equal weight")
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialIconButtons.kt",
             "LocalYAppearance.current.buttonGeometry()", "a.iconTouchDp.dp")
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialFloatingActions.kt",

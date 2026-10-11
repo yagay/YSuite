@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -27,9 +26,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.unit.dp
-import androidx.compose.material3.minimumInteractiveComponentSize
-
 /**
  * Material 3 compatibility facade for existing product layouts.
  *
@@ -53,7 +49,8 @@ fun YUiButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.minimumInteractiveComponentSize().height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp),
+        // Shared intrinsic sizing: the label may wrap and increase measured height.
+        modifier = modifier.yActionButtonSize(),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
@@ -83,7 +80,8 @@ fun YUiOutlinedButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.minimumInteractiveComponentSize().height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp),
+        // Shared intrinsic sizing: the label may wrap and increase measured height.
+        modifier = modifier.yActionButtonSize(),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
@@ -113,7 +111,8 @@ fun YUiTextButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.minimumInteractiveComponentSize().height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp),
+        // Shared intrinsic sizing: the label may wrap and increase measured height.
+        modifier = modifier.yActionButtonSize(),
         enabled = enabled,
         shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,

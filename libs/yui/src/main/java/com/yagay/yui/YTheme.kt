@@ -386,7 +386,7 @@ fun YPrimaryButton(
     enabled: Boolean = true,
 ) {
     YUiButton(onClick = onClick, modifier = modifier, enabled = enabled) {
-        Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(text, softWrap = true)
     }
 }
 
@@ -398,7 +398,7 @@ fun YSecondaryButton(
     enabled: Boolean = true,
 ) {
     YUiOutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled) {
-        Text(text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(text, softWrap = true)
     }
 }
 
