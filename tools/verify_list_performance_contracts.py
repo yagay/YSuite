@@ -24,6 +24,17 @@ def main() -> None:
            "new HashSet<>(ProfileStore.get(this).getEnabledPackages())",
            "ui.postDelayed(pendingSearch, 180L)"),
           ("list.removeAllViews()", "getProfile(a.packageName)", "Map<String, Drawable> icons"))
+    # Real screen regression: RecyclerView children must occupy the full viewport,
+    # or WRAP_CONTENT row measurement shifts the checkbox/actions with label length.
+    check("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java",
+          ("new RecyclerView.LayoutParams(", "ViewGroup.LayoutParams.MATCH_PARENT,",
+           "list.setPreserveFocusAfterLayout(false)",
+           "scrollToPositionWithOffset(0, 0)",
+           "YViewLayout.listActionButton(", "new LinearLayout.LayoutParams(touch, touch)",
+           "row.subtitle.setMaxLines(2)", "row.trailing.setGravity(Gravity.END"))
+    check("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+          ("fun listActionButton(", "minHeight = touch", "insetTop = 0",
+           "setPadding(horizontal, 0, horizontal, 0)"))
     check("apps/YPower/feature/build.gradle.kts", ("libs.androidx.recyclerview",))
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/ProcessRepository.kt",
           ("suspend fun listProcesses():", "listProcessesFromPs()",
