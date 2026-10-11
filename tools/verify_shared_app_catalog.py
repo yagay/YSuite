@@ -46,3 +46,5 @@ if issues:
         print(" - " + issue)
     sys.exit(1)
 print("Shared installed-app catalog PASS")
+
+# Full-source scanning is performed by audit_shared_platform_reads.py in architecture CI.

@@ -78,6 +78,9 @@ jobs:
       - name: Verify YUI content and responsive layouts
         run: python3 tools/verify_yui_content_compatibility.py
 
+      - name: Audit shared platform reads across every module
+        run: python3 tools/audit_shared_platform_reads.py
+
       - name: Verify cross-module YUI card/row alignment
         run: python3 tools/verify_yui_row_alignment.py
 
