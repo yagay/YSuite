@@ -36,9 +36,8 @@ import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
 import com.yagay.yui.LocalYAppearance
-import androidx.compose.ui.unit.dp
+import com.yagay.yui.YUiGeometry
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YListItem
 import com.yagay.yui.YIntSliderField
@@ -102,15 +101,11 @@ fun ComposeSettingsSurface(
                                     rememberScrollState(),
                                 )
                                 .padding(
-                                    horizontal =
-                                        YSuiteSpacing.Medium,
-                                    vertical =
-                                        YSuiteSpacing.Large,
+                                    horizontal = YUiGeometry.pagePadding(),
+                                    vertical = YUiGeometry.pageVerticalPadding(),
                                 ),
                         verticalArrangement =
-                            Arrangement.spacedBy(
-                                YSuiteSpacing.Medium,
-                            ),
+                            Arrangement.spacedBy(YUiGeometry.sectionGap()),
                     ) {
                         content(paneAdaptive)
                     }
@@ -126,23 +121,34 @@ fun ComposeSettingsGroup(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
+    val appearance = LocalYAppearance.current
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(appearance.cardRadiusDp.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = androidx.compose.foundation.BorderStroke(
+            appearance.cardOutlineWidthDp.dp,
+            MaterialTheme.colorScheme.outlineVariant,
+        ),
     ) {
-        if (title != null) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                // Match the shared YListItem's *configurable* row inset.
-                modifier = Modifier.padding(
-                    horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
-                    vertical = YSuiteSpacing.Small,
-                ),
-            )
+        Column(
+            modifier = Modifier.fillMaxWidth()
+                .padding(vertical = YUiGeometry.compactGap()),
+            verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap()),
+        ) {
+            if (title != null) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(
+                        horizontal = appearance.rowHorizontalPaddingDp.dp,
+                        vertical = YUiGeometry.compactGap(),
+                    ),
+                )
+            }
+            content()
         }
-        content()
     }
 }
 
