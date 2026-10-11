@@ -80,7 +80,9 @@ class RootShell {
         } catch (e: TimeoutException) {
             throw e
         } catch (t: Throwable) {
-            throw IllegalStateException("Managed root execution failed", t)
+            throw IllegalStateException(
+                "Managed Root execution failed: ${t.message ?: t.javaClass.simpleName}", t
+            )
         }
 
     fun close() {

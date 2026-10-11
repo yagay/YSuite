@@ -79,7 +79,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 error = null
             )
             // Populate CPU/RAM immediately, without waiting for privileged /proc enumeration.
-            refreshPublicSnapshot(rootRequired = !rootGranted)
+            refreshPublicSnapshot()
             if (rootGranted) {
                 refreshInternal()
                 startNetworkMonitor()
@@ -101,7 +101,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         )
                         if (probe.granted) {
                             _state.value = _state.value.copy(loading = true, error = null)
-                            refreshPublicSnapshot(rootRequired = false)
+                            refreshPublicSnapshot()
                             refreshInternal()
                             startNetworkMonitor()
                         } else refreshPublicSnapshot()
@@ -139,7 +139,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         start()
     }
 
-    private suspend fun refreshPublicSnapshot(rootRequired: Boolean = true) {
+    private suspend fun refreshPublicSnapshot() {
         val snapshot = runCatching { statsRepository.readUnprivileged(getApplication()) }.getOrNull()
             ?: return
         val old = _state.value

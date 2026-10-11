@@ -138,12 +138,28 @@ class YSuiteApp : Application() {
 
     /** Also retry after returning to the app when the initial bounded boot retries expired. */
     fun retryHostRegistrationOnForeground() {
-        if (brokerRegistered && initialized) return
         recoveryHandler.removeCallbacksAndMessages(null)
         brokerRetryCount = 0
         startupRetryCount = 0
         if (initialized) {
             ensureXposedBrokerRegistered()
+            // Initial feature initialization can fail independently of the app shell.
+            // Reattach only enabled but missing managed runtimes when returning to YSuite.
+            // Otherwise their FeatureHostRegistry entries stay missing indefinitely,
+            // and a Root-granted app appears unprivileged to a single module.
+            runCatching {
+                val states = FeatureStateStore(this)
+                FeatureRegistry.included().forEach { feature ->
+                    if (states.isEnabled(feature) &&
+                        !FeatureRuntimeManager.isRuntimeEnabled(feature.id)
+                    ) {
+                        FeatureRuntimeManager.enable(this, feature).getOrThrow()
+                        safeSuiteLog(feature.id, "managed feature runtime recovered on foreground")
+                    }
+                }
+            }.onFailure {
+                safeSuiteError(SuiteContract.HOST_MODULE_ID, "foreground feature recovery failed", it)
+            }
         } else {
             runCatching { initializeUnlockedHost() }
                 .onFailure { safeSuiteError(SuiteContract.HOST_MODULE_ID, "foreground host retry failed", it) }
