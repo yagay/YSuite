@@ -99,6 +99,9 @@ jobs:
       - name: Verify standalone runtime ownership boundaries
         run: python3 tools/verify_runtime_ownership.py
 
+      - name: Verify embedded host IPC and health recovery contracts
+        run: python3 tools/verify_host_runtime_contracts.py
+
       - name: Scan feature integration hazards
         run: python3 tools/scan_feature_integration.py --root . --fail-on-high-risk
 
