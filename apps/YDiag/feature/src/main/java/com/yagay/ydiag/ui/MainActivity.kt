@@ -372,10 +372,8 @@ private fun DiagnosticConfigScreen(
     onPreset: (String) -> Unit,
     onToggle: (String) -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(LocalYAppearance.current.screenPaddingDp.dp),
-        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+    YPageList(
+        padding = PaddingValues(),
     ) {
         item {
             YSectionHeader(
@@ -429,10 +427,8 @@ private fun SettingsScreen(
     onMaxSessionMb: (Int) -> Unit,
 ) {
     var localLimit by remember(maxSessionMb) { mutableIntStateOf(maxSessionMb) }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(LocalYAppearance.current.screenPaddingDp.dp),
-        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+    YPageList(
+        padding = PaddingValues(),
     ) {
         item {
             YSectionHeader(
