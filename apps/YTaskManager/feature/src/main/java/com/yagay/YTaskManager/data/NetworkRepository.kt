@@ -45,11 +45,21 @@ class NetworkRepository(
             } else {
                 // Android N+ public TrafficStats cannot provide arbitrary other UIDs.
                 // Keep this only as an explicit diagnostic fallback.
-                backend = "TrafficStats (own UID only)"
-                val uid = Process.myUid()
-                val rx = TrafficStats.getUidRxBytes(uid)
-                val tx = TrafficStats.getUidTxBytes(uid)
-                current = if (rx >= 0L && tx >= 0L) mapOf(uid to Counter(rx, tx)) else emptyMap()
+                // Global traffic counters can work even when the OEM hides
+                // cross-UID netstats. UID -1 marks a synthetic device total,
+                // not traffic from a specific application.
+                val totalRx = TrafficStats.getTotalRxBytes()
+                val totalTx = TrafficStats.getTotalTxBytes()
+                if (totalRx >= 0L && totalTx >= 0L) {
+                    backend = "TrafficStats (device total; per-app unavailable)"
+                    current = mapOf(-1 to Counter(totalRx, totalTx))
+                } else {
+                    backend = "TrafficStats (own UID only)"
+                    val uid = Process.myUid()
+                    val rx = TrafficStats.getUidRxBytes(uid)
+                    val tx = TrafficStats.getUidTxBytes(uid)
+                    current = if (rx >= 0L && tx >= 0L) mapOf(uid to Counter(rx, tx)) else emptyMap()
+                }
             }
         }
 
@@ -69,7 +79,7 @@ class NetworkRepository(
             emptyList()
         } else {
             current.mapNotNull { (uid, value) ->
-                if (uidFilter != null && uid !in uidFilter && uid !in packageCache) return@mapNotNull null
+                if (uid >= 0 && uidFilter != null && uid !in uidFilter && uid !in packageCache) return@mapNotNull null
 
                 val old = previous[uid] ?: return@mapNotNull null
                 val deltaRx = value.rx - old.rx
@@ -85,7 +95,7 @@ class NetworkRepository(
                 val primary = identities.firstOrNull()
                 NetworkEntry(
                     uid = uid,
-                    label = primary?.label ?: primary?.packageName ?: "UID $uid",
+                    label = if (uid == -1) "Device total (all interfaces)" else primary?.label ?: primary?.packageName ?: "UID $uid",
                     packageNames = identities.map { it.packageName },
                     system = identities.isEmpty() || identities.any { it.system },
                     rxBytesPerSecond = rx,

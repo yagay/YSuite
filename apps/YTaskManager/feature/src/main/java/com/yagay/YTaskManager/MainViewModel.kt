@@ -258,7 +258,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val processResult = processDeferred.await()
             processResult.getOrNull()?.takeIf { it.isNotEmpty() }?.let { quick ->
                 val preview = _state.value
-                val visible = applyNetworkSpeeds(quick, preview.network)
+                val oldByPid = preview.processes.associateBy { it.pid }
+                val withCpu = quick.map { process ->
+                    val old = oldByPid[process.pid]?.takeIf { it.uid == process.uid }
+                    if (old != null && old.threads > 0) process.copy(cpuPercent = old.cpuPercent)
+                    else process
+                }
+                val visible = applyNetworkSpeeds(withCpu, preview.network)
                 _state.value = preview.copy(
                     processes = visible, processCount = visible.size,
                     threadCount = visible.sumOf { it.threads }, loading = false,
@@ -320,12 +326,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * A rich /proc sample must never block first paint or every short refresh tick.
-     * Run it at most once per 30 seconds, merge by PID/UID and keep the fast ps list visible.
+     * Run it at most once per 5 seconds, merge by PID/UID and keep the fast ps list visible.
      */
     private fun scheduleDetailedSample() {
         if (!_state.value.root.granted || detailJob?.isActive == true) return
         val now = android.os.SystemClock.elapsedRealtime()
-        if (lastDetailSampleMs != 0L && now - lastDetailSampleMs < 30_000L) return
+        if (lastDetailSampleMs != 0L && now - lastDetailSampleMs < 5_000L) return
         lastDetailSampleMs = now
         detailJob = viewModelScope.launch {
             delay(1_200L)
