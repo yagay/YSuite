@@ -197,7 +197,7 @@ def main() -> None:
         source = read(shared_source)
         if not any(marker in source for marker in ("YStandardSwitch(", "YSwitchItem(")):
             fail(f"{shared_source.relative_to(ROOT)} must use shared YUI switch rows")
-        if "Switch(checked = checked" in source:
+        if re.search(r"(?<![A-Za-z0-9_])Switch\s*\(\s*checked\s*=", source):
             fail(f"{shared_source.relative_to(ROOT)} bypasses the shared switch widget")
     view_switches = read(YUI_ROOT / "YViewFramework.kt")
     if view_switches.count("YUiMaterialSwitch(context).apply") != 1:
