@@ -116,4 +116,9 @@
     <string name="appearance_google_frame_scrim_alpha">Google selection mask opacity (0–240)</string>
     <string name="appearance_google_frame_trail_width_dp">Google selection trail width (dp)</string>
     <string name="appearance_google_frame_use_yui_color">Use YUI accent for Google selection</string>
+    <string name="appearance_switch_scale_percent">Switch visual scale (%)</string>
+    <string name="appearance_switch_track_width">Switch track width (dp)</string>
+    <string name="appearance_switch_track_height">Switch track height (dp)</string>
+    <string name="appearance_switch_thumb_size">Switch thumb diameter (dp)</string>
+    <string name="appearance_switch_label_gap">Extra space before switch (dp)</string>
 </resources>

@@ -772,8 +772,31 @@ object YViewLayout {
      */
     private fun styleStandardToggle(toggle: SwitchCompat) {
         toggle.showText = false
-        toggle.scaleX = 1f
-        toggle.scaleY = 1f
+        val c = toggle.context
+        val appearance = YAppearanceStore(c).appearance(YAppearanceStore.moduleIdFor(c))
+        val geometry = appearance.switchGeometry()
+        toggle.scaleX = geometry.scale
+        toggle.scaleY = geometry.scale
+        if (!geometry.useMaterialTrack) {
+            // Preserve MaterialSwitch/CompoundButton semantics while replacing only its
+            // intrinsic track/thumb drawables. Both dimensions come from YUI.
+            fun px(dp: Int) = (dp * c.resources.displayMetrics.density).toInt().coerceAtLeast(1)
+            val width = px(appearance.switchTrackWidthDp)
+            val height = px(appearance.switchTrackHeightDp)
+            val diameter = px(appearance.switchThumbSizeDp)
+            toggle.trackDrawable = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = height / 2f
+                setSize(width, height)
+                setColor(android.graphics.Color.WHITE)
+            }
+            toggle.thumbDrawable = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setSize(diameter, diameter)
+                setColor(android.graphics.Color.WHITE)
+            }
+            toggle.switchMinWidth = width
+        }
         val c = toggle.context
         val checkedThumb = YView.surface(c)
         val uncheckedThumb = YView.onSurfaceVariant(c)
@@ -807,6 +830,9 @@ object YViewLayout {
             ViewGroup.LayoutParams.WRAP_CONTENT,
         ).apply {
             gravity = Gravity.CENTER_VERTICAL
+            marginStart = YView.dp(context,
+                YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context))
+                    .switchLabelGapDp)
         }
 
     @JvmStatic
@@ -828,14 +854,16 @@ object YViewLayout {
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         return MaterialSwitch(context).apply {
-            // Reserve a safe minimum without ever clipping Material 3's natural track.
+            val geometry = YAppearanceStore(context)
+                .appearance(YAppearanceStore.moduleIdFor(context)).switchGeometry()
+            // Layout reserves the scaled appearance; hit target remains independently >=48dp.
             minWidth = maxOf(
                 YView.switchSlotWidth(context),
-                YView.dimen(context, R.dimen.yui_switch_slot_width),
+                YView.dp(context, geometry.touchWidthDp.toInt()),
             )
             minHeight = maxOf(
                 YView.touchTarget(context),
-                YView.dimen(context, R.dimen.yui_switch_slot_height),
+                YView.dp(context, geometry.touchHeightDp.toInt()),
             )
             isChecked = checked
             styleStandardToggle(this)

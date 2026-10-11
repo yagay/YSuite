@@ -39,6 +39,40 @@ class YAppearanceStoreTest {
     }
 
     @Test
+    fun switchAppearanceHasIndependentGeometryAndAccessibleTouchTarget() {
+        val defaults = store.appearance()
+        assertEquals(100, defaults.switchScalePercent)
+        assertEquals(52, defaults.switchTrackWidthDp)
+        assertEquals(32, defaults.switchTrackHeightDp)
+        assertEquals(24, defaults.switchThumbSizeDp)
+        assertEquals(0, defaults.switchLabelGapDp)
+        store.set(YSettingKey.SWITCH_SCALE_PERCENT, "70")
+        store.set(YSettingKey.SWITCH_TRACK_WIDTH, "40")
+        store.set(YSettingKey.SWITCH_TRACK_HEIGHT, "25")
+        store.set(YSettingKey.SWITCH_THUMB_SIZE, "18")
+        store.set(YSettingKey.SWITCH_LABEL_GAP, "6")
+        assertEquals(70, store.appearance("yfloat").switchScalePercent)
+        assertEquals(40, store.appearance("ynotify").switchTrackWidthDp)
+        assertEquals(25, store.appearance().switchTrackHeightDp)
+        assertEquals(18, store.appearance().switchThumbSizeDp)
+        assertEquals(6, store.appearance().switchLabelGapDp)
+        val shape = store.appearance().switchGeometry()
+        assertEquals(28f, shape.trackWidthDp)
+        assertTrue(shape.touchHeightDp >= 48f)
+        assertTrue(shape.touchWidthDp >= 48f)
+        store.set(YSettingKey.SWITCH_THUMB_SIZE, "30", "ynotify")
+        assertEquals(30, store.appearance("ynotify").switchThumbSizeDp)
+        assertEquals(18, store.appearance("yfloat").switchThumbSizeDp)
+        val exported = store.exportJson()
+        store.reset()
+        store.reset("ynotify")
+        store.importJson(exported)
+        assertEquals(30, store.appearance("ynotify").switchThumbSizeDp)
+        assertEquals(70, store.appearance().switchScalePercent)
+        assertTrue(runCatching { store.set(YSettingKey.SWITCH_SCALE_PERCENT, "151") }.isFailure)
+    }
+
+    @Test
     fun moduleOverrideCanInheritAndResetWithoutChangingGlobal() {
         store.set(YSettingKey.DENSITY, "comfortable")
         assertEquals("comfortable", store.appearance("yfloat").density)

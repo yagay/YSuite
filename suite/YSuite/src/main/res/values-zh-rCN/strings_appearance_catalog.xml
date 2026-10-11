@@ -116,4 +116,9 @@
     <string name="appearance_google_frame_scrim_alpha">Google 圈画遮罩透明度（0–240）</string>
     <string name="appearance_google_frame_trail_width_dp">Google 圈画手势轨迹宽度（dp）</string>
     <string name="appearance_google_frame_use_yui_color">Google 圈画使用 YUI 强调色</string>
+    <string name="appearance_switch_scale_percent">开关整体视觉缩放（%）</string>
+    <string name="appearance_switch_track_width">开关轨道宽度（dp）</string>
+    <string name="appearance_switch_track_height">开关轨道高度（dp）</string>
+    <string name="appearance_switch_thumb_size">开关圆点直径（dp）</string>
+    <string name="appearance_switch_label_gap">开关与文字额外间距（dp）</string>
 </resources>

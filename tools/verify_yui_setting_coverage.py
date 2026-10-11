@@ -51,6 +51,30 @@ def run() -> None:
             "modifier.heightIn(min = LocalYAppearance.current.inputHeightDp.dp)")
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialChips.kt",
             "modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp)")
+    # A switch-width slot is not switch visual size. Check every setting through
+    # persisted appearance, control catalog, both renderers and preview editor.
+    switch_keys = (
+        "SWITCH_SCALE_PERCENT", "SWITCH_TRACK_WIDTH", "SWITCH_TRACK_HEIGHT",
+        "SWITCH_THUMB_SIZE", "SWITCH_LABEL_GAP",
+    )
+    for key in switch_keys:
+        if f"YSettingKey.{key}" not in registry or f"YSettingKey.{key} ->" not in settings or (
+                f"value(YSettingKey.{key}, moduleId)" not in store):
+            raise AssertionError(f"Switch appearance is not end-to-end YUI owned: {key}")
+    require("libs/yui/src/main/java/com/yagay/yui/YSwitchGeometry.kt",
+            "fun YAppearance.switchGeometry()", "touchWidthDp = max(", "touchHeightDp = max(")
+    require("libs/yui/src/main/java/com/yagay/yui/YCompactSwitch.kt",
+            "appearance.switchGeometry()", "Modifier.scale(geometry.scale)",
+            "role = Role.Switch", "geometry.trackWidthDp.dp", "geometry.thumbDiameterDp.dp")
+    require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+            "appearance.switchGeometry()", "toggle.scaleX = geometry.scale",
+            "toggle.trackDrawable = GradientDrawable()", "toggle.thumbDrawable = GradientDrawable()",
+            ".switchLabelGapDp")
+    for path in ("suite/YSuite/src/main/res/values/strings_appearance_catalog.xml",
+                 "suite/YSuite/src/main/res/values-zh-rCN/strings_appearance_catalog.xml"):
+        for name in ("switch_scale_percent", "switch_track_width", "switch_track_height",
+                     "switch_thumb_size", "switch_label_gap"):
+            require(path, 'name="appearance_' + name + '"')
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialSurfaces.kt",
             "border = border ?: LocalYAppearance.current.cardOutlineWidthDp")
     require("libs/yui/src/main/java/com/yagay/yui/YForms.kt",

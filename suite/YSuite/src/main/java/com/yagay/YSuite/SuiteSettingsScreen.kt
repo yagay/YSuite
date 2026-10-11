@@ -463,7 +463,8 @@ private fun AppearanceEditor(definition: YControlDefinition, value: String, onSe
                 YSettingKey.FONT_PERCENT, YSettingKey.FLOAT_ICON_ALPHA,
                 YSettingKey.FLOAT_EDGE_VISIBLE, YSettingKey.FLOAT_TRAIL_ALPHA,
                 YSettingKey.OVERLAY_SURFACE_ALPHA, YSettingKey.OVERLAY_SCRIM_SCALE,
-                YSettingKey.CONTENT_WIDTH_SCALE, YSettingKey.PANE_WIDTH_SCALE -> "%"
+                YSettingKey.CONTENT_WIDTH_SCALE, YSettingKey.PANE_WIDTH_SCALE,
+                YSettingKey.SWITCH_SCALE_PERCENT -> "%"
                 YSettingKey.FLOAT_MENU_COUNT -> ""
                 else -> "dp"
             }
@@ -580,6 +581,11 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.INPUT_HEIGHT -> R.string.appearance_input_height
     YSettingKey.DIALOG_RADIUS -> R.string.appearance_dialog_radius
     YSettingKey.SWITCH_SLOT_WIDTH -> R.string.appearance_switch_slot_width
+    YSettingKey.SWITCH_SCALE_PERCENT -> R.string.appearance_switch_scale_percent
+    YSettingKey.SWITCH_TRACK_WIDTH -> R.string.appearance_switch_track_width
+    YSettingKey.SWITCH_TRACK_HEIGHT -> R.string.appearance_switch_track_height
+    YSettingKey.SWITCH_THUMB_SIZE -> R.string.appearance_switch_thumb_size
+    YSettingKey.SWITCH_LABEL_GAP -> R.string.appearance_switch_label_gap
     YSettingKey.ICON_TOUCH_TARGET -> R.string.appearance_icon_touch_target
     YSettingKey.ICON_VISUAL_SIZE -> R.string.appearance_icon_visual_size
     YSettingKey.NAV_RADIUS -> R.string.appearance_nav_radius
