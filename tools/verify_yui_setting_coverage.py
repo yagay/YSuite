@@ -39,7 +39,7 @@ def run() -> None:
         require(path, 'name="appearance_input_height"')
     require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
             "styleLabel(button)", "inputHeight(context: Context)",
-            "buttonHorizontalPadding(context)", "buttonGeometry()",
+            "buttonHorizontalPadding(context)", "displayRules(context).button",
             "button.insetTop = inset", "button.insetBottom = inset",
             "store.registerPreferenceListener(listener)",
             "store.unregisterPreferenceListener(listener)")
