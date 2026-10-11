@@ -53,6 +53,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var monitorJob: Job? = null
     private var networkJob: Job? = null
+    private var resourceJob: Job? = null
     private var detailJob: Job? = null
     private var lastDetailSampleMs = 0L
 
@@ -67,6 +68,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun start() {
         if (monitorJob?.isActive == true) return
+        startResourceMonitor()
         monitorJob = viewModelScope.launch {
             val initialProbe = processShell.probeRoot()
             val rootGranted = initialProbe.granted
@@ -112,6 +114,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     delay(snapshot.refreshIntervalMs)
                     if (isActive && _state.value.autoRefresh) refreshInternal()
                 } else delay(250L)
+            }
+        }
+    }
+
+    /**
+     * Resource telemetry has its own cadence and shell. A slow Root process scan,
+     * a paused process list, or the first /proc enumeration must not freeze graphs.
+     */
+    private fun startResourceMonitor() {
+        if (resourceJob?.isActive == true) return
+        resourceJob = viewModelScope.launch {
+            while (isActive) {
+                val root = _state.value.root.granted
+                val system = runCatching {
+                    if (root) statsRepository.read()
+                    else statsRepository.readUnprivileged(getApplication())
+                }.getOrElse {
+                    runCatching { statsRepository.readUnprivileged(getApplication()) }.getOrNull()
+                }
+                val gpu = if (root) runCatching { gpuRepository.read() }.getOrNull() else null
+                if (system != null) {
+                    val previous = _state.value
+                    _state.value = previous.copy(
+                        system = system,
+                        gpu = gpu ?: previous.gpu,
+                        cpuHistory = appendHistory(previous.cpuHistory, system.cpuPercent),
+                        ramHistory = appendHistory(previous.ramHistory,
+                            percent(system.ramUsedBytes, system.ramTotalBytes)),
+                        swapHistory = appendHistory(previous.swapHistory,
+                            percent(system.swapUsedBytes, system.swapTotalBytes)),
+                        gpuHistory = appendHistory(previous.gpuHistory,
+                            (gpu ?: previous.gpu).usagePercent ?: 0f),
+                    )
+                }
+                delay(2_000L)
             }
         }
     }
@@ -251,8 +288,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
-            val systemDeferred = async { runCatching { statsRepository.read() } }
-            val gpuDeferred = async { runCatching { gpuRepository.read() } }
 
             val oldState = _state.value
             val processResult = processDeferred.await()
@@ -270,9 +305,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     threadCount = visible.sumOf { it.threads }, loading = false,
                 )
             }
-            val systemResult = systemDeferred.await()
-            val gpuResult = gpuDeferred.await()
-            val system = systemResult.getOrElse { oldState.system }
             val quickProcesses = processResult.getOrElse { oldState.processes }
             // Retain rich /proc statistics between the cheaper ps-based updates.
             val previousByPid = oldState.processes.associateBy { it.pid }
@@ -292,25 +324,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     elapsedTimeMillis = previous.elapsedTimeMillis,
                 )
             }
-            val gpu = gpuResult.getOrElse { oldState.gpu }
             val failed = listOfNotNull(
-                systemResult.exceptionOrNull()?.let { "system: ${it.message ?: it.javaClass.simpleName}" },
                 processResult.exceptionOrNull()?.let { "processes: ${it.message ?: it.javaClass.simpleName}" },
-                gpuResult.exceptionOrNull()?.let { "GPU: ${it.message ?: it.javaClass.simpleName}" }
             ).joinToString("; ")
 
             val old = _state.value
             val processes = applyNetworkSpeeds(rawProcesses, old.network)
             _state.value = old.copy(
-                system = system,
-                gpu = gpu,
                 processes = processes,
                 processCount = processes.size,
                 threadCount = processes.sumOf { it.threads },
-                cpuHistory = appendHistory(old.cpuHistory, system.cpuPercent),
-                ramHistory = appendHistory(old.ramHistory, percent(system.ramUsedBytes, system.ramTotalBytes)),
-                swapHistory = appendHistory(old.swapHistory, percent(system.swapUsedBytes, system.swapTotalBytes)),
-                gpuHistory = appendHistory(old.gpuHistory, gpu.usagePercent ?: 0f),
                 loading = false,
                 error = failed.takeIf { it.isNotBlank() }
                     ?: if (processes.isEmpty()) "No processes returned by Root /proc or ps" else null,
@@ -423,6 +446,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         monitorJob?.cancel()
         networkJob?.cancel()
+        resourceJob?.cancel()
         processShell.close()
         statsShell.close()
         gpuShell.close()
