@@ -168,7 +168,18 @@ object SuiteRootGateway {
             )
         }
 
-        RootManager.initialize(app)
+        // Never execute a feature command in libsu's unprivileged fallback shell.
+        // Re-open a previously cached non-root shell if authorization has since changed.
+        if (!RootManager.isAvailable(app)) {
+            return Result(
+                code = Shell.Result.JOB_NOT_EXECUTED,
+                stdout = "",
+                stderr = "Root shell is not privileged (host: ${app.packageName})",
+                error = IllegalStateException(
+                    "Root shell could not open as uid 0 for ${app.packageName}"
+                ),
+            )
+        }
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "command" }
 

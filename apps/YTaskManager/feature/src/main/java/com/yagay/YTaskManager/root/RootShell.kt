@@ -3,6 +3,7 @@ package com.yagay.YTaskManager.root
 import com.yagay.YTaskManager.AppLogger
 import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.FeatureRootCommands
+import com.yagay.suite.api.HostCapability
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -13,7 +14,11 @@ import java.util.concurrent.TimeoutException
 data class ShellResult(
     val code: Int,
     val stdout: String,
+    val stderr: String = "",
 )
+
+/** Report the actual failure layer instead of equating a missing host with denied Root. */
+data class RootProbe(val granted: Boolean, val detail: String)
 
 class RootShell {
     companion object {
@@ -25,16 +30,34 @@ class RootShell {
     @Volatile
     private var closed = false
 
-    suspend fun isRootAvailable(): Boolean {
-        val result = runCatching {
-            execute("id -u", 4_000).stdout.trim().lineSequence().lastOrNull() == "0"
+    suspend fun probeRoot(): RootProbe {
+        val host = services.hostOrNull()
+            ?: return RootProbe(false, "YSuite feature Root host not attached; retrying connection")
+        if (!host.supports(HostCapability.ROOT)) {
+            return RootProbe(false, "TaskManager ROOT capability is not registered by its host")
         }
-        result.onSuccess { AppLogger.i("Root availability checked: granted=$it") }
-            .onFailure {
-                if (it !is CancellationException) AppLogger.e("Root availability check failed", it)
+        return try {
+            val result = execute("id -u", 8_000)
+            val uid = result.stdout.lineSequence().map { it.trim() }
+                .firstOrNull { it.matches(Regex("[0-9]+")) }
+            val granted = result.code == 0 && uid == "0"
+            val detail = when {
+                granted -> "Root active (uid=0 via ${host.hostPackageName})"
+                result.code != 0 -> "Root command failed (exit=${result.code}): ${result.stderr.ifBlank { result.stdout }.take(180)}"
+                uid == null -> "Root command returned no valid UID via ${host.hostPackageName}"
+                else -> "Root command ran with uid=$uid, not uid=0 (${host.hostPackageName})"
             }
-        return result.getOrDefault(false)
+            AppLogger.i("Root probe: $detail")
+            RootProbe(granted, detail)
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (error: Throwable) {
+            AppLogger.e("Root probe could not use the feature host", error)
+            RootProbe(false, error.message ?: error.javaClass.simpleName)
+        }
     }
+
+    suspend fun isRootAvailable(): Boolean = probeRoot().granted
 
     suspend fun execute(command: String, timeoutMs: Long = 8_000): ShellResult =
         mutex.withLock {
@@ -51,7 +74,7 @@ class RootShell {
             if (raw.timedOut) throw TimeoutException("Managed root command timed out after ${timeoutMs}ms")
             if (!raw.errorMessage.isNullOrBlank()) throw IllegalStateException(raw.errorMessage)
             if (raw.stderr.isNotBlank()) AppLogger.i("Managed root stderr: ${raw.stderr.take(240)}")
-            ShellResult(raw.code, raw.stdout.trim())
+            ShellResult(raw.code, raw.stdout.trim(), raw.stderr.trim())
         } catch (e: CancellationException) {
             throw e
         } catch (e: TimeoutException) {
