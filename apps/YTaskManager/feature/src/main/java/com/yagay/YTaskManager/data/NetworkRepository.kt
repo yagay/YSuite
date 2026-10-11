@@ -3,6 +3,7 @@ package com.yagay.YTaskManager.data
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import com.yagay.suite.api.InstalledAppCatalog
 import android.net.TrafficStats
 import android.os.Process
 import android.os.SystemClock
@@ -17,7 +18,6 @@ class NetworkRepository(
     private val application: Application,
     private val shell: RootShell,
 ) {
-    private val packageManager = application.packageManager
     private var packageCache: Map<Int, List<PackageIdentity>> = emptyMap()
     private var packageCacheTime = 0L
     private var previous: Map<Int, Counter> = emptyMap()
@@ -206,17 +206,15 @@ class NetworkRepository(
         val now = System.currentTimeMillis()
         if (packageCache.isNotEmpty() && now - packageCacheTime < 60_000L) return
 
-        @Suppress("DEPRECATION")
-        val apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+        val apps = InstalledAppCatalog.list(application, PackageManager.GET_META_DATA)
         val map = HashMap<Int, MutableList<PackageIdentity>>()
         apps.forEach { app ->
             map.getOrPut(app.uid) { mutableListOf() } += PackageIdentity(
                 packageName = app.packageName,
-                label = runCatching { packageManager.getApplicationLabel(app).toString() }
-                    .getOrDefault(app.packageName),
-                icon = runCatching { packageManager.getApplicationIcon(app) }.getOrNull(),
-                system = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
-                    (app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
+                label = app.label,
+                icon = InstalledAppCatalog.icon(application, app.packageName, 64),
+                system = app.system ||
+                    (app.info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
             )
         }
         packageCache = map
