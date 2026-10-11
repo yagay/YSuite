@@ -122,7 +122,12 @@ class NetworkRepository(
         val selected = preferredRootProbe?.let { listOf(it) } ?: if (
             lastFullProbeMs != 0L && now - lastFullProbeMs < 60_000L
         ) emptyList() else probes
-        if (preferredRootProbe == null && selected.isNotEmpty()) lastFullProbeMs = now
+        // Do not move the retry deadline when the cached "unsupported" answer
+        // is reused. Otherwise every 5s poll postpones re-probing indefinitely.
+        if (selected.isEmpty()) {
+            return RootSample("No cross-UID root counters", emptyMap())
+        }
+        if (preferredRootProbe == null) lastFullProbeMs = now
         for ((name, command) in selected) {
             val raw = runCatching { shell.execute(command, 4_000).stdout }.getOrDefault("")
             val parsed = parseAppUidStats(raw)

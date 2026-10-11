@@ -83,6 +83,9 @@ jobs:
       - name: Verify shared platform data sources
         run: python3 tools/verify_shared_app_catalog.py
 
+      - name: Verify lazy list and Root sampling performance contracts
+        run: python3 tools/verify_list_performance_contracts.py
+
       - name: Verify row alignment on the actual shared YUI renderer
         run: python3 tools/verify_yui_row_alignment.py
 

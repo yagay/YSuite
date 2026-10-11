@@ -198,6 +198,9 @@ public class MainActivity extends AppCompatActivity {
             changed.add(item.packageName.equals(row.packageName)
                     ? new AppRow(item.packageName, item.label, enabled) : item);
         }
+        changed.sort(Comparator.comparing((AppRow a) -> !a.enabled)
+                .thenComparing(a -> a.label, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(a -> a.packageName, String.CASE_INSENSITIVE_ORDER));
         snapshot = java.util.Collections.unmodifiableList(changed);
         filterApps(search.getText().toString());
         appLoader.execute(() -> ProfileStore.get(this).setEnabled(row.packageName, enabled));
