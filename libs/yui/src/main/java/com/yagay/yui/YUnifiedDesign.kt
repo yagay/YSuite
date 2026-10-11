@@ -621,10 +621,6 @@ fun YTextActionButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
-        contentPadding = PaddingValues(
-            horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
-            vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
-        ),
         content = content,
     )
 }
@@ -654,11 +650,6 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
                 YActionStyle.DANGER -> YUiOutlinedButton(
                     onClick = action.onClick,
                     enabled = action.enabled,
-                    modifier = Modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
-                    contentPadding = PaddingValues(
-                        horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
-                        vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
-                    ),
                 ) {
                     Text(
                         action.label,
@@ -717,8 +708,6 @@ fun YTabBar(tabs: List<YTabSpec>, selectedKey: String, onSelected: (YTabSpec) ->
                 text = {
                     Text(
                         tab.label,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 },
             )

@@ -62,6 +62,15 @@ def main() -> None:
                     nearby = "\n".join(lines[max(0, lineno - 12):lineno])
                     if KOTLIN_CONTROL.search(nearby):
                         problems.append((path, lineno, "local Compose button dimension", line.strip()))
+    # Shared action builders must not override the same YUI properties locally.
+    unified = (ROOT / "libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt").read_text(encoding="utf-8")
+    for old in (
+        "modifier = Modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp)",
+        "maxLines = 1,\n                        overflow = TextOverflow.Ellipsis",
+    ):
+        if old in unified:
+            problems.append((ROOT / "libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
+                             0, "redundant action or tab label constraint", old))
     # The shared implementation must make minimum height intrinsic, never exact.
     controls = (ROOT / "libs/yui/src/main/java/com/yagay/yui/YActionSizing.kt").read_text(encoding="utf-8")
     if "minimumInteractiveComponentSize().heightIn(min = minimumVisualHeight)" not in controls:
