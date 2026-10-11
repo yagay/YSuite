@@ -31,7 +31,7 @@
     <string name="appearance_group_buttons_desc">Shared primary, secondary, text and icon-button sizing</string>
     <string name="appearance_group_lists_desc">Unified row height, horizontal padding and vertical padding</string>
     <string name="appearance_group_cards_desc">Card corners and content padding</string>
-    <string name="appearance_group_inputs_desc">Shape of shared text input fields</string>
+    <string name="appearance_group_inputs_desc">Shared input height and corner shape</string>
     <string name="appearance_group_switches_desc">Switch touch slot; internal Material 3 switch size stays safe</string>
     <string name="appearance_group_dialogs_desc">Shared confirmation and form dialog corners</string>
     <string name="appearance_group_navigation_desc">Shared navigation item corner radius</string>
@@ -50,6 +50,7 @@
     <string name="appearance_card_radius">Card corners</string>
     <string name="appearance_card_padding">Card content padding</string>
     <string name="appearance_field_radius">Input corners</string>
+    <string name="appearance_input_height">Input minimum height</string>
     <string name="appearance_dialog_radius">Dialog corners</string>
     <string name="appearance_switch_slot_width">Switch reserved width</string>
     <string name="appearance_icon_touch_target">Icon-button touch area</string>

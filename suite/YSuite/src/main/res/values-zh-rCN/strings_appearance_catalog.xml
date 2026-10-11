@@ -31,7 +31,7 @@
     <string name="appearance_group_buttons_desc">主要、次要、文字及图标按钮使用共同尺寸</string>
     <string name="appearance_group_lists_desc">统一列表行高与水平、垂直内边距</string>
     <string name="appearance_group_cards_desc">卡片圆角和内容内边距</string>
-    <string name="appearance_group_inputs_desc">统一文字输入框的圆角</string>
+    <string name="appearance_group_inputs_desc">统一输入框高度和圆角</string>
     <string name="appearance_group_switches_desc">开关占用宽度；保留 Material 3 安全触控尺寸</string>
     <string name="appearance_group_dialogs_desc">统一确认和表单对话框圆角</string>
     <string name="appearance_group_navigation_desc">统一导航选项的圆角</string>
@@ -50,6 +50,7 @@
     <string name="appearance_card_radius">卡片圆角</string>
     <string name="appearance_card_padding">卡片内容内边距</string>
     <string name="appearance_field_radius">输入框圆角</string>
+    <string name="appearance_input_height">输入框最小高度</string>
     <string name="appearance_dialog_radius">对话框圆角</string>
     <string name="appearance_switch_slot_width">开关占用宽度</string>
     <string name="appearance_icon_touch_target">图标按钮触控区域</string>

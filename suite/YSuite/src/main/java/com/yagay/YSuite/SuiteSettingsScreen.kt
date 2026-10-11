@@ -577,6 +577,7 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.CARD_PADDING -> R.string.appearance_card_padding
     YSettingKey.CARD_OUTLINE_WIDTH -> R.string.appearance_card_outline_width
     YSettingKey.FIELD_RADIUS -> R.string.appearance_field_radius
+    YSettingKey.INPUT_HEIGHT -> R.string.appearance_input_height
     YSettingKey.DIALOG_RADIUS -> R.string.appearance_dialog_radius
     YSettingKey.SWITCH_SLOT_WIDTH -> R.string.appearance_switch_slot_width
     YSettingKey.ICON_TOUCH_TARGET -> R.string.appearance_icon_touch_target
