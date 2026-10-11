@@ -60,6 +60,18 @@ def check() -> None:
     require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatVisualSettings.java",
             "migrateGoogleFrame(", "GOOGLE_MIGRATED")
 
+    # MiniGuard heartbeat must survive early system context lookups and report
+    # actual persistence failures; its status UI must update while visible.
+    require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/EngineBridge.java",
+            "Context availableContext() { return context; }")
+    require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/GuardModule.java",
+            "current.availableContext()", 'acknowledgement.getBoolean("ok", false)')
+    require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/EngineStatusProvider.java",
+            'result.putBoolean("ok", saved);')
+    require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java",
+            "engineStatus.postDelayed(statusTicker, 2_000L)", "engineStatus.removeCallbacks(statusTicker)",
+            "ymg_engine_load_failed", "ymg_engine_stale_heartbeat")
+
     downloader = source("next/feature/ydownload/impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadFeatureScreen.kt")
     for forbidden in ("import android.app.DatePickerDialog", "import android.app.TimePickerDialog", "DatePickerDialog(", "TimePickerDialog("):
         if forbidden in downloader:

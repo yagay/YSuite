@@ -153,6 +153,9 @@ final class EngineBridge {
         return GuardConfig.moduleVersion();
     }
 
+    /** Reuse the successful bootstrap context if ActivityThread lookup is temporarily unavailable. */
+    Context availableContext() { return context; }
+
     long versionCode() { return engineVersion; }
     long generation() { return engineGeneration; }
     String lastReloadMessage() { return lastReloadMessage; }

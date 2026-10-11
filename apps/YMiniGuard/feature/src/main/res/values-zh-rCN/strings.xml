@@ -72,4 +72,9 @@
     <string name="ymg_app_list_failed_title">应用列表启动失败</string>
     <string name="ymg_app_list_failed_detail">%1$s\n%2$s\n\n错误已写入诊断日志。</string>
     <string name="ymg_system_app_suffix">，系统应用</string>
+    <string name="ymg_engine_stale_heartbeat">System Engine：心跳已过期（%1$d 秒前）。请检查 system 作用域；若更新过 Bootstrap Hook，请重启设备。</string>
+    <string name="ymg_engine_load_failed">System Engine：已收到 Bootstrap 心跳，但引擎加载失败。\n%1$s</string>
+    <string name="ymg_engine_unknown_error">请在诊断日志中查看引擎加载失败原因。</string>
+    <string name="ymg_engine_no_hooks">System Engine：收到心跳，但没有安装系统 Hook，请检查 LSPosed 的 system 作用域。</string>
+    <string name="ymg_engine_invalid_heartbeat">System Engine：心跳数据无效（PID %1$d，引擎 %2$d，Hook %3$d）。</string>
 </resources>

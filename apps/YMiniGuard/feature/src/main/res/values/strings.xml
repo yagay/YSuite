@@ -72,4 +72,9 @@
     <string name="ymg_app_list_failed_title">Failed to open app list</string>
     <string name="ymg_app_list_failed_detail">%1$s\n%2$s\n\nThe error was written to the diagnostic log.</string>
     <string name="ymg_system_app_suffix">, system app</string>
+    <string name="ymg_engine_stale_heartbeat">System Engine: heartbeat expired (%1$d seconds ago). Check system scope and reboot if the Bootstrap Hook changed.</string>
+    <string name="ymg_engine_load_failed">System Engine: bootstrap reports a heartbeat, but engine loading failed.\n%1$s</string>
+    <string name="ymg_engine_unknown_error">Check diagnostics for the engine loading error.</string>
+    <string name="ymg_engine_no_hooks">System Engine: heartbeat received but no system hooks are installed. Check LSPosed system scope.</string>
+    <string name="ymg_engine_invalid_heartbeat">System Engine: invalid heartbeat (PID %1$d, engine %2$d, hooks %3$d).</string>
 </resources>

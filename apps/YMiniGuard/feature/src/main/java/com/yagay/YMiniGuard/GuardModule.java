@@ -2168,6 +2168,10 @@ public final class GuardModule extends XposedModule {
                         // Initial engine loading may precede ActivityThread's system Context.
                         // Refresh it before retrying the APK-backed engine on this heartbeat.
                         Context context = resolveSystemContext(systemClassLoader);
+                        if (context == null && current != null) {
+                            // The initial getSystemUiContext() may still be usable.
+                            context = current.availableContext();
+                        }
                         if (current != null) {
                             current.updateContext(context);
                         }
@@ -2298,12 +2302,18 @@ public final class GuardModule extends XposedModule {
                                         EngineStatusProvider.KEY_HOOKS,
                                         installedHooks.size());
 
-                                context.getContentResolver()
+                                Bundle acknowledgement = context.getContentResolver()
                                         .call(
                                                 EngineStatusProvider.URI,
                                                 EngineStatusProvider.METHOD_MARK,
                                                 null,
                                                 extras);
+                                if (acknowledgement == null
+                                        || !acknowledgement.getBoolean("ok", false)) {
+                                    log(Log.WARN, TAG, "SYSTEM_SCOPE heartbeat rejected authority="
+                                            + EngineStatusProvider.AUTHORITY
+                                            + " response=" + acknowledgement);
+                                }
                             } catch (Throwable t) {
                                 log(
                                         Log.WARN,

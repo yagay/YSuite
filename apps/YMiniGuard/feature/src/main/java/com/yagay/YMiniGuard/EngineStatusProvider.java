@@ -110,7 +110,7 @@ public class EngineStatusProvider extends ContentProvider {
             int hooks = extras == null ? -1 : extras.getInt(KEY_HOOKS, -1);
             long now = System.currentTimeMillis();
 
-            prefs(context).edit()
+            boolean saved = prefs(context).edit()
                     .putLong(KEY_VERSION, version)
                     .putLong(KEY_BOOTSTRAP_VERSION, bootstrapVersion)
                     .putBoolean(KEY_HOT_RELOAD, hotReload)
@@ -123,7 +123,7 @@ public class EngineStatusProvider extends ContentProvider {
                     .commit();
 
             Bundle result = new Bundle();
-            result.putBoolean("ok", true);
+            result.putBoolean("ok", saved);
             result.putLong(KEY_STARTED_AT, now);
             return result;
         }
