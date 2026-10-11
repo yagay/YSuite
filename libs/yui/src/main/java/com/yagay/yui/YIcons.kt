@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.History
@@ -30,6 +31,7 @@ object YIcons {
     val Delete = Icons.Rounded.Delete
     val Download = Icons.Rounded.Download
     val Edit = Icons.Rounded.Edit
+    val Filter = Icons.Rounded.FilterList
     val Folder = Icons.Rounded.Folder
     val Info = Icons.Rounded.Info
     val History = Icons.Rounded.History

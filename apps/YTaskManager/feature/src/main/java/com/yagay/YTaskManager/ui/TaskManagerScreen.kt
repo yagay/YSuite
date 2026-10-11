@@ -5,6 +5,8 @@ import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +50,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -66,13 +69,16 @@ import com.yagay.YTaskManager.model.ProcessSort
 import com.yagay.YTaskManager.model.TaskManagerUiState
 import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YSection
-import com.yagay.yui.YToggleFilterBar
+import com.yagay.yui.YBottomSheet
+import com.yagay.yui.YChoiceSpec
+import com.yagay.yui.YRadioGroup
+import com.yagay.yui.YSectionHeader
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YMetricCard
 import com.yagay.yui.YStatusStrip
 import com.yagay.yui.YStatusSpec
 import com.yagay.yui.YPageList
 import com.yagay.yui.YListItem
-import com.yagay.yui.YFilterSpec
-import com.yagay.yui.YFilterBar
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YIcons
@@ -104,6 +110,7 @@ fun TaskManagerApp(viewModel: MainViewModel) {
     val snackbar = remember { SnackbarHostState() }
     var selected by remember { mutableStateOf<ProcessEntry?>(null) }
     var showSettings by remember { mutableStateOf(false) }
+    var showFilters by remember { mutableStateOf(false) }
     var pendingKill by remember { mutableStateOf<Pair<ProcessEntry, Boolean>?>(null) }
     var page by remember { mutableStateOf(HomePage.PROCESSES) }
 
@@ -165,6 +172,7 @@ fun TaskManagerApp(viewModel: MainViewModel) {
                     HomePage.PROCESSES -> ProcessPage(
                         state = state,
                         viewModel = viewModel,
+                        onOpenFilters = { showFilters = true },
                         onSelect = { process ->
                             viewModel.loadProcessDetails(process) { selected = it }
                         },
@@ -218,6 +226,17 @@ fun TaskManagerApp(viewModel: MainViewModel) {
         )
     }
 
+    if (showFilters) {
+        ProcessFilterSheet(
+            state = state,
+            onDismiss = { showFilters = false },
+            onUser = viewModel::setShowUserApps,
+            onSystem = viewModel::setShowSystemApps,
+            onLinux = viewModel::setShowLinuxProcesses,
+            onSort = viewModel::setSort,
+        )
+    }
+
     if (showSettings) {
         SettingsDialog(
             state = state,
@@ -233,17 +252,15 @@ fun TaskManagerApp(viewModel: MainViewModel) {
 private fun ProcessPage(
     state: TaskManagerUiState,
     viewModel: MainViewModel,
+    onOpenFilters: () -> Unit,
     onSelect: (ProcessEntry) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
         StatusSection(state)
-        FilterSection(
+        ProcessControls(
             state = state,
             onQuery = viewModel::setQuery,
-            onSort = viewModel::setSort,
-            onUser = viewModel::setShowUserApps,
-            onSystem = viewModel::setShowSystemApps,
-            onLinux = viewModel::setShowLinuxProcesses,
+            onOpenFilters = onOpenFilters,
         )
         if (state.loading) {
             YListSkeleton(
@@ -286,25 +303,25 @@ private fun StatusSection(state: TaskManagerUiState) {
     }
 }
 
+/** Compact primary screen: searching stays visible, filter/sort choices live in one sheet. */
 @Composable
-private fun FilterSection(
+private fun ProcessControls(
     state: TaskManagerUiState,
     onQuery: (String) -> Unit,
-    onSort: (ProcessSort) -> Unit,
-    onUser: (Boolean) -> Unit,
-    onSystem: (Boolean) -> Unit,
-    onLinux: (Boolean) -> Unit,
+    onOpenFilters: () -> Unit,
 ) {
-    YSection(
-        title = stringResource(R.string.ytm_process_filter),
-        subtitle = stringResource(R.string.ytm_process_filter_desc),
-        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp),
+    Column(
+        modifier = Modifier.padding(
+            horizontal = LocalYAppearance.current.screenPaddingDp.dp,
+            vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 2f).dp),
     ) {
         YSearchField(
             value = state.query,
             onValueChange = onQuery,
             hint = stringResource(R.string.ytm_search_hint),
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            leadingIcon = { Icon(YIcons.Search, contentDescription = null) },
             trailingIcon = if (state.query.isNotEmpty()) {
                 {
                     YIconAction(
@@ -315,18 +332,70 @@ private fun FilterSection(
                 }
             } else null,
         )
-        YToggleFilterBar(
-            filters = listOf(
-                YFilterSpec(stringResource(R.string.ytm_user), state.showUserApps) { onUser(!state.showUserApps) },
-                YFilterSpec(stringResource(R.string.ytm_system), state.showSystemApps) { onSystem(!state.showSystemApps) },
-                YFilterSpec(stringResource(R.string.ytm_linux), state.showLinuxProcesses) { onLinux(!state.showLinuxProcesses) },
-            ),
-        )
-        YFilterBar(
-            options = ProcessSort.entries.map { sortLabel(it) },
-            selectedIndex = ProcessSort.entries.indexOf(state.sort).coerceAtLeast(0),
-            onSelected = { index -> ProcessSort.entries.getOrNull(index)?.let(onSort) },
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.ytm_sort_current, sortLabel(state.sort)),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                Text(
+                    stringResource(R.string.ytm_filter_types_selected,
+                        listOf(state.showUserApps, state.showSystemApps, state.showLinuxProcesses)
+                            .count { it }),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            YIconAction(
+                icon = YIcons.Filter,
+                contentDescription = stringResource(R.string.ytm_filter_and_sort),
+                onClick = onOpenFilters,
+            )
+        }
+    }
+}
+
+/** Reusable YUI settings rows; avoids six cramped horizontal sort chips. */
+@Composable
+private fun ProcessFilterSheet(
+    state: TaskManagerUiState,
+    onDismiss: () -> Unit,
+    onUser: (Boolean) -> Unit,
+    onSystem: (Boolean) -> Unit,
+    onLinux: (Boolean) -> Unit,
+    onSort: (ProcessSort) -> Unit,
+) {
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
+    YBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().heightIn(max = maxHeight)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 2f).dp),
+        ) {
+            YSectionHeader(stringResource(R.string.ytm_process_filter),
+                subtitle = stringResource(R.string.ytm_process_filter_desc))
+            YSwitchItem(title = stringResource(R.string.ytm_user),
+                checked = state.showUserApps, onCheckedChange = onUser)
+            YSwitchItem(title = stringResource(R.string.ytm_system),
+                checked = state.showSystemApps, onCheckedChange = onSystem)
+            YSwitchItem(title = stringResource(R.string.ytm_linux),
+                checked = state.showLinuxProcesses, onCheckedChange = onLinux)
+            YSectionHeader(stringResource(R.string.ytm_sort_by))
+            YRadioGroup(
+                value = state.sort,
+                options = ProcessSort.entries.map { sort ->
+                    YChoiceSpec(sort, sortLabel(sort))
+                },
+                onSelected = onSort,
+            )
+            YPrimaryActionButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.ytm_done))
+            }
+        }
     }
 }
 
@@ -764,33 +833,40 @@ private fun SettingsDialog(
     onConfirmKill: (Boolean) -> Unit,
 ) {
     val intervals = listOf(1000L, 2500L, 5000L, 10000L)
-    YFormDialog(
-        title = stringResource(R.string.ytm_process_settings),
-        onDismissRequest = onDismiss,
-        actions = listOf(
-            YActionSpec(
-                label = stringResource(R.string.ytm_done),
-                style = YActionStyle.PRIMARY,
-                onClick = onDismiss,
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
+    YBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().heightIn(max = maxHeight)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 2f).dp),
+        ) {
+            YSectionHeader(stringResource(R.string.ytm_process_settings))
+            YSwitchItem(
+                title = stringResource(R.string.ytm_auto_refresh),
+                subtitle = stringResource(R.string.ytm_auto_refresh_desc),
+                checked = state.autoRefresh,
+                onCheckedChange = onAutoRefresh,
             )
-        ),
-    ) {
-        YSwitchItem(
-            title = stringResource(R.string.ytm_auto_refresh),
-            checked = state.autoRefresh,
-            onCheckedChange = onAutoRefresh,
-        )
-        YSwitchItem(
-            title = stringResource(R.string.ytm_confirm_before_kill),
-            checked = state.confirmKill,
-            onCheckedChange = onConfirmKill,
-        )
-        YFilterBar(
-            options = intervals.map { stringResource(R.string.ytm_milliseconds, it) },
-            selectedIndex = intervals.indexOf(state.refreshIntervalMs).coerceAtLeast(0),
-            onSelected = { index -> intervals.getOrNull(index)?.let(onRefreshInterval) },
-        )
-        YNotice(stringResource(R.string.ytm_network_sampling))
+            YSwitchItem(
+                title = stringResource(R.string.ytm_confirm_before_kill),
+                subtitle = stringResource(R.string.ytm_confirm_kill_desc),
+                checked = state.confirmKill,
+                onCheckedChange = onConfirmKill,
+            )
+            YSectionHeader(stringResource(R.string.ytm_refresh_interval))
+            YRadioGroup(
+                value = state.refreshIntervalMs,
+                options = intervals.map { interval ->
+                    YChoiceSpec(interval, stringResource(R.string.ytm_milliseconds, interval))
+                },
+                onSelected = onRefreshInterval,
+                enabled = state.autoRefresh,
+            )
+            YNotice(stringResource(R.string.ytm_network_sampling))
+            YPrimaryActionButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.ytm_done))
+            }
+        }
     }
 }
 
