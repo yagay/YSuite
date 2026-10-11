@@ -2165,6 +2165,12 @@ public final class GuardModule extends XposedModule {
                     @Override
                     public void run() {
                         EngineBridge current = engine;
+                        // Initial engine loading may precede ActivityThread's system Context.
+                        // Refresh it before retrying the APK-backed engine on this heartbeat.
+                        Context context = resolveSystemContext(systemClassLoader);
+                        if (current != null) {
+                            current.updateContext(context);
+                        }
 
                         try {
                             if (current != null) {
@@ -2243,10 +2249,6 @@ public final class GuardModule extends XposedModule {
                                     "ENGINE_RELOAD_WATCH error="
                                             + t);
                         }
-
-                        Context context =
-                                resolveSystemContext(
-                                        systemClassLoader);
 
                         if (context != null) {
                             try {

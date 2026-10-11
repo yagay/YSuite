@@ -75,7 +75,11 @@ public class EngineStatusProvider extends ContentProvider {
 
         boolean isFromCurrentBoot() {
             if (startedAt <= 0) return false;
-            long bootEpoch = System.currentTimeMillis() - SystemClock.elapsedRealtime();
+            long now = System.currentTimeMillis();
+            // startedAt is refreshed for every 2-second heartbeat. A previous
+            // system_server instance is not active merely because this boot persists.
+            if (startedAt > now + 5_000L || now - startedAt > 15_000L) return false;
+            long bootEpoch = now - SystemClock.elapsedRealtime();
             return startedAt >= bootEpoch - 10_000L;
         }
     }

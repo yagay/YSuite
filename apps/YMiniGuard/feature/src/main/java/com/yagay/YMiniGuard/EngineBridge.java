@@ -18,7 +18,7 @@ final class EngineBridge {
     private static final String ENGINE_CLASS = "com.yagay.YMiniGuard.HotReloadEngine";
 
     private final Handler handler;
-    private final Context context;
+    private volatile Context context;
     private final SharedPreferences prefs;
     private final ClassLoader systemClassLoader;
     private final Object lock = new Object();
@@ -40,6 +40,14 @@ final class EngineBridge {
         this.context = context;
         this.prefs = prefs;
         this.systemClassLoader = systemClassLoader;
+    }
+
+    void updateContext(Context availableContext) {
+        // ActivityThread's system context can be unavailable during the earliest
+        // system_server callback; a later heartbeat must be able to recover it.
+        if (availableContext != null) {
+            context = availableContext;
+        }
     }
 
     boolean loadInitial() {
@@ -293,9 +301,12 @@ final class EngineBridge {
     }
 
     private String resolveInstalledApkPath() throws Exception {
-        if (context == null) return null;
+        Context currentContext = context;
+        if (currentContext == null) {
+            throw new IllegalStateException("system context not yet available");
+        }
         String packageName = GuardConfig.hostPackage();
-        ApplicationInfo info = context.getPackageManager().getApplicationInfo(packageName, 0);
+        ApplicationInfo info = currentContext.getPackageManager().getApplicationInfo(packageName, 0);
         if (info == null || info.sourceDir == null || info.sourceDir.isBlank()) return null;
         return info.sourceDir;
     }
