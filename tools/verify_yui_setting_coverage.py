@@ -189,6 +189,9 @@ def run() -> None:
     require("libs/yui/src/main/java/com/yagay/yui/YForms.kt",
             "YUiModalBottomSheet as ModalBottomSheet",
             "LocalYAppearance.current.fieldRadiusDp.dp")
+    power_icons = source("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java")
+    if "final int iconPx = YView.listIconSize(MainActivity.this);" not in power_icons:
+        raise AssertionError("YPower must use the configured YUI app icon size without a local clamp")
     power = require("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java",
                     "YViewLayout.listActionButton(MainActivity.this, getString(R.string.yp_settings))",
                     "ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT")
