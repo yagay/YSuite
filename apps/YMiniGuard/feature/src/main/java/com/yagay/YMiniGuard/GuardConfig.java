@@ -2,6 +2,7 @@ package com.yagay.YMiniGuard;
 
 import android.content.SharedPreferences;
 
+import com.yagay.suite.api.HostIdentity;
 import com.yagay.suite.api.RuntimeOwnerGate;
 
 import java.util.Collections;
@@ -66,12 +67,7 @@ final class GuardConfig {
         // executed is fixed at build time; remote preferences may not be synchronized yet
         // when system_server starts, and may still contain an older standalone package.
         // Never route the engine or its status heartbeat to that stale package.
-        String compiledHost = BuildConfig.HOST_PACKAGE;
-        if (compiledHost != null && !compiledHost.isBlank()) {
-            return compiledHost.trim();
-        }
-        String configuredHost = string(ConfigKeys.HOST_PACKAGE).trim();
-        return configuredHost.isEmpty() ? DEFAULT_HOST : configuredHost;
+        return HostIdentity.compiledPackage(BuildConfig.HOST_PACKAGE, DEFAULT_HOST);
     }
 
     static long moduleVersion() {

@@ -16,6 +16,7 @@ import com.yagay.YNotify.collector.XposedEventReceiver;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.util.HookAuth;
 import com.yagay.YNotify.util.TextUtil;
+import com.yagay.suite.api.HostIdentity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -327,13 +328,9 @@ public final class YNotifyModule extends XposedModule {
     }
 
     private String hostPackage() {
-        try {
-            SharedPreferences prefs = runtimePrefs;
-            String host = prefs == null ? null : prefs.getString(YNotifyApp.KEY_HOST_PACKAGE, null);
-            return host == null || host.isBlank() ? STANDALONE_PACKAGE : host;
-        } catch (Throwable ignored) {
-            return STANDALONE_PACKAGE;
-        }
+        // A hooked process can receive events before YNotifyRuntime synchronizes remote
+        // preferences. The APK identity must not depend on a cached standalone host value.
+        return HostIdentity.compiledPackage(BuildConfig.HOST_PACKAGE, STANDALONE_PACKAGE);
     }
 
     private void markHeartbeat(String process, String pkg) {

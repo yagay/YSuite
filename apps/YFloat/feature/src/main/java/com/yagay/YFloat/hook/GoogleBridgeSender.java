@@ -2,7 +2,6 @@ package com.yagay.YFloat.hook;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.net.Uri;
@@ -11,7 +10,9 @@ import android.os.ParcelFileDescriptor;
 import android.os.SharedMemory;
 import android.util.Log;
 
+import com.yagay.YFloat.BuildConfig;
 import com.yagay.YFloat.GoogleCtsContract;
+import com.yagay.suite.api.HostIdentity;
 import com.yagay.YFloat.LsposedRuntimeConfig;
 
 import java.io.FileOutputStream;
@@ -272,14 +273,9 @@ final class GoogleBridgeSender {
     }
 
     private String hostPackage() {
-        try {
-            SharedPreferences prefs = module.getRemotePreferences(LsposedRuntimeConfig.GROUP);
-            String value = prefs == null ? null : prefs.getString(
-                    LsposedRuntimeConfig.K_HOST_PACKAGE, STANDALONE_PACKAGE);
-            return value == null || value.isBlank() ? STANDALONE_PACKAGE : value;
-        } catch (Throwable ignored) {
-            return STANDALONE_PACKAGE;
-        }
+        // The IPC host is fixed by the APK build, not by eventually synchronized LSPosed
+        // preferences. Never send an embedded YSuite frame to a standalone provider.
+        return HostIdentity.compiledPackage(BuildConfig.HOST_PACKAGE, STANDALONE_PACKAGE);
     }
 
     private static String receiverClass(String host, String standaloneReceiver) {

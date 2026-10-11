@@ -35,6 +35,8 @@ def systemUiHookFiles = new ArrayList<File>(hookCommonFiles)
 def systemServerHookFiles = new ArrayList<File>(hookCommonFiles)
 systemServerHookFiles.add(file('src/main/java/com/yagay/YFloat/hook/SecureScreenshotHook.java'))
 def ppocrProjectPath = providers.gradleProperty('yfloatPpocrProjectPath').getOrElse(':ppocr-sdk')
+def embeddedInSuite = rootProject.findProject(':suite') != null
+def hostPackage = embeddedInSuite ? 'com.yagay.YSuite' : 'com.yagay.YFloat'
 def runtimeVersionCode = providers.gradleProperty('ySuiteHostVersionCode').getOrElse('191')
 def sharedSuiteBranch = providers.gradleProperty('ySuiteSharedBranch').getOrElse('main')
 def sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
@@ -46,6 +48,7 @@ android {
     defaultConfig {
         minSdk libs.versions.minSdk.get().toInteger()
         buildConfigField 'int', 'VERSION_CODE', runtimeVersionCode
+        buildConfigField 'String', 'HOST_PACKAGE', '"' + hostPackage + '"'
         buildConfigField 'String', 'VERSION_NAME', '"3.1.39"'
         buildConfigField 'String', 'GOOGLE_HOOK_FINGERPRINT', '"' + yFloatHashFiles(googleHookFiles) + '"'
         buildConfigField 'String', 'SYSTEMUI_HOOK_FINGERPRINT', '"' + yFloatHashFiles(systemUiHookFiles) + '"'

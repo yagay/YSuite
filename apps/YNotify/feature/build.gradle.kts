@@ -2,6 +2,8 @@ plugins {
     id("com.android.library")
 }
 
+val embeddedInSuite = rootProject.findProject(":suite") != null
+val hostPackage = if (embeddedInSuite) "com.yagay.YSuite" else "com.yagay.YNotify"
 val sharedSuiteBranch = providers.gradleProperty("ySuiteSharedBranch").orElse("main")
 val sharedJavaVersion = JavaVersion.toVersion(libs.versions.java.get())
 
@@ -18,6 +20,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "VERSION_NAME", "\"1.3.5\"")
         buildConfigField("int", "VERSION_CODE", "9")
+        buildConfigField("String", "HOST_PACKAGE", "\"$hostPackage\"")
     }
 
     buildFeatures {
