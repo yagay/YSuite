@@ -96,9 +96,9 @@ internal fun SuiteSettingsScreen(
     var previewSelected by remember { mutableStateOf(false) }
     val scopeName = modules.firstOrNull { it.first == moduleId }?.second
     val title = scopeName ?: stringResource(R.string.settings_title)
-    val availableAppearanceGroups = YUiControlRegistry.groups.filter {
-        it != YControlGroup.OVERLAYS || moduleId == null || moduleId == "yfloat"
-    }
+    // Overlay presentation is shared by multiple modules (not only YFloat).
+    // Keep all shared visual families reachable in every module's appearance settings.
+    val availableAppearanceGroups = YUiControlRegistry.groups
     val back: () -> Unit = { if (generalMode) generalMode = false else if (group != null) group = null else onBack() }
 
     BackHandler(enabled = generalMode || commonMode || group != null) {
