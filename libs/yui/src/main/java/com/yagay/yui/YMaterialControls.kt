@@ -21,8 +21,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
@@ -80,19 +78,14 @@ fun YUiOutlinedButton(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
-    OutlinedButton(
+    // The visual variant changes semantics, not the YUI measurement/rendering path.
+    YUiButton(
         onClick = onClick,
-        // Shared intrinsic sizing: the label may wrap and increase measured height.
-        modifier = modifier.yActionButtonSize(),
+        modifier = modifier,
         enabled = enabled,
-        shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
-        elevation = elevation,
+        elevation = null,
         border = border,
-        contentPadding = PaddingValues(
-            horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
-            vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
-        ),
         interactionSource = interactionSource,
         content = content,
     )
@@ -112,19 +105,14 @@ fun YUiTextButton(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
-    TextButton(
+    // The visual variant changes semantics, not the YUI measurement/rendering path.
+    YUiButton(
         onClick = onClick,
-        // Shared intrinsic sizing: the label may wrap and increase measured height.
-        modifier = modifier.yActionButtonSize(),
+        modifier = modifier,
         enabled = enabled,
-        shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
-        elevation = elevation,
-        border = border,
-        contentPadding = PaddingValues(
-            horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
-            vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
-        ),
+        elevation = null,
+        border = null,
         interactionSource = interactionSource,
         content = content,
     )

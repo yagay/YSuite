@@ -171,10 +171,13 @@ object YView {
                 .toInt().coerceAtLeast(0)
             button.insetTop = inset
             button.insetBottom = inset
-            if (outlined) {
-                button.strokeColor = ColorStateList.valueOf(colors.outline.toArgb())
-                button.strokeWidth = maxOf(button.strokeWidth, cardOutlineWidth(context))
-            }
+            button.insetLeft = 0
+            button.insetRight = 0
+            // Old stroke widths must not survive after a smaller appearance value is selected.
+            button.strokeColor = ColorStateList.valueOf(
+                if (outlined) colors.outline.toArgb() else Color.TRANSPARENT,
+            )
+            button.strokeWidth = if (outlined) cardOutlineWidth(context) else 0
         }
     }
 

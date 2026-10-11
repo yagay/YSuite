@@ -92,11 +92,11 @@ fun YUiFilterChip(
         selected = selected,
         onClick = onClick,
         label = label,
-        modifier = modifier,
+        modifier = modifier.yActionButtonSize(),
         enabled = enabled,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        shape = RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
+        shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
     )
 }
 

@@ -65,7 +65,12 @@ def run() -> None:
     controls = require("libs/yui/src/main/java/com/yagay/yui/YMaterialControls.kt",
             "modifier = modifier.yActionButtonSize()")
     chips = require("libs/yui/src/main/java/com/yagay/yui/YMaterialChips.kt",
-            "modifier.yActionButtonSize()")
+            "YUiButton(", "modifier.yActionButtonSize()")
+    filter_chips = require("libs/yui/src/main/java/com/yagay/yui/YMaterialMenus.kt",
+            "fun YUiFilterChip(", "modifier = modifier.yActionButtonSize()")
+    native_buttons = require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
+            "button.strokeWidth = if (outlined) cardOutlineWidth(context) else 0",
+            "button.insetLeft = 0", "button.insetRight = 0")
     theme_buttons = require("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
             "Text(text, softWrap = true)")
     action_layout = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
@@ -74,10 +79,18 @@ def run() -> None:
     # Guard *all* button variants against a future fixed-height/truncated-label regression.
     if re.search(r"\.height\(\s*(?:LocalYAppearance\.current\.)?(?:buttonGeometry\(\)\.)?visualHeightDp", controls + chips + sizing):
         raise AssertionError("YUI action buttons must grow beyond the configured minimum height")
-    if controls.count("modifier = modifier.yActionButtonSize()") != 3:
-        raise AssertionError("All filled/outlined/text buttons must share intrinsic YUI sizing")
-    if chips.count("modifier.yActionButtonSize()") != 5:
-        raise AssertionError("Elevated/tonal/chip buttons must share intrinsic YUI sizing")
+    if controls.count("modifier = modifier.yActionButtonSize()") != 1:
+        raise AssertionError("Only the common filled button renderer may own action geometry")
+    if controls.count("    Button(") != 1 or "    OutlinedButton(" in controls or "    TextButton(" in controls:
+        raise AssertionError("Filled/outlined/text action buttons must share one Material renderer")
+    if controls.count("    YUiButton(") != 2:
+        raise AssertionError("Outlined and text styles must forward to the common YUI renderer")
+    if chips.count("    YUiButton(") != 2 or chips.count("modifier.yActionButtonSize()") != 3:
+        raise AssertionError("Elevated/tonal actions must reuse YUI Button; only chips may own chip geometry")
+    if "modifier = modifier.yActionButtonSize()" not in filter_chips:
+        raise AssertionError("FilterChip bypasses the common YUI action height")
+    if "maxOf(button.strokeWidth" in native_buttons:
+        raise AssertionError("MaterialButton stroke width cannot only increase across appearance changes")
     if "Text(text, maxLines = 2" in theme_buttons:
         raise AssertionError("Standard YUI button labels must not be truncated at two lines")
     if "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT else 0" in action_layout:
@@ -87,10 +100,10 @@ def run() -> None:
     buttons = require("libs/yui/src/main/java/com/yagay/yui/YMaterialControls.kt",
                       "shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp)",
                       "contentPadding = PaddingValues(")
-    if buttons.count("shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp)") != 3:
-        raise AssertionError("Three text button variants must inherit canonical YUI radius")
-    if buttons.count("contentPadding = PaddingValues(") != 3:
-        raise AssertionError("Three text button variants must inherit canonical YUI padding")
+    if buttons.count("shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp)") != 1:
+        raise AssertionError("Only the shared button renderer may own YUI corner radius")
+    if buttons.count("contentPadding = PaddingValues(") != 1:
+        raise AssertionError("Only the shared button renderer may own YUI content padding")
     if "shape = shape ?:" in buttons or "contentPadding = contentPadding ?:" in buttons:
         raise AssertionError("Legacy caller parameters cannot override YUI action geometry")
 

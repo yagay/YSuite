@@ -330,8 +330,8 @@ private fun MonitorScreen(
 
         item {
             YHorizontalActions {
-                YSecondaryButton(stringResource(R.string.ydiag_export_full), onExport, Modifier.weight(1f))
-                if (monitor.running) YSecondaryButton(stringResource(R.string.ydiag_stop), onStop, Modifier.weight(1f))
+                YSecondaryButton(stringResource(R.string.ydiag_export_full), onExport)
+                if (monitor.running) YSecondaryButton(stringResource(R.string.ydiag_stop), onStop)
             }
         }
     }

@@ -6,8 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.SuggestionChip
@@ -27,11 +26,12 @@ fun YUiElevatedButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val appearance = LocalYAppearance.current
-    ElevatedButton(onClick = onClick, modifier = modifier.yActionButtonSize(),
-        enabled = enabled, shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
-        contentPadding = PaddingValues(horizontal = appearance.buttonPaddingHorizontalDp.dp,
-            vertical = appearance.buttonVerticalPaddingDp.dp), content = content)
+    YUiButton(
+        onClick = onClick, modifier = modifier, enabled = enabled,
+        colors = ButtonDefaults.elevatedButtonColors(),
+        elevation = ButtonDefaults.elevatedButtonElevation(),
+        content = content,
+    )
 }
 
 @Composable
@@ -41,11 +41,12 @@ fun YUiFilledTonalButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val appearance = LocalYAppearance.current
-    FilledTonalButton(onClick = onClick, modifier = modifier.yActionButtonSize(),
-        enabled = enabled, shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
-        contentPadding = PaddingValues(horizontal = appearance.buttonPaddingHorizontalDp.dp,
-            vertical = appearance.buttonVerticalPaddingDp.dp), content = content)
+    YUiButton(
+        onClick = onClick, modifier = modifier, enabled = enabled,
+        colors = ButtonDefaults.filledTonalButtonColors(),
+        elevation = null,
+        content = content,
+    )
 }
 
 @Composable
