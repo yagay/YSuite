@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
+import androidx.core.graphics.ColorUtils
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
@@ -82,6 +83,55 @@ class YViewFilterBar(
 }
 
 /** Java/View compatibility renderer backed by the generated YUI geometry resources. */
+/** Shared View button group: keep equal-weight rows when labels fit, stack full width
+ * when available measured width is insufficient (font scaling, multi-window, translations).
+ * It deliberately preserves the public LinearLayout API of YViewLayout.actionRow/buttonRow.
+ */
+internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
+    private val rememberedWeights = mutableMapOf<View, Float>()
+
+    init {
+        orientation = HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val mode = View.MeasureSpec.getMode(widthMeasureSpec)
+        if (mode == View.MeasureSpec.UNSPECIFIED || childCount == 0) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            return
+        }
+        val gap = YView.controlGap(context)
+        val width = View.MeasureSpec.getSize(widthMeasureSpec)
+        val available = (width - paddingLeft - paddingRight).coerceAtLeast(0)
+        var required = 0
+        for (index in 0 until childCount) {
+            val child = getChildAt(index)
+            if (child.visibility == View.GONE) continue
+            val params = child.layoutParams as LayoutParams
+            if (!rememberedWeights.containsKey(child)) {
+                rememberedWeights[child] = params.weight.takeIf { it > 0f } ?: 1f
+            }
+            child.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            )
+            required += child.measuredWidth + if (index == 0) 0 else gap
+        }
+        val stack = required > available
+        orientation = if (stack) VERTICAL else HORIZONTAL
+        for (index in 0 until childCount) {
+            val child = getChildAt(index)
+            val params = child.layoutParams as LayoutParams
+            params.width = if (stack) LayoutParams.MATCH_PARENT else 0
+            params.weight = if (stack) 0f else rememberedWeights[child] ?: 1f
+            params.marginStart = if (!stack && index > 0) gap else 0
+            params.topMargin = if (stack && index > 0) gap else 0
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+    }
+}
+
 object YViewLayout {
 
     /** Canonical View-system page shell for all normal Java/XML-era feature screens. */
@@ -568,7 +618,7 @@ object YViewLayout {
                 YView.styleSectionTitle(this)
                 setTextColor(YView.onSurfaceVariant(context))
                 gravity = Gravity.CENTER
-                minimumWidth = YView.touchTarget(context)
+                minimumWidth = YView.navigationAccessoryWidth(context)
             },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
@@ -718,13 +768,27 @@ object YViewLayout {
         toggle.scaleX = 1f
         toggle.scaleY = 1f
         val c = toggle.context
-        val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
-        toggle.thumbTintList = ColorStateList(
-            states, intArrayOf(YView.surface(c), YView.onSurfaceVariant(c)),
+        val checkedThumb = YView.surface(c)
+        val uncheckedThumb = YView.onSurfaceVariant(c)
+        val checkedTrack = YView.accent(c)
+        val uncheckedTrack = YView.surfaceContainer(c)
+        val disabledSurface = YView.surface(c)
+        val states = arrayOf(
+            intArrayOf(-android.R.attr.state_enabled, android.R.attr.state_checked),
+            intArrayOf(-android.R.attr.state_enabled),
+            intArrayOf(android.R.attr.state_checked),
+            intArrayOf(),
         )
-        toggle.trackTintList = ColorStateList(
-            states, intArrayOf(YView.accent(c), YView.surfaceContainer(c)),
-        )
+        toggle.thumbTintList = ColorStateList(states, intArrayOf(
+            ColorUtils.blendARGB(disabledSurface, checkedThumb, 0.38f),
+            ColorUtils.blendARGB(disabledSurface, uncheckedThumb, 0.38f),
+            checkedThumb, uncheckedThumb,
+        ))
+        toggle.trackTintList = ColorStateList(states, intArrayOf(
+            ColorUtils.blendARGB(disabledSurface, checkedTrack, 0.38f),
+            ColorUtils.blendARGB(disabledSurface, uncheckedTrack, 0.38f),
+            checkedTrack, uncheckedTrack,
+        ))
     }
 
     /** The appearance setting reserves width beside the label; it must not constrain
@@ -804,7 +868,7 @@ object YViewLayout {
     }
 
     @JvmStatic
-    fun buttonRow(context: Context): LinearLayout = LinearLayout(context).apply {
+    fun buttonRow(context: Context): LinearLayout = YAdaptiveActionLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         val p = YView.cardPadding(context)
@@ -1057,10 +1121,9 @@ object YViewLayout {
 
     @JvmStatic
     fun actionRow(parent: LinearLayout): LinearLayout {
-        val row = LinearLayout(parent.context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, maxOf(0, YView.controlGap(context) / 3), 0, maxOf(0, YView.controlGap(context) / 3))
+        val row = YAdaptiveActionLayout(parent.context).apply {
+            setPadding(0, maxOf(0, YView.controlGap(context) / 3),
+                0, maxOf(0, YView.controlGap(context) / 3))
         }
         parent.addView(row, matchWrap())
         return row

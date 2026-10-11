@@ -117,8 +117,9 @@ object YView {
         button.minHeight = dp(context, appearance.buttonHeightDp)
         button.isAllCaps = false
         button.minWidth = 0
-        button.setPadding(dp(context, appearance.buttonPaddingHorizontalDp), dp(context, appearance.buttonVerticalPaddingDp),
-            dp(context, appearance.buttonPaddingHorizontalDp), dp(context, appearance.buttonVerticalPaddingDp))
+        val horizontal = buttonHorizontalPadding(context)
+        button.setPadding(horizontal, dp(context, appearance.buttonVerticalPaddingDp),
+            horizontal, dp(context, appearance.buttonVerticalPaddingDp))
         button.backgroundTintList = ColorStateList.valueOf(
             if (outlined) Color.TRANSPARENT else colors.primary.toArgb(),
         )
@@ -147,15 +148,23 @@ object YView {
 
     @JvmStatic fun styleCard(view: ViewGroup) {
         view.background = cardBackground(view.context)
-        val p = dp(view.context, YAppearanceStore(view.context).appearance(YAppearanceStore.moduleIdFor(view.context)).cardPaddingDp)
+        val p = cardPadding(view.context)
         view.setPadding(p, p, p, p)
     }
 
     @JvmStatic fun dimen(context: Context, @DimenRes resource: Int): Int =
         context.resources.getDimensionPixelSize(resource)
 
+    /** Render-time safety only: saved values remain fully adjustable. */
+    @JvmStatic fun fitHorizontalInset(context: Context, requestedPx: Int, minContentDp: Int = 128): Int {
+        val windowPx = context.resources.displayMetrics.widthPixels
+        if (windowPx <= 0) return requestedPx.coerceAtLeast(0)
+        val allowance = (windowPx - dp(context, minContentDp)).coerceAtLeast(0) / 2
+        return requestedPx.coerceIn(0, allowance)
+    }
+
     @JvmStatic fun screenHorizontal(context: Context): Int =
-        dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).screenPaddingDp)
+        fitHorizontalInset(context, dp(context, appearance(context).screenPaddingDp), 144)
     @JvmStatic fun screenVertical(context: Context): Int = dp(context, appearance(context).pageVerticalPaddingDp)
     @JvmStatic fun sectionGap(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).sectionSpacingDp)
@@ -166,11 +175,20 @@ object YView {
     @JvmStatic fun cardOutlineWidth(context: Context): Int =
         dp(context, appearance(context).cardOutlineWidthDp)
     @JvmStatic fun cardPadding(context: Context): Int =
-        dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardPaddingDp)
+        fitHorizontalInset(context, dp(context, appearance(context).cardPaddingDp), 176)
     @JvmStatic fun touchTarget(context: Context): Int = dp(context, appearance(context).iconTouchTargetDp)
     @JvmStatic fun rowHeight(context: Context): Int = dp(context, appearance(context).rowHeightDp)
-    @JvmStatic fun switchSlotWidth(context: Context): Int = dp(context, appearance(context).switchSlotWidthDp)
-    @JvmStatic fun rowHorizontalPadding(context: Context): Int = dp(context, appearance(context).rowHorizontalPaddingDp)
+    @JvmStatic fun switchSlotWidth(context: Context): Int =
+        minOf(
+            dp(context, appearance(context).switchSlotWidthDp),
+            (context.resources.displayMetrics.widthPixels - dp(context, 160)).coerceAtLeast(dp(context, 112)) / 2,
+        )
+    @JvmStatic fun rowHorizontalPadding(context: Context): Int =
+        fitHorizontalInset(context, dp(context, appearance(context).rowHorizontalPaddingDp), 176)
+    @JvmStatic fun buttonHorizontalPadding(context: Context): Int =
+        fitHorizontalInset(context, dp(context, appearance(context).buttonPaddingHorizontalDp), 104)
+    @JvmStatic fun navigationAccessoryWidth(context: Context): Int =
+        minOf(touchTarget(context), maxOf(dp(context, 48), context.resources.displayMetrics.widthPixels / 5))
     @JvmStatic fun rowVerticalPadding(context: Context): Int = dp(context, appearance(context).rowVerticalPaddingDp)
     @JvmStatic fun dialogRadius(context: Context): Int = dp(context, appearance(context).dialogRadiusDp)
     @JvmStatic fun fontPercent(context: Context): Int = appearance(context).fontPercent
