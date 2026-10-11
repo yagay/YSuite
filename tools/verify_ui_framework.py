@@ -97,6 +97,7 @@ def verify_runtime_appearance() -> None:
         "download_dialog": "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadComponents.kt",
         "file_rows": "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
         "host_home": "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt",
+        "home_shared": "libs/yui/src/main/java/com/yagay/yui/YHomePresentation.kt",
     }
     sources = {key: text(ROOT / path) for key, path in targets.items()}
     assertions = {
@@ -117,7 +118,8 @@ def verify_runtime_appearance() -> None:
         "entry_priority": ("LocalYAppearance.current.rowHeightDp",),
         "download_dialog": ("LocalYAppearance.current.dialogRadiusDp.dp",),
         "file_rows": ("LocalYAppearance.current.rowHeightDp.dp",),
-        "host_home": ("appearance.cardRadiusDp.dp", "appearance.rowHeightDp.dp"),
+        "host_home": ("appearance.cardRadiusDp.dp", "YHomeModuleRow("),
+        "home_shared": ("heightIn(min = appearance.rowHeightDp.dp)", "detectHorizontalDragGestures(", "YUiText("),
     }
     appearance = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YAppearanceStore.kt")
     require(appearance, "if (current is YAppearanceScopeContext)", "scoped overlay module theme")

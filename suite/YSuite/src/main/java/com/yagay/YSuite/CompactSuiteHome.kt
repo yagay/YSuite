@@ -301,6 +301,7 @@ private fun CompactSuiteModuleRow(
         onOpen = onOpen,
         onLongClick = { menuOpen = true },
         onTogglePin = onPin,
+        pinnedDescription = stringResource(R.string.home_pinned),
         leading = {
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,

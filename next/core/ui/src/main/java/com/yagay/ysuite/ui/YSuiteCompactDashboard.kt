@@ -258,6 +258,7 @@ private fun CompactModuleRow(
         onOpen = onOpen,
         onLongClick = { menuExpanded = true },
         onTogglePin = onTogglePin,
+        pinnedDescription = stringResource(R.string.home_pinned),
         leading = {
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,

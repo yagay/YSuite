@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +54,7 @@ fun YHomeModuleRow(
     onOpen: () -> Unit,
     onLongClick: () -> Unit,
     onTogglePin: () -> Unit,
+    pinnedDescription: String?,
     leading: @Composable () -> Unit,
     trailing: @Composable () -> Unit,
 ) {
@@ -97,9 +99,9 @@ fun YHomeModuleRow(
         if (pinned) {
             YUiIcon(
                 imageVector = Icons.Default.Star,
-                contentDescription = null,
+                contentDescription = pinnedDescription,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.heightIn(min = appearance.iconVisualSizeDp.dp),
+                modifier = Modifier.size((appearance.iconVisualSizeDp * 0.75f).dp),
             )
         }
         trailing()
