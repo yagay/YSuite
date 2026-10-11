@@ -24,7 +24,7 @@ internal object RuntimeText {
     fun hookDiagnosis(status: RuntimeStatus, expectedHookBuild: Int): String = when {
         status.currentPid <= 0 -> "NFC_PROCESS_NOT_FOUND: verify com.android.nfc is running."
         status.scopePid <= 0 && status.hookPid <= 0 ->
-            "NO_INJECTION: enable YSuite's com.android.nfc scope in LSPosed and restart the NFC process or reboot. Root permission alone is insufficient."
+            "HOOK_REPORT_MISSING: no current NFC Hook callback was observed. Check LSPosed target loading, process-specific Hook logs and status-provider delivery; Root access does not confirm Hook installation."
         (status.scopePid > 0 && status.scopePid != status.currentPid) ||
             (status.hookPid > 0 && status.hookPid != status.currentPid) ->
             "STALE_PROCESS: the NFC process restarted; the installed hook has not reported from the current PID. Verify LSPosed scope and reboot."

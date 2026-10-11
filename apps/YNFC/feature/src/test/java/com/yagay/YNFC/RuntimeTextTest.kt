@@ -5,11 +5,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RuntimeTextTest {
-    @Test fun missingInjectionExplainsScopeAndRestart() {
+    @Test fun missingHookReportIsNotClaimedAsFrameworkInjectionFailure() {
         val status = RuntimeStatus(currentPid = 10114, hookBuild = 0)
         val diagnosis = RuntimeText.hookDiagnosis(status, 40)
-        assertTrue(diagnosis.contains("NO_INJECTION"))
-        assertTrue(diagnosis.contains("com.android.nfc"))
+        assertTrue(diagnosis.contains("HOOK_REPORT_MISSING"))
+        assertTrue(diagnosis.contains("NFC Hook callback"))
     }
 
     @Test fun staleNfcProcessIsNotCalledInstalled() {

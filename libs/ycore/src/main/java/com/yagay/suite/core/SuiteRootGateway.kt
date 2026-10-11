@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicReference
  */
 object SuiteRootGateway {
     private val streamingProcesses = ConcurrentHashMap<String, MutableSet<Process>>()
+    // Prevent continuous process scans from starving Root health and other features.
+    private val scanSlots = java.util.concurrent.Semaphore(2, true)
 
     data class Result(
         val code: Int,
@@ -191,21 +193,49 @@ object SuiteRootGateway {
         )
 
         val result = try {
-            val future = Shell.cmd(command).enqueue()
-            val shellResult = future.get(timeoutSeconds.coerceAtLeast(1L), TimeUnit.SECONDS)
-            Result(
-                code = shellResult.code,
-                stdout = shellResult.out.joinToString("\n"),
-                stderr = shellResult.err.joinToString("\n"),
-            )
-        } catch (timeout: TimeoutException) {
-            Result(
-                code = Shell.Result.JOB_NOT_EXECUTED,
-                stdout = "",
-                stderr = "",
-                timedOut = true,
-                error = timeout,
-            )
+            val isolated = safePlugin == "ytaskmanager" && safeOperation != "root-capability-probe"
+            if (isolated && !scanSlots.tryAcquire()) {
+                Result(
+                    code = Shell.Result.JOB_NOT_EXECUTED,
+                    stdout = "",
+                    stderr = "Root process scan busy; a previous scan is still active",
+                    error = IllegalStateException("Root scan busy; retry after the previous scan"),
+                )
+            } else {
+                var isolatedShell: Shell? = null
+                try {
+                    val job = if (isolated) {
+                        isolatedShell = RootManager.openIsolatedShell(app)
+                            ?: throw IllegalStateException("Isolated libsu shell could not acquire uid 0")
+                        isolatedShell!!.newJob().add(requireRootUid(command))
+                    } else {
+                        Shell.cmd(requireRootUid(command))
+                    }
+                    val future = job.enqueue()
+                    try {
+                        val shellResult = future.get(timeoutSeconds.coerceAtLeast(1L), TimeUnit.SECONDS)
+                        Result(
+                            code = shellResult.code,
+                            stdout = shellResult.out.joinToString("\n"),
+                            stderr = shellResult.err.joinToString("\n"),
+                        )
+                    } catch (timeout: TimeoutException) {
+                        future.cancel(true)
+                        Result(
+                            code = Shell.Result.JOB_NOT_EXECUTED,
+                            stdout = "",
+                            stderr = "",
+                            timedOut = true,
+                            error = timeout,
+                        )
+                    }
+                } finally {
+                    if (isolated) {
+                        runCatching { isolatedShell?.close() }
+                        scanSlots.release()
+                    }
+                }
+            }
         } catch (error: Throwable) {
             Result(
                 code = Shell.Result.JOB_NOT_EXECUTED,

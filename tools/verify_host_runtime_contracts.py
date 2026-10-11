@@ -91,9 +91,9 @@ def check_lifecycle_and_health() -> None:
 def check_root_recovery() -> None:
     require("libs/ycore/src/main/java/com/yagay/suite/core/RootManager.kt",
             "for (attempt in 0 until 2)", "shell.close()", "shell.isRoot",
-            "ROOT_VERIFIED_TTL_MS", "ROOT_RETRY_TTL_MS", "lastCheckedAtMs")
+            "ROOT_VERIFIED_TTL_MS", "ROOT_RETRY_TTL_MS", "lastCheckedAtMs", "openIsolatedShell")
     require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt",
-            "if (!RootManager.isAvailable(app))", "Root shell could not open as uid 0")
+            "if (!RootManager.isAvailable(app))", "Root shell could not open as uid 0", "scanSlots.tryAcquire()", "RootManager.openIsolatedShell(app)")
     # All ordinary and binary requests must go through the same hosted libsu
     # shell. No second su process is allowed in the binary execution path.
     gateway = require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt",
@@ -153,7 +153,8 @@ def check_live_handoff() -> None:
 def check_shared_capability_evidence() -> None:
     require("libs/yapi/src/main/java/com/yagay/suite/api/HostRootProbe.kt",
             "enum class Status", "UNPRIVILEGED", "HOST_MISSING", "TRANSIENT_FAILURE",
-            "Root verified (uid=0)", "READY_TTL_MS", "RETRY_TTL_MS")
+            "Root verified (uid=0)", "READY_TTL_MS", "RETRY_TTL_MS",
+            "HostCapabilityState.GRANTED", "HostCapabilityState.UNKNOWN")
     for module, filename in (
         ("TaskManager", "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt"),
         ("YDiag", "apps/YDiag/feature/src/main/java/com/yagay/ydiag/root/RootShell.kt"),

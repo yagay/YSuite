@@ -88,4 +88,27 @@ object RootManager {
         lastCheckedAtMs = SystemClock.elapsedRealtime()
         return granted
     }
+    /**
+     * Separate libsu shell for potentially slow collectors. Never spawn raw "su" from a
+     * feature process. This lane keeps long /proc reads off the host's shared shell,
+     * and callers must close it after every request (including a timeout).
+     */
+    fun openIsolatedShell(context: Context): Shell? {
+        initialize(context)
+        return runCatching {
+            Shell.Builder.create()
+                .setContext(context.applicationContext)
+                .setFlags(Shell.FLAG_MOUNT_MASTER)
+                .setTimeout(15)
+                .build()
+                .let { shell ->
+                    if (shell.isRoot && shell.isAlive) shell
+                    else {
+                        runCatching { shell.close() }
+                        null
+                    }
+                }
+        }.getOrNull()
+    }
+
 }

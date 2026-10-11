@@ -53,8 +53,12 @@ object FeatureHookEvidence {
     fun read(featureId: String): Report? {
         val saved = reports[featureId] ?: return null
         val elapsed = SystemClock.elapsedRealtime() - saved.observedElapsedMs
-        return if (elapsed < 0 || elapsed > saved.validForMs) saved.copy(state = State.STALE)
-            else saved
+        return if (elapsed < 0 || elapsed > saved.validForMs) {
+            // A missing/unconfirmed Hook cannot become "stale installed" simply because
+            // the UI has been open for 30 seconds. Only positive evidence may expire.
+            if (saved.state == State.INSTALLED) saved.copy(state = State.STALE)
+            else saved.copy(state = State.UNCONFIRMED)
+        } else saved
     }
 
     @JvmStatic

@@ -60,6 +60,23 @@ object HostRootProbe {
     }
 
     private fun checkHost(services: FeatureServices, timeoutSeconds: Long): Result {
+        // A verified Host libsu shell already proves uid 0. Re-running "id -u" on
+        // the shared command queue caused false permission failures under TaskManager load.
+        // Do not translate UNKNOWN into revoked Root; preserve the transport distinction.
+        when (services.capabilityState(HostCapability.ROOT)) {
+            HostCapabilityState.GRANTED ->
+                return Result(Status.GRANTED, "Root verified (uid=0) by managed Host libsu", 0)
+            HostCapabilityState.UNKNOWN ->
+                return Result(Status.TRANSIENT_FAILURE, "Host Root status pending or inconclusive")
+            HostCapabilityState.NOT_DECLARED ->
+                return Result(Status.NOT_DECLARED, "Feature does not declare Root capability")
+            HostCapabilityState.NOT_SUPPORTED ->
+                return Result(Status.TRANSIENT_FAILURE, "Host cannot currently verify Root")
+            HostCapabilityState.NOT_GRANTED -> {
+                // A custom/standalone Host may not implement capability-state probing.
+                // Only numeric uid evidence from its executor can prove unprivileged execution.
+            }
+        }
         val response = FeatureRootCommands.execute(
             services, "root-capability-probe", "id -u", timeoutSeconds.coerceAtLeast(1L),
         )
