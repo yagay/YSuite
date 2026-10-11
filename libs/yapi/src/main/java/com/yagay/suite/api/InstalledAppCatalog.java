@@ -137,7 +137,7 @@ public final class InstalledAppCatalog {
             String value = text == null ? packageName : text.toString();
             synchronized (LOCK) { LABELS.put(key, value); }
             return value;
-        } catch (RuntimeException missing) {
+        } catch (PackageManager.NameNotFoundException | RuntimeException missing) {
             return null;
         }
     }
@@ -161,7 +161,7 @@ public final class InstalledAppCatalog {
                 ICONS.put(key, bitmap);
             }
             return bitmap;
-        } catch (RuntimeException | OutOfMemoryError failure) {
+        } catch (PackageManager.NameNotFoundException | RuntimeException | OutOfMemoryError failure) {
             return null;
         }
     }
