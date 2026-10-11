@@ -83,6 +83,9 @@ jobs:
       - name: Verify shared platform data sources
         run: python3 tools/verify_shared_app_catalog.py
 
+      - name: Verify TaskManager unified UI and callbacks
+        run: python3 tools/verify_taskmanager_ui.py
+
       - name: Verify lazy list and Root sampling performance contracts
         run: python3 tools/verify_list_performance_contracts.py
 
