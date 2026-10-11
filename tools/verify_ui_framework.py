@@ -541,8 +541,8 @@ def main() -> None:
         (download_ui, ("LocalYAppearance.current.dialogRadiusDp",
                        "LocalYAppearance.current.iconVisualSizeDp",
                        "LocalYAppearance.current.effectiveGapDp"), "shared download dialog"),
-        (shared_fabs, ("LocalYAppearance.current", "appearance.buttonHeightDp",
-                       "appearance.buttonRadiusDp", "appearance.iconTouchTargetDp"),
+        (shared_fabs, ("LocalYAppearance.current.buttonGeometry()",
+                       "appearance.iconTouchDp", "appearance.cornerRadiusDp"),
          "shared FAB facade"),
     ):
         for marker in required_markers:
