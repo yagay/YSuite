@@ -1,5 +1,8 @@
 package com.yagay.YTaskManager.data
 
+import android.app.ActivityManager
+import android.content.Context
+import java.io.File
 import com.yagay.YTaskManager.model.CpuCoreInfo
 import com.yagay.YTaskManager.model.SystemSnapshot
 import com.yagay.YTaskManager.root.RootShell
@@ -9,6 +12,34 @@ class SystemStatsRepository(
     private val shell: RootShell,
 ) {
     private var previousCpu: CpuTimes? = null
+
+    /** Public metrics remain visible while Root permission or host attachment is unavailable. */
+    suspend fun readUnprivileged(context: Context): SystemSnapshot {
+        val memory = ActivityManager.MemoryInfo()
+        (context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getMemoryInfo(memory)
+        val mem = runCatching { File("/proc/meminfo").readText() }.getOrDefault("")
+        val values = parseMemInfo(mem)
+        val cpuLine = runCatching { File("/proc/stat").useLines { it.firstOrNull().orEmpty() } }
+            .getOrDefault("")
+        val currentCpu = parseCpu(cpuLine)
+        val cpu = calculateCpu(previousCpu, currentCpu)
+        if (currentCpu != null) previousCpu = currentCpu
+        return SystemSnapshot(
+            cpuPercent = cpu,
+            ramTotalBytes = memory.totalMem,
+            ramAvailableBytes = memory.availMem,
+            ramUsedBytes = (memory.totalMem - memory.availMem).coerceAtLeast(0L),
+            cachedBytes = (values["Cached"] ?: 0L) * 1024L,
+            buffersBytes = (values["Buffers"] ?: 0L) * 1024L,
+            swapTotalBytes = (values["SwapTotal"] ?: 0L) * 1024L,
+            swapUsedBytes = ((values["SwapTotal"] ?: 0L) - (values["SwapFree"] ?: 0L))
+                .coerceAtLeast(0L) * 1024L,
+            cpuCoreCount = Runtime.getRuntime().availableProcessors(),
+            architecture = System.getProperty("os.arch").orEmpty(),
+            uptimeMillis = android.os.SystemClock.elapsedRealtime(),
+            timestampMs = System.currentTimeMillis()
+        )
+    }
 
     suspend fun read(): SystemSnapshot {
         val script = """

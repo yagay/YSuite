@@ -62,8 +62,38 @@ class ProcessRepository(
             done
         """.trimIndent()
 
-        val raw = shell.execute(script, 8_000).stdout
-        parseProcDump(raw)
+        val raw = shell.execute(script, 18_000).stdout
+        val parsed = parseProcDump(raw)
+        if (parsed.isNotEmpty()) parsed else listProcessesFromPs()
+    }
+
+    /** Fallback for modern OEM kernels restricting /proc/<pid>/stat. */
+    private suspend fun listProcessesFromPs(): List<ProcessEntry> {
+        val raw = shell.execute("ps -A -o PID,PPID,UID,NAME 2>/dev/null", 8_000).stdout
+        return raw.lineSequence().drop(1).mapNotNull { line ->
+            val fields = line.trim().split(Regex("\\s+"), limit = 4)
+            if (fields.size != 4) return@mapNotNull null
+            val pid = fields[0].toIntOrNull() ?: return@mapNotNull null
+            val ppid = fields[1].toIntOrNull() ?: 0
+            val uid = fields[2].toIntOrNull() ?: -1
+            val command = fields[3]
+            val identities = packageCache[uid].orEmpty()
+            val primary = identities.firstOrNull { command == it.packageName ||
+                command.startsWith(it.packageName + ":") } ?: identities.firstOrNull()
+            ProcessEntry(
+                pid = pid, ppid = ppid, uid = uid, userName = fields[2],
+                nice = 0, state = "?", rssKb = 0L, cpuPercent = 0f,
+                name = command.substringAfterLast('/'), command = command,
+                packageNames = identities.map { it.packageName },
+                packageName = primary?.packageName, appLabel = primary?.label,
+                icon = primary?.packageName?.let { InstalledAppCatalog.icon(appContext, it, 64) },
+                kind = when {
+                    identities.isEmpty() -> ProcessKind.LINUX
+                    identities.any { it.system } -> ProcessKind.SYSTEM_APP
+                    else -> ProcessKind.USER_APP
+                }
+            )
+        }.toList()
     }
 
     suspend fun loadDetails(process: ProcessEntry): ProcessEntry = withContext(Dispatchers.IO) {
@@ -189,7 +219,7 @@ class ProcessRepository(
                 packageNames = identities.map { it.packageName },
                 packageName = primary?.packageName,
                 appLabel = primary?.label,
-                icon = primary?.icon,
+                icon = primary?.packageName?.let { InstalledAppCatalog.icon(appContext, it, 64) },
                 kind = kind,
             )
             i += 2
@@ -233,8 +263,7 @@ class ProcessRepository(
             map.getOrPut(app.uid) { mutableListOf() } += PackageIdentity(
                 packageName = app.packageName,
                 label = app.label,
-                icon = InstalledAppCatalog.icon(appContext, app.packageName, 64),
-                system = app.system ||
+                 system = app.system ||
                     (app.info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
             )
         }
@@ -258,7 +287,6 @@ class ProcessRepository(
     private data class PackageIdentity(
         val packageName: String,
         val label: String,
-        val icon: android.graphics.drawable.Drawable?,
-        val system: Boolean,
+         val system: Boolean,
     )
 }

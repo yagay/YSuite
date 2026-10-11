@@ -77,19 +77,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 loading = rootGranted,
                 error = if (rootGranted) null else getApplication<Application>().getString(R.string.ytm_root_required)
             )
-            if (!rootGranted) return@launch
-
-            refreshInternal()
-            startNetworkMonitor()
-
+            if (rootGranted) {
+                refreshInternal()
+                startNetworkMonitor()
+            } else {
+                // A denied or not-yet-attached managed Root host must not freeze the UI.
+                refreshPublicSnapshot()
+            }
+            var lastRootProbe = android.os.SystemClock.elapsedRealtime()
             while (isActive) {
                 val snapshot = _state.value
-                if (snapshot.autoRefresh) {
+                if (!snapshot.root.granted) {
+                    delay(1_000L)
+                    if (android.os.SystemClock.elapsedRealtime() - lastRootProbe >= 5_000L) {
+                        lastRootProbe = android.os.SystemClock.elapsedRealtime()
+                        if (processShell.isRootAvailable()) {
+                            _state.value = _state.value.copy(
+                                root = RootState(
+                                    checked = true, granted = true, uid = 0,
+                                    message = getApplication<Application>().getString(R.string.ytm_root_granted)
+                                ), loading = true, error = null
+                            )
+                            refreshInternal()
+                            startNetworkMonitor()
+                        } else refreshPublicSnapshot()
+                    }
+                } else if (snapshot.autoRefresh) {
                     delay(snapshot.refreshIntervalMs)
                     if (isActive && _state.value.autoRefresh) refreshInternal()
-                } else {
-                    delay(250L)
-                }
+                } else delay(250L)
             }
         }
     }
@@ -105,11 +121,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refresh() {
-        if (_state.value.root.granted) {
-            viewModelScope.launch { refreshInternal() }
-        } else {
-            start()
+        viewModelScope.launch {
+            if (!_state.value.root.granted && processShell.isRootAvailable()) {
+                _state.value = _state.value.copy(root = RootState(
+                    checked = true, granted = true, uid = 0,
+                    message = getApplication<Application>().getString(R.string.ytm_root_granted)
+                ))
+                startNetworkMonitor()
+            }
+            if (_state.value.root.granted) refreshInternal() else refreshPublicSnapshot()
         }
+        start()
+    }
+
+    private suspend fun refreshPublicSnapshot() {
+        val snapshot = runCatching { statsRepository.readUnprivileged(getApplication()) }.getOrNull()
+            ?: return
+        val old = _state.value
+        _state.value = old.copy(system = snapshot, loading = false,
+            error = getApplication<Application>().getString(R.string.ytm_root_required))
     }
 
     fun loadProcessDetails(process: ProcessEntry, onLoaded: (ProcessEntry) -> Unit) {
@@ -201,18 +231,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun refreshInternal() = coroutineScope {
         runCatching {
-            val systemDeferred = async { statsRepository.read() }
+            val systemDeferred = async { runCatching { statsRepository.read() } }
             val processDeferred = async {
-                val pinned = settings.pinnedProcesses
-                processRepository.listProcesses().map { process ->
-                    process.copy(isPinned = pinKey(process) in pinned)
+                runCatching {
+                    val pinned = settings.pinnedProcesses
+                    processRepository.listProcesses().map { process ->
+                        process.copy(isPinned = pinKey(process) in pinned)
+                    }
                 }
             }
-            val gpuDeferred = async { gpuRepository.read() }
+            val gpuDeferred = async { runCatching { gpuRepository.read() } }
 
-            val system = systemDeferred.await()
-            val rawProcesses = processDeferred.await()
-            val gpu = gpuDeferred.await()
+            val oldState = _state.value
+            val systemResult = systemDeferred.await()
+            val processResult = processDeferred.await()
+            val gpuResult = gpuDeferred.await()
+            val system = systemResult.getOrElse { oldState.system }
+            val rawProcesses = processResult.getOrElse { oldState.processes }
+            val gpu = gpuResult.getOrElse { oldState.gpu }
+            val failed = listOfNotNull(
+                systemResult.exceptionOrNull()?.let { "system: ${it.message ?: it.javaClass.simpleName}" },
+                processResult.exceptionOrNull()?.let { "processes: ${it.message ?: it.javaClass.simpleName}" },
+                gpuResult.exceptionOrNull()?.let { "GPU: ${it.message ?: it.javaClass.simpleName}" }
+            ).joinToString("; ")
 
             val old = _state.value
             val processes = applyNetworkSpeeds(rawProcesses, old.network)
@@ -227,7 +268,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 swapHistory = appendHistory(old.swapHistory, percent(system.swapUsedBytes, system.swapTotalBytes)),
                 gpuHistory = appendHistory(old.gpuHistory, gpu.usagePercent ?: 0f),
                 loading = false,
-                error = null,
+                error = failed.takeIf { it.isNotBlank() }
+                    ?: if (processes.isEmpty()) "No processes returned by Root /proc or ps" else null,
             )
         }.onFailure {
             _state.value = _state.value.copy(
