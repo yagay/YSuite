@@ -163,41 +163,51 @@ def main() -> None:
             if f"val {mode}{role} = " not in generated_palette:
                 fail(f"generated YUI semantic color missing: {mode}{role}")
 
+    # Both Compose and View switches must use the exact same pixel painter.
+    # An import of appearance settings is insufficient: this checks the draw call.
     standard_switch = read(YUI_ROOT / "YCompactSwitch.kt")
-    for marker in ("fun YStandardSwitch(", "import androidx.compose.material3.Switch",
-                   "Switch(", "appearance.switchGeometry()", "geometry.touchWidthDp",
-                   "geometry.touchHeightDp", "role = Role.Switch",
-                   "Modifier.scale(geometry.scale)"):
+    shared_painter = read(YUI_ROOT / "YSwitchPainter.kt")
+    geometry = read(YUI_ROOT / "YSwitchGeometry.kt")
+    for marker in ("fun YStandardSwitch(", "appearance.switchGeometry()",
+                   "geometry.touchWidthDp", "geometry.touchHeightDp",
+                   "role = Role.Switch"):
         if marker not in standard_switch:
-            fail(f"YUI switch must support Material3 defaults and custom safe geometry: {marker}")
-    if "YDimens.SwitchSlot" in standard_switch:
-        fail("standard Compose switch cannot use static switch-slot dimensions")
+            fail(f"Compose switch missing shared sizing/interaction: {marker}")
+    if "YSwitchPainter.draw(" not in standard_switch or "native.nativeCanvas" not in standard_switch:
+        fail("Compose switch must draw pixels through shared YSwitchPainter")
+    if "Material3.Switch(" in standard_switch or "import androidx.compose.material3.Switch" in standard_switch:
+        fail("Compose switch must not select a second state-dependent Material renderer")
     if "defaultMinSize(" not in standard_switch or "Canvas(" not in standard_switch:
-        fail("Compose switch must preserve accessible hit targets and custom dimensions")
-    if "graphicsLayer(" in standard_switch or "scaleX = 0.75f" in standard_switch:
-        fail("Compose switch must not use a hidden fixed scaling shortcut")
+        fail("Compose switch must keep a separate minimum touch area")
+    for marker in ("fun YAppearance.switchGeometry()", "touchWidthDp = max(",
+                   "touchHeightDp = max(", "trackWidthDp = trackWidth",
+                   "thumbDiameterDp = thumb"):
+        if marker not in geometry:
+            fail(f"Switch layout contract missing: {marker}")
+    for marker in ("object YSwitchPainter", "fun draw(", "drawRoundRect(",
+                   "drawCircle(", "geometry.scale", "class YUiMaterialSwitch",
+                   "MaterialSwitch(context)", "override fun onDraw(canvas: Canvas)",
+                   "YSwitchPainter.draw(", "override fun onMeasure(",
+                   "registerPreferenceListener(", "unregisterPreferenceListener("):
+        if marker not in shared_painter:
+            fail(f"Shared Compose/View switch drawing contract missing: {marker}")
     for shared_source in (YUI, YUI_ROOT / "YComponents.kt"):
         source = read(shared_source)
         if not any(marker in source for marker in ("YStandardSwitch(", "YSwitchItem(")):
-            fail(f"{shared_source.relative_to(ROOT)} must use the standard switch row")
+            fail(f"{shared_source.relative_to(ROOT)} must use shared YUI switch rows")
         if re.search(r"(?<![A-Za-z0-9_])Switch\(checked\s*=\s*checked", source):
-            fail(f"{shared_source.relative_to(ROOT)} must use shared switch rendering")
+            fail(f"{shared_source.relative_to(ROOT)} bypasses the shared switch renderer")
     view_switches = read(YUI_ROOT / "YViewFramework.kt")
-    if "SwitchMaterial(" in view_switches or view_switches.count("MaterialSwitch(context).apply") != 1:
-        fail("View switch must have a single Material 3 renderer")
+    if "return YUiMaterialSwitch(context).apply" not in view_switches:
+        fail("View switch must use the exact same drawing core as Compose")
+    if view_switches.count("YUiMaterialSwitch(context).apply") != 1:
+        fail("View switch must have one canonical factory")
     if "val toggle = switchRow(parent.context, title, description, checked, listener)" not in view_switches:
         fail("both View switch-row overloads must share one implementation")
-    if "styleStandardToggle(this)" not in view_switches or "switchSlot(" not in view_switches:
-        fail("Java/View switch rows must use standard geometry")
-    if "minWidth = maxOf(" not in view_switches or "minHeight = maxOf(" not in view_switches:
-        fail("View switch must respect a minimum safe touch slot")
-    switch_slot_source = view_switches.split("private fun switchSlot(context: Context):", 1)[-1].split("@JvmStatic", 1)[0]
-    if "ViewGroup.LayoutParams.WRAP_CONTENT" not in switch_slot_source or "YView.switchSlotWidth(context)," in switch_slot_source:
-        fail("View switch must measure at wrap_content instead of clipping the track to a fixed slot")
-    if "toggle.scaleX = geometry.scale" not in view_switches or (
-            "toggle.trackDrawable = GradientDrawable()" not in view_switches or
-            "toggle.thumbDrawable = GradientDrawable()" not in view_switches):
-        fail("Java/View switch must use the shared configurable geometry")
+    if "switchSlot(" not in view_switches or "ViewGroup.LayoutParams.WRAP_CONTENT" not in view_switches:
+        fail("View switch must allocate its own accessible size without clipping")
+    if "styleStandardToggle(" in view_switches or "trackDrawable = GradientDrawable()" in view_switches:
+        fail("View switch may not maintain a second track/thumb implementation")
 
     # Density may evolve, but the system still needs accessible hit targets and
     # ordered compact/medium/expanded breakpoints.

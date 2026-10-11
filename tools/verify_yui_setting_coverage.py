@@ -64,12 +64,14 @@ def run() -> None:
     require("libs/yui/src/main/java/com/yagay/yui/YSwitchGeometry.kt",
             "fun YAppearance.switchGeometry()", "touchWidthDp = max(", "touchHeightDp = max(")
     require("libs/yui/src/main/java/com/yagay/yui/YCompactSwitch.kt",
-            "appearance.switchGeometry()", "Modifier.scale(geometry.scale)",
-            "role = Role.Switch", "geometry.trackWidthDp.dp", "geometry.thumbDiameterDp.dp")
+            "appearance.switchGeometry()", "role = Role.Switch", "YSwitchPainter.draw(",
+            "geometry.touchWidthDp.dp", "geometry.touchHeightDp.dp")
+    require("libs/yui/src/main/java/com/yagay/yui/YSwitchPainter.kt",
+            "class YUiMaterialSwitch", "override fun onDraw(canvas: Canvas)",
+            "YSwitchPainter.draw(", "geometry.trackWidthDp", "geometry.thumbDiameterDp",
+            "registerPreferenceListener(preferenceListener)")
     require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
-            "appearance.switchGeometry()", "toggle.scaleX = geometry.scale",
-            "toggle.trackDrawable = GradientDrawable()", "toggle.thumbDrawable = GradientDrawable()",
-            ".switchLabelGapDp")
+            "YUiMaterialSwitch(context).apply", ".switchLabelGapDp")
     for path in ("suite/YSuite/src/main/res/values/strings_appearance_catalog.xml",
                  "suite/YSuite/src/main/res/values-zh-rCN/strings_appearance_catalog.xml"):
         for name in ("switch_scale_percent", "switch_track_width", "switch_track_height",

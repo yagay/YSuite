@@ -767,58 +767,9 @@ object YViewLayout {
         navigationRow(context, title, subtitle) { action?.run() }
 
     /**
-     * One M3 MaterialSwitch renderer for *both* legacy View overloads.
-     * Checked/unchecked colors use the same YUI appearance as Compose Switch.
+     * One shared renderer for both Java/View switch-row overloads.
+     * Track, thumb and scaling pixels are drawn by YSwitchPainter in both UI systems.
      */
-    private fun styleStandardToggle(toggle: SwitchCompat) {
-        toggle.showText = false
-        val c = toggle.context
-        val appearance = YAppearanceStore(c).appearance(YAppearanceStore.moduleIdFor(c))
-        val geometry = appearance.switchGeometry()
-        toggle.scaleX = geometry.scale
-        toggle.scaleY = geometry.scale
-        if (!geometry.useMaterialTrack) {
-            // Preserve MaterialSwitch/CompoundButton semantics while replacing only its
-            // intrinsic track/thumb drawables. Both dimensions come from YUI.
-            fun px(dp: Int) = (dp * c.resources.displayMetrics.density).toInt().coerceAtLeast(1)
-            val width = px(appearance.switchTrackWidthDp)
-            val height = px(appearance.switchTrackHeightDp)
-            val diameter = px(appearance.switchThumbSizeDp)
-            toggle.trackDrawable = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = height / 2f
-                setSize(width, height)
-                setColor(android.graphics.Color.WHITE)
-            }
-            toggle.thumbDrawable = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setSize(diameter, diameter)
-                setColor(android.graphics.Color.WHITE)
-            }
-            toggle.switchMinWidth = width
-        }
-        val checkedThumb = YView.surface(c)
-        val uncheckedThumb = YView.onSurfaceVariant(c)
-        val checkedTrack = YView.accent(c)
-        val uncheckedTrack = YView.surfaceContainer(c)
-        val disabledSurface = YView.surface(c)
-        val states = arrayOf(
-            intArrayOf(-android.R.attr.state_enabled, android.R.attr.state_checked),
-            intArrayOf(-android.R.attr.state_enabled),
-            intArrayOf(android.R.attr.state_checked),
-            intArrayOf(),
-        )
-        toggle.thumbTintList = ColorStateList(states, intArrayOf(
-            ColorUtils.blendARGB(disabledSurface, checkedThumb, 0.38f),
-            ColorUtils.blendARGB(disabledSurface, uncheckedThumb, 0.38f),
-            checkedThumb, uncheckedThumb,
-        ))
-        toggle.trackTintList = ColorStateList(states, intArrayOf(
-            ColorUtils.blendARGB(disabledSurface, checkedTrack, 0.38f),
-            ColorUtils.blendARGB(disabledSurface, uncheckedTrack, 0.38f),
-            checkedTrack, uncheckedTrack,
-        ))
-    }
 
     /** The appearance setting reserves width beside the label; it must not constrain
      * MaterialSwitch's intrinsic track. A fixed-width slot clips the left rounded edge.
@@ -852,20 +803,9 @@ object YViewLayout {
             }
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        return MaterialSwitch(context).apply {
-            val geometry = YAppearanceStore(context)
-                .appearance(YAppearanceStore.moduleIdFor(context)).switchGeometry()
-            // Layout reserves the scaled appearance; hit target remains independently >=48dp.
-            minWidth = maxOf(
-                YView.switchSlotWidth(context),
-                YView.dp(context, geometry.touchWidthDp.toInt()),
-            )
-            minHeight = maxOf(
-                YView.touchTarget(context),
-                YView.dp(context, geometry.touchHeightDp.toInt()),
-            )
+        return YUiMaterialSwitch(context).apply {
+            // YUiMaterialSwitch owns the safe hit target, shared visuals and live updates.
             isChecked = checked
-            styleStandardToggle(this)
             if (listener != null) setOnCheckedChangeListener(listener)
             row.addView(this, switchSlot(context))
             row.setOnClickListener { performClick() }
