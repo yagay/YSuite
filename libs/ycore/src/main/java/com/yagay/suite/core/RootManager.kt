@@ -69,7 +69,7 @@ object RootManager {
         }
 
         var granted = false
-        repeat(2) {
+        for (attempt in 0 until 2) {
             val current = runCatching {
                 val shell = Shell.getShell()
                 if (shell.isRoot && shell.isAlive) {
@@ -81,7 +81,7 @@ object RootManager {
             }.getOrDefault(false)
             if (current) {
                 granted = true
-                return@repeat
+                break
             }
         }
         lastCheckWasRoot = granted
