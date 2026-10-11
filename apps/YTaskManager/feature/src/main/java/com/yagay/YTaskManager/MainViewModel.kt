@@ -66,16 +66,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun start() {
         if (monitorJob?.isActive == true) return
         monitorJob = viewModelScope.launch {
-            val rootGranted = processShell.isRootAvailable()
+            val initialProbe = processShell.probeRoot()
+            val rootGranted = initialProbe.granted
             _state.value = _state.value.copy(
                 root = RootState(
                     checked = true,
                     granted = rootGranted,
                     uid = if (rootGranted) 0 else null,
-                    message = getApplication<Application>().getString(if (rootGranted) R.string.ytm_root_granted else R.string.ytm_root_denied)
+                    message = initialProbe.detail
                 ),
                 loading = rootGranted,
-                error = if (rootGranted) null else getApplication<Application>().getString(R.string.ytm_root_required)
+                error = null
             )
             // Populate CPU/RAM immediately, without waiting for privileged /proc enumeration.
             refreshPublicSnapshot(rootRequired = !rootGranted)
@@ -90,13 +91,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     delay(1_000L)
                     if (android.os.SystemClock.elapsedRealtime() - lastRootProbe >= 5_000L) {
                         lastRootProbe = android.os.SystemClock.elapsedRealtime()
-                        if (processShell.isRootAvailable()) {
-                            _state.value = _state.value.copy(
-                                root = RootState(
-                                    checked = true, granted = true, uid = 0,
-                                    message = getApplication<Application>().getString(R.string.ytm_root_granted)
-                                ), loading = true, error = null
+                        val probe = processShell.probeRoot()
+                        _state.value = _state.value.copy(
+                            root = RootState(
+                                checked = true, granted = probe.granted,
+                                uid = if (probe.granted) 0 else null,
+                                message = probe.detail,
                             )
+                        )
+                        if (probe.granted) {
+                            _state.value = _state.value.copy(loading = true, error = null)
                             refreshPublicSnapshot(rootRequired = false)
                             refreshInternal()
                             startNetworkMonitor()
@@ -122,14 +126,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refresh() {
         viewModelScope.launch {
-            if (!_state.value.root.granted && processShell.isRootAvailable()) {
-                _state.value = _state.value.copy(root = RootState(
-                    checked = true, granted = true, uid = 0,
-                    message = getApplication<Application>().getString(R.string.ytm_root_granted)
-                ))
+            val probe = processShell.probeRoot()
+            _state.value = _state.value.copy(root = RootState(
+                checked = true, granted = probe.granted,
+                uid = if (probe.granted) 0 else null, message = probe.detail,
+            ))
+            if (probe.granted) {
                 startNetworkMonitor()
-            }
-            if (_state.value.root.granted) refreshInternal() else refreshPublicSnapshot()
+                refreshInternal()
+            } else refreshPublicSnapshot()
         }
         start()
     }
@@ -138,8 +143,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val snapshot = runCatching { statsRepository.readUnprivileged(getApplication()) }.getOrNull()
             ?: return
         val old = _state.value
-        _state.value = old.copy(system = snapshot, loading = false,
-            error = if (rootRequired) getApplication<Application>().getString(R.string.ytm_root_required) else null)
+        // The persistent Root diagnostic explains whether authorization or the host
+        // failed. Do not replace it with the generic "Root required" snackbar.
+        _state.value = old.copy(system = snapshot, loading = false)
     }
 
     fun loadProcessDetails(process: ProcessEntry, onLoaded: (ProcessEntry) -> Unit) {

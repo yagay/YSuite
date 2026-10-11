@@ -255,6 +255,7 @@ private fun ProcessPage(
 
 @Composable
 private fun StatusSection(state: TaskManagerUiState) {
+    Column {
     YStatusStrip(
         statuses = listOf(
             YStatusSpec(
@@ -270,6 +271,16 @@ private fun StatusSection(state: TaskManagerUiState) {
         ),
         modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 3f).dp),
     )
+    if (state.root.checked && !state.root.granted) {
+        YNotice(
+            text = state.root.message,
+            modifier = Modifier.padding(
+                horizontal = LocalYAppearance.current.screenPaddingDp.dp,
+                vertical = (LocalYAppearance.current.effectiveGapDp / 3f).dp,
+            ),
+        )
+    }
+    }
 }
 
 @Composable
