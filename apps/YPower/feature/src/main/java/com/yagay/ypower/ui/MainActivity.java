@@ -243,10 +243,6 @@ public class MainActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         row.trailing.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        row.subtitle.setMaxLines(2);
-        row.subtitle.setEllipsize(TextUtils.TruncateAt.END);
-        row.title.setMaxLines(2);
-        row.title.setEllipsize(TextUtils.TruncateAt.END);
         return row;
     }
 

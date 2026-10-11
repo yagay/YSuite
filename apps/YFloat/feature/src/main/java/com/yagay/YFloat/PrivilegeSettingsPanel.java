@@ -80,7 +80,7 @@ public final class PrivilegeSettingsPanel {
                         Toast.LENGTH_SHORT).show();
             });
         });
-        rootButtons.addView(checkRoot, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(rootButtons, checkRoot);
         YViewLayout.addRow(rootSection.body, rootButtons);
 
         YViewLayout.addRow(rootSection.body, YViewLayout.sectionNote(activity,
@@ -116,12 +116,12 @@ public final class PrivilegeSettingsPanel {
                 LsposedStatusManager.refreshAsync();
             });
         });
-        googleStopRow.addView(stopGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(googleStopRow, stopGoogle);
 
         MaterialButton refreshGoogle = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_priv_refresh_status));
         refreshGoogle.setOnClickListener(v -> refreshGoogleApp(activity, fs, googleAppStatus));
-        googleStopRow.addView(refreshGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(googleStopRow, refreshGoogle);
         YViewLayout.addRow(googleAppSection.body, googleStopRow);
 
         LinearLayout googleAdvancedRow = YViewLayout.buttonRow(activity);
@@ -153,7 +153,7 @@ public final class PrivilegeSettingsPanel {
                     })
                     .show();
         });
-        googleAdvancedRow.addView(freezeGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(googleAdvancedRow, freezeGoogle);
 
         MaterialButton restoreGoogle = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_priv_google_restore));
@@ -176,7 +176,7 @@ public final class PrivilegeSettingsPanel {
                 LsposedStatusManager.refreshAsync();
             });
         });
-        googleAdvancedRow.addView(restoreGoogle, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(googleAdvancedRow, restoreGoogle);
         YViewLayout.addRow(googleAppSection.body, googleAdvancedRow);
 
         YViewLayout.addRow(googleAppSection.body, YViewLayout.sectionNote(activity,
@@ -230,7 +230,7 @@ public final class PrivilegeSettingsPanel {
             lsposedStatus.setText(R.string.yfloat_priv_reading_lsposed);
             LsposedStatusManager.syncRuntimeConfigAsync();
         });
-        lsposedButtons.addView(refreshLsposed, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(lsposedButtons, refreshLsposed);
 
         MaterialButton reloadHooks = YViewLayout.primaryButton(activity,
                 activity.getString(R.string.yfloat_priv_reload_hooks));
@@ -254,7 +254,7 @@ public final class PrivilegeSettingsPanel {
                         Toast.LENGTH_SHORT).show();
             }
         });
-        lsposedButtons.addView(reloadHooks, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(lsposedButtons, reloadHooks);
         YViewLayout.addRow(lsposedSection.body, lsposedButtons);
 
         LinearLayout lsposedTools = YViewLayout.buttonRow(activity);
@@ -262,7 +262,7 @@ public final class PrivilegeSettingsPanel {
                 activity.getString(R.string.yfloat_priv_test_secure_capture));
         probeSecure.setOnClickListener(v -> activity.startActivity(
                 new Intent(activity, SecureCaptureProbeActivity.class)));
-        lsposedTools.addView(probeSecure, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(lsposedTools, probeSecure);
         YViewLayout.addRow(lsposedSection.body, lsposedTools);
 
         YViewLayout.addRow(lsposedSection.body, YViewLayout.sectionNote(activity,

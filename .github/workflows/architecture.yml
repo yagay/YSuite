@@ -84,6 +84,9 @@ jobs:
       - name: Verify YUI settings actually control component appearance
         run: python3 tools/verify_yui_setting_coverage.py
 
+      - name: Reject local button size and line-count overrides in all modules
+        run: python3 tools/verify_yui_intrinsic_actions.py
+
       - name: Verify shared application inventory and app icons
         run: python3 tools/verify_shared_app_catalog.py
 

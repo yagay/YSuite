@@ -4,6 +4,7 @@ import com.yagay.yui.YOverlayUi;
 import com.yagay.yui.YUiGeometry;
 
 import com.yagay.yui.YView;
+import com.yagay.yui.YViewLayout;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -221,28 +222,28 @@ public final class FloatActionMenu {
 
         ArrayList<View> items = new ArrayList<>();
 
-        TextView copy = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7), 58);
+        TextView copy = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7));
         items.add(copy);
 
         TextView all = null;
         if (hasSelectAll) {
-            all = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_3e44b2a93338), 58);
+            all = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_3e44b2a93338));
             items.add(all);
         }
 
-        TextView share = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_7a9243411482), 58);
+        TextView share = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_7a9243411482));
         items.add(share);
 
         for (int i = 0; i < customLimit; i++) {
             CustomMenuActionStore.Item item = customs.get(i);
-            TextView custom = FloatingMenuUi.action(app, item.label, 58);
+            TextView custom = FloatingMenuUi.action(app, item.label);
             custom.setEllipsize(null);
             custom.setSingleLine(false);
             custom.setOnClickListener(v -> launchCustom(app, item, text));
             items.add(custom);
         }
 
-        TextView more = FloatingMenuUi.action(app, "⋮", 46);
+        TextView more = FloatingMenuUi.action(app, "⋮");
         more.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, YView.iconSize(app));
         items.add(more);
 
@@ -261,29 +262,17 @@ public final class FloatActionMenu {
         share.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_SHARE));
         more.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MORE));
 
-        Rect usable = ScreenGeometry.usableBounds(app);
-        int maxRowWidth = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), usable.width() - YUiGeometry.overlayMenuInsetPx(app, "yfloat") * 2);
-
-        int slotWidth = Math.max(1, maxRowWidth / Math.max(1, items.size()));
+        // The shared row measures every action from its label and wraps into a vertical
+        // stack when the popup is narrow. No slot width or two-line truncation.
         LinearLayout row = toolbarRow(app);
         for (View item : items) {
-            if (item instanceof TextView tv) {
-                tv.setMinWidth(0);
-                tv.setPadding(Math.max(1, YView.controlGap(app) / 3), 0,
-                        Math.max(1, YView.controlGap(app) / 3), 0);
-                tv.setSingleLine(false);
-                tv.setMaxLines(2);
-                tv.setEllipsize(null);
-            }
-            row.addView(item, new LinearLayout.LayoutParams(slotWidth, -2));
+            YViewLayout.addAction(row, item);
         }
-        root.addView(row, new LinearLayout.LayoutParams(-2, -2));
+        root.addView(row, new LinearLayout.LayoutParams(-1, -2));
     }
 
     private static LinearLayout toolbarRow(Context app) {
-        LinearLayout row = new LinearLayout(app);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout row = YViewLayout.buttonRow(app);
         int inset = Math.max(0, YUiGeometry.overlayMenuInsetPx(app, "yfloat") / 4);
         row.setPadding(inset, inset, inset, inset);
         return row;

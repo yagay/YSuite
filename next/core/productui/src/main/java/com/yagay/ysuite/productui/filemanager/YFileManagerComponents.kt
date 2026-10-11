@@ -185,8 +185,6 @@ fun YFileBreadcrumbBar(
                         color =
                             if (last) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .clickable(enabled = !last) {
                                 onNavigatePath(segment.path)
@@ -199,8 +197,6 @@ fun YFileBreadcrumbBar(
                     text = path,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = YUiGeometry.compactGap()),
                 )
             }

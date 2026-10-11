@@ -3,6 +3,7 @@ package com.yagay.YFloat;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import com.yagay.yui.YViewLayout;
 import android.graphics.Rect;
 import android.view.View;
 import android.widget.Button;
@@ -33,8 +34,10 @@ final class UnifiedResultPanel {
     private final Button closeButton;
     private final int width;
     private final int titleHeight;
-    private final int actionsHeight;
-    private final int contentBudget;
+    private final int minimumActionsHeight;
+    private final int maxPanelHeight;
+    private final LinearLayout actions;
+    private int contentBudget;
 
     private ResultSession session;
     private boolean ocrRunning;
@@ -46,16 +49,17 @@ final class UnifiedResultPanel {
 
         Rect usable = ResultUi.usableBounds(context);
         width = ResultUi.standardWidth(context, usable);
-        int maxHeight = ResultUi.standardMaxHeight(context, usable);
+        maxPanelHeight = ResultUi.standardMaxHeight(context, usable);
         titleHeight = ResultUi.titleHeight(context);
-        actionsHeight = ResultUi.actionHeight(context);
+        minimumActionsHeight = ResultUi.actionHeight(context);
         contentBudget = Math.max(1,
-                maxHeight - titleHeight - actionsHeight - ResultUi.verticalPadding(context));
+                maxPanelHeight - titleHeight - minimumActionsHeight - ResultUi.verticalPadding(context));
 
         root = ResultUi.box(context);
 
         title = ResultUi.heading(context, context.getString(R.string.yfloat_app_name));
-        root.addView(title, new LinearLayout.LayoutParams(-1, titleHeight));
+        title.setMinHeight(titleHeight);
+        root.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         imageView = new ImageView(context);
         imageView.setAdjustViewBounds(false);
@@ -73,16 +77,16 @@ final class UnifiedResultPanel {
         root.addView(textPanel, new LinearLayout.LayoutParams(-1, 0));
         bindSelectionMenu();
 
-        LinearLayout actions = ResultUi.actionRow(context);
+        actions = ResultUi.actionRow(context);
         ocrButton = ResultUi.button(context, "OCR");
         copyButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7));
         saveButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_82522e2a87bf));
         closeButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_59a26fdc46ce));
-        actions.addView(ocrButton, new LinearLayout.LayoutParams(0, -1, 1));
-        actions.addView(copyButton, new LinearLayout.LayoutParams(0, -1, 1));
-        actions.addView(saveButton, new LinearLayout.LayoutParams(0, -1, 1));
-        actions.addView(closeButton, new LinearLayout.LayoutParams(0, -1, 1));
-        root.addView(actions, new LinearLayout.LayoutParams(-1, actionsHeight));
+        YViewLayout.addAction(actions, ocrButton);
+        YViewLayout.addAction(actions, copyButton);
+        YViewLayout.addAction(actions, saveButton);
+        YViewLayout.addAction(actions, closeButton);
+        root.addView(actions, new LinearLayout.LayoutParams(-1, -2));
 
         copyButton.setOnClickListener(v -> copyAll());
         render(initial);
@@ -106,6 +110,21 @@ final class UnifiedResultPanel {
         textMenu.dismiss();
 
         title.setText(next.title());
+        updateActions();
+        // Size the content budget from the actual label/action heights, not a fixed
+        // action-bar height that would cut off multi-line or translated buttons.
+        int availableWidth = Math.max(1, width -
+                YOverlayUi.contentPaddingPx(context, "yfloat") * 2);
+        int exactWidth = android.view.View.MeasureSpec.makeMeasureSpec(
+                availableWidth, android.view.View.MeasureSpec.EXACTLY);
+        int maxHeightSpec = android.view.View.MeasureSpec.makeMeasureSpec(
+                maxPanelHeight, android.view.View.MeasureSpec.AT_MOST);
+        actions.measure(exactWidth, maxHeightSpec);
+        title.measure(exactWidth, maxHeightSpec);
+        contentBudget = Math.max(1, maxPanelHeight -
+                Math.max(titleHeight, title.getMeasuredHeight()) -
+                Math.max(minimumActionsHeight, actions.getMeasuredHeight()) -
+                ResultUi.verticalPadding(context));
         boolean showImage = next.showImage(settings);
         boolean showText = next.showText(settings);
 
@@ -149,14 +168,13 @@ final class UnifiedResultPanel {
             selection.setText("");
         }
 
-        updateActions();
         root.requestLayout();
 
         DiagnosticLog.i(context, "RESULT_PANEL", "render mode=" + next.mode()
                 + " origin=" + next.originMode()
                 + " image=" + showImage + " imageH=" + imageHeight
                 + " text=" + showText + " textH=" + textHeight
-                + " width=" + width + " wrapContent=true fixedActions=true"
+                + " width=" + width + " wrapContent=true intrinsicActions=true"
                 + " buttons=ocr/copy/save/close");
     }
 

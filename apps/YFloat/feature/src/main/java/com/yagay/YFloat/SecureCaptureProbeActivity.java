@@ -70,11 +70,11 @@ public final class SecureCaptureProbeActivity extends AppCompatActivity implemen
         retry = YViewLayout.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_3c2358b2ec16));
         retry.setEnabled(false);
         retry.setOnClickListener(v -> runProbe());
-        buttons.addView(retry, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(buttons, retry);
 
         MaterialButton close = YViewLayout.secondaryButton(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_11d024154013));
         close.setOnClickListener(v -> finish());
-        buttons.addView(close, new LinearLayout.LayoutParams(0, -2, 1f));
+        YViewLayout.addAction(buttons, close);
 
         LinearLayout.LayoutParams buttonsLp = new LinearLayout.LayoutParams(-1, -2);
         buttonsLp.topMargin = YView.sectionGap(this);

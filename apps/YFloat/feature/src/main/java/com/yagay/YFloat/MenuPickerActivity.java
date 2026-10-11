@@ -405,10 +405,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 null);
 
         YViewSection tools = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1e1616217b08), null);
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setPadding(YView.cardPadding(this), Math.max(0, YView.controlGap(this) / 2),
-                YView.cardPadding(this), Math.max(0, YView.controlGap(this) / 2));
+        LinearLayout buttons = YViewLayout.buttonRow(this);
         MaterialButton add = YViewLayout.secondaryButton(this,
                 isShareTarget() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c));
         add.setOnClickListener(v -> showTargetAdd());
@@ -419,12 +416,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
             Toast.makeText(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ac034f023e0c), Toast.LENGTH_SHORT).show();
             showTargetManager();
         });
-        LinearLayout.LayoutParams aLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        aLp.setMarginEnd(Math.max(0, YView.controlGap(this) / 2));
-        buttons.addView(add, aLp);
-        LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        rLp.setMarginStart(Math.max(0, YView.controlGap(this) / 2));
-        buttons.addView(reset, rLp);
+        YViewLayout.addAction(buttons, add);
+        YViewLayout.addAction(buttons, reset);
         YViewLayout.addRow(tools.body, buttons);
         YViewLayout.addSection(root, tools);
 

@@ -88,6 +88,8 @@ class YViewFilterBar(
  * It preserves the public LinearLayout API of YViewLayout.actionRow/buttonRow.
  */
 internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
+    // Keep non-button form controls flexible while every action button sizes to its label.
+    private val flexibleWeights = mutableMapOf<View, Float>()
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -107,6 +109,9 @@ internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
             val child = getChildAt(index)
             if (child.visibility == View.GONE) continue
             val params = child.layoutParams as LinearLayout.LayoutParams
+            if (child !is Button && child !in flexibleWeights) {
+                flexibleWeights[child] = params.weight
+            }
             child.measure(
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
@@ -118,11 +123,13 @@ internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
         for (index in 0 until childCount) {
             val child = getChildAt(index)
             val params = child.layoutParams as LinearLayout.LayoutParams
-            // Do not distribute equal weights: a short action should be narrower
-            // than a long one. A stacked action can use the entire row and wrap.
+            // Buttons are intrinsic; text inputs/spinners keep their original flexible
+            // width in horizontal forms instead of being shrunk to a label-sized view.
+            val fieldWeight = if (child is Button) 0f else flexibleWeights[child] ?: 0f
             params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT
+                else if (fieldWeight > 0f) 0
                 else ViewGroup.LayoutParams.WRAP_CONTENT
-            params.weight = 0f
+            params.weight = if (stack) 0f else fieldWeight
             params.marginStart = if (!stack && index > 0) gap else 0
             params.topMargin = if (stack && index > 0) gap else 0
         }
@@ -1105,10 +1112,13 @@ object YViewLayout {
 
     @JvmStatic
     @JvmOverloads
+    @Suppress("UNUSED_PARAMETER")
     fun addAction(row: LinearLayout, button: View, weight: Float = 1f) {
-        val lp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, weight)
-        if (row.childCount > 0) lp.marginStart = controlGap(row.context)
-        row.addView(button, lp)
+        // Keep the old parameter for source/binary compatibility, but no caller can
+        // impose equal-weight action sizes. YAdaptiveActionLayout owns flow and gaps.
+        row.addView(button, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ))
     }
 
     @JvmStatic

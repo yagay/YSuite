@@ -88,11 +88,6 @@ fun FileExplorerBrowserTabs(
                         ) {
                             Text(
                                 text = tab.title,
-                                modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 2f).dp),
-                                maxLines = 1,
-                                overflow =
-                                    TextOverflow
-                                        .Ellipsis,
                             )
                             // Inactive tabs remain closable after selecting them first.
                             // Showing 48dp close targets on every tab would hide names.

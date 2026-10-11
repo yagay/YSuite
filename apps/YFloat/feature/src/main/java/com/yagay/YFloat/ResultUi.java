@@ -69,10 +69,7 @@ final class ResultUi {
     }
 
     static LinearLayout actionRow(Context c) {
-        LinearLayout row = new LinearLayout(c);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        return row;
+        return YViewLayout.buttonRow(c);
     }
 
     static Button button(Context c, String text) {

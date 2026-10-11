@@ -26,10 +26,13 @@ final class FloatingMenuUi {
         return root;
     }
 
-    static TextView action(Context c, String text, int minWidthDp) {
+    static TextView action(Context c, String text) {
         TextView tv = baseText(c, text);
         tv.setGravity(Gravity.CENTER);
-        tv.setMinWidth(dp(c, minWidthDp));
+        tv.setMinWidth(YView.touchTarget(YOverlayUi.scopedContext(c, "yfloat")));
+        tv.setSingleLine(false);
+        tv.setMaxLines(Integer.MAX_VALUE);
+        tv.setEllipsize(null);
         tv.setPadding(YOverlayUi.contentPaddingPx(c, "yfloat"),
                 Math.max(1, YView.controlGap(c) / 2),
                 YOverlayUi.contentPaddingPx(c, "yfloat"),
