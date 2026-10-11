@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
     private AppCompatEditText search;
     private TextView status;
     private final ExecutorService appLoader = Executors.newSingleThreadExecutor();
+    // Root permission/session probing must not block application inventory loading.
+    private final ExecutorService statusLoader = Executors.newSingleThreadExecutor();
     private final ThreadPoolExecutor iconLoader = new ThreadPoolExecutor(
             2, 2, 0L, TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<>(32), new ThreadPoolExecutor.DiscardOldestPolicy());
@@ -86,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
         loadVersion.incrementAndGet();
         if (pendingSearch != null) ui.removeCallbacks(pendingSearch);
         appLoader.shutdownNow();
+        statusLoader.shutdownNow();
         iconLoader.shutdownNow();
         super.onDestroy();
     }
@@ -137,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void refreshRuntimeStatus() {
         // RootManager may create a libsu session; never probe it on the UI thread.
-        appLoader.execute(() -> {
+        statusLoader.execute(() -> {
             final boolean root = RootShell.isRootAvailable();
             final boolean xposed = XposedBridgeManager.isReady();
             runOnUiThread(() -> {
