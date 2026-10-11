@@ -16,12 +16,11 @@ fun YStandardSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val appearance = LocalYAppearance.current
     Box(
         // Slot geometry is a minimum, not a fixed-width viewport that clips the track.
         modifier = modifier.defaultMinSize(
-            minWidth = maxOf(appearance.switchSlotWidthDp, 56).dp,
-            minHeight = maxOf(appearance.iconTouchTargetDp, 48).dp,
+            minWidth = maxOf(LocalYAppearance.current.switchSlotWidthDp, 56).dp,
+            minHeight = maxOf(LocalYAppearance.current.iconTouchTargetDp, 48).dp,
         ),
         contentAlignment = Alignment.Center,
     ) {
