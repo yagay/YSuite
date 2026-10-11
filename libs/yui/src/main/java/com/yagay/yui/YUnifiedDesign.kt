@@ -331,6 +331,11 @@ fun YListItem(
     } else modifier
     val foreground = if (enabled) MaterialTheme.colorScheme.onSurface
         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val fittedInset = minOf(
+            LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+            ((maxWidth - 144.dp).coerceAtLeast(0.dp) / 2),
+        )
     Row(
         modifier = activeModifier
             .fillMaxWidth()
@@ -339,7 +344,7 @@ fun YListItem(
                 if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
                 else Color.Transparent,
             )
-            .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+            .padding(horizontal = fittedInset,
                 vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
@@ -377,6 +382,7 @@ fun YListItem(
             }
         }
         trailing?.invoke()
+    }
     }
 }
 

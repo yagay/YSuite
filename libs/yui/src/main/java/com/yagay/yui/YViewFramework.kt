@@ -940,7 +940,10 @@ object YViewLayout {
     ): View {
         val spinner = spinnerControl(context, labels, selected, onSelected)
         val block = settingBlock(context)
-        if (vertical) {
+        val needsVertical = vertical ||
+            context.resources.configuration.screenWidthDp in 1..559 ||
+            YView.fontPercent(context) > 125
+        if (needsVertical) {
             block.addView(text(context, title, 14f, false))
             block.addView(
                 spinner,

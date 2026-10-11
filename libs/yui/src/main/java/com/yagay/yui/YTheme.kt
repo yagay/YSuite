@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -356,10 +357,16 @@ fun YCard(
             BorderStroke(it.dp, MaterialTheme.colorScheme.outlineVariant)
         },
     ) {
-        Column(
-            modifier = Modifier.padding(LocalYAppearance.current.cardPaddingDp.dp),
-            verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
-        ) { content() }
+        BoxWithConstraints {
+            val fittedInset = minOf(
+                LocalYAppearance.current.cardPaddingDp.dp,
+                ((maxWidth - 144.dp).coerceAtLeast(0.dp) / 2),
+            )
+            Column(
+                modifier = Modifier.padding(fittedInset),
+                verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+            ) { content() }
+        }
     }
 }
 
