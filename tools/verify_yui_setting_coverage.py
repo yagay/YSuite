@@ -199,7 +199,7 @@ def run() -> None:
         "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsPageUi.java",
         "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsGesturePage.java",
     ):
-        if re.search(r"YViewLayout\\.(?:text|caption)\\([^;]*?,\\s*\\d+(?:\\.\\d+)?\\s*(?:,\\s*(?:true|false))?\\s*\\);",
+        if re.search(r"YViewLayout\.(?:text|caption)\([^;]*?,\s*\d+(?:\.\d+)?\s*(?:,\s*(?:true|false))?\s*\);",
                      source(feature_path), flags=re.S):
             raise AssertionError(feature_path + " passes a redundant typography size to YUI")
     power_icons = source("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java")
