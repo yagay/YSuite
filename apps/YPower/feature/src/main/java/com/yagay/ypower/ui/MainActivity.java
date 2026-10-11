@@ -300,7 +300,7 @@ public class MainActivity extends AppCompatActivity {
             // No icon decoding while binding on the main thread. Discard callbacks
             // belonging to a previously recycled holder.
             holder.row.icon.setImageDrawable(null);
-            final int iconPx = Math.min(96, Math.max(24, YView.listIconSize(MainActivity.this)));
+            final int iconPx = YView.listIconSize(MainActivity.this);
             final String packageName = data.packageName;
             if (iconLoader.isShutdown()) return;
             iconLoader.execute(() -> {
