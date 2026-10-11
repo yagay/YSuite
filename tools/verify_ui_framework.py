@@ -103,7 +103,7 @@ def verify_runtime_appearance() -> None:
     assertions = {
         "theme": ("val actualDynamic = appearance.dynamicColor", "appearance.cardRadiusDp.dp", "appearance.dialogRadiusDp.dp"),
         "view": ("dynamicDarkColorScheme(context)", "yAccentColorScheme(base, setting.accent, dark)",
-                 "appearance(context).fieldRadiusDp", "applyFontScale(view)", "fun rowHeight(context",
+                 "displayRules(context).fieldRadiusDp", "applyFontScale(view)", "fun rowHeight(context",
                  "button.backgroundTintList = ColorStateList.valueOf("),
         "view_layout": ("private fun sectionGap(context: Context): Int = YView.sectionGap(context)",
                         "private fun controlGap(context: Context): Int = YView.controlGap(context)"),

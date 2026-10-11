@@ -45,9 +45,14 @@ def check_view() -> None:
 
 def check_compose() -> None:
     source("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
-           "LocalConfiguration.current.screenWidthDp", "configuredAppearance.copy(",
-           "screenPaddingDp = safeScreen",
+           "LocalConfiguration.current.screenWidthDp",
+           "configuredAppearance.displayRules(windowWidth)",
+           "val appearance = rules.appearance",
            "BoxWithConstraints {", "val fittedInset = minOf(")
+    source("libs/yui/src/main/java/com/yagay/yui/YDisplayRules.kt",
+           "YDisplayMath.boundedHorizontalInset(screenPaddingDp, width, 240)",
+           "YDisplayMath.boundedHorizontalInset(cardPaddingDp, width - 2 * screen, 192)",
+           "val effective = copy(", "touchTargetDp = maxOf(48, touch)")
     source("libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
            "val fittedInset = minOf(", "maxWidth - (YDimens.TouchTarget * 3)",
            "titleMaxLines: Int = Int.MAX_VALUE",
