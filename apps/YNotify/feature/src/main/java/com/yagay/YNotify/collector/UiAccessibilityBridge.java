@@ -126,9 +126,9 @@ public final class UiAccessibilityBridge {
             if (value.isEmpty()) continue;
             // Supports 24h, 12h, seconds, and the AM/PM prefixes used by some
             // SystemUI locales. Non-clock words make the event meaningful.
-            if (!value.matches("(?i)^(?:(?:AM|PM|上午|下午|凌晨|晚上)\\\\s*)?"
-                    + "(?:[01]?\\\\d|2[0-3]):[0-5]\\\\d(?::[0-5]\\\\d)?"
-                    + "(?:\\\\s*(?:AM|PM|上午|下午|凌晨|晚上))?$")) return false;
+            if (!value.matches("(?i)^(?:(?:AM|PM|上午|下午|凌晨|晚上)\\s*)?"
+                    + "(?:[01]?\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?"
+                    + "(?:\\s*(?:AM|PM|上午|下午|凌晨|晚上))?$")) return false;
             clockSeen = true;
         }
         return clockSeen;
