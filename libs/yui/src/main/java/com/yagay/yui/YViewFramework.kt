@@ -534,8 +534,7 @@ object YViewLayout {
         context: Context,
         checked: Boolean,
         listener: CompoundButton.OnCheckedChangeListener?,
-    ): MaterialCheckBox = MaterialCheckBox(context).apply {
-        isUseMaterialThemeColors = true
+    ): MaterialCheckBox = YUiNativeCheckBox(context).apply {
         isChecked = checked
         minimumHeight = YView.touchTarget(context)
         if (listener != null) setOnCheckedChangeListener(listener)
@@ -572,7 +571,7 @@ object YViewLayout {
             orientation = RadioGroup.VERTICAL
         }
         val buttons = labels.map { label ->
-            RadioButton(context).apply {
+            YUiNativeRadioButton(context).apply {
                 id = View.generateViewId()
                 text = label
                 minimumHeight = YView.touchTarget(context)
@@ -1049,8 +1048,7 @@ object YViewLayout {
         title: String,
         checked: Boolean,
         listener: CompoundButton.OnCheckedChangeListener?,
-    ): MaterialCheckBox = MaterialCheckBox(context).apply {
-        isUseMaterialThemeColors = true
+    ): MaterialCheckBox = YUiNativeCheckBox(context).apply {
         text = title
         setTextColor(textPrimary(context))
         YView.styleBody(this)

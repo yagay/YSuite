@@ -161,6 +161,31 @@ def main() -> None:
         failures.append("The single canonical View must own all switch painting")
     if "SwitchMaterial(" in view_facade:
         failures.append("View switch may not resurrect the older SwitchMaterial renderer")
+    # Compose and Java must instantiate the same two selection indicator widgets.
+    checkbox_compose = (core / "YMaterialControls.kt").read_text(encoding="utf-8")
+    radio_compose = (core / "YMaterialSelectors.kt").read_text(encoding="utf-8")
+    selection_native = (core / "YNativeSelectionControls.kt").read_text(encoding="utf-8")
+    if "AndroidView(" not in checkbox_compose or "YUiNativeCheckBox(context)" not in checkbox_compose:
+        failures.append("Compose checkbox must use the canonical native YUI control")
+    if "AndroidView(" not in radio_compose or "YUiNativeRadioButton(context)" not in radio_compose:
+        failures.append("Compose radio button must use the canonical native YUI control")
+    if any(token in checkbox_compose for token in (
+            "import androidx.compose.material3.Checkbox\n", "    Checkbox(")):
+        failures.append("Compose checkbox may not paint a second selection indicator")
+    if any(token in radio_compose for token in (
+            "import androidx.compose.material3.RadioButton\n", "    RadioButton(")):
+        failures.append("Compose radio button may not paint a second selection indicator")
+    for token in ("class YUiNativeCheckBox(context: Context) : MaterialCheckBox(context)",
+                  "class YUiNativeRadioButton(context: Context) : MaterialRadioButton(context)",
+                  "object YSelectionControlStyle", "YSelectionControlStyle.apply(this,",
+                  "registerPreferenceListener(preferences)", "unregisterPreferenceListener(preferences)"):
+        if token not in selection_native:
+            failures.append(f"Shared native selector contract missing: {token}")
+    for token in ("YUiNativeCheckBox(context).apply", "YUiNativeRadioButton(context).apply"):
+        if token not in view_facade:
+            failures.append(f"View selection factory bypasses the common native widget: {token}")
+    if re.search(r"(?<![A-Za-z0-9_])(?:MaterialCheckBox|RadioButton)\(context\)\.apply", view_facade):
+        failures.append("View selection factory owns a duplicate selector widget")
     if section_definitions != ["YUnifiedDesign.kt"]:
         failures.append(f"YSection must have exactly one implementation: {section_definitions}")
     yui_view = core / "YView.kt"

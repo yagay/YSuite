@@ -11,13 +11,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -145,6 +148,11 @@ fun YUiIconButton(
     )
 }
 
+/** Compose adapter for the same Material checkbox used by legacy View screens.
+ * The deprecated per-call color/interaction parameters remain for API compatibility;
+ * the canonical appearance is resolved from YUI's current theme instead.
+ */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun YUiCheckbox(
     checked: Boolean,
@@ -154,12 +162,29 @@ fun YUiCheckbox(
     colors: CheckboxColors = CheckboxDefaults.colors(),
     interactionSource: MutableInteractionSource? = null,
 ) {
-    Checkbox(
-        checked = checked,
-        onCheckedChange = onCheckedChange,
-        modifier = modifier,
-        enabled = enabled,
-        colors = colors,
-        interactionSource = interactionSource,
+    val scheme = MaterialTheme.colorScheme
+    val presentation = YSelectionControlColors(
+        active = scheme.primary.toArgb(),
+        inactive = scheme.outline.toArgb(),
+        disabled = scheme.onSurfaceVariant.toArgb(),
+    )
+    val minTarget = maxOf(48, LocalYAppearance.current.iconTouchTargetDp).dp
+    AndroidView(
+        modifier = modifier.defaultMinSize(minWidth = minTarget, minHeight = minTarget),
+        factory = { context -> YUiNativeCheckBox(context) },
+        update = { box ->
+            box.bindPresentation(presentation)
+            box.setOnCheckedChangeListener(null)
+            if (box.isChecked != checked) box.isChecked = checked
+            box.isEnabled = enabled
+            box.isClickable = onCheckedChange != null
+            box.setOnCheckedChangeListener(
+                onCheckedChange?.let { callback ->
+                    android.widget.CompoundButton.OnCheckedChangeListener { _, value ->
+                        callback(value)
+                    }
+                },
+            )
+        },
     )
 }

@@ -1,7 +1,6 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonColors
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Slider
@@ -10,6 +9,9 @@ import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -17,7 +19,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** Central Material 3 facade: a selection indicator is not a second layout implementation. */
+/** Compose adapter for the sole YUI native radio control.
+ * Per-call colors/interaction are kept for binary source compatibility; YUI owns
+ * the appearance across Compose and Java/View rather than allowing local styles.
+ */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun YUiRadioButton(
     selected: Boolean,
@@ -27,13 +33,26 @@ fun YUiRadioButton(
     colors: RadioButtonColors = RadioButtonDefaults.colors(),
     interactionSource: MutableInteractionSource? = null,
 ) {
-    RadioButton(
-        selected = selected,
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        colors = colors,
-        interactionSource = interactionSource,
+    val scheme = MaterialTheme.colorScheme
+    val presentation = YSelectionControlColors(
+        active = scheme.primary.toArgb(),
+        inactive = scheme.outline.toArgb(),
+        disabled = scheme.onSurfaceVariant.toArgb(),
+    )
+    val minTarget = maxOf(48, LocalYAppearance.current.iconTouchTargetDp).dp
+    AndroidView(
+        modifier = modifier.defaultMinSize(minWidth = minTarget, minHeight = minTarget),
+        factory = { context -> YUiNativeRadioButton(context) },
+        update = { radio ->
+            radio.bindPresentation(presentation)
+            radio.setOnClickListener(null)
+            if (radio.isChecked != selected) radio.isChecked = selected
+            radio.isEnabled = enabled
+            radio.isClickable = onClick != null
+            radio.setOnClickListener(onClick?.let { callback ->
+                android.view.View.OnClickListener { callback() }
+            })
+        },
     )
 }
 

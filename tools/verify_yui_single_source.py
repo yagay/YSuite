@@ -209,6 +209,25 @@ def main() -> None:
     if "styleStandardToggle(" in view_switches or "trackDrawable = GradientDrawable()" in view_switches:
         fail("View switch may not maintain a second thumb/track implementation")
 
+    # Checkbox and radio indicators must also be a single native widget, with
+    # Compose acting only as the state/color adapter.
+    native_selectors = read(YUI_ROOT / "YNativeSelectionControls.kt")
+    compose_checks = read(YUI_ROOT / "YMaterialControls.kt")
+    compose_radio = read(YUI_ROOT / "YMaterialSelectors.kt")
+    for source, widget in ((compose_checks, "YUiNativeCheckBox(context)"),
+                           (compose_radio, "YUiNativeRadioButton(context)")):
+        if "AndroidView(" not in source or widget not in source or "bindPresentation(presentation)" not in source:
+            fail(f"Selection indicator does not delegate to native YUI widget: {widget}")
+    for marker in ("class YUiNativeCheckBox(context: Context)",
+                   "class YUiNativeRadioButton(context: Context)",
+                   "object YSelectionControlStyle", "control.buttonTintList = ColorStateList(",
+                   "minimumHeight = maxOf(", "minimumWidth = maxOf("):
+        if marker not in native_selectors:
+            fail(f"YUI native selector contract is incomplete: {marker}")
+    for marker in ("YUiNativeCheckBox(context).apply", "YUiNativeRadioButton(context).apply"):
+        if marker not in view_switches:
+            fail(f"Legacy View selector bypasses canonical control: {marker}")
+
     # Density may evolve, but the system still needs accessible hit targets and
     # ordered compact/medium/expanded breakpoints.
     if tokens["button_height"] < 48 or tokens["touch_target"] < 48:
