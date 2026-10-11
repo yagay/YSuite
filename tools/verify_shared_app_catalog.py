@@ -30,7 +30,7 @@ for rel in consumers:
         issues.append("Missing " + rel)
         continue
     src = path.read_text(encoding="utf-8")
-    if "InstalledAppCatalog.list(" not in src:
+    if not re.search(r"InstalledAppCatalog\s*\.\s*list\s*\(", src):
         issues.append(rel + " bypasses the central installed-app inventory")
     if re.search(r"\bgetInstalledApplications\s*\(", src):
         issues.append(rel + " calls PackageManager.getInstalledApplications directly")
