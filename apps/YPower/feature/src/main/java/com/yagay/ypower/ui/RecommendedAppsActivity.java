@@ -79,7 +79,7 @@ public class RecommendedAppsActivity extends AppCompatActivity {
         ImageView icon = new ImageView(this);
         int iconSize = YView.listIconSize(this);
         icon.setImageDrawable(InstalledAppCatalog.icon(this, preset.packageName,
-                Math.min(96, Math.max(24, iconSize))));
+                iconSize));
         icon.setContentDescription(preset.displayName);
         card.addView(icon, new LinearLayout.LayoutParams(iconSize, iconSize));
         card.addView(YViewLayout.detailBlock(this, getString(R.string.yp_recommendation_reason), preset.reason));
@@ -95,7 +95,7 @@ public class RecommendedAppsActivity extends AppCompatActivity {
             startActivity(i);
         });
         YViewLayout.addAction(buttons, apply);
-        YViewLayout.addAction(buttons, detail, 0.45f);
+        YViewLayout.addAction(buttons, detail);
     }
 
     private void applyPreset(RecommendedAppPreset preset) {
