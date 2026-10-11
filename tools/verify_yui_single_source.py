@@ -247,7 +247,7 @@ def main() -> None:
     for source, required in (
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTheme.kt", ("import com.yagay.yui.YTheme", "YTheme(")),
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt", ("import com.yagay.yui.YDimens",)),
-        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteComponents.kt", ("import com.yagay.yui.YPrimaryButton", "import com.yagay.yui.YListItem", "import com.yagay.yui.YCard")),
+        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteComponents.kt", ("import com.yagay.yui.YPrimaryButton", "import com.yagay.yui.YListItem", "import com.yagay.yui.YSection")),
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteControls.kt", ("import com.yagay.yui.YTextField", "import com.yagay.yui.YFilterBar")),
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteStatus.kt", ("import com.yagay.yui.YStatusPill",)),
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteDialogs.kt", ("import com.yagay.yui.YConfirmDialog", "import com.yagay.yui.YTextField")),
@@ -256,6 +256,22 @@ def main() -> None:
         for token in required:
             if token not in content:
                 fail(f"reusable feature component in {source.relative_to(ROOT)} must delegate to shared YUI: {token}")
+
+    # The rebuilt design system may offer compatibility APIs, never an independent
+    # theme/bar controller or duplicated section/card composition.
+    theme_adapter = read(ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTheme.kt")
+    for forbidden in ("WindowCompat", "SideEffect", "YAppearanceStore(", "rememberYAppearance("):
+        if forbidden in theme_adapter:
+            fail(f"Rebuilt features own parallel theme/window appearance: {forbidden}")
+    ytheme = read(YUI_ROOT / "YTheme.kt")
+    yview = read(YUI_ROOT / "YView.kt")
+    if "YView.applyBarAppearance(it, actualDark)" not in ytheme or (
+            "fun applyBarAppearance(activity: Activity, dark: Boolean)" not in yview):
+        fail("Compose and View system bar appearance must share one YUI controller")
+    components = read(ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteComponents.kt")
+    if "YSection(title = title, modifier = modifier)" not in components or (
+            "YCard {" in components):
+        fail("Rebuilt section layout duplicates the canonical YSection renderer")
 
     catalog = read(YUI_CATALOG)
     if "fun YComponentCatalogScreen(" not in catalog or catalog.count("@Preview") < 3:

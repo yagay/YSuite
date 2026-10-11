@@ -64,12 +64,13 @@ def run() -> None:
     require("libs/yui/src/main/java/com/yagay/yui/YSwitchGeometry.kt",
             "fun YAppearance.switchGeometry()", "touchWidthDp = max(", "touchHeightDp = max(")
     require("libs/yui/src/main/java/com/yagay/yui/YCompactSwitch.kt",
-            "appearance.switchGeometry()", "role = Role.Switch", "YSwitchPainter.draw(",
+            "appearance.switchGeometry()", "AndroidView(", "YUiMaterialSwitch(context)",
+            "toggle.bindPresentation(appearance, paintColors)",
             "geometry.touchWidthDp.dp", "geometry.touchHeightDp.dp")
     require("libs/yui/src/main/java/com/yagay/yui/YSwitchPainter.kt",
             "class YUiMaterialSwitch", "override fun onDraw(canvas: Canvas)",
             "YSwitchPainter.draw(", "geometry.trackWidthDp", "geometry.thumbDiameterDp",
-            "registerPreferenceListener(preferenceListener)")
+            "fun bindPresentation(", "registerPreferenceListener(preferenceListener)")
     require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
             "YUiMaterialSwitch(context).apply", ".switchLabelGapDp")
     for path in ("suite/YSuite/src/main/res/values/strings_appearance_catalog.xml",

@@ -1,5 +1,8 @@
 package com.yagay.yui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -34,6 +37,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
@@ -42,12 +46,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // AndroidX Material 3 owns component corner shapes. No second per-feature shape system.
 private val YShapes = Shapes()
+
+/** Compose and View activities share the same YView window appearance operation. */
+private fun yThemeHostActivity(context: Context): Activity? {
+    var current: Context? = context
+    while (current is ContextWrapper && current !is Activity) {
+        val base = current.baseContext
+        if (base === current) return null
+        current = base
+    }
+    return current as? Activity
+}
 
 internal val YLightColors = lightColorScheme(
     primary = YUiPalette.LightPrimary,
@@ -192,6 +208,15 @@ fun YTheme(
         "light" -> false
         "dark" -> true
         else -> darkTheme
+    }
+    // Only the outer theme updates bars. Nested preview themes must not alter the Activity.
+    val hostView = LocalView.current
+    if (appearanceOverride == null) {
+        SideEffect {
+            if (!hostView.isInEditMode) {
+                yThemeHostActivity(hostView.context)?.let { YView.applyBarAppearance(it, actualDark) }
+            }
+        }
     }
     val actualDynamic = appearance.dynamicColor
     val systemDensity = LocalDensity.current

@@ -12,8 +12,9 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * One switch renderer shared by Compose (via drawIntoCanvas) and Android Views.
- * All visual bounds are read from YSwitchGeometry; the touch area is independent.
+ * Canonical visual implementation owned by YUiMaterialSwitch.
+ * Both Compose (AndroidView) and legacy View screens instantiate this same control.
+ * The touch area remains independent of the visual bounds.
  */
 data class YSwitchPaintColors(
     val checkedTrack: Int,
@@ -74,12 +75,25 @@ object YSwitchPainter {
 }
 
 /**
- * Retains MaterialSwitch/CompoundButton callbacks and accessibility, but delegates
- * ALL pixels to the same YSwitchPainter used by Compose.
+ * The single canonical toggle widget: Compose uses AndroidView to host this class,
+ * legacy screens instantiate it directly. No second Compose-only canvas implementation.
  */
 class YUiMaterialSwitch(context: Context) : MaterialSwitch(context) {
     private val store = YAppearanceStore(context)
     private var appearance = store.appearance(YAppearanceStore.moduleIdFor(context))
+    private var appearanceOverride: YAppearance? = null
+    private var paintColorsOverride: YSwitchPaintColors? = null
+
+    /** Compose host supplies its scoped preview settings and exact Material color scheme. */
+    fun bindPresentation(scopedAppearance: YAppearance, colors: YSwitchPaintColors) {
+        if (appearanceOverride != scopedAppearance || paintColorsOverride != colors) {
+            appearanceOverride = scopedAppearance
+            paintColorsOverride = colors
+            requestLayout()
+            invalidate()
+        }
+    }
+
     private val preferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
         post {
             appearance = store.appearance(YAppearanceStore.moduleIdFor(context))
@@ -105,7 +119,7 @@ class YUiMaterialSwitch(context: Context) : MaterialSwitch(context) {
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val geometry = appearance.switchGeometry()
+        val geometry = (appearanceOverride ?: appearance).switchGeometry()
         val density = resources.displayMetrics.density
         val width = (geometry.touchWidthDp * density).roundToInt().coerceAtLeast(1)
         val height = (geometry.touchHeightDp * density).roundToInt().coerceAtLeast(1)
@@ -116,22 +130,21 @@ class YUiMaterialSwitch(context: Context) : MaterialSwitch(context) {
     override fun onDraw(canvas: Canvas) {
         // The MaterialSwitch's native track/thumb are deliberately not drawn.
         val c = context
-        val geometry = appearance.switchGeometry()
-        val checkedTrack = YView.accent(c)
+        val geometry = (appearanceOverride ?: appearance).switchGeometry()
+        val colors = paintColorsOverride ?: YSwitchPaintColors(
+            checkedTrack = YView.accent(c),
+            uncheckedTrack = YView.color(c,
+                com.google.android.material.R.attr.colorSurfaceContainerHighest,
+                YView.surfaceContainer(c)),
+            checkedThumb = YView.color(c,
+                com.google.android.material.R.attr.colorOnPrimary,
+                YView.surface(c)),
+            uncheckedThumb = YView.onSurfaceVariant(c),
+            outline = YView.outline(c),
+        )
         YSwitchPainter.draw(
             canvas, width.toFloat(), height.toFloat(), resources.displayMetrics.density,
-            geometry, isChecked, isEnabled,
-            YSwitchPaintColors(
-                checkedTrack = checkedTrack,
-                uncheckedTrack = YView.color(c,
-                    com.google.android.material.R.attr.colorSurfaceContainerHighest,
-                    YView.surfaceContainer(c)),
-                checkedThumb = YView.color(c,
-                    com.google.android.material.R.attr.colorOnPrimary,
-                    YView.surface(c)),
-                uncheckedThumb = YView.onSurfaceVariant(c),
-                outline = YView.outline(c),
-            ),
+            geometry, isChecked, isEnabled, colors,
         )
     }
 }

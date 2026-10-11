@@ -316,11 +316,18 @@ object YView {
         }
     }
 
-    private fun applyBarAppearance(activity: Activity) {
-        val dark = isDark(activity)
+    /** Single source for system bar colors in both Compose and legacy View screens. */
+    @JvmStatic fun applyBarAppearance(activity: Activity, dark: Boolean) {
         WindowCompat.getInsetsController(activity.window, activity.window.decorView).apply {
             isAppearanceLightStatusBars = !dark
             isAppearanceLightNavigationBars = !dark
         }
+        if (Build.VERSION.SDK_INT >= 29) {
+            activity.window.isStatusBarContrastEnforced = false
+            activity.window.isNavigationBarContrastEnforced = false
+        }
     }
+
+    private fun applyBarAppearance(activity: Activity) =
+        applyBarAppearance(activity, isDark(activity))
 }
