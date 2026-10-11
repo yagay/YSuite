@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.yagay.YNFC.system.NfcSystemService
 import com.yagay.YNFC.system.RootShell
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,13 +23,29 @@ class RuntimeStatusViewModel(application: Application) : AndroidViewModel(applic
     )
     private val _status = MutableStateFlow(RuntimeStatus())
     val status: StateFlow<RuntimeStatus> = _status.asStateFlow()
+    @Volatile private var observedNfcPid: Int? = null
 
     init {
         viewModelScope.launch {
             repository.observeChanges().collectLatest {
                 _status.value = withContext(Dispatchers.IO) {
-                    repository.read(includeRootPid = false)
+                    repository.decode(repository.readProviderMap(), observedNfcPid)
                 }
+            }
+        }
+        viewModelScope.launch {
+            // Provider PID fields are all zero if the module never injected.
+            // Recheck the actual NFC PID separately without running Root on
+            // every high-frequency provider change or on the Compose thread.
+            while (isActive) {
+                val current = withContext(Dispatchers.IO) {
+                    repository.currentNfcPid()
+                }
+                observedNfcPid = current
+                _status.value = withContext(Dispatchers.IO) {
+                    repository.decode(repository.readProviderMap(), current)
+                }
+                delay(15_000L)
             }
         }
     }

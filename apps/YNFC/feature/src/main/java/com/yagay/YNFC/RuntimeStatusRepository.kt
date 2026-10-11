@@ -35,9 +35,12 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
 
     fun read(includeRootPid: Boolean = false): RuntimeStatus {
         val map = readProviderMap()
-        val rootPid = if (includeRootPid) nfcSystemService.currentNfcPid().toIntOrNull() else null
+        val rootPid = if (includeRootPid) currentNfcPid() else null
         return decode(map, rootPid)
     }
+
+    /** Low-frequency Root verification; absence is unknown, never proof NFC stopped. */
+    fun currentNfcPid(): Int? = nfcSystemService.currentNfcPid().toIntOrNull()?.takeIf { it > 0 }
 
     fun isCurrentCommandGeneration(generation: Long): Boolean =
         readProviderMap()[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull() == generation
