@@ -69,8 +69,7 @@ def run() -> None:
     filter_chips = require("libs/yui/src/main/java/com/yagay/yui/YMaterialMenus.kt",
             "fun YUiFilterChip(", "modifier = modifier.yActionButtonSize()")
     native_buttons = require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
-            "button.strokeWidth = if (outlined) cardOutlineWidth(context) else 0",
-            "button.insetLeft = 0", "button.insetRight = 0")
+            "button.strokeWidth = if (outlined) cardOutlineWidth(context) else 0")
     theme_buttons = require("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
             "Text(text, softWrap = true)")
     action_layout = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",

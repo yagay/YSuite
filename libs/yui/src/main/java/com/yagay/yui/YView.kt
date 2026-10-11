@@ -171,8 +171,6 @@ object YView {
                 .toInt().coerceAtLeast(0)
             button.insetTop = inset
             button.insetBottom = inset
-            button.insetLeft = 0
-            button.insetRight = 0
             // Old stroke widths must not survive after a smaller appearance value is selected.
             button.strokeColor = ColorStateList.valueOf(
                 if (outlined) colors.outline.toArgb() else Color.TRANSPARENT,
