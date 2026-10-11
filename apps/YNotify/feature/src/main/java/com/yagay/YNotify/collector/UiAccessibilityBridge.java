@@ -63,6 +63,12 @@ public final class UiAccessibilityBridge {
         String type = classify(event, className, sourceClass);
         if (type == null) return;
 
+        // SystemUI updates its status-bar clock every minute. Accessibility
+        // forwards those text/content changes even though no user-visible
+        // notification or popup occurred. Do not add a history entry for a
+        // clock-only announcement; keep real SystemUI messages untouched.
+        if (EventTypes.SYSTEM_UI.equals(type) && isClockOnlyText(text)) return;
+
         long now = System.currentTimeMillis();
         String dedupe = pkg + "|" + event.getEventType() + "|" + type + "|" + text;
         Long last = recent.put(dedupe, now);
@@ -106,6 +112,26 @@ public final class UiAccessibilityBridge {
         if ("com.android.systemui".contentEquals(event.getPackageName())) return EventTypes.SYSTEM_UI;
         if (t == AccessibilityEvent.TYPE_ANNOUNCEMENT) return EventTypes.OTHER_UI;
         return null;
+    }
+
+    /** Time-only status-bar/lock-screen labels are not notification events.
+     * Match complete lines only; never drop a message merely containing a time. */
+    private static boolean isClockOnlyText(String text) {
+        if (text == null || text.isBlank()) return false;
+        String[] lines = text.trim().split("\\n");
+        if (lines.length > 3) return false;
+        boolean clockSeen = false;
+        for (String line : lines) {
+            String value = line.trim();
+            if (value.isEmpty()) continue;
+            // Supports 24h, 12h, seconds, and the AM/PM prefixes used by some
+            // SystemUI locales. Non-clock words make the event meaningful.
+            if (!value.matches("(?i)^(?:(?:AM|PM|上午|下午|凌晨|晚上)\\\\s*)?"
+                    + "(?:[01]?\\\\d|2[0-3]):[0-5]\\\\d(?::[0-5]\\\\d)?"
+                    + "(?:\\\\s*(?:AM|PM|上午|下午|凌晨|晚上))?$")) return false;
+            clockSeen = true;
+        }
+        return clockSeen;
     }
 
     private static String join(List<CharSequence> list) {
