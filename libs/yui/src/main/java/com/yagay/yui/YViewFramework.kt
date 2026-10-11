@@ -108,7 +108,7 @@ internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
         for (index in 0 until childCount) {
             val child = getChildAt(index)
             if (child.visibility == View.GONE) continue
-            val params = child.layoutParams as LayoutParams
+            val params = child.layoutParams as LinearLayout.LayoutParams
             if (!rememberedWeights.containsKey(child)) {
                 rememberedWeights[child] = params.weight.takeIf { it > 0f } ?: 1f
             }
@@ -122,8 +122,8 @@ internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
         orientation = if (stack) VERTICAL else HORIZONTAL
         for (index in 0 until childCount) {
             val child = getChildAt(index)
-            val params = child.layoutParams as LayoutParams
-            params.width = if (stack) LayoutParams.MATCH_PARENT else 0
+            val params = child.layoutParams as LinearLayout.LayoutParams
+            params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT else 0
             params.weight = if (stack) 0f else rememberedWeights[child] ?: 1f
             params.marginStart = if (!stack && index > 0) gap else 0
             params.topMargin = if (stack && index > 0) gap else 0

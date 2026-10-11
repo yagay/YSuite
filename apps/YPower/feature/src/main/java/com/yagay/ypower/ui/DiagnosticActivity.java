@@ -169,9 +169,22 @@ public class DiagnosticActivity extends AppCompatActivity {
         output.setTextIsSelectable(true);
         output.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         ScrollView scroll = YViewLayout.scrollPage(this, output);
-        result.addView(scroll, new LinearLayout.LayoutParams(-1,
-                Math.min(getResources().getDisplayMetrics().heightPixels * 2 / 3,
-                        Math.max(YView.rowHeight(this) * 8, YView.touchTarget(this) * 4))));
+        // Window height can shrink on split-screen, taskbar changes and floating windows.
+        // Do not reserve 2/3 of the physical display for an inner diagnostic panel.
+        LinearLayout.LayoutParams reportLayout = new LinearLayout.LayoutParams(
+                -1, Math.max(YView.touchTarget(this), YView.rowHeight(this) * 3));
+        result.addView(scroll, reportLayout);
+        getWindow().getDecorView().addOnLayoutChangeListener(
+                (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                    int windowHeight = Math.max(0, bottom - top);
+                    if (windowHeight <= 0) return;
+                    int nextHeight = Math.max(YView.touchTarget(this),
+                            windowHeight * 2 / 3);
+                    if (reportLayout.height != nextHeight) {
+                        reportLayout.height = nextHeight;
+                        scroll.setLayoutParams(reportLayout);
+                    }
+                });
     }
 
     private void startSession() {
