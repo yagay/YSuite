@@ -22,7 +22,15 @@ class ProcessRepository(
     private var previousSampleMs: Long = 0L
     private var clockTicksPerSecond: Long = 100L
 
+    /** Fast list: a single ps command, with no per-process I/O or icon decoding. */
     suspend fun listProcesses(): List<ProcessEntry> = withContext(Dispatchers.IO) {
+        refreshPackageCacheIfNeeded()
+        val fast = runCatching { listProcessesFromPs() }.getOrDefault(emptyList())
+        if (fast.isNotEmpty()) fast else listDetailedProcesses()
+    }
+
+    /** Slower, richer /proc sample; refresh on a separate, bounded cadence. */
+    suspend fun listDetailedProcesses(): List<ProcessEntry> = withContext(Dispatchers.IO) {
         refreshPackageCacheIfNeeded()
 
         // Hot-path rule: avoid spawning cat/awk/stat/sed/readlink once per PID.
@@ -63,7 +71,7 @@ class ProcessRepository(
         """.trimIndent()
 
         val raw = try {
-            shell.execute(script, 18_000).stdout
+            shell.execute(script, 10_000).stdout
         } catch (cancel: kotlinx.coroutines.CancellationException) {
             throw cancel
         } catch (_: Exception) {
@@ -77,19 +85,20 @@ class ProcessRepository(
 
     /** Fallback for modern OEM kernels restricting /proc/<pid>/stat. */
     private suspend fun listProcessesFromPs(): List<ProcessEntry> {
-        val first = shell.execute("ps -A -o PID,PPID,UID,NAME 2>/dev/null", 8_000).stdout
+        val first = shell.execute("ps -A -o PID,PPID,UID,RSS,NAME 2>/dev/null", 4_000).stdout
         val raw = if (first.lineSequence().count() > 1) first
-            else shell.execute("ps -A -o PID,PPID,USER,NAME 2>/dev/null", 8_000).stdout
+            else shell.execute("ps -A -o PID,PPID,USER,RSS,NAME 2>/dev/null", 4_000).stdout
         val byCommand = packageCache.flatMap { (uid, entries) ->
             entries.map { entry -> entry.packageName to (uid to entry) }
         }.toMap()
         return raw.lineSequence().drop(1).mapNotNull { line ->
-            val fields = line.trim().split(Regex("\\s+"), limit = 4)
-            if (fields.size != 4) return@mapNotNull null
+            val fields = line.trim().split(Regex("\\s+"), limit = 5)
+            if (fields.size != 5) return@mapNotNull null
             val pid = fields[0].toIntOrNull() ?: return@mapNotNull null
             val ppid = fields[1].toIntOrNull() ?: 0
             val uid = fields[2].toIntOrNull() ?: -1
-            val command = fields[3]
+            val rssKb = fields[3].toLongOrNull() ?: 0L
+            val command = fields[4]
             val direct = byCommand[command.substringBefore(':')]
             val actualUid = if (uid >= 0) uid else direct?.first ?: -1
             val identities = packageCache[actualUid].orEmpty()
@@ -97,13 +106,13 @@ class ProcessRepository(
                 command.startsWith(it.packageName + ":") } ?: direct?.second ?: identities.firstOrNull()
             ProcessEntry(
                 pid = pid, ppid = ppid, uid = actualUid, userName = fields[2],
-                nice = 0, state = "?", rssKb = 0L, cpuPercent = 0f,
+                nice = 0, state = "?", rssKb = rssKb, cpuPercent = 0f,
                 name = command.substringAfterLast('/'), command = command,
                 packageNames = identities.map { it.packageName }.ifEmpty {
                     listOfNotNull(primary?.packageName)
                 },
                 packageName = primary?.packageName, appLabel = primary?.label,
-                icon = primary?.packageName?.let { InstalledAppCatalog.icon(appContext, it, 64) },
+                icon = null, // The visible Compose row loads its shared icon lazily.
                 kind = when {
                     primary == null -> ProcessKind.LINUX
                     primary.system -> ProcessKind.SYSTEM_APP
@@ -236,7 +245,7 @@ class ProcessRepository(
                 packageNames = identities.map { it.packageName },
                 packageName = primary?.packageName,
                 appLabel = primary?.label,
-                icon = primary?.packageName?.let { InstalledAppCatalog.icon(appContext, it, 64) },
+                icon = null, // The visible Compose row loads its shared icon lazily.
                 kind = kind,
             )
             i += 2
