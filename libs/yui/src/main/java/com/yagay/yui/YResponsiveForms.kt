@@ -26,7 +26,7 @@ fun YResponsiveFieldAction(
     action: @Composable () -> Unit,
 ) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth < stackedBelow) {
+        if (maxWidth < stackedBelow * (LocalYAppearance.current.fontPercent / 100f).coerceAtLeast(1f)) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
@@ -57,7 +57,7 @@ fun YResponsiveFieldPair(
     second: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth < stackedBelow) {
+        if (maxWidth < stackedBelow * (LocalYAppearance.current.fontPercent / 100f).coerceAtLeast(1f)) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),

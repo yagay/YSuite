@@ -316,9 +316,9 @@ fun YListItem(
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
-    titleMaxLines: Int = 2,
-    subtitleMaxLines: Int = 2,
-    detailMaxLines: Int = 2,
+    titleMaxLines: Int = Int.MAX_VALUE,
+    subtitleMaxLines: Int = Int.MAX_VALUE,
+    detailMaxLines: Int = Int.MAX_VALUE,
 ) {
     // Material3 ListItem adds substantial fixed internal padding. An explicit row keeps the
     // same actions and accessibility while sizing to its actual content.
@@ -660,8 +660,7 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
                     Text(
                         action.label,
                         color = if (action.enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        softWrap = true,
                     )
                 }
             }

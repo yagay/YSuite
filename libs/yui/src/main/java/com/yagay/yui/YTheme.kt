@@ -36,6 +36,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -161,7 +162,28 @@ fun YTheme(
 ) {
     val context = LocalContext.current
     val storedAppearance = rememberYAppearance(YAppearanceStore.moduleIdFor(context))
-    val appearance = appearanceOverride ?: storedAppearance
+    val configuredAppearance = appearanceOverride ?: storedAppearance
+    // Apply safe display bounds without changing the user-configured/persisted values.
+    val windowWidth = LocalConfiguration.current.screenWidthDp.coerceAtLeast(1)
+    val sideAllowance = ((windowWidth - 144).coerceAtLeast(0) / 2)
+    val contentAllowance = ((windowWidth - 176).coerceAtLeast(0) / 2)
+    val appearance = configuredAppearance.copy(
+        screenPaddingDp = configuredAppearance.screenPaddingDp.coerceAtMost(sideAllowance),
+        cardPaddingDp = configuredAppearance.cardPaddingDp.coerceAtMost(contentAllowance),
+        rowHorizontalPaddingDp = configuredAppearance.rowHorizontalPaddingDp.coerceAtMost(contentAllowance),
+        buttonPaddingHorizontalDp = configuredAppearance.buttonPaddingHorizontalDp.coerceAtMost(
+            ((windowWidth - 104).coerceAtLeast(0) / 2),
+        ),
+        switchSlotWidthDp = configuredAppearance.switchSlotWidthDp.coerceAtMost(
+            (windowWidth - 176).coerceAtLeast(56),
+        ),
+        iconTouchTargetDp = configuredAppearance.iconTouchTargetDp.coerceAtMost(
+            (windowWidth / 4).coerceAtLeast(48),
+        ),
+        listIconSizeDp = configuredAppearance.listIconSizeDp.coerceAtMost(
+            (windowWidth / 4).coerceAtLeast(48),
+        ),
+    )
     val actualDark = when (appearance.theme) {
         "light" -> false
         "dark" -> true

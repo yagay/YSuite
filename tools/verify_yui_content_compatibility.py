@@ -34,9 +34,9 @@ def main() -> int:
                       "NavigationSuiteType.NavigationRail",
                       "emphasizeCards = true")
     errors += require(YUI / "YUnifiedDesign.kt",
-                      "titleMaxLines: Int = 2",
-                      "subtitleMaxLines: Int = 2",
-                      "detailMaxLines: Int = 2",
+                      "titleMaxLines: Int = Int.MAX_VALUE",
+                      "subtitleMaxLines: Int = Int.MAX_VALUE",
+                      "detailMaxLines: Int = Int.MAX_VALUE",
                       "val effectiveKey = tabs[selectedIndex].key")
     errors += require(YUI / "YResponsiveForms.kt",
                       "fun YResponsiveFieldAction(",
