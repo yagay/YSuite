@@ -41,7 +41,7 @@ def check_view() -> None:
 def check_compose() -> None:
     source("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
            "LocalConfiguration.current.screenWidthDp", "configuredAppearance.copy(",
-           "screenPaddingDp = configuredAppearance.screenPaddingDp.coerceAtMost(",
+           "screenPaddingDp = safeScreen",
            "BoxWithConstraints {", "val fittedInset = minOf(")
     source("libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
            "val fittedInset = minOf(", "maxWidth - (YDimens.TouchTarget * 3)",
