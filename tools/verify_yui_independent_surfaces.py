@@ -83,6 +83,16 @@ def check() -> None:
     require("libs/yui/src/main/java/com/yagay/yui/YHomePresentation.kt",
             'const val PREFERENCES = "ysuite_compact_home"', "fun YHomeModuleRow(",
             "fun readPinned(", "fun savePinned(")
+    # The integrated host must never present competing controls for the
+    # same YUI-owned YFloat border values.
+    circle = require(
+        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/CircleBorderSettingsUi.java",
+        'if ("com.yagay.YSuite".equals(activity.getPackageName())) return;',
+        "YViewLayout.switchRow(", "YViewLayout.spinnerSetting(",
+        "YViewLayout.sliderSetting(",
+    )
+    if circle.index('if ("com.yagay.YSuite".equals(activity.getPackageName())) return;') > circle.index("YViewLayout.switchRow("):
+        raise AssertionError("Integrated YFloat still displays duplicate circle appearance controls")
     notify = source("apps/YNotify/feature/src/main/res/layout/item_event.xml")
     if 'app:strokeWidth="1dp"' in notify:
         raise AssertionError("YNotify XML hardcodes list-card outline; use the shared YUI renderer")
