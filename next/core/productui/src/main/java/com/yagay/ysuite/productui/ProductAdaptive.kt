@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.designsystem.theme.YSuiteLayoutTokens
+import com.yagay.yui.YUiGeometry
 
 enum class ProductWidthClass {
     Compact,
@@ -42,7 +43,7 @@ data class ProductPaneWidths(val leading: Dp, val trailing: Dp) {
 fun ProductAdaptiveInfo.fitPanes(
     leading: Dp = 0.dp,
     trailing: Dp = 0.dp,
-    minimumMain: Dp = 320.dp,
+    minimumMain: Dp = YUiGeometry.minimumMainPane,
 ): ProductPaneWidths {
     if (!isExpanded || availableWidth <= minimumMain) return ProductPaneWidths(0.dp, 0.dp)
     val widthBudget = (availableWidth - minimumMain).coerceAtLeast(0.dp)
@@ -54,8 +55,8 @@ fun ProductAdaptiveInfo.fitPanes(
     val fittedLeading = desiredLeading * scale
     val fittedTrailing = desiredTrailing * scale
     return ProductPaneWidths(
-        fittedLeading.takeIf { it >= 160.dp } ?: 0.dp,
-        fittedTrailing.takeIf { it >= 200.dp } ?: 0.dp,
+        fittedLeading.takeIf { it >= YUiGeometry.minimumLeadingPane } ?: 0.dp,
+        fittedTrailing.takeIf { it >= YUiGeometry.minimumTrailingPane } ?: 0.dp,
     )
 }
 

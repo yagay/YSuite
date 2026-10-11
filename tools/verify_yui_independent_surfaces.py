@@ -109,6 +109,13 @@ def check() -> None:
     )
     if "Stroke(width = 1f)" in chart:
         raise AssertionError("YTaskManager chart outline bypasses YUI appearance")
+    geometry = require("libs/yui/src/main/java/com/yagay/yui/YUiGeometry.kt",
+        "val minimumMainPane:", "val minimumLeadingPane:", "val minimumTrailingPane:")
+    adaptive = require("next/core/productui/src/main/java/com/yagay/ysuite/productui/ProductAdaptive.kt",
+        "YUiGeometry.minimumMainPane", "YUiGeometry.minimumLeadingPane",
+        "YUiGeometry.minimumTrailingPane")
+    if any(value in adaptive for value in ("320.dp", "160.dp", "200.dp")):
+        raise AssertionError("Product pane thresholds must be owned by YUI")
     notify = source("apps/YNotify/feature/src/main/res/layout/item_event.xml")
     if 'android:maxLines="2"' in notify or 'android:ellipsize="end"' in notify:
         raise AssertionError("YNotify event title must wrap, not override YUI text sizing")

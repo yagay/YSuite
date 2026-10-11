@@ -19,6 +19,11 @@ object YUiGeometry {
     val compactPaneBase: Dp get() = YDimens.ListDetailListWidth * (2f / 3f)
     val detailPaneBase: Dp get() = YDimens.ListDetailListWidth
 
+    /** Shared adaptive pane safety limits, never owned by product modules. */
+    val minimumMainPane: Dp get() = 320.dp
+    val minimumLeadingPane: Dp get() = 160.dp
+    val minimumTrailingPane: Dp get() = 200.dp
+
     /** The one resolved rule set is also the public Compose layout adapter. */
     @Composable fun displayRules(): YDisplayRules =
         LocalYAppearance.current.displayRules(LocalConfiguration.current.screenWidthDp.coerceAtLeast(1))

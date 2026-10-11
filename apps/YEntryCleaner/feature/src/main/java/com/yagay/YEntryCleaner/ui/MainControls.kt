@@ -92,7 +92,7 @@ internal fun MainToolbar(
     YCustomTopBar(
         title = {
             if (expanded) CompactSearchField(query, onQuery)
-            else Text(stringResource(R.string.yentrycleaner_app_name), fontWeight = FontWeight.Bold, maxLines = 1)
+            else Text(stringResource(R.string.yentrycleaner_app_name), fontWeight = FontWeight.Bold)
         },
         navigationIcon = {
             if (expanded) {
