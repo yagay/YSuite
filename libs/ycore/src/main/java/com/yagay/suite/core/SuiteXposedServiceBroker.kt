@@ -199,7 +199,8 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
                     SuiteCapabilityMonitor.State.OUTDATED
                 else if (target.state.name !in setOf("UP_TO_DATE", "STALE"))
                     SuiteCapabilityMonitor.State.TARGET_NOT_LOADED
-                else SuiteCapabilityMonitor.State.VERIFIED,
+                else if (target.state.name == "STALE") SuiteCapabilityMonitor.State.STALE
+                else SuiteCapabilityMonitor.State.TARGET_LOADED,
                 "LSPosed target state=${target.state.name}; Hook installation still requires feature evidence",
                 now, processName, version)
         }.getOrElse { error ->

@@ -83,7 +83,11 @@ object SuiteDiagnostics {
         write("accessibility.txt") { accessibilitySnapshot(app) }
         write("special-access.txt") { specialAccessSnapshot(app) }
         write("lsposed.txt") { SuiteXposedServiceBroker.diagnosticSnapshot() }
-        write("capability-evidence.txt") { SuiteCapabilityMonitor.diagnosticSnapshot(app) }
+        write("capability-evidence.txt") {
+            SuiteCapabilityMonitor.diagnosticSnapshot(app) +
+                "\nFEATURE_HOOK_EVIDENCE:\n" +
+                com.yagay.suite.api.FeatureHookEvidence.diagnosticSnapshot()
+        }
 
         val rootAvailable = RootManager.isAvailable(app)
         write("root.txt") {

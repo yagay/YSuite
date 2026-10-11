@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.yagay.YNFC.system.NfcSystemService
 import com.yagay.YNFC.system.RootShell
+import com.yagay.suite.api.FeatureHookEvidence
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -25,12 +26,26 @@ class RuntimeStatusViewModel(application: Application) : AndroidViewModel(applic
     val status: StateFlow<RuntimeStatus> = _status.asStateFlow()
     @Volatile private var observedNfcPid: Int? = null
 
+    private fun publishEvidence(status: RuntimeStatus) {
+        val verified = status.currentPid > 0 && status.scopeOk &&
+            status.hookInstalled && status.hookPid == status.currentPid &&
+            status.hookBuild == BuildConfig.HOOK_BUILD
+        FeatureHookEvidence.publish(
+            featureId = "ynfc",
+            process = "com.android.nfc",
+            pid = status.hookPid,
+            build = status.hookBuild.toLong(),
+            installed = verified,
+            detail = RuntimeText.hookDiagnosis(status, BuildConfig.HOOK_BUILD),
+        )
+    }
+
     init {
         viewModelScope.launch {
             repository.observeChanges().collectLatest {
                 _status.value = withContext(Dispatchers.IO) {
                     repository.decode(repository.readProviderMap(), observedNfcPid)
-                }
+                }.also(::publishEvidence)
             }
         }
         viewModelScope.launch {
@@ -44,7 +59,7 @@ class RuntimeStatusViewModel(application: Application) : AndroidViewModel(applic
                 observedNfcPid = current
                 _status.value = withContext(Dispatchers.IO) {
                     repository.decode(repository.readProviderMap(), current)
-                }
+                }.also(::publishEvidence)
                 delay(15_000L)
             }
         }

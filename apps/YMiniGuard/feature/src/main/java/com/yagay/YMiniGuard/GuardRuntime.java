@@ -151,7 +151,15 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
 
     static EngineStatusProvider.Status getEngineStatus() {
         GuardRuntime runtime = instance;
-        return EngineStatusProvider.read(runtime == null ? null : runtime.context);
+        EngineStatusProvider.Status status =
+                EngineStatusProvider.read(runtime == null ? null : runtime.context);
+        com.yagay.suite.api.FeatureHookEvidence.publish(
+                "yminiguard", "system", status.pid, status.versionCode,
+                status.isFromCurrentBoot() && status.hookCount > 0,
+                "hooks=" + status.hookCount + " bootstrap=" + status.bootstrapVersionCode
+                        + " " + status.reloadMessage,
+                20_000L);
+        return status;
     }
 
     static long getLoadedEngineVersionCode() { return getEngineStatus().versionCode; }
