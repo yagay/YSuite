@@ -389,10 +389,10 @@ object YViewLayout {
     fun card(parent: LinearLayout, title: String, subtitle: String? = null): LinearLayout {
         val unified = section(parent.context, title, subtitle)
         addSection(parent, unified)
+        // section().body already owns the YUI card inset. A second inset here
+        // doubled the spacing on pages using this legacy card() facade.
         val content = LinearLayout(parent.context).apply {
             orientation = LinearLayout.VERTICAL
-            val horizontal = YView.cardPadding(context)
-            setPadding(horizontal, 0, horizontal, 0)
         }
         unified.body.addView(content, matchWrap())
         return content

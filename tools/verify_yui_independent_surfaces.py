@@ -136,6 +136,10 @@ def check() -> None:
     section_body = framework.split("val body = LinearLayout(context).apply {", 1)[1].split("holder.addView(body", 1)[0]
     if "setPadding(horizontal, 0, horizontal," not in section_body:
         raise AssertionError("YUI section body text can touch the card border")
+    # The legacy card facade must not double-pad the section body.
+    card_facade = framework.split("fun card(parent: LinearLayout", 1)[1].split("return content", 1)[0]
+    if "setPadding(horizontal, 0, horizontal, 0)" in card_facade:
+        raise AssertionError("YUI card facade adds a duplicate horizontal inset")
     notify = source("apps/YNotify/feature/src/main/res/layout/item_event.xml")
     if 'android:maxLines="2"' in notify or 'android:ellipsize="end"' in notify:
         raise AssertionError("YNotify event title must wrap, not override YUI text sizing")
