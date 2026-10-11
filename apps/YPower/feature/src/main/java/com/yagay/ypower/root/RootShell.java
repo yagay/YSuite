@@ -3,6 +3,7 @@ package com.yagay.ypower.root;
 import com.yagay.suite.api.FeatureHost;
 import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.HostRootProbe;
+import com.yagay.suite.api.HostCapability;
 import com.yagay.suite.api.FeatureRootCommands;
 import com.yagay.suite.api.HostCommandResult;
 
