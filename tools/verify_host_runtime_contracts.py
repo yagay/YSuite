@@ -93,7 +93,8 @@ def check_root_recovery() -> None:
             "for (attempt in 0 until 2)", "shell.close()", "shell.isRoot",
             "ROOT_VERIFIED_TTL_MS", "ROOT_RETRY_TTL_MS", "lastCheckedAtMs", "openIsolatedShell")
     require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt",
-            "if (!RootManager.isAvailable(app))", "Root shell could not open as uid 0", "scanSlots.tryAcquire()", "RootManager.openIsolatedShell(app)")
+            "if (!RootManager.isAvailable(app))", "Root shell could not open as uid 0", "scanSlots.tryAcquire()", "RootManager.openIsolatedShell(app)",
+            ".to(isolatedOut, isolatedErr)", "if (isolated) isolatedOut else shellResult.out")
     # All ordinary and binary requests must go through the same hosted libsu
     # shell. No second su process is allowed in the binary execution path.
     gateway = require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt",

@@ -204,10 +204,14 @@ object SuiteRootGateway {
             } else {
                 var isolatedShell: Shell? = null
                 try {
+                    val isolatedOut = mutableListOf<String>()
+                    val isolatedErr = mutableListOf<String>()
                     val job = if (isolated) {
                         isolatedShell = RootManager.openIsolatedShell(app)
                             ?: throw IllegalStateException("Isolated libsu shell could not acquire uid 0")
+                        // Shell.newJob() does not collect output unless to(...) is set.
                         isolatedShell!!.newJob().add(requireRootUid(command))
+                            .to(isolatedOut, isolatedErr)
                     } else {
                         Shell.cmd(requireRootUid(command))
                     }
@@ -216,8 +220,8 @@ object SuiteRootGateway {
                         val shellResult = future.get(timeoutSeconds.coerceAtLeast(1L), TimeUnit.SECONDS)
                         Result(
                             code = shellResult.code,
-                            stdout = shellResult.out.joinToString("\n"),
-                            stderr = shellResult.err.joinToString("\n"),
+                            stdout = (if (isolated) isolatedOut else shellResult.out).joinToString("\n"),
+                            stderr = (if (isolated) isolatedErr else shellResult.err).joinToString("\n"),
                         )
                     } catch (timeout: TimeoutException) {
                         future.cancel(true)
