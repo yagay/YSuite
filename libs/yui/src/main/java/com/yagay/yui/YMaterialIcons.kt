@@ -4,7 +4,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -20,7 +20,7 @@ fun YUiIcon(
     tint: Color = LocalContentColor.current,
 ) {
     Icon(imageVector = imageVector, contentDescription = contentDescription,
-        modifier = modifier.defaultMinSize(minWidth = LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp, minHeight = LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
+        modifier = modifier.size(LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
 }
 
 @Composable
@@ -31,7 +31,7 @@ fun YUiIcon(
     tint: Color = LocalContentColor.current,
 ) {
     Icon(painter = painter, contentDescription = contentDescription,
-        modifier = modifier.defaultMinSize(minWidth = LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp, minHeight = LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
+        modifier = modifier.size(LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
 }
 
 @Composable
@@ -42,5 +42,5 @@ fun YUiIcon(
     tint: Color = LocalContentColor.current,
 ) {
     Icon(bitmap = bitmap, contentDescription = contentDescription,
-        modifier = modifier.defaultMinSize(minWidth = LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp, minHeight = LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
+        modifier = modifier.size(LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
 }
