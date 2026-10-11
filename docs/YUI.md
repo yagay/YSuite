@@ -110,7 +110,10 @@ It caches flag-specific immutable snapshots by host package and locale,
 invalidates on package-change broadcasts, and shares bounded icon bitmaps.
 Callers perform their own UI/background dispatching. The source is located
 in `libs/yapi` so both standalone features and the integrated suite use it.
-YEntryCleaner still classifies updated system apps with its own policy;
+YFloat's custom-menu app chooser also uses the same inventory and label/icon
+cache; its activity/intent resolver results remain independent so the
+custom actions and component selection are not altered. YEntryCleaner still
+classifies updated system apps with its own policy;
 Root-only component discovery and security-sensitive package queries
 remain feature-owned and are **not** substituted with this ordinary inventory.
 

@@ -11,6 +11,7 @@ consumers = [
     "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppScopePicker.kt",
     "apps/YParam/feature/src/main/java/com/yagay/yparam/ui/MainActivity.java",
     "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java",
+    "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuPickerActivity.java",
     "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/TargetAppsActivity.java",
     "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/ProcessRepository.kt",
     "next/feature/yfiles/impl/src/main/java/com/yagay/ysuite/feature/yfiles/YFilesAppsService.kt",

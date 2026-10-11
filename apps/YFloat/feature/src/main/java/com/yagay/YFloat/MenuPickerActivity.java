@@ -3,6 +3,7 @@ package com.yagay.YFloat;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
 import com.yagay.yui.YView;
+import com.yagay.suite.api.InstalledAppCatalog;
 import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.Context;
@@ -155,9 +156,14 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 this::showCustomHome);
         addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d35e0660dc9b));
 
-        List<ApplicationInfo> apps;
-        try { apps = new ArrayList<>(pm().getInstalledApplications(0)); }
-        catch (Throwable t) { apps = new ArrayList<>(); }
+        List<ApplicationInfo> apps = new ArrayList<>();
+        try {
+            for (InstalledAppCatalog.Entry entry : InstalledAppCatalog.list(this, 0)) {
+                apps.add(entry.info);
+            }
+        } catch (RuntimeException ignored) {
+            // Keep the page usable if the package service is temporarily unavailable.
+        }
         apps.removeIf(a -> a == null || !a.enabled || getPackageName().equals(a.packageName));
         apps.sort(Comparator.comparing(this::appLabel, String.CASE_INSENSITIVE_ORDER));
 
@@ -780,16 +786,12 @@ public final class MenuPickerActivity extends AppCompatActivity {
 
     private String appLabel(ApplicationInfo ai) {
         if (ai == null) return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca);
-        try {
-            CharSequence c = ai.loadLabel(pm());
-            if (c != null && !c.toString().isBlank()) return c.toString();
-        } catch (Throwable ignored) {}
-        return ai.packageName;
+        String label = InstalledAppCatalog.label(this, ai.packageName);
+        return label == null || label.isBlank() ? ai.packageName : label;
     }
 
     private Drawable appIcon(String pkg) {
-        try { return pm().getApplicationIcon(pkg); }
-        catch (Throwable ignored) { return null; }
+        return InstalledAppCatalog.icon(this, pkg, 64);
     }
 
     private Drawable targetIcon(TargetMenuStore.Item item) {
