@@ -172,6 +172,50 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         }
     }
 
+    /**
+     * Framework target evidence is distinct from service connectivity. Never
+     * mark a feature Hook installed merely because the target is running.
+     */
+    fun targetEvidence(
+        processName: String,
+        expectedVersionCode: Long? = null,
+    ): SuiteCapabilityMonitor.Evidence {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val service = currentService
+            ?: return SuiteCapabilityMonitor.Evidence(
+                SuiteCapabilityMonitor.State.UNKNOWN, "LSPosed service not connected", now, processName)
+        return runCatching {
+            if (processName !in service.scope) {
+                return@runCatching SuiteCapabilityMonitor.Evidence(
+                    SuiteCapabilityMonitor.State.MISSING_SCOPE, "LSPosed scope missing", now, processName)
+            }
+            val target = service.runningTargets.firstOrNull { it.processName == processName }
+                ?: return@runCatching SuiteCapabilityMonitor.Evidence(
+                    SuiteCapabilityMonitor.State.TARGET_NOT_LOADED,
+                    "Target is scoped but no current LSPosed loaded target was reported", now, processName)
+            val version = target.loadedVersionCode
+            SuiteCapabilityMonitor.Evidence(
+                if (expectedVersionCode != null && version != expectedVersionCode)
+                    SuiteCapabilityMonitor.State.OUTDATED else SuiteCapabilityMonitor.State.VERIFIED,
+                "LSPosed target state=${target.state.name}; Hook installation still requires feature evidence",
+                now, processName, version)
+        }.getOrElse { error ->
+            SuiteCapabilityMonitor.Evidence(
+                SuiteCapabilityMonitor.State.UNKNOWN,
+                "Target read failed: ${error.javaClass.simpleName}: ${error.message}",
+                now, processName)
+        }
+    }
+
+    fun targetDiagnosticSnapshot(): String {
+        val service = currentService ?: return "LSPosed service not connected\n"
+        return runCatching {
+            service.runningTargets.joinToString("\n", postfix = "\n") {
+                "${it.processName}\t${it.state.name}\t${it.loadedVersionCode}"
+            }
+        }.getOrElse { "Target snapshot unavailable: ${it.message}\n" }
+    }
+
     fun listenerCount(): Int = listeners.size
 
     /** Host-level framework status; unlike filesystem probes this reflects the real API service. */

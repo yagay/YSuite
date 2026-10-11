@@ -83,6 +83,7 @@ object SuiteDiagnostics {
         write("accessibility.txt") { accessibilitySnapshot(app) }
         write("special-access.txt") { specialAccessSnapshot(app) }
         write("lsposed.txt") { SuiteXposedServiceBroker.diagnosticSnapshot() }
+        write("capability-evidence.txt") { SuiteCapabilityMonitor.diagnosticSnapshot(app) }
 
         val rootAvailable = RootManager.isAvailable(app)
         write("root.txt") {

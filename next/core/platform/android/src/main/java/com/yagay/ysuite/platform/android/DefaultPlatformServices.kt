@@ -1,6 +1,8 @@
 package com.yagay.ysuite.platform.android
 
 import android.content.pm.PackageManager
+import com.yagay.suite.api.AndroidRuntimeContext
+import com.yagay.suite.api.XposedHostBridge
 import com.yagay.suite.api.FeatureRootCommands
 import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.HostCapability
@@ -132,7 +134,9 @@ private object SuRootGateway : RootGateway {
  */
 private class HostedRootGateway(private val services: FeatureServices) : RootGateway {
     override suspend fun status(): CapabilityStatus {
-        val host = services.hostOrNull() ?: return SuRootGateway.status()
+        val host = services.hostOrNull() ?: return if (XposedHostBridge.isSuiteHost(AndroidRuntimeContext.current())) {
+            CapabilityStatus.Unavailable
+        } else SuRootGateway.status()
         return when (host.capabilityState(HostCapability.ROOT)) {
             HostCapabilityState.GRANTED -> CapabilityStatus.Available
             HostCapabilityState.NOT_GRANTED -> CapabilityStatus.PermissionRequired
@@ -142,17 +146,25 @@ private class HostedRootGateway(private val services: FeatureServices) : RootGat
     }
 
     override suspend fun execute(request: RootRequest): Outcome<RootResult> {
-        if (services.hostOrNull() == null) return SuRootGateway.execute(request)
+        if (services.hostOrNull() == null) return if (XposedHostBridge.isSuiteHost(AndroidRuntimeContext.current())) {
+            Outcome.Failure(code = "root_host_unattached", message = "YSuite Root host is not attached", retryable = true)
+        } else SuRootGateway.execute(request)
         return withContext(Dispatchers.IO) {
             val millis = request.timeoutMillis.coerceIn(1L, 3_600_000L)
             val seconds = (millis + 999L) / 1000L
             val result = FeatureRootCommands.execute(
                 services, "feature-root", request.command, seconds,
             )
-            Outcome.Success(RootResult(
+            if (result.timedOut || !result.errorMessage.isNullOrBlank()) {
+                Outcome.Failure(
+                    code = if (result.timedOut) "root_timeout" else "root_host_failed",
+                    message = result.errorMessage ?: "Root command timed out",
+                    retryable = true,
+                )
+            } else Outcome.Success(RootResult(
                 exitCode = result.code,
                 stdout = result.stdout,
-                stderr = FeatureRootCommands.errorText(result),
+                stderr = result.stderr,
             ))
         }
     }
@@ -281,7 +293,13 @@ private object AndroidLibXposedHookGateway :
     @Synchronized
     fun ensureRegistered() {
         if (registered) return
-        XposedServiceHelper.registerListener(this)
+        val owner = AndroidRuntimeContext.current()
+        val attachment = XposedHostBridge.attachListener(owner, "platform", this)
+        when (attachment) {
+            XposedHostBridge.AttachResult.ATTACHED -> Unit
+            XposedHostBridge.AttachResult.NOT_SUITE_HOST -> XposedServiceHelper.registerListener(this)
+            XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED -> return // Retry at next call
+        }
         registered = true
     }
 

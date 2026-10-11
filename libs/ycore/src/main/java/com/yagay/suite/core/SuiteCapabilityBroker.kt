@@ -25,7 +25,7 @@ internal object SuiteCapabilityBroker {
     fun state(context: Context, capability: HostCapability): HostCapabilityState {
         val app = context.applicationContext
         return when (capability) {
-            HostCapability.ROOT -> granted(RootManager.isAvailable(app))
+            HostCapability.ROOT -> granted(SuiteCapabilityMonitor.root(app).verified)
             HostCapability.LSPOSED -> granted(SuiteXposedServiceBroker.isConnected())
             HostCapability.ACCESSIBILITY -> accessibilityState(app)
             HostCapability.NOTIFICATION_LISTENER -> notificationListenerState(app)
