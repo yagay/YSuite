@@ -870,6 +870,15 @@ object YViewLayout {
         setPadding(p, maxOf(1, YView.controlGap(context) / 2), p, maxOf(1, YView.controlGap(context) / 2))
     }
 
+    /** Standard typography is selected by YUI, not feature-supplied font sizes. */
+    @JvmStatic
+    fun text(context: Context, value: String?): TextView =
+        text(context, value, 14f, false)
+
+    @JvmStatic
+    fun caption(context: Context, value: String?): TextView =
+        caption(context, value, 13f)
+
     @JvmStatic
     fun text(context: Context, value: String?, sp: Float, bold: Boolean): TextView = TextView(context).apply {
         text = value.orEmpty()
