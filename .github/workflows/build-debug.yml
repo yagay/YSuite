@@ -43,6 +43,9 @@ jobs:
       - name: Verify live YUI visual contracts
         run: python3 tools/verify_yui_visual_contracts.py
 
+      - name: Verify UI overflow and extreme appearance settings
+        run: python3 tools/verify_yui_overflow_contracts.py
+
       - name: Read shared build versions
         id: versions
         run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"

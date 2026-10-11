@@ -78,6 +78,9 @@ jobs:
       - name: Verify YUI content and responsive layouts
         run: python3 tools/verify_yui_content_compatibility.py
 
+      - name: Verify UI overflow and extreme appearance settings
+        run: python3 tools/verify_yui_overflow_contracts.py
+
       - name: Audit shared platform reads across every module
         run: python3 tools/audit_shared_platform_reads.py
 
