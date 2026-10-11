@@ -278,13 +278,12 @@ public class MainActivity extends AppCompatActivity {
             // YUI still owns icon geometry, typography, checkboxes and action buttons.
             YViewListRow row = createAppRow();
             MaterialCheckBox check = YViewLayout.checkBoxControl(MainActivity.this, false, null);
-            Button detail = YViewLayout.listActionButton(MainActivity.this, getString(R.string.yp_settings));
+            Button detail = YViewLayout.secondaryButton(MainActivity.this, getString(R.string.yp_settings));
+            // YUI owns button geometry; a row only defines the placement of its controls.
             int touch = YView.touchTarget(MainActivity.this);
-            // Fixed-sized checkbox and shared row-action typography produce one
-            // measured right-side column across short and long app names.
             row.trailing.addView(check, new LinearLayout.LayoutParams(touch, touch));
             row.trailing.addView(detail, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, touch));
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             return new AppHolder(row, check, detail);
         }
 

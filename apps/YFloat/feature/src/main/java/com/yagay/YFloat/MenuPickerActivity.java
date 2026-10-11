@@ -652,7 +652,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
 
         if (sideText != null) {
-            MaterialButton side = YViewLayout.compactButton(this, sideText);
+            MaterialButton side = YViewLayout.secondaryButton(this, sideText);
             side.setOnClickListener(v -> { if (action != null) action.run(); });
             row.addView(side, new LinearLayout.LayoutParams(-2, -2));
         } else {

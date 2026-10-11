@@ -30,11 +30,10 @@ def main() -> None:
           ("new RecyclerView.LayoutParams(", "ViewGroup.LayoutParams.MATCH_PARENT,",
            "list.setPreserveFocusAfterLayout(false)",
            "scrollToPositionWithOffset(0, 0)",
-           "YViewLayout.listActionButton(", "new LinearLayout.LayoutParams(touch, touch)",
+           "YViewLayout.secondaryButton(", "new LinearLayout.LayoutParams(touch, touch)",
            "row.subtitle.setMaxLines(2)", "row.trailing.setGravity(Gravity.END"))
     check("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
-          ("fun listActionButton(", "minHeight = touch", "insetTop = 0",
-           "setPadding(horizontal, 0, horizontal, 0)"))
+          ("fun listActionButton(", "secondaryButton(context, label)"))
     check("apps/YPower/feature/build.gradle.kts", ("libs.androidx.recyclerview",))
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/ProcessRepository.kt",
           ("suspend fun listProcesses():", "listProcessesFromPs()",
