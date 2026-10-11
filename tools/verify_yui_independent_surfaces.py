@@ -116,6 +116,20 @@ def check() -> None:
         "YUiGeometry.minimumTrailingPane")
     if any(value in adaptive for value in ("320.dp", "160.dp", "200.dp")):
         raise AssertionError("Product pane thresholds must be owned by YUI")
+    # Accessibility must capture only positively identified transient UI.
+    # NotificationListenerService owns notifications; SystemUI clock and
+    # other status text must not be persisted as generic events.
+    a11y = source("apps/YNotify/feature/src/main/java/com/yagay/YNotify/collector/UiAccessibilityBridge.java")
+    if 'return EventTypes.SYSTEM_UI;' in a11y or 'return EventTypes.OTHER_UI;' in a11y:
+        raise AssertionError("YNotify still records generic status/announcement changes")
+    for marker in ("return EventTypes.TOAST;", "return EventTypes.SNACKBAR;",
+                   "return EventTypes.POPUP;", "return EventTypes.DIALOG;"):
+        if marker not in a11y:
+            raise AssertionError("YNotify lost explicit UI capture: " + marker)
+    hook_receiver = source("apps/YNotify/feature/src/main/java/com/yagay/YNotify/collector/XposedEventReceiver.java")
+    permitted = hook_receiver.split("private static boolean allowedType(String type)", 1)[1].split("private static boolean validPackage", 1)[0]
+    if "EventTypes.SYSTEM_UI.equals(type)" in permitted or "EventTypes.OTHER_UI.equals(type)" in permitted:
+        raise AssertionError("YNotify Hook allows unclassified UI events")
     notify = source("apps/YNotify/feature/src/main/res/layout/item_event.xml")
     if 'android:maxLines="2"' in notify or 'android:ellipsize="end"' in notify:
         raise AssertionError("YNotify event title must wrap, not override YUI text sizing")
