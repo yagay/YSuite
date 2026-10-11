@@ -34,13 +34,19 @@ final class HookConfigStore {
         Context context = NfcHookUtils.currentContext();
         if (context == null) return SimConfig.uninitialized();
         Uri uri = configUri();
-        Map<String, String> values = new HashMap<>();
-        try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
-            if (cursor == null) return SimConfig.uninitialized();
-            while (cursor.moveToNext()) values.put(cursor.getString(0), cursor.getString(1));
-        } catch (Throwable ignored) {
-            return SimConfig.uninitialized();
+        Map<String, String> values = readValues(context, uri);
+        if (values == null
+                && !isEmbeddedSuite()
+                && RuntimeOwnerGate.OWNER_SUITE.equals(RuntimeOwnerGate.readOwner(FEATURE_ID))) {
+            // A stale owner marker or a disabled/uninstalled YSuite must not strand an
+            // already-running standalone NFC hook. Prefer the suite provider when it is
+            // actually readable, otherwise preserve the standalone configuration path.
+            Uri fallback = Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY
+                    + "/settings");
+            values = readValues(context, fallback);
+            if (values != null) uri = fallback;
         }
+        if (values == null) return SimConfig.uninitialized();
 
         // Early schema-7 builds could persist rf_controller_epoch while leaving controller_epoch
         // absent. That makes a native-accepted RF proof look STALE forever and repeatedly schedules
@@ -64,6 +70,17 @@ final class HookConfigStore {
             values.put("controller_epoch", Long.toString(seededEpoch));
         }
         return decode(values);
+    }
+
+    private static Map<String, String> readValues(Context context, Uri uri) {
+        Map<String, String> values = new HashMap<>();
+        try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor == null) return null;
+            while (cursor.moveToNext()) values.put(cursor.getString(0), cursor.getString(1));
+            return values;
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     static SimConfig decode(Map<String, String> values) {

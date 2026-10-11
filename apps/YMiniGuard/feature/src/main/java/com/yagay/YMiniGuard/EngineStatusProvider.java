@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.os.Process;
 import android.os.SystemClock;
 
+import com.yagay.suite.api.RuntimeHealth;
+
 /**
  * Status protocol implementation shared by standalone YMiniGuard and the YSuite host wrapper.
  * Android registers this class only in the standalone APK; YSuite registers its own subclass.
@@ -75,12 +77,9 @@ public class EngineStatusProvider extends ContentProvider {
 
         boolean isFromCurrentBoot() {
             if (startedAt <= 0) return false;
-            long now = System.currentTimeMillis();
             // startedAt is refreshed for every 2-second heartbeat. A previous
             // system_server instance is not active merely because this boot persists.
-            if (startedAt > now + 5_000L || now - startedAt > 15_000L) return false;
-            long bootEpoch = now - SystemClock.elapsedRealtime();
-            return startedAt >= bootEpoch - 10_000L;
+            return RuntimeHealth.isRecentFromCurrentBoot(startedAt, 15_000L);
         }
     }
 

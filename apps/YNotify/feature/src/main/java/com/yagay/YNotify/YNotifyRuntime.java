@@ -7,6 +7,7 @@ import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.util.DiagLog;
 import com.yagay.YNotify.util.HookAuth;
 import com.yagay.suite.api.ManagedFeatureRuntime;
+import com.yagay.suite.api.RuntimeHealth;
 import com.yagay.suite.api.XposedHostBridge;
 
 import java.util.List;
@@ -167,9 +168,12 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
             String pkg = prefs.getString(KEY_HOOK_PACKAGE, "");
             if (heartbeat > 0) {
                 long age = Math.max(0L, System.currentTimeMillis() - heartbeat);
-                out.append('\n').append(app.getString(age < 120_000L
-                        ? R.string.ynotify_hook_status_running
-                        : R.string.ynotify_hook_status_stale));
+                // YNotify marks this timestamp when a hook loads or handles an event, not
+                // on a periodic timer. No recent events must not be reported as a dead hook.
+                out.append('\n').append(app.getString(
+                        RuntimeHealth.isRecentWallClock(heartbeat, 120_000L)
+                                ? R.string.ynotify_hook_status_running
+                                : R.string.ynotify_hook_no_recent_events));
                 out.append('\n').append(app.getString(R.string.ynotify_hook_version,
                         version == null || version.isEmpty() ? "?" : version));
                 if (pkg != null && !pkg.isEmpty()) {

@@ -15,6 +15,7 @@
     <string name="ynotify_filter_popup">App overlay</string>
     <string name="ynotify_filter_snackbar">Snackbar</string>
     <string name="ynotify_runtime_status">Runtime status</string>
+    <string name="ynotify_hook_no_recent_events">No recent Hook events (activity not verified)</string>
     <string name="ynotify_diagnostic_logs">Diagnostic logs</string>
     <string name="ynotify_diagnostic_logs_desc">Collects YNotify state, notification listener state, classification database data, system logcat, LSPosed logs, and Root diagnostics. More complete system logs are collected when Root is available.</string>
     <string name="ynotify_export_diagnostics">Export diagnostic logs</string>

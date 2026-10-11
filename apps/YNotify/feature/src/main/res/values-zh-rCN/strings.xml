@@ -15,6 +15,7 @@
     <string name="ynotify_filter_popup">应用弹层</string>
     <string name="ynotify_filter_snackbar">Snackbar</string>
     <string name="ynotify_runtime_status">运行状态</string>
+    <string name="ynotify_hook_no_recent_events">最近没有 Hook 事件（未验证运行状态）</string>
     <string name="ynotify_diagnostic_logs">诊断日志</string>
     <string name="ynotify_diagnostic_logs_desc">收集 YNotify 状态、通知监听状态、分类数据库、系统 logcat、LSPosed 和 Root 诊断。Root 可用时会自动收集更完整的系统日志。</string>
     <string name="ynotify_export_diagnostics">导出诊断日志</string>
