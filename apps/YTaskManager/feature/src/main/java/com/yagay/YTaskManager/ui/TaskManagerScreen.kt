@@ -659,12 +659,13 @@ private fun CpuCoreRow(core: CpuCoreInfo) {
 private fun HistoryChart(values: List<Float>) {
     val lineColor = MaterialTheme.colorScheme.primary
     val guideColor = MaterialTheme.colorScheme.outlineVariant
+    val guideWidth = LocalYAppearance.current.cardOutlineWidthDp.dp
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .height((LocalYAppearance.current.rowHeightDp * 1.25f).dp),
     ) {
-        drawRect(guideColor, style = Stroke(width = 1f))
+        drawRect(guideColor, style = Stroke(width = guideWidth.toPx()))
         if (values.size < 2) return@Canvas
         val step = size.width / (values.size - 1).coerceAtLeast(1)
         var previousX = 0f

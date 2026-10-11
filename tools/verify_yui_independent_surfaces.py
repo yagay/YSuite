@@ -102,6 +102,13 @@ def check() -> None:
         raise AssertionError("Google visual controls must not duplicate integrated YUI editor")
     require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatSettings.java",
             "resetAdvancedSelectionSettings(boolean resetVisuals)", "if (resetVisuals) {")
+    chart = require(
+        "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt",
+        "val guideWidth = LocalYAppearance.current.cardOutlineWidthDp.dp",
+        "Stroke(width = guideWidth.toPx())",
+    )
+    if "Stroke(width = 1f)" in chart:
+        raise AssertionError("YTaskManager chart outline bypasses YUI appearance")
     notify = source("apps/YNotify/feature/src/main/res/layout/item_event.xml")
     if 'android:maxLines="2"' in notify or 'android:ellipsize="end"' in notify:
         raise AssertionError("YNotify event title must wrap, not override YUI text sizing")
