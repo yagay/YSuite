@@ -11,7 +11,14 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/** Shared Material3 icon entrypoints. Features select the glyph, YUI supplies theme. */
+/**
+ * One default icon rule. Feature-supplied layout/size modifiers remain authoritative
+ * for application icons, thumbnails, previews and other non-standard content.
+ * Unmodified action icons use the globally configured YUI visual size.
+ */
+@Composable
+private fun yIconModifier(modifier: Modifier): Modifier =
+    if (modifier == Modifier) Modifier.size(YUiGeometry.displayRules().iconSizeDp.dp) else modifier
 @Composable
 fun YUiIcon(
     imageVector: ImageVector,
@@ -20,7 +27,7 @@ fun YUiIcon(
     tint: Color = LocalContentColor.current,
 ) {
     Icon(imageVector = imageVector, contentDescription = contentDescription,
-        modifier = modifier.size(LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
+        modifier = yIconModifier(modifier), tint = tint)
 }
 
 @Composable
@@ -31,7 +38,7 @@ fun YUiIcon(
     tint: Color = LocalContentColor.current,
 ) {
     Icon(painter = painter, contentDescription = contentDescription,
-        modifier = modifier.size(LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
+        modifier = yIconModifier(modifier), tint = tint)
 }
 
 @Composable
@@ -42,5 +49,5 @@ fun YUiIcon(
     tint: Color = LocalContentColor.current,
 ) {
     Icon(bitmap = bitmap, contentDescription = contentDescription,
-        modifier = modifier.size(LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp), tint = tint)
+        modifier = yIconModifier(modifier), tint = tint)
 }

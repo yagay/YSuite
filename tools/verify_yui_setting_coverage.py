@@ -66,7 +66,22 @@ def run() -> None:
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialFloatingActions.kt",
             "LocalYAppearance.current.buttonGeometry()", "appearance.iconTouchDp.dp")
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialIcons.kt",
-            "LocalYAppearance.current.buttonGeometry().iconVisualSizeDp.dp")
+            "if (modifier == Modifier)", "Modifier.size(YUiGeometry.displayRules().iconSizeDp.dp)")
+    require("libs/yui/src/main/java/com/yagay/yui/YDisplayRules.kt",
+            "fun YAppearance.displayRules(windowWidthDp: Int): YDisplayRules",
+            "val effective = copy(", "windowWidthDp = width",
+            "button = effective.buttonGeometry()", "switch = effective.switchGeometry()")
+    require("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
+            "configuredAppearance.displayRules(windowWidth)", "val appearance = rules.appearance")
+    require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
+            "fun displayRules(context: Context): YDisplayRules",
+            "appearance(context).displayRules(windowWidth)",
+            "displayRules(context).cardPaddingDp", "displayRules(context).rowHorizontalPaddingDp",
+            "displayRules(context).button.horizontalPaddingDp")
+    require("libs/yui/src/main/java/com/yagay/yui/YUiGeometry.kt",
+            "fun spacing(base: Dp): Dp", "displayRules().spacing(base.value")
+    require("next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt",
+            "YUiGeometry.spacing(YDimens.Spacing")
     # A switch-width slot is not switch visual size. Check every setting through
     # persisted appearance, control catalog, both renderers and preview editor.
     switch_keys = (

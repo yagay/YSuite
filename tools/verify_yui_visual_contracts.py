@@ -46,3 +46,44 @@ for path in [
     if re.search(r"(?:ResultUi\.)?dp\(\s*(?:context|c|app|this)\s*,\s*\d+", source):
         raise SystemExit(f"YUI overlay geometry regression in {path}")
 print("YUI migrated visual constants: OK")
+
+# Appearance persistence alone does not guarantee identical rendering:
+# the same effective bounds must be calculated in one place for Compose,
+# legacy Android Views and new product UI adapters.
+def read_visual(path: str) -> str:
+    return (root / path).read_text(encoding="utf-8")
+
+rules = read_visual("libs/yui/src/main/java/com/yagay/yui/YDisplayRules.kt")
+theme = read_visual("libs/yui/src/main/java/com/yagay/yui/YTheme.kt")
+native = read_visual("libs/yui/src/main/java/com/yagay/yui/YView.kt")
+geometry = read_visual("libs/yui/src/main/java/com/yagay/yui/YUiGeometry.kt")
+spacing = read_visual("next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt")
+icons = read_visual("libs/yui/src/main/java/com/yagay/yui/YMaterialIcons.kt")
+required = {
+    "YDisplayRules": (rules, ("fun YAppearance.displayRules(windowWidthDp: Int)",
+                              "YDisplayMath.boundedHorizontalInset(", "val effective = copy(",
+                              "button = effective.buttonGeometry()",
+                              "switch = effective.switchGeometry()")),
+    "Compose theme": (theme, ("configuredAppearance.displayRules(windowWidth)",
+                              "val appearance = rules.appearance")),
+    "View adapter": (native, ("appearance(context).displayRules(windowWidth)",
+                             "displayRules(context).cardPaddingDp",
+                             "displayRules(context).button.horizontalPaddingDp")),
+    "Compose geometry": (geometry, ("fun displayRules(): YDisplayRules",
+                                   "fun spacing(base: Dp): Dp", "displayRules().pageHorizontalPaddingDp")),
+    "Product spacing": (spacing, ("YUiGeometry.spacing(YDimens.Spacing",)),
+    "Standard icons": (icons, ("if (modifier == Modifier)", "yIconModifier(modifier)")),
+}
+for owner, (body, tokens) in required.items():
+    for token in tokens:
+        if token not in body:
+            raise SystemExit(f"YUI duplicate display-rules regression in {owner}: {token}")
+for name in ("sideAllowance", "contentAllowance", "rowAllowance",
+             "val safeScreen =", "val safeCard ="):
+    if name in theme:
+        raise SystemExit(f"Compose theme reintroduced independent display fitting: {name}")
+for name in ("val safeInset =", "val allowance = (windowPx -",
+             "fun scale(): Float ="):
+    if name in native or name in spacing:
+        raise SystemExit(f"Independent display geometry formula was reintroduced: {name}")
+print("YUI single display rules: OK Compose/View/product spacing/icons")

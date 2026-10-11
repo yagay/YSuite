@@ -180,30 +180,10 @@ fun YTheme(
     val context = LocalContext.current
     val storedAppearance = rememberYAppearance(YAppearanceStore.moduleIdFor(context))
     val configuredAppearance = appearanceOverride ?: storedAppearance
-    // Apply safe display bounds without changing the user-configured/persisted values.
+    // Compose and Java/View consume the same centrally fitted display rules.
     val windowWidth = LocalConfiguration.current.screenWidthDp.coerceAtLeast(1)
-    val sideAllowance = ((windowWidth - 240).coerceAtLeast(0) / 2)
-    val safeScreen = configuredAppearance.screenPaddingDp.coerceAtMost(sideAllowance)
-    val contentAllowance = ((windowWidth - 2 * safeScreen - 192).coerceAtLeast(0) / 2)
-    val safeCard = configuredAppearance.cardPaddingDp.coerceAtMost(contentAllowance)
-    val rowAllowance = ((windowWidth - 2 * safeScreen - 2 * safeCard - 128).coerceAtLeast(0) / 2)
-    val appearance = configuredAppearance.copy(
-        screenPaddingDp = safeScreen,
-        cardPaddingDp = safeCard,
-        rowHorizontalPaddingDp = configuredAppearance.rowHorizontalPaddingDp.coerceAtMost(rowAllowance),
-        buttonPaddingHorizontalDp = configuredAppearance.buttonPaddingHorizontalDp.coerceAtMost(
-            ((windowWidth - 104).coerceAtLeast(0) / 2),
-        ),
-        switchSlotWidthDp = configuredAppearance.switchSlotWidthDp.coerceAtMost(
-            (windowWidth - 2 * safeScreen - 4 * safeCard - 88).coerceAtLeast(56),
-        ),
-        iconTouchTargetDp = configuredAppearance.iconTouchTargetDp.coerceAtMost(
-            (windowWidth / 4).coerceAtLeast(48),
-        ),
-        listIconSizeDp = configuredAppearance.listIconSizeDp.coerceAtMost(
-            (windowWidth / 4).coerceAtLeast(48),
-        ),
-    )
+    val rules = configuredAppearance.displayRules(windowWidth)
+    val appearance = rules.appearance
     val actualDark = when (appearance.theme) {
         "light" -> false
         "dark" -> true

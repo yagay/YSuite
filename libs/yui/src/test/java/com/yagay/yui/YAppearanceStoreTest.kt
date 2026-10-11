@@ -39,6 +39,47 @@ class YAppearanceStoreTest {
     }
 
     @Test
+    fun displayRulesAreSingleSourceAcrossLayoutsAndWindowWidths() {
+        val defaults = store.appearance()
+        val standard = defaults.displayRules(360)
+        assertEquals(360, standard.windowWidthDp)
+        assertEquals(defaults.screenPaddingDp, standard.pageHorizontalPaddingDp)
+        assertEquals(defaults.cardPaddingDp, standard.cardPaddingDp)
+        assertEquals(defaults.rowHorizontalPaddingDp, standard.rowHorizontalPaddingDp)
+        assertEquals(defaults.buttonHeightDp, standard.button.visualHeightDp)
+        assertEquals(defaults.switchTrackWidthDp.toFloat(), standard.switch.trackWidthDp)
+        assertEquals(defaults.fontPercent / 100f, standard.fontScale)
+        assertEquals(48, standard.touchTargetDp)
+
+        // Values remain saved unmodified; only effective geometry is bounded.
+        store.set(YSettingKey.SCREEN_PADDING, "512")
+        store.set(YSettingKey.CARD_PADDING, "512")
+        store.set(YSettingKey.ROW_HORIZONTAL_PADDING, "512")
+        store.set(YSettingKey.BUTTON_PADDING, "512")
+        store.set(YSettingKey.ICON_TOUCH_TARGET, "256")
+        val raw = store.appearance()
+        val narrow = raw.displayRules(320)
+        assertEquals(512, raw.screenPaddingDp)
+        assertEquals(40, narrow.pageHorizontalPaddingDp)
+        assertEquals(24, narrow.cardPaddingDp)
+        assertEquals(32, narrow.rowHorizontalPaddingDp)
+        assertEquals(108, narrow.button.horizontalPaddingDp)
+        assertEquals(80, narrow.appearance.iconTouchTargetDp)
+        assertEquals(80, narrow.touchTargetDp)
+        assertEquals(80, narrow.button.iconTouchDp)
+        assertEquals(512, raw.cardPaddingDp)
+        assertEquals(108, YDisplayMath.boundedHorizontalInset(512, 320, 104))
+        assertEquals(narrow.appearance.buttonGeometry(), narrow.button)
+
+        val veryNarrow = raw.displayRules(200)
+        assertEquals(0, veryNarrow.pageHorizontalPaddingDp)
+        assertEquals(4, veryNarrow.cardPaddingDp)
+        assertTrue(veryNarrow.rowHorizontalPaddingDp >= 0)
+        assertTrue(veryNarrow.switch.touchHeightDp >= 48f)
+        assertTrue(veryNarrow.touchTargetDp >= 48)
+    }
+
+    @Test
     fun buttonAppearanceSeparatesVisualSizeFromTouchSize() {
         val defaults = store.appearance().buttonGeometry()
         assertEquals(48, defaults.visualHeightDp)

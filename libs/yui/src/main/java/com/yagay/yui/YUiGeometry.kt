@@ -2,6 +2,7 @@ package com.yagay.yui
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -18,20 +19,28 @@ object YUiGeometry {
     val compactPaneBase: Dp get() = YDimens.ListDetailListWidth * (2f / 3f)
     val detailPaneBase: Dp get() = YDimens.ListDetailListWidth
 
+    /** The one resolved rule set is also the public Compose layout adapter. */
+    @Composable fun displayRules(): YDisplayRules =
+        LocalYAppearance.current.displayRules(LocalConfiguration.current.screenWidthDp.coerceAtLeast(1))
+
+    /** Spacing roles may differ, but every role scales from one YUI control-gap rule. */
+    @Composable fun spacing(base: Dp): Dp =
+        displayRules().spacing(base.value, YDimens.ControlGap.value).dp
+
     @Composable fun contentWidth(base: Dp): Dp =
         base * (LocalYAppearance.current.contentWidthPercent / 100f)
 
     @Composable fun paneWidth(base: Dp): Dp =
         base * (LocalYAppearance.current.paneWidthPercent / 100f)
 
-    @Composable fun gap(): Dp = LocalYAppearance.current.effectiveGapDp.dp
-    @Composable fun compactGap(): Dp = (LocalYAppearance.current.effectiveGapDp / 2f).dp
-    @Composable fun tinyGap(): Dp = (LocalYAppearance.current.effectiveGapDp / 4f).dp
-    @Composable fun pagePadding(): Dp = LocalYAppearance.current.screenPaddingDp.dp
-    @Composable fun pageVerticalPadding(): Dp = LocalYAppearance.current.pageVerticalPaddingDp.dp
-    @Composable fun sectionGap(): Dp = LocalYAppearance.current.sectionSpacingDp.dp
+    @Composable fun gap(): Dp = displayRules().controlGapDp.dp
+    @Composable fun compactGap(): Dp = (displayRules().controlGapDp / 2f).dp
+    @Composable fun tinyGap(): Dp = (displayRules().controlGapDp / 4f).dp
+    @Composable fun pagePadding(): Dp = displayRules().pageHorizontalPaddingDp.dp
+    @Composable fun pageVerticalPadding(): Dp = displayRules().pageVerticalPaddingDp.dp
+    @Composable fun sectionGap(): Dp = displayRules().sectionGapDp.dp
     @Composable fun cardElevation(): Dp =
-        (LocalYAppearance.current.cardOutlineWidthDp / 2f).dp
+        (displayRules().cardOutlineWidthDp / 2f).dp
 
     /** Correctly scales with font, content density and the visible action's label. */
     @JvmStatic fun overlayActionWidthPx(context: Context, moduleId: String, measuredTextPx: Float): Int =

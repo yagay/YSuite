@@ -144,7 +144,7 @@ object YView {
 
     private fun styleButton(button: Button, outlined: Boolean) {
         val context = button.context
-        val geometry = appearance(context).buttonGeometry()
+        val geometry = displayRules(context).button
         val colors = palette(context)
         // Treat size as visible background size, NOT only a minimum view height.
         // Keep 48dp clickable while exposing a smaller MaterialButton background.
@@ -174,12 +174,12 @@ object YView {
 
     @JvmStatic fun cardBackground(context: Context): GradientDrawable = GradientDrawable().apply {
         setColor(cardSurface(context))
-        cornerRadius = dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardRadiusDp).toFloat()
+        cornerRadius = dp(context, displayRules(context).cardRadiusDp).toFloat()
     }
 
     @JvmStatic fun fieldBackground(context: Context): GradientDrawable = GradientDrawable().apply {
         setColor(surfaceContainer(context))
-        cornerRadius = dp(context, appearance(context).fieldRadiusDp).toFloat()
+        cornerRadius = dp(context, displayRules(context).fieldRadiusDp).toFloat()
         setStroke(cardOutlineWidth(context), outline(context))
     }
 
@@ -196,55 +196,62 @@ object YView {
     @JvmStatic fun fitHorizontalInset(context: Context, requestedPx: Int, minContentDp: Int = 128): Int {
         val windowPx = context.resources.displayMetrics.widthPixels
         if (windowPx <= 0) return requestedPx.coerceAtLeast(0)
-        val allowance = (windowPx - dp(context, minContentDp)).coerceAtLeast(0) / 2
-        return requestedPx.coerceIn(0, allowance)
+        return YDisplayMath.boundedHorizontalInset(
+            requestedPx, windowPx, dp(context, minContentDp),
+        )
+    }
+
+    /** Single final display contract; same width/bounds as YTheme on this window. */
+    @JvmStatic fun displayRules(context: Context): YDisplayRules {
+        val density = context.resources.displayMetrics.density.coerceAtLeast(0.01f)
+        val configurationWidth = context.resources.configuration.screenWidthDp
+        val windowWidth = if (configurationWidth > 0) configurationWidth
+            else (context.resources.displayMetrics.widthPixels / density).toInt().coerceAtLeast(1)
+        return appearance(context).displayRules(windowWidth)
     }
 
     @JvmStatic fun screenHorizontal(context: Context): Int =
-        fitHorizontalInset(context, dp(context, appearance(context).screenPaddingDp), 240)
-    @JvmStatic fun screenVertical(context: Context): Int = dp(context, appearance(context).pageVerticalPaddingDp)
+        dp(context, displayRules(context).pageHorizontalPaddingDp)
+    @JvmStatic fun screenVertical(context: Context): Int =
+        dp(context, displayRules(context).pageVerticalPaddingDp)
     @JvmStatic fun sectionGap(context: Context): Int =
-        dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).sectionSpacingDp)
+        dp(context, displayRules(context).sectionGapDp)
     @JvmStatic fun controlGap(context: Context): Int =
-        dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).effectiveGapDp)
+        dp(context, displayRules(context).controlGapDp)
     @JvmStatic fun cardRadius(context: Context): Int =
-        dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardRadiusDp)
+        dp(context, displayRules(context).cardRadiusDp)
     @JvmStatic fun cardOutlineWidth(context: Context): Int =
-        dp(context, appearance(context).cardOutlineWidthDp)
-    @JvmStatic fun cardPadding(context: Context): Int {
-        val available = (context.resources.displayMetrics.widthPixels -
-            2 * screenHorizontal(context)).coerceAtLeast(0)
-        val safeInset = ((available - dp(context, 192)).coerceAtLeast(0)) / 2
-        return dp(context, appearance(context).cardPaddingDp).coerceIn(0, safeInset)
-    }
-    @JvmStatic fun touchTarget(context: Context): Int = dp(context, appearance(context).iconTouchTargetDp)
-    @JvmStatic fun inputHeight(context: Context): Int = dp(context, appearance(context).inputHeightDp)
-    @JvmStatic fun buttonRadiusDp(context: Context): Int = appearance(context).buttonRadiusDp
-    @JvmStatic fun rowHeight(context: Context): Int = dp(context, appearance(context).rowHeightDp)
-    @JvmStatic fun switchSlotWidth(context: Context): Int {
-        val content = context.resources.displayMetrics.widthPixels -
-            2 * screenHorizontal(context) - 4 * cardPadding(context)
-        return minOf(
-            dp(context, appearance(context).switchSlotWidthDp),
-            (content - dp(context, 88)).coerceAtLeast(dp(context, 56)),
-        )
-    }
-    @JvmStatic fun rowHorizontalPadding(context: Context): Int {
-        val available = context.resources.displayMetrics.widthPixels -
-            2 * screenHorizontal(context) - 2 * cardPadding(context)
-        val safeInset = ((available - dp(context, 128)).coerceAtLeast(0)) / 2
-        return dp(context, appearance(context).rowHorizontalPaddingDp).coerceIn(0, safeInset)
-    }
+        dp(context, displayRules(context).cardOutlineWidthDp)
+    @JvmStatic fun cardPadding(context: Context): Int =
+        dp(context, displayRules(context).cardPaddingDp)
+    @JvmStatic fun touchTarget(context: Context): Int =
+        dp(context, displayRules(context).touchTargetDp)
+    @JvmStatic fun inputHeight(context: Context): Int =
+        dp(context, displayRules(context).inputHeightDp)
+    @JvmStatic fun buttonRadiusDp(context: Context): Int =
+        displayRules(context).button.cornerRadiusDp
+    @JvmStatic fun rowHeight(context: Context): Int =
+        dp(context, displayRules(context).rowHeightDp)
+    @JvmStatic fun switchSlotWidth(context: Context): Int =
+        dp(context, displayRules(context).appearance.switchSlotWidthDp)
+    @JvmStatic fun rowHorizontalPadding(context: Context): Int =
+        dp(context, displayRules(context).rowHorizontalPaddingDp)
     @JvmStatic fun buttonHorizontalPadding(context: Context): Int =
-        fitHorizontalInset(context, dp(context, appearance(context).buttonPaddingHorizontalDp), 104)
+        dp(context, displayRules(context).button.horizontalPaddingDp)
     @JvmStatic fun navigationAccessoryWidth(context: Context): Int =
         minOf(touchTarget(context), maxOf(dp(context, 48), context.resources.displayMetrics.widthPixels / 5))
-    @JvmStatic fun rowVerticalPadding(context: Context): Int = dp(context, appearance(context).rowVerticalPaddingDp)
-    @JvmStatic fun dialogRadius(context: Context): Int = dp(context, appearance(context).dialogRadiusDp)
-    @JvmStatic fun fontPercent(context: Context): Int = appearance(context).fontPercent
-    @JvmStatic fun toolbarHeight(context: Context): Int = dp(context, appearance(context).toolbarHeightDp)
-    @JvmStatic fun iconSize(context: Context): Int = dp(context, appearance(context).iconVisualSizeDp)
-    @JvmStatic fun listIconSize(context: Context): Int = dp(context, appearance(context).listIconSizeDp)
+    @JvmStatic fun rowVerticalPadding(context: Context): Int =
+        dp(context, displayRules(context).rowVerticalPaddingDp)
+    @JvmStatic fun dialogRadius(context: Context): Int =
+        dp(context, displayRules(context).dialogRadiusDp)
+    @JvmStatic fun fontPercent(context: Context): Int =
+        displayRules(context).appearance.fontPercent
+    @JvmStatic fun toolbarHeight(context: Context): Int =
+        dp(context, displayRules(context).toolbarHeightDp)
+    @JvmStatic fun iconSize(context: Context): Int =
+        dp(context, displayRules(context).iconSizeDp)
+    @JvmStatic fun listIconSize(context: Context): Int =
+        dp(context, displayRules(context).listIconSizeDp)
     /** Synchronise inflated row icons with the central YUI appearance settings. */
     @JvmStatic fun styleListIcon(view: android.widget.ImageView) {
         val size = listIconSize(view.context)
@@ -256,7 +263,7 @@ object YView {
         }
     }
     @JvmStatic fun buttonHeight(context: Context): Int =
-        dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).buttonHeightDp)
+        dp(context, displayRules(context).button.visualHeightDp)
 
     /** Compatibility helper for task-specific overlays; normal-screen geometry must use generated dimen resources. */
     @JvmStatic fun dp(context: Context, value: Int): Int =
