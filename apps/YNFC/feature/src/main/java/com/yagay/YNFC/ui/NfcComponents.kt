@@ -243,11 +243,10 @@ fun ReadCardPanel(
                 )
                 CardDetails(card)
                 YHorizontalActions {
-                    YPrimaryButton(stringResource(R.string.ynfc_save_card), { onSave(card) }, Modifier.weight(1f))
+                    YPrimaryButton(stringResource(R.string.ynfc_save_card), { onSave(card) })
                     YSecondaryButton(
                         stringResource(R.string.ynfc_read_again),
                         { onClear(); onStartRead() },
-                        Modifier.weight(1f),
                     )
                 }
                 YSecondaryButton(

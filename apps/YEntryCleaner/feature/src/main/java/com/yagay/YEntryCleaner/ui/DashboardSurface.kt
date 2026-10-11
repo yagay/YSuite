@@ -144,10 +144,10 @@ internal fun UnifiedDashboardTabContent(
 
         YSection(title = stringResource(R.string.dashboard_data_backup)) {
             YHorizontalActions {
-                YPrimaryActionButton(onClick = onRestore, modifier = Modifier.weight(1f)) {
+                YPrimaryActionButton(onClick = onRestore) {
                     Text(stringResource(R.string.dashboard_restore_json))
                 }
-                YSecondaryActionButton(onClick = onExport, modifier = Modifier.weight(1f)) {
+                YSecondaryActionButton(onClick = onExport) {
                     Text(stringResource(R.string.dashboard_export_json))
                 }
             }

@@ -98,10 +98,29 @@ def run() -> None:
     for relative in (
         "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainControls.kt",
         "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt",
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/BrowserHostFilterRow.kt",
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/OpenPresetFilterRow.kt",
     ):
         content = require(relative, "YUiTextButton as TextButton")
         if re.search(r"contentPadding\s*=\s*PaddingValues\(\s*horizontal\s*=\s*LocalYAppearance\.current\.buttonPaddingHorizontalDp", content):
             raise AssertionError(f"{relative} overrides YUI button padding at the feature layer")
+    # Button captions must size by text content; do not reinstate fixed two-line
+    # ellipsis or force actions into equal-width Row weights.
+    for relative in (
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/BrowserHostFilterRow.kt",
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/OpenPresetFilterRow.kt",
+    ):
+        content = require(relative, "softWrap = true")
+        if "maxLines = 2" in content:
+            raise AssertionError(f"{relative} clamps a filter action label to two lines")
+    for relative in (
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/DashboardSurface.kt",
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt",
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcComponents.kt",
+    ):
+        content = require(relative, "YHorizontalActions")
+        if re.search(r"Y(?:Primary|Secondary)(?:Action)?Button\([^\n]*Modifier\.weight\(", content):
+            raise AssertionError(f"{relative} forces content-sized actions to equal widths")
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialIconButtons.kt",
             "LocalYAppearance.current.buttonGeometry()", "a.iconTouchDp.dp")
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialFloatingActions.kt",

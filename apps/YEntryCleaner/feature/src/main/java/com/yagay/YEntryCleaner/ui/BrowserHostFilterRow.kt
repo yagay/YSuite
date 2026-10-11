@@ -72,8 +72,7 @@ fun BrowserHostFilterMenu(
     Box {
         TextButton(
             onClick = { expanded = true },
-            modifier = Modifier.onSizeChanged { anchorWidthPx = it.width },
-            contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp)
+            modifier = Modifier.onSizeChanged { anchorWidthPx = it.width }
         ) {
             Text(
                 stringResource(
@@ -81,9 +80,12 @@ fun BrowserHostFilterMenu(
                     stringResource(R.string.browser_domain_filter),
                     selectedTitle
                 ),
-                modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 3f).dp),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier.widthIn(
+                    max = (LocalConfiguration.current.screenWidthDp -
+                        2 * LocalYAppearance.current.screenPaddingDp -
+                        2 * LocalYAppearance.current.buttonPaddingHorizontalDp).coerceAtLeast(48).dp
+                ),
+                softWrap = true
             )
             Icon(Icons.Rounded.ExpandMore, null)
         }

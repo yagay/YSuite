@@ -213,12 +213,10 @@ fun NfcAppScreen(
                                     }
                                 },
                                 enabled = !diagnosticRunning,
-                                modifier = Modifier.weight(1f),
                             )
                             YSecondaryButton(
                                 text = stringResource(R.string.ynfc_clear_logs),
                                 onClick = { AppLogger.clear(); logLines.clear() },
-                                modifier = Modifier.weight(1f),
                             )
                         }
                     }
