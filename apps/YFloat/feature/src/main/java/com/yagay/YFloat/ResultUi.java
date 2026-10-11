@@ -75,10 +75,7 @@ final class ResultUi {
     }
 
     static Button button(Context c, String text) {
-        MaterialButton b = new MaterialButton(YOverlayUi.scopedContext(c, "yfloat"));
-        b.setText(text);
-        YView.styleSecondaryButton(b);
-        return b;
+        return YViewLayout.secondaryButton(YOverlayUi.scopedContext(c, "yfloat"), text);
     }
 
     static Rect usableBounds(Context c) {

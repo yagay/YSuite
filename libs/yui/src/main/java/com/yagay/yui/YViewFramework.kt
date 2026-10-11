@@ -927,7 +927,7 @@ object YViewLayout {
                 YView.controlGap(context),
                 maxOf(1, YView.controlGap(context) / 2),
             )
-            background = rounded(context, if (positive) successSurface(context) else warningSurface(context), 999)
+            background = rounded(context, if (positive) successSurface(context) else warningSurface(context), YView.buttonRadius(context))
         }
 
     /** Kept for Java call sites: this now uses the same standard size as secondaryButton. */

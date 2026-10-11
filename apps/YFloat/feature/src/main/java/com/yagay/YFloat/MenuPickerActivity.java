@@ -734,13 +734,12 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private TextView sortButton(String value, boolean enabled) {
-        TextView tv = YViewLayout.text(this, value, 19, false);
+        MaterialButton tv = YViewLayout.secondaryButton(this, value);
         tv.setGravity(Gravity.CENTER);
         tv.setEnabled(enabled);
         tv.setAlpha(enabled ? 1f : .25f);
         tv.setClickable(enabled);
         tv.setFocusable(enabled);
-        tv.setBackground(YViewLayout.rowBackground(this));
         return tv;
     }
 
