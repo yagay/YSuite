@@ -49,6 +49,7 @@ class MainActivity : YComposeActivity() {
     override fun onResume() {
         super.onResume()
         SuiteCrashTracker.markActiveFeature(this, null)
+        (application as? YSuiteApp)?.retryHostRegistrationOnForeground()
     }
 
     private fun exportDiagnostic(modules: Set<String>?, label: String) {

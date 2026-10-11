@@ -42,7 +42,7 @@ def check_host_identity() -> None:
     for build, implementation in checks:
         require(build, "embeddedInSuite", "HOST_PACKAGE", "com.yagay.YSuite")
         source = require(implementation, "HostIdentity.compiledPackage(BuildConfig.HOST_PACKAGE")
-        if re.search(r"return\\s+STANDALONE_PACKAGE\\s*;", source):
+        if re.search(r"return\s+STANDALONE_PACKAGE\s*;", source):
             raise AssertionError(f"{implementation}: silent standalone IPC fallback")
 
     require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/EngineBridge.java",
@@ -78,7 +78,10 @@ def check_lifecycle_and_health() -> None:
             "XposedServiceHelper.registerListener(this)", "registered = true")
     require("suite/YSuite/src/main/java/com/yagay/YSuite/YSuiteApp.kt",
             "ensureXposedBrokerRegistered()", "scheduleHostStartupRetry()",
-            "MAX_RECOVERY_ATTEMPTS", "brokerRegistered = true")
+            "MAX_RECOVERY_ATTEMPTS", "brokerRegistered = true",
+            "retryHostRegistrationOnForeground()")
+    require("suite/YSuite/src/main/java/com/yagay/YSuite/MainActivity.kt",
+            "retryHostRegistrationOnForeground()")
     require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/LsposedStatusManager.java",
             "LISTENER_ATTACHED", "YSuite broker attach failed; retry on enable")
     require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatSuiteRuntime.java",

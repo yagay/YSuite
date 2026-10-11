@@ -136,6 +136,20 @@ class YSuiteApp : Application() {
         )
     }
 
+    /** Also retry after returning to the app when the initial bounded boot retries expired. */
+    fun retryHostRegistrationOnForeground() {
+        if (brokerRegistered && initialized) return
+        recoveryHandler.removeCallbacksAndMessages(null)
+        brokerRetryCount = 0
+        startupRetryCount = 0
+        if (initialized) {
+            ensureXposedBrokerRegistered()
+        } else {
+            runCatching { initializeUnlockedHost() }
+                .onFailure { safeSuiteError(SuiteContract.HOST_MODULE_ID, "foreground host retry failed", it) }
+        }
+    }
+
     private fun ensureXposedBrokerRegistered() {
         if (brokerRegistered) return
         runCatching {
