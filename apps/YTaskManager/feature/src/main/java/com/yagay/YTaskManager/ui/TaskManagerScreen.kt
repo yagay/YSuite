@@ -97,6 +97,9 @@ import com.yagay.yui.YFormDialog
 import com.yagay.yui.YIconAction
 import com.yagay.yui.YListSkeleton
 import com.yagay.yui.YMessageHost
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
+import com.yagay.yui.YUiTextButton as TextButton
 import com.yagay.yui.YNotice
 import java.text.DateFormat
 import java.util.Date
@@ -111,7 +114,6 @@ fun TaskManagerApp(viewModel: MainViewModel) {
     val snackbar = remember { SnackbarHostState() }
     var selected by remember { mutableStateOf<ProcessEntry?>(null) }
     var showSettings by remember { mutableStateOf(false) }
-    var showFilters by remember { mutableStateOf(false) }
     var pendingKill by remember { mutableStateOf<Pair<ProcessEntry, Boolean>?>(null) }
     var page by remember { mutableStateOf(HomePage.PROCESSES) }
 
@@ -173,7 +175,6 @@ fun TaskManagerApp(viewModel: MainViewModel) {
                     HomePage.PROCESSES -> ProcessPage(
                         state = state,
                         viewModel = viewModel,
-                        onOpenFilters = { showFilters = true },
                         onSelect = { process ->
                             viewModel.loadProcessDetails(process) { selected = it }
                         },
@@ -227,17 +228,6 @@ fun TaskManagerApp(viewModel: MainViewModel) {
         )
     }
 
-    if (showFilters) {
-        ProcessFilterSheet(
-            state = state,
-            onDismiss = { showFilters = false },
-            onUser = viewModel::setShowUserApps,
-            onSystem = viewModel::setShowSystemApps,
-            onLinux = viewModel::setShowLinuxProcesses,
-            onSort = viewModel::setSort,
-        )
-    }
-
     if (showSettings) {
         SettingsDialog(
             state = state,
@@ -253,7 +243,6 @@ fun TaskManagerApp(viewModel: MainViewModel) {
 private fun ProcessPage(
     state: TaskManagerUiState,
     viewModel: MainViewModel,
-    onOpenFilters: () -> Unit,
     onSelect: (ProcessEntry) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -261,7 +250,10 @@ private fun ProcessPage(
         ProcessControls(
             state = state,
             onQuery = viewModel::setQuery,
-            onOpenFilters = onOpenFilters,
+            onUser = viewModel::setShowUserApps,
+            onSystem = viewModel::setShowSystemApps,
+            onLinux = viewModel::setShowLinuxProcesses,
+            onSort = viewModel::setSort,
         )
         if (state.loading) {
             YListSkeleton(
@@ -304,13 +296,18 @@ private fun StatusSection(state: TaskManagerUiState) {
     }
 }
 
-/** Compact primary screen: searching stays visible, filter/sort choices live in one sheet. */
+/** Keep search visible and expose filter and sort as two independent YUI dropdowns. */
 @Composable
 private fun ProcessControls(
     state: TaskManagerUiState,
     onQuery: (String) -> Unit,
-    onOpenFilters: () -> Unit,
+    onUser: (Boolean) -> Unit,
+    onSystem: (Boolean) -> Unit,
+    onLinux: (Boolean) -> Unit,
+    onSort: (ProcessSort) -> Unit,
 ) {
+    var filterExpanded by remember { mutableStateOf(false) }
+    var sortExpanded by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier.padding(
             horizontal = LocalYAppearance.current.screenPaddingDp.dp,
@@ -335,66 +332,65 @@ private fun ProcessControls(
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.ytm_sort_current, sortLabel(state.sort)),
-                    style = MaterialTheme.typography.labelMedium,
-                )
-                Text(
-                    stringResource(R.string.ytm_filter_types_selected,
-                        listOf(state.showUserApps, state.showSystemApps, state.showLinuxProcesses)
-                            .count { it }),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Box(Modifier.weight(1f)) {
+                TextButton(onClick = {
+                    sortExpanded = false
+                    filterExpanded = true
+                }) {
+                    Text(
+                        stringResource(R.string.ytm_process_filter) + " (" +
+                            listOf(state.showUserApps, state.showSystemApps, state.showLinuxProcesses)
+                                .count { it } + ") ▾",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                DropdownMenu(
+                    expanded = filterExpanded,
+                    onDismissRequest = { filterExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text((if (state.showUserApps) "✓  " else "     ") + stringResource(R.string.ytm_user)) },
+                        onClick = { onUser(!state.showUserApps) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text((if (state.showSystemApps) "✓  " else "     ") + stringResource(R.string.ytm_system)) },
+                        onClick = { onSystem(!state.showSystemApps) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text((if (state.showLinuxProcesses) "✓  " else "     ") + stringResource(R.string.ytm_linux)) },
+                        onClick = { onLinux(!state.showLinuxProcesses) },
+                    )
+                }
             }
-            YIconAction(
-                icon = YIcons.Filter,
-                contentDescription = stringResource(R.string.ytm_filter_and_sort),
-                onClick = onOpenFilters,
-            )
-        }
-    }
-}
-
-/** Reusable YUI settings rows; avoids six cramped horizontal sort chips. */
-@Composable
-private fun ProcessFilterSheet(
-    state: TaskManagerUiState,
-    onDismiss: () -> Unit,
-    onUser: (Boolean) -> Unit,
-    onSystem: (Boolean) -> Unit,
-    onLinux: (Boolean) -> Unit,
-    onSort: (ProcessSort) -> Unit,
-) {
-    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
-    YBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            Modifier.fillMaxWidth().heightIn(max = maxHeight)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 2f).dp),
-        ) {
-            YSectionHeader(stringResource(R.string.ytm_process_filter),
-                subtitle = stringResource(R.string.ytm_process_filter_desc))
-            YSwitchItem(title = stringResource(R.string.ytm_user),
-                checked = state.showUserApps, onCheckedChange = onUser)
-            YSwitchItem(title = stringResource(R.string.ytm_system),
-                checked = state.showSystemApps, onCheckedChange = onSystem)
-            YSwitchItem(title = stringResource(R.string.ytm_linux),
-                checked = state.showLinuxProcesses, onCheckedChange = onLinux)
-            YSectionHeader(stringResource(R.string.ytm_sort_by))
-            YRadioGroup(
-                value = state.sort,
-                options = ProcessSort.entries.map { sort ->
-                    YChoiceSpec(sort, sortLabel(sort))
-                },
-                onSelected = onSort,
-            )
-            YPrimaryActionButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.ytm_done))
+            Box(Modifier.weight(1f)) {
+                TextButton(onClick = {
+                    filterExpanded = false
+                    sortExpanded = true
+                }) {
+                    Text(
+                        stringResource(R.string.ytm_sort_by) + ": " + sortLabel(state.sort) + " ▾",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                DropdownMenu(
+                    expanded = sortExpanded,
+                    onDismissRequest = { sortExpanded = false },
+                ) {
+                    ProcessSort.entries.forEach { sort ->
+                        DropdownMenuItem(
+                            text = { Text((if (state.sort == sort) "✓  " else "     ") + sortLabel(sort)) },
+                            onClick = {
+                                onSort(sort)
+                                sortExpanded = false
+                            },
+                        )
+                    }
+                }
             }
         }
     }
