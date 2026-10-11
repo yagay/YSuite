@@ -39,6 +39,15 @@ public final class InstalledAppCatalog {
         public final boolean enabled;
         public final boolean system;
 
+        /** All UI modules resolve icons through the same decoded-bitmap cache. */
+        public Bitmap iconBitmap(Context context, int sizePx) {
+            return InstalledAppCatalog.iconBitmap(context, packageName, sizePx);
+        }
+
+        public Drawable icon(Context context, int sizePx) {
+            return InstalledAppCatalog.icon(context, packageName, sizePx);
+        }
+
         private Entry(ApplicationInfo info, String label) {
             this.info = info;
             this.packageName = info.packageName;

@@ -1,6 +1,7 @@
 package com.yagay.ydiag.model
 
 import kotlinx.serialization.Serializable
+import android.graphics.Bitmap
 
 enum class Recommendation { RECOMMENDED, ON_DEMAND, DEEP }
 enum class LoadLevel { VERY_LOW, LOW, MEDIUM, HIGH, VERY_HIGH }
@@ -51,4 +52,5 @@ data class InstalledApp(
     val uid: Int,
     val system: Boolean,
     val enabled: Boolean,
+    val icon: Bitmap? = null,
 )

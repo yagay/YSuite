@@ -3,6 +3,8 @@ package com.yagay.YMiniGuard;
 import android.app.Activity;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
+import android.widget.ImageView;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -143,7 +145,8 @@ public final class TargetAppsActivity extends Activity {
                     // not a restriction on the centrally cached inventory.
                     if (pm.getLaunchIntentForPackage(entry.packageName) == null) continue;
                     loaded.add(new AppItem(entry.label.trim().isEmpty() ? entry.packageName : entry.label.trim(),
-                            entry.packageName, entry.system));
+                            entry.packageName, entry.system,
+                            entry.icon(this, Math.min(96, Math.max(24, YView.listIconSize(this))))));
                 }
 
                 loaded.sort(Comparator
@@ -236,6 +239,7 @@ public final class TargetAppsActivity extends Activity {
 
             AppItem item = filteredApps.get(position);
             holder.title.setText(item.label);
+            holder.icon.setImageDrawable(item.icon);
             holder.subtitle.setText(item.packageName
                     + (item.system ? getString(R.string.ymg_system_app_suffix) : ""));
             holder.check.setOnCheckedChangeListener(null);
@@ -246,13 +250,13 @@ public final class TargetAppsActivity extends Activity {
         }
 
         private RowHolder createRow() {
-            YViewListRow row = YViewLayout.listItem(TargetAppsActivity.this, false);
+            YViewListRow row = YViewLayout.listItem(TargetAppsActivity.this, true);
             MaterialCheckBox check = YViewLayout.checkBoxControl(
                     TargetAppsActivity.this,
                     false,
                     null);
             row.trailing.addView(check);
-            RowHolder holder = new RowHolder(row.root, row.title, row.subtitle, check);
+            RowHolder holder = new RowHolder(row.root, row.title, row.subtitle, row.icon, check);
             row.root.setTag(holder);
             return holder;
         }
@@ -262,12 +266,14 @@ public final class TargetAppsActivity extends Activity {
         final LinearLayout root;
         final TextView title;
         final TextView subtitle;
+        final ImageView icon;
         final MaterialCheckBox check;
 
-        RowHolder(LinearLayout root, TextView title, TextView subtitle, MaterialCheckBox check) {
+        RowHolder(LinearLayout root, TextView title, TextView subtitle, ImageView icon, MaterialCheckBox check) {
             this.root = root;
             this.title = title;
             this.subtitle = subtitle;
+            this.icon = icon;
             this.check = check;
         }
     }
@@ -276,11 +282,13 @@ public final class TargetAppsActivity extends Activity {
         final String label;
         final String packageName;
         final boolean system;
+        final Drawable icon;
 
-        AppItem(String label, String packageName, boolean system) {
+        AppItem(String label, String packageName, boolean system, Drawable icon) {
             this.label = label;
             this.packageName = packageName;
             this.system = system;
+            this.icon = icon;
         }
     }
 }
