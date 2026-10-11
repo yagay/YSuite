@@ -43,8 +43,10 @@ def run() -> None:
             "button.insetTop = inset", "button.insetBottom = inset",
             "store.registerPreferenceListener(listener)",
             "store.unregisterPreferenceListener(listener)",
-            "button.isSingleLine = false", "button.maxLines = Int.MAX_VALUE",
-            "button.ellipsize = null", "button.setHorizontallyScrolling(false)")
+            "button.isSingleLine = false",
+            "button.maxLines = labelLimit.takeIf { it > 0 } ?: Int.MAX_VALUE",
+            "button.ellipsize = if (labelLimit > 0)",
+            "button.setHorizontallyScrolling(false)")
     yui = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
                   "fun listActionButton(context: Context, label: String): MaterialButton =",
                   "secondaryButton(context, label)", "YView.inputHeight(context)",
@@ -71,7 +73,7 @@ def run() -> None:
     native_buttons = require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
             "button.strokeWidth = if (outlined) cardOutlineWidth(context) else 0")
     theme_buttons = require("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
-            "Text(text, softWrap = true)")
+            "buttonLabelMaxLines.takeIf { it > 0 } ?: Int.MAX_VALUE")
     action_layout = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
             "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT",
             "ViewGroup.LayoutParams.WRAP_CONTENT", "params.weight = if (stack) 0f else fieldWeight")
