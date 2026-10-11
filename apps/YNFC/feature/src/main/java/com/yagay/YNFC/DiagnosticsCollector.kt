@@ -24,8 +24,8 @@ class DiagnosticsCollector(
         val output = when (source) {
             LogSource.STATUS -> runRoot("logcat -d -t 350 -v threadtime -s YNFC NfcUIDSim 2>/dev/null")
             LogSource.LSPOSED -> runRoot("""
-                { grep -R -h -E 'NfcUIDSim|com.yagay.YNFC|PROD MODULE|PROD HOOK|RFPROBE|NFCID1|COMMAND|LSPosed' /data/adb/lspd/log 2>/dev/null || true
-                  logcat -b all -d -v threadtime 2>/dev/null | grep -E 'NfcUIDSim|PROD MODULE|PROD HOOK|RFPROBE|NFCID1|COMMAND' || true; } | tail -n 1500
+                { grep -R -h -E 'NfcUIDSim|com.yagay.YNFC|\[ynfc/main\]|YSuite[.]Xposed|YSuite[.]Hook|PROD MODULE|PROD HOOK|RFPROBE|NFCID1|plugin load failed; plugin=ynfc|plugin lifecycle failed;.*ynfc' /data/adb/lspd/log 2>/dev/null || true
+                  logcat -b all -d -v threadtime 2>/dev/null | grep -E 'NfcUIDSim|YNFC|YSuite[.]Xposed|YSuite[.]Hook|PROD MODULE|PROD HOOK|RFPROBE|NFCID1|COMMAND' || true; } | tail -n 1500
             """.trimIndent())
             LogSource.KERNEL_SU -> runRoot("for f in ${'$'}(ls -t /data/adb/ksu/log/sulog* 2>/dev/null | head -n 3); do echo === ${'$'}f ===; tail -n 300 ${'$'}f; done")
             LogSource.SYSTEM -> runRoot("logcat -b all -d -v threadtime 2>/dev/null | tail -n 1800")

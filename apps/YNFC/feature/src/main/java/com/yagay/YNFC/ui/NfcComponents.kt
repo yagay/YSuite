@@ -153,6 +153,24 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             value = "pid=${status.currentPid} · runtimePid=${status.runtimePid} · hookBuild=${status.hookBuild}/${BuildConfig.HOOK_BUILD} · hookPid=${status.hookPid}",
             tone = if (hookReady) YStatusTone.Good else YStatusTone.Error,
         )
+        if (!hookReady) {
+            val problem = when {
+                status.currentPid <= 0 -> R.string.ynfc_hook_problem_process
+                status.scopePid == 0 && status.hookPid == 0 -> R.string.ynfc_hook_problem_injection
+                (status.scopePid > 0 && status.scopePid != status.currentPid) ||
+                    (status.hookPid > 0 && status.hookPid != status.currentPid) ->
+                    R.string.ynfc_hook_problem_stale
+                !status.scopeOk -> R.string.ynfc_hook_problem_scope
+                !status.hookInstalled -> R.string.ynfc_hook_problem_install
+                status.hookBuild != BuildConfig.HOOK_BUILD -> R.string.ynfc_hook_problem_build
+                else -> R.string.ynfc_hook_problem_unknown
+            }
+            Text(
+                stringResource(problem),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
         YStatusLine(stringResource(R.string.ynfc_simulation_status), simulationDetail, simulationTone.toYUiTone())
         YStatusLine(stringResource(R.string.ynfc_command), commandDisplay, commandTone.toYUiTone())
         YStatusLine(

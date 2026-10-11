@@ -89,4 +89,11 @@
     <string name="ynfc_stop">停止</string>
     <string name="ynfc_simulate">模拟</string>
     <string name="ynfc_delete">删除</string>
+    <string name="ynfc_hook_problem_process">找不到 NFC 系统进程，请检查 Android NFC 是否已开启。</string>
+    <string name="ynfc_hook_problem_injection">NFC Hook 没有上报。请在 LSPosed 为 YSuite 启用 com.android.nfc 作用域，然后重启设备，让 Hook 注入 NFC 进程。仅有 Root 权限无法启用 Hook。</string>
+    <string name="ynfc_hook_problem_stale">Hook 属于旧的 NFC 进程。请检查 LSPosed 作用域并重启设备，使新进程加载当前模块。</string>
+    <string name="ynfc_hook_problem_scope">NFC 进程正常，但未确认 LSPosed 作用域。请检查 com.android.nfc 作用域并重启设备。</string>
+    <string name="ynfc_hook_problem_install">YNFC 已进入作用域，但 Hook 未安装。请导出聚焦的 LSPosed 日志，排查安装失败。</string>
+    <string name="ynfc_hook_problem_build">已加载的 NFC Hook 与 APK 版本不同，更新 YSuite 后请重启设备。</string>
+    <string name="ynfc_hook_problem_unknown">NFC Hook 尚未就绪，请检查目标进程和诊断日志。</string>
 </resources>

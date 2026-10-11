@@ -8,12 +8,33 @@ internal object RuntimeText {
         appendLine("PID: current=${status.currentPid} runtime=${status.runtimePid} scope=${status.scopePid} hook=${status.hookPid} command=${status.commandPid} rf=${status.rfPid}")
         appendLine("SCOPE: ${if (status.scopeOk) "SUCCESS" else "NOT DETECTED/STALE"}")
         appendLine("HOOK: ${if (status.hookInstalled) "SUCCESS" else "NOT INSTALLED/STALE"}")
+        appendLine("DIAGNOSIS: ${hookDiagnosis(status, expectedHookBuild)}")
         appendLine("CONFIG: ${if (status.simulationEnabled) "ENABLED" else "IDLE"} uid=${status.selectedUid}")
         appendLine("SEMANTIC: operation=${status.operationState} effective=${status.effectiveState} confidence=${status.verificationConfidence} accepted=${status.rfAccepted}")
         appendLine("COMMAND: generation=${status.commandGeneration} consumed=${status.consumedGeneration} completed=${status.handledGeneration} action=${status.commandAction} status=${status.commandStatus} detail=${status.commandDetail}")
         appendLine("READ_MODE: ${if (readModeEnabled) "ENABLED" else "IDLE"}")
         appendLine("RF: generation=${status.rfGeneration} ${status.rfStatus} uid=${status.rfUid} source=${status.rfSource} result=${status.rfResult} raw=${status.rfNativeResult}/${status.rfNativeResultType} verification=${status.rfVerification} error=${status.rfError}")
         append("FINAL: stage=${status.fullDiagStage} summary=${status.fullDiagSummary}")
+    }
+
+    /**
+     * Distinguishes an absent module callback from an old NFC process and a
+     * discovered-but-not-installed hook. Root access alone cannot inject LSPosed.
+     */
+    fun hookDiagnosis(status: RuntimeStatus, expectedHookBuild: Int): String = when {
+        status.currentPid <= 0 -> "NFC_PROCESS_NOT_FOUND: verify com.android.nfc is running."
+        status.scopePid <= 0 && status.hookPid <= 0 ->
+            "NO_INJECTION: enable YSuite's com.android.nfc scope in LSPosed and restart the NFC process or reboot. Root permission alone is insufficient."
+        (status.scopePid > 0 && status.scopePid != status.currentPid) ||
+            (status.hookPid > 0 && status.hookPid != status.currentPid) ->
+            "STALE_PROCESS: the NFC process restarted; the installed hook has not reported from the current PID. Verify LSPosed scope and reboot."
+        !status.scopeOk ->
+            "SCOPE_NOT_CONFIRMED: check YSuite's com.android.nfc scope and current-process callback."
+        !status.hookInstalled ->
+            "HOOK_NOT_INSTALLED: module reached the NFC process but did not install its hooks; inspect focused YSuite/YNFC logs."
+        status.hookBuild != expectedHookBuild ->
+            "HOOK_BUILD_MISMATCH: installed NFC hook is older than this APK; restart com.android.nfc or reboot after updating YSuite."
+        else -> "HOOK_READY"
     }
 
     fun boundedLines(text: String, maxLines: Int = 1800): List<String> {
