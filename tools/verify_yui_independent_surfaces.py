@@ -93,6 +93,15 @@ def check() -> None:
     )
     if circle.index('if ("com.yagay.YSuite".equals(activity.getPackageName())) return;') > circle.index("YViewLayout.switchRow("):
         raise AssertionError("Integrated YFloat still displays duplicate circle appearance controls")
+    google_page = require(
+        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsAdvancedSelectionPage.java",
+        'if (!"com.yagay.YSuite".equals(activity.getPackageName())) {',
+        'settings.resetAdvancedSelectionSettings(!"com.yagay.YSuite".equals(activity.getPackageName()))',
+    )
+    if google_page.index('if (!"com.yagay.YSuite".equals(activity.getPackageName())) {') > google_page.index('ui.seek(google.body'):
+        raise AssertionError("Google visual controls must not duplicate integrated YUI editor")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatSettings.java",
+            "resetAdvancedSelectionSettings(boolean resetVisuals)", "if (resetVisuals) {")
     notify = source("apps/YNotify/feature/src/main/res/layout/item_event.xml")
     if 'android:maxLines="2"' in notify or 'android:ellipsize="end"' in notify:
         raise AssertionError("YNotify event title must wrap, not override YUI text sizing")

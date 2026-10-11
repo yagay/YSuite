@@ -218,6 +218,10 @@ public final class FloatSettings {
     }
 
     public void resetAdvancedSelectionSettings() {
+        resetAdvancedSelectionSettings(true);
+    }
+
+    public void resetAdvancedSelectionSettings(boolean resetVisuals) {
         p.edit()
                 .remove(K_GOOGLE_FRAME_RADIUS_DP)
                 .remove(K_GOOGLE_FRAME_OUTLINE_DP)
@@ -235,15 +239,17 @@ public final class FloatSettings {
                 .remove(K_CROP_MIN_DP)
                 .remove(K_CROP_DRAG_SLOP_DP)
                 .apply();
-        com.yagay.yui.YAppearanceStore store = new com.yagay.yui.YAppearanceStore(context);
-        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_RADIUS, YFloatVisualSettings.MODULE);
-        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_OUTLINE, YFloatVisualSettings.MODULE);
-        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_WIDTH, YFloatVisualSettings.MODULE);
-        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_BLUR, YFloatVisualSettings.MODULE);
-        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_ALPHA, YFloatVisualSettings.MODULE);
-        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_SCRIM_ALPHA, YFloatVisualSettings.MODULE);
-        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_TRAIL_WIDTH, YFloatVisualSettings.MODULE);
-        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_YUI_COLOR, YFloatVisualSettings.MODULE);
+        if (resetVisuals) {
+            com.yagay.yui.YAppearanceStore store = new com.yagay.yui.YAppearanceStore(context);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_RADIUS, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_OUTLINE, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_WIDTH, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_BLUR, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_ALPHA, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_SCRIM_ALPHA, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_TRAIL_WIDTH, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_YUI_COLOR, YFloatVisualSettings.MODULE);
+        }
         LsposedStatusManager.syncRuntimeConfigAsync();
     }
 
