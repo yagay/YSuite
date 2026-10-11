@@ -148,8 +148,12 @@ def main() -> None:
         failures.append("Compose switch must be rendered exactly once in YStandardSwitch")
     if "YDimens.SwitchSlot" in switch_facade:
         failures.append("Compose switch slot may not use fixed YDimens")
+    if "defaultMinSize(" not in switch_facade or "modifier.size(" in switch_facade:
+        failures.append("Compose switch slot must use minimum size, never crop a fixed width")
     if view_facade.count("MaterialSwitch(context).apply") != 1:
         failures.append("View switch must have one MaterialSwitch implementation")
+    if "minWidth = maxOf(" not in view_facade:
+        failures.append("View switch must not crop the MaterialSwitch drawable")
     if "SwitchMaterial(" in view_facade:
         failures.append("View switch may not resurrect the older SwitchMaterial renderer")
     if section_definitions != ["YUnifiedDesign.kt"]:

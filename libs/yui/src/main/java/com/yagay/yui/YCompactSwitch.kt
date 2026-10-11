@@ -1,7 +1,7 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,10 +16,12 @@ fun YStandardSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val appearance = LocalYAppearance.current
     Box(
-        modifier = modifier.size(
-            width = LocalYAppearance.current.switchSlotWidthDp.dp,
-            height = LocalYAppearance.current.iconTouchTargetDp.dp,
+        // Slot geometry is a minimum, not a fixed-width viewport that clips the track.
+        modifier = modifier.defaultMinSize(
+            minWidth = maxOf(appearance.switchSlotWidthDp, 56).dp,
+            minHeight = maxOf(appearance.iconTouchTargetDp, 48).dp,
         ),
         contentAlignment = Alignment.Center,
     ) {

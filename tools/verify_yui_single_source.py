@@ -171,6 +171,8 @@ def main() -> None:
             fail(f"standard switch must delegate upstream Material3: {marker}")
     if "YDimens.SwitchSlot" in standard_switch:
         fail("standard Compose switch cannot use static switch-slot dimensions")
+    if "defaultMinSize(" not in standard_switch or "modifier.size(" in standard_switch:
+        fail("Compose switch slot must reserve a minimum without clipping the intrinsic track")
     if "graphicsLayer(" in standard_switch or "scaleX = 0.75f" in standard_switch:
         fail("standard Compose switch must not be visually shrunk")
     for shared_source in (YUI, YUI_ROOT / "YComponents.kt"):
@@ -186,6 +188,11 @@ def main() -> None:
         fail("both View switch-row overloads must share one implementation")
     if "styleStandardToggle(this)" not in view_switches or "switchSlot(" not in view_switches:
         fail("Java/View switch rows must use standard geometry")
+    if "minWidth = maxOf(" not in view_switches or "minHeight = maxOf(" not in view_switches:
+        fail("View switch must respect a minimum safe touch slot")
+    switch_slot_source = view_switches.split("private fun switchSlot(context: Context):", 1)[-1].split("@JvmStatic", 1)[0]
+    if "ViewGroup.LayoutParams.WRAP_CONTENT" not in switch_slot_source or "YView.switchSlotWidth(context)," in switch_slot_source:
+        fail("View switch must measure at wrap_content instead of clipping the track to a fixed slot")
     if "scaleX = scale" in view_switches or "scaleY = scale" in view_switches:
         fail("Java/View switch must not scale its rendered track")
 

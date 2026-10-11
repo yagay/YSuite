@@ -727,11 +727,16 @@ object YViewLayout {
         )
     }
 
+    /** The appearance setting reserves width beside the label; it must not constrain
+     * MaterialSwitch's intrinsic track. A fixed-width slot clips the left rounded edge.
+     */
     private fun switchSlot(context: Context): LinearLayout.LayoutParams =
         LinearLayout.LayoutParams(
-            YView.switchSlotWidth(context),
             ViewGroup.LayoutParams.WRAP_CONTENT,
-        )
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply {
+            gravity = Gravity.CENTER_VERTICAL
+        }
 
     @JvmStatic
     fun switchRow(
@@ -752,6 +757,15 @@ object YViewLayout {
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         return MaterialSwitch(context).apply {
+            // Reserve a safe minimum without ever clipping Material 3's natural track.
+            minWidth = maxOf(
+                YView.switchSlotWidth(context),
+                YView.dimen(context, R.dimen.yui_switch_slot_width),
+            )
+            minHeight = maxOf(
+                YView.touchTarget(context),
+                YView.dimen(context, R.dimen.yui_switch_slot_height),
+            )
             isChecked = checked
             styleStandardToggle(this)
             if (listener != null) setOnCheckedChangeListener(listener)
