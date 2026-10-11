@@ -638,11 +638,11 @@ fun YSecondaryActionButton(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
-        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
-    ) {
+    val appearance = LocalYAppearance.current
+    val gap = appearance.effectiveGapDp.dp
+    // This group is a genuine YUI action layout, so the same setting that controls
+    // legacy View rows also controls Compose actions without per-screen geometry.
+    val renderActions: @Composable () -> Unit = {
         actions.forEach { action ->
             when (action.style) {
                 YActionStyle.PRIMARY -> YPrimaryButton(action.label, action.onClick, enabled = action.enabled)
@@ -655,16 +655,26 @@ fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
                         action.label,
                         color = if (action.enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         softWrap = true,
-                        maxLines = LocalYAppearance.current.buttonLabelMaxLines.takeIf { it > 0 }
-                            ?: Int.MAX_VALUE,
+                        maxLines = appearance.buttonLabelMaxLines.takeIf { it > 0 } ?: Int.MAX_VALUE,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
         }
     }
+    if (appearance.actionRowMode == "stacked") {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(gap),
+        ) { renderActions() }
+    } else {
+        FlowRow(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(gap),
+            verticalArrangement = Arrangement.spacedBy(gap),
+        ) { renderActions() }
+    }
 }
-
 @Composable
 fun YFilterBar(options: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit, modifier: Modifier = Modifier) {
     Row(

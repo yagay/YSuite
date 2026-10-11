@@ -231,7 +231,8 @@ def run() -> None:
     require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
             "appearance.buttonLabelMaxLines")
     require("libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
-            "buttonLabelMaxLines")
+            "buttonLabelMaxLines", 'appearance.actionRowMode == "stacked"',
+            "FlowRow(", "Column(")
     require("next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/FileExplorerAdvancedComponents.kt",
             "fileItemTitleMaxLines", "fileItemSubtitleMaxLines", "tabLabelMaxLines")
     for locale in ("values", "values-zh-rCN"):
