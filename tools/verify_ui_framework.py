@@ -114,7 +114,7 @@ def verify_runtime_appearance() -> None:
         "notify_apps": ("YView.rowHeight(c)", "YView.styleItemTitle(h.b.appName)"),
         "notify_events": ("YView.cardRadius(c)", "YView.cardSurface(c)"),
         "entry_controls": ("YUiOutlinedTextField as OutlinedTextField", "YFilterBar("),
-        "entry_components": ("LocalYAppearance.current.buttonPaddingHorizontalDp",),
+        "entry_components": ("YUiTextButton as TextButton",),
         "entry_priority": ("LocalYAppearance.current.rowHeightDp",),
         "download_dialog": ("LocalYAppearance.current.dialogRadiusDp.dp",),
         "file_rows": ("LocalYAppearance.current.rowHeightDp.dp",),
