@@ -70,7 +70,7 @@ def run() -> None:
             "Text(text, softWrap = true)")
     action_layout = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
             "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT",
-            "ViewGroup.LayoutParams.WRAP_CONTENT", "params.weight = 0f")
+            "ViewGroup.LayoutParams.WRAP_CONTENT", "params.weight = if (stack) 0f else fieldWeight")
     # Guard *all* button variants against a future fixed-height/truncated-label regression.
     if re.search(r"\.height\(\s*(?:LocalYAppearance\.current\.)?(?:buttonGeometry\(\)\.)?visualHeightDp", controls + chips + sizing):
         raise AssertionError("YUI action buttons must grow beyond the configured minimum height")
