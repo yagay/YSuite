@@ -3,6 +3,7 @@ package com.yagay.YTaskManager.root
 import com.yagay.YTaskManager.AppLogger
 import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.FeatureRootCommands
+import com.yagay.suite.api.HostRootProbe
 import com.yagay.suite.api.HostCapability
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -36,32 +37,14 @@ class RootShell {
     private var closed = false
 
     suspend fun probeRoot(): RootProbe {
-        val host = services.hostOrNull()
-            ?: return RootProbe(false, "YSuite feature Root host not attached; retrying connection", transient = true)
-        if (!host.supports(HostCapability.ROOT)) {
-            return RootProbe(false, "TaskManager ROOT capability is not registered by its host", transient = true)
-        }
-        return try {
-            val result = execute("id -u", 8_000)
-            val uid = result.stdout.lineSequence().map { it.trim() }
-                .firstOrNull { it.matches(Regex("[0-9]+")) }
-            val granted = result.code == 0 && uid == "0"
-            val detail = when {
-                granted -> "Root active (uid=0 via ${host.hostPackageName})"
-                result.code != 0 -> "Root command failed (exit=${result.code}): ${result.stderr.ifBlank { result.stdout }.take(180)}"
-                uid == null -> "Root command returned no valid UID via ${host.hostPackageName}"
-                else -> "Root command ran with uid=$uid, not uid=0 (${host.hostPackageName})"
-            }
+        // A shared short-lived Root probe is not queued behind this module's
+        // long-running process scans and preserves temporary failure reasons.
+        return withContext(Dispatchers.IO) {
+            val result = HostRootProbe.probe(services, 8L)
+            val hostPackage = services.hostOrNull()?.hostPackageName ?: "unattached"
+            val detail = "${result.status}: ${result.detail} (host=$hostPackage)"
             AppLogger.i("Root probe: $detail")
-            // Failed commands and missing UIDs can be caused by a busy gateway.
-            // A valid non-zero UID is the direct proof of insufficient privileges.
-            val transient = !granted && (result.code != 0 || uid == null)
-            RootProbe(granted, detail, transient = transient)
-        } catch (cancel: CancellationException) {
-            throw cancel
-        } catch (error: Throwable) {
-            AppLogger.e("Root probe could not use the feature host", error)
-            RootProbe(false, error.message ?: error.javaClass.simpleName, transient = true)
+            RootProbe(result.granted, detail, transient = result.transient)
         }
     }
 

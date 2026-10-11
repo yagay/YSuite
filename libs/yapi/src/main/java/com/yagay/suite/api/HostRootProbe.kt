@@ -8,6 +8,16 @@ package com.yagay.suite.api
  * This checks the caller's actual Host shell, never su binaries or files.
  */
 object HostRootProbe {
+    private const val READY_TTL_MS = 5_000L
+    private const val RETRY_TTL_MS = 1_000L
+    private data class Cached(val host: FeatureHost, val atMs: Long, val result: Result)
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, Cached>()
+    private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
+
+    @JvmStatic
+    fun invalidate(featureId: String) {
+        cache.remove(featureId)
+    }
     enum class Status { GRANTED, UNPRIVILEGED, HOST_MISSING, NOT_DECLARED, TRANSIENT_FAILURE }
 
     data class Result(
@@ -26,8 +36,24 @@ object HostRootProbe {
         services: FeatureServices,
         timeoutSeconds: Long = 6L,
     ): Result {
+        val featureId = services.featureId
         val host = services.hostOrNull()
             ?: return Result(Status.HOST_MISSING, "Feature Host is not attached")
+        val lock = locks.computeIfAbsent(featureId) { Any() }
+        synchronized(lock) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val previous = cache[featureId]
+        val ttl = if (previous?.result?.granted == true) READY_TTL_MS else RETRY_TTL_MS
+        if (previous?.host === host && now - previous.atMs in 0 until ttl) {
+            return previous.result
+        }
+        val fresh = checkHost(services, host, timeoutSeconds)
+        cache[featureId] = Cached(host, now, fresh)
+        return fresh
+        }
+    }
+
+    private fun checkHost(services: FeatureServices, host: FeatureHost, timeoutSeconds: Long): Result {
         if (!host.supports(HostCapability.ROOT)) {
             return Result(Status.NOT_DECLARED, "Feature does not declare Root capability")
         }

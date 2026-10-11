@@ -2,9 +2,8 @@ package com.yagay.ypower.root;
 
 import com.yagay.suite.api.FeatureHost;
 import com.yagay.suite.api.FeatureServices;
+import com.yagay.suite.api.HostRootProbe;
 import com.yagay.suite.api.FeatureRootCommands;
-import com.yagay.suite.api.HostCapability;
-import com.yagay.suite.api.HostCapabilityState;
 import com.yagay.suite.api.HostCommandResult;
 
 import java.util.ArrayList;
@@ -18,7 +17,7 @@ public final class RootShell {
     private RootShell() {}
 
     public static boolean isRootAvailable() {
-        return SERVICES.capabilityState(HostCapability.ROOT) == HostCapabilityState.GRANTED;
+        return HostRootProbe.probe(SERVICES, 6L).getGranted();
     }
 
     public static CommandResult exec(String... commands) {

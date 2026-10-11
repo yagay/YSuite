@@ -1,6 +1,7 @@
 package com.yagay.YMiniGuard;
 
 import com.yagay.suite.api.FeatureServices;
+import com.yagay.suite.api.HostRootProbe;
 import com.yagay.suite.api.HostBinaryCommandResult;
 import java.nio.charset.StandardCharsets;
 
@@ -20,9 +21,8 @@ final class RootManager {
     private RootManager() {}
 
     static RootStatus checkAccess() {
-        String output = capture("id", 4096);
-        boolean granted = output.startsWith("[exit=0]") && output.contains("uid=0");
-        return new RootStatus(granted, output);
+        HostRootProbe.Result probe = HostRootProbe.probe(SERVICES, 6L);
+        return new RootStatus(probe.getGranted(), probe.getStatus() + ": " + probe.getDetail());
     }
 
     static boolean run(String command, StringBuilder detail) {

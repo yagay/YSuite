@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.widget.Toast
 import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.FeatureRootCommands
+import com.yagay.suite.api.HostRootProbe
 import com.yagay.suite.api.HostCommandResult
 
 class RootShell(context: Context) {
@@ -23,7 +24,9 @@ class RootShell(context: Context) {
 
     fun run(command: String, timeoutSeconds: Long = 20, maxChars: Int = 1_000_000, showToast: Boolean = true): String {
         val result = hostRun(command, timeoutSeconds)
-        if (!result.success && showToast && result.code == -1) notifyRootUnavailable()
+        if (!result.success && showToast && result.code == -1 &&
+            HostRootProbe.probe(services, 4L).status == HostRootProbe.Status.UNPRIVILEGED
+        ) notifyRootUnavailable()
         return buildString {
             append(result.stdout.take(maxChars))
             if (FeatureRootCommands.errorText(result).isNotBlank() && length < maxChars) {

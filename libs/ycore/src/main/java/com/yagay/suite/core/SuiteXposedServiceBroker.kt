@@ -196,7 +196,10 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
             val version = target.loadedVersionCode
             SuiteCapabilityMonitor.Evidence(
                 if (expectedVersionCode != null && version != expectedVersionCode)
-                    SuiteCapabilityMonitor.State.OUTDATED else SuiteCapabilityMonitor.State.VERIFIED,
+                    SuiteCapabilityMonitor.State.OUTDATED
+                else if (target.state.name !in setOf("UP_TO_DATE", "STALE"))
+                    SuiteCapabilityMonitor.State.TARGET_NOT_LOADED
+                else SuiteCapabilityMonitor.State.VERIFIED,
                 "LSPosed target state=${target.state.name}; Hook installation still requires feature evidence",
                 now, processName, version)
         }.getOrElse { error ->
