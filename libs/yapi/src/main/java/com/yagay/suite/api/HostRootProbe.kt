@@ -1,23 +1,27 @@
 package com.yagay.suite.api
 
 /**
- * One Root authorization probe for all hosted features.
+ * Shared Host Root probe. Every hosted feature uses the same real Host executor;
+ * independently probing each feature creates a flood of redundant privileged
+ * commands that can itself cause false timeouts.
  *
- * A missing Host, failed command, or timeout is UNKNOWN, not a revoked grant.
- * A successful numeric non-zero uid is the only definite unprivileged result.
- * This checks the caller's actual Host shell, never su binaries or files.
+ * Missing Host, command timeout and I/O failures are UNKNOWN, never a revoked grant.
  */
 object HostRootProbe {
-    private const val READY_TTL_MS = 5_000L
-    private const val RETRY_TTL_MS = 1_000L
-    private data class Cached(val host: FeatureHost, val atMs: Long, val result: Result)
+    private const val READY_TTL_MS = 12_000L
+    private const val RETRY_TTL_MS = 2_000L
+
+    private data class Cached(val atMs: Long, val result: Result)
     private val cache = java.util.concurrent.ConcurrentHashMap<String, Cached>()
-    private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
+    private val lock = Any()
 
     @JvmStatic
     fun invalidate(featureId: String) {
-        cache.remove(featureId)
+        // All embedded features share the same privileged Host process. A known
+        // permission change must invalidate the evidence for every feature.
+        synchronized(lock) { cache.clear() }
     }
+
     enum class Status { GRANTED, UNPRIVILEGED, HOST_MISSING, NOT_DECLARED, TRANSIENT_FAILURE }
 
     data class Result(
@@ -32,31 +36,30 @@ object HostRootProbe {
 
     @JvmStatic
     @JvmOverloads
-    fun probe(
-        services: FeatureServices,
-        timeoutSeconds: Long = 6L,
-    ): Result {
-        val featureId = services.featureId
+    fun probe(services: FeatureServices, timeoutSeconds: Long = 6L): Result {
         val host = services.hostOrNull()
             ?: return Result(Status.HOST_MISSING, "Feature Host is not attached")
-        val lock = locks.computeIfAbsent(featureId) { Any() }
-        synchronized(lock) {
-        val now = android.os.SystemClock.elapsedRealtime()
-        val previous = cache[featureId]
-        val ttl = if (previous?.result?.granted == true) READY_TTL_MS else RETRY_TTL_MS
-        if (previous?.host === host && now - previous.atMs in 0 until ttl) {
-            return previous.result
-        }
-        val fresh = checkHost(services, host, timeoutSeconds)
-        cache[featureId] = Cached(host, now, fresh)
-        return fresh
-        }
-    }
-
-    private fun checkHost(services: FeatureServices, host: FeatureHost, timeoutSeconds: Long): Result {
         if (!host.supports(HostCapability.ROOT)) {
             return Result(Status.NOT_DECLARED, "Feature does not declare Root capability")
         }
+
+        // One check per actual Host APK, rather than one per UI feature. Do not
+        // cache missing hosts: the FeatureHostRegistry may still be attaching.
+        val key = host.hostPackageName.ifBlank { services.featureId }
+        synchronized(lock) {
+            val now = android.os.SystemClock.elapsedRealtime()
+            val previous = cache[key]
+            val ttl = if (previous?.result?.granted == true) READY_TTL_MS else RETRY_TTL_MS
+            if (previous != null && now - previous.atMs in 0 until ttl) {
+                return previous.result
+            }
+            val fresh = checkHost(services, timeoutSeconds)
+            cache[key] = Cached(android.os.SystemClock.elapsedRealtime(), fresh)
+            return fresh
+        }
+    }
+
+    private fun checkHost(services: FeatureServices, timeoutSeconds: Long): Result {
         val response = FeatureRootCommands.execute(
             services, "root-capability-probe", "id -u", timeoutSeconds.coerceAtLeast(1L),
         )

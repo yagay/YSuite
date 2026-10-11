@@ -1,12 +1,22 @@
 package com.yagay.suite.core
 
 import android.content.Context
+import android.os.SystemClock
 import com.topjohnwu.superuser.Shell
 
-/** Process-wide libsu owner for the combined YSuite host. */
+/**
+ * Sole owner of the process-wide libsu configuration and authorization snapshot.
+ * A command failure must never overwrite this authorization snapshot: root access
+ * and an individual command's success are separate dimensions.
+ */
 object RootManager {
+    private const val ROOT_VERIFIED_TTL_MS = 10_000L
+    private const val ROOT_RETRY_TTL_MS = 1_500L
+
     @Volatile private var configured = false
     @Volatile private var hostContext: Context? = null
+    @Volatile private var lastCheckedAtMs: Long = 0L
+    @Volatile private var lastCheckWasRoot: Boolean = false
 
     @Synchronized
     private fun applyDefaults(context: Context) {
@@ -19,10 +29,11 @@ object RootManager {
                 .setFlags(Shell.FLAG_MOUNT_MASTER)
                 .setTimeout(15)
         )
+        lastCheckedAtMs = 0L
         configured = true
     }
 
-    /** Configure libsu without requesting root. */
+    /** Configure libsu without opening a shell or requesting root. */
     fun initialize(context: Context) {
         hostContext = context.applicationContext
         if (!configured) synchronized(this) {
@@ -30,33 +41,51 @@ object RootManager {
         }
     }
 
-    /**
-     * Re-apply the host defaults after enabling a standalone feature runtime that may configure
-     * libsu's process-global builder for its own APK.
-     */
+    /** Restore host-owned libsu settings after a feature runtime is attached. */
     fun reclaim(context: Context) {
         synchronized(this) { applyDefaults(context) }
     }
 
-    /** Context retained only by the YSuite host so embedded plugins can use the host gateway. */
     internal fun contextOrNull(): Context? = hostContext
 
+    /** Retry on the next check after a known shell/permission change. */
+    @Synchronized
+    fun invalidate() {
+        lastCheckedAtMs = 0L
+    }
+
+    /**
+     * Single-flight, short-lived authorization evidence for the current libsu shell.
+     * Failed probes are retried quickly, but never turn an unrelated command timeout
+     * into evidence that KernelSU denied permission.
+     */
+    @Synchronized
     fun isAvailable(context: Context): Boolean {
         initialize(context)
-        // libsu may cache a non-root fallback shell while the manager's authorization dialog
-        // is pending. Closing it and checking again is necessary after KernelSU grants access.
-        // A positive result only means the *current* host shell is actually privileged.
+        val now = SystemClock.elapsedRealtime()
+        val ttl = if (lastCheckWasRoot) ROOT_VERIFIED_TTL_MS else ROOT_RETRY_TTL_MS
+        if (lastCheckedAtMs > 0L && now - lastCheckedAtMs in 0 until ttl) {
+            return lastCheckWasRoot
+        }
+
+        var granted = false
         repeat(2) {
-            val granted = runCatching {
+            val current = runCatching {
                 val shell = Shell.getShell()
-                if (shell.isRoot) true
-                else {
+                if (shell.isRoot && shell.isAlive) {
+                    true
+                } else {
                     runCatching { shell.close() }
                     false
                 }
             }.getOrDefault(false)
-            if (granted) return true
+            if (current) {
+                granted = true
+                return@repeat
+            }
         }
-        return false
+        lastCheckWasRoot = granted
+        lastCheckedAtMs = SystemClock.elapsedRealtime()
+        return granted
     }
 }

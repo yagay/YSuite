@@ -144,7 +144,16 @@ public final class SuiteXposedModule extends XposedModule {
         }
     }
 
-    private record PluginSpec(String id, String entryClassName) {
+    // This entry point is loaded inside many Android framework processes. Do not generate
+    // Java record desugaring dependencies in its class-loading path.
+    private static final class PluginSpec {
+        final String id;
+        final String entryClassName;
+
+        PluginSpec(String id, String entryClassName) {
+            this.id = id;
+            this.entryClassName = entryClassName;
+        }
     }
 
     private final class PluginRuntime {
