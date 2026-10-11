@@ -15,8 +15,8 @@ def run() -> None:
     content = screen.read_text(encoding="utf-8")
     required = (
         "YManagerScaffold(", "YAppShell(", "YSearchField(",
-        "ProcessControls(", "ProcessFilterSheet(", "SettingsDialog(",
-        "YBottomSheet(", "YRadioGroup(", "YChoiceSpec(", "YSwitchItem(",
+        "ProcessControls(", "DropdownMenu(", "DropdownMenuItem(", "SettingsDialog(",
+        "YBottomSheet(", "YRadioGroup(", "YSwitchItem(",
         "YSectionHeader(", "YStatusStrip(", "YPageList(", "YListItem(",
         "YMessageHost(", "YConfirmDialog(", "YFormDialog(",
         "onSort = viewModel::setSort", "onUser = viewModel::setShowUserApps",
