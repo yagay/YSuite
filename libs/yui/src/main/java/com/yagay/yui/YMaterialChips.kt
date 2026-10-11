@@ -57,7 +57,8 @@ fun YUiAssistChip(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    AssistChip(onClick = onClick, label = label, modifier = modifier, enabled = enabled,
+    AssistChip(onClick = onClick, label = label,
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp), enabled = enabled,
         leadingIcon = leadingIcon, trailingIcon = trailingIcon,
         shape = RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp))
 }
@@ -70,7 +71,8 @@ fun YUiSuggestionChip(
     enabled: Boolean = true,
     icon: (@Composable () -> Unit)? = null,
 ) {
-    SuggestionChip(onClick = onClick, label = label, modifier = modifier, enabled = enabled,
+    SuggestionChip(onClick = onClick, label = label,
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp), enabled = enabled,
         icon = icon, shape = RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp))
 }
 
@@ -85,7 +87,8 @@ fun YUiInputChip(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    InputChip(selected = selected, onClick = onClick, label = label, modifier = modifier,
+    InputChip(selected = selected, onClick = onClick, label = label,
+        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
         enabled = enabled, avatar = avatar, leadingIcon = leadingIcon,
         trailingIcon = trailingIcon, shape = RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp))
 }

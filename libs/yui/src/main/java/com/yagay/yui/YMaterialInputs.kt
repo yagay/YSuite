@@ -1,6 +1,7 @@
 package com.yagay.yui
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +49,7 @@ fun YUiOutlinedTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = LocalYAppearance.current.inputHeightDp.dp),
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
@@ -103,7 +104,7 @@ fun YUiTextField(
     TextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = LocalYAppearance.current.inputHeightDp.dp),
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,

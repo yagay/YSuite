@@ -641,7 +641,7 @@ object YViewLayout {
         this.hint = hint
         isSingleLine = true
         YView.styleBody(this)
-        minHeight = YView.touchTarget(context)
+        minHeight = YView.inputHeight(context)
         setPadding(YView.rowHorizontalPadding(context), 0, YView.rowHorizontalPadding(context), 0)
         setTextColor(YView.onSurface(context))
         setHintTextColor(YView.onSurfaceVariant(context))
@@ -659,7 +659,7 @@ object YViewLayout {
         this.hint = hint
         setText(value.orEmpty())
         isSingleLine = singleLine
-        minHeight = YView.touchTarget(context)
+        minHeight = YView.inputHeight(context)
         styleInput(context, this)
     }
 
@@ -1100,6 +1100,7 @@ object YViewLayout {
         YView.styleBody(input)
         input.setTextColor(textPrimary(context))
         input.setHintTextColor(textSecondary(context))
+        input.minHeight = YView.inputHeight(context)
         val p = YView.controlGap(context)
         input.setPadding(p, p, p, p)
         input.background = YView.fieldBackground(context)

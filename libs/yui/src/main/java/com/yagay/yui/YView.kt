@@ -184,6 +184,8 @@ object YView {
         return dp(context, appearance(context).cardPaddingDp).coerceIn(0, safeInset)
     }
     @JvmStatic fun touchTarget(context: Context): Int = dp(context, appearance(context).iconTouchTargetDp)
+    @JvmStatic fun inputHeight(context: Context): Int = dp(context, appearance(context).inputHeightDp)
+    @JvmStatic fun buttonRadius(context: Context): Int = dp(context, appearance(context).buttonRadiusDp)
     @JvmStatic fun rowHeight(context: Context): Int = dp(context, appearance(context).rowHeightDp)
     @JvmStatic fun switchSlotWidth(context: Context): Int {
         val content = context.resources.displayMetrics.widthPixels -
