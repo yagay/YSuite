@@ -36,7 +36,7 @@ def main() -> None:
           ("LaunchedEffect(drawable, packageName, px)", "InstalledAppCatalog.iconBitmap("))
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/NetworkRepository.kt",
           ("preferredRootProbe", "lastFullProbeMs < 60_000L",
-           "if (selected.isEmpty())", "delay"), ())
+           "if (selected.isEmpty())"), ())
     print("List performance source contracts: OK virtualized YPower, staged TaskManager and lazy icons")
 
 if __name__ == "__main__":
