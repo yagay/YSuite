@@ -64,10 +64,11 @@ public class EventDetailActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
-        app = YViewLayout.text(this, "", 16, true);
+        app = YViewLayout.text(this, "");
+        YView.styleStrongBody(app);
         body.addView(app);
 
-        meta = YViewLayout.caption(this, "", 13);
+        meta = YViewLayout.caption(this, "");
         meta.setTextIsSelectable(true);
         meta.setPadding(0, YView.controlGap(this), 0, 0);
         body.addView(meta);
@@ -93,7 +94,7 @@ public class EventDetailActivity extends AppCompatActivity {
         YViewLayout.sectionHeader(body, getString(titleRes), null);
         TextView value = monospace
                 ? YViewLayout.caption(this, "", 13)
-                : YViewLayout.text(this, "", 14, false);
+                : YViewLayout.text(this, "");
         if (monospace) {
             value.setTypeface(Typeface.MONOSPACE);
         }

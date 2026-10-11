@@ -163,9 +163,7 @@ public class DiagnosticActivity extends AppCompatActivity {
 
         output = YViewLayout.text(
                 this,
-                getString(R.string.yp_usage_steps),
-                14,
-                false);
+                getString(R.string.yp_usage_steps));
         output.setTextIsSelectable(true);
         output.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         ScrollView scroll = YViewLayout.scrollPage(this, output);

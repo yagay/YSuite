@@ -146,7 +146,7 @@ public final class TargetAppsActivity extends Activity {
                     if (pm.getLaunchIntentForPackage(entry.packageName) == null) continue;
                     loaded.add(new AppItem(entry.label.trim().isEmpty() ? entry.packageName : entry.label.trim(),
                             entry.packageName, entry.system,
-                            entry.icon(this, Math.min(96, Math.max(24, YView.listIconSize(this))))));
+                            entry.icon(this, YView.listIconSize(this))));
                 }
 
                 loaded.sort(Comparator
