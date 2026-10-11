@@ -29,7 +29,7 @@ android {
         minSdk = 31
         targetSdk = 37
         versionCode = suiteHostVersionCode
-        versionName = "0.2.10"
+        versionName = "0.2.11"
 
         // YSuite is currently distributed for modern ARM64 Android devices. Keeping the ABI list
         // at the application boundary prevents transitive OCR/OpenCV/ONNX AARs from re-introducing
