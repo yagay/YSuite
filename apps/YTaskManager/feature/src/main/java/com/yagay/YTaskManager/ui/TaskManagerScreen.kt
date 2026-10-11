@@ -75,6 +75,7 @@ import com.yagay.yui.YRadioGroup
 import com.yagay.yui.YSectionHeader
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YMetricCard
+import com.yagay.yui.YResponsiveFieldPair
 import com.yagay.yui.YStatusStrip
 import com.yagay.yui.YStatusSpec
 import com.yagay.yui.YPageList
@@ -499,6 +500,28 @@ private fun ResourcePage(state: TaskManagerUiState) {
     YPageList(
         padding = PaddingValues(),
     ) {
+        item {
+            YResponsiveFieldPair(
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
+                first = { slot ->
+                    YMetricCard(
+                        label = "CPU",
+                        value = String.format(Locale.getDefault(), "%.1f%%", s.cpuPercent),
+                        modifier = slot,
+                    )
+                },
+                second = { slot ->
+                    val ramPercentage = if (s.ramTotalBytes > 0L)
+                        (s.ramUsedBytes.toDouble() * 100.0 / s.ramTotalBytes).toFloat()
+                    else 0f
+                    YMetricCard(
+                        label = "RAM",
+                        value = String.format(Locale.getDefault(), "%.1f%%", ramPercentage),
+                        modifier = slot,
+                    )
+                },
+            )
+        }
         item {
             SectionCard("CPU") {
                 MetricLine(stringResource(R.string.ytm_usage), String.format(Locale.getDefault(), "%.1f%%", s.cpuPercent))
