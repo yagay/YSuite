@@ -25,8 +25,13 @@ internal object SuiteCapabilityBroker {
     fun state(context: Context, capability: HostCapability): HostCapabilityState {
         val app = context.applicationContext
         return when (capability) {
-            HostCapability.ROOT -> granted(SuiteCapabilityMonitor.root(app).verified)
-            HostCapability.LSPOSED -> granted(SuiteXposedServiceBroker.isConnected())
+            HostCapability.ROOT -> when (SuiteCapabilityMonitor.root(app).state) {
+                SuiteCapabilityMonitor.State.VERIFIED -> HostCapabilityState.GRANTED
+                SuiteCapabilityMonitor.State.NOT_GRANTED -> HostCapabilityState.NOT_GRANTED
+                else -> HostCapabilityState.UNKNOWN
+            }
+            HostCapability.LSPOSED -> if (SuiteXposedServiceBroker.isConnected())
+                HostCapabilityState.GRANTED else HostCapabilityState.UNKNOWN
             HostCapability.ACCESSIBILITY -> accessibilityState(app)
             HostCapability.NOTIFICATION_LISTENER -> notificationListenerState(app)
             HostCapability.OVERLAY -> granted(Settings.canDrawOverlays(app))

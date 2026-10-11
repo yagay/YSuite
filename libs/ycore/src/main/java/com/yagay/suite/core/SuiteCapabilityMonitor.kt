@@ -11,7 +11,10 @@ import com.yagay.suite.api.FeatureServices
  * not prove that a feature-specific Hook or an RF operation succeeded.
  */
 object SuiteCapabilityMonitor {
-    enum class State { CHECKING, VERIFIED, UNKNOWN, STALE, NOT_GRANTED, MISSING_SCOPE, TARGET_NOT_LOADED, OUTDATED }
+    enum class State {
+        CHECKING, VERIFIED, UNKNOWN, STALE, NOT_GRANTED, MISSING_SCOPE,
+        TARGET_NOT_LOADED, TARGET_LOADED, OUTDATED
+    }
     data class Evidence(
         val state: State,
         val detail: String,

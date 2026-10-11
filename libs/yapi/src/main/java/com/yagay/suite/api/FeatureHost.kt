@@ -102,7 +102,10 @@ enum class HostCapability {
 
 enum class HostCapabilityState {
     GRANTED,
+    /** Definitive permission denial / numeric non-root UID. */
     NOT_GRANTED,
+    /** Host pending, service disconnected, or inconclusive probe. */
+    UNKNOWN,
     NOT_SUPPORTED,
     NOT_DECLARED,
 }

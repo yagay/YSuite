@@ -140,6 +140,7 @@ private class HostedRootGateway(private val services: FeatureServices) : RootGat
         return when (host.capabilityState(HostCapability.ROOT)) {
             HostCapabilityState.GRANTED -> CapabilityStatus.Available
             HostCapabilityState.NOT_GRANTED -> CapabilityStatus.PermissionRequired
+            HostCapabilityState.UNKNOWN -> CapabilityStatus.Unavailable
             HostCapabilityState.NOT_DECLARED, HostCapabilityState.NOT_SUPPORTED ->
                 CapabilityStatus.Unavailable
         }
