@@ -640,6 +640,7 @@ object YViewLayout {
     fun searchField(context: Context, hint: String): AppCompatEditText = AppCompatEditText(context).apply {
         this.hint = hint
         isSingleLine = true
+        YView.styleBody(this)
         minHeight = YView.touchTarget(context)
         setPadding(YView.rowHorizontalPadding(context), 0, YView.rowHorizontalPadding(context), 0)
         setTextColor(YView.onSurface(context))

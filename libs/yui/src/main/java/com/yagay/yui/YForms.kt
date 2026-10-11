@@ -17,11 +17,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import com.yagay.yui.YUiFilterChip as FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.yagay.yui.YUiModalBottomSheet as ModalBottomSheet
 import com.yagay.yui.YUiOutlinedButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import com.yagay.yui.YUiRadioButton as RadioButton
@@ -88,7 +88,8 @@ fun YTextField(
         isError = !errorText.isNullOrBlank(),
         keyboardOptions = keyboardOptions,
         visualTransformation = visualTransformation,
-        shape = MaterialTheme.shapes.medium,
+        // Use the same field radius configured for every other YUI input.
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(LocalYAppearance.current.fieldRadiusDp.dp),
     )
 }
 

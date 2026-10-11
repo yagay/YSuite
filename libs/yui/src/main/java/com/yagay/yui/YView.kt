@@ -114,6 +114,9 @@ object YView {
         val context = button.context
         val appearance = appearance(context)
         val colors = palette(context)
+        // Button text uses the same YUI label typography and font scale as all
+        // feature labels. Material's constructor defaults must not bypass this.
+        styleLabel(button)
         button.minHeight = dp(context, appearance.buttonHeightDp)
         button.isAllCaps = false
         button.minWidth = 0

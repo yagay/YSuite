@@ -24,7 +24,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.Button
+import com.yagay.yui.YUiButton as Button
 import androidx.compose.material3.ButtonDefaults
 import com.yagay.yui.YUiDropdownMenu as DropdownMenu
 import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
@@ -34,12 +34,12 @@ import androidx.compose.material3.Icon
 import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.yagay.yui.YUiOutlinedButton as OutlinedButton
 import com.yagay.yui.YUiSurface as Surface
 import com.yagay.yui.YUiScrollableTabRow as ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
