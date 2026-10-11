@@ -44,7 +44,7 @@ def check_compose() -> None:
            "screenPaddingDp = configuredAppearance.screenPaddingDp.coerceAtMost(",
            "BoxWithConstraints {", "val fittedInset = minOf(")
     source("libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
-           "val fittedInset = minOf(", "maxWidth - 144.dp",
+           "val fittedInset = minOf(", "maxWidth - (YDimens.TouchTarget * 3)",
            "titleMaxLines: Int = Int.MAX_VALUE",
            "subtitleMaxLines: Int = Int.MAX_VALUE")
     source("libs/yui/src/main/java/com/yagay/yui/YResponsiveForms.kt",

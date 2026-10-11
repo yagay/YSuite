@@ -360,7 +360,7 @@ fun YCard(
         BoxWithConstraints {
             val fittedInset = minOf(
                 LocalYAppearance.current.cardPaddingDp.dp,
-                ((maxWidth - 144.dp).coerceAtLeast(0.dp) / 2),
+                ((maxWidth - (YDimens.TouchTarget * 3)).coerceAtLeast(0.dp) / 2),
             )
             Column(
                 modifier = Modifier.padding(fittedInset),

@@ -334,7 +334,7 @@ fun YListItem(
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val fittedInset = minOf(
             LocalYAppearance.current.rowHorizontalPaddingDp.dp,
-            ((maxWidth - 144.dp).coerceAtLeast(0.dp) / 2),
+            ((maxWidth - (YDimens.TouchTarget * 3)).coerceAtLeast(0.dp) / 2),
         )
     Row(
         modifier = activeModifier
