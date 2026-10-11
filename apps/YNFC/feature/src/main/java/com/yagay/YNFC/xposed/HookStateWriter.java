@@ -11,19 +11,21 @@ import java.util.concurrent.Executors;
 /** Preserves ordered asynchronous writes and explicit synchronous lifecycle barriers. */
 final class HookStateWriter {
     private static final String TAG = "NfcUIDSim";
-    private static final Uri CONFIG_URI =
-            Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
     private final ExecutorService executor = Executors.newSingleThreadExecutor(
             runnable -> NfcHookUtils.daemon(runnable, "NfcUIDSim-StateSync"));
 
     void writeAsync(ContentValues values, int attempts, long delayMs) {
+        if (HookConfigStore.isPassive()) return;
         final ContentValues copy = new ContentValues(values);
+        final Uri destination = HookConfigStore.activeUri();
         executor.execute(() -> {
             for (int i = 0; i < attempts; i++) {
+                if (HookConfigStore.isPassive()
+                        || !destination.equals(HookConfigStore.activeUri())) return;
                 Context context = NfcHookUtils.currentContext();
                 if (context != null) {
                     try {
-                        context.getContentResolver().insert(CONFIG_URI, copy);
+                        context.getContentResolver().insert(destination, copy);
                         return;
                     } catch (Throwable error) {
                         Log.w(TAG, "status write attempt " + (i + 1) + " failed: " + error.getMessage());
@@ -35,12 +37,16 @@ final class HookStateWriter {
     }
 
     boolean writeSynchronously(ContentValues values, int attempts, long delayMs) {
+        if (HookConfigStore.isPassive()) return false;
+        final Uri destination = HookConfigStore.activeUri();
         ContentValues copy = new ContentValues(values);
         for (int i = 0; i < attempts; i++) {
+            if (HookConfigStore.isPassive()
+                    || !destination.equals(HookConfigStore.activeUri())) return false;
             Context context = NfcHookUtils.currentContext();
             if (context != null) {
                 try {
-                    context.getContentResolver().insert(CONFIG_URI, copy);
+                    context.getContentResolver().insert(destination, copy);
                     return true;
                 } catch (Throwable error) {
                     Log.w(TAG, "sync state write attempt " + (i + 1) + " failed: " + error.getMessage());

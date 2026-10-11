@@ -35,7 +35,6 @@ import io.github.libxposed.api.XposedModuleInterface;
 public class NfcInjectionModule extends XposedModule {
     private static final String TAG = "NfcUIDSim";
     private static final int HOOK_BUILD = BuildConfig.HOOK_BUILD;
-    private static final Uri CONFIG_URI = Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
     private static final int MAX_LEARNING_HOOKS = 4;
     private static final int MAX_TRIGGER_HOOKS = 4;
     private static final long TRIGGER_RF_WINDOW_MS = 3_000L;
@@ -390,6 +389,9 @@ public class NfcInjectionModule extends XposedModule {
     private void installRfHook(ClassLoader cl, int pid, HookTarget target) throws Exception {
         Method method = target.resolve(cl);
         hook(method).intercept(chain -> {
+            // YSuite already owns the hook graph; never rewrite or trigger STOP from the
+            // still-loaded standalone hook during a live owner handoff.
+            if (HookConfigStore.isPassive()) return chain.proceed();
             Object[] args = chain.getArgs().toArray();
             int payloadArg = findSingleByteArrayArg(args);
             if (payloadArg < 0) return chain.proceed();
@@ -680,7 +682,17 @@ public class NfcInjectionModule extends XposedModule {
                 @Override public void onChange(boolean selfChange) { scheduleCommandRefresh("provider_change"); }
                 @Override public void onChange(boolean selfChange, Uri uri) { scheduleCommandRefresh("provider_change"); }
             };
-            app.getContentResolver().registerContentObserver(CONFIG_URI, true, observer);
+            app.getContentResolver().registerContentObserver(
+                    HookConfigStore.activeUri(), true, observer);
+            // Listen for handoff/fallback changes without restarting the NFC process.
+            if (!HookConfigStore.standaloneUri().equals(HookConfigStore.activeUri())) {
+                app.getContentResolver().registerContentObserver(
+                        HookConfigStore.standaloneUri(), true, observer);
+            }
+            if (!HookConfigStore.suiteUri().equals(HookConfigStore.activeUri())) {
+                app.getContentResolver().registerContentObserver(
+                        HookConfigStore.suiteUri(), true, observer);
+            }
             commandObserver = observer;
             observerRegistered = true;
             registerAdapterStateReceiver(app);
@@ -915,7 +927,7 @@ public class NfcInjectionModule extends XposedModule {
         int rfPid = 0;
         boolean accepted = false;
         String effective = "", confidence = "", rfUid = "";
-        try (Cursor c = ctx.getContentResolver().query(CONFIG_URI, null, null, null, null)) {
+        try (Cursor c = ctx.getContentResolver().query(HookConfigStore.activeUri(), null, null, null, null)) {
             if (c == null) return false;
             while (c.moveToNext()) {
                 String key = c.getString(0), value = c.getString(1);

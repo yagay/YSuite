@@ -8,14 +8,38 @@ import android.net.Uri;
 import com.yagay.suite.api.RuntimeHandoffGate;
 import com.yagay.suite.api.RuntimeOwnerGate;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Reads and decodes the durable command snapshot without owning command execution. */
-final class HookConfigStore {
+public final class HookConfigStore {
     private static final String FEATURE_ID = "ynfc";
     private static final String NFC_PROCESS = "com.android.nfc";
+    /**
+     * The command reader selects the reachable provider. All Hook-side readers/writers must use
+     * that same endpoint, including after a standalone -> YSuite handoff/fallback.
+     */
+    private static volatile Uri selectedUri;
+
+    public static Uri activeUri() {
+        Uri resolved = selectedUri;
+        return resolved != null ? resolved : preferredUri();
+    }
+
+    public static Uri standaloneUri() {
+        return Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
+    }
+
+    public static Uri suiteUri() {
+        return Uri.parse("content://" + RuntimeOwnerGate.SUITE_PACKAGE + ".ynfc.config/settings");
+    }
+
+    /** A live Suite module has taken ownership; this standalone instance must not run STOP. */
+    static boolean isPassive() {
+        return !isEmbeddedSuite()
+                && RuntimeOwnerGate.OWNER_SUITE.equals(RuntimeOwnerGate.readOwner(FEATURE_ID))
+                && RuntimeHandoffGate.isSuiteActiveHere(FEATURE_ID, NFC_PROCESS);
+    }
 
     SimConfig read() {
         boolean embeddedSuite = isEmbeddedSuite();
@@ -23,17 +47,15 @@ final class HookConfigStore {
             // Positive acknowledgement is emitted from inside com.android.nfc itself. Standalone
             // code will only retire after seeing this exact live process acknowledgement.
             RuntimeHandoffGate.markSuiteActive(FEATURE_ID, NFC_PROCESS);
-        } else if (RuntimeOwnerGate.OWNER_SUITE.equals(RuntimeOwnerGate.readOwner(FEATURE_ID))
-                && RuntimeHandoffGate.isSuiteActiveHere(FEATURE_ID, NFC_PROCESS)) {
-            // Keep the old standalone hook generation initialized but behaviorally passive. Physical
-            // unhooking across module owners is unsafe; returning an inactive snapshot makes all RF
-            // mutation paths pass through while the embedded suite hook owns the same process.
-            return decode(Collections.emptyMap());
+        } else if (isPassive()) {
+            // An empty map is NOT a valid STOP command. Decoding it previously synthesized
+            // generation=0/STOP and could spuriously trigger a vendor refresh during handoff.
+            return SimConfig.uninitialized();
         }
 
         Context context = NfcHookUtils.currentContext();
         if (context == null) return SimConfig.uninitialized();
-        Uri uri = configUri();
+        Uri uri = preferredUri();
         Map<String, String> values = readValues(context, uri);
         if (values == null
                 && !isEmbeddedSuite()
@@ -41,12 +63,12 @@ final class HookConfigStore {
             // A stale owner marker or a disabled/uninstalled YSuite must not strand an
             // already-running standalone NFC hook. Prefer the suite provider when it is
             // actually readable, otherwise preserve the standalone configuration path.
-            Uri fallback = Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY
-                    + "/settings");
+            Uri fallback = standaloneUri();
             values = readValues(context, fallback);
             if (values != null) uri = fallback;
         }
         if (values == null) return SimConfig.uninitialized();
+        selectedUri = uri;
 
         // Early schema-7 builds could persist rf_controller_epoch while leaving controller_epoch
         // absent. That makes a native-accepted RF proof look STALE forever and repeatedly schedules
@@ -77,7 +99,9 @@ final class HookConfigStore {
         try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
             if (cursor == null) return null;
             while (cursor.moveToNext()) values.put(cursor.getString(0), cursor.getString(1));
-            return values;
+            // The provider returns an empty cursor for unauthorized reads. That is not a valid
+            // initialized command and must not suppress the standalone fallback.
+            return values.isEmpty() ? null : values;
         } catch (Throwable ignored) {
             return null;
         }
@@ -108,7 +132,7 @@ final class HookConfigStore {
         return value == null ? "" : value;
     }
 
-    private static Uri configUri() {
+    private static Uri preferredUri() {
         return Uri.parse("content://" + effectiveAuthority() + "/settings");
     }
 

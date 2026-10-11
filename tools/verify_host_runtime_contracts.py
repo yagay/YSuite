@@ -111,7 +111,28 @@ def check_live_handoff() -> None:
             "CONFIG_AUTHORITY", "com.yagay.YSuite.ynfc.config")
     require("apps/YNFC/feature/src/main/java/com/yagay/YNFC/xposed/HookConfigStore.java",
             "readValues(context, uri)", "readValues(context, fallback)",
-            "RuntimeHandoffGate.isSuiteActiveHere")
+            "RuntimeHandoffGate.isSuiteActiveHere",
+            "public static Uri activeUri()", "public static Uri standaloneUri()",
+            "public static Uri suiteUri()", "selectedUri = uri",
+            "return values.isEmpty() ? null : values",
+            "static boolean isPassive()", "return SimConfig.uninitialized()")
+    # One command provider, one status provider, one cached-profile provider, and two observed
+    # authorities during ownership handoff. Do not allow split-brain or synthetic generation-0 STOP.
+    state_writer = require(
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/xposed/HookStateWriter.java",
+        "HookConfigStore.activeUri()", "final Uri destination",
+        "HookConfigStore.isPassive()", "!destination.equals(HookConfigStore.activeUri())")
+    profile_store = require(
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/xposed/profile/HookProfileStore.java",
+        "HookConfigStore.activeUri()")
+    injection = require(
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/xposed/NfcInjectionModule.java",
+        "HookConfigStore.activeUri()", "HookConfigStore.standaloneUri()",
+        "HookConfigStore.suiteUri()", "if (HookConfigStore.isPassive()) return chain.proceed();",
+        "registerContentObserver(")
+    for name, body in (("writer", state_writer), ("profile", profile_store), ("module", injection)):
+        if 'BuildConfig.CONFIG_AUTHORITY + "/settings"' in body:
+            raise AssertionError(f"NFC Hook {name} reintroduced a fixed provider authority")
     require("suite/YSuite/src/main/java/com/yagay/YSuite/ipc/SuiteRuntimeHandoffProvider.kt",
             "processStartToken", "Binder.getCallingPid()", "RuntimeHandoffGate.RESULT_ACTIVE")
     require("libs/yapi/src/main/java/com/yagay/suite/api/RuntimeHandoffGate.java",
