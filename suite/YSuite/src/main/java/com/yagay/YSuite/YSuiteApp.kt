@@ -153,8 +153,15 @@ class YSuiteApp : Application() {
                     if (states.isEnabled(feature) &&
                         !FeatureRuntimeManager.isRuntimeEnabled(feature.id)
                     ) {
-                        FeatureRuntimeManager.enable(this, feature).getOrThrow()
-                        safeSuiteLog(feature.id, "managed feature runtime recovered on foreground")
+                        // A failure in one feature must not prevent another module
+                        // (for example TaskManager) from recovering its Root host.
+                        FeatureRuntimeManager.enable(this, feature)
+                            .onSuccess {
+                                safeSuiteLog(feature.id, "managed feature runtime recovered on foreground")
+                            }
+                            .onFailure { error ->
+                                safeSuiteError(feature.id, "foreground managed feature recovery failed", error)
+                            }
                     }
                 }
             }.onFailure {
