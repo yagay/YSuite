@@ -46,6 +46,9 @@ jobs:
       - name: Verify UI overflow and extreme appearance settings
         run: python3 tools/verify_yui_overflow_contracts.py
 
+      - name: Verify YUI settings actually control component appearance
+        run: python3 tools/verify_yui_setting_coverage.py
+
       - name: Read shared build versions
         id: versions
         run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"

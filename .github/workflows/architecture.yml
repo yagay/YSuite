@@ -81,6 +81,9 @@ jobs:
       - name: Verify UI overflow and extreme appearance settings
         run: python3 tools/verify_yui_overflow_contracts.py
 
+      - name: Verify YUI settings actually control component appearance
+        run: python3 tools/verify_yui_setting_coverage.py
+
       - name: Verify shared application inventory and app icons
         run: python3 tools/verify_shared_app_catalog.py
 
