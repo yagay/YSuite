@@ -23,6 +23,8 @@ class NetworkRepository(
     private var previous: Map<Int, Counter> = emptyMap()
     private var previousNanos: Long = 0L
     private var previousBackend: String? = null
+    private var preferredRootProbe: Pair<String, String>? = null
+    private var lastFullProbeMs = 0L
 
     suspend fun read(knownUids: Set<Int>): NetworkSnapshot = withContext(Dispatchers.IO) {
         refreshPackageCacheIfNeeded()
@@ -85,7 +87,6 @@ class NetworkRepository(
                     uid = uid,
                     label = primary?.label ?: primary?.packageName ?: "UID $uid",
                     packageNames = identities.map { it.packageName },
-                    icon = primary?.icon,
                     system = identities.isEmpty() || identities.any { it.system },
                     rxBytesPerSecond = rx,
                     txBytesPerSecond = tx,
@@ -117,12 +118,21 @@ class NetworkRepository(
             "Root connectivity eBPF" to "dumpsys connectivity trafficcontroller 2>/dev/null",
             "Root netd eBPF" to "dumpsys netd trafficcontroller 2>/dev/null",
         )
-
-        for ((name, command) in probes) {
-            val raw = runCatching { shell.execute(command, 7_000).stdout }.getOrDefault("")
+        val now = SystemClock.elapsedRealtime()
+        val selected = preferredRootProbe?.let { listOf(it) } ?: if (
+            lastFullProbeMs != 0L && now - lastFullProbeMs < 60_000L
+        ) emptyList() else probes
+        if (preferredRootProbe == null && selected.isNotEmpty()) lastFullProbeMs = now
+        for ((name, command) in selected) {
+            val raw = runCatching { shell.execute(command, 4_000).stdout }.getOrDefault("")
             val parsed = parseAppUidStats(raw)
-            if (parsed.isNotEmpty()) return RootSample(name, parsed)
+            if (parsed.isNotEmpty()) {
+                preferredRootProbe = name to command
+                return RootSample(name, parsed)
+            }
         }
+        preferredRootProbe = null
+        lastFullProbeMs = now
         return RootSample("No cross-UID root counters", emptyMap())
     }
 
@@ -212,7 +222,6 @@ class NetworkRepository(
             map.getOrPut(app.uid) { mutableListOf() } += PackageIdentity(
                 packageName = app.packageName,
                 label = app.label,
-                icon = null, // Visible network rows load from the shared icon cache.
                 system = app.system ||
                     (app.info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
             )
@@ -227,7 +236,6 @@ class NetworkRepository(
     private data class PackageIdentity(
         val packageName: String,
         val label: String,
-        val icon: android.graphics.drawable.Drawable?,
         val system: Boolean,
     )
 }

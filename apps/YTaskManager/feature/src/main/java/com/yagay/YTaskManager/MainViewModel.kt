@@ -241,7 +241,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun refreshInternal() = coroutineScope {
         runCatching {
-            val systemDeferred = async { runCatching { statsRepository.read() } }
+            // Prioritize the process list over slower CPU/GPU sampling. The UI should
+            // paint when ps completes instead of waiting for every telemetry source.
             val processDeferred = async {
                 runCatching {
                     val pinned = settings.pinnedProcesses
@@ -250,11 +251,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            val systemDeferred = async { runCatching { statsRepository.read() } }
             val gpuDeferred = async { runCatching { gpuRepository.read() } }
 
             val oldState = _state.value
-            val systemResult = systemDeferred.await()
             val processResult = processDeferred.await()
+            processResult.getOrNull()?.takeIf { it.isNotEmpty() }?.let { quick ->
+                val preview = _state.value
+                val visible = applyNetworkSpeeds(quick, preview.network)
+                _state.value = preview.copy(
+                    processes = visible, processCount = visible.size,
+                    threadCount = visible.sumOf { it.threads }, loading = false,
+                )
+            }
+            val systemResult = systemDeferred.await()
             val gpuResult = gpuDeferred.await()
             val system = systemResult.getOrElse { oldState.system }
             val quickProcesses = processResult.getOrElse { oldState.processes }
