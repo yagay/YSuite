@@ -53,6 +53,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var monitorJob: Job? = null
     private var networkJob: Job? = null
+    private var detailJob: Job? = null
+    private var lastDetailSampleMs = 0L
 
     init {
         viewModelScope.launch {
@@ -117,9 +119,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun startNetworkMonitor() {
         if (networkJob?.isActive == true) return
         networkJob = viewModelScope.launch {
+            // Avoid competing with initial process discovery for the Root gateway.
+            delay(5_000L)
             while (isActive) {
                 refreshNetworkInternal()
-                delay(1_000L)
+                delay(5_000L)
             }
         }
     }
@@ -253,7 +257,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val processResult = processDeferred.await()
             val gpuResult = gpuDeferred.await()
             val system = systemResult.getOrElse { oldState.system }
-            val rawProcesses = processResult.getOrElse { oldState.processes }
+            val quickProcesses = processResult.getOrElse { oldState.processes }
+            // Retain rich /proc statistics between the cheaper ps-based updates.
+            val previousByPid = oldState.processes.associateBy { it.pid }
+            val rawProcesses = quickProcesses.map { quick ->
+                val previous = previousByPid[quick.pid]?.takeIf { it.uid == quick.uid }
+                if (previous == null || previous.threads == 0) quick
+                else quick.copy(
+                    cpuPercent = previous.cpuPercent,
+                    rssKb = quick.rssKb.takeIf { it > 0 } ?: previous.rssKb,
+                    virtualMemoryKb = previous.virtualMemoryKb,
+                    threads = previous.threads,
+                    state = previous.state,
+                    nice = previous.nice,
+                    oomScoreAdj = previous.oomScoreAdj,
+                    isForeground = previous.isForeground,
+                    startTimeMillis = previous.startTimeMillis,
+                    elapsedTimeMillis = previous.elapsedTimeMillis,
+                )
+            }
             val gpu = gpuResult.getOrElse { oldState.gpu }
             val failed = listOfNotNull(
                 systemResult.exceptionOrNull()?.let { "system: ${it.message ?: it.javaClass.simpleName}" },
@@ -277,10 +299,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 error = failed.takeIf { it.isNotBlank() }
                     ?: if (processes.isEmpty()) "No processes returned by Root /proc or ps" else null,
             )
+            scheduleDetailedSample()
         }.onFailure {
             _state.value = _state.value.copy(
                 loading = false,
                 error = it.message ?: it.javaClass.simpleName,
+            )
+        }
+    }
+
+    /**
+     * A rich /proc sample must never block first paint or every short refresh tick.
+     * Run it at most once per 30 seconds, merge by PID/UID and keep the fast ps list visible.
+     */
+    private fun scheduleDetailedSample() {
+        if (!_state.value.root.granted || detailJob?.isActive == true) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (lastDetailSampleMs != 0L && now - lastDetailSampleMs < 30_000L) return
+        lastDetailSampleMs = now
+        detailJob = viewModelScope.launch {
+            delay(1_200L)
+            val rich = runCatching { processRepository.listDetailedProcesses() }
+                .getOrDefault(emptyList())
+            if (rich.isEmpty()) return@launch
+            val byPid = rich.associateBy { it.pid }
+            val old = _state.value
+            val merged = old.processes.map { quick ->
+                val detail = byPid[quick.pid]?.takeIf { it.uid == quick.uid } ?: return@map quick
+                detail.copy(
+                    isPinned = quick.isPinned,
+                    rxBytesPerSecond = quick.rxBytesPerSecond,
+                    txBytesPerSecond = quick.txBytesPerSecond,
+                )
+            }
+            _state.value = old.copy(
+                processes = merged,
+                threadCount = merged.sumOf { it.threads },
             )
         }
     }

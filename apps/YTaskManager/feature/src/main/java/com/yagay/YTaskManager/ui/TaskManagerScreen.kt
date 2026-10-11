@@ -749,7 +749,7 @@ private fun SettingsDialog(
     onRefreshInterval: (Long) -> Unit,
     onConfirmKill: (Boolean) -> Unit,
 ) {
-    val intervals = listOf(500L, 800L, 1000L, 2000L)
+    val intervals = listOf(1000L, 2500L, 5000L, 10000L)
     YFormDialog(
         title = stringResource(R.string.ytm_process_settings),
         onDismissRequest = onDismiss,
