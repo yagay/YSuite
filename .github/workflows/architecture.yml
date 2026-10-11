@@ -78,6 +78,9 @@ jobs:
       - name: Verify YUI content and responsive layouts
         run: python3 tools/verify_yui_content_compatibility.py
 
+      - name: Verify cross-module YUI card/row alignment
+        run: python3 tools/verify_yui_row_alignment.py
+
       - name: Verify repository UI screen ownership
         run: python3 tools/verify_ui_screen_ownership.py
 

@@ -2,7 +2,7 @@ name: YUI Screenshot Preview
 
 on:
   push:
-    branches: [main, rebuild/material3-full-ui]
+    branches: [main]
     paths:
       - "build.gradle.kts"
       - "libs/yui/**"
@@ -23,6 +23,8 @@ concurrency:
 
 jobs:
   screenshot:
+    # Screenshot instrumentation compiles separately; keep ARM64 branch Debug-only.
+    if: github.ref != 'refs/heads/rebuild/material3-full-ui'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

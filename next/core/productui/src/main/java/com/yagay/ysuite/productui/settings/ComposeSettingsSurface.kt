@@ -35,6 +35,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+import com.yagay.yui.LocalYAppearance
+import androidx.compose.ui.unit.dp
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YListItem
 import com.yagay.yui.YIntSliderField
@@ -128,8 +130,9 @@ fun ComposeSettingsGroup(
                 text = title,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
+                // Match the shared YListItem's *configurable* row inset.
                 modifier = Modifier.padding(
-                    horizontal = YSuiteSpacing.Medium,
+                    horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
                     vertical = YSuiteSpacing.Small,
                 ),
             )

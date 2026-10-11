@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         YViewLayout.addRow(service.body, YViewLayout.switchContainer(overlaySwitch));
 
         LinearLayout statusRow = YViewLayout.baseRow(this);
-        statusRow.addView(YViewLayout.text(this, getString(R.string.yfloat_current_status), 15, false),
+        statusRow.addView(YViewLayout.rowTitle(this, getString(R.string.yfloat_current_status)),
                 new LinearLayout.LayoutParams(0, -2, 1f));
         serviceStatus = YViewLayout.statusPill(this, getString(R.string.yfloat_status_loading), false);
         statusRow.addView(serviceStatus, new LinearLayout.LayoutParams(-2, -2));

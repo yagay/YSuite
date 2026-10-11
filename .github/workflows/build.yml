@@ -2,7 +2,7 @@ name: Build YSuite
 
 on:
   push:
-    branches: [main, rebuild/material3-full-ui]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -15,6 +15,8 @@ concurrency:
 
 jobs:
   build:
+    # Compact/release builds are prohibited on the ARM64 Debug-only UI branch.
+    if: github.ref != 'refs/heads/rebuild/material3-full-ui'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:

@@ -12,6 +12,8 @@ permissions:
 
 jobs:
   build-debug:
+    # Do not run a duplicate manual Debug workflow on the active UI branch.
+    if: github.ref != 'refs/heads/rebuild/material3-full-ui'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:

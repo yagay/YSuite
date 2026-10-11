@@ -552,9 +552,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
                              Runnable moveUp,
                              Runnable moveDown,
                              Runnable remove) {
+        // YUI baseRow is the sole owner of normal-screen row spacing.
         LinearLayout row = YViewLayout.baseRow(this);
-        row.setPadding(YView.controlGap(this), YView.controlGap(this) / 2,
-                YView.controlGap(this), YView.controlGap(this) / 2);
 
         ImageView handle = iconButton(
                 R.drawable.yfloat_ic_drag_handle,

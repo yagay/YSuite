@@ -81,3 +81,22 @@ Success, warning and information colors are semantic tokens and are not aliases 
 - shared YUI usage by all current modules,
 - no new private UI systems,
 - YFloat remaining a thin compatibility adapter.
+
+## Cross-module row alignment and ARM64 Debug policy
+
+On `rebuild/material3-full-ui`, YFloat's Android View settings are live and
+use the shared `libs/yui/YViewFramework.kt` renderer. Navigation rows,
+permission rows and ordinary settings rows use the **same YUI card inset**
+from `YView.cardPadding`; menu reordering rows do not override it. Native
+row labels wrap instead of enforcing one line.
+
+The rebuilt Compose settings-group header uses
+`LocalYAppearance.current.rowHorizontalPaddingDp`, the same appearance
+parameter as `YListItem`. Existing YUI controls and dynamic color owners
+remain untouched, rather than importing a second design system.
+
+`tools/verify_yui_row_alignment.py` asserts these contracts and checks CI
+workflow ownership. For this branch, only `:suite:assembleDebug` executes as
+an APK build; its artifact is `YSuite-debug-arm64-v8a`. Other workflows may
+still run source-only architecture checks. GitHub Action success is not a
+substitute for large-font, narrow-screen and dark-theme device validation.

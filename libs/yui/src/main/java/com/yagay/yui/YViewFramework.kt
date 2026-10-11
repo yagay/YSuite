@@ -402,7 +402,10 @@ object YViewLayout {
     @JvmStatic
     fun listTitle(context: Context): TextView = TextView(context).apply {
         YView.styleItemTitle(this)
-        maxLines = 1
+        // Shared titles must survive accessibility font scaling and localization.
+        isSingleLine = false
+        maxLines = Int.MAX_VALUE
+        ellipsize = null
     }
 
     /** Canonical title for a selectable row in all Java/View feature screens. */
@@ -544,7 +547,9 @@ object YViewLayout {
         description: String? = null,
         listener: View.OnClickListener,
     ): LinearLayout {
-        val row = listRow(context).apply {
+        // Navigation and permission/switch rows inhabit the same card.
+        // The old zero-inset listRow placed navigation labels against its edge.
+        val row = baseRow(context).apply {
             isClickable = true
             isFocusable = true
             setOnClickListener(listener)
