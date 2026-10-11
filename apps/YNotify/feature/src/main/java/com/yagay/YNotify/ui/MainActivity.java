@@ -208,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 getString(R.string.ynotify_runtime_status),
                 null);
-        runtimeStatus = YViewLayout.text(this, "", 14, false);
+        runtimeStatus = YViewLayout.text(this, "");
         runtimeStatus.setTextIsSelectable(true);
         runtime.body.addView(runtimeStatus);
         YViewLayout.addSection(settingsRoot, runtime);
@@ -225,8 +225,7 @@ public class MainActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         diagnosticsStatus = YViewLayout.caption(
                 this,
-                getString(R.string.ynotify_diagnostics_location),
-                13);
+                getString(R.string.ynotify_diagnostics_location));
         diagnostics.body.addView(diagnosticsStatus);
         YViewLayout.addSection(settingsRoot, diagnostics);
 
@@ -242,8 +241,7 @@ public class MainActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         repairStatus = YViewLayout.caption(
                 this,
-                getString(R.string.ynotify_not_scanned),
-                13);
+                getString(R.string.ynotify_not_scanned));
         repair.body.addView(repairStatus);
         YViewLayout.addSection(settingsRoot, repair);
 
@@ -275,9 +273,7 @@ public class MainActivity extends AppCompatActivity {
 
         TextView scope = YViewLayout.text(
                 this,
-                getString(R.string.ynotify_scope_help),
-                14,
-                false);
+                getString(R.string.ynotify_scope_help));
         settingsRoot.addView(scope);
 
         bottomNav = YViewLayout.bottomNavigation(this, R.menu.bottom_nav);
