@@ -120,6 +120,13 @@ def main() -> None:
         if not re.search(pattern, yfloat_manifest):
             fail(f"YFloat {activity} must explicitly use Theme.YFloat")
 
+    # Full-screen YDiag lists must use YUI page padding and spacing.
+    diag_screen = read(ROOT / MODULE_UI["YDiag"][0])
+    if diag_screen.count("YPageList(") < 4:
+        fail("YDiag screen list geometry bypasses YUI page-list rules")
+    if re.search(r"LazyColumn\\(\\s*modifier = Modifier.fillMaxSize\\(\\)", diag_screen):
+        fail("YDiag full-screen LazyColumn reintroduces feature-owned page spacing")
+
     require_markers(YUI, REQUIRED_YUI_MARKERS)
     require_markers(YUI_ADAPTIVE, REQUIRED_ADAPTIVE_MARKERS)
     require_markers(YUI_FORMS, REQUIRED_FORM_MARKERS)
