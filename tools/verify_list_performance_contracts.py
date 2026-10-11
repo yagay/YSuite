@@ -43,7 +43,7 @@ def main() -> None:
            "suspend fun listDetailedProcesses()", "icon = null"),
           ("InstalledAppCatalog.icon(appContext",))
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt",
-          ("scheduleDetailedSample()", "lastDetailSampleMs < 30_000L",
+          ("scheduleDetailedSample()", "lastDetailSampleMs < 5_000L",
            "processResult = processDeferred.await()", "processes = visible"))
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt",
           ("LaunchedEffect(drawable, packageName, px)", "InstalledAppCatalog.iconBitmap("))
