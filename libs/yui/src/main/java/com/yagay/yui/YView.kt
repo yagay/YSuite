@@ -164,7 +164,7 @@ object YView {
     }
 
     @JvmStatic fun screenHorizontal(context: Context): Int =
-        fitHorizontalInset(context, dp(context, appearance(context).screenPaddingDp), 144)
+        fitHorizontalInset(context, dp(context, appearance(context).screenPaddingDp), 240)
     @JvmStatic fun screenVertical(context: Context): Int = dp(context, appearance(context).pageVerticalPaddingDp)
     @JvmStatic fun sectionGap(context: Context): Int =
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).sectionSpacingDp)
@@ -174,17 +174,28 @@ object YView {
         dp(context, YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context)).cardRadiusDp)
     @JvmStatic fun cardOutlineWidth(context: Context): Int =
         dp(context, appearance(context).cardOutlineWidthDp)
-    @JvmStatic fun cardPadding(context: Context): Int =
-        fitHorizontalInset(context, dp(context, appearance(context).cardPaddingDp), 176)
+    @JvmStatic fun cardPadding(context: Context): Int {
+        val available = (context.resources.displayMetrics.widthPixels -
+            2 * screenHorizontal(context)).coerceAtLeast(0)
+        val safeInset = ((available - dp(context, 192)).coerceAtLeast(0)) / 2
+        return dp(context, appearance(context).cardPaddingDp).coerceIn(0, safeInset)
+    }
     @JvmStatic fun touchTarget(context: Context): Int = dp(context, appearance(context).iconTouchTargetDp)
     @JvmStatic fun rowHeight(context: Context): Int = dp(context, appearance(context).rowHeightDp)
-    @JvmStatic fun switchSlotWidth(context: Context): Int =
-        minOf(
+    @JvmStatic fun switchSlotWidth(context: Context): Int {
+        val content = context.resources.displayMetrics.widthPixels -
+            2 * screenHorizontal(context) - 4 * cardPadding(context)
+        return minOf(
             dp(context, appearance(context).switchSlotWidthDp),
-            (context.resources.displayMetrics.widthPixels - dp(context, 160)).coerceAtLeast(dp(context, 112)) / 2,
+            (content - dp(context, 88)).coerceAtLeast(dp(context, 56)),
         )
-    @JvmStatic fun rowHorizontalPadding(context: Context): Int =
-        fitHorizontalInset(context, dp(context, appearance(context).rowHorizontalPaddingDp), 176)
+    }
+    @JvmStatic fun rowHorizontalPadding(context: Context): Int {
+        val available = context.resources.displayMetrics.widthPixels -
+            2 * screenHorizontal(context) - 2 * cardPadding(context)
+        val safeInset = ((available - dp(context, 128)).coerceAtLeast(0)) / 2
+        return dp(context, appearance(context).rowHorizontalPaddingDp).coerceIn(0, safeInset)
+    }
     @JvmStatic fun buttonHorizontalPadding(context: Context): Int =
         fitHorizontalInset(context, dp(context, appearance(context).buttonPaddingHorizontalDp), 104)
     @JvmStatic fun navigationAccessoryWidth(context: Context): Int =

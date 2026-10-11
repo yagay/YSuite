@@ -69,10 +69,12 @@ def check_extreme_geometry() -> None:
     # Mirrors the deliberately simple upper-bound math used by View and Compose.
     for width in (320, 360, 480, 840, 1280):
         for configured in (0, 16, 128, 320, 512):
-            screen_inset = min(configured, max(0, width - 144) / 2)
-            card_inset = min(configured, max(0, width - 176) / 2)
-            assert 2 * screen_inset + 144 <= width
-            assert 2 * card_inset + 176 <= width
+            screen_inset = min(configured, max(0, width - 240) / 2)
+            card_inset = min(configured, max(0, width - 2 * screen_inset - 192) / 2)
+            row_inset = min(configured, max(0, width - 2 * screen_inset - 2 * card_inset - 128) / 2)
+            assert 2 * screen_inset + 240 <= width
+            assert 2 * screen_inset + 2 * card_inset + 192 <= width
+            assert 2 * screen_inset + 2 * card_inset + 2 * row_inset + 128 <= width
 
     # Both panes at the largest 250% preference must retain a central surface.
     for width in (840, 900, 1280, 1920):

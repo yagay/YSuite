@@ -166,17 +166,20 @@ fun YTheme(
     val configuredAppearance = appearanceOverride ?: storedAppearance
     // Apply safe display bounds without changing the user-configured/persisted values.
     val windowWidth = LocalConfiguration.current.screenWidthDp.coerceAtLeast(1)
-    val sideAllowance = ((windowWidth - 144).coerceAtLeast(0) / 2)
-    val contentAllowance = ((windowWidth - 176).coerceAtLeast(0) / 2)
+    val sideAllowance = ((windowWidth - 240).coerceAtLeast(0) / 2)
+    val safeScreen = configuredAppearance.screenPaddingDp.coerceAtMost(sideAllowance)
+    val contentAllowance = ((windowWidth - 2 * safeScreen - 192).coerceAtLeast(0) / 2)
+    val safeCard = configuredAppearance.cardPaddingDp.coerceAtMost(contentAllowance)
+    val rowAllowance = ((windowWidth - 2 * safeScreen - 2 * safeCard - 128).coerceAtLeast(0) / 2)
     val appearance = configuredAppearance.copy(
-        screenPaddingDp = configuredAppearance.screenPaddingDp.coerceAtMost(sideAllowance),
-        cardPaddingDp = configuredAppearance.cardPaddingDp.coerceAtMost(contentAllowance),
-        rowHorizontalPaddingDp = configuredAppearance.rowHorizontalPaddingDp.coerceAtMost(contentAllowance),
+        screenPaddingDp = safeScreen,
+        cardPaddingDp = safeCard,
+        rowHorizontalPaddingDp = configuredAppearance.rowHorizontalPaddingDp.coerceAtMost(rowAllowance),
         buttonPaddingHorizontalDp = configuredAppearance.buttonPaddingHorizontalDp.coerceAtMost(
             ((windowWidth - 104).coerceAtLeast(0) / 2),
         ),
         switchSlotWidthDp = configuredAppearance.switchSlotWidthDp.coerceAtMost(
-            (windowWidth - 176).coerceAtLeast(56),
+            (windowWidth - 2 * safeScreen - 4 * safeCard - 88).coerceAtLeast(56),
         ),
         iconTouchTargetDp = configuredAppearance.iconTouchTargetDp.coerceAtMost(
             (windowWidth / 4).coerceAtLeast(48),
