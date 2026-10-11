@@ -54,9 +54,10 @@ def main() -> int:
                       "val effectiveTabId =",
                       "selectedKey = effectiveTabId",
                       "content(adaptive, effectiveTabId)")
-    errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/FileExplorerAdvancedComponents.kt",
-                      "modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 2f).dp)",
-                      "tabs.size > 1 && tab.id == tabs[selected].id")
+    tabs = ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/FileExplorerAdvancedComponents.kt"
+    errors += require(tabs, "text = tab.title", "tabs.size > 1 && tab.id == tabs[selected].id")
+    if "modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 2f).dp)" in tabs.read_text(encoding="utf-8"):
+        errors.append("File tab text has an obsolete fixed width and cannot grow by label")
     errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
                       "IconButton(onClick = onRoot)",
                       "Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp)")

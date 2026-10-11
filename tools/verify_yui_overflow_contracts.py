@@ -32,8 +32,13 @@ def check_view() -> None:
                     "YUiMaterialSwitch(context).apply", "switchSlot(context)",
                     "YView.navigationAccessoryWidth(context)",
                     "val needsVertical = vertical")
-    if "LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, weight)" not in shared:
-        raise AssertionError("View action buttons lost their equal-width layout where space allows")
+    if "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT" not in shared or (
+            "else ViewGroup.LayoutParams.WRAP_CONTENT" not in shared):
+        raise AssertionError("View actions must grow by label and stack if necessary")
+    if "val fieldWeight = if (child is Button) 0f else flexibleWeights[child] ?: 0f" not in shared:
+        raise AssertionError("Flexible form input weights must survive intrinsic action sizing")
+    if "row.addView(button, LinearLayout.LayoutParams(" not in shared:
+        raise AssertionError("Action factory must not inject equal-width weights")
     painter = source("libs/yui/src/main/java/com/yagay/yui/YSwitchPainter.kt",
                      "override fun onMeasure(", "View.resolveSize(", "geometry.touchWidthDp",
                      "geometry.touchHeightDp", "YSwitchPainter.draw(")
