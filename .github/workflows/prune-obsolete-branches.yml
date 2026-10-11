@@ -1,0 +1,94 @@
+name: One-time YSuite branch cleanup
+on:
+  push:
+    branches: [rebuild/material3-full-ui]
+    paths: [.github/workflows/prune-obsolete-branches.yml]
+permissions:
+  contents: write
+jobs:
+  prune:
+    if: github.ref == 'refs/heads/rebuild/material3-full-ui'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Delete exactly 27 preverified obsolete branch refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from urllib.parse import quote
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
+
+          repo = "yagay/YSuite"
+          keep = {"main", "rebuild/material3-full-ui"}
+          targets = json.loads(r'''{"monorepo-migration":"c116e5288655351a0c3fb7b8a3b4d1fa7146fba7","rebuild/product-ui-system":"0df2bbd961fbc4c33baca9d613a6ee62b47cf43e","rebuild/standard-architecture":"834f3e5391604e969575402b2869dd771b5b067c","refactor/build-conventions-ci":"b0a364856767893f6237ed1368654386bdd879ca","refactor/build-system-catalog-ci":"54793c3898cb19571272bdc4fe65bfd4d9dee198","refactor/feature-catalog-automation":"68e2f8909d2cdc074f8463616bc2947c87dfce0e","refactor/feature-ipc-routing":"fbdf0df32625e754e83f6e01297924787de99248","refactor/feature-state-gating":"05eddd205f03a9f65b91c948e608be78a827a862","refactor/final-ui-framework-audit":"c427715408b6f6f92e46ea138a658d0eb4feaae6","refactor/generated-feature-catalog":"adfb873f4b07b5e41f6a05a4d5a29af0ce565180","refactor/hook-scope-recommendations":"c043ed91d7c262c3ef10bb9e68135941f38f5911","refactor/managed-runtime-wave1":"6842813fcf91847629614046d3a0f297f22bb6fb","refactor/managed-runtime-wave2":"8e5896196b33aa9066a73649052cc6158ffa9a09","refactor/managed-runtime-wave3":"3be60ee549f3077e8a2cc84d553062f8f95aeb1c","refactor/modular-host-foundation":"0603f89e5ba163a6ceb89ef01d6ec0cb03d10267","refactor/remove-priority-drag":"ff4087fa714dd542818bfd446fedcfd5885fc6f4","refactor/unified-ui-compose-entrypoints":"94ff141f107fd93f4ffc2daa364ec7fb863c14af","refactor/unified-ui-content-sections":"54bcee8e75f3d228589b3f522b4c410ffd899af6","refactor/unified-ui-framework":"10a103f0909c50a0a8070a90e10d25916af65ee4","refactor/unified-ui-secondary-pages":"6a7a5abead7f935db94f262e7945230986efbcd3","refactor/unified-ui-secondary-screens":"ac00dd4847256f47d1a14c69182185d6c4617eee","refactor/unify-priority-rules-ui":"b61b567f92c3c7ddeb1a0a7d1fcdbaafba806765","refactor/unify-yentry-dashboard-runtime":"b2e51420253de13e993c22de03b130a13a87a7b0","refactor/yentry-ui-cleanup":"53d6d0354efcf67ce431e0b9ac0fa25f3fc55118","__temp_should_not_use":"27a7cac6500f49006127660b87b259bf9b0ddbd2","__temp2":"27a7cac6500f49006127660b87b259bf9b0ddbd2","__temp3":"27a7cac6500f49006127660b87b259bf9b0ddbd2"}''')
+          assert len(targets) == 27
+          assert keep.isdisjoint(targets)
+
+          def api(path, method="GET"):
+              request = Request(
+                  "https://api.github.com/repos/" + repo + path,
+                  method=method,
+                  headers={
+                      "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "YSuite-user-requested-branch-cleanup",
+                  },
+              )
+              try:
+                  with urlopen(request, timeout=40) as resp:
+                      payload = resp.read()
+                      return json.loads(payload) if payload else None
+              except HTTPError as exc:
+                  raise RuntimeError(
+                      f"{method} {path}: HTTP {exc.code}, "
+                      + exc.read().decode("utf-8", errors="replace")[:300]
+                  ) from exc
+
+          def branches():
+              all_branches = []
+              page = 1
+              while True:
+                  group = api(f"/branches?per_page=100&page={page}")
+                  all_branches.extend(group)
+                  if len(group) < 100:
+                      break
+                  page += 1
+              return {b["name"]: b["commit"]["sha"] for b in all_branches}
+
+          live = branches()
+          if not keep.issubset(live):
+              raise SystemExit(f"Protected survivors missing: {sorted(keep - live.keys())}")
+          unknown = live.keys() - keep - targets.keys()
+          if unknown:
+              raise SystemExit(f"Unreviewed branches: {sorted(unknown)}")
+          mismatches = {
+              name: (sha, live.get(name))
+              for name, sha in targets.items()
+              if name in live and live[name] != sha
+          }
+          if mismatches:
+              raise SystemExit(f"Branch tips changed since approval: {mismatches}")
+
+          removed = []
+          for name in sorted(targets):
+              if name not in live:
+                  print(f"Already absent: {name}", flush=True)
+                  continue
+              # Check the expected SHA immediately before deletion.
+              ref = api("/git/ref/heads/" + quote(name, safe="/"))
+              if ref["object"]["sha"] != targets[name]:
+                  raise SystemExit(f"Ref changed during cleanup: {name}")
+              api("/git/refs/heads/" + quote(name, safe="/"), method="DELETE")
+              removed.append(name)
+              print(f"Deleted ({len(removed)}/{len(targets)}): {name}", flush=True)
+
+          remaining = branches()
+          if set(remaining) != keep:
+              raise SystemExit(f"Remaining branches do not match: {sorted(remaining)}")
+          print("SUCCESS: exactly main and rebuild/material3-full-ui remain.", flush=True)
+          PY
