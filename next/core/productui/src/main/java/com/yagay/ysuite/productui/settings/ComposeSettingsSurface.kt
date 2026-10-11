@@ -121,34 +121,24 @@ fun ComposeSettingsGroup(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val appearance = LocalYAppearance.current
-    Surface(
+    // A settings group defines semantic grouping, never forces a card layout.
+    // Feature pages retain their structure while child controls use YUI.
+    Column(
         modifier = modifier.fillMaxWidth(),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(appearance.cardRadiusDp.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = androidx.compose.foundation.BorderStroke(
-            appearance.cardOutlineWidthDp.dp,
-            MaterialTheme.colorScheme.outlineVariant,
-        ),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap()),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
-                .padding(vertical = YUiGeometry.compactGap()),
-            verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap()),
-        ) {
-            if (title != null) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(
-                        horizontal = appearance.rowHorizontalPaddingDp.dp,
-                        vertical = YUiGeometry.compactGap(),
-                    ),
-                )
-            }
-            content()
+        if (title != null) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(
+                    horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                    vertical = YUiGeometry.compactGap(),
+                ),
+            )
         }
+        content()
     }
 }
 
