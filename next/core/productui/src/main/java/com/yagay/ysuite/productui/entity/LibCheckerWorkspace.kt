@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
+import com.yagay.ysuite.productui.fitPanes
+import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.productui.YSuiteProductPage
 
 /**
@@ -43,12 +45,16 @@ fun LibCheckerWorkspace(
         headerContent = searchAndFilters,
         bottomBar = selectionBar,
     ) { adaptive ->
+        val panes = adaptive.fitPanes(
+            leading = if (navigationPane != null) ProductLayoutTokens.EntityNavigationPaneWidth else 0.dp,
+            trailing = if (detailPane != null) ProductLayoutTokens.EntityDetailPaneWidth else 0.dp,
+        )
         Row(modifier = Modifier.fillMaxSize()) {
-            if (adaptive.isExpanded && navigationPane != null) {
+            if (adaptive.isExpanded && navigationPane != null && panes.hasLeading) {
                 Surface(
                     modifier =
                         Modifier
-                            .width(ProductLayoutTokens.EntityNavigationPaneWidth)
+                            .width(panes.leading)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme
@@ -65,11 +71,11 @@ fun LibCheckerWorkspace(
             ) { paneAdaptive ->
                 content(paneAdaptive)
             }
-            if (adaptive.isExpanded && detailPane != null) {
+            if (adaptive.isExpanded && detailPane != null && panes.hasTrailing) {
                 Surface(
                     modifier =
                         Modifier
-                            .width(ProductLayoutTokens.EntityDetailPaneWidth)
+                            .width(panes.trailing)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme

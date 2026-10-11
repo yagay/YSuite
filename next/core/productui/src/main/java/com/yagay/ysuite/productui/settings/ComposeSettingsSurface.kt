@@ -4,6 +4,8 @@ import com.yagay.ysuite.productui.ProductSurfaceKind
 
 import com.yagay.ysuite.productui.ProductLayoutTokens
 import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
+import com.yagay.ysuite.productui.fitPanes
+import androidx.compose.ui.unit.dp
 
 /*
  * Interaction structure adapted from alorma/Compose-Settings (MIT).
@@ -59,12 +61,15 @@ fun ComposeSettingsSurface(
         navigationIcon = navigationIcon,
         actions = actions,
     ) { adaptive ->
+        val panes = adaptive.fitPanes(
+            leading = if (categoryPane != null) ProductLayoutTokens.SettingsCategoryPaneWidth else 0.dp,
+        )
         Row(modifier = Modifier.fillMaxSize()) {
-            if (adaptive.isExpanded && categoryPane != null) {
+            if (adaptive.isExpanded && categoryPane != null && panes.hasLeading) {
                 Surface(
                     modifier =
                         Modifier
-                            .width(ProductLayoutTokens.SettingsCategoryPaneWidth)
+                            .width(panes.leading)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme

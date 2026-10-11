@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import com.yagay.ysuite.productui.ProductAdaptiveBox
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
+import com.yagay.ysuite.productui.fitPanes
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 /**
@@ -59,11 +61,15 @@ fun FileExplorerWorkspace(
     content: @Composable (ProductAdaptiveInfo) -> Unit,
 ) {
     ProductAdaptiveBox(modifier = modifier.fillMaxSize()) { adaptive ->
+        val panes = adaptive.fitPanes(
+            leading = ProductLayoutTokens.FileLocationPaneWidth,
+            trailing = if (detailPane != null) ProductLayoutTokens.FileDetailPaneWidth else 0.dp,
+        )
         if (adaptive.isExpanded) {
             Row(modifier = Modifier.fillMaxSize()) {
-                Surface(
+                if (panes.hasLeading) Surface(
                     modifier = Modifier
-                        .width(ProductLayoutTokens.FileLocationPaneWidth)
+                        .width(panes.leading)
                         .fillMaxHeight(),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                 ) {
@@ -85,10 +91,10 @@ fun FileExplorerWorkspace(
                     content = content,
                 )
 
-                if (detailPane != null) {
+                if (detailPane != null && panes.hasTrailing) {
                     Surface(
                         modifier = Modifier
-                            .width(ProductLayoutTokens.FileDetailPaneWidth)
+                            .width(panes.trailing)
                             .fillMaxHeight(),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
                     ) {
