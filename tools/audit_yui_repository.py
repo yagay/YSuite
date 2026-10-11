@@ -48,6 +48,24 @@ PATTERNS = {
     "canvas_fixed_argb": re.compile(
         r"\b(?:setColor|drawColor|setShadowLayer)\s*\([^\n]*0x[0-9a-fA-F]{8}\b"
     ),
+    # Potential second visual owner layered over a shared YUI component.
+    # These are review candidates, not automatic removals: content-specific
+    # modifiers (fillMaxWidth, weight, clipping for images) may be intentional.
+    "local_visual_geometry": re.compile(
+        r"\\b(?:Modifier\\.(?:height|width|size|defaultMinSize|"
+        r"padding|background|border|clip)|"
+        r"setPadding|setMinimumHeight|setMinimumWidth|"
+        r"setBackgroundColor|setTextColor|setTextSize)\\s*\\("
+    ),
+    "local_visual_shape": re.compile(
+        r"\\b(?:RoundedCornerShape|CutCornerShape|"
+        r"CircleShape|BorderStroke|SolidColor)\\s*\\("
+    ),
+    "local_ui_dimension_constant": re.compile(
+        r"\\b(?:BUTTON|SWITCH|CARD|ROW|DIALOG|PADDING|RADIUS|"
+        r"TOOLBAR|ICON|TEXT)_?(?:HEIGHT|WIDTH|SIZE|RADIUS|"
+        r"PADDING|SPACING|COLOR|ALPHA)\\b"
+    ),
     "independent_visual_preference": re.compile(
         r"(?:getSharedPreferences|put(?:String|Int|Boolean)|get(?:String|Int|Boolean))"
         r".{0,130}(?:theme|dark_mode|appearance|corner_radius|ui_density)",
@@ -134,6 +152,9 @@ def scan() -> tuple[dict, list]:
                     if path.suffix == ".xml":
                         continue
                 if kind == "xml_fixed_dimension" and path.suffix != ".xml":
+                    continue
+                if kind in {"local_visual_geometry", "local_visual_shape",
+                            "local_ui_dimension_constant"} and not in_ui:
                     continue
                 if not pattern.search(line):
                     continue
