@@ -23,6 +23,9 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
     @Volatile
     private var appContext: Context? = null
 
+    @Volatile
+    private var registered = false
+
     /** Reflection-friendly plugin registration. No plugin calls registerListener() in YSuite mode. */
     @JvmStatic
     fun attachFromPlugin(pluginId: String, listener: Any): Boolean {
@@ -38,7 +41,9 @@ object SuiteXposedServiceBroker : XposedServiceHelper.OnServiceListener {
         val app = context.applicationContext
         appContext = app
         refreshLocalFeatureGates(app)
+        if (registered) return
         XposedServiceHelper.registerListener(this)
+        registered = true
         SuiteLog.i(
             app,
             SuiteContract.HOST_MODULE_ID,

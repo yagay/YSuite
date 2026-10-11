@@ -78,6 +78,10 @@ public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
         registerActivityCallbacks();
         registerHotReloadListenerIfStandalone();
         Context app = appContext;
+        if (app != null) {
+            YFloatHostIdentity.initialize(app);
+            LsposedStatusManager.initialize(app);
+        }
         if (app != null) DiagnosticLog.i(app, "RUNTIME", "managed runtime enabled");
     }
 

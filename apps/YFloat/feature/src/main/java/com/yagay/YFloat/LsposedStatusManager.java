@@ -140,6 +140,7 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
     private static final String PLUGIN_ID = "yfloat";
     private static final LsposedStatusManager INSTANCE = new LsposedStatusManager();
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
+    private static final AtomicBoolean LISTENER_ATTACHED = new AtomicBoolean(false);
     private static volatile Thread ioThread;
     private static final ExecutorService IO = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "YFloat-lsposed-status");
@@ -186,13 +187,27 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
             INSTANCE.yuiAppearance = new YAppearanceStore(app);
             INSTANCE.yuiAppearance.registerPreferenceListener(INSTANCE.yuiPreferenceListener);
             preferences.registerOnSharedPreferenceChangeListener(INSTANCE.localPreferenceListener);
-
-            XposedHostBridge.AttachResult result =
-                    XposedHostBridge.attachListener(app, PLUGIN_ID, INSTANCE);
-            if (result == XposedHostBridge.AttachResult.NOT_SUITE_HOST) {
-                XposedServiceHelper.registerListener(INSTANCE);
-            } else if (result == XposedHostBridge.AttachResult.HOST_PRESENT_BUT_FAILED) {
-                DiagnosticLog.critical(app, "LSPOSED_BROKER", "YSuite broker attach failed");
+        }
+        // Register separately from one-time preference initialization. A temporarily
+        // unavailable managed broker must be retried when the feature is enabled again.
+        if (!LISTENER_ATTACHED.get()) {
+            synchronized (INSTANCE) {
+                if (!LISTENER_ATTACHED.get()) {
+                    try {
+                        XposedHostBridge.AttachResult result =
+                                XposedHostBridge.attachListener(app, PLUGIN_ID, INSTANCE);
+                        if (result == XposedHostBridge.AttachResult.NOT_SUITE_HOST) {
+                            XposedServiceHelper.registerListener(INSTANCE);
+                            LISTENER_ATTACHED.set(true);
+                        } else if (result == XposedHostBridge.AttachResult.ATTACHED) {
+                            LISTENER_ATTACHED.set(true);
+                        } else {
+                            DiagnosticLog.critical(app, "LSPOSED_BROKER", "YSuite broker attach failed; retry on enable");
+                        }
+                    } catch (Throwable error) {
+                        DiagnosticLog.critical(app, "LSPOSED_BROKER", "LSPosed listener registration failed: " + error);
+                    }
+                }
             }
         }
     }

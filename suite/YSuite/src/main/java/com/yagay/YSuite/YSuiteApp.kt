@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.UserManager
 import android.util.Log
 import com.yagay.yui.YUiLocaleBridge
@@ -28,6 +30,10 @@ class YSuiteApp : Application() {
     @Volatile
     private var initialized = false
     private var unlockReceiver: BroadcastReceiver? = null
+    private val recoveryHandler = Handler(Looper.getMainLooper())
+    private var brokerRegistered = false
+    private var brokerRetryCount = 0
+    private var startupRetryCount = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -52,8 +58,6 @@ class YSuiteApp : Application() {
     @Synchronized
     private fun initializeUnlockedHost() {
         if (initialized || !isUserUnlockedSafely()) return
-        initialized = true
-
         unlockReceiver?.let { receiver -> runCatching { unregisterReceiver(receiver) } }
         unlockReceiver = null
 
@@ -63,9 +67,7 @@ class YSuiteApp : Application() {
 
         // Each process-global subsystem is isolated. A missing/broken LSPosed service, Root backend,
         // OEM package service or post-update reload path must never prevent the shell from opening.
-        safeHostStep("xposed-broker") {
-            SuiteXposedServiceBroker.takeOwnership(this)
-        }
+        ensureXposedBrokerRegistered()
         safeHostStep("root-manager") {
             RootManager.initialize(this)
         }
@@ -75,7 +77,8 @@ class YSuiteApp : Application() {
 
         val states = runCatching { FeatureStateStore(this) }
             .getOrElse { error ->
-                Log.e(TAG, "Feature state store unavailable; skipping feature bootstrap", error)
+                Log.e(TAG, "Feature state store unavailable; retrying host bootstrap", error)
+                scheduleHostStartupRetry()
                 return
             }
         val included = runCatching { FeatureRegistry.included() }
@@ -125,6 +128,7 @@ class YSuiteApp : Application() {
                 }
         }
 
+        initialized = true
         safeSuiteLog(
             SuiteContract.HOST_MODULE_ID,
             "YSuite host initialized; version=$versionName($versionCode); contract=${SuiteContract.REVISION}; " +
@@ -132,7 +136,33 @@ class YSuiteApp : Application() {
         )
     }
 
+    private fun ensureXposedBrokerRegistered() {
+        if (brokerRegistered) return
+        runCatching {
+            SuiteXposedServiceBroker.takeOwnership(this)
+        }.onSuccess {
+            brokerRegistered = true
+            brokerRetryCount = 0
+        }.onFailure { error ->
+            safeSuiteError(SuiteContract.HOST_MODULE_ID, "LSPosed broker registration failed; will retry", error)
+            if (brokerRetryCount++ < MAX_RECOVERY_ATTEMPTS) {
+                val delayMs = (1L shl brokerRetryCount.coerceAtMost(5)) * 1_000L
+                recoveryHandler.postDelayed({ ensureXposedBrokerRegistered() }, delayMs)
+            }
+        }
+    }
+
+    private fun scheduleHostStartupRetry() {
+        if (startupRetryCount++ >= MAX_RECOVERY_ATTEMPTS) return
+        val delayMs = (1L shl startupRetryCount.coerceAtMost(5)) * 1_000L
+        recoveryHandler.postDelayed({
+            runCatching { initializeUnlockedHost() }
+                .onFailure { safeSuiteError(SuiteContract.HOST_MODULE_ID, "host startup retry failed", it) }
+        }, delayMs)
+    }
+
     override fun onTerminate() {
+        recoveryHandler.removeCallbacksAndMessages(null)
         runCatching { FeatureRuntimeManager.destroyAll(this) }
             .onFailure { Log.e(TAG, "Feature runtime shutdown failed safely", it) }
         super.onTerminate()
@@ -184,5 +214,6 @@ class YSuiteApp : Application() {
 
     private companion object {
         const val TAG = "YSuite.App"
+        const val MAX_RECOVERY_ATTEMPTS = 5
     }
 }
