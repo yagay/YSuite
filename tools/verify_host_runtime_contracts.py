@@ -88,6 +88,24 @@ def check_lifecycle_and_health() -> None:
             "LsposedStatusManager.initialize(app);")
 
 
+def check_root_recovery() -> None:
+    require("libs/ycore/src/main/java/com/yagay/suite/core/RootManager.kt",
+            "repeat(2)", "shell.close()", "shell.isRoot")
+    require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt",
+            "if (!RootManager.isAvailable(app))", "Root shell could not open as uid 0")
+    require("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt",
+            "services.hostOrNull()", "fun probeRoot(): RootProbe",
+            "Root command failed (exit=", "result.code == 0 && uid == \"0\"",
+            "Managed Root execution failed:")
+    require("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt",
+            "processShell.probeRoot()", "message = probe.detail")
+    require("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt",
+            "text = state.root.message")
+    require("suite/YSuite/src/main/java/com/yagay/YSuite/YSuiteApp.kt",
+            "!FeatureRuntimeManager.isRuntimeEnabled(feature.id)",
+            "managed feature runtime recovered on foreground")
+
+
 def check_live_handoff() -> None:
     require("apps/YNFC/feature/build.gradle.kts",
             "CONFIG_AUTHORITY", "com.yagay.YSuite.ynfc.config")
@@ -103,8 +121,9 @@ def check_live_handoff() -> None:
 def main() -> None:
     check_host_identity()
     check_lifecycle_and_health()
+    check_root_recovery()
     check_live_handoff()
-    print("runtime IPC contract: OK host identity, broker recovery, health, NFC handoff")
+    print("runtime IPC contract: OK host identity, broker recovery, health, Root recovery, NFC handoff")
 
 
 if __name__ == "__main__":
