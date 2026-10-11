@@ -111,8 +111,9 @@ def run() -> None:
         "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/OpenPresetFilterRow.kt",
     ):
         content = require(relative, "softWrap = true")
-        if "maxLines = 2" in content:
-            raise AssertionError(f"{relative} clamps a filter action label to two lines")
+        action = content.split("TextButton(", 1)[1].split("DropdownMenu(", 1)[0]
+        if "maxLines = 2" in action or "TextOverflow.Ellipsis" in action:
+            raise AssertionError(f"{relative} clamps a filter action label instead of wrapping")
     for relative in (
         "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/DashboardSurface.kt",
         "apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt",
