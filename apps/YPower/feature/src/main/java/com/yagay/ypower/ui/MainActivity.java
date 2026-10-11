@@ -1,8 +1,6 @@
 package com.yagay.ypower.ui;
 
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -13,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatEditText;
 
 import com.yagay.ypower.R;
+import com.yagay.suite.api.InstalledAppCatalog;
 import com.yagay.ypower.data.ProfileStore;
 import com.yagay.ypower.data.RecommendedAppRegistry;
 import com.yagay.ypower.root.RootShell;
@@ -27,18 +26,29 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
     private LinearLayout list;
     private AppCompatEditText search;
     private TextView status;
-    private final List<ApplicationInfo> apps = new ArrayList<>();
+    private final ExecutorService appLoader = Executors.newSingleThreadExecutor();
+    private final AtomicInteger loadVersion = new AtomicInteger();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         buildUi();
         loadApps("");
+    }
+
+    @Override
+    protected void onDestroy() {
+        loadVersion.incrementAndGet();
+        appLoader.shutdownNow();
+        super.onDestroy();
     }
 
     @Override
@@ -99,36 +109,39 @@ public class MainActivity extends AppCompatActivity {
                 root && xposed ? YViewStatusTone.Good : YViewStatusTone.Warning);
     }
 
-    @SuppressWarnings("deprecation")
     private void loadApps(String query) {
-        PackageManager pm = getPackageManager();
-        if (apps.isEmpty()) {
-            apps.addAll(pm.getInstalledApplications(0));
+        final int request = loadVersion.incrementAndGet();
+        final String q = query == null ? "" : query.toLowerCase(Locale.ROOT).trim();
+        // PackageManager and label lookup can be slow on large app inventories.
+        // Always load on our serial worker and let the shared catalog reuse a snapshot.
+        appLoader.execute(() -> {
+            ProfileStore store = ProfileStore.get(this);
+            List<InstalledAppCatalog.Entry> apps = new ArrayList<>(
+                    InstalledAppCatalog.list(this, 0));
             apps.removeIf(a -> getPackageName().equals(a.packageName));
-        }
-
-        ProfileStore store = ProfileStore.get(this);
-        apps.sort(
-                Comparator
-                        .comparing((ApplicationInfo a) -> !store.getProfile(a.packageName).enabled)
-                        .thenComparing(
-                                a -> String.valueOf(pm.getApplicationLabel(a)),
-                                String.CASE_INSENSITIVE_ORDER
-                        )
-                        .thenComparing(a -> a.packageName, String.CASE_INSENSITIVE_ORDER)
-        );
-
-        String q = query == null ? "" : query.toLowerCase(Locale.ROOT).trim();
-        list.removeAllViews();
-        for (ApplicationInfo app : apps) {
-            String label = String.valueOf(pm.getApplicationLabel(app));
-            if (!q.isEmpty()
-                    && !label.toLowerCase(Locale.ROOT).contains(q)
-                    && !app.packageName.toLowerCase(Locale.ROOT).contains(q)) {
-                continue;
+            apps.sort(
+                    Comparator
+                            .comparing((InstalledAppCatalog.Entry a) -> !store.getProfile(a.packageName).enabled)
+                            .thenComparing(a -> a.label, String.CASE_INSENSITIVE_ORDER)
+                            .thenComparing(a -> a.packageName, String.CASE_INSENSITIVE_ORDER)
+            );
+            List<InstalledAppCatalog.Entry> visible = new ArrayList<>();
+            for (InstalledAppCatalog.Entry app : apps) {
+                if (!q.isEmpty()
+                        && !app.label.toLowerCase(Locale.ROOT).contains(q)
+                        && !app.packageName.toLowerCase(Locale.ROOT).contains(q)) {
+                    continue;
+                }
+                visible.add(app);
             }
-            addRow(label, app.packageName);
-        }
+            runOnUiThread(() -> {
+                if (isDestroyed() || request != loadVersion.get()) return;
+                list.removeAllViews();
+                for (InstalledAppCatalog.Entry app : visible) {
+                    addRow(app.label, app.packageName);
+                }
+            });
+        });
     }
 
     private void addRow(String label, String packageName) {

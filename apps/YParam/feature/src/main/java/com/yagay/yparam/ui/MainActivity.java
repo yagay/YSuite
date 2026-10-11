@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.yagay.yparam.R;
+import com.yagay.suite.api.InstalledAppCatalog;
 import com.yagay.yparam.YParamApp;
 import com.yagay.yparam.data.ConfigRepository;
 import com.yagay.yui.YViewLayout;
@@ -31,9 +32,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 public final class MainActivity extends AppCompatActivity implements YParamApp.ServiceObserver {
     private final List<AppEntry> all = new ArrayList<>();
+    private final ExecutorService appLoader = Executors.newSingleThreadExecutor();
     private AppAdapter adapter;
     private AppCompatEditText search;
     private SwitchCompat includeSystem;
@@ -51,6 +54,7 @@ public final class MainActivity extends AppCompatActivity implements YParamApp.S
 
     @Override protected void onDestroy() {
         YParamApp.removeObserver(this);
+        appLoader.shutdownNow();
         super.onDestroy();
     }
 
@@ -120,19 +124,19 @@ public final class MainActivity extends AppCompatActivity implements YParamApp.S
 
     private void loadApps() {
         progress.setVisibility(android.view.View.VISIBLE);
-        Executors.newSingleThreadExecutor().execute(() -> {
-            PackageManager pm = getPackageManager();
+        appLoader.execute(() -> {
             Set<String> configured = new HashSet<>(ConfigRepository.configuredPackages());
             List<AppEntry> data = new ArrayList<>();
-            for (ApplicationInfo ai : pm.getInstalledApplications(PackageManager.MATCH_DISABLED_COMPONENTS)) {
-                if (getPackageName().equals(ai.packageName)) continue;
-                boolean sys = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
-                String name = String.valueOf(pm.getApplicationLabel(ai));
-                data.add(new AppEntry(name, ai.packageName, pm.getApplicationIcon(ai), sys, configured.contains(ai.packageName)));
+            for (InstalledAppCatalog.Entry entry : InstalledAppCatalog.list(this, PackageManager.MATCH_DISABLED_COMPONENTS)) {
+                if (getPackageName().equals(entry.packageName)) continue;
+                data.add(new AppEntry(entry.label, entry.packageName,
+                        InstalledAppCatalog.icon(this, entry.packageName, 64),
+                        entry.system, configured.contains(entry.packageName)));
             }
             Collator collator = Collator.getInstance(Locale.getDefault());
             data.sort(Comparator.comparing((AppEntry a) -> !a.configured).thenComparing(a -> a.name, collator));
             runOnUiThread(() -> {
+                if (isDestroyed()) return;
                 all.clear();
                 all.addAll(data);
                 progress.setVisibility(android.view.View.GONE);

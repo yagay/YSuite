@@ -100,3 +100,21 @@ workflow ownership. For this branch, only `:suite:assembleDebug` executes as
 an APK build; its artifact is `YSuite-debug-arm64-v8a`. Other workflows may
 still run source-only architecture checks. GitHub Action success is not a
 substitute for large-font, narrow-screen and dark-theme device validation.
+
+## Shared installed-app inventory and other cross-feature data sources
+
+Android's installed-app inventory and label lookup must use
+`com.yagay.suite.api.InstalledAppCatalog` rather than duplicate
+`PackageManager.getInstalledApplications` calls in feature UI/repositories.
+It caches flag-specific immutable snapshots by host package and locale,
+invalidates on package-change broadcasts, and shares bounded icon bitmaps.
+Callers perform their own UI/background dispatching. The source is located
+in `libs/yapi` so both standalone features and the integrated suite use it.
+YEntryCleaner still classifies updated system apps with its own policy;
+Root-only component discovery and security-sensitive package queries
+remain feature-owned and are **not** substituted with this ordinary inventory.
+
+`tools/verify_shared_app_catalog.py` enforces source ownership and
+checks consumers. Root, LSPosed, accessibility permission, and runtime state
+use their existing host facade when appropriate, but heterogeneous
+privileged operations are not forced into a single unsafe loader.

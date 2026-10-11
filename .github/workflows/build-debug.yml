@@ -74,6 +74,9 @@ jobs:
           test -s "${ANDROID_HOME}/platforms/android-${{ steps.versions.outputs.android_platform }}/android.jar"
           test -x "${ANDROID_HOME}/build-tools/${{ steps.versions.outputs.build_tools }}/aapt2"
 
+      - name: Verify shared platform data sources
+        run: python3 tools/verify_shared_app_catalog.py
+
       - name: Verify row alignment on the actual shared YUI renderer
         run: python3 tools/verify_yui_row_alignment.py
 
