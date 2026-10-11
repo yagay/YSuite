@@ -69,7 +69,12 @@ class ProcessRepository(
 
     /** Fallback for modern OEM kernels restricting /proc/<pid>/stat. */
     private suspend fun listProcessesFromPs(): List<ProcessEntry> {
-        val raw = shell.execute("ps -A -o PID,PPID,UID,NAME 2>/dev/null", 8_000).stdout
+        val first = shell.execute("ps -A -o PID,PPID,UID,NAME 2>/dev/null", 8_000).stdout
+        val raw = if (first.isNotBlank()) first
+            else shell.execute("ps -A -o PID,PPID,USER,NAME 2>/dev/null", 8_000).stdout
+        val byCommand = packageCache.flatMap { (uid, entries) ->
+            entries.map { entry -> entry.packageName to (uid to entry) }
+        }.toMap()
         return raw.lineSequence().drop(1).mapNotNull { line ->
             val fields = line.trim().split(Regex("\\s+"), limit = 4)
             if (fields.size != 4) return@mapNotNull null
@@ -77,19 +82,23 @@ class ProcessRepository(
             val ppid = fields[1].toIntOrNull() ?: 0
             val uid = fields[2].toIntOrNull() ?: -1
             val command = fields[3]
-            val identities = packageCache[uid].orEmpty()
+            val direct = byCommand[command.substringBefore(':')]
+            val actualUid = if (uid >= 0) uid else direct?.first ?: -1
+            val identities = packageCache[actualUid].orEmpty()
             val primary = identities.firstOrNull { command == it.packageName ||
-                command.startsWith(it.packageName + ":") } ?: identities.firstOrNull()
+                command.startsWith(it.packageName + ":") } ?: direct?.second ?: identities.firstOrNull()
             ProcessEntry(
-                pid = pid, ppid = ppid, uid = uid, userName = fields[2],
+                pid = pid, ppid = ppid, uid = actualUid, userName = fields[2],
                 nice = 0, state = "?", rssKb = 0L, cpuPercent = 0f,
                 name = command.substringAfterLast('/'), command = command,
-                packageNames = identities.map { it.packageName },
+                packageNames = identities.map { it.packageName }.ifEmpty {
+                    listOfNotNull(primary?.packageName)
+                },
                 packageName = primary?.packageName, appLabel = primary?.label,
                 icon = primary?.packageName?.let { InstalledAppCatalog.icon(appContext, it, 64) },
                 kind = when {
-                    identities.isEmpty() -> ProcessKind.LINUX
-                    identities.any { it.system } -> ProcessKind.SYSTEM_APP
+                    primary == null -> ProcessKind.LINUX
+                    primary.system -> ProcessKind.SYSTEM_APP
                     else -> ProcessKind.USER_APP
                 }
             )

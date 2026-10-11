@@ -12,6 +12,9 @@ import androidx.appcompat.widget.AppCompatEditText;
 
 import com.yagay.ypower.R;
 import com.yagay.suite.api.InstalledAppCatalog;
+import android.graphics.drawable.Drawable;
+import java.util.HashMap;
+import java.util.Map;
 import com.yagay.ypower.data.ProfileStore;
 import com.yagay.ypower.data.RecommendedAppRegistry;
 import com.yagay.ypower.root.RootShell;
@@ -134,18 +137,25 @@ public class MainActivity extends AppCompatActivity {
                 }
                 visible.add(app);
             }
+            Map<String, Drawable> icons = new HashMap<>();
+            int iconSize = Math.min(96, Math.max(24, com.yagay.yui.YView.listIconSize(this)));
+            for (InstalledAppCatalog.Entry app : visible) {
+                if (request != loadVersion.get()) return;
+                icons.put(app.packageName, app.icon(this, iconSize));
+            }
             runOnUiThread(() -> {
                 if (isDestroyed() || request != loadVersion.get()) return;
                 list.removeAllViews();
                 for (InstalledAppCatalog.Entry app : visible) {
-                    addRow(app.label, app.packageName);
+                    addRow(app.label, app.packageName, icons.get(app.packageName));
                 }
             });
         });
     }
 
-    private void addRow(String label, String packageName) {
-        YViewListRow row = YViewLayout.listItem(this, false);
+    private void addRow(String label, String packageName, Drawable icon) {
+        YViewListRow row = YViewLayout.listItem(this, true);
+        row.icon.setImageDrawable(icon);
         boolean recommended = RecommendedAppRegistry.find(packageName) != null;
         row.title.setText(label);
         row.subtitle.setText(packageName

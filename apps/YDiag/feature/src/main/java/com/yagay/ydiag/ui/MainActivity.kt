@@ -60,6 +60,7 @@ import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YSectionHeader
 import com.yagay.yui.YPageList
 import com.yagay.yui.YListItem
+import com.yagay.yui.YUiIcon as Icon
 import com.yagay.yui.YFilterBar
 import com.yagay.yui.YCheckboxItem
 import com.yagay.yui.YComposeActivity
@@ -596,7 +597,7 @@ private fun AppPickerDialog(
                                     modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
                                 )
                             } else {
-                                androidx.compose.material3.Icon(
+                                Icon(
                                     imageVector = Icons.Default.Apps,
                                     contentDescription = null,
                                     modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
