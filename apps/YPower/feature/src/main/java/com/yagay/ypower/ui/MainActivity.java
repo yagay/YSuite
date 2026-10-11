@@ -9,6 +9,8 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Gravity;
+import android.text.TextUtils;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -68,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Runnable pendingSearch;
     private volatile List<AppRow> snapshot = java.util.Collections.emptyList();
+    private boolean firstListPresented;
 
     @Override
     protected void onCreate(@Nullable Bundle state) {
@@ -132,6 +135,11 @@ public class MainActivity extends AppCompatActivity {
         list = new RecyclerView(this);
         list.setLayoutManager(new LinearLayoutManager(this));
         list.setHasFixedSize(false);
+        list.setClipToPadding(true);
+        // Prevent a newly bound check box or button stealing focus and jumping the
+        // scroll offset before the first application row is actually visible.
+        list.setPreserveFocusAfterLayout(false);
+        list.setPadding(0, YView.controlGap(this), 0, YView.sectionGap(this));
         list.setItemAnimator(null); // Avoid re-layout stutter on frequent toggle/search updates.
         adapter = new AppAdapter();
         list.setAdapter(adapter);
@@ -192,7 +200,18 @@ public class MainActivity extends AppCompatActivity {
             if (query.isEmpty() || app.label.toLowerCase(Locale.ROOT).contains(query)
                     || app.packageName.toLowerCase(Locale.ROOT).contains(query)) result.add(app);
         }
-        adapter.submitList(result);
+        adapter.submitList(result, () -> {
+            // RecyclerView may restore an item offset before asynchronous data arrive.
+            // For the first presentation ensure the top item is fully inside its viewport;
+            // subsequent searches, toggles and returns preserve the user's scroll position.
+            if (!firstListPresented && !result.isEmpty()) {
+                firstListPresented = true;
+                RecyclerView.LayoutManager manager = list.getLayoutManager();
+                if (manager instanceof LinearLayoutManager) {
+                    ((LinearLayoutManager) manager).scrollToPositionWithOffset(0, 0);
+                }
+            }
+        });
     }
 
     private void toggle(AppRow row, boolean enabled) {
@@ -216,7 +235,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private YViewListRow createAppRow() {
-        return YViewLayout.listItem(this, true);
+        YViewListRow row = YViewLayout.listItem(this, true);
+        // RecyclerView is NOT a LinearLayout. Without RecyclerView.LayoutParams
+        // the item can be measured at intrinsic WRAP_CONTENT width: its checkbox
+        // and settings button then drift horizontally depending on the title length.
+        row.root.setLayoutParams(new RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        row.trailing.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        row.subtitle.setMaxLines(2);
+        row.subtitle.setEllipsize(TextUtils.TruncateAt.END);
+        row.title.setMaxLines(2);
+        row.title.setEllipsize(TextUtils.TruncateAt.END);
+        return row;
     }
 
     private static final class AppRow {
@@ -247,9 +278,13 @@ public class MainActivity extends AppCompatActivity {
             // YUI still owns icon geometry, typography, checkboxes and action buttons.
             YViewListRow row = createAppRow();
             MaterialCheckBox check = YViewLayout.checkBoxControl(MainActivity.this, false, null);
-            Button detail = YViewLayout.secondaryButton(MainActivity.this, getString(R.string.yp_settings));
-            row.trailing.addView(check);
-            row.trailing.addView(detail);
+            Button detail = YViewLayout.listActionButton(MainActivity.this, getString(R.string.yp_settings));
+            int touch = YView.touchTarget(MainActivity.this);
+            // Fixed-sized checkbox and shared row-action typography produce one
+            // measured right-side column across short and long app names.
+            row.trailing.addView(check, new LinearLayout.LayoutParams(touch, touch));
+            row.trailing.addView(detail, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, touch));
             return new AppHolder(row, check, detail);
         }
 

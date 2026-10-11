@@ -674,6 +674,23 @@ object YViewLayout {
             YView.styleSecondaryButton(this)
         }
 
+    /**
+     * List-item action density belongs to YUI, not to individual feature modules.
+     * Preserve the shared color/shape/typography tokens while keeping a row action
+     * at the common touch-target height instead of a full-sized form button.
+     */
+    @JvmStatic fun listActionButton(context: Context, label: String): MaterialButton =
+        secondaryButton(context, label).apply {
+            val touch = YView.touchTarget(context)
+            minHeight = touch
+            minimumHeight = touch
+            insetTop = 0
+            insetBottom = 0
+            val horizontal = controlGap(context)
+            setPadding(horizontal, 0, horizontal, 0)
+            minWidth = touch
+        }
+
     /** Unified normal-screen View helpers. Feature modules must not own another UI utility layer. */
     @JvmStatic
     @JvmOverloads
