@@ -1,7 +1,9 @@
 package com.yagay.ypower.ui;
 
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.widget.ImageView;
+import com.yagay.suite.api.InstalledAppCatalog;
+import com.yagay.yui.YView;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -57,14 +59,8 @@ public class RecommendedAppsActivity extends AppCompatActivity {
     private void populate() {
         list.removeAllViews();
         int count = 0;
-        PackageManager pm = getPackageManager();
-
         for (RecommendedAppPreset preset : RecommendedAppRegistry.BUILTIN) {
-            try {
-                pm.getPackageInfo(preset.packageName, 0);
-            } catch (PackageManager.NameNotFoundException e) {
-                continue;
-            }
+            if (InstalledAppCatalog.find(this, preset.packageName, 0) == null) continue;
             count++;
             addPreset(preset);
         }
@@ -80,6 +76,12 @@ public class RecommendedAppsActivity extends AppCompatActivity {
                 preset.displayName,
                 preset.packageName
         );
+        ImageView icon = new ImageView(this);
+        int iconSize = YView.listIconSize(this);
+        icon.setImageDrawable(InstalledAppCatalog.icon(this, preset.packageName,
+                Math.min(96, Math.max(24, iconSize))));
+        icon.setContentDescription(preset.displayName);
+        card.addView(icon, new LinearLayout.LayoutParams(iconSize, iconSize));
         card.addView(YViewLayout.detailBlock(this, getString(R.string.yp_recommendation_reason), preset.reason));
         card.addView(YViewLayout.detailBlock(this, getString(R.string.yp_recommended_hooks), preset.hookSummary()));
 

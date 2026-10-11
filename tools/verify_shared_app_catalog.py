@@ -40,6 +40,29 @@ for rel in consumers:
 notification = (ROOT / "apps/YNotify/feature/src/main/java/com/yagay/YNotify/util/AppInfoUtil.java").read_text(encoding="utf-8")
 if "InstalledAppCatalog.label(" not in notification or "InstalledAppCatalog.icon(" not in notification:
     issues.append("YNotify must reuse the shared label and icon data source")
+# The shared catalog already owns decoding/caching; every app selector must show its
+# icon, not merely its package and label. Keep these checks source-level so standalone
+# feature builds and the YSuite host cannot silently diverge.
+icon_consumers = {
+    "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/TargetAppsActivity.java":
+        ("YViewLayout.listItem(TargetAppsActivity.this, true)", "holder.icon.setImageDrawable(item.icon)"),
+    "apps/YDiag/feature/src/main/java/com/yagay/ydiag/data/AppRepository.kt":
+        ("entry.iconBitmap(context, iconSize)",),
+    "apps/YDiag/feature/src/main/java/com/yagay/ydiag/ui/MainActivity.kt":
+        ("app.icon.asImageBitmap()", "leading = {"),
+    "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java":
+        ("YViewLayout.listItem(this, true)", "row.icon.setImageDrawable(icon)"),
+    "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/RecommendedAppsActivity.java":
+        ("InstalledAppCatalog.icon(this, preset.packageName",),
+    "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/ProcessRepository.kt":
+        ("InstalledAppCatalog.icon(appContext, it, 64)",),
+}
+for rel, markers in icon_consumers.items():
+    body = (ROOT / rel).read_text(encoding="utf-8")
+    for marker in markers:
+        if marker not in body:
+            issues.append(rel + ": missing unified icon display " + marker)
+
 if issues:
     print("Shared installed-app catalog FAILED:")
     for issue in issues:
