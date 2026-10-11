@@ -39,6 +39,35 @@ class YAppearanceStoreTest {
     }
 
     @Test
+    fun buttonAppearanceSeparatesVisualSizeFromTouchSize() {
+        val defaults = store.appearance().buttonGeometry()
+        assertEquals(48, defaults.visualHeightDp)
+        assertEquals(48, defaults.touchHeightDp)
+        assertEquals(0f, defaults.backgroundInsetDp)
+        assertEquals(24, defaults.iconVisualSizeDp)
+        store.set(YSettingKey.BUTTON_HEIGHT, "24")
+        store.set(YSettingKey.BUTTON_PADDING, "7")
+        store.set(YSettingKey.BUTTON_RADIUS, "4")
+        store.set(YSettingKey.ICON_VISUAL_SIZE, "17")
+        val compact = store.appearance().buttonGeometry()
+        assertEquals(24, compact.visualHeightDp)
+        assertEquals(48, compact.touchHeightDp)
+        assertEquals(12f, compact.backgroundInsetDp)
+        assertEquals(7, compact.horizontalPaddingDp)
+        assertEquals(4, compact.cornerRadiusDp)
+        assertEquals(17, compact.iconVisualSizeDp)
+        store.set(YSettingKey.BUTTON_HEIGHT, "68", "ypower")
+        assertEquals(68, store.appearance("ypower").buttonGeometry().touchHeightDp)
+        assertEquals(24, store.appearance("ynotify").buttonGeometry().visualHeightDp)
+        val serialized = store.exportJson()
+        store.reset()
+        store.reset("ypower")
+        store.importJson(serialized)
+        assertEquals(68, store.appearance("ypower").buttonGeometry().visualHeightDp)
+        assertEquals(24, store.appearance().buttonGeometry().visualHeightDp)
+    }
+
+    @Test
     fun switchAppearanceHasIndependentGeometryAndAccessibleTouchTarget() {
         val defaults = store.appearance()
         assertEquals(100, defaults.switchScalePercent)

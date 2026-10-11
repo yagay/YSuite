@@ -19,11 +19,11 @@ fun YUiFloatingActionButton(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val appearance = LocalYAppearance.current
+    val appearance = LocalYAppearance.current.buttonGeometry()
     FloatingActionButton(
         onClick = onClick,
-        modifier = modifier.sizeIn(minWidth = appearance.buttonHeightDp.dp, minHeight = appearance.buttonHeightDp.dp),
-        shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
+        modifier = modifier.sizeIn(minWidth = appearance.iconTouchDp.dp, minHeight = appearance.iconTouchDp.dp),
+        shape = RoundedCornerShape(appearance.cornerRadiusDp.dp),
         content = content,
     )
 }
@@ -34,11 +34,11 @@ fun YUiSmallFloatingActionButton(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val appearance = LocalYAppearance.current
+    val appearance = LocalYAppearance.current.buttonGeometry()
     SmallFloatingActionButton(
         onClick = onClick,
-        modifier = modifier.sizeIn(minWidth = appearance.iconTouchTargetDp.dp, minHeight = appearance.iconTouchTargetDp.dp),
-        shape = RoundedCornerShape(appearance.buttonRadiusDp.dp),
+        modifier = modifier.sizeIn(minWidth = appearance.iconTouchDp.dp, minHeight = appearance.iconTouchDp.dp),
+        shape = RoundedCornerShape(appearance.cornerRadiusDp.dp),
         content = content,
     )
 }

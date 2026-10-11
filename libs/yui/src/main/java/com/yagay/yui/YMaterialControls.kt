@@ -4,7 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
@@ -27,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.minimumInteractiveComponentSize
 
 /**
  * Material 3 compatibility facade for existing product layouts.
@@ -51,15 +53,15 @@ fun YUiButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = modifier.minimumInteractiveComponentSize().height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
+        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,
         contentPadding = contentPadding ?: PaddingValues(
-            horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
-            vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
+            horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
+            vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
         ),
         interactionSource = interactionSource,
         content = content,
@@ -81,15 +83,15 @@ fun YUiOutlinedButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = modifier.minimumInteractiveComponentSize().height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
+        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,
         contentPadding = contentPadding ?: PaddingValues(
-            horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
-            vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
+            horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
+            vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
         ),
         interactionSource = interactionSource,
         content = content,
@@ -111,15 +113,15 @@ fun YUiTextButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = LocalYAppearance.current.buttonHeightDp.dp),
+        modifier = modifier.minimumInteractiveComponentSize().height(LocalYAppearance.current.buttonGeometry().visualHeightDp.dp),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonRadiusDp.dp),
+        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,
         contentPadding = contentPadding ?: PaddingValues(
-            horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp,
-            vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp,
+            horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
+            vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
         ),
         interactionSource = interactionSource,
         content = content,
@@ -137,10 +139,12 @@ fun YUiIconButton(
 ) {
     IconButton(
         onClick = onClick,
-        modifier = modifier.sizeIn(
-            minWidth = LocalYAppearance.current.iconTouchTargetDp.dp,
-            minHeight = LocalYAppearance.current.iconTouchTargetDp.dp,
-        ),
+        // Icon variants follow the SAME button-height setting; touch size stays safe.
+        modifier = modifier.minimumInteractiveComponentSize()
+            .sizeIn(
+                minWidth = LocalYAppearance.current.buttonGeometry().iconTouchDp.dp,
+                minHeight = LocalYAppearance.current.buttonGeometry().iconTouchDp.dp,
+            ),
         enabled = enabled,
         colors = colors,
         interactionSource = interactionSource,

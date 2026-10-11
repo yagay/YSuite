@@ -18,12 +18,12 @@ import androidx.compose.ui.unit.dp
     interactionSource: MutableInteractionSource? = null,
     content: @Composable () -> Unit,
 ) {
-    val a = LocalYAppearance.current
+    val a = LocalYAppearance.current.buttonGeometry()
     FilledIconButton(
         onClick = onClick,
-        modifier = modifier.sizeIn(minWidth = a.iconTouchTargetDp.dp, minHeight = a.iconTouchTargetDp.dp),
+        modifier = modifier.sizeIn(minWidth = a.iconTouchDp.dp, minHeight = a.iconTouchDp.dp),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(a.buttonRadiusDp.dp),
+        shape = shape ?: RoundedCornerShape(a.cornerRadiusDp.dp),
         colors = colors,
         interactionSource = interactionSource,
         content = content,
@@ -39,12 +39,12 @@ import androidx.compose.ui.unit.dp
     interactionSource: MutableInteractionSource? = null,
     content: @Composable () -> Unit,
 ) {
-    val a = LocalYAppearance.current
+    val a = LocalYAppearance.current.buttonGeometry()
     FilledTonalIconButton(
         onClick = onClick,
-        modifier = modifier.sizeIn(minWidth = a.iconTouchTargetDp.dp, minHeight = a.iconTouchTargetDp.dp),
+        modifier = modifier.sizeIn(minWidth = a.iconTouchDp.dp, minHeight = a.iconTouchDp.dp),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(a.buttonRadiusDp.dp),
+        shape = shape ?: RoundedCornerShape(a.cornerRadiusDp.dp),
         colors = colors,
         interactionSource = interactionSource,
         content = content,
@@ -60,12 +60,12 @@ import androidx.compose.ui.unit.dp
     interactionSource: MutableInteractionSource? = null,
     content: @Composable () -> Unit,
 ) {
-    val a = LocalYAppearance.current
+    val a = LocalYAppearance.current.buttonGeometry()
     OutlinedIconButton(
         onClick = onClick,
-        modifier = modifier.sizeIn(minWidth = a.iconTouchTargetDp.dp, minHeight = a.iconTouchTargetDp.dp),
+        modifier = modifier.sizeIn(minWidth = a.iconTouchDp.dp, minHeight = a.iconTouchDp.dp),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(a.buttonRadiusDp.dp),
+        shape = shape ?: RoundedCornerShape(a.cornerRadiusDp.dp),
         colors = colors,
         interactionSource = interactionSource,
         content = content,

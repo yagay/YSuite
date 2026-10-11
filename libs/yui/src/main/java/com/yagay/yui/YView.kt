@@ -2,6 +2,7 @@ package com.yagay.yui
 
 import android.app.Activity
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
 import android.content.res.ColorStateList
@@ -106,31 +107,64 @@ object YView {
         view.setTextColor(onSurface(view.context))
     }
 
-    /** Both View button variants consume the same contrast-safe accent and geometry as Compose. */
-    @JvmStatic fun stylePrimaryButton(button: Button) = styleButton(button, outlined = false)
-    @JvmStatic fun styleSecondaryButton(button: Button) = styleButton(button, outlined = true)
+    /**
+     * One shared YUI button binding: both normal and outlined MaterialButtons use
+     * the same geometry and live appearance subscriptions. This includes RecyclerView
+     * settings/action buttons, which must update without rebuilding the adapter.
+     */
+    private val boundButtons = WeakHashMap<Button, Boolean>()
+
+    @JvmStatic fun stylePrimaryButton(button: Button) = bindButtonAppearance(button, outlined = false)
+    @JvmStatic fun styleSecondaryButton(button: Button) = bindButtonAppearance(button, outlined = true)
+
+    private fun bindButtonAppearance(button: Button, outlined: Boolean) {
+        styleButton(button, outlined)
+        synchronized(boundButtons) {
+            if (boundButtons.putIfAbsent(button, true) != null) return
+        }
+        val store = YAppearanceStore(button.context)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key.startsWith("global.") || key.startsWith("module.")) {
+                button.post {
+                    if (button.isAttachedToWindow) styleButton(button, outlined)
+                }
+            }
+        }
+        button.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) {
+                store.registerPreferenceListener(listener)
+                styleButton(button, outlined)
+            }
+            override fun onViewDetachedFromWindow(v: View) {
+                store.unregisterPreferenceListener(listener)
+            }
+        })
+        if (button.isAttachedToWindow) store.registerPreferenceListener(listener)
+    }
 
     private fun styleButton(button: Button, outlined: Boolean) {
         val context = button.context
-        val appearance = appearance(context)
+        val geometry = appearance(context).buttonGeometry()
         val colors = palette(context)
-        // Button text uses the same YUI label typography and font scale as all
-        // feature labels. Material's constructor defaults must not bypass this.
+        // Treat size as visible background size, NOT only a minimum view height.
+        // Keep 48dp clickable while exposing a smaller MaterialButton background.
         styleLabel(button)
-        button.minHeight = dp(context, appearance.buttonHeightDp)
+        button.minHeight = dp(context, geometry.touchHeightDp)
         button.isAllCaps = false
         button.minWidth = 0
         val horizontal = buttonHorizontalPadding(context)
-        button.setPadding(horizontal, dp(context, appearance.buttonVerticalPaddingDp),
-            horizontal, dp(context, appearance.buttonVerticalPaddingDp))
+        button.setPadding(horizontal, dp(context, geometry.verticalPaddingDp),
+            horizontal, dp(context, geometry.verticalPaddingDp))
         button.backgroundTintList = ColorStateList.valueOf(
             if (outlined) Color.TRANSPARENT else colors.primary.toArgb(),
         )
         button.setTextColor(if (outlined) colors.primary.toArgb() else colors.onPrimary.toArgb())
         if (button is MaterialButton) {
-            button.cornerRadius = dp(context, appearance.buttonRadiusDp)
-            button.insetTop = dimen(context, R.dimen.yui_button_inset_vertical)
-            button.insetBottom = dimen(context, R.dimen.yui_button_inset_vertical)
+            button.cornerRadius = dp(context, geometry.cornerRadiusDp)
+            val inset = (geometry.backgroundInsetDp * context.resources.displayMetrics.density)
+                .toInt().coerceAtLeast(0)
+            button.insetTop = inset
+            button.insetBottom = inset
             if (outlined) {
                 button.strokeColor = ColorStateList.valueOf(colors.outline.toArgb())
                 button.strokeWidth = maxOf(button.strokeWidth, cardOutlineWidth(context))
