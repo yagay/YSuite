@@ -133,7 +133,7 @@ final class SettingsPageUi {
 
     void addOcrModelRow(LinearLayout parent, int model) {
         LinearLayout block = YViewLayout.settingBlock(activity);
-        TextView status = YViewLayout.text(activity, OcrModelManager.displayName(model), 14, false);
+        TextView status = YViewLayout.text(activity, OcrModelManager.displayName(model));
         block.addView(status);
 
         LinearLayout buttons = YViewLayout.buttonRow(activity);
