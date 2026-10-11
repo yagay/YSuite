@@ -32,6 +32,14 @@ final class YFloatVisualSettings {
             case FloatSettings.K_LINE_COLORS -> YSettingKey.FLOAT_TRAIL_COLORS;
             case FloatSettings.K_CIRCLE_BORDER_ENABLED -> YSettingKey.FLOAT_BORDER_VISIBLE;
             case FloatSettings.K_TRACK -> YSettingKey.FLOAT_TRAIL_VISIBLE;
+            case FloatSettings.K_GOOGLE_FRAME_RADIUS_DP -> YSettingKey.GOOGLE_FRAME_RADIUS;
+            case FloatSettings.K_GOOGLE_FRAME_OUTLINE_DP -> YSettingKey.GOOGLE_FRAME_OUTLINE;
+            case FloatSettings.K_GOOGLE_FRAME_GLOW_WIDTH_DP -> YSettingKey.GOOGLE_FRAME_GLOW_WIDTH;
+            case FloatSettings.K_GOOGLE_FRAME_GLOW_BLUR_DP -> YSettingKey.GOOGLE_FRAME_GLOW_BLUR;
+            case FloatSettings.K_GOOGLE_FRAME_GLOW_ALPHA -> YSettingKey.GOOGLE_FRAME_GLOW_ALPHA;
+            case FloatSettings.K_GOOGLE_FRAME_SCRIM_ALPHA -> YSettingKey.GOOGLE_FRAME_SCRIM_ALPHA;
+            case FloatSettings.K_GOOGLE_FRAME_TRAIL_WIDTH_DP -> YSettingKey.GOOGLE_FRAME_TRAIL_WIDTH;
+            case FloatSettings.K_GOOGLE_FRAME_USE_YUI_COLOR -> YSettingKey.GOOGLE_FRAME_YUI_COLOR;
             default -> null;
         };
     }
@@ -50,7 +58,7 @@ final class YFloatVisualSettings {
         YSettingKey key = key(legacy);
         return key == YSettingKey.FLOAT_TRAIL_GRADIENT ||
             key == YSettingKey.FLOAT_BORDER_VISIBLE ||
-            key == YSettingKey.FLOAT_TRAIL_VISIBLE
+            key == YSettingKey.FLOAT_TRAIL_VISIBLE || key == YSettingKey.GOOGLE_FRAME_YUI_COLOR
             ? "true".equals(new YAppearanceStore(context).value(key, MODULE)) : fallback;
     }
 
@@ -58,6 +66,7 @@ final class YFloatVisualSettings {
         YSettingKey key = key(legacy);
         if (key == null || key == YSettingKey.FLOAT_TRAIL_GRADIENT ||
             key == YSettingKey.FLOAT_BORDER_VISIBLE || key == YSettingKey.FLOAT_TRAIL_VISIBLE ||
+            key == YSettingKey.GOOGLE_FRAME_YUI_COLOR ||
             key == YSettingKey.FLOAT_TRAIL_COLORS) return false;
         String raw = Integer.toString(value);
         if (key == YSettingKey.FLOAT_ICON_STYLE) raw = ICON_STYLES[index(value, ICON_STYLES.length)];
@@ -76,7 +85,7 @@ final class YFloatVisualSettings {
         YSettingKey key = key(legacy);
         if (key != YSettingKey.FLOAT_TRAIL_GRADIENT &&
             key != YSettingKey.FLOAT_BORDER_VISIBLE &&
-            key != YSettingKey.FLOAT_TRAIL_VISIBLE) return false;
+            key != YSettingKey.FLOAT_TRAIL_VISIBLE && key != YSettingKey.GOOGLE_FRAME_YUI_COLOR) return false;
         new YAppearanceStore(context).set(key, Boolean.toString(value), MODULE);
         return true;
     }
@@ -101,6 +110,31 @@ final class YFloatVisualSettings {
     static void setMenuCount(Context context, int count) {
         new YAppearanceStore(context).set(YSettingKey.FLOAT_MENU_COUNT,
             Integer.toString(count), MODULE);
+    }
+
+    private static final String GOOGLE_MIGRATED = "yui_google_frame_migrated_v1";
+    /** Import old Google frame settings once. Hook Remote Preferences are a transport, not a source. */
+    static void migrateGoogleFrame(Context context, SharedPreferences old) {
+        if (old.getBoolean(GOOGLE_MIGRATED, false)) return;
+        YAppearanceStore store = new YAppearanceStore(context);
+        for (String legacy : new String[] {
+            FloatSettings.K_GOOGLE_FRAME_RADIUS_DP,
+            FloatSettings.K_GOOGLE_FRAME_OUTLINE_DP,
+            FloatSettings.K_GOOGLE_FRAME_GLOW_WIDTH_DP,
+            FloatSettings.K_GOOGLE_FRAME_GLOW_BLUR_DP,
+            FloatSettings.K_GOOGLE_FRAME_GLOW_ALPHA,
+            FloatSettings.K_GOOGLE_FRAME_SCRIM_ALPHA,
+            FloatSettings.K_GOOGLE_FRAME_TRAIL_WIDTH_DP,
+            FloatSettings.K_GOOGLE_FRAME_USE_YUI_COLOR,
+        }) {
+            YSettingKey setting = key(legacy);
+            if (setting == null || !old.contains(legacy) || store.isOverridden(setting, MODULE)) continue;
+            Object raw = old.getAll().get(legacy);
+            if (raw == null) continue;
+            try { store.set(setting, String.valueOf(raw), MODULE); }
+            catch (IllegalArgumentException ignored) { /* fall back to validated YUI defaults */ }
+        }
+        old.edit().putBoolean(GOOGLE_MIGRATED, true).apply();
     }
 
     /** Read previous local values once, never overwrite a global/explicit module override. */

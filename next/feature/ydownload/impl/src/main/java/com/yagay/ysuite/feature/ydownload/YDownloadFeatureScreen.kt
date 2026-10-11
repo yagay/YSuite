@@ -1,11 +1,10 @@
 package com.yagay.ysuite.feature.ydownload
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.yagay.yui.YViewTransientControls
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
@@ -380,7 +379,7 @@ fun YDownloadFeatureScreen(
                         timeInMillis = it
                     }
                 }
-            DatePickerDialog(
+            YViewTransientControls.datePicker(
                 localContext,
                 { _, year, month, day ->
                     val selected =
@@ -400,7 +399,7 @@ fun YDownloadFeatureScreen(
                                 day,
                             )
                         }
-                    TimePickerDialog(
+                    YViewTransientControls.timePicker(
                         localContext,
                         { _, hour, minute ->
                             selected.set(

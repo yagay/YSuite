@@ -157,9 +157,9 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
     private YAppearanceStore yuiAppearance;
     private final SharedPreferences.OnSharedPreferenceChangeListener yuiPreferenceListener =
             (preferences, key) -> {
-                // YUI is the only owner of generic color. Keep the Google process snapshot
-                // current when a global or YFloat module border color is changed.
-                if (key != null && key.endsWith("float_border_color")) syncRuntimeConfigAsync();
+                // Changes to YUI global and YFloat scoped values update the remote Hook snapshot.
+                if (key != null && (key.startsWith("global.")
+                        || key.startsWith("module.yfloat."))) syncRuntimeConfigAsync();
             };
     private volatile Snapshot snapshot = Snapshot.disconnected(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_e55b9875d7c0));
 

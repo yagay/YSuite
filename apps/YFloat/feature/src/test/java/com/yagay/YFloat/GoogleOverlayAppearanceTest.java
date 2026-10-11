@@ -3,10 +3,10 @@ package com.yagay.YFloat;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class GoogleOverlayAppearanceTest {
-    @Test public void defaultsMatchPriorGoogleCircleAppearance() {
+    @Test public void defaultsUseSharedYuiColor() {
         GoogleOverlayAppearance defaults = GoogleOverlayAppearance.defaults();
         assertEquals(8, defaults.radiusDp);
         assertEquals(1, defaults.outlineDp);
@@ -15,7 +15,7 @@ public class GoogleOverlayAppearanceTest {
         assertEquals(235, defaults.glowAlpha);
         assertEquals(102, defaults.scrimAlpha);
         assertEquals(3, defaults.trailWidthDp);
-        assertFalse(defaults.yuiColor);
+        assertTrue(defaults.yuiColor);
     }
 
     @Test public void absentRemotePreferencesRemainSafe() {

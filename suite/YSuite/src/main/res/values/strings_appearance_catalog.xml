@@ -108,4 +108,12 @@
     <string name="appearance_overlay_preview_body">Panel corners, opacity, padding and outline reflect current settings. Live screen capture is not started.</string>
     <string name="appearance_overlay_shadow_elevation">Floating panel shadow (dp)</string>
     <string name="appearance_card_outline_width">Card outline width (dp)</string>
+    <string name="appearance_google_frame_radius_dp">Google selection frame corners (dp)</string>
+    <string name="appearance_google_frame_outline_dp">Google selection border width (dp)</string>
+    <string name="appearance_google_frame_glow_width_dp">Google selection glow width (dp)</string>
+    <string name="appearance_google_frame_glow_blur_dp">Google selection glow blur (dp)</string>
+    <string name="appearance_google_frame_glow_alpha">Google selection glow opacity (0–255)</string>
+    <string name="appearance_google_frame_scrim_alpha">Google selection mask opacity (0–240)</string>
+    <string name="appearance_google_frame_trail_width_dp">Google selection trail width (dp)</string>
+    <string name="appearance_google_frame_use_yui_color">Use YUI accent for Google selection</string>
 </resources>

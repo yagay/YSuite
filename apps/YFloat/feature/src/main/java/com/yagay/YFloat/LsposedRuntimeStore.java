@@ -33,7 +33,10 @@ final class LsposedRuntimeStore {
                 .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_SCRIM_ALPHA, settings.googleFrameScrimAlpha())
                 .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_TRAIL_WIDTH_DP, settings.googleFrameTrailWidthDp())
                 .putBoolean(LsposedRuntimeConfig.K_GOOGLE_FRAME_USE_YUI_COLOR, settings.googleFrameUseYuiColor())
-                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_YUI_COLOR, settings.circleBorderColor())
+                .putInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_YUI_COLOR,
+                        com.yagay.yui.YOverlayTokens.accent(
+                                com.yagay.yui.YOverlayUi.scopedContext(
+                                        settings.contextForAppearance(), "yfloat")))
                 .putLong(LsposedRuntimeConfig.K_UPDATED_AT, updatedAt)
                 .commit();
         return committed ? remote : null;

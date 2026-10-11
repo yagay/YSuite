@@ -108,4 +108,12 @@
     <string name="appearance_overlay_preview_body">这里实时显示当前的圆角、透明度、留白与描边；不会启动实际截图或悬浮权限。</string>
     <string name="appearance_overlay_shadow_elevation">悬浮面板阴影高度（dp）</string>
     <string name="appearance_card_outline_width">卡片描边宽度（dp）</string>
+    <string name="appearance_google_frame_radius_dp">Google 圈画选框圆角（dp）</string>
+    <string name="appearance_google_frame_outline_dp">Google 圈画边框宽度（dp）</string>
+    <string name="appearance_google_frame_glow_width_dp">Google 圈画发光宽度（dp）</string>
+    <string name="appearance_google_frame_glow_blur_dp">Google 圈画发光模糊（dp）</string>
+    <string name="appearance_google_frame_glow_alpha">Google 圈画发光透明度（0–255）</string>
+    <string name="appearance_google_frame_scrim_alpha">Google 圈画遮罩透明度（0–240）</string>
+    <string name="appearance_google_frame_trail_width_dp">Google 圈画手势轨迹宽度（dp）</string>
+    <string name="appearance_google_frame_use_yui_color">Google 圈画使用 YUI 强调色</string>
 </resources>

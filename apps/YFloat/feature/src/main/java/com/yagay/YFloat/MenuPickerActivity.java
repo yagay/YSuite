@@ -599,7 +599,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
             more.setFocusable(true);
             more.setBackground(YViewLayout.rowBackground(this));
             more.setOnClickListener(v -> {
-                PopupMenu popup = new PopupMenu(this, more);
+                PopupMenu popup = com.yagay.yui.YViewTransientControls.popupMenu(this, more);
                 popup.getMenu().add(0, 1, 0, upLabel).setEnabled(index > 0 && moveUp != null);
                 popup.getMenu().add(0, 2, 1, downLabel).setEnabled(index < total - 1 && moveDown != null);
                 popup.getMenu().add(0, 3, 2, removeLabel).setEnabled(remove != null);

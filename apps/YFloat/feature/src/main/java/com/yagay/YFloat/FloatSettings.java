@@ -133,6 +133,7 @@ public final class FloatSettings {
     public FloatSettings(Context c) {
         context = c.getApplicationContext();
         p = context.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        YFloatVisualSettings.migrateGoogleFrame(context, p);
     }
 
     private int legacyInt(String key, int def) {
@@ -172,6 +173,7 @@ public final class FloatSettings {
     public int circleEngine() { return clamp(p.getInt(K_CIRCLE_ENGINE, 0), 0, 1); }
     public boolean circleBorderEnabled() { return YFloatVisualSettings.readBoolean(context, K_CIRCLE_BORDER_ENABLED, true); }
     public int circleBorderColor() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_COLOR, DEFAULT_CIRCLE_BORDER_COLOR); }
+    Context contextForAppearance() { return context; }
     public int circleBorderWidthDp() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_WIDTH_DP, 3); }
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
     public int circleFullOcrEngine() {
@@ -195,14 +197,14 @@ public final class FloatSettings {
     public boolean hideWithoutNotify() { return p.getBoolean(K_HIDE_ICON_NO_NOTIFY, false); }
     public boolean edgeSwipeRecallEnabled() { return p.getBoolean(K_HIDE_MAIN_SWIPE, true); }
 
-    public int googleFrameRadiusDp() { return clamp(p.getInt(K_GOOGLE_FRAME_RADIUS_DP, 8), 0, 96); }
-    public int googleFrameOutlineDp() { return clamp(p.getInt(K_GOOGLE_FRAME_OUTLINE_DP, 1), 0, 24); }
-    public int googleFrameGlowWidthDp() { return clamp(p.getInt(K_GOOGLE_FRAME_GLOW_WIDTH_DP, 1), 0, 24); }
-    public int googleFrameGlowBlurDp() { return clamp(p.getInt(K_GOOGLE_FRAME_GLOW_BLUR_DP, 20), 0, 80); }
-    public int googleFrameGlowAlpha() { return clamp(p.getInt(K_GOOGLE_FRAME_GLOW_ALPHA, 235), 0, 255); }
-    public int googleFrameScrimAlpha() { return clamp(p.getInt(K_GOOGLE_FRAME_SCRIM_ALPHA, 102), 0, 240); }
-    public int googleFrameTrailWidthDp() { return clamp(p.getInt(K_GOOGLE_FRAME_TRAIL_WIDTH_DP, 3), 0, 24); }
-    public boolean googleFrameUseYuiColor() { return p.getBoolean(K_GOOGLE_FRAME_USE_YUI_COLOR, false); }
+    public int googleFrameRadiusDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_RADIUS_DP, 8); }
+    public int googleFrameOutlineDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_OUTLINE_DP, 1); }
+    public int googleFrameGlowWidthDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_GLOW_WIDTH_DP, 1); }
+    public int googleFrameGlowBlurDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_GLOW_BLUR_DP, 20); }
+    public int googleFrameGlowAlpha() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_GLOW_ALPHA, 235); }
+    public int googleFrameScrimAlpha() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_SCRIM_ALPHA, 102); }
+    public int googleFrameTrailWidthDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_TRAIL_WIDTH_DP, 3); }
+    public boolean googleFrameUseYuiColor() { return YFloatVisualSettings.readBoolean(context, K_GOOGLE_FRAME_USE_YUI_COLOR, true); }
     public int imageRecognitionMinDp() { return clamp(p.getInt(K_NODE_IMAGE_MIN_DP, 12), 1, 64); }
     public int genericRecognitionMinDp() { return clamp(p.getInt(K_NODE_GENERIC_MIN_DP, 20), 1, 96); }
     public int edgeWakeWidthDp() { return clamp(p.getInt(K_EDGE_WAKE_WIDTH_DP, 18), 1, 64); }
@@ -233,6 +235,15 @@ public final class FloatSettings {
                 .remove(K_CROP_MIN_DP)
                 .remove(K_CROP_DRAG_SLOP_DP)
                 .apply();
+        com.yagay.yui.YAppearanceStore store = new com.yagay.yui.YAppearanceStore(context);
+        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_RADIUS, YFloatVisualSettings.MODULE);
+        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_OUTLINE, YFloatVisualSettings.MODULE);
+        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_WIDTH, YFloatVisualSettings.MODULE);
+        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_BLUR, YFloatVisualSettings.MODULE);
+        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_ALPHA, YFloatVisualSettings.MODULE);
+        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_SCRIM_ALPHA, YFloatVisualSettings.MODULE);
+        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_TRAIL_WIDTH, YFloatVisualSettings.MODULE);
+        store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_YUI_COLOR, YFloatVisualSettings.MODULE);
         LsposedStatusManager.syncRuntimeConfigAsync();
     }
 

@@ -72,14 +72,22 @@ enum class YSettingKey(
     OVERLAY_CONTENT_PADDING("overlay_content_padding", "12", 0, 128),
     OVERLAY_OUTLINE_WIDTH("overlay_outline_width", "1", 0, 24),
     OVERLAY_SCRIM_SCALE("overlay_scrim_scale", "100", 0, 100),
-    OVERLAY_SHADOW_ELEVATION("overlay_shadow_elevation", "10", 0, 64);
+    OVERLAY_SHADOW_ELEVATION("overlay_shadow_elevation", "10", 0, 64),
+    GOOGLE_FRAME_RADIUS("google_frame_radius_dp", "8", 0, 96),
+    GOOGLE_FRAME_OUTLINE("google_frame_outline_dp", "1", 0, 24),
+    GOOGLE_FRAME_GLOW_WIDTH("google_frame_glow_width_dp", "1", 0, 24),
+    GOOGLE_FRAME_GLOW_BLUR("google_frame_glow_blur_dp", "20", 0, 80),
+    GOOGLE_FRAME_GLOW_ALPHA("google_frame_glow_alpha", "235", 0, 255),
+    GOOGLE_FRAME_SCRIM_ALPHA("google_frame_scrim_alpha", "102", 0, 240),
+    GOOGLE_FRAME_TRAIL_WIDTH("google_frame_trail_width_dp", "3", 0, 24),
+    GOOGLE_FRAME_YUI_COLOR("google_frame_use_yui_color", "true");
 
     fun validate(value: String): String {
         val valid = if (minimum != null && maximum != null) {
             value.toIntOrNull()?.let { it in minimum..maximum } ?: false
         } else when (this) {
             THEME -> value in setOf("system", "light", "dark")
-            DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS, FLOAT_TRAIL_GRADIENT, FLOAT_BORDER_VISIBLE, FLOAT_TRAIL_VISIBLE -> value in setOf("true", "false")
+            DYNAMIC_COLOR, HOME_SWIPE_PIN, HOME_STATUS, FLOAT_TRAIL_GRADIENT, FLOAT_BORDER_VISIBLE, FLOAT_TRAIL_VISIBLE, GOOGLE_FRAME_YUI_COLOR -> value in setOf("true", "false")
             DENSITY -> value in setOf("compact", "standard", "comfortable")
             ACCENT -> value in setOf("default", "blue", "teal", "green", "purple", "orange")
             FLOAT_BORDER_COLOR -> value in setOf("blue", "green", "cyan", "purple", "orange", "red", "white")
@@ -146,6 +154,14 @@ data class YAppearance(
     val overlayOutlineWidthDp: Int = 1,
     val overlayScrimScale: Int = 100,
     val overlayShadowElevationDp: Int = 10,
+    val googleFrameRadiusDp: Int = 8,
+    val googleFrameOutlineDp: Int = 1,
+    val googleFrameGlowWidthDp: Int = 1,
+    val googleFrameGlowBlurDp: Int = 20,
+    val googleFrameGlowAlpha: Int = 235,
+    val googleFrameScrimAlpha: Int = 102,
+    val googleFrameTrailWidthDp: Int = 3,
+    val googleFrameYuiColor: Boolean = true,
 ) {
     val effectiveGapDp: Int get() = when (density) {
         "compact" -> controlGapDp * 2 / 3
@@ -229,6 +245,14 @@ class YAppearanceStore(context: Context) {
         overlayOutlineWidthDp = value(YSettingKey.OVERLAY_OUTLINE_WIDTH, moduleId).toInt(),
         overlayScrimScale = value(YSettingKey.OVERLAY_SCRIM_SCALE, moduleId).toInt(),
         overlayShadowElevationDp = value(YSettingKey.OVERLAY_SHADOW_ELEVATION, moduleId).toInt(),
+        googleFrameRadiusDp = value(YSettingKey.GOOGLE_FRAME_RADIUS, moduleId).toInt(),
+        googleFrameOutlineDp = value(YSettingKey.GOOGLE_FRAME_OUTLINE, moduleId).toInt(),
+        googleFrameGlowWidthDp = value(YSettingKey.GOOGLE_FRAME_GLOW_WIDTH, moduleId).toInt(),
+        googleFrameGlowBlurDp = value(YSettingKey.GOOGLE_FRAME_GLOW_BLUR, moduleId).toInt(),
+        googleFrameGlowAlpha = value(YSettingKey.GOOGLE_FRAME_GLOW_ALPHA, moduleId).toInt(),
+        googleFrameScrimAlpha = value(YSettingKey.GOOGLE_FRAME_SCRIM_ALPHA, moduleId).toInt(),
+        googleFrameTrailWidthDp = value(YSettingKey.GOOGLE_FRAME_TRAIL_WIDTH, moduleId).toInt(),
+        googleFrameYuiColor = value(YSettingKey.GOOGLE_FRAME_YUI_COLOR, moduleId) == "true",
     )
 
     fun set(key: YSettingKey, value: String, moduleId: String? = null) {

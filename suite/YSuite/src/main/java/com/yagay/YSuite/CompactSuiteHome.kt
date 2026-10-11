@@ -1,6 +1,8 @@
 package com.yagay.YSuite
 
 import com.yagay.yui.YDimens
+import com.yagay.yui.YHomePresentation
+import com.yagay.yui.YHomeModuleRow
 
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -70,8 +72,6 @@ import com.yagay.suite.core.SuiteCommonSettings
 import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.rememberYAppearance
 
-private const val HOME_SETTINGS_NAME = "ysuite_compact_home"
-private const val PINNED_IDS_KEY = "pinned_ids"
 
 internal data class HomeModuleEntry(
     val feature: FeatureSpec,
@@ -81,7 +81,7 @@ internal data class HomeModuleEntry(
 )
 
 internal fun orderedHomeIds(ids: List<String>, pinned: Set<String>): List<String> =
-    ids.filter { it in pinned } + ids.filterNot { it in pinned }
+    YHomePresentation.orderedIds(ids, pinned)
 
 /**
  * Compact host-only home. Feature runtime, standalone settings and diagnostic actions
@@ -108,17 +108,17 @@ internal fun CompactSuiteHome(
     val showSearch = general.value(SuiteCommonSetting.HOME_SHOW_SEARCH) == "true"
     val showDiagnostics = general.value(SuiteCommonSetting.HOME_SHOW_DIAGNOSTICS) == "true"
     val prefs = remember(context) {
-        context.getSharedPreferences(HOME_SETTINGS_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences(YHomePresentation.PREFERENCES, Context.MODE_PRIVATE)
     }
     var pinned by remember(prefs) {
-        mutableStateOf(prefs.getStringSet(PINNED_IDS_KEY, emptySet())?.toSet().orEmpty())
+        mutableStateOf(YHomePresentation.readPinned(prefs))
     }
     var searching by rememberSaveable { mutableStateOf(false) }
     var search by rememberSaveable { mutableStateOf("") }
     fun setPinned(id: String) {
         val updated = if (id in pinned) pinned - id else pinned + id
         pinned = updated
-        prefs.edit().putStringSet(PINNED_IDS_KEY, updated.toSet()).apply()
+        YHomePresentation.savePinned(prefs, updated)
     }
 
     // Do not sort the registry itself: preserve its order for existing feature contracts.
@@ -279,7 +279,6 @@ internal fun CompactSuiteHome(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CompactSuiteModuleRow(
     module: HomeModuleEntry,
@@ -294,113 +293,74 @@ private fun CompactSuiteModuleRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val appearance = LocalYAppearance.current
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = appearance.rowHeightDp.dp)
-            .then(if (swipePinEnabled) Modifier.pointerInput(isPinned) {
-                var dragDistance = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = { dragDistance = 0f },
-                    onDragEnd = {
-                        if ((dragDistance > 100f && !isPinned) ||
-                            (dragDistance < -100f && isPinned)
-                        ) onPin()
-                    },
-                    onHorizontalDrag = { change, delta ->
-                        dragDistance += delta
-                        change.consume()
-                    },
-                )
-            } else Modifier)
-            .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
-            .padding(start = appearance.rowHorizontalPaddingDp.dp, end = appearance.rowHorizontalPaddingDp.dp, top = appearance.rowVerticalPaddingDp.dp, bottom = appearance.rowVerticalPaddingDp.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(appearance.effectiveGapDp.dp),
-    ) {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = MaterialTheme.shapes.small,
-            modifier = Modifier.size(appearance.listIconSizeDp.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = when (module.feature.id) {
-                        "yentrycleaner" -> Icons.Default.ListAlt
-                        "ydiag" -> Icons.Default.BugReport
-                        "ynotify" -> Icons.Default.Notifications
-                        "ypower" -> Icons.Default.Security
-                        "yminiguard" -> Icons.Default.PictureInPictureAlt
-                        "ynfc" -> Icons.Default.Nfc
-                        "ytaskmanager" -> Icons.Default.Memory
-                        "yparam" -> Icons.Default.Tune
-                        "yfloat" -> Icons.Default.TouchApp
-                        "ydownload" -> Icons.Default.FileDownload
-                        "yfiles" -> Icons.Default.Folder
-                        else -> Icons.Default.Apps
-                    },
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(appearance.iconVisualSizeDp.dp),
-                )
+    YHomeModuleRow(
+        title = module.label,
+        subtitle = if (module.enabled) module.description else stringResource(R.string.home_disabled),
+        pinned = isPinned,
+        swipePinEnabled = swipePinEnabled,
+        onOpen = onOpen,
+        onLongClick = { menuOpen = true },
+        onTogglePin = onPin,
+        leading = {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.size(appearance.listIconSizeDp.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = when (module.feature.id) {
+                            "yentrycleaner" -> Icons.Default.ListAlt
+                            "ydiag" -> Icons.Default.BugReport
+                            "ynotify" -> Icons.Default.Notifications
+                            "ypower" -> Icons.Default.Security
+                            "yminiguard" -> Icons.Default.PictureInPictureAlt
+                            "ynfc" -> Icons.Default.Nfc
+                            "ytaskmanager" -> Icons.Default.Memory
+                            "yparam" -> Icons.Default.Tune
+                            "yfloat" -> Icons.Default.TouchApp
+                            "ydownload" -> Icons.Default.FileDownload
+                            "yfiles" -> Icons.Default.Folder
+                            else -> Icons.Default.Apps
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(appearance.iconVisualSizeDp.dp),
+                    )
+                }
             }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = module.label,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = if (module.enabled) module.description else stringResource(R.string.home_disabled),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (isPinned) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = stringResource(R.string.home_pinned),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp),
-            )
-        }
-        Box {
-            IconButton(onClick = { menuOpen = true }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.home_manage),
-                )
+        },
+        trailing = {
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.home_manage))
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.home_manage)) },
+                        leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                        onClick = { menuOpen = false; onManage() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.settings_customize_module)) },
+                        leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                        onClick = { menuOpen = false; onCustomize() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(if (isPinned) R.string.home_unpin else R.string.home_pin)) },
+                        leadingIcon = { Icon(if (isPinned) Icons.Default.Star else Icons.Default.StarBorder, contentDescription = null) },
+                        onClick = { menuOpen = false; onPin() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(if (module.enabled) R.string.home_disable else R.string.home_enable)) },
+                        onClick = { menuOpen = false; onToggleEnabled() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.diagnostic_package)) },
+                        onClick = { menuOpen = false; onExport() },
+                    )
+                }
             }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.home_manage)) },
-                    leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                    onClick = { menuOpen = false; onManage() },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.settings_customize_module)) },
-                    leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    onClick = { menuOpen = false; onCustomize() },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(if (isPinned) R.string.home_unpin else R.string.home_pin)) },
-                    leadingIcon = { Icon(if (isPinned) Icons.Default.Star else Icons.Default.StarBorder, contentDescription = null) },
-                    onClick = { menuOpen = false; onPin() },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(if (module.enabled) R.string.home_disable else R.string.home_enable)) },
-                    onClick = { menuOpen = false; onToggleEnabled() },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.diagnostic_package)) },
-                    onClick = { menuOpen = false; onExport() },
-                )
-            }
-        }
-    }
+        },
+    )
 }

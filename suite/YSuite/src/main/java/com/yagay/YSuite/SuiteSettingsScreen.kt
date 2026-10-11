@@ -610,6 +610,14 @@ private fun settingTitle(key: YSettingKey): Int = when (key) {
     YSettingKey.FLOAT_TRAIL_COLORS -> R.string.appearance_float_trail_colors
     YSettingKey.FLOAT_BORDER_VISIBLE -> R.string.appearance_float_border_visible
     YSettingKey.FLOAT_TRAIL_VISIBLE -> R.string.appearance_float_trail_visible
+    YSettingKey.GOOGLE_FRAME_RADIUS -> R.string.appearance_google_frame_radius_dp
+    YSettingKey.GOOGLE_FRAME_OUTLINE -> R.string.appearance_google_frame_outline_dp
+    YSettingKey.GOOGLE_FRAME_GLOW_WIDTH -> R.string.appearance_google_frame_glow_width_dp
+    YSettingKey.GOOGLE_FRAME_GLOW_BLUR -> R.string.appearance_google_frame_glow_blur_dp
+    YSettingKey.GOOGLE_FRAME_GLOW_ALPHA -> R.string.appearance_google_frame_glow_alpha
+    YSettingKey.GOOGLE_FRAME_SCRIM_ALPHA -> R.string.appearance_google_frame_scrim_alpha
+    YSettingKey.GOOGLE_FRAME_TRAIL_WIDTH -> R.string.appearance_google_frame_trail_width_dp
+    YSettingKey.GOOGLE_FRAME_YUI_COLOR -> R.string.appearance_google_frame_use_yui_color
     YSettingKey.HOME_STATUS -> R.string.settings_home_status
 }
 

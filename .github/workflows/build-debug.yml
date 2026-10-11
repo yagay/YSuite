@@ -49,6 +49,17 @@ jobs:
       - name: Verify YUI settings actually control component appearance
         run: python3 tools/verify_yui_setting_coverage.py
 
+      - name: Verify normal screens and all shared controls are YUI owned
+        run: |
+          python3 tools/verify_ui_screen_ownership.py
+          python3 tools/verify_yui_controls.py
+
+      - name: Verify no independently owned YUI interaction surfaces remain
+        run: python3 tools/verify_yui_independent_surfaces.py
+
+      - name: Inventory remaining visual constants for review
+        run: python3 tools/audit_yui_repository.py
+
       - name: Read shared build versions
         id: versions
         run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"

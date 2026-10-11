@@ -33,7 +33,7 @@ public final class GoogleOverlayAppearance {
     }
 
     public static GoogleOverlayAppearance defaults() {
-        return new GoogleOverlayAppearance(8, 1, 1, 20, 235, 102, 3, false, 0xFF4285F4);
+        return new GoogleOverlayAppearance(8, 1, 1, 20, 235, 102, 3, true, 0xFF4285F4);
     }
 
     public static GoogleOverlayAppearance fromPreferences(SharedPreferences preferences) {
@@ -47,7 +47,7 @@ public final class GoogleOverlayAppearance {
                     preferences.getInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_GLOW_ALPHA, 235),
                     preferences.getInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_SCRIM_ALPHA, 102),
                     preferences.getInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_TRAIL_WIDTH_DP, 3),
-                    preferences.getBoolean(LsposedRuntimeConfig.K_GOOGLE_FRAME_USE_YUI_COLOR, false),
+                    preferences.getBoolean(LsposedRuntimeConfig.K_GOOGLE_FRAME_USE_YUI_COLOR, true),
                     preferences.getInt(LsposedRuntimeConfig.K_GOOGLE_FRAME_YUI_COLOR, 0xFF4285F4));
         } catch (RuntimeException error) {
             return defaults();
