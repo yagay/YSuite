@@ -797,7 +797,6 @@ object YViewLayout {
             }
             toggle.switchMinWidth = width
         }
-        val c = toggle.context
         val checkedThumb = YView.surface(c)
         val uncheckedThumb = YView.onSurfaceVariant(c)
         val checkedTrack = YView.accent(c)
