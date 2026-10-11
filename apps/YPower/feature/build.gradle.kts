@@ -68,6 +68,7 @@ dependencies {
         }
     }
 
+    implementation(libs.androidx.recyclerview)
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
     implementation(libs.libsu.nio)
