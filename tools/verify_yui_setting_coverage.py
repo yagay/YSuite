@@ -82,6 +82,26 @@ def run() -> None:
         raise AssertionError("Standard YUI button labels must not be truncated at two lines")
     if "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT else 0" in action_layout:
         raise AssertionError("Native action row must size buttons by content, not equal weight")
+    # Public button facades accept legacy arguments, but ordinary appearance geometry is
+    # always owned by YUI. No feature should override radius or content padding.
+    buttons = require("libs/yui/src/main/java/com/yagay/yui/YMaterialControls.kt",
+                      "shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp)",
+                      "contentPadding = PaddingValues(")
+    if buttons.count("shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp)") != 3:
+        raise AssertionError("Three text button variants must inherit canonical YUI radius")
+    if buttons.count("contentPadding = PaddingValues(") != 3:
+        raise AssertionError("Three text button variants must inherit canonical YUI padding")
+    if "shape = shape ?:" in buttons or "contentPadding = contentPadding ?:" in buttons:
+        raise AssertionError("Legacy caller parameters cannot override YUI action geometry")
+
+    # Screen callsites must not reapply a second button padding contract.
+    for relative in (
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainControls.kt",
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt",
+    ):
+        content = require(relative, "YUiTextButton as TextButton")
+        if re.search(r"contentPadding\s*=\s*PaddingValues\(\s*horizontal\s*=\s*LocalYAppearance\.current\.buttonPaddingHorizontalDp", content):
+            raise AssertionError(f"{relative} overrides YUI button padding at the feature layer")
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialIconButtons.kt",
             "LocalYAppearance.current.buttonGeometry()", "a.iconTouchDp.dp")
     require("libs/yui/src/main/java/com/yagay/yui/YMaterialFloatingActions.kt",

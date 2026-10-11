@@ -161,8 +161,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                     ) {
                         Box {
                             TextButton(
-                                onClick = { appTypeMenu = true },
-                                contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
+                                onClick = { appTypeMenu = true }
                             ) {
                                 Text(
                                     stringResource(
@@ -185,8 +184,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         }
                         Box {
                             TextButton(
-                                onClick = { filterMenu = true },
-                                contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
+                                onClick = { filterMenu = true }
                             ) {
                                 Text(
                                     stringResource(
@@ -209,13 +207,11 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         }
                         TextButton(
                             onClick = { vm.changeComponentsBulk(kind, visible, enable = false) },
-                            enabled = !busy && visible.any { it.blocked == null && it.enabled == true },
-                            contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
+                            enabled = !busy && visible.any { it.blocked == null && it.enabled == true }
                         ) { Text(stringResource(R.string.select_all)) }
                         TextButton(
                             onClick = { vm.invertComponentsBulk(kind, visible) },
-                            enabled = !busy && visible.any { it.blocked == null && it.enabled != null },
-                            contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
+                            enabled = !busy && visible.any { it.blocked == null && it.enabled != null }
                         ) { Text(stringResource(R.string.invert_selection)) }
                     }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())

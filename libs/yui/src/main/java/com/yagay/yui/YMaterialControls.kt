@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Shape
  * controls instead of maintaining local padding/shape/target-size implementations.
  * Default colors, animations and state handling remain from upstream AndroidX Material3.
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun YUiButton(
     onClick: () -> Unit,
@@ -52,11 +53,11 @@ fun YUiButton(
         // Shared intrinsic sizing: the label may wrap and increase measured height.
         modifier = modifier.yActionButtonSize(),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
+        shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding ?: PaddingValues(
+        contentPadding = PaddingValues(
             horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
             vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
         ),
@@ -65,6 +66,7 @@ fun YUiButton(
     )
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun YUiOutlinedButton(
     onClick: () -> Unit,
@@ -83,11 +85,11 @@ fun YUiOutlinedButton(
         // Shared intrinsic sizing: the label may wrap and increase measured height.
         modifier = modifier.yActionButtonSize(),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
+        shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding ?: PaddingValues(
+        contentPadding = PaddingValues(
             horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
             vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
         ),
@@ -96,6 +98,7 @@ fun YUiOutlinedButton(
     )
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun YUiTextButton(
     onClick: () -> Unit,
@@ -114,11 +117,11 @@ fun YUiTextButton(
         // Shared intrinsic sizing: the label may wrap and increase measured height.
         modifier = modifier.yActionButtonSize(),
         enabled = enabled,
-        shape = shape ?: RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
+        shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding ?: PaddingValues(
+        contentPadding = PaddingValues(
             horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
             vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
         ),

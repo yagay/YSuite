@@ -175,8 +175,7 @@ internal fun ListControls(
         ) {
             Box {
                 TextButton(
-                    onClick = { appTypeMenu = true },
-                    contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
+                    onClick = { appTypeMenu = true }
                 ) {
                     Text(
                         stringResource(
@@ -199,8 +198,7 @@ internal fun ListControls(
             }
             Box {
                 TextButton(
-                    onClick = { menu = true },
-                    contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
+                    onClick = { menu = true }
                 ) {
                     Text(
                         stringResource(
@@ -225,8 +223,7 @@ internal fun ListControls(
             if (onSelectAll != null || onSelectNone != null || onInvert != null) {
                 Box {
                     TextButton(
-                        onClick = { selectionMenu = true },
-                        contentPadding = PaddingValues(horizontal = LocalYAppearance.current.buttonPaddingHorizontalDp.dp, vertical = LocalYAppearance.current.buttonVerticalPaddingDp.dp)
+                        onClick = { selectionMenu = true }
                     ) {
                         Text(stringResource(R.string.selection_actions))
                         Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp))
