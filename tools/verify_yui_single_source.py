@@ -134,7 +134,7 @@ def main() -> None:
 
     generated = read(GENERATED_TOKENS)
     tokens = json.loads(read(ROOT / "libs/yui/yui_tokens.json"))
-    # Standard upstream Material3 switch visuals: no compact scaling.
+    # Standard defaults stay Material3; YUI may customize switch geometry at runtime.
     for key in (
         "switch_track_width", "switch_track_height", "switch_thumb_size",
         "switch_slot_width", "switch_slot_height",
@@ -165,16 +165,17 @@ def main() -> None:
 
     standard_switch = read(YUI_ROOT / "YCompactSwitch.kt")
     for marker in ("fun YStandardSwitch(", "import androidx.compose.material3.Switch",
-                   "Switch(", "LocalYAppearance.current.switchSlotWidthDp",
-                   "LocalYAppearance.current.iconTouchTargetDp"):
+                   "Switch(", "appearance.switchGeometry()", "geometry.touchWidthDp",
+                   "geometry.touchHeightDp", "role = Role.Switch",
+                   "Modifier.scale(geometry.scale)"):
         if marker not in standard_switch:
-            fail(f"standard switch must delegate upstream Material3: {marker}")
+            fail(f"YUI switch must support Material3 defaults and custom safe geometry: {marker}")
     if "YDimens.SwitchSlot" in standard_switch:
         fail("standard Compose switch cannot use static switch-slot dimensions")
-    if "defaultMinSize(" not in standard_switch or "modifier.size(" in standard_switch:
-        fail("Compose switch slot must reserve a minimum without clipping the intrinsic track")
+    if "defaultMinSize(" not in standard_switch or "Canvas(" not in standard_switch:
+        fail("Compose switch must preserve accessible hit targets and custom dimensions")
     if "graphicsLayer(" in standard_switch or "scaleX = 0.75f" in standard_switch:
-        fail("standard Compose switch must not be visually shrunk")
+        fail("Compose switch must not use a hidden fixed scaling shortcut")
     for shared_source in (YUI, YUI_ROOT / "YComponents.kt"):
         source = read(shared_source)
         if not any(marker in source for marker in ("YStandardSwitch(", "YSwitchItem(")):
@@ -193,8 +194,10 @@ def main() -> None:
     switch_slot_source = view_switches.split("private fun switchSlot(context: Context):", 1)[-1].split("@JvmStatic", 1)[0]
     if "ViewGroup.LayoutParams.WRAP_CONTENT" not in switch_slot_source or "YView.switchSlotWidth(context)," in switch_slot_source:
         fail("View switch must measure at wrap_content instead of clipping the track to a fixed slot")
-    if "scaleX = scale" in view_switches or "scaleY = scale" in view_switches:
-        fail("Java/View switch must not scale its rendered track")
+    if "toggle.scaleX = geometry.scale" not in view_switches or (
+            "toggle.trackDrawable = GradientDrawable()" not in view_switches or
+            "toggle.thumbDrawable = GradientDrawable()" not in view_switches):
+        fail("Java/View switch must use the shared configurable geometry")
 
     # Density may evolve, but the system still needs accessible hit targets and
     # ordered compact/medium/expanded breakpoints.
