@@ -66,8 +66,9 @@ def check_compose() -> None:
            "LocalYAppearance.current.fontPercent / 100f")
     core = source("next/core/productui/src/main/java/com/yagay/ysuite/productui/ProductAdaptive.kt",
                   "val availableWidth: Dp", "availableWidth = maxWidth",
-                  "fun ProductAdaptiveInfo.fitPanes(", "minimumMain: Dp = 320.dp",
-                  "val widthBudget =", "fittedLeading.takeIf", "fittedTrailing.takeIf")
+                  "fun ProductAdaptiveInfo.fitPanes(", "minimumMain: Dp = YUiGeometry.minimumMainPane",
+                  "val widthBudget =", "fittedLeading.takeIf", "fittedTrailing.takeIf",
+                  "YUiGeometry.minimumLeadingPane", "YUiGeometry.minimumTrailingPane")
     if core.count("availableWidth = maxWidth") < 2:
         raise AssertionError("nested product panes must track local available width")
 
