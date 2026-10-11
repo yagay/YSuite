@@ -31,7 +31,10 @@ def main() -> None:
            "list.setPreserveFocusAfterLayout(false)",
            "scrollToPositionWithOffset(0, 0)",
            "YViewLayout.secondaryButton(", "new LinearLayout.LayoutParams(touch, touch)",
-           "row.subtitle.setMaxLines(2)", "row.trailing.setGravity(Gravity.END"))
+           "row.trailing.setGravity(Gravity.END"))
+    main_source = (ROOT / "apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java").read_text(encoding="utf-8")
+    if "row.subtitle.setMaxLines(" in main_source or "row.title.setMaxLines(" in main_source:
+        raise AssertionError("YPower list descriptions must grow with localized text")
     check("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
           ("fun listActionButton(", "secondaryButton(context, label)"))
     check("apps/YPower/feature/build.gradle.kts", ("libs.androidx.recyclerview",))
