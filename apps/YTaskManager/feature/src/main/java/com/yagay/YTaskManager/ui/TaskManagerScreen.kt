@@ -176,7 +176,13 @@ fun TaskManagerApp(viewModel: MainViewModel) {
                         state = state,
                         viewModel = viewModel,
                         onSelect = { process ->
-                            viewModel.loadProcessDetails(process) { selected = it }
+                            // Show cached details immediately; Root enrichment is optional.
+                            selected = process
+                            viewModel.loadProcessDetails(process) { enriched ->
+                                if (selected?.pid == enriched.pid && selected?.uid == enriched.uid) {
+                                    selected = enriched
+                                }
+                            }
                         },
                     )
                     HomePage.RESOURCES -> ResourcePage(state)
@@ -192,7 +198,12 @@ fun TaskManagerApp(viewModel: MainViewModel) {
             parent = state.processes.firstOrNull { it.pid == process.ppid },
             onDismiss = { selected = null },
             onOpenParent = { parent ->
-                viewModel.loadProcessDetails(parent) { selected = it }
+                selected = parent
+                viewModel.loadProcessDetails(parent) { enriched ->
+                    if (selected?.pid == enriched.pid && selected?.uid == enriched.uid) {
+                        selected = enriched
+                    }
+                }
             },
             onPin = { viewModel.togglePin(process) },
             onKill = {
