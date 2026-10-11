@@ -189,6 +189,19 @@ def run() -> None:
     require("libs/yui/src/main/java/com/yagay/yui/YForms.kt",
             "YUiModalBottomSheet as ModalBottomSheet",
             "LocalYAppearance.current.fieldRadiusDp.dp")
+    view_widgets = source("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt")
+    for token in ("fun text(context: Context, value: String?): TextView",
+                  "fun caption(context: Context, value: String?): TextView"):
+        if token not in view_widgets:
+            raise AssertionError("YUI must expose typography-only View adapters: " + token)
+    for feature_path in (
+        "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/MainActivity.java",
+        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsPageUi.java",
+        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsGesturePage.java",
+    ):
+        if re.search(r"YViewLayout\\.(?:text|caption)\\([^;]*?,\\s*\\d+(?:\\.\\d+)?\\s*(?:,\\s*(?:true|false))?\\s*\\);",
+                     source(feature_path), flags=re.S):
+            raise AssertionError(feature_path + " passes a redundant typography size to YUI")
     power_icons = source("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java")
     if "final int iconPx = YView.listIconSize(MainActivity.this);" not in power_icons:
         raise AssertionError("YPower must use the configured YUI app icon size without a local clamp")
