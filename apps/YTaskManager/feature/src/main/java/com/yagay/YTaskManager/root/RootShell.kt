@@ -18,7 +18,12 @@ data class ShellResult(
 )
 
 /** Report the actual failure layer instead of equating a missing host with denied Root. */
-data class RootProbe(val granted: Boolean, val detail: String)
+data class RootProbe(
+    val granted: Boolean,
+    val detail: String,
+    /** Transport/host failure does not mean Root permission was denied. */
+    val transient: Boolean = false,
+)
 
 class RootShell {
     companion object {
@@ -32,9 +37,9 @@ class RootShell {
 
     suspend fun probeRoot(): RootProbe {
         val host = services.hostOrNull()
-            ?: return RootProbe(false, "YSuite feature Root host not attached; retrying connection")
+            ?: return RootProbe(false, "YSuite feature Root host not attached; retrying connection", transient = true)
         if (!host.supports(HostCapability.ROOT)) {
-            return RootProbe(false, "TaskManager ROOT capability is not registered by its host")
+            return RootProbe(false, "TaskManager ROOT capability is not registered by its host", transient = true)
         }
         return try {
             val result = execute("id -u", 8_000)
@@ -48,12 +53,15 @@ class RootShell {
                 else -> "Root command ran with uid=$uid, not uid=0 (${host.hostPackageName})"
             }
             AppLogger.i("Root probe: $detail")
-            RootProbe(granted, detail)
+            // Failed commands and missing UIDs can be caused by a busy gateway.
+            // A valid non-zero UID is the direct proof of insufficient privileges.
+            val transient = !granted && (result.code != 0 || uid == null)
+            RootProbe(granted, detail, transient = transient)
         } catch (cancel: CancellationException) {
             throw cancel
         } catch (error: Throwable) {
             AppLogger.e("Root probe could not use the feature host", error)
-            RootProbe(false, error.message ?: error.javaClass.simpleName)
+            RootProbe(false, error.message ?: error.javaClass.simpleName, transient = true)
         }
     }
 

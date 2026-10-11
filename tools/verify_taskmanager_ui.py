@@ -32,6 +32,17 @@ def run() -> None:
     for fragment in required:
         if fragment not in content:
             raise AssertionError(f"TaskManager UI missing {fragment}")
+    root_probe = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt").read_text(encoding="utf-8")
+    viewmodel = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt").read_text(encoding="utf-8")
+    for marker in ("val transient: Boolean = false", "transient = true"):
+        if marker not in root_probe:
+            raise AssertionError(f"TaskManager Root probe missing {marker}")
+    for marker in ("consecutiveTransientRootFailures < 3", "rootProbeMutex.withLock",
+                   "checked = !probe.transient", "updateRootStatus()"):
+        if marker not in viewmodel:
+            raise AssertionError(f"TaskManager Root reconnect contract missing {marker}")
+    if "R.string.ytm_root_connecting" not in content:
+        raise AssertionError("TaskManager must distinguish connecting Root from denied Root")
     if "YToggleFilterBar(" in content or "YFilterBar(" in content:
         raise AssertionError("TaskManager UI regressed to cramped horizontal setting chips")
     for file in (en, zh):

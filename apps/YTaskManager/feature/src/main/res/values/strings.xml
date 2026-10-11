@@ -14,6 +14,7 @@
     <string name="ytm_resources">Resources</string>
     <string name="ytm_network">Network</string>
     <string name="ytm_root_unavailable">Unavailable</string>
+    <string name="ytm_root_connecting">Checking Root…</string>
     <string name="ytm_ok">OK</string>
     <string name="ytm_detected">Detected</string>
     <string name="ytm_not_detected">Not detected</string>

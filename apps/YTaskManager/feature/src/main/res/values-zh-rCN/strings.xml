@@ -106,4 +106,5 @@
     <string name="ytm_process_performance">资源使用</string>
     <string name="ytm_process_advanced">高级信息</string>
     <string name="ytm_long_press_copy">长按信息可复制对应值</string>
+    <string name="ytm_root_connecting">正在检查 Root…</string>
 </resources>

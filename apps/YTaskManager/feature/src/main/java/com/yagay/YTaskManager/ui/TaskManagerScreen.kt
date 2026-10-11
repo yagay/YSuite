@@ -284,8 +284,16 @@ private fun StatusSection(state: TaskManagerUiState) {
         statuses = listOf(
             YStatusSpec(
                 label = "Root",
-                value = if (state.root.granted) stringResource(R.string.ytm_ok) else stringResource(R.string.ytm_root_unavailable),
-                tone = if (state.root.granted) YStatusTone.Good else YStatusTone.Error,
+                value = when {
+                    !state.root.checked -> stringResource(R.string.ytm_root_connecting)
+                    state.root.granted -> stringResource(R.string.ytm_ok)
+                    else -> stringResource(R.string.ytm_root_unavailable)
+                },
+                tone = when {
+                    !state.root.checked -> YStatusTone.Warning
+                    state.root.granted -> YStatusTone.Good
+                    else -> YStatusTone.Error
+                },
             ),
             YStatusSpec(
                 label = "LSPosed",
@@ -295,7 +303,7 @@ private fun StatusSection(state: TaskManagerUiState) {
         ),
         modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 3f).dp),
     )
-    if (state.root.checked && !state.root.granted) {
+    if (!state.root.granted && state.root.message != "Not checked") {
         YNotice(
             text = state.root.message,
             modifier = Modifier.padding(

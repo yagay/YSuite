@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val processShell = RootShell()
@@ -56,6 +58,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var resourceJob: Job? = null
     private var detailJob: Job? = null
     private var lastDetailSampleMs = 0L
+    private val rootProbeMutex = Mutex()
+    private var consecutiveTransientRootFailures = 0
 
     init {
         viewModelScope.launch {
@@ -70,18 +74,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (monitorJob?.isActive == true) return
         startResourceMonitor()
         monitorJob = viewModelScope.launch {
-            val initialProbe = processShell.probeRoot()
-            val rootGranted = initialProbe.granted
-            _state.value = _state.value.copy(
-                root = RootState(
-                    checked = true,
-                    granted = rootGranted,
-                    uid = if (rootGranted) 0 else null,
-                    message = initialProbe.detail
-                ),
-                loading = rootGranted,
-                error = null
-            )
+            val rootGranted = updateRootStatus()
+            _state.value = _state.value.copy(loading = rootGranted, error = null)
             // Populate CPU/RAM immediately, without waiting for privileged /proc enumeration.
             refreshPublicSnapshot()
             if (rootGranted) {
@@ -95,15 +89,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     delay(1_000L)
                     if (android.os.SystemClock.elapsedRealtime() - lastRootProbe >= 5_000L) {
                         lastRootProbe = android.os.SystemClock.elapsedRealtime()
-                        val probe = processShell.probeRoot()
-                        _state.value = _state.value.copy(
-                            root = RootState(
-                                checked = true, granted = probe.granted,
-                                uid = if (probe.granted) 0 else null,
-                                message = probe.detail,
-                            )
-                        )
-                        if (probe.granted) {
+                        val rootGranted = updateRootStatus()
+                        if (rootGranted) {
                             _state.value = _state.value.copy(loading = true, error = null)
                             refreshPublicSnapshot()
                             refreshInternal()
@@ -113,9 +100,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } else if (snapshot.autoRefresh) {
                     delay(snapshot.refreshIntervalMs)
                     if (isActive && _state.value.autoRefresh) refreshInternal()
-                } else delay(250L)
+                    if (android.os.SystemClock.elapsedRealtime() - lastRootProbe >= 15_000L) {
+                        lastRootProbe = android.os.SystemClock.elapsedRealtime()
+                        updateRootStatus()
+                    }
+                } else {
+                    delay(250L)
+                    if (android.os.SystemClock.elapsedRealtime() - lastRootProbe >= 15_000L) {
+                        lastRootProbe = android.os.SystemClock.elapsedRealtime()
+                        updateRootStatus()
+                    }
+                }
             }
         }
+    }
+
+    /** Brief transport interruptions must not oscillate the Root badge. */
+    private suspend fun updateRootStatus(): Boolean = rootProbeMutex.withLock {
+        val probe = processShell.probeRoot()
+        if (probe.granted || !probe.transient) consecutiveTransientRootFailures = 0
+        else consecutiveTransientRootFailures++
+        val previous = _state.value.root
+        if (probe.transient && previous.granted && consecutiveTransientRootFailures < 3) {
+            AppLogger.i("Transient Root check (" + consecutiveTransientRootFailures +
+                "/3): " + probe.detail)
+            return@withLock true
+        }
+        _state.value = _state.value.copy(
+            root = RootState(
+                checked = !probe.transient,
+                granted = probe.granted,
+                uid = if (probe.granted) 0 else null,
+                message = probe.detail,
+            ),
+        )
+        probe.granted
     }
 
     /**
@@ -173,12 +192,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refresh() {
         viewModelScope.launch {
-            val probe = processShell.probeRoot()
-            _state.value = _state.value.copy(root = RootState(
-                checked = true, granted = probe.granted,
-                uid = if (probe.granted) 0 else null, message = probe.detail,
-            ))
-            if (probe.granted) {
+            val rootGranted = updateRootStatus()
+            if (rootGranted) {
                 startNetworkMonitor()
                 refreshInternal()
             } else refreshPublicSnapshot()
