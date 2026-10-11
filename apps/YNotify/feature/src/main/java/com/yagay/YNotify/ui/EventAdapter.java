@@ -56,6 +56,9 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
             body.setPadding(gap, gap, gap, gap);
         }
         YView.styleItemTitle(h.b.appName);
+        h.b.appName.setSingleLine(false);
+        h.b.appName.setMaxLines(Integer.MAX_VALUE);
+        h.b.appName.setEllipsize(null);
         YView.styleCaption(h.b.type);
         YView.styleStrongBody(h.b.title);
         YView.styleBody(h.b.text);

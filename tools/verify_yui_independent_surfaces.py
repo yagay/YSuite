@@ -94,6 +94,10 @@ def check() -> None:
     if circle.index('if ("com.yagay.YSuite".equals(activity.getPackageName())) return;') > circle.index("YViewLayout.switchRow("):
         raise AssertionError("Integrated YFloat still displays duplicate circle appearance controls")
     notify = source("apps/YNotify/feature/src/main/res/layout/item_event.xml")
+    if 'android:maxLines="2"' in notify or 'android:ellipsize="end"' in notify:
+        raise AssertionError("YNotify event title must wrap, not override YUI text sizing")
+    require("apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/EventAdapter.java",
+            "h.b.appName.setSingleLine(false)", "h.b.appName.setMaxLines(Integer.MAX_VALUE)")
     if 'app:strokeWidth="1dp"' in notify:
         raise AssertionError("YNotify XML hardcodes list-card outline; use the shared YUI renderer")
     print("yui-independent-surfaces: PASS Google Hook snapshot, picker/menu, home row/pins, notify XML")
