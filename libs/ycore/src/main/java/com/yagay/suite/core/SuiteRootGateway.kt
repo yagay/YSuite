@@ -105,6 +105,7 @@ object SuiteRootGateway {
         val context = RootManager.contextOrNull()
             ?: throw IllegalStateException("YSuite root host is not initialized")
         checkFeatureEnabled(context, pluginId)
+        check(RootManager.isAvailable(context)) { "YSuite Root host is not privileged" }
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "stream" }
         SuiteLog.i(
@@ -112,7 +113,7 @@ object SuiteRootGateway {
             SuiteContract.HOST_MODULE_ID,
             "root stream begin; plugin=$safePlugin operation=$safeOperation",
         )
-        val process = ProcessBuilder("su", "-c", command)
+        val process = ProcessBuilder("su", "-c", requireRootUid(command))
             .redirectErrorStream(true)
             .start()
         registerStreamingProcess(context, pluginId, safeOperation, process)
@@ -253,6 +254,14 @@ object SuiteRootGateway {
         }
 
         RootManager.initialize(app)
+        if (!RootManager.isAvailable(app)) {
+            return BinaryResult(
+                code = Shell.Result.JOB_NOT_EXECUTED,
+                stdout = ByteArray(0),
+                stderr = "YSuite Root host not privileged",
+                errorMessage = "Root authorization could not be verified",
+            )
+        }
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "binary" }
         val stdoutLimit = maxStdoutBytes.coerceAtLeast(1024)
@@ -274,7 +283,7 @@ object SuiteRootGateway {
         val stderrOverflow = AtomicBoolean(false)
 
         val result = try {
-            process = ProcessBuilder("su", "-c", command)
+            process = ProcessBuilder("su", "-c", requireRootUid(command))
                 .redirectErrorStream(mergeError)
                 .start()
             val active = process
@@ -358,6 +367,10 @@ object SuiteRootGateway {
         )
         return result
     }
+
+    /** Never run a privileged feature command under a non-root su fallback. */
+    private fun requireRootUid(command: String): String =
+        "test \"$(id -u)\" = 0 || exit 126; " + command
 
     private fun registerStreamingProcess(
         context: Context,

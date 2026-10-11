@@ -20,6 +20,7 @@ import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.RootManager
+import com.yagay.suite.core.SuiteCapabilityMonitor
 import com.yagay.suite.core.SuiteCapability
 import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
@@ -148,7 +149,11 @@ class MainActivity : YComposeActivity() {
 
         LaunchedEffect(resumeTick) {
             rootAvailable = withContext(Dispatchers.IO) {
-                RootManager.isAvailable(this@MainActivity)
+                when (SuiteCapabilityMonitor.root(this@MainActivity, refresh = true).state) {
+                    SuiteCapabilityMonitor.State.VERIFIED -> true
+                    SuiteCapabilityMonitor.State.NOT_GRANTED -> false
+                    else -> null
+                }
             }
             permissions = SuitePermissionState.snapshot(this@MainActivity)
 
@@ -170,9 +175,22 @@ class MainActivity : YComposeActivity() {
         }
 
         LaunchedEffect(Unit) {
+            var rootPoll = 0
             while (true) {
                 xposedConnected = SuiteXposedServiceBroker.isConnected()
                 permissions = SuitePermissionState.snapshot(this@MainActivity)
+                // Root sampling stays off the UI thread and never flips a
+                // temporary Shell error to a confirmed permission revocation.
+                if (++rootPoll % 15 == 0) {
+                    val evidence = withContext(Dispatchers.IO) {
+                        SuiteCapabilityMonitor.root(this@MainActivity, refresh = true)
+                    }
+                    rootAvailable = when (evidence.state) {
+                        SuiteCapabilityMonitor.State.VERIFIED -> true
+                        SuiteCapabilityMonitor.State.NOT_GRANTED -> false
+                        else -> null
+                    }
+                }
                 delay(1_000L)
             }
         }

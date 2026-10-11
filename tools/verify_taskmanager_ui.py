@@ -34,9 +34,13 @@ def run() -> None:
             raise AssertionError(f"TaskManager UI missing {fragment}")
     root_probe = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt").read_text(encoding="utf-8")
     viewmodel = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt").read_text(encoding="utf-8")
-    for marker in ("val transient: Boolean = false", "transient = true"):
+    shared_probe = (ROOT / "libs/yapi/src/main/java/com/yagay/suite/api/HostRootProbe.kt").read_text(encoding="utf-8")
+    for marker in ("HostRootProbe.probe(services, 8L)", "val transient: Boolean = false"):
         if marker not in root_probe:
-            raise AssertionError(f"TaskManager Root probe missing {marker}")
+            raise AssertionError(f"TaskManager shared Root probe missing {marker}")
+    for marker in ("Status.HOST_MISSING", "Status.TRANSIENT_FAILURE", "Root verified (uid=0)"):
+        if marker not in shared_probe:
+            raise AssertionError(f"Shared Root probe contract missing {marker}")
     for marker in ("consecutiveTransientRootFailures < 3", "rootProbeMutex.withLock",
                    "checked = !probe.transient", "updateRootStatus()"):
         if marker not in viewmodel:

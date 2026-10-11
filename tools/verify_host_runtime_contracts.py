@@ -95,7 +95,7 @@ def check_root_recovery() -> None:
             "if (!RootManager.isAvailable(app))", "Root shell could not open as uid 0")
     require("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt",
             "services.hostOrNull()", "fun probeRoot(): RootProbe",
-            "Root command failed (exit=", "result.code == 0 && uid == \"0\"",
+            "HostRootProbe.probe(services, 8L)", "fun probeRoot(): RootProbe",
             "Managed Root execution failed:")
     require("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt",
             "processShell.probeRoot()", "message = probe.detail")

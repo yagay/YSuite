@@ -586,6 +586,8 @@ object DefaultPlatformServices {
     @JvmOverloads
     fun create(featureId: String? = null): PlatformServices =
         PlatformServices(
+            // Standalone callers may use su; a missing managed Host in YSuite
+            // must never spawn another backend with different authorization.
             root = if (featureId.isNullOrBlank()) SuRootGateway
                 else HostedRootGateway(FeatureServices.of(featureId)),
             shizuku = AndroidShizukuGateway,

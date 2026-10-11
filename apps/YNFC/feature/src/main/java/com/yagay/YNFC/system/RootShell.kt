@@ -12,14 +12,10 @@ import com.yagay.suite.api.HostCommandResult
 
 class RootShell(context: Context) {
     companion object {
-        private const val ROOT_OK_CACHE_MS = 60_000L
-        private const val ROOT_FAILURE_CACHE_MS = 5_000L
         private val services = FeatureServices.of("ynfc", "YNFC")
     }
 
     private val appContext = context.applicationContext
-    @Volatile private var rootAvailableCache: Boolean? = null
-    @Volatile private var rootCacheCheckedAt: Long = 0L
     @Volatile private var lastRootToastAt: Long = 0L
 
     fun run(command: String, timeoutSeconds: Long = 20, maxChars: Int = 1_000_000, showToast: Boolean = true): String {
@@ -41,27 +37,7 @@ class RootShell(context: Context) {
     }
 
     fun invalidateRootCache() {
-        rootAvailableCache = null
-        rootCacheCheckedAt = 0L
-    }
-
-    @Synchronized
-    private fun ensureRootAccess(showToast: Boolean): Boolean {
-        val now = SystemClock.elapsedRealtime()
-        rootAvailableCache?.let { cached ->
-            val ttl = if (cached) ROOT_OK_CACHE_MS else ROOT_FAILURE_CACHE_MS
-            if (now - rootCacheCheckedAt in 0 until ttl) {
-                if (!cached && showToast) notifyRootUnavailable()
-                return cached
-            }
-        }
-
-        val result = hostRun("id -u", 4)
-        val ok = result.success && result.stdout.lineSequence().any { it.trim() == "0" }
-        rootAvailableCache = ok
-        rootCacheCheckedAt = now
-        if (!ok && showToast) notifyRootUnavailable()
-        return ok
+        HostRootProbe.invalidate(services.featureId)
     }
 
     private fun hostRun(command: String, timeoutSeconds: Long): HostCommandResult =
