@@ -139,8 +139,41 @@ def check_live_handoff() -> None:
             "isSuiteActiveHere", "shouldStandaloneFallback")
 
 
+def check_shared_capability_evidence() -> None:
+    require("libs/yapi/src/main/java/com/yagay/suite/api/HostRootProbe.kt",
+            "enum class Status", "UNPRIVILEGED", "HOST_MISSING", "TRANSIENT_FAILURE",
+            "Root verified (uid=0)", "READY_TTL_MS", "RETRY_TTL_MS")
+    for module, filename in (
+        ("TaskManager", "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt"),
+        ("YDiag", "apps/YDiag/feature/src/main/java/com/yagay/ydiag/root/RootShell.kt"),
+        ("YPower", "apps/YPower/feature/src/main/java/com/yagay/ypower/root/RootShell.java"),
+        ("YMiniGuard", "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/RootManager.java"),
+        ("YEntryCleaner", "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/data/ComponentRootCommand.java"),
+        ("YNFC", "apps/YNFC/feature/src/main/java/com/yagay/YNFC/system/RootShell.kt"),
+    ):
+        require(filename, "HostRootProbe.probe(")
+    require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteCapabilityMonitor.kt",
+            "enum class State", "fun target(", "fun root(", "fun framework(",
+            "TRANSIENT_GRACE_MS")
+    require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt",
+            'requireRootUid(command)', "RootManager.isAvailable(app)")
+    require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteXposedServiceBroker.kt",
+            "targetEvidence(", "State.TARGET_LOADED", "State.MISSING_SCOPE")
+    require("libs/yapi/src/main/java/com/yagay/suite/api/FeatureHookEvidence.kt",
+            "State.STALE", "fun publish(", "fun invalidate(")
+    require("libs/ycore/src/main/java/com/yagay/suite/core/FeatureManager.kt",
+            "FeatureHookEvidence.invalidate(feature.id)", "HostRootProbe.invalidate(feature.id)")
+    require("apps/YNFC/feature/src/main/java/com/yagay/YNFC/RuntimeStatusViewModel.kt",
+            'featureId = "ynfc"', 'status.hookPid == status.currentPid')
+    require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/GuardRuntime.java",
+            '"yminiguard", "system"', "status.isFromCurrentBoot()")
+    require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteDiagnostics.kt",
+            "capability-evidence.txt", "FeatureHookEvidence.diagnosticSnapshot()")
+
+
 def main() -> None:
     check_host_identity()
+    check_shared_capability_evidence()
     check_lifecycle_and_health()
     check_root_recovery()
     check_live_handoff()

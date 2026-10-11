@@ -78,6 +78,8 @@ object FeatureRuntimeManager {
             }.onFailure {
                 SuiteLog.e(app, featureId, "managed runtime destroy failed", it)
             }
+            com.yagay.suite.api.FeatureHookEvidence.invalidate(featureId)
+            com.yagay.suite.api.HostRootProbe.invalidate(featureId)
             record.host?.let { FeatureHostRegistry.detach(featureId, it) }
             record.host = null
         }
