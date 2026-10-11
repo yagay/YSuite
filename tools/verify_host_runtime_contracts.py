@@ -90,9 +90,20 @@ def check_lifecycle_and_health() -> None:
 
 def check_root_recovery() -> None:
     require("libs/ycore/src/main/java/com/yagay/suite/core/RootManager.kt",
-            "repeat(2)", "shell.close()", "shell.isRoot")
+            "for (attempt in 0 until 2)", "shell.close()", "shell.isRoot",
+            "ROOT_VERIFIED_TTL_MS", "ROOT_RETRY_TTL_MS", "lastCheckedAtMs")
     require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt",
             "if (!RootManager.isAvailable(app))", "Root shell could not open as uid 0")
+    # All ordinary and binary requests must go through the same hosted libsu
+    # shell. No second su process is allowed in the binary execution path.
+    gateway = require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt",
+                      "private fun executeBinary(", "Shell.cmd(capture).enqueue()",
+                      "readAtMost(stdout, stdoutLimit)")
+    binary_body = gateway.split("private fun executeBinary(", 1)[1].split(
+        "private fun quotePath(", 1)[0]
+    if 'ProcessBuilder("su"' in binary_body.splitlines()[1:]:
+        raise AssertionError("binary Root execution must not spawn a second su process")
+
     require("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt",
             "services.hostOrNull()", "fun probeRoot(): RootProbe",
             "HostRootProbe.probe(services, 8L)", "fun probeRoot(): RootProbe",
