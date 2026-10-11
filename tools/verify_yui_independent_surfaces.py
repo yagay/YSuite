@@ -130,6 +130,12 @@ def check() -> None:
     permitted = hook_receiver.split("private static boolean allowedType(String type)", 1)[1].split("private static boolean validPackage", 1)[0]
     if "EventTypes.SYSTEM_UI.equals(type)" in permitted or "EventTypes.OTHER_UI.equals(type)" in permitted:
         raise AssertionError("YNotify Hook allows unclassified UI events")
+    # Card bodies must have the same configurable inset as card headings.
+    # YNotify settings add status/caption views directly to section.body.
+    framework = source("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt")
+    section_body = framework.split("val body = LinearLayout(context).apply {", 1)[1].split("holder.addView(body", 1)[0]
+    if "setPadding(horizontal, 0, horizontal," not in section_body:
+        raise AssertionError("YUI section body text can touch the card border")
     notify = source("apps/YNotify/feature/src/main/res/layout/item_event.xml")
     if 'android:maxLines="2"' in notify or 'android:ellipsize="end"' in notify:
         raise AssertionError("YNotify event title must wrap, not override YUI text sizing")

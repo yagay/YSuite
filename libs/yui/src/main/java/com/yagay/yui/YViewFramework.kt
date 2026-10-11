@@ -757,7 +757,9 @@ object YViewLayout {
         }
         val body = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, maxOf(YView.cardPadding(context), YView.controlGap(context)))
+            val horizontal = YView.cardPadding(context)
+            setPadding(horizontal, 0, horizontal,
+                maxOf(YView.cardPadding(context), YView.controlGap(context)))
         }
         holder.addView(body, matchWrap())
         return YViewSection(card, body)
