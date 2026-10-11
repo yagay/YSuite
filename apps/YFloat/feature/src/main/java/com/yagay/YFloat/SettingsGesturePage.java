@@ -54,7 +54,7 @@ final class SettingsGesturePage {
     
             LinearLayout colorsBlock = YViewLayout.settingBlock(activity);
             colorsBlock.addView(YViewLayout.text(activity,
-                    activity.getString(R.string.yfloat_trail_colors), 14, false));
+                    activity.getString(R.string.yfloat_trail_colors)));
             EditText lineColors = YViewLayout.textInput(
                     activity,
                     activity.getString(R.string.yfloat_trail_colors_hint),
