@@ -23,6 +23,30 @@ class ProcessCpuEstimatorTest {
         assertTrue(e.sample(emptyMap(), 1500, 100).isEmpty())
         assertEquals(50f, e.sample(mapOf(9 to ProcessCpuEstimator.Ticks(1, 200)), 3000, 100)[9]!!, 0.001f)
     }
+    @Test fun missingOnePidKeepsThatPidClockAcrossOtherSamples() {
+        val e = ProcessCpuEstimator()
+        e.sample(mapOf(
+            5 to ProcessCpuEstimator.Ticks(10, 100),
+            6 to ProcessCpuEstimator.Ticks(10, 100),
+        ), 1000, 100)
+        e.sample(mapOf(6 to ProcessCpuEstimator.Ticks(10, 125)), 2000, 100)
+        // PID 5 was unreadable for one cycle. Its own elapsed time is 2s.
+        assertEquals(25f, e.sample(
+            mapOf(5 to ProcessCpuEstimator.Ticks(10, 150)), 3000, 100,
+        )[5]!!, 0.001f)
+    }
+
+    @Test fun longMissingPidBecomesNewBaselineWithoutBadSpikes() {
+        val e = ProcessCpuEstimator()
+        e.sample(mapOf(5 to ProcessCpuEstimator.Ticks(10, 100)), 1000, 100)
+        e.sample(mapOf(6 to ProcessCpuEstimator.Ticks(10, 100)), 62000, 100)
+        assertFalse(e.sample(mapOf(5 to ProcessCpuEstimator.Ticks(10, 200)), 63000, 100)
+            .containsKey(5))
+        assertEquals(20f, e.sample(
+            mapOf(5 to ProcessCpuEstimator.Ticks(10, 220)), 64000, 100,
+        )[5]!!, 0.001f)
+    }
+
     @Test fun tickCounterResetAndHzChangeAreUnknown() {
         val e = ProcessCpuEstimator()
         e.sample(mapOf(9 to ProcessCpuEstimator.Ticks(1, 100)), 1000, 100)
