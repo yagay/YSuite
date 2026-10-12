@@ -336,12 +336,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val previousByPid = oldState.processes.associateBy { it.pid }
             val rawProcesses = quickProcesses.map { quick ->
                 val previous = previousByPid[quick.pid]?.takeIf { it.uid == quick.uid }
-                if (previous == null || previous.threads == 0 ||
+                if (previous == null ||
                     (quick.cpuStartTicks != 0L && previous.cpuStartTicks != 0L &&
                         quick.cpuStartTicks != previous.cpuStartTicks)) quick
                 else quick.copy(
-                    cpuPercent = if (quick.cpuSampled) quick.cpuPercent else previous.cpuPercent,
+                    // Fast ps has no thread count; that must NOT discard a
+                    // valid asynchronous CPU sample when rich /proc is absent.
+                    cpuPercent = if (quick.cpuSampled) quick.cpuPercent
+                        else if (previous.cpuSampled) previous.cpuPercent else 0f,
                     cpuSampled = quick.cpuSampled || previous.cpuSampled,
+                    cpuStartTicks = quick.cpuStartTicks.takeIf { it > 0L }
+                        ?: previous.cpuStartTicks,
                     rssKb = quick.rssKb.takeIf { it > 0 } ?: previous.rssKb,
                     virtualMemoryKb = previous.virtualMemoryKb,
                     threads = previous.threads,
