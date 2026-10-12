@@ -89,7 +89,23 @@ public final class MainActivity extends Activity {
         Button reload = YViewLayout.primaryButton(this, getString(R.string.ymg_reload_now));
         reload.setOnClickListener(v -> {
             if (!GuardApp.isHotReloadAvailable()) {
-                Toast.makeText(this, R.string.ymg_hot_reload_unavailable, Toast.LENGTH_LONG).show();
+                EngineStatusProvider.Status heartbeat = GuardApp.getEngineStatus();
+                long loadedTarget = GuardApp.getSystemTargetLoadedVersionCode();
+                long expected = GuardApp.getExpectedVersionCode();
+                int messageRes = heartbeat.startedAt <= 0 || !heartbeat.isFromCurrentBoot()
+                        ? (loadedTarget > 0 && loadedTarget != expected
+                            ? R.string.ymg_restart_old_bootstrap
+                            : R.string.ymg_restart_no_heartbeat)
+                        : R.string.ymg_hot_reload_unavailable;
+                String detail = messageRes == R.string.ymg_restart_old_bootstrap
+                        ? getString(messageRes, loadedTarget, expected)
+                        : getString(messageRes);
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle(R.string.ymg_reboot_title)
+                        .setMessage(detail)
+                        .setPositiveButton(R.string.ymg_recheck, (dialog, which) -> refreshStatus())
+                        .setNegativeButton(android.R.string.ok, null)
+                        .show();
                 return;
             }
 
@@ -263,7 +279,10 @@ public final class MainActivity extends Activity {
                 EngineStatusProvider.Status heartbeat = GuardApp.getEngineStatus();
                 String reason;
                 if (heartbeat.startedAt <= 0) {
-                    reason = getString(R.string.ymg_engine_no_heartbeat);
+                    long loadedTarget = GuardApp.getSystemTargetLoadedVersionCode();
+                    reason = loadedTarget > 0 && loadedTarget != expected
+                            ? getString(R.string.ymg_restart_old_bootstrap, loadedTarget, expected)
+                            : getString(R.string.ymg_engine_no_heartbeat);
                 } else if (!heartbeat.isFromCurrentBoot()) {
                     long ageMs = System.currentTimeMillis() - heartbeat.startedAt;
                     reason = getString(R.string.ymg_engine_stale_heartbeat,

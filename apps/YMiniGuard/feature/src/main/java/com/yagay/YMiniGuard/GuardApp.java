@@ -19,6 +19,7 @@ public final class GuardApp extends Application {
     static long getExpectedVersionCode() { return GuardRuntime.getExpectedVersionCode(); }
     static List<String> getFrameworkScope() { return GuardRuntime.getFrameworkScope(); }
     static boolean hasSystemScope() { return GuardRuntime.hasSystemScope(); }
+    static long getSystemTargetLoadedVersionCode() { return GuardRuntime.getSystemTargetLoadedVersionCode(); }
     static EngineStatusProvider.Status getEngineStatus() { return GuardRuntime.getEngineStatus(); }
     static long getLoadedEngineVersionCode() { return GuardRuntime.getLoadedEngineVersionCode(); }
     static long getEngineStartedAt() { return GuardRuntime.getEngineStartedAt(); }

@@ -149,6 +149,26 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
         return getFrameworkScope().contains("system");
     }
 
+    /**
+     * A running LSPosed target is not proof the MiniGuard hook installed,
+     * but its loaded build can identify a stale system_server bootstrap.
+     */
+    static long getSystemTargetLoadedVersionCode() {
+        XposedService current = service;
+        if (current == null) return -1L;
+        try {
+            for (var target : current.getRunningTargets()) {
+                if ("system".equals(target.getProcessName())
+                        || "android".equals(target.getProcessName())) {
+                    return target.getLoadedVersionCode();
+                }
+            }
+        } catch (Throwable error) {
+            SERVICES.warn("Failed to read system_server Hook build", error);
+        }
+        return -1L;
+    }
+
     static EngineStatusProvider.Status getEngineStatus() {
         GuardRuntime runtime = instance;
         EngineStatusProvider.Status status =
@@ -167,7 +187,12 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     static int getEnginePid() { return getEngineStatus().pid; }
     static int getEngineHookCount() { return getEngineStatus().hookCount; }
     static long getBootstrapVersionCode() { return getEngineStatus().bootstrapVersionCode; }
-    static boolean isHotReloadAvailable() { return getEngineStatus().hotReload; }
+    static boolean isHotReloadAvailable() {
+        EngineStatusProvider.Status status = getEngineStatus();
+        return service != null && hasSystemScope()
+                && status.isFromCurrentBoot() && status.pid > 0
+                && status.hookCount > 0 && status.versionCode > 0 && status.hotReload;
+    }
     static long getEngineGeneration() { return getEngineStatus().generation; }
     static String getEngineReloadMessage() { return getEngineStatus().reloadMessage; }
     static int getEngineActiveSessions() { return getEngineStatus().activeSessions; }
@@ -251,6 +276,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     }
 
     static boolean requestEngineReload() {
+        if (!isHotReloadAvailable()) return false;
         int seq = getInt(ConfigKeys.ENGINE_RELOAD_SEQ) + 1;
         localPrefs().edit().putInt(ConfigKeys.ENGINE_RELOAD_SEQ, seq).apply();
         return syncAll();

@@ -57,7 +57,10 @@
     <string name="ymg_engine_scope_missing">System Engine：作用域缺少 system。实际作用域：%1$s</string>
     <string name="ymg_engine_current">System Engine：代码 %1$d，Bootstrap %2$d，代数 %3$d，跟踪任务 %4$d\n%5$s</string>
     <string name="ymg_engine_old">System Engine：旧 Engine %1$d，已安装 APK %2$d\n请重新加载 Engine。若 Bootstrap Hook 已改变，需要重启一次。</string>
-    <string name="ymg_engine_no_heartbeat">System Engine：未检测到有效心跳</string>
+    <string name="ymg_engine_no_heartbeat">系统引擎：未收到 system_server 的有效心跳。热重载无法首次注入缺失的系统 Hook，更新 APK 后请正常重启手机再检测。</string>
+    <string name="ymg_reboot_title">系统 Bootstrap 需要重启手机</string>
+    <string name="ymg_restart_no_heartbeat">小窗守护没有收到 system_server 的 Bootstrap 心跳。热重载只能更新已运行的引擎，不能首次注入缺失的 Hook。请确认 LSPosed 已启用 system 作用域，正常重启手机后重新检测。</string>
+    <string name="ymg_restart_old_bootstrap">system_server 仍加载旧版 Hook %1$d，而已安装 APK 是 %2$d。热重载无法替换系统进程中的 Bootstrap，需要正常重启手机加载新版。</string>
 
     <string name="ymg_target_force_title">强制允许一加小窗</string>
     <string name="ymg_target_background_title">后台播放应用</string>

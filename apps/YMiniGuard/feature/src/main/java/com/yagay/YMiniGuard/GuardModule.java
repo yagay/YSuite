@@ -91,6 +91,9 @@ public final class GuardModule extends XposedModule {
                 remotePrefs,
                 systemClassLoader);
 
+        // Start reporting status before optional OEM installers can fail.
+        scheduleEngineHeartbeat(handler);
+
         boolean initialLoaded =
                 engine.loadInitial();
 
@@ -134,7 +137,6 @@ public final class GuardModule extends XposedModule {
                         + " systemUiContext="
                         + (context != null));
 
-        scheduleEngineHeartbeat(handler);
     }
 
     private boolean enabled() {
@@ -2161,6 +2163,7 @@ public final class GuardModule extends XposedModule {
                     private long lastAutoAttemptVersion =
                             Long.MIN_VALUE;
                     private long lastAutoAttemptElapsed;
+                    private int missingContextTicks;
 
                     @Override
                     public void run() {
@@ -2254,7 +2257,14 @@ public final class GuardModule extends XposedModule {
                                             + t);
                         }
 
-                        if (context != null) {
+                        if (context == null) {
+                            if (++missingContextTicks % 10 == 1) {
+                                log(Log.WARN, TAG,
+                                        "SYSTEM_SCOPE heartbeat deferred: system context unavailable"
+                                        + " pid=" + Process.myPid());
+                            }
+                        } else {
+                            missingContextTicks = 0;
                             try {
                                 EngineBridge currentEngine =
                                         engine;

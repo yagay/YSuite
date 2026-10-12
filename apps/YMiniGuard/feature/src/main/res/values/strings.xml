@@ -57,7 +57,10 @@
     <string name="ymg_engine_scope_missing">System Engine: system is missing from the scope. Actual scope: %1$s</string>
     <string name="ymg_engine_current">System Engine: code %1$d, Bootstrap %2$d, generation %3$d, tracked tasks %4$d\n%5$s</string>
     <string name="ymg_engine_old">System Engine: old Engine %1$d, installed APK %2$d\nReload the Engine. If the Bootstrap Hook changed, reboot once.</string>
-    <string name="ymg_engine_no_heartbeat">System Engine: no valid heartbeat detected</string>
+    <string name="ymg_engine_no_heartbeat">System Engine: no live heartbeat from system_server. Hot reload cannot install a missing system hook. Reboot after updating the APK, then check again.</string>
+    <string name="ymg_reboot_title">System Bootstrap needs a reboot</string>
+    <string name="ymg_restart_no_heartbeat">MiniGuard has not received a system_server Bootstrap heartbeat. Hot reload only updates an already-running engine; it cannot inject a missing Hook. Confirm the LSPosed system scope, reboot the phone normally, then check again.</string>
+    <string name="ymg_restart_old_bootstrap">system_server still has Hook build %1$d; the installed APK is build %2$d. Hot reload cannot replace this Bootstrap. Reboot the phone normally to load the new build.</string>
 
     <string name="ymg_target_force_title">Force OPlus mini-window</string>
     <string name="ymg_target_background_title">Background-playback apps</string>
