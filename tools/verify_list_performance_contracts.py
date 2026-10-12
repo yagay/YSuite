@@ -44,7 +44,7 @@ def main() -> None:
           ("InstalledAppCatalog.icon(appContext",))
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt",
           ("scheduleDetailedSample()", "lastDetailSampleMs < 5_000L",
-           "processResult = processDeferred.await()", "processes = visible"))
+           "processResult = processDeferred.await()", "val liveByPid = live.processes.associateBy"))
     # CPU collection must not block or starve the visible process list.
     proc = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/ProcessRepository.kt").read_text(encoding="utf-8")
     fast = proc.split("private suspend fun listProcessesFromPs()", 1)[1].split(
@@ -59,6 +59,22 @@ def main() -> None:
         raise AssertionError("Fast list must bypass busy isolated scan slots")
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt",
           ("LaunchedEffect(drawable, packageName, px)", "InstalledAppCatalog.iconBitmap("))
+    # Process metrics stay numeric even when a specific backend fails. Keep
+    # acquisition quality in cpuSampled/networkSampled instead of switching
+    # visible text between a dash and 0 on every refresh.
+    ui = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt").read_text(encoding="utf-8")
+    for required in ("formatProcessCpu(process.cpuPercent)",
+                     "formatSpeed(process.rxBytesPerSecond)",
+                     "formatSpeed(process.txBytesPerSecond)"):
+        if required not in ui:
+            raise AssertionError(f"TaskManager numeric metric format missing {required}")
+    if "if (process.cpuSampled) String.format(" in ui or "if (process.networkSampled) formatSpeed(" in ui:
+        raise AssertionError("Process rows must not switch numeric metrics to dashes")
+    if "previousTicks" in proc or "previousSampleMs" in proc:
+        raise AssertionError("Detailed metadata and CPU sampler must not maintain two different CPU baselines")
+    view = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt").read_text(encoding="utf-8")
+    if "val snapshot = _state.value" not in view or "val liveByPid = live.processes.associateBy" not in view:
+        raise AssertionError("CPU readings can be lost by a stale process refresh snapshot")
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/NetworkRepository.kt",
           ("preferredRootProbe", "lastFullProbeMs < 60_000L",
            "if (selected.isEmpty())", "parseBpfMap(raw)",

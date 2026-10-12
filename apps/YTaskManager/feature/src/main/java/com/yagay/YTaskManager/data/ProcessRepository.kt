@@ -200,7 +200,7 @@ class ProcessRepository(
     private fun parseProcDump(text: String): List<ProcessEntry> {
         val lines = text.lineSequence().toList()
         val meta = lines.firstOrNull { it.startsWith("__META__|") }?.split('|')
-        clockTicksPerSecond = meta?.getOrNull(1)?.toLongOrNull()?.coerceAtLeast(1L) ?: 100L
+        val clockTicksPerSecond = meta?.getOrNull(1)?.toLongOrNull()?.coerceAtLeast(1L) ?: 100L
         val uptimeSeconds = meta?.getOrNull(2)?.toDoubleOrNull() ?: 0.0
 
         val nowMs = System.currentTimeMillis()
