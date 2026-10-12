@@ -448,38 +448,50 @@ def main() -> None:
     if 'stringPreferencesKey("theme_mode")' in rebuilt_settings:
         fail("rebuilt host must not maintain a second theme store")
 
-    # Integrated YFloat must not duplicate controls already editable in YSuite.
-    # Standalone YFloat keeps local editors because its preferences are app-private.
+    # One persistence owner (YUI), but edits remain discoverable both in the
+    # host-wide appearance catalog and in the owning YFloat module page.
+    # Returning to the module must not silently hide icon size / opacity / style.
     float_appearance_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppearanceSettingsActivity.java")
     float_capture = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsCapturePage.java")
     float_main = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MainActivity.java")
+    float_border = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/CircleBorderSettingsUi.java")
+    float_advanced = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsAdvancedSelectionPage.java")
     for source, markers, label in (
         (float_appearance_page, (
-            'boolean embeddedInSuite = "com.yagay.YSuite".equals(getPackageName())',
-            'if (!embeddedInSuite)', 'addThemeSpinner(theme.body)',
-            'addMainItemCountSlider(textMenu.body)', 'MenuPickerActivity.customIntent(this)',
-        ), "YFloat combined menu and standalone appearance page"),
+            'addThemeSpinner(theme.body)', 'addMainItemCountSlider(textMenu.body)',
+            'MenuPickerActivity.customIntent(this)',
+        ), "YFloat appearance and menu editor"),
         (float_icon, (
-            'boolean embeddedInSuite = "com.yagay.YSuite".equals(activity.getPackageName())',
-            'if (!embeddedInSuite)', 'ui.styleSpinner(appearance.body)',
+            'ui.styleSpinner(appearance.body)', 'FloatSettings.K_ALPHA',
             'FloatSettings.K_SIZE', 'FloatSettings.K_SHOW_PERCENT',
-        ), "YFloat integrated icon appearance cleanup"),
+        ), "YFloat icon visuals"),
         (float_gesture, (
-            'if (!"com.yagay.YSuite".equals(activity.getPackageName()))',
             'FloatSettings.K_LINE_ALPHA', 'FloatSettings.K_LINE_WIDTH',
             'ui.lineStyleSpinner(feedback.body)', 'FloatSettings.K_VIBRATE',
-        ), "YFloat integrated trail appearance cleanup"),
+        ), "YFloat trail controls"),
         (float_capture, (
-            'if (!"com.yagay.YSuite".equals(activity.getPackageName()))',
             'CircleBorderSettingsUi.add(activity, fs, circleBorder.body)',
             'ui.circleFullOcrEngineSpinner(circleOcr.body)',
-        ), "YFloat integrated border cleanup without affecting OCR"),
-        (float_main, (
-            '? R.string.yfloat_menu_management : R.string.yfloat_interface_settings',
-        ), "YFloat integrated appearance navigation label"),
+        ), "YFloat border and OCR"),
+        (float_border, ('FloatSettings.K_CIRCLE_BORDER_COLOR',
+                        'FloatSettings.K_CIRCLE_BORDER_WIDTH_DP',
+                        'YViewLayout.sliderSetting('), "YFloat border controls"),
+        (float_advanced, ('FloatSettings.K_GOOGLE_FRAME_RADIUS_DP',
+                          'settings.resetAdvancedSelectionSettings(true)'), "YFloat Google frame appearance"),
+        (float_main, ('R.string.yfloat_interface_settings',), "YFloat appearance navigation"),
     ):
         for marker in markers:
             require(source, marker, label)
+    for source, label in (
+        (float_icon, "icon"),
+        (float_gesture, "trail"),
+        (float_capture, "border"),
+        (float_advanced, "Google frame"),
+    ):
+        if 'if (!"com.yagay.YSuite".equals(activity.getPackageName()))' in source or 'if (!embeddedInSuite)' in source:
+            fail(f"YFloat {label} appearance is hidden in integrated YSuite")
+    require(overlay_bridge, "new YAppearanceStore(context).set(key, raw, MODULE)",
+            "YUI remains the only appearance preference owner")
 
     # Rebuilt product layouts and legacy View activities must consume the live unified
     # appearance rather than static shadow settings or an independent spacing scale.
