@@ -107,4 +107,13 @@
     <string name="ytm_process_performance">Resource usage</string>
     <string name="ytm_process_advanced">Advanced information</string>
     <string name="ytm_long_press_copy">Long press a field to copy its value</string>
+    <string name="ytm_more_actions">More actions</string>
+    <string name="ytm_system_app_info">App info in system settings</string>
+    <string name="ytm_launch_app">Open app</string>
+    <string name="ytm_app_notification_settings">Notification settings</string>
+    <string name="ytm_copy_package">Copy package name</string>
+    <string name="ytm_copy_pid">Copy PID</string>
+    <string name="ytm_copy_uid">Copy UID</string>
+    <string name="ytm_copy_process_command">Copy process command</string>
+    <string name="ytm_action_unavailable">This action is unavailable on this device.</string>
 </resources>

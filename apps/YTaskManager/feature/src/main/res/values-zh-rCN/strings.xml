@@ -107,4 +107,13 @@
     <string name="ytm_process_advanced">高级信息</string>
     <string name="ytm_long_press_copy">长按信息可复制对应值</string>
     <string name="ytm_root_connecting">正在检查 Root…</string>
+    <string name="ytm_more_actions">更多操作</string>
+    <string name="ytm_system_app_info">在系统设置中打开应用信息</string>
+    <string name="ytm_launch_app">打开应用</string>
+    <string name="ytm_app_notification_settings">通知设置</string>
+    <string name="ytm_copy_package">复制包名</string>
+    <string name="ytm_copy_pid">复制 PID</string>
+    <string name="ytm_copy_uid">复制 UID</string>
+    <string name="ytm_copy_process_command">复制进程命令</string>
+    <string name="ytm_action_unavailable">此设备无法执行该操作</string>
 </resources>

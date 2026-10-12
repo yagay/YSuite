@@ -771,6 +771,28 @@ private fun ProcessDialog(
     onKill: () -> Unit,
     onForceStop: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    var moreActionsExpanded by remember(process.pid, process.uid) { mutableStateOf(false) }
+    val appPackage = (listOfNotNull(process.packageName) + process.packageNames)
+        .firstOrNull { it.matches(Regex("[a-zA-Z0-9_]+(?:\\.[a-zA-Z0-9_]+)+")) }
+    val canOpenApp = remember(appPackage) {
+        appPackage != null && ProcessExternalActions.canLaunch(context, appPackage)
+    }
+    val actionFailed = stringResource(R.string.ytm_action_unavailable)
+    val copiedPackage = stringResource(R.string.ytm_copied, stringResource(R.string.ytm_package))
+    val copiedPid = stringResource(R.string.ytm_copied, "PID")
+    val copiedUid = stringResource(R.string.ytm_copied, "UID")
+    val copiedCommand = stringResource(R.string.ytm_copied, stringResource(R.string.ytm_command))
+    fun copyValue(value: String, message: String) {
+        clipboard.setText(AnnotatedString(value))
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+    fun externalAction(success: Boolean) {
+        if (success) onDismiss()
+        else Toast.makeText(context, actionFailed, Toast.LENGTH_SHORT).show()
+    }
+
     val actions = buildList {
         add(
             YActionSpec(
@@ -807,6 +829,75 @@ private fun ProcessDialog(
             verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 3f).dp),
         ) {
             item { YNotice(stringResource(R.string.ytm_long_press_copy)) }
+            item { YSectionHeader(stringResource(R.string.ytm_more_actions)) }
+            item {
+                // Keep additional actions in the same YUI dropdown as process
+                // filters, rather than adding another row of oversized dialog
+                // footer buttons.
+                Box {
+                    TextButton(onClick = { moreActionsExpanded = true }) {
+                        Text(stringResource(R.string.ytm_more_actions) + " ▾")
+                    }
+                    DropdownMenu(
+                        expanded = moreActionsExpanded,
+                        onDismissRequest = { moreActionsExpanded = false },
+                    ) {
+                        if (appPackage != null) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ytm_system_app_info)) },
+                                onClick = {
+                                    moreActionsExpanded = false
+                                    externalAction(ProcessExternalActions.openSystemAppInfo(context, appPackage))
+                                },
+                            )
+                            if (canOpenApp) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.ytm_launch_app)) },
+                                    onClick = {
+                                        moreActionsExpanded = false
+                                        externalAction(ProcessExternalActions.launch(context, appPackage))
+                                    },
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ytm_app_notification_settings)) },
+                                onClick = {
+                                    moreActionsExpanded = false
+                                    externalAction(ProcessExternalActions.openNotificationSettings(context, appPackage))
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ytm_copy_package)) },
+                                onClick = {
+                                    moreActionsExpanded = false
+                                    copyValue(appPackage, copiedPackage)
+                                },
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.ytm_copy_pid)) },
+                            onClick = {
+                                moreActionsExpanded = false
+                                copyValue(process.pid.toString(), copiedPid)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.ytm_copy_uid)) },
+                            onClick = {
+                                moreActionsExpanded = false
+                                copyValue(process.uid.toString(), copiedUid)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.ytm_copy_process_command)) },
+                            onClick = {
+                                moreActionsExpanded = false
+                                copyValue(process.command, copiedCommand)
+                            },
+                        )
+                    }
+                }
+            }
             item { YSectionHeader(stringResource(R.string.ytm_process_identity)) }
             item { CopyDetail("PID", process.pid.toString()) }
             if (process.ppid != 0) item { ParentDetail(process.ppid, parent, onOpenParent) }

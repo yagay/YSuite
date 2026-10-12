@@ -32,6 +32,18 @@ def run() -> None:
     for fragment in required:
         if fragment not in content:
             raise AssertionError(f"TaskManager UI missing {fragment}")
+    system_actions = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/ProcessExternalActions.kt").read_text(encoding="utf-8")
+    for marker in ("Settings.ACTION_APPLICATION_DETAILS_SETTINGS",
+                   "Settings.ACTION_APP_NOTIFICATION_SETTINGS",
+                   "getLaunchIntentForPackage", "context.startActivity(intent)",
+                   "if (context !is Activity)"):
+        if marker not in system_actions:
+            raise AssertionError(f"TaskManager system app action missing {marker}")
+    for marker in ("R.string.ytm_more_actions", "R.string.ytm_system_app_info",
+                   "R.string.ytm_app_notification_settings", "R.string.ytm_launch_app",
+                   "copyValue(process.pid.toString()", "copyValue(process.uid.toString()"):
+        if marker not in content:
+            raise AssertionError(f"TaskManager process menu missing {marker}")
     root_probe = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/root/RootShell.kt").read_text(encoding="utf-8")
     viewmodel = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt").read_text(encoding="utf-8")
     shared_probe = (ROOT / "libs/yapi/src/main/java/com/yagay/suite/api/HostRootProbe.kt").read_text(encoding="utf-8")
@@ -54,7 +66,11 @@ def run() -> None:
         for name in ("ytm_filter_and_sort", "ytm_sort_by", "ytm_sort_current",
                      "ytm_auto_refresh_desc", "ytm_confirm_kill_desc",
                      "ytm_process_identity", "ytm_process_performance",
-                     "ytm_process_advanced", "ytm_long_press_copy"):
+                     "ytm_process_advanced", "ytm_long_press_copy",
+                     "ytm_more_actions", "ytm_system_app_info",
+                     "ytm_launch_app", "ytm_app_notification_settings",
+                     "ytm_copy_package", "ytm_copy_pid", "ytm_copy_uid",
+                     "ytm_copy_process_command", "ytm_action_unavailable"):
             if f'name="{name}"' not in xml:
                 raise AssertionError(f"{file}: missing translation {name}")
     print("TaskManager unified YUI layout and callbacks: PASS")
