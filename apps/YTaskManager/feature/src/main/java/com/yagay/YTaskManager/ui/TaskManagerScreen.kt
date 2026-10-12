@@ -486,8 +486,8 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
         subtitle = stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
         detail = stringResource(
             R.string.ytm_download_upload,
-            if (process.networkSampled) formatSpeed(process.rxBytesPerSecond) else "—",
-            if (process.networkSampled) formatSpeed(process.txBytesPerSecond) else "—",
+            formatSpeed(process.rxBytesPerSecond),
+            formatSpeed(process.txBytesPerSecond),
         ),
         leading = { AppIcon(process.icon, process.packageName) },
         trailing = {
@@ -501,7 +501,7 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
                     Spacer(Modifier.size((LocalYAppearance.current.effectiveGapDp / 2f).dp))
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(if (process.cpuSampled) String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent) else "—")
+                    Text(formatProcessCpu(process.cpuPercent))
                     Text(formatBytes(process.rssKb * 1024L), style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -795,10 +795,10 @@ private fun ProcessDialog(
             item { CopyDetail("UID", process.uid.toString()) }
             item { CopyDetail(stringResource(R.string.ytm_user), process.userName) }
             item { YSectionHeader(stringResource(R.string.ytm_process_performance)) }
-            item { CopyDetail(stringResource(R.string.ytm_cpu_usage), if (process.cpuSampled) String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent) else "—") }
+            item { CopyDetail(stringResource(R.string.ytm_cpu_usage), formatProcessCpu(process.cpuPercent)) }
             item { CopyDetail(stringResource(R.string.ytm_ram_usage), formatBytes(process.rssKb * 1024L)) }
-            item { CopyDetail(stringResource(R.string.ytm_realtime_download), if (process.networkSampled) formatSpeed(process.rxBytesPerSecond) else "—") }
-            item { CopyDetail(stringResource(R.string.ytm_realtime_upload), if (process.networkSampled) formatSpeed(process.txBytesPerSecond) else "—") }
+            item { CopyDetail(stringResource(R.string.ytm_realtime_download), formatSpeed(process.rxBytesPerSecond)) }
+            item { CopyDetail(stringResource(R.string.ytm_realtime_upload), formatSpeed(process.txBytesPerSecond)) }
             if (process.virtualMemoryKb > 0L) item { CopyDetail(stringResource(R.string.ytm_virtual_memory), formatBytes(process.virtualMemoryKb * 1024L)) }
             item { CopyDetail(stringResource(R.string.ytm_foreground), if (process.isForeground) stringResource(R.string.ytm_yes) else stringResource(R.string.ytm_no)) }
             item { CopyDetail(stringResource(R.string.ytm_threads), process.threads.toString()) }
@@ -962,6 +962,9 @@ private fun formatBytes(bytes: Long): String {
 }
 
 private fun formatSpeed(bytesPerSecond: Long): String = "${formatBytes(bytesPerSecond)}/s"
+
+private fun formatProcessCpu(value: Float): String =
+    String.format(Locale.getDefault(), "%.1f%%", value.takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f)
 
 private fun formatKHz(khz: Long?): String =
     if (khz == null || khz <= 0L) "-" else String.format(Locale.US, "%.2f GHz", khz / 1_000_000.0)
