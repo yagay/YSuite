@@ -23,6 +23,34 @@ class ProcessRepository(
     private var previousSampleMs: Long = 0L
     private var clockTicksPerSecond: Long = 100L
     private val quickCpu = ProcessCpuEstimator()
+    private val cpuShell = RootShell()
+    data class CpuReading(val percent: Float, val startTicks: Long)
+
+    /** CPU readings are separate from the fast ps list, including on Root timeouts. */
+    suspend fun sampleCpu(): Map<Int, CpuReading> = withContext(Dispatchers.IO) {
+        val script = """
+            echo __CPU_META__
+            getconf CLK_TCK 2>/dev/null || echo 100
+            echo __CPU_TICKS__
+            for p in /proc/[0-9]*; do
+              IFS= read -r statline < "${'$'}p/stat" 2>/dev/null || continue
+              printf '%s\n' "${'$'}statline"
+            done
+        """.trimIndent()
+        val output = cpuShell.execute(script, 5_000).stdout
+        val hz = output.substringAfter("__CPU_META__", "")
+            .substringBefore("__CPU_TICKS__", "").trim().toLongOrNull()
+            ?.takeIf { it > 0L } ?: 100L
+        val ticks = output.substringAfter("__CPU_TICKS__", "").lineSequence()
+            .mapNotNull(::parseStat)
+            .associate { it.pid to ProcessCpuEstimator.Ticks(it.startTicks, it.userTicks + it.systemTicks) }
+        quickCpu.sample(ticks, SystemClock.elapsedRealtime(), hz)
+            .mapNotNull { (pid, percent) ->
+                ticks[pid]?.let { pid to CpuReading(percent, it.startTicks) }
+            }.toMap()
+    }
+
+    fun close() { cpuShell.close() }
 
     /** Fast list: a single ps command, with no per-process I/O or icon decoding. */
     suspend fun listProcesses(): List<ProcessEntry> = withContext(Dispatchers.IO) {
@@ -87,27 +115,9 @@ class ProcessRepository(
 
     /** Fallback for modern OEM kernels restricting /proc/<pid>/stat. */
     private suspend fun listProcessesFromPs(): List<ProcessEntry> {
-        // One fast Root job samples ps plus per-PID CPU ticks.
-        val script = """
-            echo '__PS__'
-            ps -A -o PID,PPID,UID,RSS,NAME 2>/dev/null
-            echo '__CPU_META__'
-            getconf CLK_TCK 2>/dev/null || echo 100
-            echo '__CPU_TICKS__'
-            for p in /proc/[0-9]*; do
-              IFS= read -r statline < "${'$'}p/stat" 2>/dev/null || continue
-              printf '%s\n' "${'$'}statline"
-            done
-        """.trimIndent()
-        val first = shell.execute(script, 6_000).stdout
-        val psText = first.substringAfter("__PS__", "").substringBefore("__CPU_META__", "").trim()
-        val hz = first.substringAfter("__CPU_META__", "").substringBefore("__CPU_TICKS__", "")
-            .trim().toLongOrNull()?.takeIf { it > 0L } ?: 100L
-        val ticks = first.substringAfter("__CPU_TICKS__", "").lineSequence()
-            .mapNotNull { parseStat(it) }
-            .associate { it.pid to ProcessCpuEstimator.Ticks(it.startTicks, it.userTicks + it.systemTicks) }
-        val cpu = quickCpu.sample(ticks, SystemClock.elapsedRealtime(), hz)
-        val raw = if (psText.lineSequence().count() > 1) psText else {
+        // Visible enumeration never waits for a /proc CPU collection.
+        val first = shell.execute("ps -A -o PID,PPID,UID,RSS,NAME 2>/dev/null", 4_000).stdout
+        val raw = if (first.lineSequence().count() > 1) first else {
             val names = shell.execute("ps -A -o PID,PPID,USER,RSS,NAME 2>/dev/null", 4_000).stdout
             if (names.lineSequence().count() > 1) names else ""
         }
@@ -129,8 +139,8 @@ class ProcessRepository(
                 command.startsWith(it.packageName + ":") } ?: direct?.second ?: identities.firstOrNull()
             ProcessEntry(
                 pid = pid, ppid = ppid, uid = actualUid, userName = fields[2],
-                nice = 0, state = "?", rssKb = rssKb, cpuPercent = cpu[pid] ?: 0f,
-                cpuSampled = cpu.containsKey(pid), cpuStartTicks = ticks[pid]?.startTicks ?: 0L,
+                nice = 0, state = "?", rssKb = rssKb, cpuPercent = 0f,
+                cpuSampled = false,
                 name = command.substringAfterLast('/'), command = command,
                 packageNames = identities.map { it.packageName }.ifEmpty {
                     listOfNotNull(primary?.packageName)

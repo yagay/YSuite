@@ -57,6 +57,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var networkJob: Job? = null
     private var resourceJob: Job? = null
     private var detailJob: Job? = null
+    private var cpuJob: Job? = null
+    private var lastCpuSampleMs = 0L
     private var lastDetailSampleMs = 0L
     private val rootProbeMutex = Mutex()
     private var consecutiveTransientRootFailures = 0
@@ -329,6 +331,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
             val quickProcesses = processResult.getOrElse { oldState.processes }
+                .ifEmpty { oldState.processes }
             // Retain rich /proc statistics between the cheaper ps-based updates.
             val previousByPid = oldState.processes.associateBy { it.pid }
             val rawProcesses = quickProcesses.map { quick ->
@@ -364,11 +367,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 error = failed.takeIf { it.isNotBlank() }
                     ?: if (processes.isEmpty()) "No processes returned by Root /proc or ps" else null,
             )
+            scheduleCpuSample()
             scheduleDetailedSample()
         }.onFailure {
             _state.value = _state.value.copy(
                 loading = false,
                 error = it.message ?: it.javaClass.simpleName,
+            )
+        }
+    }
+
+    /** A failed CPU collector cannot clear the visible process list. */
+    private fun scheduleCpuSample() {
+        if (!_state.value.root.granted || cpuJob?.isActive == true) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (lastCpuSampleMs != 0L && now - lastCpuSampleMs < 2_500L) return
+        lastCpuSampleMs = now
+        cpuJob = viewModelScope.launch {
+            val measurements = runCatching { processRepository.sampleCpu() }
+                .getOrDefault(emptyMap())
+            if (measurements.isEmpty()) return@launch
+            val old = _state.value
+            _state.value = old.copy(
+                processes = old.processes.map { process ->
+                    val cpu = measurements[process.pid] ?: return@map process
+                    if (process.cpuStartTicks != 0L && process.cpuStartTicks != cpu.startTicks) process
+                    else process.copy(
+                        cpuPercent = cpu.percent, cpuSampled = true, cpuStartTicks = cpu.startTicks,
+                    )
+                },
             )
         }
     }
@@ -475,6 +502,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         monitorJob?.cancel()
         networkJob?.cancel()
         resourceJob?.cancel()
+        cpuJob?.cancel()
+        processRepository.close()
         processShell.close()
         statsShell.close()
         gpuShell.close()
