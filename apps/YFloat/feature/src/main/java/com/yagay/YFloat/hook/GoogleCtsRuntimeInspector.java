@@ -165,7 +165,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
         hooks += lifecycleHooks.install();
         module.log(Log.INFO, TAG,
                 "Google CTS inspector ready hooks=" + hooks
-                        + " profile=" + GoogleLens1758Profile.NAME
+                        + " profile=capability-resolved"
                         + " capabilities={" + capabilities.detail() + "}");
     }
 
@@ -540,6 +540,14 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 + " showId=" + sessionState.showSessionId()
                 + " atElapsed=" + now;
         sendTrace("=== Google CTS marked session ===");
+        // The Google package version and per-capability binding tell us
+        // precisely what stopped matching after a Google Play update.
+        if (newBridgeSession) {
+            String compatibility = "HOOK_COMPAT googleApp=" + googleAppVersion()
+                    + " capabilities={" + capabilities.detail() + "}";
+            sendTrace(compatibility);
+            module.log(Log.INFO, TAG, compatibility);
+        }
         sendTrace("ACTIVE path=" + path
                 + " session=" + GoogleHookFormatting.shortToken(activeToken)
                 + " generation=" + sessionState.generation()
@@ -644,6 +652,18 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
         if (bounds == null || bounds.isEmpty()) return null;
         return new GoogleCtsSessionState.Bounds(
                 bounds.left, bounds.top, bounds.right, bounds.bottom);
+    }
+
+    private String googleAppVersion() {
+        Context context = currentApplicationContext();
+        if (context == null) return "unknown(context unavailable)";
+        try {
+            android.content.pm.PackageInfo info = context.getPackageManager()
+                    .getPackageInfo(GoogleCtsContract.GOOGLE_PACKAGE, 0);
+            return String.valueOf(info.versionName) + "(" + info.getLongVersionCode() + ")";
+        } catch (Throwable t) {
+            return "unknown(" + t.getClass().getSimpleName() + ")";
+        }
     }
 
     private Context currentApplicationContext() {
