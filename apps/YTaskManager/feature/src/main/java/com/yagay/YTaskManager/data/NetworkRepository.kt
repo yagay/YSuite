@@ -7,6 +7,8 @@ import com.yagay.suite.api.InstalledAppCatalog
 import android.net.TrafficStats
 import android.os.Process
 import android.os.SystemClock
+import org.json.JSONArray
+import org.json.JSONObject
 import com.yagay.YTaskManager.model.NetworkEntry
 import com.yagay.YTaskManager.model.NetworkSnapshot
 import com.yagay.YTaskManager.root.RootShell
@@ -25,6 +27,8 @@ class NetworkRepository(
     private var previousBackend: String? = null
     private var preferredRootProbe: Pair<String, String>? = null
     private var lastFullProbeMs = 0L
+    /** Last successful root UID map probe, never a device-total disguised as UID. */
+    private var lastSourceError: String = "No root UID network counters discovered"
 
     suspend fun read(knownUids: Set<Int>): NetworkSnapshot = withContext(Dispatchers.IO) {
         refreshPackageCacheIfNeeded()
@@ -33,15 +37,18 @@ class NetworkRepository(
         val rootSample = readRootUidCounters()
         val backend: String
         val current: Map<Int, Counter>
+        var uidSource = false
 
         if (rootSample.counters.isNotEmpty()) {
             backend = rootSample.backend
             current = rootSample.counters
+            uidSource = true
         } else {
             val qtaguidCounters = readRootQtaguid()
             if (qtaguidCounters.isNotEmpty()) {
                 backend = "Root qtaguid"
                 current = qtaguidCounters
+                uidSource = true
             } else {
                 // Android N+ public TrafficStats cannot provide arbitrary other UIDs.
                 // Keep this only as an explicit diagnostic fallback.
@@ -51,7 +58,7 @@ class NetworkRepository(
                 val totalRx = TrafficStats.getTotalRxBytes()
                 val totalTx = TrafficStats.getTotalTxBytes()
                 if (totalRx >= 0L && totalTx >= 0L) {
-                    backend = "TrafficStats (device total; per-app unavailable)"
+                    backend = "Device total only — UID network data unavailable ($lastSourceError)"
                     current = mapOf(-1 to Counter(totalRx, totalTx))
                 } else {
                     backend = "TrafficStats (own UID only)"
@@ -75,6 +82,9 @@ class NetworkRepository(
         } else 0.0
 
         val uidFilter = if (knownUids.isEmpty()) null else knownUids
+        val observedUids: Set<Int> = if (uidSource && elapsedSeconds > 0.0)
+            current.keys.filterTo(HashSet()) { it >= 0 && previous.containsKey(it) }
+        else emptySet()
         val entries = if (elapsedSeconds <= 0.0) {
             emptyList()
         } else {
@@ -113,6 +123,8 @@ class NetworkRepository(
             totalRxBytesPerSecond = entries.sumOf { it.rxBytesPerSecond },
             totalTxBytesPerSecond = entries.sumOf { it.txBytesPerSecond },
             backend = backend,
+            uidCountersAvailable = uidSource,
+            observedUids = observedUids,
             timestampMs = System.currentTimeMillis(),
         )
     }
@@ -124,6 +136,10 @@ class NetworkRepository(
      */
     private suspend fun readRootUidCounters(): RootSample {
         val probes = listOf(
+            // Linux pinned map contents are only available when bpftool is
+            // present and the OEM/SELinux policy permits read access.
+            "Root pinned eBPF (bpftool)" to
+                "command -v bpftool >/dev/null 2>&1 && bpftool -j map dump pinned /sys/fs/bpf/netd_shared/map_netd_app_uid_stats_map 2>/dev/null",
             "Root netstats eBPF" to "dumpsys netstats 2>/dev/null",
             "Root connectivity eBPF" to "dumpsys connectivity trafficcontroller 2>/dev/null",
             "Root netd eBPF" to "dumpsys netd trafficcontroller 2>/dev/null",
@@ -140,7 +156,8 @@ class NetworkRepository(
         if (preferredRootProbe == null) lastFullProbeMs = now
         for ((name, command) in selected) {
             val raw = runCatching { shell.execute(command, 4_000).stdout }.getOrDefault("")
-            val parsed = parseAppUidStats(raw)
+            val parsed = if (name.startsWith("Root pinned eBPF")) parseBpfMap(raw)
+                else parseAppUidStats(raw)
             if (parsed.isNotEmpty()) {
                 preferredRootProbe = name to command
                 return RootSample(name, parsed)
@@ -148,7 +165,63 @@ class NetworkRepository(
         }
         preferredRootProbe = null
         lastFullProbeMs = now
+        lastSourceError = "eBPF map unavailable or unreadable; netstats UID map absent"
         return RootSample("No cross-UID root counters", emptyMap())
+    }
+
+    /**
+     * Read-only decoder of the AOSP netd app_uid_stats_map.
+     * Key is little-endian uint32 UID; StatsValue is four uint64s:
+     * rxPackets, rxBytes, txPackets, txBytes. No kernel writes.
+     * bpftool can emit byte arrays or BTF named-object fields.
+     */
+    private fun parseBpfMap(raw: String): Map<Int, Counter> {
+        if (!raw.trimStart().startsWith("[")) return emptyMap()
+        return try {
+            val records = JSONArray(raw)
+            val parsed = HashMap<Int, Counter>()
+            for (i in 0 until records.length()) {
+                val item = records.optJSONObject(i) ?: continue
+                val key = item.opt("key")
+                val uid = when (key) {
+                    is JSONArray -> readUnsignedLittleEndian(key, 0, 4)?.toInt()
+                    is JSONObject -> key.optInt("uid", -1)
+                    else -> -1
+                } ?: -1
+                if (uid < 0) continue
+                val value = item.opt("value")
+                val rx: Long
+                val tx: Long
+                when (value) {
+                    is JSONArray -> {
+                        if (value.length() < 32) continue
+                        rx = readUnsignedLittleEndian(value, 8, 8) ?: continue
+                        tx = readUnsignedLittleEndian(value, 24, 8) ?: continue
+                    }
+                    is JSONObject -> {
+                        rx = value.optLong("rxBytes", value.optLong("rx_bytes", -1L))
+                        tx = value.optLong("txBytes", value.optLong("tx_bytes", -1L))
+                    }
+                    else -> continue
+                }
+                if (rx < 0L || tx < 0L) continue
+                parsed[uid] = Counter(rx, tx)
+            }
+            parsed
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun readUnsignedLittleEndian(bytes: JSONArray, offset: Int, size: Int): Long? {
+        if (bytes.length() < offset + size) return null
+        var result = 0L
+        for (index in 0 until size) {
+            val octet = bytes.optInt(offset + index, -1)
+            if (octet !in 0..255) return null
+            result = result or ((octet.toLong() and 0xffL) shl (index * 8))
+        }
+        return result.takeIf { it >= 0L }
     }
 
     /**

@@ -51,7 +51,7 @@ def main() -> None:
         "suspend fun loadDetails(", 1)[0]
     if "__CPU_TICKS__" in fast or "quickCpu.sample(" in fast:
         raise AssertionError("Fast process list still blocks on CPU collection")
-    for marker in ('"process-list"', "suspend fun sampleCpu():", "private val cpuShell = RootShell()"):
+    for marker in ('"process-list"', "suspend fun sampleCpu(", "private val cpuShell = RootShell()"):
         if marker not in proc:
             raise AssertionError(f"TaskManager missing independent CPU/list path: {marker}")
     gateway = (ROOT / "libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt").read_text(encoding="utf-8")
@@ -61,7 +61,8 @@ def main() -> None:
           ("LaunchedEffect(drawable, packageName, px)", "InstalledAppCatalog.iconBitmap("))
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/NetworkRepository.kt",
           ("preferredRootProbe", "lastFullProbeMs < 60_000L",
-           "if (selected.isEmpty())"), ())
+           "if (selected.isEmpty())", "parseBpfMap(raw)",
+           "map_netd_app_uid_stats_map", "observedUids = observedUids"), ())
     print("List performance source contracts: OK virtualized YPower, staged TaskManager and lazy icons")
 
 if __name__ == "__main__":
