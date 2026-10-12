@@ -27,17 +27,23 @@ class ProcessRepository(
     data class CpuReading(val percent: Float, val startTicks: Long)
 
     /** CPU readings are separate from the fast ps list, including on Root timeouts. */
-    suspend fun sampleCpu(): Map<Int, CpuReading> = withContext(Dispatchers.IO) {
+    suspend fun sampleCpu(visiblePids: Collection<Int>): Map<Int, CpuReading> = withContext(Dispatchers.IO) {
+        // Never enumerate every /proc process for a metric used only by visible rows.
+        // Keep a bounded list to avoid huge stdout and timeout on Android OEM kernels.
+        val safePids = visiblePids.asSequence().filter { it > 0 }.distinct().take(850).toList()
+        if (safePids.isEmpty()) return@withContext emptyMap()
+        val list = safePids.joinToString(" ")
         val script = """
             echo __CPU_META__
             getconf CLK_TCK 2>/dev/null || echo 100
             echo __CPU_TICKS__
-            for p in /proc/[0-9]*; do
-              IFS= read -r statline < "${'$'}p/stat" 2>/dev/null || continue
+            for pid in $list; do
+              IFS= read -r statline < "/proc/${'$'}pid/stat" 2>/dev/null || continue
               printf '%s\n' "${'$'}statline"
             done
         """.trimIndent()
-        val output = cpuShell.execute(script, 5_000).stdout
+        val output = cpuShell.execute(script, 6_000, "process-cpu").stdout
+        if (!output.contains("__CPU_TICKS__")) return@withContext emptyMap()
         val hz = output.substringAfter("__CPU_META__", "")
             .substringBefore("__CPU_TICKS__", "").trim().toLongOrNull()
             ?.takeIf { it > 0L } ?: 100L

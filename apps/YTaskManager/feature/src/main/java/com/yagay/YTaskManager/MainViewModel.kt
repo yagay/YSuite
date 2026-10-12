@@ -389,7 +389,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (lastCpuSampleMs != 0L && now - lastCpuSampleMs < 2_500L) return
         lastCpuSampleMs = now
         cpuJob = viewModelScope.launch {
-            val measurements = runCatching { processRepository.sampleCpu() }
+            val pids = _state.value.processes.map { it.pid }
+            val measurements = runCatching { processRepository.sampleCpu(pids) }
+                .onFailure { AppLogger.i("CPU sampling failed: ${it.message ?: it.javaClass.simpleName}") }
                 .getOrDefault(emptyMap())
             if (measurements.isEmpty()) return@launch
             val old = _state.value

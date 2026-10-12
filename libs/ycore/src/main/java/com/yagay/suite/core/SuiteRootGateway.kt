@@ -196,7 +196,8 @@ object SuiteRootGateway {
             // Quick ps listings use the managed host shell; expensive collectors
             // use limited isolated shells. Two slow scans may never starve the UI list.
             val isolated = safePlugin == "ytaskmanager" &&
-                safeOperation != "root-capability-probe" && safeOperation != "process-list"
+                safeOperation != "root-capability-probe" &&
+                safeOperation != "process-list" && safeOperation != "process-cpu"
             if (isolated && !scanSlots.tryAcquire()) {
                 Result(
                     code = Shell.Result.JOB_NOT_EXECUTED,
