@@ -317,8 +317,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val oldByPid = preview.processes.associateBy { it.pid }
                 val withCpu = quick.map { process ->
                     val old = oldByPid[process.pid]?.takeIf { it.uid == process.uid }
-                    if (old != null && old.threads > 0) process.copy(cpuPercent = old.cpuPercent)
-                    else process
+                    if (process.cpuSampled || old == null || !old.cpuSampled ||
+                        (old.cpuStartTicks != 0L && process.cpuStartTicks != 0L &&
+                            old.cpuStartTicks != process.cpuStartTicks)) process
+                    else process.copy(cpuPercent = old.cpuPercent, cpuSampled = true)
                 }
                 val visible = applyNetworkSpeeds(withCpu, preview.network)
                 _state.value = preview.copy(
@@ -331,9 +333,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val previousByPid = oldState.processes.associateBy { it.pid }
             val rawProcesses = quickProcesses.map { quick ->
                 val previous = previousByPid[quick.pid]?.takeIf { it.uid == quick.uid }
-                if (previous == null || previous.threads == 0) quick
+                if (previous == null || previous.threads == 0 ||
+                    (quick.cpuStartTicks != 0L && previous.cpuStartTicks != 0L &&
+                        quick.cpuStartTicks != previous.cpuStartTicks)) quick
                 else quick.copy(
-                    cpuPercent = previous.cpuPercent,
+                    cpuPercent = if (quick.cpuSampled) quick.cpuPercent else previous.cpuPercent,
+                    cpuSampled = quick.cpuSampled || previous.cpuSampled,
                     rssKb = quick.rssKb.takeIf { it > 0 } ?: previous.rssKb,
                     virtualMemoryKb = previous.virtualMemoryKb,
                     threads = previous.threads,
@@ -387,6 +392,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val merged = old.processes.map { quick ->
                 val detail = byPid[quick.pid]?.takeIf { it.uid == quick.uid } ?: return@map quick
                 detail.copy(
+                    cpuPercent = if (quick.cpuSampled) quick.cpuPercent else detail.cpuPercent,
+                    cpuSampled = quick.cpuSampled || detail.cpuSampled,
                     isPinned = quick.isPinned,
                     rxBytesPerSecond = quick.rxBytesPerSecond,
                     txBytesPerSecond = quick.txBytesPerSecond,

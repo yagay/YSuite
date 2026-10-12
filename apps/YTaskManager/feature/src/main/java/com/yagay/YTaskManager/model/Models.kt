@@ -87,6 +87,10 @@ data class ProcessEntry(
     val executablePath: String? = null,
     val cgroup: String? = null,
     val threads: Int = 0,
+    /** True only after a real interval of process CPU ticks was measured. */
+    val cpuSampled: Boolean = false,
+    /** /proc/[pid]/stat start ticks distinguish PID reuse. */
+    val cpuStartTicks: Long = 0L,
     val startTimeMillis: Long = 0L,
     val elapsedTimeMillis: Long = 0L,
     val oomScoreAdj: Int? = null,

@@ -497,7 +497,7 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
                     Spacer(Modifier.size((LocalYAppearance.current.effectiveGapDp / 2f).dp))
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent))
+                    Text(if (process.cpuSampled) String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent) else "—")
                     Text(formatBytes(process.rssKb * 1024L), style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -791,7 +791,7 @@ private fun ProcessDialog(
             item { CopyDetail("UID", process.uid.toString()) }
             item { CopyDetail(stringResource(R.string.ytm_user), process.userName) }
             item { YSectionHeader(stringResource(R.string.ytm_process_performance)) }
-            item { CopyDetail(stringResource(R.string.ytm_cpu_usage), String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent)) }
+            item { CopyDetail(stringResource(R.string.ytm_cpu_usage), if (process.cpuSampled) String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent) else "—") }
             item { CopyDetail(stringResource(R.string.ytm_ram_usage), formatBytes(process.rssKb * 1024L)) }
             item { CopyDetail(stringResource(R.string.ytm_realtime_download), formatSpeed(process.rxBytesPerSecond)) }
             item { CopyDetail(stringResource(R.string.ytm_realtime_upload), formatSpeed(process.txBytesPerSecond)) }
