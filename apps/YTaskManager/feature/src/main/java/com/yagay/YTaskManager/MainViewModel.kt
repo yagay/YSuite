@@ -431,6 +431,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     isPinned = quick.isPinned,
                     rxBytesPerSecond = quick.rxBytesPerSecond,
                     txBytesPerSecond = quick.txBytesPerSecond,
+                    networkSampled = quick.networkSampled,
                 )
             }
             _state.value = old.copy(
@@ -466,13 +467,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ): List<ProcessEntry> {
         if (processes.isEmpty()) return processes
         val speedByUid = network.entries.associateBy { it.uid }
-        if (speedByUid.isEmpty()) {
-            return processes.map {
-                if (it.rxBytesPerSecond == 0L && it.txBytesPerSecond == 0L) it
-                else it.copy(rxBytesPerSecond = 0L, txBytesPerSecond = 0L)
-            }
-        }
-
         val primaryPidByUid = processes
             .groupBy { it.uid }
             .mapValues { (_, group) ->
@@ -489,9 +483,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 process.copy(
                     rxBytesPerSecond = speed.rxBytesPerSecond,
                     txBytesPerSecond = speed.txBytesPerSecond,
+                    networkSampled = true,
                 )
             } else {
-                process.copy(rxBytesPerSecond = 0L, txBytesPerSecond = 0L)
+                // Per-app stats are UID totals, so only display a rate on
+                // one primary PID; other PIDs must not inherit fake zeroes.
+                process.copy(
+                    rxBytesPerSecond = 0L, txBytesPerSecond = 0L,
+                    networkSampled = primaryPidByUid[process.uid] == process.pid &&
+                        process.uid in network.observedUids,
+                )
             }
         }
     }

@@ -484,7 +484,11 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
     YListItem(
         title = title,
         subtitle = stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
-        detail = stringResource(R.string.ytm_download_upload, formatSpeed(process.rxBytesPerSecond), formatSpeed(process.txBytesPerSecond)),
+        detail = stringResource(
+            R.string.ytm_download_upload,
+            if (process.networkSampled) formatSpeed(process.rxBytesPerSecond) else "—",
+            if (process.networkSampled) formatSpeed(process.txBytesPerSecond) else "—",
+        ),
         leading = { AppIcon(process.icon, process.packageName) },
         trailing = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -793,8 +797,8 @@ private fun ProcessDialog(
             item { YSectionHeader(stringResource(R.string.ytm_process_performance)) }
             item { CopyDetail(stringResource(R.string.ytm_cpu_usage), if (process.cpuSampled) String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent) else "—") }
             item { CopyDetail(stringResource(R.string.ytm_ram_usage), formatBytes(process.rssKb * 1024L)) }
-            item { CopyDetail(stringResource(R.string.ytm_realtime_download), formatSpeed(process.rxBytesPerSecond)) }
-            item { CopyDetail(stringResource(R.string.ytm_realtime_upload), formatSpeed(process.txBytesPerSecond)) }
+            item { CopyDetail(stringResource(R.string.ytm_realtime_download), if (process.networkSampled) formatSpeed(process.rxBytesPerSecond) else "—") }
+            item { CopyDetail(stringResource(R.string.ytm_realtime_upload), if (process.networkSampled) formatSpeed(process.txBytesPerSecond) else "—") }
             if (process.virtualMemoryKb > 0L) item { CopyDetail(stringResource(R.string.ytm_virtual_memory), formatBytes(process.virtualMemoryKb * 1024L)) }
             item { CopyDetail(stringResource(R.string.ytm_foreground), if (process.isForeground) stringResource(R.string.ytm_yes) else stringResource(R.string.ytm_no)) }
             item { CopyDetail(stringResource(R.string.ytm_threads), process.threads.toString()) }
