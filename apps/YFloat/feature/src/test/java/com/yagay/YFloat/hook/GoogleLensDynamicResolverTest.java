@@ -1,5 +1,7 @@
 package com.yagay.YFloat.hook;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -48,4 +50,37 @@ public class GoogleLensDynamicResolverTest {
                 "notSelection", WrongMetadata.class, boolean.class);
         assertTrue(GoogleLensDynamicResolver.scoreSelectionMethod(method) == null);
     }
+    private static final class FakeRecognizedText {
+        final String a = "  Google recognized words  ";
+        final java.util.List<String> b = java.util.List.of("Google", "recognized", "words");
+    }
+
+    private static final class FakeWordSelection {
+        final FakeRecognizedText a = new FakeRecognizedText();
+    }
+
+    private static final class FakeUnrelatedSelection {
+        final String a = "should not be treated as nested OCR result";
+    }
+
+    @Test public void wordSelectionRecoversGoogleTextWhenPublicAccessorIsBlank() {
+        assertEquals("Google recognized words",
+                GoogleLensDynamicResolver.nestedSelectedText(new FakeWordSelection()));
+        assertEquals("", GoogleLensDynamicResolver.nestedSelectedText(
+                new FakeUnrelatedSelection()));
+    }
+
+    @Test public void emptyTextAndRectangleAloneMustNotBecomeRegionCommit() {
+        GoogleLensDynamicResolver.DynamicSelectionSnapshot snapshot =
+                new GoogleLensDynamicResolver.DynamicSelectionSnapshot(
+                        "", new RectF(0, 0, 100, 100), "fake", "test");
+        assertFalse(snapshot.directRegionLike());
+    }
+
+    @Test public void scoreRemainsIndependentOfObfuscatedNames() throws Exception {
+        Method method = FakeController.class.getDeclaredMethod(
+                "onSelection", FakeMetadata.class, boolean.class);
+        assertNotNull(GoogleLensDynamicResolver.scoreSelectionMethod(method));
+    }
+
 }

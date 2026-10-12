@@ -11,7 +11,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Enumeration;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import dalvik.system.DexFile;
@@ -28,6 +31,8 @@ import dalvik.system.DexFile;
 final class GoogleLensDynamicResolver {
     static final int MIN_SELECTION_CONFIDENCE = 95;
     private static final int MAX_SCANNED_CLASSES = 14_000;
+    private static final String LENS_DEX_ANCHOR =
+            "com.google.android.libraries.lens.view.frozenimage.FrozenImageView";
 
     static SelectionBinding discoverSelection(ClassLoader loader) {
         if (loader == null) return SelectionBinding.none("classLoader=null");
@@ -35,6 +40,7 @@ final class GoogleLensDynamicResolver {
         SelectionBinding best = SelectionBinding.none("no structural candidate");
         int scanned = 0;
         Set<String> seen = new HashSet<>();
+        boolean ambiguous = false;
 
         try {
             for (String name : dexClassNames(loader)) {
@@ -55,7 +61,12 @@ final class GoogleLensDynamicResolver {
 
                 for (Method method : declaredMethods(controller)) {
                     Candidate candidate = scoreSelectionMethod(method);
-                    if (candidate == null || candidate.score <= best.confidence()) continue;
+                    if (candidate == null || candidate.score < MIN_SELECTION_CONFIDENCE) continue;
+                    if (candidate.score == best.confidence() && best.method() != method) {
+                        ambiguous = true;
+                        continue;
+                    }
+                    if (candidate.score < best.confidence()) continue;
                     best = new SelectionBinding(
                             method,
                             candidate.userSelectionField,
@@ -66,9 +77,7 @@ final class GoogleLensDynamicResolver {
                             "dynamic-structural scanned=" + scanned
                                     + " controller=" + controller.getName()
                                     + " method=" + method.getName());
-                    if (best.confidence() >= 110) {
-                        return best;
-                    }
+                    ambiguous = false;
                 }
             }
         } catch (Throwable t) {
@@ -76,6 +85,10 @@ final class GoogleLensDynamicResolver {
                     + t.getClass().getSimpleName() + ":" + String.valueOf(t.getMessage()));
         }
 
+        if (ambiguous) {
+            return SelectionBinding.none("multiple equally scored selection methods; refusing unsafe hook"
+                    + " scanned=" + scanned);
+        }
         if (best.available()) {
             return new SelectionBinding(best.method(), best.userSelectionField(),
                     best.textMethod(), best.boundsMethod(), best.pointMethod(),
@@ -124,8 +137,15 @@ final class GoogleLensDynamicResolver {
         return best;
     }
 
+    /**
+     * Keep DEX partitions intact. The Google APK has many DEX files; gathering all
+     * names in a HashSet and inspecting only the first 14k makes discovery random.
+     * The stable FrozenImageView class identifies the Lens partition without
+     * depending on any R8-obfuscated class name. Scan that partition first.
+     */
     private static Set<String> dexClassNames(ClassLoader loader) {
-        Set<String> out = new HashSet<>();
+        Set<String> lens = new LinkedHashSet<>();
+        Set<String> others = new LinkedHashSet<>();
         for (ClassLoader current = loader; current != null; current = current.getParent()) {
             Object pathList = readNamedField(current, "pathList");
             Object elements = readNamedField(pathList, "dexElements");
@@ -136,13 +156,25 @@ final class GoogleLensDynamicResolver {
                 Object dex = readNamedField(element, "dexFile");
                 if (!(dex instanceof DexFile dexFile)) continue;
                 try {
+                    List<String> partition = new ArrayList<>();
+                    boolean containsLens = false;
                     Enumeration<String> entries = dexFile.entries();
-                    while (entries.hasMoreElements()) out.add(entries.nextElement());
-                } catch (Throwable ignored) {
-                }
+                    while (entries.hasMoreElements()) {
+                        String name = entries.nextElement();
+                        if (!eligibleClassName(name)) {
+                            if (LENS_DEX_ANCHOR.equals(name)) containsLens = true;
+                            continue;
+                        }
+                        partition.add(name);
+                    }
+                    if (containsLens) lens.addAll(partition);
+                    else others.addAll(partition);
+                } catch (Throwable ignored) { }
             }
         }
-        return out;
+        if (lens.isEmpty()) return others;
+        lens.addAll(others);
+        return lens;
     }
 
     private static boolean eligibleClassName(String name) {
@@ -234,7 +266,12 @@ final class GoogleLensDynamicResolver {
                 Object rawText = textMethod.invoke(selection);
                 Object rawBounds = boundsMethod.invoke(selection);
                 String text = rawText instanceof String value ? value.trim() : "";
+                // WordSelection.k() may intentionally return empty while the
+                // completed Google OCR text lives in the nested TextSelection.
+                // Recognize its (String a, List b) data shape, not R8 names.
+                if (text.isBlank()) text = nestedSelectedText(selection);
                 RectF bounds = rawBounds instanceof RectF value ? new RectF(value) : null;
+                boolean directRegion = hasGoogleRegion(selection);
                 StringBuilder detail = new StringBuilder();
                 detail.append("dynamicSelectionClass=").append(selection.getClass().getName())
                         .append(" confidence=").append(confidence);
@@ -250,7 +287,7 @@ final class GoogleLensDynamicResolver {
                 if (bounds != null) detail.append(" rawBounds=").append(bounds);
                 if (!text.isBlank()) detail.append(" textLen=").append(text.length());
                 return new DynamicSelectionSnapshot(text, bounds,
-                        selection.getClass().getName(), detail.toString());
+                        selection.getClass().getName(), detail.toString(), directRegion);
             } catch (Throwable t) {
                 return new DynamicSelectionSnapshot("", null, "",
                         "dynamic snapshot failed=" + t.getClass().getSimpleName());
@@ -258,18 +295,74 @@ final class GoogleLensDynamicResolver {
         }
     }
 
+    /**
+     * Google 17.60 and 17.64 store OCR text inside a TextSelection value
+     * whose first field is String and second field is an ImmutableList.
+     * The wrapper is owned by a concrete UserSelection and is not itself OCR.
+     */
+    static String nestedSelectedText(Object selection) {
+        if (selection == null) return "";
+        for (Field field : instanceFields(selection.getClass())) {
+            if (field.getType().isPrimitive()
+                    || isPlatformType(field.getType())) continue;
+            Class<?> valueType = field.getType();
+            boolean textField = false;
+            boolean wordListField = false;
+            for (Field nested : instanceFields(valueType)) {
+                if ("a".equals(nested.getName())
+                        && nested.getType() == String.class) textField = true;
+                if ("b".equals(nested.getName())
+                        && java.util.List.class.isAssignableFrom(nested.getType())) {
+                    wordListField = true;
+                }
+            }
+            if (!textField || !wordListField) continue;
+            try {
+                field.setAccessible(true);
+                Object value = field.get(selection);
+                Object raw = GoogleReflection.readField(value, "a", String.class.getName());
+                if (raw instanceof String selected && !selected.isBlank()) {
+                    return selected.trim();
+                }
+            } catch (Throwable ignored) { }
+        }
+        return "";
+    }
+
+    /** A Google Region model is a stronger signal than 'empty text + RectF'. */
+    static boolean hasGoogleRegion(Object selection) {
+        if (selection == null) return false;
+        for (Field field : instanceFields(selection.getClass())) {
+            if ("com.google.android.libraries.lens.view.region.Region"
+                    .equals(field.getType().getName())) {
+                try {
+                    field.setAccessible(true);
+                    if (field.get(selection) != null) return true;
+                } catch (Throwable ignored) { }
+            }
+        }
+        return false;
+    }
+
     static final class DynamicSelectionSnapshot {
         private final String text;
         private final RectF rawBounds;
         private final String selectionClass;
         private final String detail;
+        private final boolean directRegion;
 
         DynamicSelectionSnapshot(String text, RectF rawBounds,
                                  String selectionClass, String detail) {
+            this(text, rawBounds, selectionClass, detail, false);
+        }
+
+        DynamicSelectionSnapshot(String text, RectF rawBounds,
+                                 String selectionClass, String detail, boolean directRegion) {
             this.text = text == null ? "" : text;
             this.rawBounds = rawBounds == null ? null : new RectF(rawBounds);
             this.selectionClass = selectionClass == null ? "" : selectionClass;
             this.detail = detail == null ? "" : detail;
+            this.directRegion = directRegion;
         }
 
         String text() { return text; }
@@ -278,7 +371,7 @@ final class GoogleLensDynamicResolver {
         String detail() { return detail; }
 
         boolean directRegionLike() {
-            return text.isBlank() && rawBounds != null
+            return directRegion && text.isBlank() && rawBounds != null
                     && rawBounds.width() > 0f && rawBounds.height() > 0f;
         }
     }

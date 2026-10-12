@@ -45,6 +45,14 @@ final class GoogleSelectionAdapter {
     }
 
     static Binding resolve(ClassLoader loader) {
+        // The APK-verified 17.64 path only relies on the structural selection
+        // signature. The same resolver handles future renamed profiles.
+        GoogleLensDynamicResolver.SelectionBinding profile1764 =
+                GoogleLens1764Profile.resolveSelection(loader);
+        if (profile1764.available()) {
+            return new DynamicBinding(profile1764, "profile=17.64.15.ve",
+                    "verified-1764-structural");
+        }
         Binding profile1760 = resolve1760(loader);
         if (profile1760.available()) return profile1760;
 
@@ -78,7 +86,8 @@ final class GoogleSelectionAdapter {
                     + "; dynamic=" + dynamic.detail());
         }
         return new DynamicBinding(dynamic,
-                "1760=" + profile1760.detail() + "; 1758=" + profileError);
+                "1764=" + profile1764.detail() + "; 1760=" + profile1760.detail()
+                        + "; 1758=" + profileError, "dynamic-structural");
     }
 
     private static Binding resolve1760(ClassLoader loader) {
@@ -189,15 +198,18 @@ final class GoogleSelectionAdapter {
     private static final class DynamicBinding implements Binding {
         private final GoogleLensDynamicResolver.SelectionBinding binding;
         private final String profileError;
+        private final String source;
 
-        DynamicBinding(GoogleLensDynamicResolver.SelectionBinding binding, String profileError) {
+        DynamicBinding(GoogleLensDynamicResolver.SelectionBinding binding,
+                       String profileError, String source) {
             this.binding = binding;
             this.profileError = profileError == null ? "" : profileError;
+            this.source = source;
         }
 
         @Override public boolean available() { return binding.available(); }
         @Override public Method method() { return binding.method(); }
-        @Override public String source() { return "dynamic"; }
+        @Override public String source() { return source; }
         @Override public int confidence() { return binding.confidence(); }
         @Override public String detail() {
             return binding.detail() + " profileError=" + profileError;
@@ -210,7 +222,7 @@ final class GoogleSelectionAdapter {
             String detail = selected.detail() + " resolver=" + binding.detail()
                     + " adapter=dynamic";
             return new Snapshot(selected.text(), bounds, selected.selectionClass(),
-                    detail, false);
+                    detail, selected.directRegionLike() && bounds != null && !bounds.isEmpty());
         }
     }
 
