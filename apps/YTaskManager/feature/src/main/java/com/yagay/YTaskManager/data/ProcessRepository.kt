@@ -19,12 +19,10 @@ class ProcessRepository(
     private val appContext = context.applicationContext
     private var packageCache: Map<Int, List<PackageIdentity>> = emptyMap()
     private var packageCacheInitialized = false
-    private var previousTicks: Map<Int, Long> = emptyMap()
-    private var previousSampleMs: Long = 0L
     private var clockTicksPerSecond: Long = 100L
     private val quickCpu = ProcessCpuEstimator()
     private val cpuShell = RootShell()
-    data class CpuReading(val percent: Float, val startTicks: Long)
+    data class CpuReading(val percent: Float?, val startTicks: Long)
 
     /** CPU readings are separate from the fast ps list, including on Root timeouts. */
     suspend fun sampleCpu(visiblePids: Collection<Int>): Map<Int, CpuReading> = withContext(Dispatchers.IO) {
@@ -50,10 +48,10 @@ class ProcessRepository(
         val ticks = output.substringAfter("__CPU_TICKS__", "").lineSequence()
             .mapNotNull(::parseStat)
             .associate { it.pid to ProcessCpuEstimator.Ticks(it.startTicks, it.userTicks + it.systemTicks) }
-        quickCpu.sample(ticks, SystemClock.elapsedRealtime(), hz)
-            .mapNotNull { (pid, percent) ->
-                ticks[pid]?.let { pid to CpuReading(percent, it.startTicks) }
-            }.toMap()
+        val measured = quickCpu.sample(ticks, SystemClock.elapsedRealtime(), hz)
+        // A new PID has a valid start time but no delta yet. Return the
+        // identity too, so the UI can reset a stale recycled-PID sample.
+        ticks.mapValues { (pid, tick) -> CpuReading(measured[pid], tick.startTicks) }
     }
 
     fun close() { cpuShell.close() }
@@ -206,9 +204,6 @@ class ProcessRepository(
         val uptimeSeconds = meta?.getOrNull(2)?.toDoubleOrNull() ?: 0.0
 
         val nowMs = System.currentTimeMillis()
-        val sampleElapsedMs = SystemClock.elapsedRealtime()
-        val elapsedSampleMs = if (previousSampleMs > 0L) max(1L, sampleElapsedMs - previousSampleMs) else 0L
-        val newTicks = HashMap<Int, Long>()
         val result = ArrayList<ProcessEntry>()
 
         var i = 0
@@ -239,16 +234,8 @@ class ProcessRepository(
             val oom = proc.getOrNull(6)?.toIntOrNull()
             val command = proc.getOrNull(7).orEmpty().takeUnless { it == "-" }.orEmpty().ifBlank { stat.name }
 
-            val totalTicks = stat.userTicks + stat.systemTicks
-            newTicks[pid] = totalTicks
-            val oldTicks = previousTicks[pid]
-            val cpuSampled = oldTicks != null && elapsedSampleMs > 0L
-            val cpuPercent = if (oldTicks != null && elapsedSampleMs > 0L) {
-                val deltaTicks = max(0L, totalTicks - oldTicks)
-                ((deltaTicks.toDouble() / clockTicksPerSecond.toDouble()) /
-                    (elapsedSampleMs.toDouble() / 1000.0) * 100.0).toFloat().coerceAtLeast(0f)
-            } else 0f
-
+            // This slow scan supplies metadata, not a second CPU clock.
+            // CPU usage is owned exclusively by sampleCpu().
             val elapsedSeconds = max(0.0, uptimeSeconds - stat.startTicks.toDouble() / clockTicksPerSecond)
             val elapsedMs = (elapsedSeconds * 1000.0).toLong()
             val startTimeMillis = nowMs - elapsedMs
@@ -274,8 +261,8 @@ class ProcessRepository(
                 state = stat.state,
                 rssKb = rssKb,
                 virtualMemoryKb = virtualMemoryKb,
-                cpuPercent = cpuPercent,
-                cpuSampled = cpuSampled,
+                cpuPercent = 0f,
+                cpuSampled = false,
                 cpuStartTicks = stat.startTicks,
                 name = stat.name,
                 command = command,
@@ -295,10 +282,6 @@ class ProcessRepository(
             i += 2
         }
 
-        if (newTicks.isNotEmpty()) {
-            previousTicks = newTicks
-            previousSampleMs = sampleElapsedMs
-        }
         return result
     }
 

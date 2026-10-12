@@ -312,42 +312,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-            val oldState = _state.value
             val processResult = processDeferred.await()
-            processResult.getOrNull()?.takeIf { it.isNotEmpty() }?.let { quick ->
-                val preview = _state.value
-                val oldByPid = preview.processes.associateBy { it.pid }
-                val withCpu = quick.map { process ->
-                    val old = oldByPid[process.pid]?.takeIf { it.uid == process.uid }
-                    if (process.cpuSampled || old == null || !old.cpuSampled ||
-                        (old.cpuStartTicks != 0L && process.cpuStartTicks != 0L &&
-                            old.cpuStartTicks != process.cpuStartTicks)) process
-                    else process.copy(cpuPercent = old.cpuPercent, cpuSampled = true)
-                }
-                val visible = applyNetworkSpeeds(withCpu, preview.network)
-                _state.value = preview.copy(
-                    processes = visible, processCount = visible.size,
-                    threadCount = visible.sumOf { it.threads }, loading = false,
-                )
-            }
-            val quickProcesses = processResult.getOrElse { oldState.processes }
-                .ifEmpty { oldState.processes }
-            // Retain rich /proc statistics between the cheaper ps-based updates.
-            val previousByPid = oldState.processes.associateBy { it.pid }
+            // Use the post-await snapshot. The background CPU/network jobs
+            // may have completed while the process-list command was running.
+            val snapshot = _state.value
+            val quickProcesses = processResult.getOrElse { snapshot.processes }
+                .ifEmpty { snapshot.processes }
+            val previousByPid = snapshot.processes.associateBy { it.pid }
             val rawProcesses = quickProcesses.map { quick ->
                 val previous = previousByPid[quick.pid]?.takeIf { it.uid == quick.uid }
                 if (previous == null ||
                     (quick.cpuStartTicks != 0L && previous.cpuStartTicks != 0L &&
                         quick.cpuStartTicks != previous.cpuStartTicks)) quick
                 else quick.copy(
-                    // Fast ps has no thread count; that must NOT discard a
-                    // valid asynchronous CPU sample when rich /proc is absent.
-                    cpuPercent = if (quick.cpuSampled) quick.cpuPercent
-                        else if (previous.cpuSampled) previous.cpuPercent else 0f,
+                    cpuPercent = if (quick.cpuSampled) quick.cpuPercent else previous.cpuPercent,
                     cpuSampled = quick.cpuSampled || previous.cpuSampled,
-                    cpuStartTicks = quick.cpuStartTicks.takeIf { it > 0L }
-                        ?: previous.cpuStartTicks,
-                    rssKb = quick.rssKb.takeIf { it > 0 } ?: previous.rssKb,
+                    cpuStartTicks = quick.cpuStartTicks.takeIf { it > 0L } ?: previous.cpuStartTicks,
+                    rssKb = quick.rssKb.takeIf { it > 0L } ?: previous.rssKb,
                     virtualMemoryKb = previous.virtualMemoryKb,
                     threads = previous.threads,
                     state = previous.state,
@@ -362,9 +343,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 processResult.exceptionOrNull()?.let { "processes: ${it.message ?: it.javaClass.simpleName}" },
             ).joinToString("; ")
 
-            val old = _state.value
-            val processes = applyNetworkSpeeds(rawProcesses, old.network)
-            _state.value = old.copy(
+            val live = _state.value
+            // A CPU update might land after we constructed rawProcesses; never
+            // overwrite it with a stale ps-derived 0 in the final state.
+            val liveByPid = live.processes.associateBy { it.pid }
+            val enriched = rawProcesses.map { process ->
+                val latest = liveByPid[process.pid]?.takeIf { it.uid == process.uid }
+                if (latest != null && latest.cpuSampled &&
+                    (process.cpuStartTicks == 0L || latest.cpuStartTicks == 0L ||
+                        process.cpuStartTicks == latest.cpuStartTicks)) {
+                    process.copy(
+                        cpuPercent = latest.cpuPercent, cpuSampled = true,
+                        cpuStartTicks = latest.cpuStartTicks,
+                    )
+                } else process
+            }
+            val processes = applyNetworkSpeeds(enriched, live.network)
+            _state.value = live.copy(
                 processes = processes,
                 processCount = processes.size,
                 threadCount = processes.sumOf { it.threads },
@@ -398,10 +393,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _state.value = old.copy(
                 processes = old.processes.map { process ->
                     val cpu = measurements[process.pid] ?: return@map process
-                    if (process.cpuStartTicks != 0L && process.cpuStartTicks != cpu.startTicks) process
-                    else process.copy(
-                        cpuPercent = cpu.percent, cpuSampled = true, cpuStartTicks = cpu.startTicks,
-                    )
+                    when {
+                        // PID reuse must not retain another process' CPU value.
+                        process.cpuStartTicks != 0L && process.cpuStartTicks != cpu.startTicks ->
+                            process.copy(
+                                cpuPercent = cpu.percent ?: 0f,
+                                cpuSampled = cpu.percent != null,
+                                cpuStartTicks = cpu.startTicks,
+                            )
+                        cpu.percent != null -> process.copy(
+                            cpuPercent = cpu.percent, cpuSampled = true,
+                            cpuStartTicks = cpu.startTicks,
+                        )
+                        else -> process // Single baseline sample: retain last value.
+                    }
                 },
             )
         }
@@ -426,8 +431,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val merged = old.processes.map { quick ->
                 val detail = byPid[quick.pid]?.takeIf { it.uid == quick.uid } ?: return@map quick
                 detail.copy(
-                    cpuPercent = if (quick.cpuSampled) quick.cpuPercent else detail.cpuPercent,
-                    cpuSampled = quick.cpuSampled || detail.cpuSampled,
+                    cpuPercent = quick.cpuPercent,
+                    cpuSampled = quick.cpuSampled,
+                    cpuStartTicks = quick.cpuStartTicks.takeIf { it > 0L } ?: detail.cpuStartTicks,
                     isPinned = quick.isPinned,
                     rxBytesPerSecond = quick.rxBytesPerSecond,
                     txBytesPerSecond = quick.txBytesPerSecond,
