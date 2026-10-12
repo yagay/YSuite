@@ -192,7 +192,25 @@ fun TaskManagerApp(viewModel: MainViewModel) {
         }
     }
 
-    selected?.let { process ->
+    selected?.let { selectedProcess ->
+        // Process details should follow the same live telemetry as the list.
+        // Root detail enrichment is stored separately and must not freeze the
+        // CPU or network values at the moment the dialog was opened.
+        val recent = state.processes.firstOrNull {
+            it.pid == selectedProcess.pid && it.uid == selectedProcess.uid &&
+                (it.cpuStartTicks == 0L || selectedProcess.cpuStartTicks == 0L ||
+                    it.cpuStartTicks == selectedProcess.cpuStartTicks)
+        }
+        val process = if (recent == null) selectedProcess else selectedProcess.copy(
+            cpuPercent = recent.cpuPercent,
+            cpuSampled = recent.cpuSampled,
+            cpuStartTicks = recent.cpuStartTicks,
+            rssKb = recent.rssKb,
+            rxBytesPerSecond = recent.rxBytesPerSecond,
+            txBytesPerSecond = recent.txBytesPerSecond,
+            networkSampled = recent.networkSampled,
+            isPinned = recent.isPinned,
+        )
         ProcessDialog(
             process = process,
             parent = state.processes.firstOrNull { it.pid == process.ppid },
