@@ -58,6 +58,7 @@ final class GoogleCtsLifecycleHooks {
         int count = 0;
         count += hookVoiceSessionShow();
         count += hookVoiceScreenshot();
+        count += hookVoiceAssistantLaunch();
         count += hookActivityLifecycle();
         count += hookActivityDispatch();
         return count;
@@ -154,6 +155,43 @@ final class GoogleCtsLifecycleHooks {
         }
     }
 
+    /**
+     * Android framework entrypoints used by the assistant to open its search
+     * Activity. Unlike obfuscated Google Lens controllers these method names
+     * are stable across ordinary Google App upgrades. The hook runs in the
+     * scoped Google process and changes behavior only for an owned YFloat CTS
+     * session carrying the contextual-search action.
+     */
+    private int hookVoiceAssistantLaunch() {
+        try {
+            Class<?> cls = Class.forName("android.service.voice.VoiceInteractionSession");
+            int count = 0;
+            for (Executable executable : HiddenApiBypass.getDeclaredMethods(cls)) {
+                if (!(executable instanceof Method method)) continue;
+                String name = method.getName();
+                if (!"startAssistantActivity".equals(name)
+                        && !"startVoiceActivity".equals(name)) continue;
+                Class<?>[] parameters = method.getParameterTypes();
+                if (parameters.length < 1 || parameters[0] != Intent.class
+                        || method.getReturnType() != void.class) continue;
+                module.hook(method).intercept(chain -> {
+                    Intent intent = chain.getArg(0) instanceof Intent candidate
+                            ? candidate : null;
+                    if (interceptContextualSearchLaunch(intent, "VOICE_" + name)) {
+                        return null; // These framework launch methods return void.
+                    }
+                    return chain.proceed();
+                });
+                count++;
+            }
+            module.log(Log.INFO, TAG, "Stable voice assistant launch hooks=" + count);
+            return count;
+        } catch (Throwable t) {
+            module.log(Log.INFO, TAG, "Stable voice assistant launch hooks unavailable", t);
+            return 0;
+        }
+    }
+
     private int hookActivityLifecycle() {
         int count = 0;
         try {
@@ -165,7 +203,20 @@ final class GoogleCtsLifecycleHooks {
 
                 module.hook(method).intercept(chain -> {
                     Object activity = chain.getArg(0);
+                    // Instrumentation.callActivityOnNewIntent receives the NEW
+                    // Intent; Activity.getIntent() may still point to the
+                    // previous invocation until the activity updates itself.
                     Intent intent = activity instanceof Activity a ? a.getIntent() : null;
+                    if ("callActivityOnNewIntent".equals(name)) {
+                        Class<?>[] parameters = method.getParameterTypes();
+                        for (int index = 1; index < parameters.length; index++) {
+                            if (Intent.class.isAssignableFrom(parameters[index])
+                                    && chain.getArg(index) instanceof Intent incoming) {
+                                intent = incoming;
+                                break;
+                            }
+                        }
+                    }
                     Bundle extras = intent == null ? null : intent.getExtras();
 
                     if (provider.isActive() && GoogleCtsContract.isYFloatSession(extras)) {
@@ -322,45 +373,10 @@ final class GoogleCtsLifecycleHooks {
                         return chain.proceed();
                     }
 
-                    boolean frameQueued = captureContextualSearchFrame(intent);
-                    boolean hasText = hasText();
-                    boolean hasRenderablePayload = hasText || host.frameQueued();
-                    String detail = "action=" + intent.getAction()
-                            + " selectionSeen=" + host.selectionSeen()
-                            + " textLen=" + textLength()
-                            + " bounds=" + String.valueOf(host.selectionBounds())
-                            + " frameQueued=" + frameQueued
-                            + " extras=" + GoogleHookFormatting.safeKeys(intent.getExtras());
-                    host.report("CONTEXTUAL_SEARCH_BOUNDARY", detail);
-
-                    if (!hasRenderablePayload) {
-                        host.report("CONTEXTUAL_SEARCH_PASSTHROUGH",
-                                "no renderable YFloat payload; Google search allowed");
-                        return chain.proceed();
-                    }
-
-                    if (hasText) {
-                        host.report("CONTEXTUAL_TEXT_SEARCH_SUPPRESSED",
-                                "path=execStartActivity keepSelectionAlive=true textLen="
-                                        + textLength());
-                        module.log(Log.INFO, TAG,
-                                "Contextual text search launch suppressed; selection kept alive");
+                    if (interceptContextualSearchLaunch(intent, "EXEC_START_ACTIVITY")) {
                         return null;
                     }
-
-                    host.report("CONTEXTUAL_SEARCH_TAKEOVER",
-                            "renderable payload ready; suppressing marked Google search");
-                    boolean consumed = host.commitBridgeResult(
-                            "", detail, "contextual_search_intercept");
-                    if (!consumed) {
-                        host.report("CONTEXTUAL_SEARCH_PASSTHROUGH",
-                                "bridge commit rejected; Google search allowed");
-                        return chain.proceed();
-                    }
-
-                    module.log(Log.INFO, TAG,
-                            "Contextual search launch suppressed for YFloat session");
-                    return null;
+                    return chain.proceed();
                 });
                 count++;
             }
@@ -369,6 +385,48 @@ final class GoogleCtsLifecycleHooks {
             module.log(Log.INFO, TAG, "Activity dispatch hook unavailable", t);
             return 0;
         }
+    }
+
+    /**
+     * The same safe, session-scoped decision is reused by the Android
+     * Instrumentation and VoiceInteractionSession outbound paths.
+     * Never block unrelated Google/assistant launches, even during YFloat
+     * sessions, and never block when there is no usable selection/frame.
+     */
+    private boolean interceptContextualSearchLaunch(Intent intent, String source) {
+        if (!host.active() || intent == null
+                || !GoogleCtsContract.isContextualSearchAction(intent.getAction())) {
+            return false;
+        }
+        boolean capturedFrame = captureContextualSearchFrame(intent);
+        boolean selectedText = hasText();
+        boolean renderable = selectedText || host.frameQueued();
+        String detail = "source=" + source
+                + " action=" + intent.getAction()
+                + " selectionSeen=" + host.selectionSeen()
+                + " textLen=" + textLength()
+                + " bounds=" + String.valueOf(host.selectionBounds())
+                + " frameQueued=" + capturedFrame
+                + " extras=" + GoogleHookFormatting.safeKeys(intent.getExtras());
+        host.report("CONTEXTUAL_SEARCH_BOUNDARY", detail);
+        if (!renderable) {
+            host.report("CONTEXTUAL_SEARCH_PASSTHROUGH",
+                    "no YFloat selection or frame; allow Google");
+            return false;
+        }
+        if (selectedText) {
+            host.report("CONTEXTUAL_TEXT_SEARCH_SUPPRESSED",
+                    "source=" + source + " keepSelectionAlive=true textLen=" + textLength());
+            return true;
+        }
+        boolean committed = host.commitBridgeResult(
+                "", detail, "contextual_search_" + source.toLowerCase(java.util.Locale.ROOT));
+        if (!committed) {
+            host.report("CONTEXTUAL_SEARCH_PASSTHROUGH", "bridge commit rejected");
+        } else {
+            host.report("CONTEXTUAL_SEARCH_TAKEOVER", "source=" + source);
+        }
+        return committed;
     }
 
     private boolean hasText() {
