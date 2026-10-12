@@ -17,16 +17,14 @@ final class SettingsIconPage {
 
         YViewSection appearance = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_appearance_section), null);
-        // In the integrated host these options are edited only through the
-        // YSuite module appearance panel, not a second YFloat settings screen.
-        boolean embeddedInSuite = "com.yagay.YSuite".equals(activity.getPackageName());
-        if (!embeddedInSuite) {
-            ui.styleSpinner(appearance.body);
-            ui.seek(appearance.body, activity.getString(R.string.yfloat_opacity), FloatSettings.K_ALPHA,
-                    1, 100, Math.round(fs.alpha() * 100), "%");
-            ui.seek(appearance.body, activity.getString(R.string.yfloat_icon_size), FloatSettings.K_SIZE,
-                    16, 192, fs.sizeDp(), " dp");
-        }
+        // Visible in both standalone and YSuite. SettingsPageUi writes
+        // FloatSettings -> YFloatVisualSettings -> YAppearanceStore (module yfloat):
+        // one common data source, not a duplicate appearance preference.
+        ui.styleSpinner(appearance.body);
+        ui.seek(appearance.body, activity.getString(R.string.yfloat_opacity), FloatSettings.K_ALPHA,
+                1, 100, Math.round(fs.alpha() * 100), "%");
+        ui.seek(appearance.body, activity.getString(R.string.yfloat_icon_size), FloatSettings.K_SIZE,
+                16, 192, fs.sizeDp(), " dp");
 
         LinearLayout iconButtons = YViewLayout.buttonRow(activity);
         MaterialButton customIcon = YViewLayout.secondaryButton(activity,
@@ -55,10 +53,8 @@ final class SettingsIconPage {
 
         YViewSection position = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_position_display_section), null);
-        if (!embeddedInSuite) {
-            ui.seek(position.body, activity.getString(R.string.yfloat_edge_visible_ratio),
-                    FloatSettings.K_SHOW_PERCENT, 1, 100, fs.showPercentage(), "%");
-        }
+        ui.seek(position.body, activity.getString(R.string.yfloat_edge_visible_ratio),
+                FloatSettings.K_SHOW_PERCENT, 1, 100, fs.showPercentage(), "%");
         ui.check(position.body,
                 activity.getString(R.string.yfloat_show_both_sides),
                 activity.getString(R.string.yfloat_show_both_sides_desc),

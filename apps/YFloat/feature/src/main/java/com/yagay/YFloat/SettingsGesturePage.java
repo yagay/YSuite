@@ -39,9 +39,9 @@ final class SettingsGesturePage {
                 activity.getString(R.string.yfloat_feedback_trail_section), null);
         ui.check(feedback.body, activity.getString(R.string.yfloat_vibration_feedback), null,
                 FloatSettings.K_VIBRATE, fs.vibrate());
-        // Trail style/opacity/colors and visibility are YUI overlay parameters.
-        // Keep these local editors only in the independently installed APK.
-        if (!"com.yagay.YSuite".equals(activity.getPackageName())) {
+        // These controls also use the module-scoped YUI appearance values.
+        // Keep access in YFloat while sharing one appearance store with YSuite.
+        {
             ui.check(feedback.body, activity.getString(R.string.yfloat_show_gesture_trail), null,
                     FloatSettings.K_TRACK, fs.track());
             ui.seek(feedback.body, activity.getString(R.string.yfloat_trail_opacity),

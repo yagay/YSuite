@@ -10,11 +10,8 @@ final class CircleBorderSettingsUi {
     private static final int[] COLOR_VALUES = YFloatVisualSettings.borderColors();
 
     static void add(SettingsActivity activity, FloatSettings fs, LinearLayout parent) {
-        // Integrated YSuite exposes these three visual values only through the
-        // YUI appearance catalog (Overlay group, module yfloat). Rendering
-        // another editor here creates a competing visual-settings surface.
-        // Standalone YFloat keeps its YUI-backed compatibility editor.
-        if ("com.yagay.YSuite".equals(activity.getPackageName())) return;
+        // All three edits are forwarded via FloatSettings into the shared YUI
+        // appearance store for module yfloat; no local visual state is created.
         MaterialSwitch enabled = YViewLayout.switchRow(activity,
                 activity.getString(R.string.yfloat_circle_border_show),
                 activity.getString(R.string.yfloat_circle_border_show_desc),

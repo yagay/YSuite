@@ -13,14 +13,13 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
 
-        boolean embeddedInSuite = "com.yagay.YSuite".equals(getPackageName());
         LinearLayout root = YViewLayout.pageRoot(this,
-                getString(embeddedInSuite ? R.string.yfloat_menu_management : R.string.yfloat_appearance_title),
-                getString(embeddedInSuite ? R.string.yfloat_menu_management_desc : R.string.yfloat_appearance_desc));
+                getString(R.string.yfloat_appearance_title),
+                getString(R.string.yfloat_appearance_desc));
 
-        // YSuite already owns theme and visible text-action count in YAppearanceStore.
-        // Standalone YFloat still exposes local controls for its own package preferences.
-        if (!embeddedInSuite) {
+        // Available in both packages; theme and menu count are module-scoped
+        // YAppearanceStore values, not separately maintained preferences.
+        {
             YViewSection theme = YViewLayout.section(this, getString(R.string.yfloat_theme_title), null);
             addThemeSpinner(theme.body);
             YViewLayout.addSection(root, theme);

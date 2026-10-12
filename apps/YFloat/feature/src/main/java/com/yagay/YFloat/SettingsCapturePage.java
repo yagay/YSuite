@@ -33,8 +33,8 @@ final class SettingsCapturePage {
                 FloatSettings.K_ACCESSIBILITY_SCREENSHOT, fs.accessibilityScreenshot());
         YViewLayout.addSection(root, capture);
 
-        // Active selection-border visuals now belong to the YSuite appearance editor.
-        if (!"com.yagay.YSuite".equals(activity.getPackageName())) {
+        // Module page and global YUI editor share the same appearance tokens.
+        {
             YViewSection circleBorder = YViewLayout.section(activity,
                     activity.getString(R.string.yfloat_circle_border_section),
                     activity.getString(R.string.yfloat_circle_border_desc));

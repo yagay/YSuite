@@ -95,23 +95,35 @@ def check() -> None:
     require("libs/yui/src/main/java/com/yagay/yui/YHomePresentation.kt",
             'const val PREFERENCES = "ysuite_compact_home"', "fun YHomeModuleRow(",
             "fun readPinned(", "fun savePinned(")
-    # The integrated host must never present competing controls for the
-    # same YUI-owned YFloat border values.
-    circle = require(
-        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/CircleBorderSettingsUi.java",
-        'if ("com.yagay.YSuite".equals(activity.getPackageName())) return;',
-        "YViewLayout.switchRow(", "YViewLayout.spinnerSetting(",
-        "YViewLayout.sliderSetting(",
-    )
-    if circle.index('if ("com.yagay.YSuite".equals(activity.getPackageName())) return;') > circle.index("YViewLayout.switchRow("):
-        raise AssertionError("Integrated YFloat still displays duplicate circle appearance controls")
-    google_page = require(
-        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsAdvancedSelectionPage.java",
-        'if (!"com.yagay.YSuite".equals(activity.getPackageName())) {',
-        'settings.resetAdvancedSelectionSettings(!"com.yagay.YSuite".equals(activity.getPackageName()))',
-    )
-    if google_page.index('if (!"com.yagay.YSuite".equals(activity.getPackageName())) {') > google_page.index('ui.seek(google.body'):
-        raise AssertionError("Google visual controls must not duplicate integrated YUI editor")
+    # All YFloat appearance controls must remain discoverable inside the
+    # module as well as in the YSuite appearance catalog. Both editors write
+    # the same YAppearanceStore module keys, NOT two preference databases.
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsIconPage.java",
+            "ui.styleSpinner(appearance.body)", "FloatSettings.K_ALPHA",
+            "FloatSettings.K_SIZE", "FloatSettings.K_SHOW_PERCENT")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsGesturePage.java",
+            "FloatSettings.K_LINE_ALPHA", "FloatSettings.K_LINE_WIDTH",
+            "FloatSettings.K_LINE_GRADIENT", "ui.lineStyleSpinner(")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsCapturePage.java",
+            "CircleBorderSettingsUi.add(activity, fs, circleBorder.body)")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/CircleBorderSettingsUi.java",
+            "FloatSettings.K_CIRCLE_BORDER_COLOR", "FloatSettings.K_CIRCLE_BORDER_WIDTH_DP",
+            "YViewLayout.switchRow(", "YViewLayout.spinnerSetting(", "YViewLayout.sliderSetting(")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsAdvancedSelectionPage.java",
+            "FloatSettings.K_GOOGLE_FRAME_RADIUS_DP",
+            "FloatSettings.K_GOOGLE_FRAME_GLOW_WIDTH_DP",
+            "settings.resetAdvancedSelectionSettings(true)")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppearanceSettingsActivity.java",
+            "addThemeSpinner(theme.body)", "addMainItemCountSlider(textMenu.body)")
+    if 'if (!embeddedInSuite)' in source("apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsIconPage.java"):
+        raise AssertionError("YSuite installation must show YFloat icon sliders")
+    if 'if ("com.yagay.YSuite".equals(activity.getPackageName())) return;' in source(
+        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/CircleBorderSettingsUi.java"
+    ):
+        raise AssertionError("YSuite installation must show YFloat border controls")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatVisualSettings.java",
+            "new YAppearanceStore(context).set(key, raw, MODULE)",
+            "new YAppearanceStore(context).set(key, Boolean.toString(value), MODULE)")
     require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatSettings.java",
             "resetAdvancedSelectionSettings(boolean resetVisuals)", "if (resetVisuals) {")
     chart = require(

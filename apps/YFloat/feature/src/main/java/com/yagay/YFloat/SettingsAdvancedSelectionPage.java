@@ -17,9 +17,9 @@ final class SettingsAdvancedSelectionPage {
                 activity.getString(R.string.yfloat_advanced_selection_title),
                 activity.getString(R.string.yfloat_advanced_selection_summary));
 
-        // Integrated YSuite owns Google frame appearance exclusively in YUI.
-        // Standalone YFloat keeps its YUI-backed compatibility editor.
-        if (!"com.yagay.YSuite".equals(activity.getPackageName())) {
+        // YUI-backed Google frame controls remain available in this module's
+        // advanced settings for both standalone and integrated installations.
+        {
             YViewSection google = YViewLayout.section(activity,
                     activity.getString(R.string.yfloat_google_frame_section),
                     activity.getString(R.string.yfloat_google_frame_hint));
@@ -68,7 +68,7 @@ final class SettingsAdvancedSelectionPage {
         MaterialButton resetButton = YViewLayout.secondaryButton(activity,
                 activity.getString(R.string.yfloat_selection_reset_button));
         resetButton.setOnClickListener(view -> {
-            settings.resetAdvancedSelectionSettings(!"com.yagay.YSuite".equals(activity.getPackageName()));
+            settings.resetAdvancedSelectionSettings(true);
             activity.recreate();
         });
         YViewLayout.addRow(reset.body, resetButton);
