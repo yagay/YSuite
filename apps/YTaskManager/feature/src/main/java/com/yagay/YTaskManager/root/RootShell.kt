@@ -50,18 +50,22 @@ class RootShell {
 
     suspend fun isRootAvailable(): Boolean = probeRoot().granted
 
-    suspend fun execute(command: String, timeoutMs: Long = 8_000): ShellResult =
+    suspend fun execute(
+        command: String,
+        timeoutMs: Long = 8_000,
+        operation: String = "root-shell",
+    ): ShellResult =
         mutex.withLock {
             check(!closed) { "Root shell already closed" }
             withContext(Dispatchers.IO) {
-                executeThroughHost(command, timeoutMs)
+                executeThroughHost(command, timeoutMs, operation)
             }
         }
 
-    private fun executeThroughHost(command: String, timeoutMs: Long): ShellResult =
+    private fun executeThroughHost(command: String, timeoutMs: Long, operation: String): ShellResult =
         try {
             val timeoutSeconds = ((timeoutMs.coerceAtLeast(1L) + 999L) / 1000L).coerceAtLeast(1L)
-            val raw = FeatureRootCommands.execute(services, "root-shell", command, timeoutSeconds)
+            val raw = FeatureRootCommands.execute(services, operation, command, timeoutSeconds)
             if (raw.timedOut) throw TimeoutException("Managed root command timed out after ${timeoutMs}ms")
             if (!raw.errorMessage.isNullOrBlank()) throw IllegalStateException(raw.errorMessage)
             if (raw.stderr.isNotBlank()) AppLogger.i("Managed root stderr: ${raw.stderr.take(240)}")

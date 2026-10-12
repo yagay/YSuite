@@ -45,6 +45,18 @@ def main() -> None:
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/MainViewModel.kt",
           ("scheduleDetailedSample()", "lastDetailSampleMs < 5_000L",
            "processResult = processDeferred.await()", "processes = visible"))
+    # CPU collection must not block or starve the visible process list.
+    proc = (ROOT / "apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/ProcessRepository.kt").read_text(encoding="utf-8")
+    fast = proc.split("private suspend fun listProcessesFromPs()", 1)[1].split(
+        "suspend fun loadDetails(", 1)[0]
+    if "__CPU_TICKS__" in fast or "quickCpu.sample(" in fast:
+        raise AssertionError("Fast process list still blocks on CPU collection")
+    for marker in ('"process-list"', "suspend fun sampleCpu():", "private val cpuShell = RootShell()"):
+        if marker not in proc:
+            raise AssertionError(f"TaskManager missing independent CPU/list path: {marker}")
+    gateway = (ROOT / "libs/ycore/src/main/java/com/yagay/suite/core/SuiteRootGateway.kt").read_text(encoding="utf-8")
+    if 'safeOperation != "process-list"' not in gateway:
+        raise AssertionError("Fast list must bypass busy isolated scan slots")
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/TaskManagerScreen.kt",
           ("LaunchedEffect(drawable, packageName, px)", "InstalledAppCatalog.iconBitmap("))
     check("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/data/NetworkRepository.kt",

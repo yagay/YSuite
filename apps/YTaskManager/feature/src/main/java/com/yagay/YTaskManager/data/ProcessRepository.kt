@@ -116,9 +116,9 @@ class ProcessRepository(
     /** Fallback for modern OEM kernels restricting /proc/<pid>/stat. */
     private suspend fun listProcessesFromPs(): List<ProcessEntry> {
         // Visible enumeration never waits for a /proc CPU collection.
-        val first = shell.execute("ps -A -o PID,PPID,UID,RSS,NAME 2>/dev/null", 4_000).stdout
+        val first = shell.execute("ps -A -o PID,PPID,UID,RSS,NAME 2>/dev/null", 4_000, "process-list").stdout
         val raw = if (first.lineSequence().count() > 1) first else {
-            val names = shell.execute("ps -A -o PID,PPID,USER,RSS,NAME 2>/dev/null", 4_000).stdout
+            val names = shell.execute("ps -A -o PID,PPID,USER,RSS,NAME 2>/dev/null", 4_000, "process-list").stdout
             if (names.lineSequence().count() > 1) names else ""
         }
         val byCommand = packageCache.flatMap { (uid, entries) ->
