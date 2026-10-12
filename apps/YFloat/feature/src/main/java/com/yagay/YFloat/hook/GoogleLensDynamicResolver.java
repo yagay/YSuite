@@ -371,9 +371,15 @@ final class GoogleLensDynamicResolver {
         String detail() { return detail; }
 
         boolean directRegionLike() {
-            return directRegion && text.isBlank() && rawBounds != null
-                    && rawBounds.width() > 0f && rawBounds.height() > 0f;
+            return shouldCommitRegion(directRegion, text, rawBounds != null
+                    && rawBounds.width() > 0f && rawBounds.height() > 0f);
         }
+    }
+
+    static boolean shouldCommitRegion(boolean regionModelPresent,
+                                      String selectedText, boolean validBounds) {
+        return regionModelPresent && (selectedText == null || selectedText.isBlank())
+                && validBounds;
     }
 
     static final class Candidate {

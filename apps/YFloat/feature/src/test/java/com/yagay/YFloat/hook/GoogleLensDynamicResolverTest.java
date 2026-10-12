@@ -70,11 +70,11 @@ public class GoogleLensDynamicResolverTest {
                 new FakeUnrelatedSelection()));
     }
 
-    @Test public void emptyTextAndRectangleAloneMustNotBecomeRegionCommit() {
-        GoogleLensDynamicResolver.DynamicSelectionSnapshot snapshot =
-                new GoogleLensDynamicResolver.DynamicSelectionSnapshot(
-                        "", new RectF(0, 0, 100, 100), "fake", "test");
-        assertFalse(snapshot.directRegionLike());
+    @Test public void onlyActualGoogleRegionModelCanCommitRegion() {
+        assertFalse(GoogleLensDynamicResolver.shouldCommitRegion(false, "", true));
+        assertFalse(GoogleLensDynamicResolver.shouldCommitRegion(true, "words", true));
+        assertFalse(GoogleLensDynamicResolver.shouldCommitRegion(true, "", false));
+        assertTrue(GoogleLensDynamicResolver.shouldCommitRegion(true, "", true));
     }
 
     @Test public void scoreRemainsIndependentOfObfuscatedNames() throws Exception {
