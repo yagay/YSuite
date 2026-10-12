@@ -179,7 +179,14 @@ def check_shared_capability_evidence() -> None:
     require("apps/YNFC/feature/src/main/java/com/yagay/YNFC/RuntimeStatusViewModel.kt",
             'featureId = "ynfc"', 'status.hookPid == status.currentPid')
     require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/GuardRuntime.java",
-            '"yminiguard", "system"', "status.isFromCurrentBoot()")
+            '"yminiguard", "system"', "status.isFromCurrentBoot()",
+            "getSystemTargetLoadedVersionCode()", "getRunningTargets()",
+            "if (!isHotReloadAvailable()) return false;")
+    require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/MainActivity.java",
+            "ymg_restart_old_bootstrap", "ymg_restart_no_heartbeat",
+            "ymg_reboot_title")
+    require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/GuardModule.java",
+            "scheduleEngineHeartbeat(handler);", "heartbeat deferred: system context unavailable")
     require("libs/ycore/src/main/java/com/yagay/suite/core/SuiteDiagnostics.kt",
             "capability-evidence.txt", "FeatureHookEvidence.diagnosticSnapshot()")
 
