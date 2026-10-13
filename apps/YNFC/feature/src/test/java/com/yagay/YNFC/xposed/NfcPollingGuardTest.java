@@ -37,6 +37,22 @@ public class NfcPollingGuardTest {
         assertSame(blocked, NfcPollingGuard.withoutPolling(blocked));
     }
 
+    @Test public void builderCopiesParametersEvenWithoutKnownMaskFieldOrConstructor()
+            throws Exception {
+        com.example.nfc.RenamedDiscoveryParameters original =
+                com.example.nfc.RenamedDiscoveryParameters.newBuilder().build();
+        com.example.nfc.RenamedDiscoveryParameters result =
+                (com.example.nfc.RenamedDiscoveryParameters)
+                        NfcPollingGuard.withoutPolling(original);
+        assertEquals(0x2f, original.getTechMask());
+        assertEquals(0, result.getTechMask());
+        assertTrue(result.shouldEnableHostRouting());
+        assertEquals(original.shouldEnableReaderMode(), result.shouldEnableReaderMode());
+        assertEquals(original.shouldEnableLowPowerDiscovery(),
+                result.shouldEnableLowPowerDiscovery());
+        assertSame(original.techAPollingLoopAnnotation(), result.techAPollingLoopAnnotation());
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void unrelatedParameterObjectIsRejected() throws Exception {
         NfcPollingGuard.withoutPolling(new Object());
