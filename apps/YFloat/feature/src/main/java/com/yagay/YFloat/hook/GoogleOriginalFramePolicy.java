@@ -13,8 +13,8 @@ final class GoogleOriginalFramePolicy {
         double ratio = (double) bitmapWidth / bitmapHeight;
         double expected = (double) viewWidth / viewHeight;
         return Math.abs(ratio / expected - 1d) <= 0.18d
-                && bitmapWidth >= viewWidth * 0.55d
-                && bitmapHeight >= viewHeight * 0.55d;
+                && bitmapWidth >= viewWidth * 0.50d
+                && bitmapHeight >= viewHeight * 0.50d;
     }
 
     private GoogleOriginalFramePolicy() {}
