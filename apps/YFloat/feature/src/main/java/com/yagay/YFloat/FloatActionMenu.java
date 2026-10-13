@@ -552,6 +552,7 @@ public final class FloatActionMenu {
 
     public static synchronized void dismiss() {
         GoogleTextResultFrameOverlay.dismiss();
+        GoogleV2TextOutline.dismiss();
         View v = activeView;
         FlOverlayWindowHost host = activeHost;
         activeView = null;

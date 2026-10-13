@@ -64,6 +64,7 @@ final class GoogleV2UiEngine {
             Rect use=pickBounds(s,bounds);
             if(!s.state.text(text,at(use,0),at(use,1),at(use,2),at(use,3)))return;
             GoogleRegionConfirmOverlay.dismiss(token,"v2_text");
+            if(use!=null)GoogleV2TextOutline.show(s.app,use);
             showTextWhenStable(s,100);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()+" bounds="+use);
         });
@@ -74,6 +75,7 @@ final class GoogleV2UiEngine {
         MAIN.post(()->{
             if(s.state.phase!=GoogleV2State.Phase.TEXT)return;
             s.state.bounds(bounds.left,bounds.top,bounds.right,bounds.bottom);
+            GoogleV2TextOutline.show(s.app,bounds);
             if(!s.state.dragging)showTextWhenStable(s,90);
         });
     }
@@ -103,6 +105,7 @@ final class GoogleV2UiEngine {
         MAIN.post(()->{
             if(!s.state.region(bounds.left,bounds.top,bounds.right,bounds.bottom))return;
             FloatActionMenu.dismiss();
+            GoogleV2TextOutline.dismiss();
             showDoneWhenStable(s,280);
         });
     }
@@ -178,10 +181,17 @@ final class GoogleV2UiEngine {
             if(s.state.phase==GoogleV2State.Phase.AWAITING_FRAME
                     ||s.state.phase==GoogleV2State.Phase.DELIVERED)return;
             if(s.state.phase==GoogleV2State.Phase.TEXT&&!s.state.text.isBlank()){
-                // Google Lens UI may close before the final menu has appeared.
-                s.state.drag(false);
-                showTextWhenStable(s,0);
-                MAIN.postDelayed(()->release(s,"text_handoff",true),220);
+                // End the Google-owned workflow first, because closing its
+                // OverlayScene would otherwise delete a just-created toolbar.
+                String finalText=s.state.text;
+                Rect finalBounds=rect(s.state);
+                release(s,"text_handoff",true);
+                MAIN.post(()->{
+                    if(finalBounds!=null)GoogleV2TextOutline.show(s.app,finalBounds);
+                    FloatActionMenu.showTextAt(s.app,finalText,null,finalBounds);
+                    DiagnosticLog.i(s.app,"GOOGLE_V2",
+                            "final text handoff visible="+FloatActionMenu.hasVisibleTextMenu());
+                });
             }else release(s,"google_end:"+reason,false);
         });
     }
@@ -189,7 +199,10 @@ final class GoogleV2UiEngine {
         if(!SESSIONS.remove(s.token,s))return;
         s.state.close();
         GoogleRegionConfirmOverlay.dismiss(s.token,"v2_"+reason);
-        if(!keepMenu)FloatActionMenu.dismiss();
+        if(!keepMenu) {
+            GoogleV2TextOutline.dismiss();
+            FloatActionMenu.dismiss();
+        }
         if(s.frame!=null&&!s.frame.isRecycled())s.frame.recycle();
         s.frame=null;
         new FloatSettings(s.app).clearGoogleCtsSession();
