@@ -94,6 +94,24 @@ public final class HookConfigStore {
         return decode(values);
     }
 
+    /** Independent persistent reader block, not coupled to UID emulation generation. */
+    Boolean readPollingDisabled() {
+        if (isPassive()) return null;
+        Context context = NfcHookUtils.currentContext();
+        if (context == null) return null;
+        Uri uri = preferredUri();
+        Map<String, String> values = readValues(context, uri);
+        if (values == null && !isEmbeddedSuite()
+                && RuntimeOwnerGate.OWNER_SUITE.equals(RuntimeOwnerGate.readOwner(FEATURE_ID))) {
+            Uri fallback = standaloneUri();
+            values = readValues(context, fallback);
+            if (values != null) uri = fallback;
+        }
+        if (values == null) return null;
+        selectedUri = uri;
+        return Boolean.parseBoolean(values.get("polling_disabled"));
+    }
+
     private static Map<String, String> readValues(Context context, Uri uri) {
         Map<String, String> values = new HashMap<>();
         try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {

@@ -31,6 +31,7 @@ class MainActivity : YComposeActivity() {
     private var scannedCardState by mutableStateOf<CardModel?>(null)
     private var savedCardsState by mutableStateOf<List<CardModel>>(emptyList())
     private var readModeEnabled by mutableStateOf(false)
+    private var pollingDisabled by mutableStateOf(false)
 
     override fun onBeforeYContent(savedInstanceState: Bundle?) {
         nfcReader = NfcReaderController(this)
@@ -43,6 +44,7 @@ class MainActivity : YComposeActivity() {
         diagnosticExporter = DiagnosticExporter(this, diagnosticsCollector)
         simulationCoordinator = SimulationCoordinator(configClient, runtimeRepository, nfcSystemService, EXPECTED_HOOK_BUILD)
         savedCardsState = cardRepository.load()
+        pollingDisabled = readProviderMap()[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
         AppLogger.i("NFC controller started; LSPosed in-process command engine enabled")
     }
 
@@ -80,6 +82,10 @@ class MainActivity : YComposeActivity() {
     private fun disableReadDispatch() { nfcReader.disable() }
 
     private fun startReadMode() {
+        if (pollingDisabled) {
+            Toast.makeText(this, R.string.ynfc_polling_blocked_read, Toast.LENGTH_SHORT).show()
+            return
+        }
         if (getSimulationEnabled()) {
             Toast.makeText(this, R.string.ynfc_stop_sim_before_read, Toast.LENGTH_SHORT).show()
             return
@@ -114,11 +120,23 @@ class MainActivity : YComposeActivity() {
             cards = savedCardsState,
             scannedCard = scannedCardState,
             readModeEnabled = readModeEnabled,
+            pollingDisabled = pollingDisabled,
             initialLogsEnabled = initialLogsEnabled,
             diagnosticsCollector = diagnosticsCollector,
             readRuntimeStatus = { readRuntimeStatus(includeRootPid = false) },
             buildStatusSummary = ::buildStatusSummary,
             onLoggingChanged = configClient::setDiagnosticLogging,
+            onPollingDisabledChange = { disabled ->
+                val saved = configClient.setPollingDisabled(disabled)
+                if (saved) {
+                    if (disabled) stopReadMode("persistent_polling_guard")
+                    pollingDisabled = disabled
+                    AppLogger.i("POLLING_GUARD desired=$disabled; runtime confirmation pending")
+                } else {
+                    Toast.makeText(this, R.string.ynfc_polling_save_failed, Toast.LENGTH_SHORT).show()
+                }
+                saved
+            },
             onStartRead = ::startReadMode,
             onStopRead = { stopReadMode() },
             onSaveCard = ::saveScannedCard,

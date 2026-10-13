@@ -56,11 +56,13 @@ fun NfcAppScreen(
     cards: List<CardModel>,
     scannedCard: CardModel?,
     readModeEnabled: Boolean,
+    pollingDisabled: Boolean,
     initialLogsEnabled: Boolean,
     diagnosticsCollector: DiagnosticsCollector,
     readRuntimeStatus: () -> RuntimeStatus,
     buildStatusSummary: (RuntimeStatus) -> String,
     onLoggingChanged: (Boolean) -> Unit,
+    onPollingDisabledChange: (Boolean) -> Boolean,
     onStartRead: () -> Unit,
     onStopRead: () -> Unit,
     onSaveCard: (CardModel) -> Unit,
@@ -105,6 +107,14 @@ fun NfcAppScreen(
     ) { padding ->
         YPageList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
+            item {
+                YSwitchItem(
+                    title = stringResource(R.string.ynfc_polling_guard),
+                    subtitle = stringResource(R.string.ynfc_polling_guard_desc),
+                    checked = pollingDisabled,
+                    onCheckedChange = { onPollingDisabledChange(it) },
+                )
+            }
             item {
                 ReadCardPanel(
                     scannedCard,

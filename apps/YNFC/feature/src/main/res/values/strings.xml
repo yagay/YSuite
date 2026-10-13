@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ynfc_subtitle">NFC access cards and HCE status</string>
+    <string name="ynfc_polling_guard">Persistent reader block (keep HCE)</string>
+    <string name="ynfc_polling_guard_desc">Keeps NFC on, requests polling mask 0 on discovery and restart, preserves HCE. Verify via runtime logs and hardware tests.</string>
+    <string name="ynfc_polling_blocked_read">Reader blocking is on. Disable it before scanning a card.</string>
+    <string name="ynfc_polling_save_failed">Failed to save NFC reader blocking setting.</string>
     <string name="ynfc_saved_cards">Saved cards (%1$d)</string>
     <string name="ynfc_saved_cards_desc">Tap a card to view UID, SAK, and ATQA, then start or stop emulation.</string>
     <string name="ynfc_no_saved_cards">No saved cards. Enter read mode, tap a card, verify its information, then save it.</string>

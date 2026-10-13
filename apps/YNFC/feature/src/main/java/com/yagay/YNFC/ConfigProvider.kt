@@ -25,6 +25,7 @@ open class ConfigProvider : ContentProvider() {
 
         const val METHOD_PUBLISH_COMMAND = "publish_command"
         const val METHOD_SET_DIAGNOSTIC_LOGGING = "set_diagnostic_logging"
+        const val METHOD_SET_POLLING_DISABLED = "set_polling_disabled"
         const val METHOD_CONFIRM_STOCK_RESTART = "confirm_stock_restart"
         const val EXTRA_ENABLED = "enabled"
         const val EXTRA_UID = "uid"
@@ -41,6 +42,10 @@ open class ConfigProvider : ContentProvider() {
         const val KEY_HOOK_BUILD = "hook_build"
         const val KEY_SIMULATION_ENABLED = "simulation_enabled"
         const val KEY_DIAGNOSTIC_LOGGING_ENABLED = "diagnostic_logging_enabled"
+        const val KEY_POLLING_DISABLED = "polling_disabled"
+        const val KEY_POLLING_GUARD_STATUS = "polling_guard_status"
+        const val KEY_POLLING_GUARD_PID = "polling_guard_pid"
+        const val KEY_POLLING_GUARD_DETAIL = "polling_guard_detail"
         const val KEY_UID = "uid"
         const val KEY_SAK = "sak"
         const val KEY_ATQA = "atqa"
@@ -292,6 +297,18 @@ open class ConfigProvider : ContentProvider() {
                 val enabled = extras?.getBoolean(EXTRA_ENABLED, false) == true
                 insert(URI, ContentValues().apply { put(KEY_DIAGNOSTIC_LOGGING_ENABLED, enabled) })
                 Bundle().apply { putBoolean(RESULT_SUCCESS, true) }
+            }
+            METHOD_SET_POLLING_DISABLED -> {
+                // Persist synchronously in device-protected storage before acknowledging.
+                val disabled = extras?.getBoolean(EXTRA_ENABLED, false) == true
+                val saved = prefs().edit()
+                    .putBoolean(KEY_POLLING_DISABLED, disabled)
+                    .putString(KEY_POLLING_GUARD_STATUS, "PENDING")
+                    .putInt(KEY_POLLING_GUARD_PID, 0)
+                    .putString(KEY_POLLING_GUARD_DETAIL, "Awaiting NFC discovery hook")
+                    .commit()
+                if (saved) context?.contentResolver?.notifyChange(URI, null)
+                Bundle().apply { putBoolean(RESULT_SUCCESS, saved) }
             }
             METHOD_CONFIRM_STOCK_RESTART -> {
                 val generation = extras?.getLong(EXTRA_GENERATION, 0L) ?: 0L
