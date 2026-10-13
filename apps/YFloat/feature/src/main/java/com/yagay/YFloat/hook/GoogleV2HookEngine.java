@@ -88,7 +88,6 @@ final class GoogleV2HookEngine {
                 ||!provider.ownsGoogleCtsSession(key))return;
         if(!key.equals(token)){
             transport.reset();
-            words.reset();
             gestures.reset();
             ++unused();
             textMode=false;regionMode=false;currentText="";currentBounds=null;
@@ -108,7 +107,6 @@ final class GoogleV2HookEngine {
         textMode=false;regionMode=false;currentText="";currentBounds=null;
         owner=null;voice=null;
         transport.reset();
-        words.reset();
         gestures.reset();
         revision.incrementAndGet();
     }
