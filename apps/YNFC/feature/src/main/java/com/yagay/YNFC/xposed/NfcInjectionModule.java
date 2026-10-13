@@ -78,6 +78,7 @@ public class NfcInjectionModule extends XposedModule {
     private volatile ContentObserver pollingGuardObserver;
     private final NfcControlPolicy pollingPolicy = new NfcControlPolicy();
     private volatile String pollingGuardLastProof = "";
+    private volatile String pollingCapabilitySummary = "UNDETECTED";
     private final Handler pollingMainHandler = new Handler(Looper.getMainLooper());
     private volatile BroadcastReceiver adapterStateReceiver;
     private volatile boolean observerRegistered;
@@ -248,10 +249,12 @@ public class NfcInjectionModule extends XposedModule {
 
         final NfcDiscoveryCapabilityRegistry.ServiceAdapter adapter =
                 NfcDiscoveryCapabilityRegistry.resolveRouting(service);
-        Log.i(TAG, "POLLING_GUARD CAPABILITIES compute=" + (compute != null)
-                + " driverHooks=" + driverHooks
-                + " routeRefresh=" + adapter.available()
-                + " detail=" + adapter.detail + " pid=" + Process.myPid());
+        pollingCapabilitySummary = "compute=" + (compute != null)
+                + ";driverHooks=" + driverHooks
+                + ";routeRefresh=" + adapter.available()
+                + ";sdk=" + Build.VERSION.SDK_INT + ";detail=" + adapter.detail;
+        Log.i(TAG, "POLLING_GUARD CAPABILITIES "
+                + pollingCapabilitySummary + " pid=" + Process.myPid());
         // No hook or route refresh is not success; mark capability unsupported
         // and keep the existing NFC service fully operational.
         if (installed == 0) {
@@ -330,6 +333,9 @@ public class NfcInjectionModule extends XposedModule {
                 if (uri != null) app.getContentResolver().registerContentObserver(uri, true, observer);
             }
             pollingGuardObserver = observer;
+            ContentValues capabilities = new ContentValues();
+            capabilities.put("polling_capabilities", pollingCapabilitySummary);
+            writeValuesWithRetry(capabilities, 5, 75L);
             refreshPollingPreference("startup");
         } catch (Throwable t) {
             Log.w(TAG, "POLLING_GUARD bridge registration failed", t);
