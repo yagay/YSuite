@@ -33,8 +33,17 @@ final class GoogleV2UiEngine {
         if (context == null || token == null || token.isBlank()
                 || !WorkflowSessionManager.matchesExternal(token)) return null;
         Context app = context.getApplicationContext();
-        Session s = SESSIONS.computeIfAbsent(token,k->new Session(app,k));
-        return s;
+        return SESSIONS.computeIfAbsent(token, k -> {
+            Session created = new Session(app, k);
+            // A lost Google END event cannot retain the original image forever.
+            MAIN.postDelayed(() -> {
+                if (SESSIONS.get(k) == created) {
+                    DiagnosticLog.i(created.app, "GOOGLE_V2", "session ttl expired");
+                    release(created, "ttl_expired", false);
+                }
+            }, SESSION_TTL_MS);
+            return created;
+        });
     }
 
     static void onFrame(Context context,String token,Bitmap frame) {
