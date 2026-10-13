@@ -130,7 +130,8 @@ final class GoogleRegionGestureHook {
         String pointDetail = describe(event, methodName, action, "point");
         if (pointSink != null) {
             try {
-                pointSink.onGesturePoint(action, event.getX(), event.getY(), pointDetail);
+                // The presenter draws in screen space, not FrozenImageView-local space.
+                pointSink.onGesturePoint(action, event.getRawX(), event.getRawY(), pointDetail);
             } catch (Throwable ignored) { }
         }
 
