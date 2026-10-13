@@ -58,6 +58,7 @@ final class GoogleCtsLifecycleHooks {
         int count = 0;
         count += hookVoiceSessionShow();
         count += hookVoiceScreenshot();
+        count += hookVoiceSessionScreenshot();
         count += hookVoiceAssistantLaunch();
         count += hookActivityLifecycle();
         count += hookActivityDispatch();
@@ -120,6 +121,41 @@ final class GoogleCtsLifecycleHooks {
             return count;
         } catch (Throwable t) {
             module.log(Log.WARN, TAG, "VIS session hooks unavailable", t);
+            return 0;
+        }
+    }
+
+    /**
+     * Version-independent Android VoiceInteractionSession screenshot callback. Google's
+     * obfuscated Lens bitmap wrappers change between APK releases, but this framework
+     * delivery boundary retains the original image passed into the Google voice session.
+     * The bridge deduplicates it if MyCallbacks delivered the same frame already.
+     */
+    private int hookVoiceSessionScreenshot() {
+        try {
+            Class<?> cls = Class.forName("android.service.voice.VoiceInteractionSession");
+            int count = 0;
+            for (Executable executable : HiddenApiBypass.getDeclaredMethods(cls)) {
+                if (!(executable instanceof Method method)
+                        || !"onHandleScreenshot".equals(method.getName())) continue;
+                Class<?>[] p = method.getParameterTypes();
+                if (p.length != 1 || p[0] != Bitmap.class) continue;
+                module.hook(method).intercept(chain -> {
+                    if (host.active() && (host.voiceSession() == null
+                            || chain.getThisObject() == host.voiceSession())) {
+                        Bitmap frame = (Bitmap) chain.getArg(0);
+                        host.report("GOOGLE_ORIGINAL_SCREENSHOT",
+                                "source=VoiceInteractionSession.onHandleScreenshot bitmap="
+                                        + GoogleHookFormatting.bitmapSummary(frame));
+                        host.sendBridgeFrame(frame);
+                    }
+                    return chain.proceed();
+                });
+                count++;
+            }
+            return count;
+        } catch (Throwable t) {
+            module.log(Log.INFO, TAG, "VoiceInteractionSession screenshot hook unavailable", t);
             return 0;
         }
     }
