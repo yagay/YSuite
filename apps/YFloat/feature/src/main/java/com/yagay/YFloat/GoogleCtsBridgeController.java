@@ -108,9 +108,13 @@ final class GoogleCtsBridgeController {
             cancelRegionConfirmShowLocked(state);
             cancelRegionGestureWatchdogLocked(state);
             cancelRegionFallbackLocked(state);
+            String previousText = state.text;
             state.text = text == null ? "" : text.trim();
             if (bounds != null && !bounds.isEmpty()) {
                 state.bounds = new Rect(bounds);
+            } else if (!state.text.equals(previousText)) {
+                // Do not anchor a new selection to a previous word/region.
+                state.bounds = null;
             }
             state.detail = detail == null ? "" : detail;
             revision = ++state.selectionRevision;
@@ -138,16 +142,19 @@ final class GoogleCtsBridgeController {
         // can fire rapidly; debounce menu reconstruction so the gesture remains smooth.
         if (!selectedText.isBlank()) {
             MAIN.postDelayed(() -> {
+                Rect latestBounds;
                 synchronized (state) {
                     if (state.delivered || state.selectionRevision != revision) return;
                     state.textMenuShown = true;
+                    // Live Google word boxes may arrive during the debounce.
+                    latestBounds = state.bounds == null ? null : new Rect(state.bounds);
                 }
-                FloatActionMenu.showTextAt(app, selectedText, null, selectedScreenBounds);
+                FloatActionMenu.showTextAt(app, selectedText, null, latestBounds);
                 DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
                         "show session=" + shortToken(token)
                                 + " revision=" + revision
                                 + " textLen=" + selectedText.length()
-                                + " screenBounds=" + String.valueOf(selectedScreenBounds)
+                                + " screenBounds=" + String.valueOf(latestBounds)
                                 + " debouncedMs=" + MENU_UPDATE_DELAY_MS);
             }, MENU_UPDATE_DELAY_MS);
         } else {
@@ -161,6 +168,28 @@ final class GoogleCtsBridgeController {
                         "dismiss empty selection session=" + shortToken(token));
             });
         }
+    }
+
+    /** Keep the existing YFloat menu attached to Google's native dragging selection. */
+    static void onTextBounds(Context context, String token, Rect bounds, String detail) {
+        if (context == null || token == null || token.isBlank()
+                || bounds == null || bounds.isEmpty()) return;
+        Context app = context.getApplicationContext();
+        State state = STATES.get(token);
+        if (state == null) return;
+        String text;
+        boolean updateMenu;
+        synchronized (state) {
+            if (state.delivered || state.regionPending || state.text.isBlank()) return;
+            state.bounds = new Rect(bounds);
+            text = state.text;
+            updateMenu = state.textMenuShown;
+        }
+        if (updateMenu) FloatActionMenu.repositionTextAt(app, text, bounds);
+        DiagnosticLog.i(app, "GOOGLE_TEXT_BOUNDS",
+                "session=" + shortToken(token) + " screenBounds=" + bounds
+                        + " menuReposition=" + updateMenu
+                        + " source=" + (detail == null ? "" : detail));
     }
 
     static void onRegionSelection(

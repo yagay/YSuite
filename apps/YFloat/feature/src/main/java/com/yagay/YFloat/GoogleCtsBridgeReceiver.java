@@ -40,6 +40,8 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
                     GoogleCtsBridgeProvider.consumeSharedFrame(context, token);
             case GoogleCtsContract.EVENT_SELECTION ->
                     GoogleCtsBridgeController.onSelection(context, token, text, bounds, detail);
+            case GoogleCtsContract.EVENT_TEXT_BOUNDS ->
+                    GoogleCtsBridgeController.onTextBounds(context, token, bounds, detail);
             case GoogleCtsContract.EVENT_REGION_SELECTION ->
                     GoogleCtsBridgeController.onRegionSelection(
                             context, token, bounds, detail);

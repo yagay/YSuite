@@ -42,6 +42,11 @@ public final class FloatActionMenu {
 
     private static FlOverlayWindowHost activeHost;
     private static View activeView;
+    private static WindowManager.LayoutParams activeParams;
+    private static int activeMenuWidth;
+    private static int activeMenuHeight;
+    private static int activeMode = -1;
+    private static String activeText = "";
     private static int activeCenterX = NO_POSITION;
     private static int activeTopY = NO_POSITION;
     private static int lockedCenterX = NO_POSITION;
@@ -152,6 +157,11 @@ public final class FloatActionMenu {
         if (host.add(root, lp, "float_action_menu")) {
             activeHost = host;
             activeView = root;
+            activeParams = lp;
+            activeMenuWidth = menuWidth;
+            activeMenuHeight = menuHeight;
+            activeMode = mode;
+            activeText = text;
             activeCenterX = lp.x + menuWidth / 2;
             activeTopY = lp.y;
             OverlayRegistry.register("text_action_menu", OVERLAY_OWNER);
@@ -480,11 +490,44 @@ public final class FloatActionMenu {
         });
     }
 
+    /**
+     * Position changes should move the existing WindowManager view. Destroying
+     * and recreating it for every Google handle drag caused flashing and lost
+     * taps, and older builds never forwarded live bounds here at all.
+     */
+    public static synchronized void repositionTextAt(Context context, String text, Rect anchor) {
+        if (context == null || anchor == null || anchor.isEmpty()) return;
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            Context app = context.getApplicationContext();
+            Rect copy = new Rect(anchor);
+            MAIN.post(() -> repositionTextAt(app, text, copy));
+            return;
+        }
+        if (activeMode != MODE_MAIN || activeView == null || activeHost == null
+                || activeParams == null || !activeText.equals(text)) return;
+        Rect usable = ScreenGeometry.usableBounds(context);
+        int[] position = FloatingMenuPositioner.aroundAnchor(
+                context, usable, anchor, activeMenuWidth, activeMenuHeight, false);
+        if (Math.abs(position[0] - activeParams.x) < 2
+                && Math.abs(position[1] - activeParams.y) < 2) return;
+        activeParams.x = position[0];
+        activeParams.y = position[1];
+        if (activeHost.update(activeView, activeParams, "google_text_menu_follow")) {
+            activeCenterX = activeParams.x + activeMenuWidth / 2;
+            activeTopY = activeParams.y;
+        }
+    }
+
     public static synchronized void dismiss() {
         View v = activeView;
         FlOverlayWindowHost host = activeHost;
         activeView = null;
         activeHost = null;
+        activeParams = null;
+        activeMenuWidth = 0;
+        activeMenuHeight = 0;
+        activeMode = -1;
+        activeText = "";
         activeCenterX = NO_POSITION;
         activeTopY = NO_POSITION;
         OverlayRegistry.unregister("text_action_menu", OVERLAY_OWNER);

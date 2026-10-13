@@ -112,6 +112,12 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                     // geometry just because FrozenImageView briefly marked a region gesture before
                     // the final text selection event arrived.
                     canonicalFrameLayer.updateLiveTextSelection(bounds);
+                    if (active() && sessionState.selectionSeen()
+                            && !sessionState.regionSelectionActive()
+                            && !sessionState.selectionText().isBlank()) {
+                        sendBridgeEvent(GoogleCtsContract.EVENT_TEXT_BOUNDS,
+                                "", detail, bounds);
+                    }
                     report("GOOGLE_TEXT_SELECTION_LIVE", detail);
                 });
         this.regionGestureHook = new GoogleRegionGestureHook(
@@ -267,6 +273,14 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                     selectionBounds = selection.bounds();
                     regionSelection = selection.directRegionCommit()
                             && selectionBounds != null && !selectionBounds.isEmpty();
+                    if (!regionSelection && !selection.text().isBlank()) {
+                        Rect liveBounds = textSelectionLiveHook.recentBounds();
+                        if (liveBounds != null && !liveBounds.isEmpty()) {
+                            // Google's selected-word Rects are authoritative;
+                            // UserSelection.b() may describe a whole viewport.
+                            selectionBounds = liveBounds;
+                        }
+                    }
                     sessionState.onSelection(
                             selection.text(), toSessionBounds(selectionBounds), regionSelection);
                     canonicalFrameLayer.updateSelection(

@@ -36,6 +36,8 @@ public final class GoogleCtsContract {
     public static final String EXTRA_RIGHT = "com.yagay.YFloat.extra.CTS_RIGHT";
     public static final String EXTRA_BOTTOM = "com.yagay.YFloat.extra.CTS_BOTTOM";
     public static final String EVENT_SELECTION = "selection";
+    /** Google native text-selection geometry changed during a handle drag. */
+    public static final String EVENT_TEXT_BOUNDS = "text_bounds";
     /** Region geometry changed; YFloat should show/update its own explicit confirm button. */
     public static final String EVENT_REGION_SELECTION = "region_selection";
     public static final String EVENT_REGION_GESTURE_START = "region_gesture_start";
