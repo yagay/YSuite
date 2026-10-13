@@ -21,6 +21,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -53,6 +54,9 @@ final class GoogleCanonicalFrameLayer {
     private WeakReference<ImageView> layerRef = new WeakReference<>(null);
     private WeakReference<SelectionView> selectionRef = new WeakReference<>(null);
     private WeakReference<ViewGroup> parentRef = new WeakReference<>(null);
+    private WeakReference<View> frozenRef = new WeakReference<>(null);
+    private ViewTreeObserver.OnPreDrawListener textViewportGuard;
+    private long lastViewportCorrectionAt;
     private final List<PointF> gesturePoints = new ArrayList<>();
     private boolean gestureInProgress;
     private Rect textSelectionBounds;
@@ -207,7 +211,8 @@ final class GoogleCanonicalFrameLayer {
             textSelectionBounds = null;
         }
         main.post(() -> {
-            // Detach the ImageView before recycling any bitmap it may still reference.
+            // The cached original frame remains transport-only. The live Google
+            // FrozenImageView is the sole visible image surface.
             removeLayerOnMain();
             recycle(current);
             for (Bitmap bitmap : retired) recycle(bitmap);
@@ -250,19 +255,23 @@ final class GoogleCanonicalFrameLayer {
         ViewGroup previousParent = parentRef.get();
         boolean frameReady = usable(frame);
         if (existingSelection != null && previousParent == parent
-                && existingSelection.getParent() == parent
-                && (!frameReady || (existing != null && existing.getParent() == parent))) {
-            if (frameReady && existing != null) {
-                existing.setImageBitmap(frame);
-                normalizeLayer(existing, frozen);
+                && existingSelection.getParent() == parent) {
+            ensureTextViewportGuard(frozen);
+            // A second full-screen Bitmap over Google's frozen image causes
+            // ghosting when the native image animates its zoom independently.
+            if (existing != null && existing.getParent() instanceof ViewGroup group) {
+                group.removeView(existing);
+                existing.setImageDrawable(null);
+                layerRef = new WeakReference<>(null);
             }
-            // Never let a later Google child cover the YFloat selection mask.
             existingSelection.bringToFront();
             existingSelection.invalidate();
             return;
         }
 
         removeLayerOnMain();
+        // Never add another bitmap ImageView above Google's own FrozenImageView.
+        // Keep the captured Bitmap only for YFloat's screenshot-result transport.
         ImageView layer = null;
         ViewGroup.LayoutParams params;
         if (parent instanceof FrameLayout) {
@@ -275,19 +284,6 @@ final class GoogleCanonicalFrameLayer {
                     Math.max(1, frozen.getHeight()));
         }
 
-        if (frameReady) {
-            layer = new ImageView(owner);
-            layer.setTag("yfloat_google_canonical_frame");
-            layer.setScaleType(ImageView.ScaleType.FIT_XY);
-            layer.setImageBitmap(frame);
-            layer.setClickable(false);
-            layer.setFocusable(false);
-            layer.setEnabled(false);
-            layer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            layer.setContentDescription(null);
-            layer.setAlpha(1f);
-        }
-
         SelectionView selectionLayer = new SelectionView(owner);
         selectionLayer.setTag("yfloat_google_selection");
         selectionLayer.setClickable(false);
@@ -295,12 +291,6 @@ final class GoogleCanonicalFrameLayer {
         selectionLayer.setEnabled(false);
         selectionLayer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         try {
-            if (layer != null) {
-                // Keep Google's native OCR and selection handles on top of the
-                // frozen bitmap. The YFloat mask itself is the highest child.
-                parent.addView(layer, Math.min(parent.getChildCount(), frozenIndex + 1),
-                        params);
-            }
             parent.addView(selectionLayer, parent.getChildCount(), params);
         } catch (Throwable t) {
             try {
@@ -317,11 +307,11 @@ final class GoogleCanonicalFrameLayer {
         layerRef = new WeakReference<>(layer);
         selectionRef = new WeakReference<>(selectionLayer);
         parentRef = new WeakReference<>(parent);
-        if (layer != null) normalizeLayer(layer, frozen);
+        ensureTextViewportGuard(frozen);
         reporter.accept("GOOGLE_CANONICAL_LAYER",
                 "attached frame=" + (frameReady
                         ? frame.getWidth() + "x" + frame.getHeight() : "none")
-                        + " selectionOverlay=independent"
+                        + " selectionOverlay=independent originalFrame=transport_only"
                         + " frozen=" + frozen.getWidth() + "x" + frozen.getHeight()
                         + " parent=" + parent.getClass().getName()
                         + " frozenIndex=" + frozenIndex
@@ -330,23 +320,68 @@ final class GoogleCanonicalFrameLayer {
                         + " siblings=" + parent.getChildCount());
     }
 
-    private void normalizeLayer(ImageView layer, View frozen) {
-        if (layer == null || frozen == null) return;
-        layer.setScaleX(1f);
-        layer.setScaleY(1f);
-        layer.setTranslationX(0f);
-        layer.setTranslationY(0f);
-        ViewGroup.LayoutParams lp = layer.getLayoutParams();
-        if (lp != null && (lp.width != ViewGroup.LayoutParams.MATCH_PARENT
-                || lp.height != ViewGroup.LayoutParams.MATCH_PARENT)
-                && frozen.getWidth() > 0 && frozen.getHeight() > 0) {
-            lp.width = frozen.getWidth();
-            lp.height = frozen.getHeight();
-            layer.setLayoutParams(lp);
+    /**
+     * Google 17.64.15 animates FrozenImageView to ~0.915 scale and large Y
+     * translations when a text selection triggers Lens' search panel. Since
+     * we no longer paint a competing full-screen Bitmap, normalize its native
+     * image only while live text selection is active. Do not interfere with
+     * screenshot-region gestures or ordinary Google sessions.
+     */
+    private void ensureTextViewportGuard(View frozen) {
+        if (frozen == null) return;
+        if (frozenRef.get() == frozen && textViewportGuard != null) return;
+        removeTextViewportGuard();
+        frozenRef = new WeakReference<>(frozen);
+        textViewportGuard = () -> {
+            if (!active.getAsBoolean()) return true;
+            synchronized (GoogleCanonicalFrameLayer.this) {
+                if (textSelectionBounds == null || textSelectionBounds.isEmpty()) return true;
+            }
+            float sx = frozen.getScaleX(), sy = frozen.getScaleY();
+            float tx = frozen.getTranslationX(), ty = frozen.getTranslationY();
+            if (Math.abs(sx - 1f) < 0.0005f && Math.abs(sy - 1f) < 0.0005f
+                    && Math.abs(tx) < 0.5f && Math.abs(ty) < 0.5f) return true;
+            try {
+                frozen.animate().cancel();
+                frozen.clearAnimation();
+                frozen.setScaleX(1f);
+                frozen.setScaleY(1f);
+                frozen.setTranslationX(0f);
+                frozen.setTranslationY(0f);
+                long now = android.os.SystemClock.elapsedRealtime();
+                if (now - lastViewportCorrectionAt > 300L) {
+                    lastViewportCorrectionAt = now;
+                    reporter.accept("GOOGLE_TEXT_VIEWPORT_LOCK",
+                            "scale=" + sx + "," + sy + " translation=" + tx + "," + ty);
+                }
+            } catch (Throwable t) {
+                reporter.accept("GOOGLE_TEXT_VIEWPORT_LOCK",
+                        "error=" + t.getClass().getSimpleName());
+            }
+            return true;
+        };
+        try {
+            ViewTreeObserver observer = frozen.getViewTreeObserver();
+            if (observer.isAlive()) observer.addOnPreDrawListener(textViewportGuard);
+        } catch (Throwable t) {
+            removeTextViewportGuard();
         }
     }
 
+    private void removeTextViewportGuard() {
+        View old = frozenRef.get();
+        ViewTreeObserver.OnPreDrawListener listener = textViewportGuard;
+        frozenRef = new WeakReference<>(null);
+        textViewportGuard = null;
+        if (old == null || listener == null) return;
+        try {
+            ViewTreeObserver observer = old.getViewTreeObserver();
+            if (observer.isAlive()) observer.removeOnPreDrawListener(listener);
+        } catch (Throwable ignored) { }
+    }
+
     private void removeLayerOnMain() {
+        removeTextViewportGuard();
         ImageView layer = layerRef.get();
         SelectionView selection = selectionRef.get();
         ViewGroup parent = parentRef.get();
@@ -447,16 +482,9 @@ final class GoogleCanonicalFrameLayer {
                 localSelection.bottom = Math.min(getHeight(), localSelection.bottom);
 
                 if (!localSelection.isEmpty()) {
-                    int save = canvas.save();
-                    Path hole = new Path();
-                    hole.addRoundRect(
-                            localSelection,
-                            cornerRadius,
-                            cornerRadius,
-                            Path.Direction.CW);
-                    canvas.clipOutPath(hole);
-                    canvas.drawRect(0f, 0f, getWidth(), getHeight(), scrim);
-                    canvas.restoreToCount(save);
+                    // The native Google selection already shades the frozen
+                    // background; a second YFloat scrim darkened the image and
+                    // looked like a translucent duplicate during text dragging.
 
                     int[] glowColors = appearance.yuiColor
                             ? new int[]{appearance.accentColor, appearance.accentColor,
