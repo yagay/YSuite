@@ -143,6 +143,10 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                             && !sessionState.selectionText().isBlank()) {
                         report("GOOGLE_TEXT_SELECTION_GESTURE",
                                 "adjusting=" + adjusting + " " + detail);
+                        sendBridgeEvent(adjusting
+                                        ? GoogleCtsContract.EVENT_TEXT_GESTURE_START
+                                        : GoogleCtsContract.EVENT_TEXT_GESTURE_END,
+                                "", detail, currentSelectionBounds());
                         return;
                     }
 

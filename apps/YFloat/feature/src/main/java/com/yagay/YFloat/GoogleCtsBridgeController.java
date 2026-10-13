@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 final class GoogleCtsBridgeController {
     private static final long FRAME_WAIT_MS = 900L;
     private static final long MENU_UPDATE_DELAY_MS = 90L;
+    private static final long TEXT_GESTURE_IDLE_MS = 320L;
     /** Region confirm appears only after Google's rectangle stops changing for this long. */
     private static final long REGION_CONFIRM_STABLE_MS = 360L;
     /** After a real FrozenImageView UP/CANCEL, wait briefly for Google's final refinement Rect. */
@@ -54,6 +55,7 @@ final class GoogleCtsBridgeController {
         boolean committed;
         boolean delivered;
         boolean textMenuShown;
+        final GoogleTextMenuLifecycle textMenu = new GoogleTextMenuLifecycle();
         boolean regionPending;
         boolean regionConfirmRequested;
         boolean regionGestureActive;
@@ -135,6 +137,7 @@ final class GoogleCtsBridgeController {
                 state.lastValidAtElapsed = SystemClock.elapsedRealtime();
             }
             revision = ++state.selectionRevision;
+            state.textMenu.onTextChanged();
             selectedText = state.text;
             selectedScreenBounds = state.bounds == null ? null : new Rect(state.bounds);
         }
@@ -153,43 +156,66 @@ final class GoogleCtsBridgeController {
         // remains independently usable immediately after a YFloat session.
         scheduleCleanup(app, token, state);
 
-        // Google Circle has already done OCR/selection geometry at this point. Reuse the same
-        // YFloat text menu used by result-dialog selections instead of waiting for Google's
-        // Lens Result Panel. While the user drags Google's native selection handles, y(dscl)
-        // can fire rapidly; debounce menu reconstruction so the gesture remains smooth.
+        // A single text-menu lifecycle owns presentation. Dragging suppresses
+        // the toolbar; after UP or a bounded idle settle it reuses one window
+        // anchored to the latest screen-space OCR word bounds.
         if (!selectedText.isBlank()) {
-            MAIN.postDelayed(() -> {
-                Rect latestBounds;
-                synchronized (state) {
-                    if (state.delivered || state.selectionRevision != revision) return;
-                    // Live Google word boxes may arrive during the debounce.
-                    latestBounds = state.bounds == null ? null : new Rect(state.bounds);
-                }
-                FloatActionMenu.showTextAt(app, selectedText, null, latestBounds);
-                boolean visible = FloatActionMenu.hasVisibleTextMenu();
-                synchronized (state) {
-                    if (!state.delivered && state.selectionRevision == revision) {
-                        state.textMenuShown = visible;
-                    }
-                }
-                DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
-                        "show session=" + shortToken(token)
-                                + " revision=" + revision
-                                + " textLen=" + selectedText.length()
-                                + " screenBounds=" + String.valueOf(latestBounds)
-                                + " debouncedMs=" + MENU_UPDATE_DELAY_MS);
-            }, MENU_UPDATE_DELAY_MS);
-        } else {
-            MAIN.post(() -> {
-                synchronized (state) {
-                    if (state.delivered || state.selectionRevision != revision) return;
-                    state.textMenuShown = false;
-                }
-                FloatActionMenu.dismiss();
-                DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
-                        "dismiss empty selection session=" + shortToken(token));
-            });
+            scheduleTextMenu(app, token, state, MENU_UPDATE_DELAY_MS);
         }
+    }
+
+    private static void scheduleTextMenu(Context app, String token, State state, long delay) {
+        final long epoch;
+        synchronized (state) { epoch = state.textMenu.revision(); }
+        MAIN.postDelayed(() -> {
+            String currentText;
+            Rect currentBounds;
+            boolean idleRecovery;
+            synchronized (state) {
+                if (state.delivered || state.regionPending
+                        || !state.textMenu.isCurrent(epoch) || state.text.isBlank()
+                        || STATES.get(token) != state) return;
+                idleRecovery = state.textMenu.dragging();
+                if (idleRecovery && delay < TEXT_GESTURE_IDLE_MS) return;
+                if (idleRecovery) state.textMenu.onGesture(false);
+                currentText = state.text;
+                currentBounds = state.bounds == null ? null : new Rect(state.bounds);
+            }
+            FloatActionMenu.showTextAt(app, currentText, null, currentBounds);
+            boolean visible = FloatActionMenu.hasVisibleTextMenu();
+            synchronized (state) { state.textMenuShown = visible; }
+            DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
+                    "stable_show session=" + shortToken(token)
+                            + " chars=" + currentText.length()
+                            + " bounds=" + currentBounds
+                            + " recoveredIdle=" + idleRecovery
+                            + " visible=" + visible);
+        }, delay);
+    }
+
+    /** Called only by the normalized GoogleGestureSequence; duplicate and
+     * synthetic terminal events never reach this owner.
+     */
+    static void onTextGesture(Context context, String token, boolean dragging, String detail) {
+        if (context == null || token == null || token.isBlank()) return;
+        Context app = context.getApplicationContext();
+        State state = STATES.get(token);
+        if (state == null) return;
+        boolean changed;
+        synchronized (state) {
+            if (state.delivered || state.regionPending || state.text.isBlank()) return;
+            changed = state.textMenu.onGesture(dragging);
+            if (dragging) state.textMenuShown = false;
+        }
+        if (dragging && changed) {
+            MAIN.post(FloatActionMenu::dismiss);
+        }
+        scheduleTextMenu(app, token, state,
+                dragging ? TEXT_GESTURE_IDLE_MS : MENU_UPDATE_DELAY_MS);
+        DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
+                "gesture session=" + shortToken(token)
+                        + " dragging=" + dragging + " changed=" + changed
+                        + " " + trim(detail, 140));
     }
 
     /** Keep the existing YFloat menu attached to Google's native dragging selection. */
@@ -210,9 +236,12 @@ final class GoogleCtsBridgeController {
                 state.lastValidText = text;
                 state.lastValidAtElapsed = SystemClock.elapsedRealtime();
             }
-            updateMenu = state.textMenuShown;
+            state.textMenu.onTextChanged();
+            updateMenu = state.textMenuShown && !state.textMenu.dragging();
         }
         if (updateMenu) FloatActionMenu.repositionTextAt(app, text, bounds);
+        else scheduleTextMenu(app, token, state,
+                state.textMenu.dragging() ? TEXT_GESTURE_IDLE_MS : MENU_UPDATE_DELAY_MS);
         DiagnosticLog.i(app, "GOOGLE_TEXT_BOUNDS",
                 "session=" + shortToken(token) + " screenBounds=" + bounds
                         + " menuReposition=" + updateMenu

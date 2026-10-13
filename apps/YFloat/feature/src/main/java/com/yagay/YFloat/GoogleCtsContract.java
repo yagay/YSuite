@@ -38,6 +38,8 @@ public final class GoogleCtsContract {
     public static final String EVENT_SELECTION = "selection";
     /** Google native text-selection geometry changed during a handle drag. */
     public static final String EVENT_TEXT_BOUNDS = "text_bounds";
+    public static final String EVENT_TEXT_GESTURE_START = "text_gesture_start";
+    public static final String EVENT_TEXT_GESTURE_END = "text_gesture_end";
     /** Region geometry changed; YFloat should show/update its own explicit confirm button. */
     public static final String EVENT_REGION_SELECTION = "region_selection";
     public static final String EVENT_REGION_GESTURE_START = "region_gesture_start";

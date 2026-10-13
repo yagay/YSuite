@@ -42,6 +42,10 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
                     GoogleCtsBridgeController.onSelection(context, token, text, bounds, detail);
             case GoogleCtsContract.EVENT_TEXT_BOUNDS ->
                     GoogleCtsBridgeController.onTextBounds(context, token, bounds, detail);
+            case GoogleCtsContract.EVENT_TEXT_GESTURE_START ->
+                    GoogleCtsBridgeController.onTextGesture(context, token, true, detail);
+            case GoogleCtsContract.EVENT_TEXT_GESTURE_END ->
+                    GoogleCtsBridgeController.onTextGesture(context, token, false, detail);
             case GoogleCtsContract.EVENT_REGION_SELECTION ->
                     GoogleCtsBridgeController.onRegionSelection(
                             context, token, bounds, detail);
