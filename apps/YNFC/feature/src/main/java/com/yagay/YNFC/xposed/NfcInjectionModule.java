@@ -11,6 +11,8 @@ import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Process;
 import android.util.Log;
 
@@ -21,11 +23,13 @@ import com.yagay.YNFC.xposed.payload.RewriteResult;
 import com.yagay.YNFC.xposed.payload.RfPayloadEngine;
 import com.yagay.YNFC.xposed.profile.HookProfileStore;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.yagay.YNFC.xposed.NfcHookUtils.*;
 
@@ -74,6 +78,8 @@ public class NfcInjectionModule extends XposedModule {
     private volatile ContentObserver pollingGuardObserver;
     private volatile Boolean pollingGuardDesired;
     private volatile String pollingGuardLastProof = "";
+    private final AtomicLong pollingRefreshGeneration = new AtomicLong();
+    private final Handler pollingMainHandler = new Handler(Looper.getMainLooper());
     private volatile BroadcastReceiver adapterStateReceiver;
     private volatile boolean observerRegistered;
     private volatile boolean controllerInvalid;
@@ -329,26 +335,99 @@ public class NfcInjectionModule extends XposedModule {
         }
     }
 
+    /**
+     * Live toggling must not rely on restarting com.android.nfc. NFC routing
+     * belongs to the NFC main looper; invoking it from the Provider IO thread
+     * races the controller's queued discovery / HCE state transitions.
+     */
     private void requestPollingRoutingRefresh(String reason) {
         if (HookConfigStore.isPassive()) return;
+        final long revision = pollingRefreshGeneration.incrementAndGet();
+        final boolean blocked = pollingBlocked();
+        Log.i(TAG, "POLLING_GUARD live refresh scheduled revision=" + revision
+                + " disabled=" + blocked + " reason=" + reason);
+        pollingMainHandler.post(() -> applyPollingRoutingOnMain(revision, blocked, reason, 0));
+    }
+
+    private void applyPollingRoutingOnMain(long revision, boolean blocked, String reason,
+                                           int attempt) {
+        if (revision != pollingRefreshGeneration.get() || HookConfigStore.isPassive()
+                || blocked != pollingBlocked()) return;
         try {
             ClassLoader loader = nfcClassLoader;
-            if (loader == null) return;
+            if (loader == null) throw new IllegalStateException("NFC class loader unavailable");
             Class<?> service = Class.forName("com.android.nfc.NfcService", false, loader);
             Method instance = service.getDeclaredMethod("getInstance");
             instance.setAccessible(true);
             Object owner = instance.invoke(null);
-            if (owner == null) return;
+            if (owner == null) {
+                // NFC service creation can complete after the first Provider signal.
+                schedulePollingRetry(revision, blocked, reason, attempt, "service_unavailable");
+                return;
+            }
             Method isEnabled = service.getDeclaredMethod("isNfcEnabled");
             isEnabled.setAccessible(true);
-            if (!Boolean.TRUE.equals(isEnabled.invoke(owner))) return;
+            if (!Boolean.TRUE.equals(isEnabled.invoke(owner))) {
+                // Desired preference is persisted and will be applied on adapter ON.
+                recordPollingGuardState("WAITING_FOR_NFC_ON",
+                        "disabled=" + blocked + " reason=" + reason, blocked);
+                return;
+            }
             Method apply = service.getDeclaredMethod("applyRouting", boolean.class);
             apply.setAccessible(true);
+            // Force a new NFC discovery transaction. This is not an NFC restart:
+            // card emulation routing is supplied by the existing NFC service.
             apply.invoke(owner, true);
-            Log.i(TAG, "POLLING_GUARD routing refresh requested reason=" + reason);
+
+            int observedMask = readServiceDiscoveryMask(service, owner);
+            Log.i(TAG, "POLLING_GUARD LIVE_REFRESH revision=" + revision
+                    + " disabled=" + blocked + " currentMask=0x"
+                    + Integer.toHexString(observedMask) + " attempt=" + attempt
+                    + " thread=" + Thread.currentThread().getName()
+                    + " reason=" + reason);
+            if (blocked && observedMask != 0) {
+                schedulePollingRetry(revision, blocked, reason, attempt,
+                        "java_poll_mask_not_zero_0x" + Integer.toHexString(observedMask));
+                return;
+            }
+            // This confirms a Java-side routing refresh only. The OEM controller
+            // still needs hardware verification; never claim native RF success.
+            recordPollingGuardState("LIVE_REFRESH_REQUESTED",
+                    "disabled=" + blocked + " currentMask=0x"
+                            + Integer.toHexString(observedMask)
+                            + " revision=" + revision + " reason=" + reason,
+                    blocked);
         } catch (Throwable t) {
-            Log.w(TAG, "POLLING_GUARD routing refresh unavailable reason=" + reason, t);
+            Log.w(TAG, "POLLING_GUARD live refresh failed revision=" + revision
+                    + " attempt=" + attempt + " reason=" + reason, t);
+            schedulePollingRetry(revision, blocked, reason, attempt,
+                    t.getClass().getSimpleName());
         }
+    }
+
+    private int readServiceDiscoveryMask(Class<?> service, Object instance) {
+        try {
+            Field current = service.getDeclaredField("mCurrentDiscoveryParameters");
+            current.setAccessible(true);
+            Object params = current.get(instance);
+            return params == null ? -1 : NfcPollingGuard.mask(params);
+        } catch (Throwable t) {
+            return -1; // Unknown, never confuse this with an actual zero mask.
+        }
+    }
+
+    private void schedulePollingRetry(long revision, boolean blocked, String reason,
+                                      int attempt, String detail) {
+        if (revision != pollingRefreshGeneration.get()) return;
+        if (attempt >= 2) {
+            recordPollingGuardState("LIVE_REFRESH_UNCONFIRMED",
+                    "disabled=" + blocked + " reason=" + reason
+                            + " error=" + detail + " retries=" + attempt, blocked);
+            return;
+        }
+        pollingMainHandler.postDelayed(
+                () -> applyPollingRoutingOnMain(revision, blocked, reason, attempt + 1),
+                350L);
     }
 
     private void recordPollingGuardState(String status, String detail, boolean blocked) {
