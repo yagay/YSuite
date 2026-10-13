@@ -1,19 +1,33 @@
 package com.yagay.YFloat.hook;
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.net.Uri;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.util.Log;
 
 import com.yagay.YFloat.GoogleCtsContract;
 
+import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import io.github.libxposed.api.XposedModule;
 
@@ -37,6 +51,12 @@ final class GoogleLensFrameCapture {
     private final BooleanSupplier active;
     private final Consumer<Bitmap> sink;
     private final BiConsumer<String, String> reporter;
+    private final Supplier<Context> contextSupplier;
+    private final ExecutorService sourceIo = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "YFloat-Google-OriginalSource");
+        t.setDaemon(true);
+        return t;
+    });
 
     static final class Binding {
         final boolean voiceScreenshot;
@@ -111,11 +131,21 @@ final class GoogleLensFrameCapture {
                            BooleanSupplier active,
                            Consumer<Bitmap> sink,
                            BiConsumer<String, String> reporter) {
+        this(module, classLoader, active, sink, reporter, () -> null);
+    }
+
+    GoogleLensFrameCapture(XposedModule module,
+                           ClassLoader classLoader,
+                           BooleanSupplier active,
+                           Consumer<Bitmap> sink,
+                           BiConsumer<String, String> reporter,
+                           Supplier<Context> contextSupplier) {
         this.module = module;
         this.classLoader = classLoader;
         this.active = active;
         this.sink = sink;
         this.reporter = reporter;
+        this.contextSupplier = contextSupplier;
     }
 
     int install() {
@@ -152,6 +182,147 @@ final class GoogleLensFrameCapture {
                 "intent.bootstrap_image");
         captureCandidate(safeGet(extras, GoogleCtsContract.CONTEXTUAL_SCREENSHOT),
                 "intent.contextual_screenshot");
+        // 17.64 LensientActivity starts with injected_image_bitmap,
+        // bootstrap_image and injected_image_uri, but on some devices none
+        // are direct Bitmap parcelables. Inspect bounded, source-owned encoded
+        // image/Uri types; never recapture Android's display.
+        String[] keys = {"injected_image_bitmap", "bootstrap_image",
+                "injected_image_payload", "injected_image_uri",
+                GoogleCtsContract.CONTEXTUAL_SCREENSHOT};
+        for (String key : keys) {
+            Object value = safeGet(extras, key);
+            if (value == null) continue;
+            reporter.accept("GOOGLE_FRAME_SOURCE_PROBE",
+                    "intent key=" + key + " type=" + value.getClass().getName());
+            if (value instanceof byte[] encoded) {
+                if (encoded.length <= 64 * 1024 * 1024 && encoded.length > 128) {
+                    sourceIo.execute(() -> decodeOriginalBytes(encoded, key));
+                }
+            } else {
+                Uri uri = value instanceof Uri u ? u : null;
+                if (uri == null && "injected_image_uri".equals(key)
+                        && value instanceof String raw && raw.startsWith("content://")) {
+                    try { uri = Uri.parse(raw); } catch (Throwable ignored) { }
+                }
+                if (uri != null && "content".equals(uri.getScheme())) {
+                    final Uri imageUri = uri;
+                    sourceIo.execute(() -> decodeOriginalUri(imageUri, key));
+                }
+            }
+        }
+    }
+
+    private void decodeOriginalBytes(byte[] encoded, String key) {
+        if (!active.getAsBoolean()) return;
+        try {
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(encoded, 0, encoded.length, options);
+            if (!GoogleOriginalFramePolicy.validDecodedSize(options.outWidth,
+                    options.outHeight)) return;
+            options.inJustDecodeBounds = false;
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            Bitmap frame = BitmapFactory.decodeByteArray(encoded, 0, encoded.length, options);
+            if (frame == null) return;
+            try { captureCandidate(frame, "intent." + key + ".encoded_original"); }
+            finally { if (!frame.isRecycled()) frame.recycle(); }
+        } catch (Throwable t) {
+            reporter.accept("GOOGLE_FRAME_SOURCE_FAILURE",
+                    "encoded key=" + key + " error=" + t.getClass().getSimpleName());
+        }
+    }
+
+    private void decodeOriginalUri(Uri uri, String key) {
+        if (!active.getAsBoolean() || uri == null) return;
+        Context app = contextSupplier.get();
+        if (app == null) return;
+        try {
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            try (InputStream input = app.getContentResolver().openInputStream(uri)) {
+                if (input == null) return;
+                BitmapFactory.decodeStream(input, null, options);
+            }
+            if (!GoogleOriginalFramePolicy.validDecodedSize(options.outWidth,
+                    options.outHeight)) return;
+            options.inJustDecodeBounds = false;
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            try (InputStream input = app.getContentResolver().openInputStream(uri)) {
+                if (input == null) return;
+                Bitmap frame = BitmapFactory.decodeStream(input, null, options);
+                if (frame == null) return;
+                try { captureCandidate(frame, "intent." + key + ".source_uri"); }
+                finally { if (!frame.isRecycled()) frame.recycle(); }
+            }
+        } catch (Throwable t) {
+            reporter.accept("GOOGLE_FRAME_SOURCE_FAILURE",
+                    "uri key=" + key + " error=" + t.getClass().getSimpleName());
+        }
+    }
+
+    /** Search only the actual Google frozen-image view for an already decoded
+     * screenshot. BitmapDrawable/Bitmap fields are data owned by Google, not
+     * PixelCopy, MediaProjection, Canvas.draw or a local screenshot.
+     */
+    void probeFrozenView(Activity owner, String reason) {
+        if (!active.getAsBoolean() || owner == null || owner.getWindow() == null) return;
+        try {
+            View root = owner.getWindow().getDecorView();
+            View frozen = GoogleLensViewIntrospection.findByClassName(
+                    root, GoogleLens1758Profile.FROZEN_IMAGE_VIEW);
+            if (frozen == null || frozen.getWidth() <= 0 || frozen.getHeight() <= 0) return;
+            Bitmap result = readFrozenBitmap(frozen, frozen.getWidth(), frozen.getHeight(),
+                    0, new int[]{0});
+            if (result != null) {
+                captureCandidate(result, "FrozenImageView.original_object_" + reason);
+            } else {
+                reporter.accept("GOOGLE_FRAME_SOURCE_PROBE",
+                        "frozen source unavailable reason=" + reason
+                        + " wh=" + frozen.getWidth() + "x" + frozen.getHeight());
+            }
+        } catch (Throwable t) {
+            reporter.accept("GOOGLE_FRAME_SOURCE_FAILURE",
+                    "frozen reason=" + reason + " error=" + t.getClass().getSimpleName());
+        }
+    }
+
+    private Bitmap readFrozenBitmap(View root, int width, int height, int depth, int[] seen) {
+        if (root == null || depth > 4 || ++seen[0] > 48) return null;
+        Drawable drawable = root instanceof ImageView image ? image.getDrawable()
+                : root.getBackground();
+        Bitmap drawableBitmap = drawable instanceof BitmapDrawable bitmapDrawable
+                ? bitmapDrawable.getBitmap() : null;
+        if (validFrozenBitmap(drawableBitmap, width, height)) return drawableBitmap;
+
+        // Restrict private-field reflection to the known Google FrozenImageView
+        // itself. Other Android views may contain unrelated app imagery.
+        if (GoogleLens1758Profile.FROZEN_IMAGE_VIEW.equals(root.getClass().getName())) {
+            int scanned = 0;
+            for (Field field : GoogleReflection.instanceFields(root.getClass())) {
+                if (++scanned > 64) break;
+                if (field.getType() != Bitmap.class) continue;
+                try {
+                    field.setAccessible(true);
+                    Object value = field.get(root);
+                    if (value instanceof Bitmap bitmap
+                            && validFrozenBitmap(bitmap, width, height)) return bitmap;
+                } catch (Throwable ignored) { }
+            }
+        }
+        if (root instanceof ViewGroup group) {
+            for (int i = 0; i < group.getChildCount() && seen[0] < 48; i++) {
+                Bitmap found = readFrozenBitmap(group.getChildAt(i), width, height,
+                        depth + 1, seen);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private boolean validFrozenBitmap(Bitmap candidate, int width, int height) {
+        return candidate != null && !candidate.isRecycled()
+                && GoogleOriginalFramePolicy.matchesFrozenView(
+                        candidate.getWidth(), candidate.getHeight(), width, height);
     }
 
     private int hookGoogleVoiceSessionScreenshot() {

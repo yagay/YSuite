@@ -106,7 +106,8 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 provider::googleOverlayAppearance);
         this.lifecycleHooks = new GoogleCtsLifecycleHooks(module, provider, this);
         this.frameCapture = new GoogleLensFrameCapture(
-                module, classLoader, this::active, this::sendBridgeFrame, this::report);
+                module, classLoader, this::active, this::sendBridgeFrame,
+                this::report, this::currentApplicationContext);
         this.textSelectionLiveHook = new GoogleTextSelectionLiveHook(
                 module, classLoader, this::active,
                 (bounds, selectedText, detail) -> {
@@ -369,6 +370,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
         // The first transport may have raced YFloat's bridge initialization.
         // If this Lens process owns the original frame, re-send those identical
         // pixels once before posting the terminal region result.
+        frameCapture.probeFrozenView(markedActivity.get(), "explicit_done");
         Bitmap confirmSource = canonicalFrameLayer.copyOriginalForHandoff();
         if (confirmSource != null) {
             try {
@@ -494,6 +496,17 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
             markedActivity = new WeakReference<>(activity);
             uiSanitizer.attach(activity);
             canonicalFrameLayer.onActivityAvailable();
+            if (name.endsWith(".LensientActivity")) {
+                final long generation = sessionState.generation();
+                for (long delay : new long[]{120L, 420L, 900L}) {
+                    mainHandler.postDelayed(() -> {
+                        if (active() && sessionState.generation() == generation
+                                && markedActivity.get() == activity) {
+                            frameCapture.probeFrozenView(activity, "activity_" + delay);
+                        }
+                    }, delay);
+                }
+            }
             report("GOOGLE_UI_OWNER", "activity=" + name
                     + " sanitizer=attached canonicalLayer=armed");
         }
