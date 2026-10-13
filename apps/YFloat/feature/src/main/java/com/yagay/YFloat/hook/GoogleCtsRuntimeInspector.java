@@ -342,6 +342,22 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 "bounds=" + String.valueOf(currentSelectionBounds())
                         + " confirmedAtElapsed=" + confirmedAtElapsed
                         + " transport=remote_preferences_event");
+        // The first transport may have raced YFloat's bridge initialization.
+        // If this Lens process owns the original frame, re-send those identical
+        // pixels once before posting the terminal region result.
+        Bitmap confirmSource = canonicalFrameLayer.copyOriginalForHandoff();
+        if (confirmSource != null) {
+            try {
+                boolean retried = bridgeSender.resendOriginalAtConfirm(confirmSource);
+                report("GOOGLE_FRAME_CONFIRM_HANDOFF", "cachedOriginal=true retry=" + retried);
+                if (retried) sessionState.onFrameQueued();
+            } finally {
+                if (!confirmSource.isRecycled()) confirmSource.recycle();
+            }
+        } else {
+            report("GOOGLE_FRAME_CONFIRM_HANDOFF",
+                    "cachedOriginal=false; awaiting other Google process's original frame");
+        }
         commitBridgeResult("", regionConfirmDetail, "lens_region_confirmed");
     }
 

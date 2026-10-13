@@ -50,6 +50,7 @@ final class GoogleBridgeSender {
     private int frameWidth;
     private int frameHeight;
     private int frameGeneration;
+    private String confirmRetryToken = "";
 
     GoogleBridgeSender(XposedModule module,
                        Supplier<Context> contextSupplier,
@@ -71,6 +72,7 @@ final class GoogleBridgeSender {
         frameWidth = 0;
         frameHeight = 0;
         frameGeneration++;
+        confirmRetryToken = "";
         traceDispatching.remove();
     }
 
@@ -158,6 +160,31 @@ final class GoogleBridgeSender {
         // Queue on one worker. A larger original Google Bitmap supersedes an
         // earlier thumbnail, while duplicates never flood the IPC bridge.
         io.execute(() -> writeFrame(token, width, height, pixels, generation));
+        return true;
+    }
+
+    /**
+     * A Google-owned original frame may have been captured and cached while an
+     * earlier SharedMemory/pipe handoff was lost. Give explicit region Done one
+     * final original-frame attempt. Never call MediaProjection, screenshot APIs
+     * or view drawing; this takes a Bitmap captured by Google itself.
+     */
+    synchronized boolean resendOriginalAtConfirm(Bitmap bitmap) {
+        if (!active.getAsBoolean() || bitmap == null || bitmap.isRecycled()) return false;
+        String token = token();
+        if (token.isBlank() || token.equals(confirmRetryToken)) return false;
+        ByteBuffer pixels = snapshotPixels(bitmap);
+        if (pixels == null) return false;
+        confirmRetryToken = token;
+        frameQueued = true;
+        frameToken = token;
+        frameWidth = bitmap.getWidth();
+        frameHeight = bitmap.getHeight();
+        int generation = ++frameGeneration;
+        io.execute(() -> writeFrame(token, bitmap.getWidth(), bitmap.getHeight(),
+                pixels, generation));
+        module.log(Log.INFO, TAG, "Google original-frame confirm retry queued session="
+                + shortToken(token) + " size=" + frameWidth + "x" + frameHeight);
         return true;
     }
 

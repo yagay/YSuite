@@ -101,6 +101,17 @@ final class GoogleCanonicalFrameLayer {
         schedulePresent();
     }
 
+    /**
+     * The original Google-owned frozen Bitmap is already cloned in this layer.
+     * Return a separate immutable transport copy for a one-time late handoff;
+     * never recapture the Android display or draw the Google View hierarchy.
+     */
+    synchronized Bitmap copyOriginalForHandoff() {
+        if (!usable(canonicalFrame)) return null;
+        try { return canonicalFrame.copy(Bitmap.Config.ARGB_8888, false); }
+        catch (Throwable ignored) { return null; }
+    }
+
     void updateSelection(Rect screenBounds, boolean regionSelection, String text) {
         synchronized (this) {
             if (screenBounds != null && !screenBounds.isEmpty()) {
