@@ -151,11 +151,16 @@ final class GoogleCtsBridgeController {
                 Rect latestBounds;
                 synchronized (state) {
                     if (state.delivered || state.selectionRevision != revision) return;
-                    state.textMenuShown = true;
                     // Live Google word boxes may arrive during the debounce.
                     latestBounds = state.bounds == null ? null : new Rect(state.bounds);
                 }
                 FloatActionMenu.showTextAt(app, selectedText, null, latestBounds);
+                boolean visible = FloatActionMenu.hasVisibleTextMenu();
+                synchronized (state) {
+                    if (!state.delivered && state.selectionRevision == revision) {
+                        state.textMenuShown = visible;
+                    }
+                }
                 DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
                         "show session=" + shortToken(token)
                                 + " revision=" + revision
@@ -399,8 +404,17 @@ final class GoogleCtsBridgeController {
         // Arm a bounded fallback BEFORE the asynchronous remote call. Remote preferences
         // can hang or never invoke their callback after a Google App update; Done must not
         // remain disabled indefinitely.
+        // A confirmed region with an already-received Google original Bitmap
+        // must not wait on a remote preference acknowledgement to open YFloat.
+        // No local screenshot is taken; tryDeliver still requires the Google frame.
+        boolean hasOriginalGoogleFrame;
+        synchronized (state) {
+            hasOriginalGoogleFrame = state.frame != null && !state.frame.isRecycled();
+        }
         scheduleRegionFallback(app, token, state,
-                "remote_confirm_ack_timeout", REGION_REMOTE_ACK_TIMEOUT_MS);
+                hasOriginalGoogleFrame ? "google_frame_ready_at_done"
+                        : "remote_confirm_ack_timeout",
+                hasOriginalGoogleFrame ? 0L : REGION_REMOTE_ACK_TIMEOUT_MS);
 
         // Preferred path: notify the hooked Google process of the explicit confirmation.
         // App-side frame and bounds can still complete the result if the hook is unavailable.
@@ -506,20 +520,36 @@ final class GoogleCtsBridgeController {
             state.frame = null;
         }
         STATES.remove(token, state);
+        cancelRegionConfirmShow(state);
+        cancelRegionGestureWatchdog(state);
+        cancelRegionFallback(state);
         cancelCleanup(state);
         cancelGoogleFrameTimeout(state);
         GoogleRegionConfirmOverlay.dismiss(token, "text_menu_commit");
         recycle(frame);
-        if (showMenuNow) {
-            FloatActionMenu.showTextAt(app, finalText, null, finalScreenBounds);
-            DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
-                    "late show session=" + shortToken(token)
-                            + " textLen=" + finalText.length()
-                            + " screenBounds=" + String.valueOf(finalScreenBounds));
-        }
         clearSessionState(app, token, "text_menu_commit");
         FloatService service = FloatService.get();
         if (service != null) service.onCircleFinished("google_text_menu_committed");
+
+        // The live menu may already have vanished when Google's Lens Activity
+        // finishes. Never treat textMenuShown as proof that a window survived.
+        // Always rehost the final text toolbar and a YFloat-owned selection
+        // outline AFTER the Google workflow has been released.
+        if (!finalText.isBlank()) {
+            MAIN.post(() -> {
+                FloatActionMenu.showTextAt(app, finalText, null, finalScreenBounds);
+                boolean visible = FloatActionMenu.hasVisibleTextMenu();
+                if (visible && finalScreenBounds != null && !finalScreenBounds.isEmpty()) {
+                    GoogleTextResultFrameOverlay.show(app, token, finalScreenBounds);
+                }
+                DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
+                        "final result session=" + shortToken(token)
+                                + " textLen=" + finalText.length()
+                                + " bounds=" + finalScreenBounds
+                                + " previouslyShown=" + !showMenuNow
+                                + " visible=" + visible);
+            });
+        }
         DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
                 "committed session=" + shortToken(token)
                         + " textLen=" + (text == null ? 0 : text.length())
@@ -579,6 +609,26 @@ final class GoogleCtsBridgeController {
         Context app = context.getApplicationContext();
         String why = reason == null || reason.isBlank() ? "native_release" : reason;
 
+        // Accessibility may report a Google window exit before the terminal
+        // text-selection callback arrives. Preserve the selection instead of
+        // discarding the only copy of the chosen words and screen geometry.
+        boolean finalizedText = false;
+        for (Map.Entry<String, State> entry : STATES.entrySet()) {
+            State pending = entry.getValue();
+            String selectedText;
+            Rect selectedBounds;
+            synchronized (pending) {
+                selectedText = pending.regionPending || pending.delivered
+                        ? "" : pending.text;
+                selectedBounds = pending.bounds == null ? null : new Rect(pending.bounds);
+            }
+            if (selectedText != null && !selectedText.isBlank()) {
+                onTextMenuCommit(app, entry.getKey(), selectedText,
+                        selectedBounds, "accessibility_release:" + why);
+                finalizedText = true;
+            }
+        }
+
         int cleared = 0;
         for (Map.Entry<String, State> entry : STATES.entrySet()) {
             String token = entry.getKey();
@@ -602,7 +652,9 @@ final class GoogleCtsBridgeController {
         }
 
         GoogleRegionConfirmOverlay.dismiss(null, why);
-        FloatActionMenu.dismiss();
+        if (!finalizedText && !GoogleTextResultFrameOverlay.hasSelection()) {
+            FloatActionMenu.dismiss();
+        }
 
         WorkflowSessionManager.Session workflow = WorkflowSessionManager.current();
         String token = workflow != null
@@ -626,6 +678,23 @@ final class GoogleCtsBridgeController {
         if (context == null || token == null || token.isBlank()) return;
         Context app = context.getApplicationContext();
         State pending = STATES.get(token);
+        if (pending != null) {
+            String finalizedText;
+            Rect finalizedBounds;
+            synchronized (pending) {
+                finalizedText = !pending.regionPending && !pending.delivered
+                        && !pending.committed ? pending.text : "";
+                finalizedBounds = pending.bounds == null ? null
+                        : new Rect(pending.bounds);
+            }
+            if (finalizedText != null && !finalizedText.isBlank()) {
+                DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
+                        "terminal text handoff session=" + shortToken(token));
+                onTextMenuCommit(app, token, finalizedText, finalizedBounds,
+                        "google_terminal_event:" + trim(detail, 150));
+                return;
+            }
+        }
         if (pending != null) {
             boolean awaitingResult;
             synchronized (pending) {
