@@ -65,9 +65,32 @@ public final class FloatActionMenu {
     }
 
     public static void showTextAt(Context c, String value, Runnable selectAll, Rect anchor) {
+        if (c == null) return;
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            Context app = c.getApplicationContext();
+            Rect copy = anchor == null ? null : new Rect(anchor);
+            MAIN.post(() -> showTextAt(app, value, selectAll, copy));
+            return;
+        }
+        // OCR text changes on every drag update. Recreating the WindowManager
+        // overlay for each word causes flicker and repeated accessibility moves.
+        if (hasVisibleTextMenu()) {
+            String incoming = value == null ? "" : value.trim();
+            if (!incoming.isBlank()) {
+                activeText = incoming;
+                if (anchor != null && !anchor.isEmpty()) {
+                    repositionTextAt(c, incoming, anchor);
+                }
+                return;
+            }
+        }
         resetLockedRow();
         show(c, value, selectAll, MODE_MAIN,
                 anchor == null || anchor.isEmpty() ? null : new Rect(anchor));
+    }
+
+    private static synchronized String currentSelectionText(String fallback) {
+        return activeMode == MODE_MAIN && !activeText.isBlank() ? activeText : fallback;
     }
 
     public static void showShareTargets(Context c, String value) {
@@ -249,7 +272,7 @@ public final class FloatActionMenu {
             TextView custom = FloatingMenuUi.action(app, item.label);
             custom.setEllipsize(null);
             custom.setSingleLine(false);
-            custom.setOnClickListener(v -> launchCustom(app, item, text));
+            custom.setOnClickListener(v -> launchCustom(app, item, currentSelectionText(text)));
             items.add(custom);
         }
 
@@ -259,7 +282,8 @@ public final class FloatActionMenu {
 
         copy.setOnClickListener(v -> {
             ClipboardManager cm = (ClipboardManager) app.getSystemService(Context.CLIPBOARD_SERVICE);
-            if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("YFloat", text));
+            if (cm != null) cm.setPrimaryClip(ClipData.newPlainText(
+                    "YFloat", currentSelectionText(text)));
             Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e84b8e9c556), Toast.LENGTH_SHORT).show();
             dismiss();
         });
@@ -269,8 +293,10 @@ public final class FloatActionMenu {
                 dismiss();
             });
         }
-        share.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_SHARE));
-        more.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MORE));
+        share.setOnClickListener(v -> showOnCurrentRow(
+                app, currentSelectionText(text), selectAll, MODE_SHARE));
+        more.setOnClickListener(v -> showOnCurrentRow(
+                app, currentSelectionText(text), selectAll, MODE_MORE));
 
         // The shared row measures every action from its label and wraps into a vertical
         // stack when the popup is narrow. No slot width or two-line truncation.
