@@ -44,15 +44,22 @@ final class GoogleTextSelectionLiveHook {
         final String state;
         final String word;
         final String range;
+        final String listMethod;
 
         Profile(String name, String updateTask, String controller,
                 String state, String word, String range) {
+            this(name, updateTask, controller, state, word, range, "g");
+        }
+
+        Profile(String name, String updateTask, String controller,
+                String state, String word, String range, String listMethod) {
             this.name = name;
             this.updateTask = updateTask;
             this.controller = controller;
             this.state = state;
             this.word = word;
             this.range = range;
+            this.listMethod = listMethod;
         }
     }
 
@@ -82,7 +89,7 @@ final class GoogleTextSelectionLiveHook {
         module.log(Log.INFO, TAG,
                 "Google live text selection hooks=" + count
                         + " profile=" + profile.name
-                        + " sources=" + profile.state + ".g"
+                        + " sources=" + profile.state + "." + profile.listMethod
                         + (profile.updateTask == null ? "" : "," + profile.updateTask + ".run"));
         return count;
     }
@@ -92,7 +99,7 @@ final class GoogleTextSelectionLiveHook {
             Class<?> stateClass = Class.forName(profile.state, false, classLoader);
             Method target = null;
             for (Method method : GoogleReflection.declaredMethods(stateClass)) {
-                if (!"g".equals(method.getName())
+                if (!profile.listMethod.equals(method.getName())
                         || method.getParameterCount() != 3
                         || method.getReturnType() != void.class) continue;
                 Class<?>[] p = method.getParameterTypes();
@@ -104,11 +111,12 @@ final class GoogleTextSelectionLiveHook {
             }
             if (target == null) {
                 module.log(Log.WARN, TAG,
-                        "Google live word-list hook unavailable: " + profile.state + ".g missing");
+                        "Google live word-list hook unavailable: "
+                                + profile.state + "." + profile.listMethod + " missing");
                 return 0;
             }
 
-            final String source = profile.state + ".g";
+            final String source = profile.state + "." + profile.listMethod;
             module.hook(target).intercept(chain -> {
                 Object state = chain.getThisObject();
                 Object selected = chain.getArg(0);
@@ -292,6 +300,10 @@ final class GoogleTextSelectionLiveHook {
         if (!(selected instanceof Iterable<?>)) {
             selected = GoogleReflection.readField(
                     state, "c", GoogleLens1758Profile.IMMUTABLE_LIST);
+            if (!(selected instanceof Iterable<?>)) {
+                selected = GoogleReflection.readField(
+                        state, null, GoogleLens1758Profile.IMMUTABLE_LIST);
+            }
         }
 
         Rect union = new Rect();
@@ -331,6 +343,9 @@ final class GoogleTextSelectionLiveHook {
     private int addWord(Rect union, Object word) {
         if (word == null || !profile.word.equals(word.getClass().getName())) return 0;
         Object value = GoogleReflection.readField(word, "d", Rect.class.getName());
+        if (!(value instanceof Rect)) {
+            value = GoogleReflection.readField(word, null, Rect.class.getName());
+        }
         if (!(value instanceof Rect rect) || rect.isEmpty()) return 0;
         if (union.isEmpty()) union.set(rect); else union.union(rect);
         return 1;
@@ -371,15 +386,25 @@ final class GoogleTextSelectionLiveHook {
                 java.lang.reflect.Field viewField = null;
                 java.lang.reflect.Field selectedList = null;
                 java.lang.reflect.Field wordField = null;
-                for (java.lang.reflect.Field candidate : GoogleReflection.instanceFields(state)) {
+                java.lang.reflect.Field[] stateFields = GoogleReflection.instanceFields(state);
+                for (java.lang.reflect.Field candidate : stateFields) {
                     if (candidate.getType() == view) viewField = candidate;
                     if (GoogleLens1758Profile.IMMUTABLE_LIST
                             .equals(candidate.getType().getName())) selectedList = candidate;
                     Class<?> word = candidate.getType();
                     if (word == view || word.isPrimitive()) continue;
-                    for (java.lang.reflect.Field box : GoogleReflection.instanceFields(word)) {
-                        if (box.getType() == Rect.class) wordField = candidate;
+                    int matchingFields = 0;
+                    for (java.lang.reflect.Field f : stateFields) {
+                        if (f.getType() == word) matchingFields++;
                     }
+                    if (matchingFields < 2) continue;
+                    int stringFields = 0;
+                    boolean hasWordBox = false;
+                    for (java.lang.reflect.Field box : GoogleReflection.instanceFields(word)) {
+                        if (box.getType() == Rect.class) hasWordBox = true;
+                        if (box.getType() == String.class) stringFields++;
+                    }
+                    if (hasWordBox && stringFields >= 2) wordField = candidate;
                 }
                 if (viewField == null || selectedList == null || wordField == null) continue;
                 for (Method method : GoogleReflection.declaredMethods(state)) {
@@ -388,7 +413,8 @@ final class GoogleTextSelectionLiveHook {
                             && GoogleLens1758Profile.IMMUTABLE_LIST.equals(args[0].getName())
                             && args[1] == boolean.class && args[2] == int.class) {
                         return new Profile("structural-text-view",
-                                null, null, state.getName(), wordField.getType().getName(), null);
+                                null, null, state.getName(), wordField.getType().getName(),
+                                null, method.getName());
                     }
                 }
             }
