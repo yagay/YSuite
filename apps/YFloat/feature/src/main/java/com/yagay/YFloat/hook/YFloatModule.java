@@ -83,7 +83,7 @@ public final class YFloatModule extends XposedModule {
         LsposedRuntimeProvider provider = runtimeProvider;
         if (provider == null) return;
         try {
-            new GoogleCtsRuntimeInspector(this, provider, param.getClassLoader()).install();
+            new GoogleV2HookEngine(this, provider, param.getClassLoader()).install();
             googleCtsInspectorInstalled = true;
             log(Log.INFO, TAG,
                     "Google CTS marked-session inspector installed; owner="

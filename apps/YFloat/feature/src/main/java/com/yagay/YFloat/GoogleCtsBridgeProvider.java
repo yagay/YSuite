@@ -147,7 +147,7 @@ public class GoogleCtsBridgeProvider extends ContentProvider {
             pixels.limit(frame.bytes);
             bitmap = Bitmap.createBitmap(frame.width, frame.height, Bitmap.Config.ARGB_8888);
             bitmap.copyPixelsFromBuffer(pixels);
-            GoogleCtsBridgeController.onFrame(context, token, bitmap);
+            GoogleV2UiEngine.onFrame(context, token, bitmap);
             bitmap = null;
             DiagnosticLog.i(context, "GOOGLE_BRIDGE",
                     "shared frame received session=" + shortToken(token)
@@ -231,7 +231,7 @@ public class GoogleCtsBridgeProvider extends ContentProvider {
             pixels.flip();
             bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             bitmap.copyPixelsFromBuffer(pixels);
-            GoogleCtsBridgeController.onFrame(context, token, bitmap);
+            GoogleV2UiEngine.onFrame(context, token, bitmap);
             bitmap = null;
             DiagnosticLog.i(context, "GOOGLE_BRIDGE",
                     "frame received session=" + shortToken(token)

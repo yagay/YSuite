@@ -39,33 +39,27 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
             case GoogleCtsContract.EVENT_FRAME_READY ->
                     GoogleCtsBridgeProvider.consumeSharedFrame(context, token);
             case GoogleCtsContract.EVENT_SELECTION ->
-                    GoogleCtsBridgeController.onSelection(context, token, text, bounds, detail);
+                    GoogleV2UiEngine.onText(context, token, text, bounds, detail);
             case GoogleCtsContract.EVENT_TEXT_BOUNDS ->
-                    GoogleCtsBridgeController.onTextBounds(context, token, bounds, detail);
+                    GoogleV2UiEngine.onTextBounds(context, token, bounds);
             case GoogleCtsContract.EVENT_TEXT_GESTURE_START ->
-                    GoogleCtsBridgeController.onTextGesture(context, token, true, detail);
+                    GoogleV2UiEngine.onTextGesture(context, token, true);
             case GoogleCtsContract.EVENT_TEXT_GESTURE_END ->
-                    GoogleCtsBridgeController.onTextGesture(context, token, false, detail);
+                    GoogleV2UiEngine.onTextGesture(context, token, false);
             case GoogleCtsContract.EVENT_REGION_SELECTION ->
-                    GoogleCtsBridgeController.onRegionSelection(
-                            context, token, bounds, detail);
+                    GoogleV2UiEngine.onRegion(context, token, bounds, detail);
             case GoogleCtsContract.EVENT_REGION_GESTURE_START ->
-                    GoogleCtsBridgeController.onRegionGesture(
-                            context, token, true, detail);
+                    GoogleV2UiEngine.onRegionGesture(context, token, true);
             case GoogleCtsContract.EVENT_REGION_GESTURE_END ->
-                    GoogleCtsBridgeController.onRegionGesture(
-                            context, token, false, detail);
-            case GoogleCtsContract.EVENT_COMMIT ->
-                    GoogleCtsBridgeController.onCommit(context, token, detail);
-            case GoogleCtsContract.EVENT_QUERY_RESULT ->
-                    GoogleCtsBridgeController.onQueryResult(
-                            context, token, text, bounds, detail);
+                    GoogleV2UiEngine.onRegionGesture(context, token, false);
+            case GoogleCtsContract.EVENT_COMMIT,
+                 GoogleCtsContract.EVENT_QUERY_RESULT ->
+                    GoogleV2UiEngine.onCommit(context, token, detail);
             case GoogleCtsContract.EVENT_TEXT_MENU_COMMIT ->
-                    GoogleCtsBridgeController.onTextMenuCommit(
-                            context, token, text, bounds, detail);
+                    GoogleV2UiEngine.onText(context, token, text, bounds, detail);
             case GoogleCtsContract.EVENT_END ->
-                    GoogleCtsBridgeController.onEnd(context, token, detail);
-            default -> DiagnosticLog.i(context, "GOOGLE_BRIDGE",
+                    GoogleV2UiEngine.onEnd(context, token, detail);
+            default -> DiagnosticLog.i(context, "GOOGLE_V2",
                     "unknown event=" + event + " session=" + shortToken(token));
         }
     }
