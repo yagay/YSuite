@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Looper;
+import android.widget.Toast;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,8 @@ final class GoogleCtsBridgeController {
     private static final long REGION_REMOTE_GRACE_MS = 220L;
     /** Never let an unresponsive remote-preferences write strand the Done button. */
     private static final long REGION_REMOTE_ACK_TIMEOUT_MS = 1_500L;
+    /** Wait for Google's original frame instead of recapturing the current screen. */
+    private static final long GOOGLE_FRAME_WAIT_TIMEOUT_MS = 7_000L;
     private static final long STATE_TTL_MS = 150_000L;
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final Map<String, State> STATES = new ConcurrentHashMap<>();
@@ -50,7 +53,7 @@ final class GoogleCtsBridgeController {
         boolean regionPending;
         boolean regionConfirmRequested;
         boolean regionGestureActive;
-        boolean fallbackCaptureRequested;
+        Runnable googleFrameTimeoutTask;
         int selectionRevision;
         Runnable regionConfirmShowTask;
         Runnable regionGestureWatchdogTask;
@@ -504,6 +507,7 @@ final class GoogleCtsBridgeController {
         }
         STATES.remove(token, state);
         cancelCleanup(state);
+        cancelGoogleFrameTimeout(state);
         GoogleRegionConfirmOverlay.dismiss(token, "text_menu_commit");
         recycle(frame);
         if (showMenuNow) {
@@ -585,6 +589,7 @@ final class GoogleCtsBridgeController {
             cancelRegionGestureWatchdog(state);
             cancelRegionFallback(state);
             cancelCleanup(state);
+            cancelGoogleFrameTimeout(state);
             GoogleCtsBridgeProvider.releaseSharedFrame(token);
             synchronized (state) {
                 recycle(state.frame);
@@ -642,6 +647,7 @@ final class GoogleCtsBridgeController {
             cancelRegionGestureWatchdog(state);
             cancelRegionFallback(state);
             cancelCleanup(state);
+            cancelGoogleFrameTimeout(state);
         }
         GoogleRegionConfirmOverlay.dismiss(token, "bridge_end");
         boolean dismissTextMenu = false;
@@ -676,13 +682,9 @@ final class GoogleCtsBridgeController {
             if (!force && state.frame == null) return;
             if (force && state.frame == null && (state.text == null || state.text.isBlank())) {
                 DiagnosticLog.i(app, "GOOGLE_BRIDGE",
-                        "commit awaiting screenshot frame session=" + shortToken(token)
+                        "waiting for Google original frame session=" + shortToken(token)
                                 + " detail=" + trim(state.detail, 600));
-                if (!state.fallbackCaptureRequested && state.bounds != null
-                        && !state.bounds.isEmpty()) {
-                    state.fallbackCaptureRequested = true;
-                    MAIN.post(() -> captureFallbackFrame(app, token, state));
-                }
+                scheduleGoogleFrameTimeoutLocked(app, token, state);
                 return;
             }
             state.delivered = true;
@@ -699,6 +701,7 @@ final class GoogleCtsBridgeController {
         cancelRegionGestureWatchdog(state);
         cancelRegionFallback(state);
         cancelCleanup(state);
+        cancelGoogleFrameTimeout(state);
         GoogleRegionConfirmOverlay.dismiss(token, "deliver");
 
         Bitmap display = frame;
@@ -757,40 +760,56 @@ final class GoogleCtsBridgeController {
                         + " screenBounds=" + String.valueOf(screenBounds));
     }
 
-    /**
-     * Last resort when an updated Google App stops exporting its frozen screenshot. Capture
-     * through YFloat's already configured screenshot backend instead of silently dropping Done.
-     * This path never requires an extra permission beyond the active YFloat capture settings.
-     */
-    private static void captureFallbackFrame(Context app, String token, State state) {
-        synchronized (state) {
-            if (state.delivered || !state.committed || state.frame != null
-                    || STATES.get(token) != state) return;
-        }
-        DiagnosticLog.i(app, "GOOGLE_BRIDGE",
-                "native frame absent; requesting local capture session=" + shortToken(token));
-        try {
-            ScreenCaptureBackend.capture(app, new FloatSettings(app), bitmap -> {
-                if (bitmap == null) {
-                    DiagnosticLog.i(app, "GOOGLE_BRIDGE",
-                            "local capture returned null session=" + shortToken(token));
-                    return;
-                }
-                if (STATES.get(token) != state) {
-                    recycle(bitmap);
-                    return;
-                }
-                DiagnosticLog.i(app, "GOOGLE_BRIDGE",
-                        "local capture fallback received session=" + shortToken(token));
-                onFrame(app, token, bitmap);
-            }, error -> DiagnosticLog.i(app, "GOOGLE_BRIDGE",
-                    "local capture fallback failed session=" + shortToken(token)
-                            + " error=" + ScreenCaptureBackend.safeMessage(error)));
-        } catch (Throwable t) {
+    /** Only Google's original screenshot transport can produce a region result. */
+    private static void scheduleGoogleFrameTimeoutLocked(Context app, String token, State state) {
+        if (state.googleFrameTimeoutTask != null) return;
+        final Runnable[] holder = new Runnable[1];
+        holder[0] = () -> {
+            synchronized (state) {
+                if (state.googleFrameTimeoutTask != holder[0]) return;
+                state.googleFrameTimeoutTask = null;
+                if (state.delivered || state.frame != null || !state.committed
+                        || STATES.get(token) != state) return;
+                state.delivered = true;
+            }
+            STATES.remove(token, state);
+            cancelRegionConfirmShow(state);
+            cancelRegionGestureWatchdog(state);
+            cancelRegionFallback(state);
+            cancelCleanup(state);
+            GoogleRegionConfirmOverlay.dismiss(token, "google_frame_timeout");
             DiagnosticLog.i(app, "GOOGLE_BRIDGE",
-                    "local capture fallback exception session=" + shortToken(token)
-                            + " error=" + ScreenCaptureBackend.safeMessage(t));
+                    "original Google screenshot unavailable session=" + shortToken(token)
+                            + " timeoutMs=" + GOOGLE_FRAME_WAIT_TIMEOUT_MS
+                            + " localRecapture=false");
+            clearSessionState(app, token, "original_google_frame_timeout");
+            FloatService service = FloatService.get();
+            if (service != null) service.onCircleFinished("google_original_frame_timeout");
+            Toast.makeText(app, R.string.yfloat_google_original_frame_unavailable,
+                    Toast.LENGTH_LONG).show();
+        };
+        state.googleFrameTimeoutTask = holder[0];
+        MAIN.postDelayed(holder[0], GOOGLE_FRAME_WAIT_TIMEOUT_MS);
+    }
+
+    static boolean hasPendingGoogleScreenshotResult() {
+        for (State state : STATES.values()) {
+            synchronized (state) {
+                if (!state.delivered && (state.regionConfirmRequested || state.committed)
+                        && (state.text == null || state.text.isBlank())) return true;
+            }
         }
+        return false;
+    }
+
+    private static void cancelGoogleFrameTimeout(State state) {
+        if (state == null) return;
+        Runnable callback;
+        synchronized (state) {
+            callback = state.googleFrameTimeoutTask;
+            state.googleFrameTimeoutTask = null;
+        }
+        if (callback != null) MAIN.removeCallbacks(callback);
     }
 
     private static State state(String token) {
@@ -805,6 +824,7 @@ final class GoogleCtsBridgeController {
                 state.cleanupTask = null;
             }
             if (!STATES.remove(token, state)) return;
+            cancelGoogleFrameTimeout(state);
             boolean dismissTextMenu;
             synchronized (state) {
                 cancelRegionConfirmShowLocked(state);
