@@ -20,9 +20,9 @@ import io.github.libxposed.api.XposedModule;
 /**
  * Captures the frozen Google Lens frame from Google App's own data path.
  *
- * <p>Behavior is unchanged from the stable 17.58 implementation. Only the obfuscated Google
- * 17.60 classes are retargeted: egzd VoiceInteractionSession, drsz InitialActivityData and drtc
- * InitialActivityData parser. InProcessBitmap remains a stable optional fallback.</p>
+ * <p>Android's stable VoiceInteractionSession screenshot callback is the primary
+ * original-Bitmap source (hooked by GoogleCtsLifecycleHooks). Obfuscated Lens
+ * wrappers remain optional fast paths only, never required for future versions.</p>
  */
 final class GoogleLensFrameCapture {
     private static final String TAG = "YFloat-GoogleCTS";
@@ -40,6 +40,7 @@ final class GoogleLensFrameCapture {
 
     static final class Binding {
         final boolean voiceScreenshot;
+        final boolean frameworkScreenshot;
         final boolean initialActivityData;
         final boolean initialActivityParser;
         final boolean inProcessBitmap;
@@ -49,7 +50,15 @@ final class GoogleLensFrameCapture {
         Binding(boolean voiceScreenshot, boolean initialActivityData,
                 boolean initialActivityParser, boolean inProcessBitmap,
                 int confidence, String detail) {
+            this(voiceScreenshot, initialActivityData, initialActivityParser,
+                    inProcessBitmap, confidence, detail, false);
+        }
+
+        Binding(boolean voiceScreenshot, boolean initialActivityData,
+                boolean initialActivityParser, boolean inProcessBitmap,
+                int confidence, String detail, boolean frameworkScreenshot) {
             this.voiceScreenshot = voiceScreenshot;
+            this.frameworkScreenshot = frameworkScreenshot;
             this.initialActivityData = initialActivityData;
             this.initialActivityParser = initialActivityParser;
             this.inProcessBitmap = inProcessBitmap;
@@ -58,13 +67,14 @@ final class GoogleLensFrameCapture {
         }
 
         boolean available() {
-            return voiceScreenshot || initialActivityData || initialActivityParser
-                    || inProcessBitmap;
+            return frameworkScreenshot || voiceScreenshot || initialActivityData
+                    || initialActivityParser || inProcessBitmap;
         }
 
         String source() {
             StringBuilder out = new StringBuilder();
-            if (voiceScreenshot) out.append("voice");
+            if (frameworkScreenshot) out.append("framework-voice");
+            if (voiceScreenshot) append(out, "legacy-voice");
             if (initialActivityData) append(out, "initial-data");
             if (initialActivityParser) append(out, "initial-parser");
             if (inProcessBitmap) append(out, "in-process");
@@ -79,19 +89,21 @@ final class GoogleLensFrameCapture {
 
     static Binding resolve(ClassLoader loader) {
         if (loader == null) return new Binding(false, false, false, false, 0, "classLoader=null");
+        boolean framework = hasFrameworkScreenshotCallback(loader);
         boolean voice = hasMethod(loader, VOICE_SESSION_IMPL, "onHandleScreenshot",
                 Bitmap.class, Bitmap.class);
         boolean data = hasNoArgBitmapGetter(loader, INITIAL_ACTIVITY_DATA);
         boolean parser = hasReturnTypeMethod(loader, INITIAL_ACTIVITY_PARSER, INITIAL_ACTIVITY_DATA);
         boolean inProcess = hasNoArgBitmapGetter(loader, IN_PROCESS_BITMAP);
-        int confidence = 0;
+        int confidence = framework ? 50 : 0;
         if (voice) confidence += 35;
         if (data) confidence += 25;
         if (parser) confidence += 15;
         if (inProcess) confidence += 35;
         return new Binding(voice, data, parser, inProcess, confidence,
-                "voice=" + voice + " data=" + data + " parser=" + parser
-                        + " inProcess=" + inProcess);
+                "frameworkCallbackCandidate=" + framework + " (not runtime proof)"
+                        + " voice=" + voice + " data=" + data
+                        + " parser=" + parser + " inProcess=" + inProcess, framework);
     }
 
     GoogleLensFrameCapture(XposedModule module,
@@ -117,9 +129,10 @@ final class GoogleLensFrameCapture {
         if (binding.initialActivityData) hooks += hookInitialActivityDataBitmap();
         if (binding.initialActivityParser) hooks += hookInitialActivityParser();
         if (binding.inProcessBitmap) hooks += hookInProcessBitmap();
-        module.log(Log.INFO, TAG, "Google Lens frame capability source=" + binding.source()
+        module.log(Log.INFO, TAG, "Google original-frame candidate sources=" + binding.source()
                 + " confidence=" + binding.confidence
-                + " hooks=" + hooks + " detail=" + binding.detail);
+                + " internalHooks=" + hooks
+                + " runtimeValidated=false detail=" + binding.detail);
         return hooks;
     }
 
@@ -171,15 +184,14 @@ final class GoogleLensFrameCapture {
             Class<?> cls = Class.forName(INITIAL_ACTIVITY_DATA, false, classLoader);
             int count = 0;
             for (Method method : GoogleReflection.declaredMethods(cls)) {
-                if (!"a".equals(method.getName())
-                        || method.getParameterCount() != 0
+                if (method.getParameterCount() != 0
                         || method.getReturnType() != Bitmap.class) {
                     continue;
                 }
                 module.hook(method).intercept(chain -> {
                     Object result = chain.proceed();
                     if (active.getAsBoolean()) {
-                        captureCandidate(result, "InitialActivityData.a");
+                        captureCandidate(result, "InitialActivityData.Bitmap()");
                     }
                     return result;
                 });
@@ -197,7 +209,7 @@ final class GoogleLensFrameCapture {
             Class<?> cls = Class.forName(INITIAL_ACTIVITY_PARSER, false, classLoader);
             int count = 0;
             for (Method method : GoogleReflection.declaredMethods(cls)) {
-                if (!"b".equals(method.getName())
+                if (method.getParameterCount() > 2
                         || !INITIAL_ACTIVITY_DATA.equals(method.getReturnType().getName())) {
                     continue;
                 }
@@ -283,6 +295,21 @@ final class GoogleLensFrameCapture {
 
         Object field = GoogleReflection.readField(value, null, Bitmap.class.getName());
         return field instanceof Bitmap bitmap && !bitmap.isRecycled() ? bitmap : null;
+    }
+
+    private static boolean hasFrameworkScreenshotCallback(ClassLoader loader) {
+        // Framework symbol, independent of Google App version and R8 renaming.
+        try {
+            Class<?> voice = Class.forName("android.service.voice.VoiceInteractionSession",
+                    false, loader);
+            for (Method method : GoogleReflection.declaredMethods(voice)) {
+                if ("onHandleScreenshot".equals(method.getName())
+                        && method.getReturnType() == void.class
+                        && method.getParameterCount() == 1
+                        && method.getParameterTypes()[0] == Bitmap.class) return true;
+            }
+        } catch (Throwable ignored) { }
+        return false;
     }
 
     private static boolean hasMethod(ClassLoader loader, String className, String name,

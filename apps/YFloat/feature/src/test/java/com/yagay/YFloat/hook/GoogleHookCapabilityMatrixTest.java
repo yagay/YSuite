@@ -59,6 +59,27 @@ public class GoogleHookCapabilityMatrixTest {
         assertEquals(GoogleHookCapabilityMatrix.Mode.SELECTION_ONLY, matrix.mode);
     }
 
+    @Test public void frameworkCallbackDoesNotRequireObfuscatedGoogleClass() throws Exception {
+        GoogleLensFrameCapture.Binding stable = new GoogleLensFrameCapture.Binding(
+                false, false, false, false, 50,
+                "framework screenshot callback shape exists", true);
+        GoogleHookCapabilityMatrix matrix = new GoogleHookCapabilityMatrix(
+                selection(true), stable, gesture(true), viewport());
+        assertEquals(GoogleHookCapabilityMatrix.Mode.FULL_CANONICAL, matrix.mode);
+        org.junit.Assert.assertTrue(matrix.detail().contains("framework-voice"));
+    }
+
+    @Test public void largerOriginalGoogleFrameMayReplaceThumbnail() {
+        org.junit.Assert.assertTrue(GoogleBridgeSender.shouldAcceptOriginalFrame(
+                false, 0, 0, 1080, 2400));
+        org.junit.Assert.assertFalse(GoogleBridgeSender.shouldAcceptOriginalFrame(
+                true, 1080, 2400, 540, 1200));
+        org.junit.Assert.assertFalse(GoogleBridgeSender.shouldAcceptOriginalFrame(
+                true, 1080, 2400, 1080, 2400));
+        org.junit.Assert.assertTrue(GoogleBridgeSender.shouldAcceptOriginalFrame(
+                true, 540, 1200, 1080, 2400));
+    }
+
     @Test public void missingSelectionDisablesGoogleBridgeCapability() throws Exception {
         GoogleHookCapabilityMatrix matrix = new GoogleHookCapabilityMatrix(
                 selection(false), frame(true), gesture(true), viewport());

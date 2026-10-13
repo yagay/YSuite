@@ -312,25 +312,28 @@ final class GoogleLensDynamicResolver {
     static String nestedSelectedText(Object selection) {
         if (selection == null) return "";
         for (Field field : instanceFields(selection.getClass())) {
-            if (field.getType().isPrimitive()
-                    || isPlatformType(field.getType())) continue;
-            Class<?> valueType = field.getType();
-            boolean textField = false;
-            boolean wordListField = false;
-            for (Field nested : instanceFields(valueType)) {
-                if ("a".equals(nested.getName())
-                        && nested.getType() == String.class) textField = true;
-                if ("b".equals(nested.getName())
-                        && java.util.List.class.isAssignableFrom(nested.getType())) {
-                    wordListField = true;
+            if (field.getType().isPrimitive() || isPlatformType(field.getType())) continue;
+            // Resolve Google's nested OCR text by value shape, not the R8 field names
+            // "a"/"b": require exactly one String field and one word-list field.
+            Field text = null;
+            int textCount = 0;
+            int listCount = 0;
+            for (Field nested : instanceFields(field.getType())) {
+                if (nested.getType() == String.class) {
+                    text = nested;
+                    textCount++;
+                } else if (java.util.List.class.isAssignableFrom(nested.getType())) {
+                    listCount++;
                 }
             }
-            if (!textField || !wordListField) continue;
+            if (textCount != 1 || listCount != 1) continue;
             try {
                 field.setAccessible(true);
-                Object value = field.get(selection);
-                Object raw = GoogleReflection.readField(value, "a", String.class.getName());
-                if (raw instanceof String selected && !selected.isBlank()) {
+                Object wrapper = field.get(selection);
+                if (wrapper == null) continue;
+                text.setAccessible(true);
+                Object value = text.get(wrapper);
+                if (value instanceof String selected && !selected.isBlank()) {
                     return selected.trim();
                 }
             } catch (Throwable ignored) { }
@@ -338,34 +341,51 @@ final class GoogleLensDynamicResolver {
         return "";
     }
 
-    /** A Google Region model is a stronger signal than 'empty text + RectF'. */
+    /** A real Lens Region object is required; an empty OCR string alone is insufficient. */
     static boolean hasGoogleRegion(Object selection) {
         if (selection == null) return false;
         for (Field field : instanceFields(selection.getClass())) {
-            if ("com.google.android.libraries.lens.view.region.Region"
-                    .equals(field.getType().getName())) {
-                try {
-                    field.setAccessible(true);
-                    if (field.get(selection) != null) return true;
-                } catch (Throwable ignored) { }
-            }
+            if (!isLensRegionType(field.getType())) continue;
+            try {
+                field.setAccessible(true);
+                if (field.get(selection) != null) return true;
+            } catch (Throwable ignored) { }
         }
         return false;
+    }
+
+    private static boolean isLensRegionType(Class<?> type) {
+        if (type == null) return false;
+        String name = type.getName();
+        // Region's public namespace is stable across 17.58/17.60/17.64. Never
+        // reinterpret arbitrary nested RectF fields as a region selection.
+        return "com.google.android.libraries.lens.view.region.Region".equals(name);
     }
 
     static RectF googleRegionBounds(Object selection) {
         if (selection == null) return null;
         for (Field field : instanceFields(selection.getClass())) {
-            if (!"com.google.android.libraries.lens.view.region.Region"
-                    .equals(field.getType().getName())) continue;
+            if (!isLensRegionType(field.getType())) continue;
             try {
                 field.setAccessible(true);
                 Object region = field.get(selection);
-                Object raw = GoogleReflection.readField(
-                        region, "a", RectF.class.getName());
-                if (raw instanceof RectF bounds && !bounds.isEmpty()) {
-                    return new RectF(bounds);
+                if (region == null) continue;
+                RectF found = null;
+                for (Field valueField : instanceFields(region.getClass())) {
+                    if (valueField.getType() != RectF.class) continue;
+                    // Multiple RectF candidates are ambiguous: fail closed rather than
+                    // hand a viewport or editing handle to the screenshot cropper.
+                    if (found != null) return null;
+                    valueField.setAccessible(true);
+                    Object candidate = valueField.get(region);
+                    if (!(candidate instanceof RectF rect) || rect.isEmpty()
+                            || !Float.isFinite(rect.left) || !Float.isFinite(rect.top)
+                            || !Float.isFinite(rect.right) || !Float.isFinite(rect.bottom)) {
+                        return null;
+                    }
+                    found = new RectF(rect);
                 }
+                if (found != null) return found;
             } catch (Throwable ignored) { }
         }
         return null;

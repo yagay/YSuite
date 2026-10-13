@@ -12,6 +12,7 @@ import android.util.Log;
 
 import com.yagay.YFloat.BuildConfig;
 import com.yagay.YFloat.GoogleCtsContract;
+import com.yagay.YFloat.CanonicalFramePolicy;
 import com.yagay.suite.api.HostIdentity;
 import com.yagay.YFloat.LsposedRuntimeConfig;
 
@@ -45,6 +46,10 @@ final class GoogleBridgeSender {
     });
 
     private volatile boolean frameQueued;
+    private String frameToken = "";
+    private int frameWidth;
+    private int frameHeight;
+    private int frameGeneration;
 
     GoogleBridgeSender(XposedModule module,
                        Supplier<Context> contextSupplier,
@@ -60,9 +65,20 @@ final class GoogleBridgeSender {
 
     boolean frameQueued() { return frameQueued; }
 
-    void reset() {
+    synchronized void reset() {
         frameQueued = false;
+        frameToken = "";
+        frameWidth = 0;
+        frameHeight = 0;
+        frameGeneration++;
         traceDispatching.remove();
+    }
+
+    static boolean shouldAcceptOriginalFrame(boolean queued, int oldWidth, int oldHeight,
+                                             int candidateWidth, int candidateHeight) {
+        return candidateWidth > 0 && candidateHeight > 0
+                && (!queued || CanonicalFramePolicy.shouldReplace(
+                        oldWidth, oldHeight, candidateWidth, candidateHeight));
     }
 
     void sendTrace(String line) {
@@ -124,14 +140,24 @@ final class GoogleBridgeSender {
     }
 
     synchronized boolean sendFrame(Bitmap bitmap) {
-        if (!active.getAsBoolean() || frameQueued || bitmap == null || bitmap.isRecycled()) return false;
+        if (!active.getAsBoolean() || bitmap == null || bitmap.isRecycled()) return false;
         String token = token();
+        if (token.isBlank()) return false;
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
+        boolean sameSession = token.equals(frameToken);
+        if (!shouldAcceptOriginalFrame(frameQueued && sameSession,
+                frameWidth, frameHeight, width, height)) return false;
         ByteBuffer pixels = snapshotPixels(bitmap);
         if (pixels == null) return false;
         frameQueued = true;
-        io.execute(() -> writeFrame(token, width, height, pixels));
+        frameToken = token;
+        frameWidth = width;
+        frameHeight = height;
+        int generation = ++frameGeneration;
+        // Queue on one worker. A larger original Google Bitmap supersedes an
+        // earlier thumbnail, while duplicates never flood the IPC bridge.
+        io.execute(() -> writeFrame(token, width, height, pixels, generation));
         return true;
     }
 
@@ -165,9 +191,10 @@ final class GoogleBridgeSender {
         }
     }
 
-    private void writeFrame(String token, int width, int height, ByteBuffer pixels) {
+    private void writeFrame(String token, int width, int height,
+                            ByteBuffer pixels, int generation) {
         if (tryWriteSharedFrame(token, width, height, pixels)) return;
-        writeFramePipe(token, width, height, pixels);
+        writeFramePipe(token, width, height, pixels, generation);
     }
 
     private boolean tryWriteSharedFrame(
@@ -238,7 +265,8 @@ final class GoogleBridgeSender {
         } catch (Throwable ignored) { }
     }
 
-    private void writeFramePipe(String token, int width, int height, ByteBuffer pixels) {
+    private void writeFramePipe(String token, int width, int height,
+                                ByteBuffer pixels, int generation) {
         int bytes = pixels == null ? 0 : pixels.remaining();
         try {
             Context context = contextSupplier.get();
@@ -261,7 +289,14 @@ final class GoogleBridgeSender {
                             + " size=" + width + "x" + height + " bytes=" + bytes
                             + " transport=pipe");
         } catch (Throwable t) {
-            if (token != null && token.equals(token())) frameQueued = false;
+            synchronized (this) {
+                if (token != null && token.equals(frameToken)
+                        && generation == frameGeneration) {
+                    frameQueued = false;
+                    frameWidth = 0;
+                    frameHeight = 0;
+                }
+            }
             module.log(Log.WARN, TAG,
                     "Google bridge frame send failed session=" + shortToken(token), t);
         }

@@ -59,6 +59,26 @@ public class GoogleLensDynamicResolverTest {
         final FakeRecognizedText a = new FakeRecognizedText();
     }
 
+    // Future R8 runs may rename both nested fields independently.
+    private static final class RenamedRecognizedText {
+        final String renamedText = "  future words  ";
+        final java.util.List<String> renamedWords = java.util.List.of("future", "words");
+    }
+
+    private static final class RenamedWordSelection {
+        final RenamedRecognizedText randomField = new RenamedRecognizedText();
+    }
+
+    private static final class AmbiguousRecognizedText {
+        final String first = "foo";
+        final String second = "bar";
+        final java.util.List<String> words = java.util.List.of("foo");
+    }
+
+    private static final class AmbiguousWordSelection {
+        final AmbiguousRecognizedText data = new AmbiguousRecognizedText();
+    }
+
     private static final class FakeUnrelatedSelection {
         final String a = "should not be treated as nested OCR result";
     }
@@ -68,6 +88,10 @@ public class GoogleLensDynamicResolverTest {
                 GoogleLensDynamicResolver.nestedSelectedText(new FakeWordSelection()));
         assertEquals("", GoogleLensDynamicResolver.nestedSelectedText(
                 new FakeUnrelatedSelection()));
+        assertEquals("future words", GoogleLensDynamicResolver.nestedSelectedText(
+                new RenamedWordSelection()));
+        assertEquals("", GoogleLensDynamicResolver.nestedSelectedText(
+                new AmbiguousWordSelection()));
     }
 
     @Test public void onlyActualGoogleRegionModelCanCommitRegion() {

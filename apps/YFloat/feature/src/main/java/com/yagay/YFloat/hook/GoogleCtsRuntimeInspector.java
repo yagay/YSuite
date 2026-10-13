@@ -272,6 +272,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 Rect selectionBounds = null;
                 boolean regionSelection = false;
                 if (active()) {
+                    try {
                     selection = binding.snapshot(chain.getArg(0), currentApplicationContext());
                     selectionBounds = selection.bounds();
                     regionSelection = selection.directRegionCommit()
@@ -302,6 +303,13 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                                     ? GoogleCtsContract.EVENT_REGION_SELECTION
                                     : GoogleCtsContract.EVENT_SELECTION,
                             selection.text(), detail, effectiveBounds);
+                    } catch (Throwable selectionError) {
+                        // An app update can change a reflective model after the hook
+                        // was installed. Never break Google's own selection flow.
+                        report("GOOGLE_SELECTION_COMPAT_FAILURE",
+                                "source=" + binding.source() + " error="
+                                        + selectionError.getClass().getSimpleName());
+                    }
                 }
 
                 // Let Google update only its own text/region model. Text visuals are rendered
