@@ -14,4 +14,5 @@
     <string name="yfloat_hook_state_reload">需要热重载</string>
     <string name="yfloat_hook_state_current">当前</string>
     <string name="yfloat_hook_state_reboot">需要重启</string>
+    <string name="yfloat_google_original_frame_unavailable">Google 未返回原始截图，未使用本地重截图替代。</string>
 </resources>
