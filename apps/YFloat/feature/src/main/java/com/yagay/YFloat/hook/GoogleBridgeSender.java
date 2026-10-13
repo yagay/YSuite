@@ -178,11 +178,14 @@ final class GoogleBridgeSender {
         confirmRetryToken = token;
         frameQueued = true;
         frameToken = token;
-        frameWidth = bitmap.getWidth();
-        frameHeight = bitmap.getHeight();
+        final int width = bitmap.getWidth();
+        final int height = bitmap.getHeight();
+        frameWidth = width;
+        frameHeight = height;
         int generation = ++frameGeneration;
-        io.execute(() -> writeFrame(token, bitmap.getWidth(), bitmap.getHeight(),
-                pixels, generation));
+        // Never dereference the caller's temporary Bitmap from an asynchronous
+        // sender task; YFloat may recycle the handoff snapshot immediately.
+        io.execute(() -> writeFrame(token, width, height, pixels, generation));
         module.log(Log.INFO, TAG, "Google original-frame confirm retry queued session="
                 + shortToken(token) + " size=" + frameWidth + "x" + frameHeight);
         return true;
