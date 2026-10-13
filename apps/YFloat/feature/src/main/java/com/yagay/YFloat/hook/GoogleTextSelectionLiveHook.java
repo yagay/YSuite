@@ -5,8 +5,8 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 
 import io.github.libxposed.api.XposedModule;
@@ -28,11 +28,14 @@ final class GoogleTextSelectionLiveHook {
     private final XposedModule module;
     private final ClassLoader classLoader;
     private final BooleanSupplier active;
-    private final BiConsumer<Rect, String> sink;
+    interface LiveSink { void accept(Rect bounds, String text, String detail); }
+
+    private final LiveSink sink;
     private final Profile profile;
 
     private Rect lastPublishedBounds;
     private long lastPublishedAt;
+    private String lastPublishedText = "";
     private Rect pendingLargeBounds;
     private long pendingLargeSince;
     private int pendingLargeHits;
@@ -67,7 +70,7 @@ final class GoogleTextSelectionLiveHook {
             XposedModule module,
             ClassLoader classLoader,
             BooleanSupplier active,
-            BiConsumer<Rect, String> sink) {
+            LiveSink sink) {
         this.module = module;
         this.classLoader = classLoader;
         this.active = active;
@@ -178,17 +181,37 @@ final class GoogleTextSelectionLiveHook {
 
     synchronized Rect recentBounds() {
         if (lastPublishedBounds == null || lastPublishedBounds.isEmpty()
-                || SystemClock.elapsedRealtime() - lastPublishedAt > 1200L) return null;
+                || SystemClock.elapsedRealtime() - lastPublishedAt > 1800L) return null;
         return new Rect(lastPublishedBounds);
+    }
+
+    synchronized String recentText() {
+        if (lastPublishedText.isBlank() || lastPublishedAt == 0L
+                || SystemClock.elapsedRealtime() - lastPublishedAt > 1800L) return "";
+        return lastPublishedText;
     }
 
     private void publish(LiveBounds live) {
         if (live == null || live.bounds == null || live.bounds.isEmpty()) return;
         long now = SystemClock.elapsedRealtime();
         Rect accepted = filterLiveBounds(live.bounds, now);
-        if (accepted != null) {
-            sink.accept(accepted, live.detail + " liveFilter=accepted");
+        String selectedText = live.text == null ? "" : live.text;
+        Rect target;
+        synchronized (this) {
+            // A final word-list callback can have unchanged geometry but the
+            // textual selection has just become available. Do not drop it.
+            boolean changed = !selectedText.isBlank()
+                    && !selectedText.equals(lastPublishedText);
+            if (accepted == null && changed && lastPublishedBounds != null
+                    && lastPublishedBounds.equals(live.bounds)) {
+                accepted = new Rect(lastPublishedBounds);
+            }
+            if (accepted == null) return;
+            if (!selectedText.isBlank()) lastPublishedText = selectedText;
+            target = accepted;
         }
+        sink.accept(target, selectedText, live.detail
+                + " selectedChars=" + selectedText.length() + " liveFilter=accepted");
     }
 
     /**
@@ -203,6 +226,7 @@ final class GoogleTextSelectionLiveHook {
 
         if (lastPublishedAt > 0L && now - lastPublishedAt > LIVE_FILTER_RESET_GAP_MS) {
             lastPublishedBounds = null;
+            lastPublishedText = "";
             pendingLargeBounds = null;
             pendingLargeSince = 0L;
             pendingLargeHits = 0;
@@ -281,7 +305,7 @@ final class GoogleTextSelectionLiveHook {
         LiveBounds live = readStateBounds(state, null, profile.updateTask);
         if (live.bounds == null) return live;
         String rangeText = range == null ? "null" : safe(String.valueOf(range));
-        return new LiveBounds(live.bounds,
+        return new LiveBounds(live.bounds, live.text,
                 live.detail + " range=" + trim(rangeText, 260));
     }
 
@@ -307,10 +331,13 @@ final class GoogleTextSelectionLiveHook {
         }
 
         Rect union = new Rect();
-        int words = addWords(union, selected);
+        StringBuilder selectedText = new StringBuilder();
+        int words = addWords(union, selected, selectedText);
         if (words == 0) {
-            words += addWord(union, GoogleReflection.readField(state, "a", profile.word));
-            words += addWord(union, GoogleReflection.readField(state, "b", profile.word));
+            words += addWord(union, GoogleReflection.readField(state, "a", profile.word),
+                    selectedText);
+            words += addWord(union, GoogleReflection.readField(state, "b", profile.word),
+                    selectedText);
         }
         if (words == 0 || union.isEmpty()) {
             return LiveBounds.empty(source + " selected_words_empty");
@@ -326,21 +353,25 @@ final class GoogleTextSelectionLiveHook {
             return LiveBounds.empty(source + " outside_text_view");
         }
 
-        return new LiveBounds(screen,
+        return new LiveBounds(screen, selectedText.toString(),
                 "profile=" + profile.name
                         + " source=" + source
                         + " selectedWords=" + words
+                        + " selectedChars=" + selectedText.length()
                         + " local=" + union + " screen=" + screen);
     }
 
-    private int addWords(Rect union, Object value) {
+    private int addWords(Rect union, Object value, StringBuilder out) {
         if (!(value instanceof Iterable<?> items)) return 0;
         int count = 0;
-        for (Object item : items) count += addWord(union, item);
+        for (Object item : items) {
+            if (count >= 128 || out.length() >= 8000) break;
+            count += addWord(union, item, out);
+        }
         return count;
     }
 
-    private int addWord(Rect union, Object word) {
+    private int addWord(Rect union, Object word, StringBuilder out) {
         if (word == null || !profile.word.equals(word.getClass().getName())) return 0;
         Object value = GoogleReflection.readField(word, "d", Rect.class.getName());
         if (!(value instanceof Rect)) {
@@ -348,6 +379,24 @@ final class GoogleTextSelectionLiveHook {
         }
         if (!(value instanceof Rect rect) || rect.isEmpty()) return 0;
         if (union.isEmpty()) union.set(rect); else union.union(rect);
+
+        // APK-verified 17.64 selected-word class dqzy owns two String
+        // properties and a Rect. Unlike dwtg.k() on dwti, these strings
+        // represent the live OCR word candidates. Only inspect this exact
+        // verified word class, never arbitrary Google object graphs.
+        String first = "", second = "";
+        for (Field field : GoogleReflection.instanceFields(word.getClass())) {
+            if (field.getType() != String.class) continue;
+            try {
+                field.setAccessible(true);
+                Object raw = field.get(word);
+                String candidate = raw instanceof String str ? str : "";
+                if (first.isBlank()) first = candidate;
+                else if (second.isBlank()) second = candidate;
+            } catch (Throwable ignored) { }
+        }
+        String wordText = GoogleLiveWordTextPolicy.choose(first, second);
+        GoogleLiveWordTextPolicy.append(out, wordText);
         return 1;
     }
 
@@ -439,13 +488,17 @@ final class GoogleTextSelectionLiveHook {
 
     private static final class LiveBounds {
         final Rect bounds;
+        final String text;
         final String detail;
 
-        LiveBounds(Rect bounds, String detail) {
+        LiveBounds(Rect bounds, String text, String detail) {
             this.bounds = bounds == null ? null : new Rect(bounds);
+            this.text = text == null ? "" : text.trim();
             this.detail = detail == null ? "" : detail;
         }
 
-        static LiveBounds empty(String detail) { return new LiveBounds(null, detail); }
+        static LiveBounds empty(String detail) {
+            return new LiveBounds(null, "", detail);
+        }
     }
 }

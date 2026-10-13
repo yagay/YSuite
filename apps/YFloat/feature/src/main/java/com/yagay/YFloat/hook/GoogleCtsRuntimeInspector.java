@@ -109,17 +109,24 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 module, classLoader, this::active, this::sendBridgeFrame, this::report);
         this.textSelectionLiveHook = new GoogleTextSelectionLiveHook(
                 module, classLoader, this::active,
-                (bounds, detail) -> {
+                (bounds, selectedText, detail) -> {
                     if (bounds == null || bounds.isEmpty()) return;
                     // dnrs.g/dtvm are text-selection-only sources. Do not suppress their live
                     // geometry just because FrozenImageView briefly marked a region gesture before
                     // the final text selection event arrived.
                     canonicalFrameLayer.updateLiveTextSelection(bounds);
-                    if (active() && sessionState.selectionSeen()
-                            && !sessionState.regionSelectionActive()
-                            && !sessionState.selectionText().isBlank()) {
-                        sendBridgeEvent(GoogleCtsContract.EVENT_TEXT_BOUNDS,
-                                "", detail, bounds);
+                    if (active() && !sessionState.regionSelectionActive()) {
+                        if (selectedText != null && !selectedText.isBlank()
+                                && !selectedText.equals(sessionState.selectionText())) {
+                            sessionState.onSelection(selectedText, toSessionBounds(bounds), false);
+                            sendBridgeEvent(GoogleCtsContract.EVENT_SELECTION,
+                                    selectedText, "word_list_fallback " + detail, bounds);
+                            report("GOOGLE_TEXT_WORD_FALLBACK",
+                                    "chars=" + selectedText.length() + " bounds=" + bounds);
+                        } else if (!sessionState.selectionText().isBlank()) {
+                            sendBridgeEvent(GoogleCtsContract.EVENT_TEXT_BOUNDS,
+                                    "", detail, bounds);
+                        }
                     }
                     report("GOOGLE_TEXT_SELECTION_LIVE", detail);
                 });
@@ -285,10 +292,22 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                             selectionBounds = liveBounds;
                         }
                     }
-                    sessionState.onSelection(
-                            selection.text(), toSessionBounds(selectionBounds), regionSelection);
-                    canonicalFrameLayer.updateSelection(
-                            selectionBounds, regionSelection, selection.text());
+                    String effectiveText = selection.text();
+                    if (!regionSelection && effectiveText.isBlank()) {
+                        effectiveText = textSelectionLiveHook.recentText();
+                        if (selectionBounds == null || selectionBounds.isEmpty()) {
+                            Rect liveRect = textSelectionLiveHook.recentBounds();
+                            if (liveRect != null) selectionBounds = liveRect;
+                        }
+                    }
+                    // A 17.64 dwti event with empty k() is not a text-clear
+                    // command. The real OCR text may already be held by dran.g.
+                    if (regionSelection || !effectiveText.isBlank()) {
+                        sessionState.onSelection(
+                                effectiveText, toSessionBounds(selectionBounds), regionSelection);
+                        canonicalFrameLayer.updateSelection(
+                                selectionBounds, regionSelection, effectiveText);
+                    }
                     Rect effectiveBounds = currentSelectionBounds();
                     String detail = selection.detail()
                             + " source=" + binding.source()
@@ -299,10 +318,15 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                             + " primary=" + chain.getArg(1);
                     if (regionSelection) regionConfirmDetail = selection.detail();
                     report("USER_SELECTION_" + binding.source().toUpperCase(Locale.ROOT), detail);
-                    sendBridgeEvent(regionSelection
-                                    ? GoogleCtsContract.EVENT_REGION_SELECTION
-                                    : GoogleCtsContract.EVENT_SELECTION,
-                            selection.text(), detail, effectiveBounds);
+                    if (regionSelection || !effectiveText.isBlank()) {
+                        sendBridgeEvent(regionSelection
+                                        ? GoogleCtsContract.EVENT_REGION_SELECTION
+                                        : GoogleCtsContract.EVENT_SELECTION,
+                                effectiveText, detail, effectiveBounds);
+                    } else {
+                        report("GOOGLE_TEXT_EMPTY_DEFERRED",
+                                "waiting for live selected-word text; keep previous menu");
+                    }
                     } catch (Throwable selectionError) {
                         // An app update can change a reflective model after the hook
                         // was installed. Never break Google's own selection flow.
