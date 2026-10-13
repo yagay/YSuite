@@ -82,12 +82,14 @@ class MainActivity : YComposeActivity() {
     private fun disableReadDispatch() { nfcReader.disable() }
 
     private fun startReadMode() {
-        if (pollingDisabled) {
-            Toast.makeText(this, R.string.ynfc_polling_blocked_read, Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (getSimulationEnabled()) {
-            Toast.makeText(this, R.string.ynfc_stop_sim_before_read, Toast.LENGTH_SHORT).show()
+        val simulationEnabled = getSimulationEnabled()
+        if (!NfcControlPolicy.canRead(NfcControlPolicy.mode(pollingDisabled), simulationEnabled)) {
+            Toast.makeText(
+                this,
+                if (pollingDisabled) R.string.ynfc_polling_blocked_read
+                else R.string.ynfc_stop_sim_before_read,
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         scannedCardState = null

@@ -40,5 +40,10 @@ data class RuntimeStatus(
     val rfGeneration: Long = 0,
     val rfVerification: String? = null,
     val fullDiagStage: String? = null,
-    val fullDiagSummary: String? = null
+    val fullDiagSummary: String? = null,
+    val pollingDisabled: Boolean = false,
+    val pollingGuardStatus: String = "UNKNOWN",
+    val pollingGuardPid: Int = 0,
+    val pollingGuardDetail: String? = null,
+    val pollingCapabilitySummary: String? = null
 )

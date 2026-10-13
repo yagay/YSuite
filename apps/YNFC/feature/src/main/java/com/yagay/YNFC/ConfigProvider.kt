@@ -46,6 +46,7 @@ open class ConfigProvider : ContentProvider() {
         const val KEY_POLLING_GUARD_STATUS = "polling_guard_status"
         const val KEY_POLLING_GUARD_PID = "polling_guard_pid"
         const val KEY_POLLING_GUARD_DETAIL = "polling_guard_detail"
+        const val KEY_POLLING_CAPABILITIES = "polling_capabilities"
         const val KEY_UID = "uid"
         const val KEY_SAK = "sak"
         const val KEY_ATQA = "atqa"

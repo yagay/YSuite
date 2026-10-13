@@ -2,6 +2,9 @@
 <resources>
     <string name="ynfc_subtitle">NFC 门禁卡与 HCE 状态</string>
     <string name="ynfc_polling_guard">持续禁止主动读卡（保留 HCE）</string>
+    <string name="ynfc_polling_status">NFC 发现策略</string>
+    <string name="ynfc_polling_hce_only">仅卡片模拟（已请求）</string>
+    <string name="ynfc_polling_normal">正常 NFC（已请求）</string>
     <string name="ynfc_polling_guard_desc">NFC 保持开启；每次 NFC 发现配置及服务重启时将轮询掩码设为 0，保留 HCE 路由。须通过日志与实测确认。</string>
     <string name="ynfc_polling_blocked_read">已开启全局禁读，请先关闭禁读再扫描卡片。</string>
     <string name="ynfc_polling_save_failed">禁读设置保存失败。</string>

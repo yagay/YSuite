@@ -2,6 +2,9 @@
 <resources>
     <string name="ynfc_subtitle">NFC access cards and HCE status</string>
     <string name="ynfc_polling_guard">Persistent reader block (keep HCE)</string>
+    <string name="ynfc_polling_status">NFC discovery policy</string>
+    <string name="ynfc_polling_hce_only">HCE only requested</string>
+    <string name="ynfc_polling_normal">Normal NFC requested</string>
     <string name="ynfc_polling_guard_desc">Keeps NFC on, requests polling mask 0 on discovery and restart, preserves HCE. Verify via runtime logs and hardware tests.</string>
     <string name="ynfc_polling_blocked_read">Reader blocking is on. Disable it before scanning a card.</string>
     <string name="ynfc_polling_save_failed">Failed to save NFC reader blocking setting.</string>

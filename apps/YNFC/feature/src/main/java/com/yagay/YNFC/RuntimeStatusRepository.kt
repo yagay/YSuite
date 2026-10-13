@@ -132,7 +132,19 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             rfGeneration = map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() ?: 0L,
             rfVerification = if (rfFresh) map[ConfigProvider.KEY_RF_VERIFICATION]?.takeIf { it.isNotBlank() } else if (restartTransition) "LIFECYCLE_PENDING" else null,
             fullDiagStage = map[ConfigProvider.KEY_FULL_DIAG_STAGE]?.takeIf { it.isNotBlank() },
-            fullDiagSummary = map[ConfigProvider.KEY_FULL_DIAG_SUMMARY]?.takeIf { it.isNotBlank() }
+            fullDiagSummary = map[ConfigProvider.KEY_FULL_DIAG_SUMMARY]?.takeIf { it.isNotBlank() },
+            pollingDisabled = map[ConfigProvider.KEY_POLLING_DISABLED].toBoolean(),
+            pollingGuardStatus = run {
+                val status = map[ConfigProvider.KEY_POLLING_GUARD_STATUS] ?: "UNKNOWN"
+                val pid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0
+                if (pid > 0 && currentPid > 0 && pid != currentPid) "STALE($status)"
+                else status
+            },
+            pollingGuardPid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0,
+            pollingGuardDetail = map[ConfigProvider.KEY_POLLING_GUARD_DETAIL]
+                ?.takeIf { it.isNotBlank() },
+            pollingCapabilitySummary = map[ConfigProvider.KEY_POLLING_CAPABILITIES]
+                ?.takeIf { it.isNotBlank() }
         )
     }
 }

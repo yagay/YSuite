@@ -13,6 +13,8 @@ internal object RuntimeText {
         appendLine("SEMANTIC: operation=${status.operationState} effective=${status.effectiveState} confidence=${status.verificationConfidence} accepted=${status.rfAccepted}")
         appendLine("COMMAND: generation=${status.commandGeneration} consumed=${status.consumedGeneration} completed=${status.handledGeneration} action=${status.commandAction} status=${status.commandStatus} detail=${status.commandDetail}")
         appendLine("READ_MODE: ${if (readModeEnabled) "ENABLED" else "IDLE"}")
+        appendLine("NFC_POLICY: desired=${if (status.pollingDisabled) "HCE_ONLY" else "NORMAL"} status=${status.pollingGuardStatus} pid=${status.pollingGuardPid} detail=${status.pollingGuardDetail}")
+        appendLine("NFC_CAPABILITIES: ${status.pollingCapabilitySummary ?: "UNKNOWN"}")
         appendLine("RF: generation=${status.rfGeneration} ${status.rfStatus} uid=${status.rfUid} source=${status.rfSource} result=${status.rfResult} raw=${status.rfNativeResult}/${status.rfNativeResultType} verification=${status.rfVerification} error=${status.rfError}")
         append("FINAL: stage=${status.fullDiagStage} summary=${status.fullDiagSummary}")
     }

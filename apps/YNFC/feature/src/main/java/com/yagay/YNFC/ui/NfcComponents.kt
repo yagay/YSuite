@@ -171,6 +171,28 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
                 color = MaterialTheme.colorScheme.error,
             )
         }
+        YStatusLine(
+            label = stringResource(R.string.ynfc_polling_status),
+            value = "${if (status.pollingDisabled) stringResource(R.string.ynfc_polling_hce_only) else stringResource(R.string.ynfc_polling_normal)} · ${status.pollingGuardStatus} · pid=${status.pollingGuardPid}",
+            tone = when {
+                status.pollingGuardStatus.startsWith("UNSUPPORTED")
+                    || status.pollingGuardStatus.startsWith("STALE")
+                    || status.pollingGuardStatus.contains("UNCONFIRMED")
+                    || status.pollingGuardStatus.startsWith("REFRESH_UNSUPPORTED") -> YStatusTone.Error
+                status.pollingGuardStatus == "PENDING"
+                    || status.pollingGuardStatus == "UNKNOWN"
+                    || status.pollingGuardStatus == "WAITING_FOR_NFC_ON" -> YStatusTone.Warning
+                else -> YStatusTone.Neutral
+            },
+        )
+        status.pollingGuardDetail?.let { detail ->
+            Text(detail, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        status.pollingCapabilitySummary?.let { capability ->
+            Text(capability, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         YStatusLine(stringResource(R.string.ynfc_simulation_status), simulationDetail, simulationTone.toYUiTone())
         YStatusLine(stringResource(R.string.ynfc_command), commandDisplay, commandTone.toYUiTone())
         YStatusLine(
