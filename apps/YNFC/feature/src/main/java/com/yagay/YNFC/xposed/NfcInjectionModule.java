@@ -3,6 +3,7 @@ package com.yagay.YNFC.xposed;
 import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
+import android.content.SharedPreferences;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -52,6 +53,7 @@ public class NfcInjectionModule extends XposedModule {
     private static final long CONTROLLER_LIFECYCLE_DEBOUNCE_MS = 1_200L;
 
     private final ExecutorService commandExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "NfcUIDSim-Command"));
+    private final ExecutorService pollingExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "YNFC-PollingGuard"));
     private final ExecutorService lifecycleExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "NfcUIDSim-Lifecycle"));
     private final ExecutorService earlyReplayExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "NfcUIDSim-EarlyReplay"));
     private final HookDiscoveryEngine discoveryEngine = new HookDiscoveryEngine();
@@ -69,6 +71,9 @@ public class NfcInjectionModule extends XposedModule {
     private volatile String activeCodec = "";
     private volatile SimConfig cachedConfig = SimConfig.uninitialized();
     private volatile ContentObserver commandObserver;
+    private volatile ContentObserver pollingGuardObserver;
+    private volatile Boolean pollingGuardDesired;
+    private volatile String pollingGuardLastProof = "";
     private volatile BroadcastReceiver adapterStateReceiver;
     private volatile boolean observerRegistered;
     private volatile boolean controllerInvalid;
@@ -129,8 +134,234 @@ public class NfcInjectionModule extends XposedModule {
         markControllerInvalid("process_start_early");
         installEarlyKnownRfHook(cl, pid);
         installControllerLifecycleHooks(cl, pid);
+        installPollingGuardHooks(cl);
+        // Independent of UID emulation initialization: a missing RF writer does not
+        // prevent persistent reader-block enforcement after a service restart.
+        pollingExecutor.execute(this::startPollingGuardBridge);
         installEarlyAdapterStateBridge(pid);
         commandExecutor.execute(() -> initializeRuntime(cl, pid));
+    }
+
+    /**
+     * APK-verified OxygenOS 16 discovery boundaries. The Java parameter copy is
+     * restricted to com.android.nfc.NfcDiscoveryParameters; HCE routing is copied
+     * unchanged. Install before the NFC Application initializes.
+     */
+    private void installPollingGuardHooks(ClassLoader cl) {
+        int installed = 0;
+        try {
+            Class<?> nfc = Class.forName("com.android.nfc.NfcService", false, cl);
+            for (Method method : nfc.getDeclaredMethods()) {
+                if (!"computeDiscoveryParameters".equals(method.getName())
+                        || method.getParameterCount() != 1
+                        || method.getParameterTypes()[0] != int.class
+                        || !"com.android.nfc.NfcDiscoveryParameters".equals(
+                        method.getReturnType().getName())) continue;
+                method.setAccessible(true);
+                hook(method).intercept(chain -> {
+                    Object result = chain.proceed();
+                    if (!pollingBlocked() || result == null) return result;
+                    try {
+                        return NfcPollingGuard.withoutPolling(result);
+                    } catch (Throwable failure) {
+                        Log.w(TAG, "POLLING_GUARD compute fallback: "
+                                + failure.getClass().getSimpleName(), failure);
+                        return result;
+                    }
+                });
+                installed++;
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD compute method unavailable", t);
+        }
+
+        // NfcNci.apk contains NXP, ST and TMS implementations. Only the
+        // instantiated OEM driver is called; guard that last Java/native boundary.
+        for (String driver : new String[] {
+                "com.android.nfc.dhimpl.NxpNativeNfcManager",
+                "com.android.nfc.dhimpl.StNativeNfcManager",
+                "com.android.nfc.dhimpl.TmsNativeNfcManager" }) {
+            try {
+                Class<?> target = Class.forName(driver, false, cl);
+                for (Method method : target.getDeclaredMethods()) {
+                    Class<?>[] args = method.getParameterTypes();
+                    if (!"enableDiscovery".equals(method.getName())
+                            || method.getReturnType() != void.class || args.length != 2
+                            || !"com.android.nfc.NfcDiscoveryParameters".equals(args[0].getName())
+                            || args[1] != boolean.class) continue;
+                    method.setAccessible(true);
+                    hook(method).intercept(chain -> {
+                        if (HookConfigStore.isPassive()) return chain.proceed();
+                        boolean blocked = pollingBlocked();
+                        Object original = chain.getArg(0);
+                        Object replacementParams = original;
+                        int previousMask = Integer.MIN_VALUE;
+                        boolean hostRouting = false;
+                        try {
+                            if (original != null) {
+                                previousMask = NfcPollingGuard.mask(original);
+                                hostRouting = NfcPollingGuard.hostRouting(original);
+                                if (blocked) {
+                                    replacementParams = NfcPollingGuard.withoutPolling(original);
+                                }
+                            }
+                        } catch (Throwable t) {
+                            Log.w(TAG, "POLLING_GUARD parameter validation failed "
+                                    + driver + ": " + t.getClass().getSimpleName(), t);
+                            recordPollingGuardState("UNVERIFIED", driver
+                                    + " parameter validation failed", false);
+                            return chain.proceed();
+                        }
+                        Object result = replacementParams == original ? chain.proceed()
+                                : chain.proceed(new Object[]{replacementParams, chain.getArg(1)});
+                        if (blocked) {
+                            // Proof of Java argument handoff only. Hardware polling needs
+                            // separate on-device verification, never claim native success.
+                            recordPollingGuardState("PARAMETERS_INTERCEPTED",
+                                    driver + " originalMask=0x"
+                                            + Integer.toHexString(previousMask)
+                                            + " submittedMask=0x0 hostRouting=" + hostRouting, true);
+                        } else {
+                            recordPollingGuardState("SYSTEM_DEFAULT_REQUESTED",
+                                    driver + " pollMask=0x" + Integer.toHexString(previousMask),
+                                    false);
+                        }
+                        return result;
+                    });
+                    installed++;
+                    Log.i(TAG, "POLLING_GUARD boundary hooked " + driver + "#enableDiscovery");
+                }
+            } catch (Throwable t) {
+                Log.i(TAG, "POLLING_GUARD optional driver unavailable " + driver
+                        + " " + t.getClass().getSimpleName());
+            }
+        }
+        Log.i(TAG, "POLLING_GUARD early hooks=" + installed + " pid=" + Process.myPid());
+    }
+
+    /** Prefer the user's device-protected Provider setting; mirror it in the NFC
+     * process to survive provider startup races and cold service restarts.
+     */
+    private Boolean readMirroredPollingPreference() {
+        Application app = currentApplication();
+        if (app == null) return null;
+        try {
+            SharedPreferences p = app.createDeviceProtectedStorageContext()
+                    .getSharedPreferences("ynfc_polling_guard_mirror", Context.MODE_PRIVATE);
+            return p.contains("polling_disabled") ? p.getBoolean("polling_disabled", false) : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private void mirrorPollingPreference(boolean disabled) {
+        Application app = currentApplication();
+        if (app == null) return;
+        try {
+            SharedPreferences p = app.createDeviceProtectedStorageContext()
+                    .getSharedPreferences("ynfc_polling_guard_mirror", Context.MODE_PRIVATE);
+            if (!p.contains("polling_disabled")
+                    || p.getBoolean("polling_disabled", false) != disabled) {
+                p.edit().putBoolean("polling_disabled", disabled).commit();
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD NFC-process mirror unavailable", t);
+        }
+    }
+
+    private boolean pollingBlocked() {
+        Boolean cached = pollingGuardDesired;
+        if (cached != null) return cached;
+        Boolean mirror = readMirroredPollingPreference();
+        if (mirror != null) {
+            pollingGuardDesired = mirror;
+            return mirror;
+        }
+        Boolean provider = configStore.readPollingDisabled();
+        if (provider != null) {
+            pollingGuardDesired = provider;
+            mirrorPollingPreference(provider);
+            return provider;
+        }
+        // Fail open rather than break NFC / HCE when configuration is unknown.
+        return false;
+    }
+
+    private void startPollingGuardBridge() {
+        Application app = waitForApplication(8_000L);
+        if (app == null) {
+            Log.w(TAG, "POLLING_GUARD bridge waiting for NFC process context");
+            return;
+        }
+        try {
+            ContentObserver observer = new ContentObserver(null) {
+                @Override public void onChange(boolean selfChange) {
+                    pollingExecutor.execute(() -> refreshPollingPreference("provider_change"));
+                }
+                @Override public void onChange(boolean selfChange, Uri uri) {
+                    pollingExecutor.execute(() -> refreshPollingPreference("provider_change"));
+                }
+            };
+            for (Uri uri : new Uri[]{
+                    HookConfigStore.suiteUri(), HookConfigStore.standaloneUri()}) {
+                if (uri != null) app.getContentResolver().registerContentObserver(uri, true, observer);
+            }
+            pollingGuardObserver = observer;
+            refreshPollingPreference("startup");
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD bridge registration failed", t);
+        }
+    }
+
+    private void refreshPollingPreference(String reason) {
+        if (HookConfigStore.isPassive()) return;
+        Boolean provider = configStore.readPollingDisabled();
+        if (provider == null) return;
+        Boolean previous = pollingGuardDesired;
+        pollingGuardDesired = provider;
+        mirrorPollingPreference(provider);
+        if (previous == null || !previous.equals(provider)) {
+            pollingGuardLastProof = "";
+            Log.i(TAG, "POLLING_GUARD desired=" + provider + " reason=" + reason);
+            requestPollingRoutingRefresh("desired_change:" + reason);
+        }
+    }
+
+    private void requestPollingRoutingRefresh(String reason) {
+        if (HookConfigStore.isPassive()) return;
+        try {
+            ClassLoader loader = nfcClassLoader;
+            if (loader == null) return;
+            Class<?> service = Class.forName("com.android.nfc.NfcService", false, loader);
+            Method instance = service.getDeclaredMethod("getInstance");
+            instance.setAccessible(true);
+            Object owner = instance.invoke(null);
+            if (owner == null) return;
+            Method isEnabled = service.getDeclaredMethod("isNfcEnabled");
+            isEnabled.setAccessible(true);
+            if (!Boolean.TRUE.equals(isEnabled.invoke(owner))) return;
+            Method apply = service.getDeclaredMethod("applyRouting", boolean.class);
+            apply.setAccessible(true);
+            apply.invoke(owner, true);
+            Log.i(TAG, "POLLING_GUARD routing refresh requested reason=" + reason);
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD routing refresh unavailable reason=" + reason, t);
+        }
+    }
+
+    private void recordPollingGuardState(String status, String detail, boolean blocked) {
+        String proof = status + ":" + detail;
+        if (proof.equals(pollingGuardLastProof)) return;
+        pollingGuardLastProof = proof;
+        Log.i(TAG, "POLLING_GUARD " + proof + " pid=" + Process.myPid());
+        pollingExecutor.execute(() -> {
+            if (HookConfigStore.isPassive()) return;
+            ContentValues values = new ContentValues();
+            values.put("polling_guard_status", status);
+            values.put("polling_guard_pid", Process.myPid());
+            values.put("polling_guard_detail", detail);
+            writeValuesWithRetry(values, 3, 75L);
+        });
     }
 
     /**
@@ -236,6 +467,7 @@ public class NfcInjectionModule extends XposedModule {
             if (firstInvalid) lastControllerInvalidAt = now;
         }
         if (!firstInvalid) return;
+        pollingGuardLastProof = "";
         lifecycleFailureGeneration = Long.MIN_VALUE;
         lifecycleFailureControllerEpoch = Long.MIN_VALUE;
         invalidateRfEvidenceForControllerReset(reason);
@@ -266,6 +498,7 @@ public class NfcInjectionModule extends XposedModule {
         Log.i(TAG, "CONTROLLER READY reason=" + reason + " pid=" + Process.myPid() +
                 " wasInvalid=" + wasInvalid);
         scheduleLifecycleRecovery("controller_ready:" + reason);
+        pollingExecutor.execute(() -> requestPollingRoutingRefresh("controller_ready"));
     }
 
     private void persistControllerLifecycle(String status, String source, String detail) {
