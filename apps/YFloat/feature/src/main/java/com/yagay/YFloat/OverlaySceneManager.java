@@ -88,7 +88,8 @@ final class OverlaySceneManager {
                 || normalized.contains("action_menu")
                 || normalized.contains("edge_wake")
                 || normalized.contains("circle_active_border")
-                || normalized.contains("google_region_confirm")) {
+                || normalized.contains("google_region_confirm")
+                || normalized.contains("google_text_result_frame")) {
             return false;
         }
         return true;

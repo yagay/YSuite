@@ -518,7 +518,14 @@ public final class FloatActionMenu {
         }
     }
 
+    /** Only a successfully attached menu is visible; an attempted show is not proof. */
+    static synchronized boolean hasVisibleTextMenu() {
+        return activeMode == MODE_MAIN && activeView != null
+                && activeView.getParent() != null;
+    }
+
     public static synchronized void dismiss() {
+        GoogleTextResultFrameOverlay.dismiss();
         View v = activeView;
         FlOverlayWindowHost host = activeHost;
         activeView = null;
