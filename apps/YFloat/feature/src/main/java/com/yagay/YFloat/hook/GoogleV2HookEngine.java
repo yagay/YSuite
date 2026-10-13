@@ -89,7 +89,7 @@ final class GoogleV2HookEngine {
         if(!key.equals(token)){
             transport.reset();
             gestures.reset();
-            ++unused();
+            revision.incrementAndGet();
             textMode=false;regionMode=false;currentText="";currentBounds=null;
         }
         token=key;

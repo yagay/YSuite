@@ -124,7 +124,7 @@ final class GoogleV2UiEngine {
             if(SESSIONS.get(s.token)!=s||s.state.revision!=revision
                     ||s.state.phase!=GoogleV2State.Phase.REGION
                     ||s.state.dragging||!s.state.validBounds())return;
-            GoogleRegionConfirmOverlay.show(s.app,s.token,rect(s),()->confirm(s));
+            GoogleRegionConfirmOverlay.show(s.app,s.token,rect(s.state),()->confirm(s));
             DiagnosticLog.i(s.app,"GOOGLE_V2","region confirm visible "+rect(s.state));
         },wait);
     }
