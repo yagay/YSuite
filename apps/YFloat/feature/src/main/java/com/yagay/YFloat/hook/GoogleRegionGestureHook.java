@@ -66,7 +66,13 @@ final class GoogleRegionGestureHook {
         }
     }
 
-    private boolean gestureActive;
+    /**
+     * One stream per gesture, not one state transition per obfuscated method
+     * callback. Google 17.64 invokes multiple wrappers for one MotionEvent;
+     * it also creates epoch-based synthetic ACTION_CANCEL events unrelated to
+     * the Android uptime-based user gesture.
+     */
+    private final GoogleGestureSequence sequence = new GoogleGestureSequence();
     private long lastHeartbeatElapsed;
 
     GoogleRegionGestureHook(XposedModule module,
@@ -89,17 +95,17 @@ final class GoogleRegionGestureHook {
         if (binding == null) binding = resolve(classLoader);
         if (!binding.available()) {
             module.log(Log.WARN, TAG,
-                    "Google region gesture capability unavailable: " + binding.detail);
+                    "Google gesture capability unavailable: " + binding.detail);
             return 0;
         }
-        try {
-            int count = 0;
-            for (Method method : binding.touchMethods) {
-                int motionIndex = motionEventIndex(method.getParameterTypes());
-                if (motionIndex < 0) continue;
-                final int index = motionIndex;
+        int count = 0;
+        for (Method method : binding.touchMethods) {
+            int index = motionEventIndex(method.getParameterTypes());
+            if (index < 0) continue;
+            try {
+                final int argIndex = index;
                 module.hook(method).intercept(chain -> {
-                    MotionEvent event = chain.getArg(index) instanceof MotionEvent motion
+                    MotionEvent event = chain.getArg(argIndex) instanceof MotionEvent motion
                             ? motion : null;
                     if (active.getAsBoolean() && event != null) {
                         dispatchGestureState(event, method.getName());
@@ -107,61 +113,51 @@ final class GoogleRegionGestureHook {
                     return chain.proceed();
                 });
                 count++;
+            } catch (Throwable t) {
+                module.log(Log.WARN, TAG,
+                        "Google gesture binding skipped method=" + method.getName(), t);
             }
-            module.log(Log.INFO, TAG,
-                    "Google region gesture capability source=" + binding.source
-                            + " confidence=" + binding.confidence
-                            + " hooks=" + count + " detail=" + binding.detail);
-            return count;
-        } catch (Throwable t) {
-            module.log(Log.WARN, TAG, "Google FrozenImage gesture hooks unavailable", t);
-            return 0;
         }
+        module.log(Log.INFO, TAG,
+                "Google gesture single-state source=" + binding.source
+                        + " hooks=" + count + " detail=" + binding.detail);
+        return count;
     }
 
     synchronized void reset() {
-        gestureActive = false;
+        sequence.reset();
         lastHeartbeatElapsed = 0L;
     }
 
     private synchronized void dispatchGestureState(MotionEvent event, String methodName) {
         int action = event.getActionMasked();
-        long now = SystemClock.elapsedRealtime();
-        String pointDetail = describe(event, methodName, action, "point");
+        long now = SystemClock.uptimeMillis();
+        GoogleGestureSequence.Transition result = sequence.accept(
+                action, event.getDownTime(), event.getEventTime(), now);
+        if (result == GoogleGestureSequence.Transition.IGNORE) return;
+        String phase = switch (result) {
+            case START -> "start";
+            case MOVE -> "heartbeat";
+            case END -> "end";
+            default -> "ignored";
+        };
+        String detail = describe(event, methodName, action, phase);
         if (pointSink != null) {
             try {
-                // The presenter draws in screen space, not FrozenImageView-local space.
-                pointSink.onGesturePoint(action, event.getRawX(), event.getRawY(), pointDetail);
+                pointSink.onGesturePoint(action, event.getRawX(), event.getRawY(), detail);
             } catch (Throwable ignored) { }
         }
-
-        if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
-            gestureActive = true;
+        if (result == GoogleGestureSequence.Transition.START) {
             lastHeartbeatElapsed = now;
-            stateSink.accept(true, describe(event, methodName, action, "start"));
-            return;
-        }
-
-        if (action == MotionEvent.ACTION_MOVE) {
-            if (!gestureActive) gestureActive = true;
+            stateSink.accept(true, detail);
+        } else if (result == GoogleGestureSequence.Transition.MOVE) {
             if (now - lastHeartbeatElapsed >= MOVE_HEARTBEAT_MS) {
                 lastHeartbeatElapsed = now;
-                stateSink.accept(true, describe(event, methodName, action, "heartbeat"));
+                stateSink.accept(true, detail);
             }
-            return;
-        }
-
-        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-            // FrozenImageView can emit an initial/redundant CANCEL through a different hooked
-            // method even though no DOWN/MOVE for this YFloat-observed gesture ever occurred.
-            // Do not turn that orphan terminal event into a bridge "gesture end" with revision=-1.
-            if (!gestureActive) {
-                lastHeartbeatElapsed = 0L;
-                return;
-            }
-            gestureActive = false;
+        } else if (result == GoogleGestureSequence.Transition.END) {
             lastHeartbeatElapsed = 0L;
-            stateSink.accept(false, describe(event, methodName, action, "end"));
+            stateSink.accept(false, detail);
         }
     }
 
