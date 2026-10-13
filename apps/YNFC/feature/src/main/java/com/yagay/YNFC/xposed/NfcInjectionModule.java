@@ -17,6 +17,7 @@ import android.os.Process;
 import android.util.Log;
 
 import com.yagay.YNFC.BuildConfig;
+import com.yagay.YNFC.NfcControlPolicy;
 import com.yagay.YNFC.xposed.discovery.HookDiscoveryEngine;
 import com.yagay.YNFC.xposed.discovery.HookTarget;
 import com.yagay.YNFC.xposed.payload.RewriteResult;
@@ -29,7 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static com.yagay.YNFC.xposed.NfcHookUtils.*;
 
@@ -76,9 +76,8 @@ public class NfcInjectionModule extends XposedModule {
     private volatile SimConfig cachedConfig = SimConfig.uninitialized();
     private volatile ContentObserver commandObserver;
     private volatile ContentObserver pollingGuardObserver;
-    private volatile Boolean pollingGuardDesired;
+    private final NfcControlPolicy pollingPolicy = new NfcControlPolicy();
     private volatile String pollingGuardLastProof = "";
-    private final AtomicLong pollingRefreshGeneration = new AtomicLong();
     private final Handler pollingMainHandler = new Handler(Looper.getMainLooper());
     private volatile BroadcastReceiver adapterStateReceiver;
     private volatile boolean observerRegistered;
@@ -292,19 +291,19 @@ public class NfcInjectionModule extends XposedModule {
     }
 
     private boolean pollingBlocked() {
-        Boolean cached = pollingGuardDesired;
+        Boolean cached = pollingPolicy.desired();
         if (cached != null) return cached;
         // Provider is authoritative. An NFC-process mirror may be stale if the
         // user toggled the setting immediately before a forced process restart.
         Boolean provider = configStore.readPollingDisabled();
         if (provider != null) {
-            pollingGuardDesired = provider;
+            pollingPolicy.setDesired(provider);
             mirrorPollingPreference(provider);
             return provider;
         }
         Boolean mirror = readMirroredPollingPreference();
         if (mirror != null) {
-            pollingGuardDesired = mirror;
+            pollingPolicy.setDesired(mirror);
             return mirror;
         }
         // Fail open rather than break NFC / HCE when configuration is unknown.
@@ -341,10 +340,9 @@ public class NfcInjectionModule extends XposedModule {
         if (HookConfigStore.isPassive()) return;
         Boolean provider = configStore.readPollingDisabled();
         if (provider == null) return;
-        Boolean previous = pollingGuardDesired;
-        pollingGuardDesired = provider;
+        boolean changed = pollingPolicy.setDesired(provider);
         mirrorPollingPreference(provider);
-        if (previous == null || !previous.equals(provider)) {
+        if (changed) {
             pollingGuardLastProof = "";
             Log.i(TAG, "POLLING_GUARD desired=" + provider + " reason=" + reason);
             requestPollingRoutingRefresh("desired_change:" + reason);
@@ -358,7 +356,7 @@ public class NfcInjectionModule extends XposedModule {
      */
     private void requestPollingRoutingRefresh(String reason) {
         if (HookConfigStore.isPassive()) return;
-        final long revision = pollingRefreshGeneration.incrementAndGet();
+        final long revision = pollingPolicy.nextRevision();
         final boolean blocked = pollingBlocked();
         Log.i(TAG, "POLLING_GUARD live refresh scheduled revision=" + revision
                 + " disabled=" + blocked + " reason=" + reason);
@@ -367,7 +365,7 @@ public class NfcInjectionModule extends XposedModule {
 
     private void applyPollingRoutingOnMain(long revision, boolean blocked, String reason,
                                            int attempt) {
-        if (revision != pollingRefreshGeneration.get() || HookConfigStore.isPassive()
+        if (!pollingPolicy.isCurrent(revision) || HookConfigStore.isPassive()
                 || blocked != pollingBlocked()) return;
         try {
             ClassLoader loader = nfcClassLoader;
@@ -435,7 +433,7 @@ public class NfcInjectionModule extends XposedModule {
 
     private void schedulePollingRetry(long revision, boolean blocked, String reason,
                                       int attempt, String detail) {
-        if (revision != pollingRefreshGeneration.get()) return;
+        if (!pollingPolicy.isCurrent(revision)) return;
         if (attempt >= 2) {
             recordPollingGuardState("LIVE_REFRESH_UNCONFIRMED",
                     "disabled=" + blocked + " reason=" + reason
@@ -566,6 +564,7 @@ public class NfcInjectionModule extends XposedModule {
         }
         if (!firstInvalid) return;
         pollingGuardLastProof = "";
+        pollingPolicy.invalidateRefresh();
         lifecycleFailureGeneration = Long.MIN_VALUE;
         lifecycleFailureControllerEpoch = Long.MIN_VALUE;
         invalidateRfEvidenceForControllerReset(reason);
