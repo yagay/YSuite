@@ -1,5 +1,6 @@
 package com.yagay.YFloat.hook;
 
+import android.app.Activity;
 import android.graphics.Rect;
 import android.os.SystemClock;
 import android.util.Log;
@@ -8,6 +9,7 @@ import android.view.View;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import io.github.libxposed.api.XposedModule;
 
@@ -31,6 +33,7 @@ final class GoogleTextSelectionLiveHook {
     interface LiveSink { void accept(Rect bounds, String text, String detail); }
 
     private final LiveSink sink;
+    private final Supplier<Activity> owner;
     private final Profile profile;
 
     private Rect lastPublishedBounds;
@@ -70,7 +73,9 @@ final class GoogleTextSelectionLiveHook {
             XposedModule module,
             ClassLoader classLoader,
             BooleanSupplier active,
+            Supplier<Activity> owner,
             LiveSink sink) {
+        this.owner = owner;
         this.module = module;
         this.classLoader = classLoader;
         this.active = active;
@@ -345,19 +350,35 @@ final class GoogleTextSelectionLiveHook {
 
         int[] origin = new int[2];
         textView.getLocationOnScreen(origin);
-        Rect screen = new Rect(union);
-        screen.offset(origin[0], origin[1]);
-        Rect viewScreen = new Rect(origin[0], origin[1],
-                origin[0] + textView.getWidth(), origin[1] + textView.getHeight());
-        if (!screen.intersect(viewScreen) || screen.isEmpty()) {
+        // Google moves its TextSelectionView up by hundreds of pixels when
+        // focusing text, even as OCR word Rects remain in the original frozen
+        // screenshot's local coordinate system. Fullscreen OCR views must map
+        // through the stable decor viewport, not their animated live origin.
+        Rect viewport = null;
+        Activity activity = owner.get();
+        if (activity != null && activity.getWindow() != null) {
+            View decor = activity.getWindow().getDecorView();
+            if (decor != null && decor.getWidth() > 0 && decor.getHeight() > 0) {
+                int[] stableOrigin = new int[2];
+                decor.getLocationOnScreen(stableOrigin);
+                viewport = new Rect(stableOrigin[0], stableOrigin[1],
+                        stableOrigin[0] + decor.getWidth(),
+                        stableOrigin[1] + decor.getHeight());
+            }
+        }
+        GoogleSelectionCoordinateSpace.Result mapped = GoogleSelectionCoordinateSpace.map(
+                union, textView.getWidth(), textView.getHeight(), origin[0], origin[1],
+                viewport);
+        Rect screen = mapped.bounds;
+        if (screen == null || screen.isEmpty()) {
             return LiveBounds.empty(source + " outside_text_view");
         }
-
         return new LiveBounds(screen, selectedText.toString(),
                 "profile=" + profile.name
                         + " source=" + source
                         + " selectedWords=" + words
                         + " selectedChars=" + selectedText.length()
+                        + " space=" + mapped.space
                         + " local=" + union + " screen=" + screen);
     }
 

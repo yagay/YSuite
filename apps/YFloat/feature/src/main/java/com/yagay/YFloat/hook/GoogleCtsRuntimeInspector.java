@@ -110,7 +110,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 module, classLoader, this::active, this::sendBridgeFrame,
                 this::report, this::currentApplicationContext);
         this.textSelectionLiveHook = new GoogleTextSelectionLiveHook(
-                module, classLoader, this::active,
+                module, classLoader, this::active, () -> markedActivity.get(),
                 (bounds, selectedText, detail) -> {
                     if (bounds == null || bounds.isEmpty()) return;
                     // dnrs.g/dtvm are text-selection-only sources. Do not suppress their live
