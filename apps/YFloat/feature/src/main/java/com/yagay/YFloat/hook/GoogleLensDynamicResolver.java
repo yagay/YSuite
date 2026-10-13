@@ -272,6 +272,12 @@ final class GoogleLensDynamicResolver {
                 if (text.isBlank()) text = nestedSelectedText(selection);
                 RectF bounds = rawBounds instanceof RectF value ? new RectF(value) : null;
                 boolean directRegion = hasGoogleRegion(selection);
+                if (directRegion && (bounds == null || bounds.isEmpty())) {
+                    // 17.64 dwte.a is the stable Region parcelable; Region.a is
+                    // its actual RectF. The interface b() can be empty during
+                    // draw/resize even though Google has finalized the region.
+                    bounds = googleRegionBounds(selection);
+                }
                 StringBuilder detail = new StringBuilder();
                 detail.append("dynamicSelectionClass=").append(selection.getClass().getName())
                         .append(" confidence=").append(confidence);
@@ -342,6 +348,24 @@ final class GoogleLensDynamicResolver {
             }
         }
         return false;
+    }
+
+    static RectF googleRegionBounds(Object selection) {
+        if (selection == null) return null;
+        for (Field field : instanceFields(selection.getClass())) {
+            if (!"com.google.android.libraries.lens.view.region.Region"
+                    .equals(field.getType().getName())) continue;
+            try {
+                field.setAccessible(true);
+                Object region = field.get(selection);
+                Object raw = GoogleReflection.readField(
+                        region, "a", RectF.class.getName());
+                if (raw instanceof RectF bounds && !bounds.isEmpty()) {
+                    return new RectF(bounds);
+                }
+            } catch (Throwable ignored) { }
+        }
+        return null;
     }
 
     static final class DynamicSelectionSnapshot {

@@ -76,11 +76,14 @@ final class GoogleTextSelectionLiveHook {
         }
         int count = 0;
         count += installStateListHook();
-        count += installFinalTaskHook();
+        if (profile.updateTask != null && !profile.updateTask.isBlank()) {
+            count += installFinalTaskHook();
+        }
         module.log(Log.INFO, TAG,
                 "Google live text selection hooks=" + count
                         + " profile=" + profile.name
-                        + " sources=" + profile.state + ".g," + profile.updateTask + ".run");
+                        + " sources=" + profile.state + ".g"
+                        + (profile.updateTask == null ? "" : "," + profile.updateTask + ".run"));
         return count;
     }
 
@@ -163,6 +166,12 @@ final class GoogleTextSelectionLiveHook {
                     "Google final text selection hook unavailable", t);
             return 0;
         }
+    }
+
+    synchronized Rect recentBounds() {
+        if (lastPublishedBounds == null || lastPublishedBounds.isEmpty()
+                || SystemClock.elapsedRealtime() - lastPublishedAt > 1200L) return null;
+        return new Rect(lastPublishedBounds);
     }
 
     private void publish(LiveBounds live) {
@@ -273,7 +282,7 @@ final class GoogleTextSelectionLiveHook {
             return LiveBounds.empty(source + " state_missing");
         }
 
-        Object rawView = GoogleReflection.readField(state, "g", TEXT_SELECTION_VIEW);
+        Object rawView = GoogleReflection.readField(state, null, TEXT_SELECTION_VIEW);
         if (!(rawView instanceof View textView)
                 || textView.getWidth() <= 0 || textView.getHeight() <= 0) {
             return LiveBounds.empty(source + " text_view_missing");
@@ -328,6 +337,8 @@ final class GoogleTextSelectionLiveHook {
     }
 
     private static Profile resolveProfile(ClassLoader loader) {
+        Profile structural = resolveFromStableView(loader);
+        if (structural != null) return structural;
         if (hasClass(loader, GoogleLens1760Profile.TEXT_SELECTION_STATE)
                 && hasClass(loader, GoogleLens1760Profile.TEXT_SELECTION_UPDATE_TASK)) {
             return new Profile(GoogleLens1760Profile.NAME,
@@ -341,6 +352,47 @@ final class GoogleTextSelectionLiveHook {
             return new Profile(GoogleLens1758Profile.NAME,
                     "dtvm", "dtvr", "dnrs", "dnrd", "dnqv");
         }
+        return null;
+    }
+
+    /**
+     * Resolve from the non-obfuscated TextSelectionView, not a version-specific
+     * controller. Google 17.64.15 has TextSelectionView.q:dran, dran.g(list,Z,I)
+     * and dran.a/b:dqzy where dqzy.d is the selected word's Rect.
+     * This also survives future changes to dran/dqzy obfuscated names.
+     */
+    private static Profile resolveFromStableView(ClassLoader loader) {
+        if (loader == null) return null;
+        try {
+            Class<?> view = Class.forName(TEXT_SELECTION_VIEW, false, loader);
+            for (java.lang.reflect.Field field : GoogleReflection.instanceFields(view)) {
+                Class<?> state = field.getType();
+                if (state == view || state.isPrimitive()) continue;
+                java.lang.reflect.Field viewField = null;
+                java.lang.reflect.Field selectedList = null;
+                java.lang.reflect.Field wordField = null;
+                for (java.lang.reflect.Field candidate : GoogleReflection.instanceFields(state)) {
+                    if (candidate.getType() == view) viewField = candidate;
+                    if (GoogleLens1758Profile.IMMUTABLE_LIST
+                            .equals(candidate.getType().getName())) selectedList = candidate;
+                    Class<?> word = candidate.getType();
+                    if (word == view || word.isPrimitive()) continue;
+                    for (java.lang.reflect.Field box : GoogleReflection.instanceFields(word)) {
+                        if (box.getType() == Rect.class) wordField = candidate;
+                    }
+                }
+                if (viewField == null || selectedList == null || wordField == null) continue;
+                for (Method method : GoogleReflection.declaredMethods(state)) {
+                    Class<?>[] args = method.getParameterTypes();
+                    if (method.getReturnType() == void.class && args.length == 3
+                            && GoogleLens1758Profile.IMMUTABLE_LIST.equals(args[0].getName())
+                            && args[1] == boolean.class && args[2] == int.class) {
+                        return new Profile("structural-text-view",
+                                null, null, state.getName(), wordField.getType().getName(), null);
+                    }
+                }
+            }
+        } catch (Throwable ignored) { }
         return null;
     }
 

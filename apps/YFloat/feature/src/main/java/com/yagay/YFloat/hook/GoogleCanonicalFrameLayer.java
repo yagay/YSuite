@@ -117,6 +117,7 @@ final class GoogleCanonicalFrameLayer {
                 textSelectionBounds = null;
             }
         }
+        schedulePresent(); // A Google version can deliver selection but not its screenshot.
         main.post(() -> {
             SelectionView view = selectionRef.get();
             if (view != null) view.invalidate();
@@ -133,6 +134,7 @@ final class GoogleCanonicalFrameLayer {
         synchronized (this) {
             textSelectionBounds = new Rect(screenBounds);
         }
+        schedulePresent();
         main.post(() -> {
             SelectionView view = selectionRef.get();
             if (view != null) view.invalidate();
@@ -163,8 +165,7 @@ final class GoogleCanonicalFrameLayer {
     boolean attached() {
         ImageView layer = layerRef.get();
         SelectionView selection = selectionRef.get();
-        return layer != null && layer.getParent() != null
-                && selection != null && selection.getParent() != null;
+        return selection != null && selection.getParent() != null;
     }
 
     void onActivityAvailable() {
@@ -208,7 +209,9 @@ final class GoogleCanonicalFrameLayer {
         synchronized (this) {
             frame = canonicalFrame;
         }
-        if (owner == null || owner.getWindow() == null || !usable(frame)) return;
+        // The selection mask and border are independent of screenshot transport.
+        // Voice screenshots can arrive from a different Google process (or not at all).
+        if (owner == null || owner.getWindow() == null) return;
 
         View root = owner.getWindow().getDecorView();
         View frozen = GoogleLensViewIntrospection.findByClassName(
@@ -223,29 +226,22 @@ final class GoogleCanonicalFrameLayer {
         ImageView existing = layerRef.get();
         SelectionView existingSelection = selectionRef.get();
         ViewGroup previousParent = parentRef.get();
-        if (existing != null && existingSelection != null
-                && previousParent == parent
-                && existing.getParent() == parent
-                && existingSelection.getParent() == parent) {
-            existing.setImageBitmap(frame);
-            normalizeLayer(existing, frozen);
+        boolean frameReady = usable(frame);
+        if (existingSelection != null && previousParent == parent
+                && existingSelection.getParent() == parent
+                && (!frameReady || (existing != null && existing.getParent() == parent))) {
+            if (frameReady && existing != null) {
+                existing.setImageBitmap(frame);
+                normalizeLayer(existing, frozen);
+            }
+            // Never let a later Google child cover the YFloat selection mask.
+            existingSelection.bringToFront();
             existingSelection.invalidate();
             return;
         }
 
         removeLayerOnMain();
-
-        ImageView layer = new ImageView(owner);
-        layer.setTag("yfloat_google_canonical_frame");
-        layer.setScaleType(ImageView.ScaleType.FIT_XY);
-        layer.setImageBitmap(frame);
-        layer.setClickable(false);
-        layer.setFocusable(false);
-        layer.setEnabled(false);
-        layer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        layer.setContentDescription(null);
-        layer.setAlpha(1f);
-
+        ImageView layer = null;
         ViewGroup.LayoutParams params;
         if (parent instanceof FrameLayout) {
             params = new FrameLayout.LayoutParams(
@@ -257,10 +253,19 @@ final class GoogleCanonicalFrameLayer {
                     Math.max(1, frozen.getHeight()));
         }
 
-        // Insert directly after the mutable FrozenImageView. YFloat draws its own selection
-        // feedback above the immutable frame; later Google siblings remain above both and can keep
-        // handling touch/recognition without owning the visible screenshot.
-        int insertIndex = Math.min(parent.getChildCount(), frozenIndex + 1);
+        if (frameReady) {
+            layer = new ImageView(owner);
+            layer.setTag("yfloat_google_canonical_frame");
+            layer.setScaleType(ImageView.ScaleType.FIT_XY);
+            layer.setImageBitmap(frame);
+            layer.setClickable(false);
+            layer.setFocusable(false);
+            layer.setEnabled(false);
+            layer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            layer.setContentDescription(null);
+            layer.setAlpha(1f);
+        }
+
         SelectionView selectionLayer = new SelectionView(owner);
         selectionLayer.setTag("yfloat_google_selection");
         selectionLayer.setClickable(false);
@@ -268,12 +273,18 @@ final class GoogleCanonicalFrameLayer {
         selectionLayer.setEnabled(false);
         selectionLayer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         try {
-            parent.addView(layer, insertIndex, params);
-            parent.addView(selectionLayer,
-                    Math.min(parent.getChildCount(), insertIndex + 1), params);
+            if (layer != null) {
+                // Keep Google's native OCR and selection handles on top of the
+                // frozen bitmap. The YFloat mask itself is the highest child.
+                parent.addView(layer, Math.min(parent.getChildCount(), frozenIndex + 1),
+                        params);
+            }
+            parent.addView(selectionLayer, parent.getChildCount(), params);
         } catch (Throwable t) {
             try {
-                if (layer.getParent() instanceof ViewGroup actual) actual.removeView(layer);
+                if (layer != null && layer.getParent() instanceof ViewGroup actual) {
+                    actual.removeView(layer);
+                }
             } catch (Throwable ignored) { }
             reporter.accept("GOOGLE_CANONICAL_LAYER",
                     "attach_failed parent=" + parent.getClass().getName()
@@ -284,13 +295,15 @@ final class GoogleCanonicalFrameLayer {
         layerRef = new WeakReference<>(layer);
         selectionRef = new WeakReference<>(selectionLayer);
         parentRef = new WeakReference<>(parent);
-        normalizeLayer(layer, frozen);
+        if (layer != null) normalizeLayer(layer, frozen);
         reporter.accept("GOOGLE_CANONICAL_LAYER",
-                "attached frame=" + frame.getWidth() + "x" + frame.getHeight()
+                "attached frame=" + (frameReady
+                        ? frame.getWidth() + "x" + frame.getHeight() : "none")
+                        + " selectionOverlay=independent"
                         + " frozen=" + frozen.getWidth() + "x" + frozen.getHeight()
                         + " parent=" + parent.getClass().getName()
                         + " frozenIndex=" + frozenIndex
-                        + " layerIndex=" + parent.indexOfChild(layer)
+                        + " layerIndex=" + (layer == null ? -1 : parent.indexOfChild(layer))
                         + " selectionIndex=" + parent.indexOfChild(selectionLayer)
                         + " siblings=" + parent.getChildCount());
     }
