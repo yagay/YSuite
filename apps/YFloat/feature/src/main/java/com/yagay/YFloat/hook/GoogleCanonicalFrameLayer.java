@@ -54,6 +54,7 @@ final class GoogleCanonicalFrameLayer {
     private WeakReference<SelectionView> selectionRef = new WeakReference<>(null);
     private WeakReference<ViewGroup> parentRef = new WeakReference<>(null);
     private final List<PointF> gesturePoints = new ArrayList<>();
+    private boolean gestureInProgress;
     private Rect textSelectionBounds;
 
     GoogleCanonicalFrameLayer(BooleanSupplier active,
@@ -102,7 +103,10 @@ final class GoogleCanonicalFrameLayer {
 
     void updateSelection(Rect screenBounds, boolean regionSelection, String text) {
         synchronized (this) {
-            if (screenBounds != null && !screenBounds.isEmpty()) gesturePoints.clear();
+            if (screenBounds != null && !screenBounds.isEmpty()) {
+                gesturePoints.clear();
+                gestureInProgress = false;
+            }
 
             // Never mirror a text selection into Google's RegionView state. RegionView is a real
             // screenshot-region editor; driving it makes the text box draggable and can steal text
@@ -133,6 +137,9 @@ final class GoogleCanonicalFrameLayer {
         if (screenBounds == null || screenBounds.isEmpty()) return;
         synchronized (this) {
             textSelectionBounds = new Rect(screenBounds);
+            // Text dragging must never leave a stale diagonal gesture trail.
+            gesturePoints.clear();
+            gestureInProgress = false;
         }
         if (!attached()) schedulePresent();
         main.post(() -> {
@@ -143,17 +150,20 @@ final class GoogleCanonicalFrameLayer {
 
     void onGesturePoint(int action, float x, float y) {
         synchronized (this) {
-            if (action == MotionEvent.ACTION_DOWN
-                    || action == MotionEvent.ACTION_POINTER_DOWN) {
+            if (action == MotionEvent.ACTION_DOWN) {
                 gesturePoints.clear();
-            }
-            if (action == MotionEvent.ACTION_DOWN
-                    || action == MotionEvent.ACTION_POINTER_DOWN
-                    || action == MotionEvent.ACTION_MOVE
-                    || action == MotionEvent.ACTION_UP
-                    || action == MotionEvent.ACTION_CANCEL) {
+                gestureInProgress = Float.isFinite(x) && Float.isFinite(y);
+                if (gestureInProgress) gesturePoints.add(new PointF(x, y));
+            } else if (action == MotionEvent.ACTION_MOVE && gestureInProgress
+                    && Float.isFinite(x) && Float.isFinite(y)) {
                 if (gesturePoints.size() >= 192) gesturePoints.remove(0);
                 gesturePoints.add(new PointF(x, y));
+            } else if (action == MotionEvent.ACTION_UP
+                    || action == MotionEvent.ACTION_CANCEL) {
+                // Never connect the next gesture to a previous endpoint, or draw
+                // orphan terminal events emitted by another hooked touch method.
+                gestureInProgress = false;
+                gesturePoints.clear();
             }
         }
         main.post(() -> {
@@ -182,6 +192,7 @@ final class GoogleCanonicalFrameLayer {
             retired = new ArrayList<>(retiredFrames);
             retiredFrames.clear();
             gesturePoints.clear();
+            gestureInProgress = false;
             textSelectionBounds = null;
         }
         main.post(() -> {
@@ -409,10 +420,10 @@ final class GoogleCanonicalFrameLayer {
                 points = new ArrayList<>(gesturePoints);
             }
 
-            if (bounds != null && !bounds.isEmpty()) {
-                int[] origin = new int[2];
-                try { getLocationOnScreen(origin); } catch (Throwable ignored) { }
+            int[] origin = new int[2];
+            try { getLocationOnScreen(origin); } catch (Throwable ignored) { }
 
+            if (bounds != null && !bounds.isEmpty()) {
                 localSelection.set(
                         bounds.left - origin[0],
                         bounds.top - origin[1],
@@ -463,13 +474,15 @@ final class GoogleCanonicalFrameLayer {
                 }
             }
 
-            if (points.size() >= 2) {
+            if (bounds == null && points.size() >= 2) {
+                // Gesture callbacks provide raw screen coordinates; account for
+                // the layer's actual offset in Google's view hierarchy.
                 Path path = new Path();
                 PointF first = points.get(0);
-                path.moveTo(first.x, first.y);
+                path.moveTo(first.x - origin[0], first.y - origin[1]);
                 for (int i = 1; i < points.size(); i++) {
                     PointF point = points.get(i);
-                    path.lineTo(point.x, point.y);
+                    path.lineTo(point.x - origin[0], point.y - origin[1]);
                 }
                 canvas.drawPath(path, trail);
             }
