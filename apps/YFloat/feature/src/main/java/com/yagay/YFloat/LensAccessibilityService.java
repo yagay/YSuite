@@ -210,6 +210,14 @@ public class LensAccessibilityService extends AccessibilityService {
                 return;
             }
 
+            // A user-confirmed Google region still needs its original Bitmap. Android
+            // accessibility window transitions are not proof that the image bridge failed.
+            if (GoogleCtsBridgeController.hasPendingGoogleScreenshotResult()) {
+                DiagnosticLog.i(this, "GOOGLE_CTS_RELEASE_GUARD",
+                        "pending Google screenshot; defer navigation release reason=" + reason);
+                return;
+            }
+
             new FloatSettings(this).clearGoogleCtsSession();
             boolean remoteCleared = LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
             DiagnosticLog.i(this, "GOOGLE_CTS_NATIVE_RELEASE",
