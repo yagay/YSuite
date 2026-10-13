@@ -339,8 +339,9 @@ final class GoogleCanonicalFrameLayer {
             }
             float sx = frozen.getScaleX(), sy = frozen.getScaleY();
             float tx = frozen.getTranslationX(), ty = frozen.getTranslationY();
-            if (Math.abs(sx - 1f) < 0.0005f && Math.abs(sy - 1f) < 0.0005f
-                    && Math.abs(tx) < 0.5f && Math.abs(ty) < 0.5f) return true;
+            if (!GoogleTextViewportPolicy.shouldNormalize(true, sx, sy, tx, ty)) {
+                return true;
+            }
             try {
                 frozen.animate().cancel();
                 frozen.clearAnimation();
