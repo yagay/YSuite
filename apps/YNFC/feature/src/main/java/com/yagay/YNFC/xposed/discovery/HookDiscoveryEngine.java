@@ -30,6 +30,31 @@ public final class HookDiscoveryEngine {
             "com.android.nfc.nxp.NxpNfcService$NxpNfcAdapterService"
     };
 
+    /**
+     * Discover only concrete AOSP/NFC driver families. The class-name list is
+     * a fast hint; signatures are independently checked by the discovery
+     * capability registry before any Hook is installed. Unknown OEMs may be
+     * discovered without globally hooking arbitrary methods.
+     */
+    public List<String> discoverNfcDiscoveryDriverNames(ClassLoader classLoader) {
+        java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+        names.add("com.android.nfc.dhimpl.NativeNfcManager");
+        names.add("com.android.nfc.dhimpl.NxpNativeNfcManager");
+        names.add("com.android.nfc.dhimpl.StNativeNfcManager");
+        names.add("com.android.nfc.dhimpl.TmsNativeNfcManager");
+        names.add("com.android.nfc.dhimpl.BrcmNativeNfcManager");
+        // Dex inspection is bounded to 24 credible classes, and no broad
+        // substring matches outside the controller implementation namespace.
+        for (String name : enumerateClassNames(classLoader)) {
+            if (names.size() >= 24) break;
+            if (!name.startsWith("com.android.nfc.dhimpl.")
+                    || !(name.endsWith("NativeNfcManager")
+                    || name.endsWith("NfcManager"))) continue;
+            names.add(name);
+        }
+        return new ArrayList<>(names);
+    }
+
     public HookTarget discoverRfConfigWrite(ClassLoader classLoader) {
         List<HookTarget> ranked = discoverRfCandidates(classLoader);
         return ranked.isEmpty() ? null : ranked.get(0);
