@@ -272,16 +272,18 @@ public class NfcInjectionModule extends XposedModule {
     private boolean pollingBlocked() {
         Boolean cached = pollingGuardDesired;
         if (cached != null) return cached;
-        Boolean mirror = readMirroredPollingPreference();
-        if (mirror != null) {
-            pollingGuardDesired = mirror;
-            return mirror;
-        }
+        // Provider is authoritative. An NFC-process mirror may be stale if the
+        // user toggled the setting immediately before a forced process restart.
         Boolean provider = configStore.readPollingDisabled();
         if (provider != null) {
             pollingGuardDesired = provider;
             mirrorPollingPreference(provider);
             return provider;
+        }
+        Boolean mirror = readMirroredPollingPreference();
+        if (mirror != null) {
+            pollingGuardDesired = mirror;
+            return mirror;
         }
         // Fail open rather than break NFC / HCE when configuration is unknown.
         return false;
