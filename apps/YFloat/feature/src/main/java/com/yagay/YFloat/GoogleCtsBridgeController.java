@@ -31,6 +31,8 @@ final class GoogleCtsBridgeController {
     private static final long REGION_GESTURE_STALE_MS = 700L;
     /** Give the Google hook a brief chance to consume the remote confirm before local fallback. */
     private static final long REGION_REMOTE_GRACE_MS = 220L;
+    /** Never let an unresponsive remote-preferences write strand the Done button. */
+    private static final long REGION_REMOTE_ACK_TIMEOUT_MS = 1_500L;
     private static final long STATE_TTL_MS = 150_000L;
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final Map<String, State> STATES = new ConcurrentHashMap<>();
@@ -48,6 +50,7 @@ final class GoogleCtsBridgeController {
         boolean regionPending;
         boolean regionConfirmRequested;
         boolean regionGestureActive;
+        boolean fallbackCaptureRequested;
         int selectionRevision;
         Runnable regionConfirmShowTask;
         Runnable regionGestureWatchdogTask;
@@ -390,12 +393,20 @@ final class GoogleCtsBridgeController {
                 "confirm requested session=" + shortToken(token)
                         + " bounds=" + String.valueOf(bounds));
 
-        // Preferred path: tell the Google hook that the user explicitly confirmed this region.
-        // If that cross-process signal is not observed quickly, YFloat already owns the frozen
-        // frame and region geometry, so fall back to the same result pipeline locally.
+        // Arm a bounded fallback BEFORE the asynchronous remote call. Remote preferences
+        // can hang or never invoke their callback after a Google App update; Done must not
+        // remain disabled indefinitely.
+        scheduleRegionFallback(app, token, state,
+                "remote_confirm_ack_timeout", REGION_REMOTE_ACK_TIMEOUT_MS);
+
+        // Preferred path: notify the hooked Google process of the explicit confirmation.
+        // App-side frame and bounds can still complete the result if the hook is unavailable.
         LsposedStatusManager.confirmGoogleCtsRegionRemoteAsync(token, success -> {
             State current = STATES.get(token);
             if (current != state) return;
+            synchronized (state) {
+                if (state.delivered || !state.regionPending) return;
+            }
             if (success) {
                 DiagnosticLog.i(app, "GOOGLE_REGION",
                         "confirm remote-write-ok session=" + shortToken(token)
@@ -609,6 +620,22 @@ final class GoogleCtsBridgeController {
     static void onEnd(Context context, String token, String detail) {
         if (context == null || token == null || token.isBlank()) return;
         Context app = context.getApplicationContext();
+        State pending = STATES.get(token);
+        if (pending != null) {
+            boolean awaitingResult;
+            synchronized (pending) {
+                awaitingResult = !pending.delivered
+                        && (pending.regionConfirmRequested || pending.committed);
+            }
+            if (awaitingResult) {
+                // Google may end its Lens UI before the cross-process frame arrives or before
+                // the remote confirm callback returns. Do not destroy the pending screenshot.
+                DiagnosticLog.i(app, "GOOGLE_BRIDGE",
+                        "bridge_end deferred for pending result session=" + shortToken(token));
+                scheduleCleanup(app, token, pending);
+                return;
+            }
+        }
         State state = STATES.remove(token);
         if (state != null) {
             cancelRegionConfirmShow(state);
@@ -649,8 +676,13 @@ final class GoogleCtsBridgeController {
             if (!force && state.frame == null) return;
             if (force && state.frame == null && (state.text == null || state.text.isBlank())) {
                 DiagnosticLog.i(app, "GOOGLE_BRIDGE",
-                        "commit has no displayable payload session=" + shortToken(token)
+                        "commit awaiting screenshot frame session=" + shortToken(token)
                                 + " detail=" + trim(state.detail, 600));
+                if (!state.fallbackCaptureRequested && state.bounds != null
+                        && !state.bounds.isEmpty()) {
+                    state.fallbackCaptureRequested = true;
+                    MAIN.post(() -> captureFallbackFrame(app, token, state));
+                }
                 return;
             }
             state.delivered = true;
@@ -723,6 +755,42 @@ final class GoogleCtsBridgeController {
                         + " textLen=" + text.length()
                         + " frameBounds=" + String.valueOf(normalized)
                         + " screenBounds=" + String.valueOf(screenBounds));
+    }
+
+    /**
+     * Last resort when an updated Google App stops exporting its frozen screenshot. Capture
+     * through YFloat's already configured screenshot backend instead of silently dropping Done.
+     * This path never requires an extra permission beyond the active YFloat capture settings.
+     */
+    private static void captureFallbackFrame(Context app, String token, State state) {
+        synchronized (state) {
+            if (state.delivered || !state.committed || state.frame != null
+                    || STATES.get(token) != state) return;
+        }
+        DiagnosticLog.i(app, "GOOGLE_BRIDGE",
+                "native frame absent; requesting local capture session=" + shortToken(token));
+        try {
+            ScreenCaptureBackend.capture(app, new FloatSettings(app), bitmap -> {
+                if (bitmap == null) {
+                    DiagnosticLog.i(app, "GOOGLE_BRIDGE",
+                            "local capture returned null session=" + shortToken(token));
+                    return;
+                }
+                if (STATES.get(token) != state) {
+                    recycle(bitmap);
+                    return;
+                }
+                DiagnosticLog.i(app, "GOOGLE_BRIDGE",
+                        "local capture fallback received session=" + shortToken(token));
+                onFrame(app, token, bitmap);
+            }, error -> DiagnosticLog.i(app, "GOOGLE_BRIDGE",
+                    "local capture fallback failed session=" + shortToken(token)
+                            + " error=" + ScreenCaptureBackend.safeMessage(error)));
+        } catch (Throwable t) {
+            DiagnosticLog.i(app, "GOOGLE_BRIDGE",
+                    "local capture fallback exception session=" + shortToken(token)
+                            + " error=" + ScreenCaptureBackend.safeMessage(t));
+        }
     }
 
     private static State state(String token) {
