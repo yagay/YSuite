@@ -559,16 +559,19 @@ final class GoogleCtsBridgeController {
         // Always rehost the final text toolbar and a YFloat-owned selection
         // outline AFTER the Google workflow has been released.
         if (!finalText.isBlank()) {
+            final String confirmedText = finalText;
+            final Rect confirmedBounds = finalScreenBounds == null
+                    ? null : new Rect(finalScreenBounds);
             MAIN.post(() -> {
-                FloatActionMenu.showTextAt(app, finalText, null, finalScreenBounds);
+                FloatActionMenu.showTextAt(app, confirmedText, null, confirmedBounds);
                 boolean visible = FloatActionMenu.hasVisibleTextMenu();
-                if (visible && finalScreenBounds != null && !finalScreenBounds.isEmpty()) {
-                    GoogleTextResultFrameOverlay.show(app, token, finalScreenBounds);
+                if (visible && confirmedBounds != null && !confirmedBounds.isEmpty()) {
+                    GoogleTextResultFrameOverlay.show(app, token, confirmedBounds);
                 }
                 DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
                         "final result session=" + shortToken(token)
-                                + " textLen=" + finalText.length()
-                                + " bounds=" + finalScreenBounds
+                                + " textLen=" + confirmedText.length()
+                                + " bounds=" + confirmedBounds
                                 + " previouslyShown=" + !showMenuNow
                                 + " visible=" + visible);
             });
