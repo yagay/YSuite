@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.widget.Toast;
 
 import java.util.Map;
@@ -44,6 +45,9 @@ final class GoogleCtsBridgeController {
         Bitmap frame;
         CanonicalSessionGeometry geometry;
         String text = "";
+        String lastValidText = "";
+        Rect lastValidBounds;
+        long lastValidAtElapsed;
         /** Google bridge selection geometry is canonical absolute screen space. */
         Rect bounds;
         String detail = "";
@@ -123,6 +127,13 @@ final class GoogleCtsBridgeController {
                 state.bounds = null;
             }
             state.detail = detail == null ? "" : detail;
+            if (!state.text.isBlank()) {
+                state.lastValidText = state.text;
+                if (state.bounds != null && !state.bounds.isEmpty()) {
+                    state.lastValidBounds = new Rect(state.bounds);
+                }
+                state.lastValidAtElapsed = SystemClock.elapsedRealtime();
+            }
             revision = ++state.selectionRevision;
             selectedText = state.text;
             selectedScreenBounds = state.bounds == null ? null : new Rect(state.bounds);
@@ -194,6 +205,11 @@ final class GoogleCtsBridgeController {
             if (state.delivered || state.regionPending || state.text.isBlank()) return;
             state.bounds = new Rect(bounds);
             text = state.text;
+            if (!text.isBlank()) {
+                state.lastValidBounds = new Rect(bounds);
+                state.lastValidText = text;
+                state.lastValidAtElapsed = SystemClock.elapsedRealtime();
+            }
             updateMenu = state.textMenuShown;
         }
         if (updateMenu) FloatActionMenu.repositionTextAt(app, text, bounds);
@@ -511,6 +527,13 @@ final class GoogleCtsBridgeController {
             if (detail != null && !detail.isBlank()) state.detail = detail;
             finalText = state.text == null ? "" : state.text.trim();
             finalBounds = state.bounds == null ? null : new Rect(state.bounds);
+            if (finalText.isBlank() && GoogleTextHandoffPolicy.canRecover(
+                    state.lastValidText, state.lastValidAtElapsed,
+                    SystemClock.elapsedRealtime())) {
+                finalText = state.lastValidText;
+                finalBounds = state.lastValidBounds == null ? null
+                        : new Rect(state.lastValidBounds);
+            }
             finalScreenBounds = finalBounds == null ? null : new Rect(finalBounds);
             showMenuNow = !state.textMenuShown && !finalText.isBlank();
             state.committed = true;
@@ -621,6 +644,14 @@ final class GoogleCtsBridgeController {
                 selectedText = pending.regionPending || pending.delivered
                         ? "" : pending.text;
                 selectedBounds = pending.bounds == null ? null : new Rect(pending.bounds);
+                if ((selectedText == null || selectedText.isBlank())
+                        && !pending.regionPending && !pending.delivered
+                        && GoogleTextHandoffPolicy.canRecover(pending.lastValidText,
+                                pending.lastValidAtElapsed, SystemClock.elapsedRealtime())) {
+                    selectedText = pending.lastValidText;
+                    selectedBounds = pending.lastValidBounds == null ? null
+                            : new Rect(pending.lastValidBounds);
+                }
             }
             if (selectedText != null && !selectedText.isBlank()) {
                 onTextMenuCommit(app, entry.getKey(), selectedText,
@@ -686,6 +717,15 @@ final class GoogleCtsBridgeController {
                         && !pending.committed ? pending.text : "";
                 finalizedBounds = pending.bounds == null ? null
                         : new Rect(pending.bounds);
+                if ((finalizedText == null || finalizedText.isBlank())
+                        && !pending.regionPending && !pending.delivered
+                        && !pending.committed
+                        && GoogleTextHandoffPolicy.canRecover(pending.lastValidText,
+                                pending.lastValidAtElapsed, SystemClock.elapsedRealtime())) {
+                    finalizedText = pending.lastValidText;
+                    finalizedBounds = pending.lastValidBounds == null ? null
+                            : new Rect(pending.lastValidBounds);
+                }
             }
             if (finalizedText != null && !finalizedText.isBlank()) {
                 DiagnosticLog.i(app, "GOOGLE_TEXT_MENU",
