@@ -272,11 +272,14 @@ final class GoogleLensDynamicResolver {
                 if (text.isBlank()) text = nestedSelectedText(selection);
                 RectF bounds = rawBounds instanceof RectF value ? new RectF(value) : null;
                 boolean directRegion = hasGoogleRegion(selection);
-                if (directRegion && (bounds == null || bounds.isEmpty())) {
-                    // 17.64 dwte.a is the stable Region parcelable; Region.a is
-                    // its actual RectF. The interface b() can be empty during
-                    // draw/resize even though Google has finalized the region.
-                    bounds = googleRegionBounds(selection);
+                if (directRegion) {
+                    // The Region parcelable carries the drawn rectangle directly.
+                    // It is more authoritative than UserSelection.b(), which can
+                    // describe the viewport while the rectangle is being edited.
+                    RectF selectedRegion = googleRegionBounds(selection);
+                    if (selectedRegion != null && !selectedRegion.isEmpty()) {
+                        bounds = selectedRegion;
+                    }
                 }
                 StringBuilder detail = new StringBuilder();
                 detail.append("dynamicSelectionClass=").append(selection.getClass().getName())

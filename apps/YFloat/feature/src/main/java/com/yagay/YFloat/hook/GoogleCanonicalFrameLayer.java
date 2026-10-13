@@ -117,7 +117,7 @@ final class GoogleCanonicalFrameLayer {
                 textSelectionBounds = null;
             }
         }
-        schedulePresent(); // A Google version can deliver selection but not its screenshot.
+        if (!attached()) schedulePresent(); // Render the mask even without screenshots.
         main.post(() -> {
             SelectionView view = selectionRef.get();
             if (view != null) view.invalidate();
@@ -134,7 +134,7 @@ final class GoogleCanonicalFrameLayer {
         synchronized (this) {
             textSelectionBounds = new Rect(screenBounds);
         }
-        schedulePresent();
+        if (!attached()) schedulePresent();
         main.post(() -> {
             SelectionView view = selectionRef.get();
             if (view != null) view.invalidate();
