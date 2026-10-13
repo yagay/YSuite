@@ -149,100 +149,116 @@ public class NfcInjectionModule extends XposedModule {
     }
 
     /**
-     * APK-verified OxygenOS 16 discovery boundaries. The Java parameter copy is
-     * restricted to com.android.nfc.NfcDiscoveryParameters; HCE routing is copied
-     * unchanged. Install before the NFC Application initializes.
+     * Install bounded, capability-discovered NFC hooks. Standard AOSP service
+     * entry points are preferred; vendor-specific controller classes are only
+     * optional, structurally verified backstops. Never hook unrelated methods.
      */
     private void installPollingGuardHooks(ClassLoader cl) {
-        int installed = 0;
+        Class<?> service = null;
+        Class<?> parameters = null;
         try {
-            Class<?> nfc = Class.forName("com.android.nfc.NfcService", false, cl);
-            for (Method method : nfc.getDeclaredMethods()) {
-                if (!"computeDiscoveryParameters".equals(method.getName())
-                        || method.getParameterCount() != 1
-                        || method.getParameterTypes()[0] != int.class
-                        || !"com.android.nfc.NfcDiscoveryParameters".equals(
-                        method.getReturnType().getName())) continue;
-                method.setAccessible(true);
-                hook(method).intercept(chain -> {
-                    Object result = chain.proceed();
-                    if (!pollingBlocked() || result == null) return result;
+            service = Class.forName("com.android.nfc.NfcService", false, cl);
+            parameters = Class.forName("com.android.nfc.NfcDiscoveryParameters", false, cl);
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD standard NFC types unavailable", t);
+        }
+        final Method compute = NfcDiscoveryCapabilityRegistry.findCompute(service, parameters);
+        int installed = 0;
+        if (compute != null) {
+            try {
+                compute.setAccessible(true);
+                hook(compute).intercept(chain -> {
+                    Object original = chain.proceed();
+                    if (HookConfigStore.isPassive() || !pollingBlocked() || original == null) {
+                        return original;
+                    }
                     try {
-                        return NfcPollingGuard.withoutPolling(result);
-                    } catch (Throwable failure) {
-                        Log.w(TAG, "POLLING_GUARD compute fallback: "
-                                + failure.getClass().getSimpleName(), failure);
-                        return result;
+                        return NfcPollingGuard.withoutPolling(original);
+                    } catch (Throwable t) {
+                        Log.w(TAG, "POLLING_GUARD compute compatibility failure", t);
+                        return original;
                     }
                 });
                 installed++;
+                Log.i(TAG, "POLLING_GUARD compute target="
+                        + compute.getDeclaringClass().getName() + "#" + compute.getName());
+            } catch (Throwable t) {
+                Log.w(TAG, "POLLING_GUARD compute hook rejected", t);
             }
-        } catch (Throwable t) {
-            Log.w(TAG, "POLLING_GUARD compute method unavailable", t);
         }
 
-        // NfcNci.apk contains NXP, ST and TMS implementations. Only the
-        // instantiated OEM driver is called; guard that last Java/native boundary.
-        for (String driver : new String[] {
-                "com.android.nfc.dhimpl.NxpNativeNfcManager",
-                "com.android.nfc.dhimpl.StNativeNfcManager",
-                "com.android.nfc.dhimpl.TmsNativeNfcManager" }) {
+        List<NfcDiscoveryCapabilityRegistry.Candidate> drivers =
+                NfcDiscoveryCapabilityRegistry.findDrivers(cl,
+                        discoveryEngine.discoverNfcDiscoveryDriverNames(cl), parameters);
+        int driverHooks = 0;
+        for (NfcDiscoveryCapabilityRegistry.Candidate candidate : drivers) {
             try {
-                Class<?> target = Class.forName(driver, false, cl);
-                for (Method method : target.getDeclaredMethods()) {
-                    Class<?>[] args = method.getParameterTypes();
-                    if (!"enableDiscovery".equals(method.getName())
-                            || method.getReturnType() != void.class || args.length != 2
-                            || !"com.android.nfc.NfcDiscoveryParameters".equals(args[0].getName())
-                            || args[1] != boolean.class) continue;
-                    method.setAccessible(true);
-                    hook(method).intercept(chain -> {
-                        if (HookConfigStore.isPassive()) return chain.proceed();
-                        boolean blocked = pollingBlocked();
-                        Object original = chain.getArg(0);
-                        Object replacementParams = original;
-                        int previousMask = Integer.MIN_VALUE;
-                        boolean hostRouting = false;
-                        try {
-                            if (original != null) {
-                                previousMask = NfcPollingGuard.mask(original);
-                                hostRouting = NfcPollingGuard.hostRouting(original);
-                                if (blocked) {
-                                    replacementParams = NfcPollingGuard.withoutPolling(original);
-                                }
-                            }
-                        } catch (Throwable t) {
-                            Log.w(TAG, "POLLING_GUARD parameter validation failed "
-                                    + driver + ": " + t.getClass().getSimpleName(), t);
-                            recordPollingGuardState("UNVERIFIED", driver
-                                    + " parameter validation failed", false);
-                            return chain.proceed();
+                final Method method = candidate.method;
+                hook(method).intercept(chain -> {
+                    if (HookConfigStore.isPassive()) return chain.proceed();
+                    boolean blocked = pollingBlocked();
+                    Object original = chain.getArg(0);
+                    Object updated = original;
+                    int previousMask = -1;
+                    boolean hostRouting = false;
+                    try {
+                        if (original != null) {
+                            previousMask = NfcPollingGuard.mask(original);
+                            hostRouting = NfcPollingGuard.hostRouting(original);
+                            if (blocked) updated = NfcPollingGuard.withoutPolling(original);
                         }
-                        Object result = replacementParams == original ? chain.proceed()
-                                : chain.proceed(new Object[]{replacementParams, chain.getArg(1)});
-                        if (blocked) {
-                            // Proof of Java argument handoff only. Hardware polling needs
-                            // separate on-device verification, never claim native success.
-                            recordPollingGuardState("PARAMETERS_INTERCEPTED",
-                                    driver + " originalMask=0x"
-                                            + Integer.toHexString(previousMask)
-                                            + " submittedMask=0x0 hostRouting=" + hostRouting, true);
-                        } else {
-                            recordPollingGuardState("SYSTEM_DEFAULT_REQUESTED",
-                                    driver + " pollMask=0x" + Integer.toHexString(previousMask),
-                                    false);
-                        }
-                        return result;
-                    });
-                    installed++;
-                    Log.i(TAG, "POLLING_GUARD boundary hooked " + driver + "#enableDiscovery");
-                }
+                    } catch (Throwable t) {
+                        Log.w(TAG, "POLLING_GUARD driver parameter compatibility failure "
+                                + candidate.fingerprint(), t);
+                        recordPollingGuardState("UNVERIFIED",
+                                "discovery parameter incompatible: " + candidate.fingerprint(), blocked);
+                        return chain.proceed();
+                    }
+
+                    Object result;
+                    if (updated == original) {
+                        result = chain.proceed();
+                    } else {
+                        Object[] args = chain.getArgs().toArray();
+                        args[0] = updated;
+                        result = chain.proceed(args);
+                    }
+                    if (blocked) {
+                        // A Hooked Java call is not native NFC controller proof.
+                        recordPollingGuardState("PARAMETERS_INTERCEPTED",
+                                candidate.fingerprint() + " oldMask=0x"
+                                        + Integer.toHexString(previousMask)
+                                        + " newMask=0x0 hostRouting=" + hostRouting,
+                                true);
+                    } else {
+                        recordPollingGuardState("SYSTEM_DEFAULT_REQUESTED",
+                                candidate.fingerprint() + " pollMask=0x"
+                                        + Integer.toHexString(previousMask), false);
+                    }
+                    return result;
+                });
+                driverHooks++;
+                installed++;
+                Log.i(TAG, "POLLING_GUARD driver capability installed "
+                        + candidate.fingerprint() + " source=" + candidate.source);
             } catch (Throwable t) {
-                Log.i(TAG, "POLLING_GUARD optional driver unavailable " + driver
-                        + " " + t.getClass().getSimpleName());
+                Log.w(TAG, "POLLING_GUARD optional driver hook skipped "
+                        + candidate.fingerprint(), t);
             }
         }
-        Log.i(TAG, "POLLING_GUARD early hooks=" + installed + " pid=" + Process.myPid());
+
+        final NfcDiscoveryCapabilityRegistry.ServiceAdapter adapter =
+                NfcDiscoveryCapabilityRegistry.resolveRouting(service);
+        Log.i(TAG, "POLLING_GUARD CAPABILITIES compute=" + (compute != null)
+                + " driverHooks=" + driverHooks
+                + " routeRefresh=" + adapter.available()
+                + " detail=" + adapter.detail + " pid=" + Process.myPid());
+        // No hook or route refresh is not success; mark capability unsupported
+        // and keep the existing NFC service fully operational.
+        if (installed == 0) {
+            recordPollingGuardState("UNSUPPORTED",
+                    "No safe NFC discovery interception target", false);
+        }
     }
 
     /** Prefer the user's device-protected Provider setting; mirror it in the NFC
@@ -357,27 +373,28 @@ public class NfcInjectionModule extends XposedModule {
             ClassLoader loader = nfcClassLoader;
             if (loader == null) throw new IllegalStateException("NFC class loader unavailable");
             Class<?> service = Class.forName("com.android.nfc.NfcService", false, loader);
-            Method instance = service.getDeclaredMethod("getInstance");
-            instance.setAccessible(true);
-            Object owner = instance.invoke(null);
+            NfcDiscoveryCapabilityRegistry.ServiceAdapter adapter =
+                    NfcDiscoveryCapabilityRegistry.resolveRouting(service);
+            if (!adapter.available()) {
+                recordPollingGuardState("REFRESH_UNSUPPORTED",
+                        "No safe NFC routing refresh method: " + adapter.detail, blocked);
+                return;
+            }
+            Object owner = adapter.getInstance.invoke(null);
             if (owner == null) {
                 // NFC service creation can complete after the first Provider signal.
                 schedulePollingRetry(revision, blocked, reason, attempt, "service_unavailable");
                 return;
             }
-            Method isEnabled = service.getDeclaredMethod("isNfcEnabled");
-            isEnabled.setAccessible(true);
-            if (!Boolean.TRUE.equals(isEnabled.invoke(owner))) {
+            if (!Boolean.TRUE.equals(adapter.isEnabled.invoke(owner))) {
                 // Desired preference is persisted and will be applied on adapter ON.
                 recordPollingGuardState("WAITING_FOR_NFC_ON",
                         "disabled=" + blocked + " reason=" + reason, blocked);
                 return;
             }
-            Method apply = service.getDeclaredMethod("applyRouting", boolean.class);
-            apply.setAccessible(true);
-            // Force a new NFC discovery transaction. This is not an NFC restart:
-            // card emulation routing is supplied by the existing NFC service.
-            apply.invoke(owner, true);
+            // Retain existing routing and card emulation; apply only a new
+            // discovery policy. Never restart NFC as an automatic fallback.
+            adapter.applyRouting.invoke(owner, true);
 
             int observedMask = readServiceDiscoveryMask(service, owner);
             Log.i(TAG, "POLLING_GUARD LIVE_REFRESH revision=" + revision
