@@ -21,12 +21,13 @@ final class GoogleLiveWordTextPolicy {
 
     private static String clean(String value) {
         if (value == null) return "";
-        String s = value.replace('\u0000', ' ').trim();
-        if (s.isEmpty() || s.length() > 180) return "";
-        for (int i = 0; i < s.length(); i++) {
-            if (Character.isISOControl(s.charAt(i))) return "";
+        // Reject control characters BEFORE trim: trim() would silently turn
+        // malformed OCR words like U+0001 + "bad" into a valid-looking word.
+        if (value.length() > 180) return "";
+        for (int i = 0; i < value.length(); i++) {
+            if (Character.isISOControl(value.charAt(i))) return "";
         }
-        return s;
+        return value.trim();
     }
 
     static void append(StringBuilder output, String token) {
