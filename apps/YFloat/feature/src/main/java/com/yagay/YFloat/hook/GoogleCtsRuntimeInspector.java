@@ -50,7 +50,10 @@ import io.github.libxposed.api.XposedModule;
 final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
     private static final String TAG = "YFloat-GoogleCTS";
     private static final long SESSION_TTL_MS = 120_000L;
-    private static final long RESULT_HANDOFF_TIMEOUT_MS = 2_500L;
+    // Google original bitmap transport may finish after the region-confirm RPC.
+    // Keep the marked Lens surface alive until YFloat either renders Google's frame
+    // or explicitly times out without using a local screenshot.
+    private static final long RESULT_HANDOFF_TIMEOUT_MS = 10_000L;
     private static final long RESULT_HANDOFF_POLL_MS = 16L;
     private static final int MAX_EVENT_LOGS = 500;
 
