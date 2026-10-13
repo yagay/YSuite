@@ -21,7 +21,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -33,13 +32,9 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 /**
- * Session-scoped immutable visual source for YFloat-owned Google CTS sessions.
- *
- * <p>Google may mutate FrozenImageView's internal viewport even while the outer View still reports
- * scale=1/translation=0. This presenter keeps a private copy of the best full-screen frame and
- * inserts it immediately above FrozenImageView but below Google's later selection/chrome siblings.
- * Google continues owning touch/selection logic; its mutable screenshot presentation is no longer
- * the pixels the user sees.</p>
+ * Single visual owner for Google text outlines and gesture previews. Original
+ * Google Bitmap is transport-only; this class MUST NOT edit the native frozen
+ * image transform. GoogleTextViewportEngine owns that independently.
  */
 final class GoogleCanonicalFrameLayer {
     private static final long[] PRESENT_RETRY_MS = {0L, 16L, 64L, 160L, 320L};
@@ -54,9 +49,6 @@ final class GoogleCanonicalFrameLayer {
     private WeakReference<ImageView> layerRef = new WeakReference<>(null);
     private WeakReference<SelectionView> selectionRef = new WeakReference<>(null);
     private WeakReference<ViewGroup> parentRef = new WeakReference<>(null);
-    private WeakReference<View> frozenRef = new WeakReference<>(null);
-    private ViewTreeObserver.OnPreDrawListener textViewportGuard;
-    private long lastViewportCorrectionAt;
     private final List<PointF> gesturePoints = new ArrayList<>();
     private boolean gestureInProgress;
     private Rect textSelectionBounds;
@@ -256,7 +248,6 @@ final class GoogleCanonicalFrameLayer {
         boolean frameReady = usable(frame);
         if (existingSelection != null && previousParent == parent
                 && existingSelection.getParent() == parent) {
-            ensureTextViewportGuard(frozen);
             // A second full-screen Bitmap over Google's frozen image causes
             // ghosting when the native image animates its zoom independently.
             if (existing != null && existing.getParent() instanceof ViewGroup group) {
@@ -307,7 +298,6 @@ final class GoogleCanonicalFrameLayer {
         layerRef = new WeakReference<>(layer);
         selectionRef = new WeakReference<>(selectionLayer);
         parentRef = new WeakReference<>(parent);
-        ensureTextViewportGuard(frozen);
         reporter.accept("GOOGLE_CANONICAL_LAYER",
                 "attached frame=" + (frameReady
                         ? frame.getWidth() + "x" + frame.getHeight() : "none")
@@ -320,69 +310,7 @@ final class GoogleCanonicalFrameLayer {
                         + " siblings=" + parent.getChildCount());
     }
 
-    /**
-     * Google 17.64.15 animates FrozenImageView to ~0.915 scale and large Y
-     * translations when a text selection triggers Lens' search panel. Since
-     * we no longer paint a competing full-screen Bitmap, normalize its native
-     * image only while live text selection is active. Do not interfere with
-     * screenshot-region gestures or ordinary Google sessions.
-     */
-    private void ensureTextViewportGuard(View frozen) {
-        if (frozen == null) return;
-        if (frozenRef.get() == frozen && textViewportGuard != null) return;
-        removeTextViewportGuard();
-        frozenRef = new WeakReference<>(frozen);
-        textViewportGuard = () -> {
-            if (!active.getAsBoolean()) return true;
-            synchronized (GoogleCanonicalFrameLayer.this) {
-                if (textSelectionBounds == null || textSelectionBounds.isEmpty()) return true;
-            }
-            float sx = frozen.getScaleX(), sy = frozen.getScaleY();
-            float tx = frozen.getTranslationX(), ty = frozen.getTranslationY();
-            if (!GoogleTextViewportPolicy.shouldNormalize(true, sx, sy, tx, ty)) {
-                return true;
-            }
-            try {
-                frozen.animate().cancel();
-                frozen.clearAnimation();
-                frozen.setScaleX(1f);
-                frozen.setScaleY(1f);
-                frozen.setTranslationX(0f);
-                frozen.setTranslationY(0f);
-                long now = android.os.SystemClock.elapsedRealtime();
-                if (now - lastViewportCorrectionAt > 300L) {
-                    lastViewportCorrectionAt = now;
-                    reporter.accept("GOOGLE_TEXT_VIEWPORT_LOCK",
-                            "scale=" + sx + "," + sy + " translation=" + tx + "," + ty);
-                }
-            } catch (Throwable t) {
-                reporter.accept("GOOGLE_TEXT_VIEWPORT_LOCK",
-                        "error=" + t.getClass().getSimpleName());
-            }
-            return true;
-        };
-        try {
-            ViewTreeObserver observer = frozen.getViewTreeObserver();
-            if (observer.isAlive()) observer.addOnPreDrawListener(textViewportGuard);
-        } catch (Throwable t) {
-            removeTextViewportGuard();
-        }
-    }
-
-    private void removeTextViewportGuard() {
-        View old = frozenRef.get();
-        ViewTreeObserver.OnPreDrawListener listener = textViewportGuard;
-        frozenRef = new WeakReference<>(null);
-        textViewportGuard = null;
-        if (old == null || listener == null) return;
-        try {
-            ViewTreeObserver observer = old.getViewTreeObserver();
-            if (observer.isAlive()) observer.removeOnPreDrawListener(listener);
-        } catch (Throwable ignored) { }
-    }
-
     private void removeLayerOnMain() {
-        removeTextViewportGuard();
         ImageView layer = layerRef.get();
         SelectionView selection = selectionRef.get();
         ViewGroup parent = parentRef.get();

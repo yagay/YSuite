@@ -71,7 +71,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
     private final GoogleLensUiSanitizer uiSanitizer;
     private final GoogleBridgeSender bridgeSender;
     private final GoogleLensDiagnosticsHooks diagnosticsHooks;
-    private final GoogleLensViewportHook viewportHook;
+    private final GoogleTextViewportEngine textViewport;
     private final GoogleCanonicalFrameLayer canonicalFrameLayer;
     private final GoogleCtsLifecycleHooks lifecycleHooks;
     private final GoogleLensFrameCapture frameCapture;
@@ -97,9 +97,10 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 sessionState::selectionSeen, () -> markedActivity.get(),
                 this::currentSelectionBounds,
                 this::report);
-        this.viewportHook = new GoogleLensViewportHook(
-                module, classLoader, this::active, sessionState::selectionSeen,
-                sessionState::regionSelectionActive,
+        this.textViewport = new GoogleTextViewportEngine(
+                module, this::active,
+                () -> sessionState.selectionSeen() && !sessionState.regionSelectionActive()
+                        && !sessionState.selectionText().isBlank(),
                 () -> markedActivity.get(), this::report);
         this.canonicalFrameLayer = new GoogleCanonicalFrameLayer(
                 this::active, () -> markedActivity.get(), this::report,
@@ -116,6 +117,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                     // geometry just because FrozenImageView briefly marked a region gesture before
                     // the final text selection event arrived.
                     canonicalFrameLayer.updateLiveTextSelection(bounds);
+                    textViewport.onTextSelection();
                     if (active() && !sessionState.regionSelectionActive()) {
                         if (selectedText != null && !selectedText.isBlank()
                                 && !selectedText.equals(sessionState.selectionText())) {
@@ -166,7 +168,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
         // installed now: Selection (OCR/text/region/query bridge) and Viewport (prevent text-focus
         // auto zoom). Legacy presentation/ActionMenu/InfoPanel/dujo hooks remain in source for
         // diagnostics/rollback but are intentionally not installed.
-        hooks += viewportHook.install(capabilities.viewport);
+        hooks += textViewport.install();
         hooks += frameCapture.install(capabilities.frame);
         hooks += regionGestureHook.install(capabilities.regionGesture);
         hooks += textSelectionLiveHook.install();
@@ -308,6 +310,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                                 effectiveText, toSessionBounds(selectionBounds), regionSelection);
                         canonicalFrameLayer.updateSelection(
                                 selectionBounds, regionSelection, effectiveText);
+                        if (!regionSelection) textViewport.onTextSelection();
                     }
                     Rect effectiveBounds = currentSelectionBounds();
                     String detail = selection.detail()
@@ -496,6 +499,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
             markedActivity = new WeakReference<>(activity);
             uiSanitizer.attach(activity);
             canonicalFrameLayer.onActivityAvailable();
+            textViewport.onOwnerAvailable();
             if (name.endsWith(".LensientActivity")) {
                 final long generation = sessionState.generation();
                 for (long delay : new long[]{120L, 420L, 900L}) {
@@ -596,7 +600,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
             uiSanitizer.detach();
             bridgeSender.reset();
             regionGestureHook.reset();
-            viewportHook.reset();
+            textViewport.reset();
             canonicalFrameLayer.reset();
             markedActivity = new WeakReference<>(null);
             regionConfirmDetail = "";
@@ -654,7 +658,7 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
         voiceSession = null;
         bridgeSender.reset();
         regionGestureHook.reset();
-        viewportHook.reset();
+        textViewport.reset();
         canonicalFrameLayer.reset();
         regionConfirmDetail = "";
         uiSanitizer.detach();
