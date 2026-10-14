@@ -26,6 +26,9 @@ public interface EventDao {
     @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND event_type = :type ORDER BY posted_at DESC LIMIT 1000")
     LiveData<List<EventRecord>> observeType(String type);
 
+    @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND event_type IN ('toast', 'dialog', 'popup', 'snackbar', 'system_ui', 'other_ui') ORDER BY posted_at DESC LIMIT 1000")
+    LiveData<List<EventRecord>> observeUiEvents();
+
     @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND event_type = 'notification' AND heads_up = 1 ORDER BY posted_at DESC LIMIT 1000")
     LiveData<List<EventRecord>> observeHeadsUp();
 
@@ -40,6 +43,18 @@ public interface EventDao {
 
     @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND package_name = :packageName AND event_type = :type ORDER BY posted_at DESC LIMIT 2000")
     LiveData<List<EventRecord>> observePackageType(String packageName, String type);
+
+    @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND package_name = :packageName AND event_type IN ('toast', 'dialog', 'popup', 'snackbar', 'system_ui', 'other_ui') ORDER BY posted_at DESC LIMIT 2000")
+    LiveData<List<EventRecord>> observePackageUiEvents(String packageName);
+
+    @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND package_name = :packageName AND event_type = 'notification' AND heads_up = 1 ORDER BY posted_at DESC LIMIT 2000")
+    LiveData<List<EventRecord>> observePackageHeadsUp(String packageName);
+
+    @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND package_name = :packageName AND event_type = 'notification' AND bubble_shown = 1 ORDER BY posted_at DESC LIMIT 2000")
+    LiveData<List<EventRecord>> observePackageBubbles(String packageName);
+
+    @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND package_name = :packageName AND event_type = 'notification' AND full_screen_shown = 1 ORDER BY posted_at DESC LIMIT 2000")
+    LiveData<List<EventRecord>> observePackageFullScreens(String packageName);
 
     @Query("SELECT * FROM events WHERE merged_into_id IS NULL AND (app_label LIKE '%' || :q || '%' OR package_name LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%' OR text LIKE '%' || :q || '%' OR full_text LIKE '%' || :q || '%') ORDER BY posted_at DESC LIMIT 1000")
     LiveData<List<EventRecord>> searchFallback(String q);

@@ -17,6 +17,7 @@ import com.yagay.YNotify.data.CapturePolicy;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventStore;
 import com.yagay.YNotify.data.EventTypes;
+import com.yagay.YNotify.data.EventFilters;
 import com.yagay.YNotify.data.NotifyDatabase;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewFilterBar;
@@ -30,11 +31,14 @@ public class AppHistoryActivity extends AppCompatActivity {
     private final EventAdapter adapter = new EventAdapter();
     private LiveData<List<EventRecord>> source;
     private String pkg;
-    private String selectedType = "all";
+    private String selectedType = EventFilters.ALL;
+    private String selectedGroup = EventFilters.ALL;
     private SwitchCompat switchIgnore;
     private SwitchCompat switchRedact;
     private RecyclerView list;
-    private YViewFilterBar filters;
+    private YViewFilterBar groupFilters;
+    private YViewFilterBar notificationFilters;
+    private YViewFilterBar uiFilters;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -69,25 +73,70 @@ public class AppHistoryActivity extends AppCompatActivity {
                 (button, checked) -> CapturePolicy.setRedacted(this, pkg, checked));
         switchRedact.setEnabled(!switchIgnore.isChecked());
 
-        filters = YViewLayout.filterBar(
-                this,
-                List.of(
-                        getString(R.string.ynotify_filter_all),
-                        getString(R.string.ynotify_filter_notification),
-                        getString(R.string.ynotify_filter_toast),
-                        getString(R.string.ynotify_filter_dialog),
-                        getString(R.string.ynotify_filter_popup),
-                        getString(R.string.ynotify_filter_snackbar)),
-                0);
-        filters.group.setOnCheckedStateChangeListener((group, ids) -> {
-            if (!ids.isEmpty()) {
-                selectedType = typeForIndex(filters.indexForId(ids.get(0)));
-                observe();
-            }
+        groupFilters = YViewLayout.filterBar(this, List.of(
+                getString(R.string.ynotify_filter_all),
+                getString(R.string.ynotify_filter_notification),
+                getString(R.string.ynotify_group_ui_events)), 0);
+        notificationFilters = YViewLayout.filterBar(this, List.of(
+                getString(R.string.ynotify_filter_all_notifications),
+                getString(R.string.ynotify_filter_heads_up),
+                getString(R.string.ynotify_filter_bubble),
+                getString(R.string.ynotify_filter_full_screen)), 0);
+        uiFilters = YViewLayout.filterBar(this, List.of(
+                getString(R.string.ynotify_filter_all_ui_events),
+                getString(R.string.ynotify_filter_toast),
+                getString(R.string.ynotify_filter_dialog),
+                getString(R.string.ynotify_filter_popup),
+                getString(R.string.ynotify_filter_snackbar),
+                getString(R.string.ynotify_type_system_ui),
+                getString(R.string.ynotify_class_other_ui)), 0);
+        groupFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
+            if (ids.isEmpty()) return;
+            selectedGroup = switch (groupFilters.indexForId(ids.get(0))) {
+                case 1 -> EventFilters.NOTIFICATIONS;
+                case 2 -> EventFilters.UI_EVENTS;
+                default -> EventFilters.ALL;
+            };
+            selectedType = switch (selectedGroup) {
+                case EventFilters.NOTIFICATIONS -> EventTypes.NOTIFICATION;
+                case EventFilters.UI_EVENTS -> EventFilters.UI_EVENTS;
+                default -> EventFilters.ALL;
+            };
+            updateFilterVisibility();
+            observe();
         });
-        body.addView(filters.view, new LinearLayout.LayoutParams(
+        notificationFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
+            if (ids.isEmpty() || !EventFilters.NOTIFICATIONS.equals(selectedGroup)) return;
+            selectedType = switch (notificationFilters.indexForId(ids.get(0))) {
+                case 1 -> EventFilters.HEADS_UP;
+                case 2 -> EventFilters.BUBBLE;
+                case 3 -> EventFilters.FULL_SCREEN;
+                default -> EventTypes.NOTIFICATION;
+            };
+            observe();
+        });
+        uiFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
+            if (ids.isEmpty() || !EventFilters.UI_EVENTS.equals(selectedGroup)) return;
+            selectedType = switch (uiFilters.indexForId(ids.get(0))) {
+                case 1 -> EventTypes.TOAST;
+                case 2 -> EventTypes.DIALOG;
+                case 3 -> EventTypes.POPUP;
+                case 4 -> EventTypes.SNACKBAR;
+                case 5 -> EventTypes.SYSTEM_UI;
+                case 6 -> EventTypes.OTHER_UI;
+                default -> EventFilters.UI_EVENTS;
+            };
+            observe();
+        });
+        LinearLayout filterColumn = new LinearLayout(this);
+        filterColumn.setOrientation(LinearLayout.VERTICAL);
+        filterColumn.addView(groupFilters.view);
+        filterColumn.addView(notificationFilters.view);
+        filterColumn.addView(uiFilters.view);
+        body.addView(filterColumn, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
+        updateFilterVisibility();
 
         list = new RecyclerView(this);
         list.setLayoutManager(new LinearLayoutManager(this));
@@ -109,22 +158,26 @@ public class AppHistoryActivity extends AppCompatActivity {
         observe();
     }
 
-    private void observe() {
-        if (source != null) source.removeObservers(this);
-        source = "all".equals(selectedType)
-                ? NotifyDatabase.get(this).eventDao().observePackage(pkg)
-                : NotifyDatabase.get(this).eventDao().observePackageType(pkg, selectedType);
-        source.observe(this, adapter::submit);
+    private void updateFilterVisibility() {
+        notificationFilters.view.setVisibility(
+                EventFilters.NOTIFICATIONS.equals(selectedGroup)
+                        ? android.view.View.VISIBLE : android.view.View.GONE);
+        uiFilters.view.setVisibility(
+                EventFilters.UI_EVENTS.equals(selectedGroup)
+                        ? android.view.View.VISIBLE : android.view.View.GONE);
     }
 
-    private String typeForIndex(int index) {
-        return switch (index) {
-            case 1 -> EventTypes.NOTIFICATION;
-            case 2 -> EventTypes.TOAST;
-            case 3 -> EventTypes.DIALOG;
-            case 4 -> EventTypes.POPUP;
-            case 5 -> EventTypes.SNACKBAR;
-            default -> "all";
+    private void observe() {
+        if (source != null) source.removeObservers(this);
+        var dao = NotifyDatabase.get(this).eventDao();
+        source = switch (selectedType) {
+            case EventFilters.ALL -> dao.observePackage(pkg);
+            case EventFilters.UI_EVENTS -> dao.observePackageUiEvents(pkg);
+            case EventFilters.HEADS_UP -> dao.observePackageHeadsUp(pkg);
+            case EventFilters.BUBBLE -> dao.observePackageBubbles(pkg);
+            case EventFilters.FULL_SCREEN -> dao.observePackageFullScreens(pkg);
+            default -> dao.observePackageType(pkg, selectedType);
         };
+        source.observe(this, adapter::submit);
     }
 }

@@ -7,6 +7,9 @@
     <string name="ynotify_search_apps">Search app or package</string>
     <string name="ynotify_filter_all">All</string>
     <string name="ynotify_filter_notification">Notifications</string>
+    <string name="ynotify_group_ui_events">UI events</string>
+    <string name="ynotify_filter_all_notifications">All notifications</string>
+    <string name="ynotify_filter_all_ui_events">All UI events</string>
     <string name="ynotify_filter_heads_up">Heads-up</string>
     <string name="ynotify_filter_bubble">Bubbles</string>
     <string name="ynotify_filter_full_screen">Full screen</string>

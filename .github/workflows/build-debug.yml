@@ -110,7 +110,7 @@ jobs:
         run: python3 tools/verify_yui_row_alignment.py
 
       - name: Build YSuite debug APK
-        run: gradle --no-daemon --stacktrace :ynfc-feature:testDebugUnitTest :yfloat-feature:testDebugUnitTest :yminiguard-feature:testDebugUnitTest :ytask-feature:testDebugUnitTest :suite:assembleDebug
+        run: gradle --no-daemon --stacktrace :ynfc-feature:testDebugUnitTest :ynotify-feature:testDebugUnitTest :yfloat-feature:testDebugUnitTest :yminiguard-feature:testDebugUnitTest :ytask-feature:testDebugUnitTest :suite:assembleDebug
 
       - name: Verify debug APK ABI and Xposed entry
         shell: bash

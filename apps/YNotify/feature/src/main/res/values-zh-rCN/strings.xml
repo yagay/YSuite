@@ -6,7 +6,10 @@
     <string name="ynotify_search_timeline">搜索应用、标题、内容或包名</string>
     <string name="ynotify_search_apps">搜索应用或包名</string>
     <string name="ynotify_filter_all">全部</string>
-    <string name="ynotify_filter_notification">通知栏</string>
+    <string name="ynotify_filter_notification">通知记录</string>
+    <string name="ynotify_group_ui_events">界面事件</string>
+    <string name="ynotify_filter_all_notifications">全部通知</string>
+    <string name="ynotify_filter_all_ui_events">全部界面事件</string>
     <string name="ynotify_filter_heads_up">横幅</string>
     <string name="ynotify_filter_bubble">气泡</string>
     <string name="ynotify_filter_full_screen">全屏</string>

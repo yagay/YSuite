@@ -32,6 +32,7 @@ import com.yagay.YNotify.data.AppSummary;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventStore;
 import com.yagay.YNotify.data.EventTypes;
+import com.yagay.YNotify.data.EventFilters;
 import com.yagay.YNotify.data.HistoryRepairEngine;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.data.NotifyDatabase;
@@ -53,10 +54,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String FILTER_ALL = "all";
-    private static final String FILTER_HEADS_UP = "heads_up";
-    private static final String FILTER_BUBBLE = "bubble";
-    private static final String FILTER_FULL_SCREEN = "full_screen";
+    private static final String FILTER_ALL = EventFilters.ALL;
+    private static final String FILTER_HEADS_UP = EventFilters.HEADS_UP;
+    private static final String FILTER_BUBBLE = EventFilters.BUBBLE;
+    private static final String FILTER_FULL_SCREEN = EventFilters.FULL_SCREEN;
     private static final String PREFS = "ynotify_settings";
     private static final String ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
             "android.settings.ACCESSIBILITY_DETAILS_SETTINGS";
@@ -72,8 +73,9 @@ public class MainActivity extends AppCompatActivity {
     private View searchBox;
     private View filterScroll;
     private ScrollView settingsPanel;
-    private ChipGroup chipGroup;
-    private YViewFilterBar filterBar;
+    private YViewFilterBar groupFilterBar;
+    private YViewFilterBar notificationFilterBar;
+    private YViewFilterBar uiFilterBar;
     private RecyclerView list;
     private BottomNavigationView bottomNav;
     private TextView diagnosticsStatus;
@@ -89,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
     private LiveData<List<EventRecord>> eventSource;
     private LiveData<List<AppSummary>> appSource;
     private String selectedType = FILTER_ALL;
+    private String selectedGroup = EventFilters.ALL;
     private int mode = R.id.nav_timeline;
 
     @Override protected void onCreate(Bundle state) {
@@ -106,9 +109,30 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
-        chipGroup.setOnCheckedStateChangeListener((group, ids) -> {
+        groupFilterBar.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty()) return;
-            selectedType = typeForFilterIndex(filterBar.indexForId(ids.get(0)));
+            int index = groupFilterBar.indexForId(ids.get(0));
+            selectedGroup = switch (index) {
+                case 1 -> EventFilters.NOTIFICATIONS;
+                case 2 -> EventFilters.UI_EVENTS;
+                default -> EventFilters.ALL;
+            };
+            selectedType = switch (selectedGroup) {
+                case EventFilters.NOTIFICATIONS -> EventTypes.NOTIFICATION;
+                case EventFilters.UI_EVENTS -> EventFilters.UI_EVENTS;
+                default -> FILTER_ALL;
+            };
+            refreshFilterVisibility();
+            observeTimeline();
+        });
+        notificationFilterBar.group.setOnCheckedStateChangeListener((group, ids) -> {
+            if (ids.isEmpty() || !EventFilters.NOTIFICATIONS.equals(selectedGroup)) return;
+            selectedType = notificationTypeForIndex(notificationFilterBar.indexForId(ids.get(0)));
+            observeTimeline();
+        });
+        uiFilterBar.group.setOnCheckedStateChangeListener((group, ids) -> {
+            if (ids.isEmpty() || !EventFilters.UI_EVENTS.equals(selectedGroup)) return;
+            selectedType = uiTypeForIndex(uiFilterBar.indexForId(ids.get(0)));
             observeTimeline();
         });
 
@@ -174,24 +198,35 @@ public class MainActivity extends AppCompatActivity {
         searchBox = searchHolder;
         main.addView(searchHolder);
 
-        filterBar = YViewLayout.filterBar(
-                this,
-                List.of(
-                        getString(R.string.ynotify_filter_all),
-                        getString(R.string.ynotify_filter_notification),
-                        getString(R.string.ynotify_filter_heads_up),
-                        getString(R.string.ynotify_filter_bubble),
-                        getString(R.string.ynotify_filter_full_screen),
-                        getString(R.string.ynotify_filter_toast),
-                        getString(R.string.ynotify_filter_dialog),
-                        getString(R.string.ynotify_filter_popup),
-                        getString(R.string.ynotify_filter_snackbar)),
-                0);
-        chipGroup = filterBar.group;
-        filterScroll = filterBar.view;
+        // A content-source selector precedes its type-specific filters.
+        // The same YUI filter component renders both layers.
+        groupFilterBar = YViewLayout.filterBar(this, List.of(
+                getString(R.string.ynotify_filter_all),
+                getString(R.string.ynotify_filter_notification),
+                getString(R.string.ynotify_group_ui_events)), 0);
+        notificationFilterBar = YViewLayout.filterBar(this, List.of(
+                getString(R.string.ynotify_filter_all_notifications),
+                getString(R.string.ynotify_filter_heads_up),
+                getString(R.string.ynotify_filter_bubble),
+                getString(R.string.ynotify_filter_full_screen)), 0);
+        uiFilterBar = YViewLayout.filterBar(this, List.of(
+                getString(R.string.ynotify_filter_all_ui_events),
+                getString(R.string.ynotify_filter_toast),
+                getString(R.string.ynotify_filter_dialog),
+                getString(R.string.ynotify_filter_popup),
+                getString(R.string.ynotify_filter_snackbar),
+                getString(R.string.ynotify_type_system_ui),
+                getString(R.string.ynotify_class_other_ui)), 0);
+        LinearLayout filterColumn = new LinearLayout(this);
+        filterColumn.setOrientation(LinearLayout.VERTICAL);
+        filterColumn.addView(groupFilterBar.view);
+        filterColumn.addView(notificationFilterBar.view);
+        filterColumn.addView(uiFilterBar.view);
+        filterScroll = filterColumn;
         main.addView(filterScroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
+        refreshFilterVisibility();
 
         list = new RecyclerView(this);
         list.setClipToPadding(false);
@@ -519,6 +554,8 @@ public class MainActivity extends AppCompatActivity {
                     : NotifyDatabase.get(this).eventFtsDao().search(fts);
         } else if (FILTER_ALL.equals(selectedType)) {
             eventSource = NotifyDatabase.get(this).eventDao().observeAll();
+        } else if (EventFilters.UI_EVENTS.equals(selectedType)) {
+            eventSource = NotifyDatabase.get(this).eventDao().observeUiEvents();
         } else if (FILTER_HEADS_UP.equals(selectedType)) {
             eventSource = NotifyDatabase.get(this).eventDao().observeHeadsUp();
         } else if (FILTER_BUBBLE.equals(selectedType)) {
@@ -544,17 +581,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean matchesSelectedFilter(EventRecord r) {
         if (r == null) return false;
-        if (FILTER_ALL.equals(selectedType)) return true;
-        if (FILTER_HEADS_UP.equals(selectedType)) {
-            return EventTypes.NOTIFICATION.equals(r.eventType) && r.headsUp;
-        }
-        if (FILTER_BUBBLE.equals(selectedType)) {
-            return EventTypes.NOTIFICATION.equals(r.eventType) && r.bubbleShown;
-        }
-        if (FILTER_FULL_SCREEN.equals(selectedType)) {
-            return EventTypes.NOTIFICATION.equals(r.eventType) && r.fullScreenShown;
-        }
-        return selectedType.equals(r.eventType);
+        return EventFilters.matches(r, selectedType);
     }
 
     private void observeApps() {
@@ -566,17 +593,32 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private String typeForFilterIndex(int index) {
+    private void refreshFilterVisibility() {
+        if (notificationFilterBar == null || uiFilterBar == null) return;
+        notificationFilterBar.view.setVisibility(
+                EventFilters.NOTIFICATIONS.equals(selectedGroup) ? View.VISIBLE : View.GONE);
+        uiFilterBar.view.setVisibility(
+                EventFilters.UI_EVENTS.equals(selectedGroup) ? View.VISIBLE : View.GONE);
+    }
+
+    private String notificationTypeForIndex(int index) {
         return switch (index) {
-            case 1 -> EventTypes.NOTIFICATION;
-            case 2 -> FILTER_HEADS_UP;
-            case 3 -> FILTER_BUBBLE;
-            case 4 -> FILTER_FULL_SCREEN;
-            case 5 -> EventTypes.TOAST;
-            case 6 -> EventTypes.DIALOG;
-            case 7 -> EventTypes.POPUP;
-            case 8 -> EventTypes.SNACKBAR;
-            default -> FILTER_ALL;
+            case 1 -> FILTER_HEADS_UP;
+            case 2 -> FILTER_BUBBLE;
+            case 3 -> FILTER_FULL_SCREEN;
+            default -> EventTypes.NOTIFICATION;
+        };
+    }
+
+    private String uiTypeForIndex(int index) {
+        return switch (index) {
+            case 1 -> EventTypes.TOAST;
+            case 2 -> EventTypes.DIALOG;
+            case 3 -> EventTypes.POPUP;
+            case 4 -> EventTypes.SNACKBAR;
+            case 5 -> EventTypes.SYSTEM_UI;
+            case 6 -> EventTypes.OTHER_UI;
+            default -> EventFilters.UI_EVENTS;
         };
     }
 

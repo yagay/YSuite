@@ -60,7 +60,13 @@ public final class UiAccessibilityBridge {
         }
         if (text == null || text.isBlank()) return;
 
-        String type = classify(event, className, sourceClass);
+        boolean hasNotificationPayload = false;
+        if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
+            try { hasNotificationPayload = event.getParcelableData() instanceof Notification; }
+            catch (Throwable ignored) {}
+        }
+        String type = UiEventClassifier.classify(event.getEventType(),
+                className, sourceClass, hasNotificationPayload);
         if (type == null) return;
 
 
@@ -87,27 +93,6 @@ public final class UiAccessibilityBridge {
         r.eventKey = "a11y:" + pkg + ":" + type + ":" + now + ":" + Integer.toHexString(text.hashCode());
         if (CapturePolicy.isRedacted(app, pkg)) CapturePolicy.redact(r);
         EventStore.save(app, r);
-    }
-
-    private static String classify(AccessibilityEvent event, String className, String sourceClass) {
-        String c = (className + " " + sourceClass).toLowerCase();
-        int t = event.getEventType();
-
-        if (t == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
-            if (event.getParcelableData() instanceof Notification) return null;
-            if (c.contains("toast") || c.contains("transientnotification")) return EventTypes.TOAST;
-            // A notification is captured by NotificationListenerService, not accessibility.
-            // Non-toast SystemUI accessibility announcements are ambient UI changes.
-            return null;
-        }
-
-        if (c.contains("snackbar")) return EventTypes.SNACKBAR;
-        if (c.contains("toast") || c.contains("transientnotification")) return EventTypes.TOAST;
-        if (c.contains("popup")) return EventTypes.POPUP;
-        if (c.contains("dialog") || c.contains("alertdialog")) return EventTypes.DIALOG;
-        // No fallback classification for SystemUI or generic accessibility announcements.
-        // Clock, battery, signal, media progress and ordinary screen text are not events.
-        return null;
     }
 
     private static String join(List<CharSequence> list) {
