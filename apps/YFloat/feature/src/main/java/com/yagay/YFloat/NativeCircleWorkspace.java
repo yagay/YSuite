@@ -46,6 +46,7 @@ final class NativeCircleWorkspace extends View {
     private final FlOverlayWindowHost host;
     private final Runnable closedCallback;
     private final NativeCircleState state = new NativeCircleState();
+    private final NativeCirclePopupMenu popup;
     private final float density;
     private final Paint screenshotPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint shadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -57,9 +58,7 @@ final class NativeCircleWorkspace extends View {
     private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path dragPath = new Path();
     private final ArrayList<PointF> stroke = new ArrayList<>();
-    private final ArrayList<Command> actions = new ArrayList<>();
     private final RectF closeHit = new RectF();
-    private final RectF menuBox = new RectF();
     private final RectF firstHandle = new RectF();
     private final RectF lastHandle = new RectF();
     private final RectF[] imageHandles = {
@@ -76,12 +75,6 @@ final class NativeCircleWorkspace extends View {
     private FLCircleSelection.Selection pendingGesture;
     private float downX, downY, minX, minY, maxX, maxY;
     private String status = "";
-
-    private static final class Command {
-        final RectF bounds;
-        final Runnable action;
-        Command(RectF b, Runnable a) { bounds = b; action = a; }
-    }
 
     static synchronized boolean show(Context context, FLCircleCapture.Frame frame,
                                      Runnable onClosed) {
@@ -130,6 +123,7 @@ final class NativeCircleWorkspace extends View {
         this.host = host;
         this.frame = frame;
         closedCallback = onClosed;
+        popup = new NativeCirclePopupMenu(context, this);
         density = getResources().getDisplayMetrics().density;
         shadePaint.setColor(Color.BLACK);
         activationPaint.setStyle(Paint.Style.STROKE);
@@ -210,18 +204,9 @@ final class NativeCircleWorkspace extends View {
 
         drawActiveIndicator(canvas);
         drawClose(canvas);
-        actions.clear();
-        if (state.phase == NativeCircleState.Phase.TEXT_READY) {
-            drawContextMenu(canvas, new String[]{
-                    t("复制","Copy"),t("翻译","Translate"),t("搜索","Search"),
-                    t("分享","Share"),t("重选","Reset")});
-        } else if (state.phase == NativeCircleState.Phase.IMAGE_READY) {
-            drawContextMenu(canvas, new String[]{
-                    t("识图","Find"),t("截图","Crop"),t("复制","Copy"),
-                    t("分享","Share"),t("重选","Reset")});
-        } else {
-            menuBox.setEmpty();
-        }
+        // Commands are Android Views in NativeCirclePopupMenu, not text
+        // painted onto the frozen screenshot. The overlay only draws the
+        // selection, OCR highlights, handles and active-session indicator.
         if (state.phase == NativeCircleState.Phase.IDLE) {
             drawHint(canvas,t("圈画已开启 · 圈住图片或划选文字",
                     "Circle active · Draw around an image or text"));
@@ -343,31 +328,15 @@ final class NativeCircleWorkspace extends View {
                 tx+24*density,ty+24*density);
     }
 
-    private void drawContextMenu(Canvas canvas,String[] titles){
-        RectF selection=selectedViewBox();
-        if(selection.isEmpty())return;
-        float height=45*density;
-        float left=8*density;
-        float width=getWidth()-16*density;
-        float y=selection.top-height-12*density;
-        if(y<62*density)y=selection.bottom+12*density;
-        y=Math.min(y,getHeight()-height-10*density);
-        y=Math.max(62*density,y);
-        menuBox.set(left,y,left+width,y+height);
-        toolbarPaint.setColor(Color.argb(241,28,31,42));
-        canvas.drawRoundRect(menuBox,17*density,17*density,toolbarPaint);
-        float unit=menuBox.width()/titles.length;
-        textPaint.setTextSize(12*density);
-        Paint.FontMetrics metrics=textPaint.getFontMetrics();
-        for(int i=0;i<titles.length;i++){
-            float cx=menuBox.left+unit*(i+.5f);
-            canvas.drawText(titles[i],cx,menuBox.centerY()
-                    -(metrics.ascent+metrics.descent)/2f,textPaint);
-            final int command=i;
-            RectF hit=new RectF(menuBox.left+unit*i,menuBox.top,
-                    menuBox.left+unit*(i+1),menuBox.bottom);
-            actions.add(new Command(hit,()->handleAction(command)));
-        }
+    /** Publish the latest settled selection to a genuine floating menu. */
+    private void syncPopup() {
+        if (closed || touching || handleDrag != 0) return;
+        boolean text = state.phase == NativeCircleState.Phase.TEXT_READY;
+        boolean image = state.phase == NativeCircleState.Phase.IMAGE_READY;
+        if (!text && !image) { popup.dismiss(); return; }
+        RectF selection = selectedViewBox();
+        if (selection.isEmpty()) { popup.dismiss(); return; }
+        popup.show(selection, image, this::handleAction);
     }
 
     private void routeResolvedGesture(FLCircleSelection.Selection gesture,long token) {
@@ -473,6 +442,7 @@ final class NativeCircleWorkspace extends View {
         }
         status="";
         invalidate();
+        syncPopup();
     }
 
     private void resolveImage(FLCircleSelection.Selection gesture,long token) {
@@ -494,6 +464,7 @@ final class NativeCircleWorkspace extends View {
         pendingGesture=null;
         status="";
         invalidate();
+        syncPopup();
         DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=image kind="+gesture.kind);
     }
 
@@ -599,6 +570,7 @@ final class NativeCircleWorkspace extends View {
                 action+" failed="+ScreenCaptureBackend.safeMessage(error));
     }
     private void resetSelection(){
+        popup.dismiss();
         state.clear();chosenChars.clear();
         firstChar=lastChar=-1;pendingGesture=null;status="";
         invalidate();
@@ -610,9 +582,9 @@ final class NativeCircleWorkspace extends View {
         float x=event.getX(),y=event.getY();
         if(action==MotionEvent.ACTION_DOWN){
             if(closeHit.contains(x,y)){dismissActive("close");return true;}
-            for(Command item:actions)if(item.bounds.contains(x,y)){
-                item.action.run();return true;
-            }
+            // The menu owns its own touchable popup window. Any touch in the
+            // canvas begins a handle adjustment or fresh selection instead.
+            popup.dismiss();
             if(state.phase==NativeCircleState.Phase.TEXT_READY){
                 if(firstHandle.contains(x,y)){handleDrag=1;return true;}
                 if(lastHandle.contains(x,y)){handleDrag=2;return true;}
@@ -642,8 +614,14 @@ final class NativeCircleWorkspace extends View {
             if(action==MotionEvent.ACTION_MOVE||action==MotionEvent.ACTION_UP){
                 if(handleDrag<=2)adjustTextHandle(x,y);
                 else adjustImageHandle(x,y);
-                if(action==MotionEvent.ACTION_UP)handleDrag=0;
-            }else if(action==MotionEvent.ACTION_CANCEL)handleDrag=0;
+                if(action==MotionEvent.ACTION_UP) {
+                    handleDrag=0;
+                    syncPopup();
+                }
+            }else if(action==MotionEvent.ACTION_CANCEL){
+                handleDrag=0;
+                syncPopup();
+            }
             invalidate();
             return true;
         }
@@ -723,6 +701,7 @@ final class NativeCircleWorkspace extends View {
     private void close(String reason) {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
+        popup.dismiss();
         host.remove(this,"native_circle_"+reason);
         if(closedCallback!=null)closedCallback.run();
         DiagnosticLog.i(app,"CIRCLE_NATIVE","closed "+reason);
