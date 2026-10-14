@@ -98,8 +98,23 @@ public class AppHistoryActivity extends AppCompatActivity {
                 default -> EventFilters.ALL;
             };
             selectedType = switch (selectedGroup) {
-                case EventFilters.NOTIFICATIONS -> EventTypes.NOTIFICATION;
-                case EventFilters.UI_EVENTS -> EventFilters.UI_EVENTS;
+                case EventFilters.NOTIFICATIONS -> switch (
+                        notificationFilters.indexForId(notificationFilters.group.getCheckedChipId())) {
+                    case 1 -> EventFilters.HEADS_UP;
+                    case 2 -> EventFilters.BUBBLE;
+                    case 3 -> EventFilters.FULL_SCREEN;
+                    default -> EventTypes.NOTIFICATION;
+                };
+                case EventFilters.UI_EVENTS -> switch (
+                        uiFilters.indexForId(uiFilters.group.getCheckedChipId())) {
+                    case 1 -> EventTypes.TOAST;
+                    case 2 -> EventTypes.DIALOG;
+                    case 3 -> EventTypes.POPUP;
+                    case 4 -> EventTypes.SNACKBAR;
+                    case 5 -> EventTypes.SYSTEM_UI;
+                    case 6 -> EventTypes.OTHER_UI;
+                    default -> EventFilters.UI_EVENTS;
+                };
                 default -> EventFilters.ALL;
             };
             updateFilterVisibility();

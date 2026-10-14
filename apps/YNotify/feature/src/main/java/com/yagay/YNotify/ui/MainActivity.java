@@ -117,9 +117,12 @@ public class MainActivity extends AppCompatActivity {
                 case 2 -> EventFilters.UI_EVENTS;
                 default -> EventFilters.ALL;
             };
+            // Preserve the selected detail chip when switching between groups.
             selectedType = switch (selectedGroup) {
-                case EventFilters.NOTIFICATIONS -> EventTypes.NOTIFICATION;
-                case EventFilters.UI_EVENTS -> EventFilters.UI_EVENTS;
+                case EventFilters.NOTIFICATIONS -> notificationTypeForIndex(
+                        notificationFilterBar.indexForId(notificationFilterBar.group.getCheckedChipId()));
+                case EventFilters.UI_EVENTS -> uiTypeForIndex(
+                        uiFilterBar.indexForId(uiFilterBar.group.getCheckedChipId()));
                 default -> FILTER_ALL;
             };
             refreshFilterVisibility();
