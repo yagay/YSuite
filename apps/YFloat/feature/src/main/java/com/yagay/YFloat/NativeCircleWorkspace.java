@@ -81,6 +81,9 @@ final class NativeCircleWorkspace extends View {
         if (context == null || frame == null || frame.bitmap == null
                 || frame.bitmap.isRecycled()) return false;
         dismissActive("replace");
+        // Menus are not workflow-bound; a previous text menu must not be reused
+        // with stale selection callbacks by the new frozen workspace.
+        FloatActionMenu.dismiss();
         Context app = context.getApplicationContext();
         Rect display = ScreenGeometry.displayBounds(app);
         Rect bounds = frame.screenBounds;
@@ -147,35 +150,67 @@ final class NativeCircleWorkspace extends View {
 
     private void startOcr() {
         if (ocrBusy) return;
+        // The frozen frame may be recycled as soon as the user finishes a crop.
+        // OCR runs asynchronously and must own its bitmap until the recognizer
+        // has reported completion. Never pass that soon-to-be-recycled frame.
+        final Bitmap input;
+        try {
+            input = frame.bitmap.copy(Bitmap.Config.ARGB_8888, false);
+            if (input == null) throw new IllegalStateException("OCR bitmap copy failed");
+        } catch (Throwable error) {
+            ocrBusy = false;
+            status = t("文字识别不可用，截图仍可使用",
+                    "Text recognition unavailable; image crops still work");
+            DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                    "ocr snapshot failed=" + ScreenCaptureBackend.safeMessage(error));
+            invalidate();
+            return;
+        }
         ocrBusy = true;
         status = t("正在识别屏幕文字", "Recognizing screen text");
-        CircleStableOcr.recognizeFullScreenSelected(app, frame.bitmap,
-                new OcrEngine.DocumentCallback() {
-            @Override public void onSuccess(OcrDocument result) {
-                MAIN.post(() -> {
-                    if (closed) return;
-                    fullDocument = frame.transform.documentBitmapToScreen(result);
-                    ocrBusy = false;
-                    status = "";
-                    FLCircleSelection.Selection pending = pendingGesture;
-                    if (pending != null) routeResolvedGesture(pending, gestureRevision);
-                    invalidate();
-                });
-            }
-            @Override public void onFailure(Throwable failure) {
-                MAIN.post(() -> {
-                    if (closed) return;
-                    ocrBusy = false;
-                    status = t("无法识别文字，仍可圈选图片",
-                            "Text unavailable; circle an image instead");
-                    FLCircleSelection.Selection pending = pendingGesture;
-                    if (pending != null) resolveImage(pending, gestureRevision);
-                    invalidate();
-                    DiagnosticLog.i(app, "CIRCLE_NATIVE",
-                            "ocr unavailable=" + ScreenCaptureBackend.safeMessage(failure));
-                });
-            }
-        });
+        try {
+            CircleStableOcr.recognizeFullScreenSelected(app, input,
+                    new OcrEngine.DocumentCallback() {
+                @Override public void onSuccess(OcrDocument result) {
+                    recycleOcrBitmap(input);
+                    MAIN.post(() -> {
+                        if (closed) return;
+                        fullDocument = frame.transform.documentBitmapToScreen(result);
+                        ocrBusy = false;
+                        status = "";
+                        FLCircleSelection.Selection pending = pendingGesture;
+                        if (pending != null) routeResolvedGesture(pending, gestureRevision);
+                        invalidate();
+                    });
+                }
+                @Override public void onFailure(Throwable failure) {
+                    recycleOcrBitmap(input);
+                    MAIN.post(() -> {
+                        if (closed) return;
+                        ocrBusy = false;
+                        status = t("无法识别文字，仍可圈选图片",
+                                "Text unavailable; circle an image instead");
+                        FLCircleSelection.Selection pending = pendingGesture;
+                        if (pending != null) resolveImage(pending, gestureRevision);
+                        invalidate();
+                        DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                                "ocr unavailable=" + ScreenCaptureBackend.safeMessage(failure));
+                    });
+                }
+            });
+        } catch (Throwable error) {
+            recycleOcrBitmap(input);
+            ocrBusy = false;
+            status = t("文字识别不可用，截图仍可使用",
+                    "Text recognition unavailable; image crops still work");
+            DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                    "ocr start failed=" + ScreenCaptureBackend.safeMessage(error));
+            invalidate();
+        }
+    }
+
+    private static void recycleOcrBitmap(Bitmap bitmap) {
+        if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
     }
 
     @Override protected void onDraw(Canvas canvas) {
@@ -487,6 +522,19 @@ final class NativeCircleWorkspace extends View {
         // The stroke is feedback only. The selected region is its bounding
         // rectangle and can be previewed while OCR intent is still resolving.
         routeResolvedGesture(gesture,gestureRevision);
+        if (pendingGesture == gesture && ocrBusy) {
+            long token = gestureRevision;
+            // OCR engines/models may stall. A text stroke still must resolve
+            // to an editable crop instead of leaving the canvas unresponsive.
+            MAIN.postDelayed(() -> {
+                if (closed || state.phase != NativeCircleState.Phase.RESOLVING
+                        || state.revision != token || pendingGesture != gesture) return;
+                DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                        "text OCR timeout; falling back to image crop");
+                pendingGesture = null;
+                resolveImage(gesture, token);
+            }, 4000L);
+        }
         invalidate();
     }
 

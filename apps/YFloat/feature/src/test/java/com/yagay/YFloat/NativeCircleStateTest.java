@@ -23,6 +23,17 @@ public class NativeCircleStateTest {
         assertEquals(NativeCircleState.Intent.IMAGE,state.intent);
         assertTrue(state.canFinishImage());
     }
+    @Test public void completedImageSelectionCannotBeOverriddenByLateText() {
+        NativeCircleState state=new NativeCircleState();
+        state.begin(20,30);
+        state.bounds(20,30,180,220);
+        state.resolving();
+        long token=state.revision;
+        assertTrue(state.resolveImage(token,20,30,180,220));
+        assertFalse(state.resolveText(token,"late OCR",20,30,180,220));
+        assertEquals(NativeCircleState.Phase.IMAGE_READY,state.phase);
+        assertTrue(state.canFinishImage());
+    }
     @Test public void closeIsTerminal() {
         NativeCircleState state=new NativeCircleState();
         state.close();assertFalse(state.begin(1,2));
