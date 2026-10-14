@@ -7,7 +7,7 @@ checks = {
  "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/AppAdapter.java": ["YView.styleListIcon(h.b.appIcon)"],
  "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/EventAdapter.java": ["YView.styleListIcon(h.b.appIcon)"],
  "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatActionMenu.java": ['YOverlayUi.actionHeightPx(app, "yfloat")', "ImageMenuSettings.primaryCount(app,actions.size())", "private static void attachOverlay("],
- "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ImageActionMenu.java": ["FloatActionMenu.showImageAt(app,where,false,index ->"],
+ "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ImageActionMenu.java": ["FloatActionMenu.showImageAt(app,where,false,action ->"],
  "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ResultUi.java": ["static int actionHeight(Context c)"],
  "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ViewHoverOverlay.java": ["SelectionVisuals.drawFittedText("],
  "apps/YFloat/feature/src/main/java/com/yagay/YFloat/EditableRegionOverlay.java": ["SelectionVisuals.drawFittedText("],
