@@ -1,117 +1,93 @@
 package com.yagay.YFloat;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
 
-/** Entry point for the YFloat exact content-selection workflow. */
+/**
+ * Native Circle entry. The only business owner for capture, frozen canvas and
+ * finish/rollback. Former FLCircleInlineOverlay and GoogleCtsTrigger are not
+ * installed or invoked by this workflow.
+ */
 final class FLCircleController {
-    private static CaptureTransaction pendingTransaction;
-    private static WorkflowSessionManager.Session pendingSession;
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static CaptureTransaction pending;
+    private static WorkflowSessionManager.Session current;
 
-    static synchronized void show(Context c) {
-        Context app = c.getApplicationContext();
-        WorkflowSessionManager.Session session = WorkflowSessionManager.begin(
-                app, WorkflowSessionManager.Type.CIRCLE, "fl_circle");
-        WorkflowSessionManager.transition(app, session,
-                WorkflowSessionManager.Phase.CAPTURING, "fl_circle_capture");
+    static synchronized void show(Context context) {
+        if (context == null) return;
+        Context app = context.getApplicationContext();
+        NativeCircleWorkspace.dismissActive("replaced");
+        cancelPrevious(app);
 
-        FLCircleInlineOverlay.dismissActive("restart");
-        CircleActiveBorderOverlay.hide(app, "restart");
-        cancelPendingLocked(app);
+        WorkflowSessionManager.Session session=WorkflowSessionManager.begin(
+                app,WorkflowSessionManager.Type.CIRCLE,"native_circle");
+        WorkflowSessionManager.transition(app,session,
+                WorkflowSessionManager.Phase.CAPTURING,"native_capture");
+        CaptureTransaction tx=CaptureTransaction.begin(app,"native_circle")
+                .hideFloatingIcon("native_circle_"+session.id())
+                .hideCircleBorder("native_circle_capture");
+        pending=tx;
+        current=session;
 
-        CaptureTransaction transaction = CaptureTransaction.begin(app, "fl_circle")
-                .hideFloatingIcon("fl_circle_" + session.id());
-        pendingTransaction = transaction;
-        pendingSession = session;
-        FloatSettings fs = new FloatSettings(app);
-        DiagnosticLog.i(app, "FL_CIRCLE", "start workflow=" + session.id()
-                + " phase=capture_then_fullscreen_ocr"
-                + " fullEngine=" + CircleStableOcr.fullModeLabel(app)
-                + " fullMode=" + fs.circleFullOcrEngine()
-                + " correctionEngine=" + CircleStableOcr.correctionModeLabel(app)
-                + " correctionMode=" + fs.circleCorrectionEngine()
-                + " textRecognition=full_once_plus_optional_per_gesture_correction"
-                + " layoutDetection=disabled paragraphStitching=disabled"
-                + " backgroundOcr=false tileOcr=false fullFrameOcr=true"
-                + " viewText=false semanticLabels=false contentHints=false"
-                + " gestureGeometry=exact_path"
-                + " tapSelection=precise_char_or_latin_word"
-                + " circleMode=editable_screenshot autoExpand=false");
-
-        FLCircleCapture.capture(app, frame -> {
-            if (!session.current()) {
+        DiagnosticLog.i(app,"CIRCLE_NATIVE","begin workflow="+session.id()
+                +" source=local_capture googleHook=false");
+        FLCircleCapture.capture(app,frame->MAIN.post(()->{
+            if(!session.current()||pending!=tx){
                 frame.recycle();
-                transaction.close();
+                tx.close();
                 return;
             }
-
-            // Initialize per-frame OCR state. Full-screen recognition starts on the first text
-            // gesture and is cached. Optional PP correction is then evaluated on every text gesture.
-            FLCircleTextResolver.preload(app, frame);
-
-            boolean shown = FLCircleInlineOverlay.show(app, frame, () -> {
-                FLCircleTextResolver.release(app, frame, "workspace_closed");
-                CircleActiveBorderOverlay.hide(app, "workspace_closed");
-                restore(app, transaction, session, "closed");
+            boolean opened=NativeCircleWorkspace.show(app,frame,()->{
+                frame.recycle();
+                complete(app,tx,session,"workspace_closed");
             });
-            if (!shown) {
-                FLCircleTextResolver.release(app, frame, "overlay_failed");
+            if(!opened){
                 frame.recycle();
-                CircleActiveBorderOverlay.hide(app, "overlay_failed");
-                restore(app, transaction, session, "overlay_failed");
-                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_3e282a4690cb), Toast.LENGTH_SHORT).show();
+                WorkflowSessionManager.fail(app,session,"native_workspace_failed");
+                complete(app,tx,session,"show_failed");
+                Toast.makeText(app,"Circle canvas unavailable",
+                        Toast.LENGTH_SHORT).show();
                 return;
             }
-
-            CircleActiveBorderOverlay.show(app);
-            WorkflowSessionManager.transition(app, session,
-                    WorkflowSessionManager.Phase.SELECTING, "circle_overlay_visible");
-
-            transaction.overlayReady("fl_circle",
-                    collapsed -> {
-                        if (!session.current()) return;
-                        DiagnosticLog.i(app, "FL_CIRCLE", "shade cleanup collapsed="
-                                + collapsed + " workflow=" + session.id());
-                        FLCircleInlineOverlay.promoteActiveFocus(
-                                collapsed ? "shade_collapsed" : "shade_cleanup_finished");
-                    });
-        }, error -> {
-            if (!session.current()) {
-                transaction.close();
-                return;
+            WorkflowSessionManager.transition(app,session,
+                    WorkflowSessionManager.Phase.SELECTING,"native_canvas_visible");
+            tx.overlayReady("native_circle_ready",
+                    collapsed->NativeCircleWorkspace.promoteFocus(
+                            collapsed?"shade_closed":"shade_settled"));
+        }),error->MAIN.post(()->{
+            if(pending!=tx||!session.current()){
+                tx.close();return;
             }
-            CircleActiveBorderOverlay.hide(app, "capture_failed");
-            WorkflowSessionManager.fail(app, session, "capture_failed");
-            restore(app, transaction, session, "capture_failed");
-            DiagnosticLog.i(app, "FL_CIRCLE", "capture failed="
-                    + ScreenCaptureBackend.safeMessage(error));
-            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ba7abd8858e1)
-                    + ScreenCaptureBackend.safeMessage(error), Toast.LENGTH_LONG).show();
-        });
+            WorkflowSessionManager.fail(app,session,"native_capture_failed");
+            complete(app,tx,session,"capture_failed");
+            String message=ScreenCaptureBackend.safeMessage(error);
+            DiagnosticLog.i(app,"CIRCLE_NATIVE","capture failed="+message);
+            Toast.makeText(app,"Screenshot unavailable: "+message,
+                    Toast.LENGTH_LONG).show();
+        }));
     }
 
-    private static void restore(Context app, CaptureTransaction transaction,
-                                WorkflowSessionManager.Session session, String reason) {
-        transaction.close();
-        synchronized (FLCircleController.class) {
-            if (pendingTransaction == transaction) pendingTransaction = null;
-            if (pendingSession == session) pendingSession = null;
-        }
-        if (session.current()) WorkflowSessionManager.finish(app, session, reason);
-        DiagnosticLog.i(app, "FL_CIRCLE", "finish workflow=" + session.id()
-                + " reason=" + reason);
+    private static synchronized void complete(Context app,CaptureTransaction tx,
+                                              WorkflowSessionManager.Session session,
+                                              String reason) {
+        if(pending==tx)pending=null;
+        if(current==session)current=null;
+        tx.close();
+        if(session.current())WorkflowSessionManager.finish(app,session,reason);
+        DiagnosticLog.i(app,"CIRCLE_NATIVE","finished="+reason);
     }
 
-    private static void cancelPendingLocked(Context app) {
-        CaptureTransaction transaction = pendingTransaction;
-        WorkflowSessionManager.Session session = pendingSession;
-        pendingTransaction = null;
-        pendingSession = null;
-        if (transaction != null) transaction.close();
-        if (session != null && session.current()) {
-            WorkflowSessionManager.cancel(app, session, "circle_replaced");
-        }
+    private static void cancelPrevious(Context app) {
+        CaptureTransaction prior=pending;
+        WorkflowSessionManager.Session session=current;
+        pending=null;
+        current=null;
+        if(prior!=null)prior.close();
+        if(session!=null&&session.current())
+            WorkflowSessionManager.cancel(app,session,"new_native_circle");
     }
 
-    private FLCircleController() {}
+    private FLCircleController(){}
 }

@@ -63,6 +63,8 @@ final class NativeCircleWorkspace extends View {
     private boolean closed;
     private String status = "";
     private boolean touching;
+    private float startBitmapX;
+    private float startBitmapY;
 
     private static final class Action {
         final String title;
@@ -372,6 +374,8 @@ final class NativeCircleWorkspace extends View {
             }
             PointF p=frame.viewToBitmap(x,y,getWidth(),getHeight());
             state.begin(p.x,p.y);
+            startBitmapX=p.x;
+            startBitmapY=p.y;
             touching=true;points.clear();points.add(p);
             strokePath.reset();strokePath.moveTo(x,y);
             status="";
@@ -388,7 +392,7 @@ final class NativeCircleWorkspace extends View {
             PointF p=frame.viewToBitmap(x,y,getWidth(),getHeight());
             points.add(p);
             strokePath.lineTo(x,y);
-            state.bounds(state.left,state.top,p.x,p.y);
+            state.bounds(startBitmapX,startBitmapY,p.x,p.y);
             invalidate();return true;
         }
         if(action==MotionEvent.ACTION_CANCEL){touching=false;state.clear();invalidate();return true;}
