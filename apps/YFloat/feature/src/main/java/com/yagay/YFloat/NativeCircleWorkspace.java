@@ -49,6 +49,8 @@ final class NativeCircleWorkspace extends View {
     private final float density;
     private final Paint screenshotPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint shadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint activationPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint activationBadgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -65,7 +67,6 @@ final class NativeCircleWorkspace extends View {
     };
     private final RectF imageDragOrigin = new RectF();
 
-    private Path chosenShape;
     private OcrDocument fullDocument;
     private ArrayList<OcrDocument.CharUnit> chosenChars = new ArrayList<>();
     private int firstChar = -1, lastChar = -1;
@@ -130,7 +131,11 @@ final class NativeCircleWorkspace extends View {
         this.frame = frame;
         closedCallback = onClosed;
         density = getResources().getDisplayMetrics().density;
-        shadePaint.setColor(Color.argb(55, 0, 0, 0));
+        shadePaint.setColor(Color.BLACK);
+        activationPaint.setStyle(Paint.Style.STROKE);
+        activationPaint.setStrokeWidth(2f * density);
+        activationPaint.setColor(YFloatOverlayStyle.selectionColor(app));
+        activationBadgePaint.setColor(Color.argb(237, 23, 31, 45));
         outlinePaint.setStyle(Paint.Style.STROKE);
         outlinePaint.setStrokeWidth(2.4f * density);
         outlinePaint.setColor(YFloatOverlayStyle.selectionColor(app));
@@ -184,6 +189,10 @@ final class NativeCircleWorkspace extends View {
         if (closed || frame.bitmap.isRecycled()) return;
         int w = getWidth(), h = getHeight();
         canvas.drawBitmap(frame.bitmap, null, new Rect(0,0,w,h), screenshotPaint);
+        // Mask ownership lives inside this single canvas, not in a second
+        // screenshot layer. It clearly signals an active frozen session.
+        int maskAlpha = NativeCircleVisualPolicy.baseScrimAlpha(state.phase);
+        if (maskAlpha > 0) canvas.drawColor(Color.argb(maskAlpha, 0, 0, 0));
 
         if (state.phase == NativeCircleState.Phase.DRAWING) {
             canvas.drawPath(dragPath, outlinePaint);
@@ -193,9 +202,13 @@ final class NativeCircleWorkspace extends View {
             drawTextSelection(canvas);
         } else if (state.phase == NativeCircleState.Phase.RESOLVING) {
             RectF box = selectedViewBox();
-            if (!box.isEmpty()) canvas.drawRoundRect(box, 9*density,9*density,outlinePaint);
+            if (!box.isEmpty()) {
+                dimOutside(canvas, box, NativeCircleVisualPolicy.SELECTION_OUTSIDE_ALPHA);
+                canvas.drawRoundRect(box, 10*density,10*density,outlinePaint);
+            }
         }
 
+        drawActiveIndicator(canvas);
         drawClose(canvas);
         actions.clear();
         if (state.phase == NativeCircleState.Phase.TEXT_READY) {
@@ -210,11 +223,45 @@ final class NativeCircleWorkspace extends View {
             menuBox.setEmpty();
         }
         if (state.phase == NativeCircleState.Phase.IDLE) {
-            drawHint(canvas,t("圈画、点按或划选屏幕内容",
-                    "Circle, tap or highlight anything"));
+            drawHint(canvas,t("圈画已开启 · 圈住图片或划选文字",
+                    "Circle active · Draw around an image or text"));
         } else if (state.phase == NativeCircleState.Phase.RESOLVING || !status.isBlank()) {
             drawHint(canvas,status);
         }
+    }
+
+    private void drawActiveIndicator(Canvas canvas) {
+        float margin=3f*density;
+        float right=Math.max(margin+2f,getWidth()-margin);
+        float bottom=Math.max(margin+2f,getHeight()-margin);
+        canvas.drawRoundRect(new RectF(margin,margin,right,bottom),
+                11f*density,11f*density,activationPaint);
+        // Keep a persistent, highly visible but compact active-state pill.
+        String text=t("圈画已开启","Circle active");
+        float pillLeft=10f*density;
+        float pillTop=12f*density;
+        float pillWidth=(Locale.getDefault().getLanguage().equals("zh")?112f:127f)*density;
+        RectF pill=new RectF(pillLeft,pillTop,pillLeft+pillWidth,pillTop+40f*density);
+        canvas.drawRoundRect(pill,20f*density,20f*density,activationBadgePaint);
+        float radius=4.5f*density;
+        Paint dot=fillPaint;
+        int before=dot.getColor();
+        dot.setColor(YFloatOverlayStyle.selectionColor(app));
+        canvas.drawCircle(pill.left+18f*density,pill.centerY(),radius,dot);
+        dot.setColor(before);
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(12f*density);
+        Paint.FontMetrics fm=textPaint.getFontMetrics();
+        canvas.drawText(text,pill.centerX()+7f*density,
+                pill.centerY()-(fm.ascent+fm.descent)*.5f,textPaint);
+    }
+
+    private static void dimOutside(Canvas canvas,RectF selection,int alpha) {
+        if (selection==null||selection.isEmpty())return;
+        canvas.save();
+        canvas.clipOutRect(selection);
+        canvas.drawColor(Color.argb(alpha,0,0,0));
+        canvas.restore();
     }
 
     private void drawHint(Canvas canvas,String message) {
@@ -258,14 +305,10 @@ final class NativeCircleWorkspace extends View {
     private void drawImageRegion(Canvas canvas) {
         RectF r=selectedViewBox();
         if(r.isEmpty())return;
-        Path shape=chosenShape;
-        canvas.save();
-        if(shape!=null)canvas.clipOutPath(shape);
-        else canvas.clipOutRect(r);
-        canvas.drawColor(Color.argb(70,0,0,0));
-        canvas.restore();
-        if(shape!=null) canvas.drawPath(shape,outlinePaint);
-        else canvas.drawRoundRect(r,10*density,10*density,outlinePaint);
+        // Always show the rectangular crop that the screenshot result will
+        // actually use; the transient hand-drawn lasso is never the crop mask.
+        dimOutside(canvas,r,NativeCircleVisualPolicy.SELECTION_OUTSIDE_ALPHA);
+        canvas.drawRoundRect(r,10*density,10*density,outlinePaint);
         float[] xs={r.left,r.right,r.right,r.left};
         float[] ys={r.top,r.top,r.bottom,r.bottom};
         for(int i=0;i<4;i++){
@@ -428,7 +471,6 @@ final class NativeCircleWorkspace extends View {
             state.updateText(text.toString(),inBitmap.left,inBitmap.top,
                     inBitmap.right,inBitmap.bottom);
         }
-        chosenShape=null;
         status="";
         invalidate();
     }
@@ -448,8 +490,7 @@ final class NativeCircleWorkspace extends View {
         if(!state.resolveImage(token,selection.left,selection.top,
                 selection.right,selection.bottom))return;
         chosenChars.clear(); firstChar=lastChar=-1;
-        chosenShape=gesture.kind==FLCircleSelection.Kind.CIRCLE
-                ?new Path(dragPath):null;
+        // Image intent always resolves to a rectangle with four resize handles.
         pendingGesture=null;
         status="";
         invalidate();
@@ -467,8 +508,8 @@ final class NativeCircleWorkspace extends View {
         if(!state.resolving())return;
         gestureRevision=state.revision;
         pendingGesture=gesture;
-        // Need to keep the lasso Path before the stroke is cleared.
-        if(gesture.kind==FLCircleSelection.Kind.CIRCLE) chosenShape=new Path(dragPath);
+        // The stroke is feedback only. The selected region is its bounding
+        // rectangle and can be previewed while OCR intent is still resolving.
         routeResolvedGesture(gesture,gestureRevision);
         invalidate();
     }
@@ -558,7 +599,7 @@ final class NativeCircleWorkspace extends View {
                 action+" failed="+ScreenCaptureBackend.safeMessage(error));
     }
     private void resetSelection(){
-        state.clear();chosenShape=null;chosenChars.clear();
+        state.clear();chosenChars.clear();
         firstChar=lastChar=-1;pendingGesture=null;status="";
         invalidate();
     }
@@ -593,7 +634,7 @@ final class NativeCircleWorkspace extends View {
             handleDrag=0;
             stroke.clear();stroke.add(bitmap);
             dragPath.reset();dragPath.moveTo(x,y);
-            chosenShape=null;chosenChars.clear();firstChar=lastChar=-1;
+            chosenChars.clear();firstChar=lastChar=-1;
             pendingGesture=null;status="";
             invalidate();return true;
         }
@@ -650,7 +691,6 @@ final class NativeCircleWorkspace extends View {
         float r=Math.min(frame.bitmap.getWidth(),Math.max(x1,x2));
         float b=Math.min(frame.bitmap.getHeight(),Math.max(y1,y2));
         if(r-l<2f || b-t<2f)return;
-        chosenShape=null; // Edits convert a freeform lasso to an explicit crop.
         state.bounds(l,t,r,b);
     }
 
