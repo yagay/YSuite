@@ -18,6 +18,7 @@ import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventStore;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.EventFilters;
+import com.yagay.YNotify.data.NotificationFilterCatalog;
 import com.yagay.YNotify.data.NotifyDatabase;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewFilterBar;
@@ -38,6 +39,11 @@ public class AppHistoryActivity extends AppCompatActivity {
     private RecyclerView list;
     private YViewFilterBar groupFilters;
     private YViewFilterBar notificationFilters;
+    private YViewFilterBar notificationKindFilters;
+    private View notificationKindTitle;
+    private View notificationSurfaceTitle;
+    private NotificationFilterCatalog.Kind selectedNotificationKind = NotificationFilterCatalog.Kind.ALL;
+    private String selectedNotificationPresentation = EventFilters.NOTIFICATIONS;
     private YViewFilterBar uiFilters;
 
     @Override protected void onCreate(Bundle state) {
@@ -77,8 +83,10 @@ public class AppHistoryActivity extends AppCompatActivity {
                 getString(R.string.ynotify_filter_all),
                 getString(R.string.ynotify_filter_notification),
                 getString(R.string.ynotify_group_ui_events)), 0);
+        notificationKindFilters = YViewLayout.filterBar(this,
+                NotificationFilterCatalog.labels(this), 0);
         notificationFilters = YViewLayout.filterBar(this, List.of(
-                getString(R.string.ynotify_filter_all_notifications),
+                getString(R.string.ynotify_filter_surface_any),
                 getString(R.string.ynotify_filter_heads_up),
                 getString(R.string.ynotify_filter_bubble),
                 getString(R.string.ynotify_filter_full_screen)), 0);
@@ -93,16 +101,23 @@ public class AppHistoryActivity extends AppCompatActivity {
         groupFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty()) return;
             selectedGroup = EventFilters.groupAt(groupFilters.indexForId(ids.get(0)));
-            selectedType = EventFilters.selectedTypeForGroup(
-                    selectedGroup,
-                    notificationFilters.indexForId(notificationFilters.group.getCheckedChipId()),
-                    uiFilters.indexForId(uiFilters.group.getCheckedChipId()));
+            selectedType = EventFilters.NOTIFICATIONS.equals(selectedGroup)
+                    ? EventFilters.NOTIFICATIONS
+                    : EventFilters.selectedTypeForGroup(selectedGroup,0,
+                            uiFilters.indexForId(uiFilters.group.getCheckedChipId()));
             updateFilterVisibility();
             observe();
         });
         notificationFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty() || !EventFilters.NOTIFICATIONS.equals(selectedGroup)) return;
-            selectedType = EventFilters.notificationAt(notificationFilters.indexForId(ids.get(0)));
+            selectedNotificationPresentation =
+                    EventFilters.notificationAt(notificationFilters.indexForId(ids.get(0)));
+            observe();
+        });
+        notificationKindFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
+            if (ids.isEmpty() || !EventFilters.NOTIFICATIONS.equals(selectedGroup)) return;
+            selectedNotificationKind = NotificationFilterCatalog.at(
+                    notificationKindFilters.indexForId(ids.get(0)));
             observe();
         });
         uiFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
@@ -113,6 +128,13 @@ public class AppHistoryActivity extends AppCompatActivity {
         LinearLayout filterColumn = new LinearLayout(this);
         filterColumn.setOrientation(LinearLayout.VERTICAL);
         filterColumn.addView(groupFilters.view);
+        notificationKindTitle = YViewLayout.sectionNote(this,
+                getString(R.string.ynotify_filter_kind_section));
+        notificationSurfaceTitle = YViewLayout.sectionNote(this,
+                getString(R.string.ynotify_filter_surface_section));
+        filterColumn.addView(notificationKindTitle);
+        filterColumn.addView(notificationKindFilters.view);
+        filterColumn.addView(notificationSurfaceTitle);
         filterColumn.addView(notificationFilters.view);
         filterColumn.addView(uiFilters.view);
         body.addView(filterColumn, new LinearLayout.LayoutParams(
@@ -141,9 +163,15 @@ public class AppHistoryActivity extends AppCompatActivity {
     }
 
     private void updateFilterVisibility() {
-        notificationFilters.view.setVisibility(
-                EventFilters.NOTIFICATIONS.equals(selectedGroup)
-                        ? android.view.View.VISIBLE : android.view.View.GONE);
+        boolean showNotification = EventFilters.NOTIFICATIONS.equals(selectedGroup);
+        notificationKindTitle.setVisibility(showNotification
+                ? android.view.View.VISIBLE : android.view.View.GONE);
+        notificationKindFilters.view.setVisibility(showNotification
+                ? android.view.View.VISIBLE : android.view.View.GONE);
+        notificationSurfaceTitle.setVisibility(showNotification
+                ? android.view.View.VISIBLE : android.view.View.GONE);
+        notificationFilters.view.setVisibility(showNotification
+                ? android.view.View.VISIBLE : android.view.View.GONE);
         uiFilters.view.setVisibility(
                 EventFilters.UI_EVENTS.equals(selectedGroup)
                         ? android.view.View.VISIBLE : android.view.View.GONE);
@@ -162,6 +190,20 @@ public class AppHistoryActivity extends AppCompatActivity {
             case EventTypes.NOTIFICATION -> dao.observePackageNotifications(pkg);
             default -> dao.observePackageType(pkg, selectedType);
         };
-        source.observe(this, adapter::submit);
+        final String filter = selectedType;
+        final NotificationFilterCatalog.Kind kind = selectedNotificationKind;
+        final String presentation = selectedNotificationPresentation;
+        source.observe(this, rows -> {
+            if (!EventFilters.NOTIFICATIONS.equals(filter)) {
+                adapter.submit(rows);
+                return;
+            }
+            java.util.ArrayList<EventRecord> filtered = new java.util.ArrayList<>();
+            if (rows != null) for (EventRecord record : rows) {
+                if (EventFilters.matchesNotification(record,kind,presentation))
+                    filtered.add(record);
+            }
+            adapter.submit(filtered);
+        });
     }
 }

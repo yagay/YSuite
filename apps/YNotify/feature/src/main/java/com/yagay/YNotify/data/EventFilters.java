@@ -66,6 +66,15 @@ public final class EventFilters {
         if(isUiType(filter))return isUiEventRecord(r)&&filter.equals(r.eventType);
         return filter.equals(r.eventType);
     }
+    /** Intersect the semantic notification category with its actual presentation. */
+    public static boolean matchesNotification(EventRecord event,
+            NotificationFilterCatalog.Kind kind,String presentation) {
+        return isNotificationRecord(event)
+                && NotificationFilterCatalog.matches(event,kind)
+                && (presentation==null || NOTIFICATIONS.equals(presentation)
+                    || matches(event,presentation));
+    }
+
     private static boolean nonBlank(String s){return s!=null&&!s.isBlank();}
     private EventFilters(){}
 }
