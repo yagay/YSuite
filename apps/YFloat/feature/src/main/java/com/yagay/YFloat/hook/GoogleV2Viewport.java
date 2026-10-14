@@ -55,8 +55,9 @@ final class GoogleV2Viewport {
                 Method method = View.class.getMethod(name, float.class);
                 module.hook(method).intercept(chain -> {
                     Object obj = chain.getThisObject();
-                    if (obj instanceof View view && owned.getAsBoolean()
+                    if (obj instanceof View view
                             && FROZEN.equals(view.getClass().getName())
+                            && owned.getAsBoolean()
                             && chain.getArg(0) instanceof Float requested
                             && GoogleV2ScenePolicy.shouldBlockTransform(
                                     true, name, requested)) {
