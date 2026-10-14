@@ -144,12 +144,17 @@ def check() -> None:
     # NotificationListenerService owns notifications; SystemUI clock and
     # other status text must not be persisted as generic events.
     a11y = source("apps/YNotify/feature/src/main/java/com/yagay/YNotify/collector/UiAccessibilityBridge.java")
-    if 'return EventTypes.SYSTEM_UI;' in a11y or 'return EventTypes.OTHER_UI;' in a11y:
+    classifier = source("apps/YNotify/feature/src/main/java/com/yagay/YNotify/collector/UiEventClassifier.java")
+    if "UiEventClassifier.classify(" not in a11y:
+        raise AssertionError("YNotify accessibility bypasses its shared UI event classifier")
+    if 'return EventTypes.SYSTEM_UI;' in classifier or 'return EventTypes.OTHER_UI;' in classifier:
         raise AssertionError("YNotify still records generic status/announcement changes")
-    for marker in ("return EventTypes.TOAST;", "return EventTypes.SNACKBAR;",
-                   "return EventTypes.POPUP;", "return EventTypes.DIALOG;"):
-        if marker not in a11y:
+    for marker in ("EventTypes.TOAST", "EventTypes.SNACKBAR",
+                   "EventTypes.POPUP", "EventTypes.DIALOG"):
+        if marker not in classifier:
             raise AssertionError("YNotify lost explicit UI capture: " + marker)
+    if "TYPE_WINDOW_STATE_CHANGED" not in classifier or "TYPE_NOTIFICATION_STATE_CHANGED" not in classifier:
+        raise AssertionError("YNotify UI classification must be gated by window/notification events")
     hook_receiver = source("apps/YNotify/feature/src/main/java/com/yagay/YNotify/collector/XposedEventReceiver.java")
     permitted = hook_receiver.split("private static boolean allowedType(String type)", 1)[1].split("private static boolean validPackage", 1)[0]
     if "EventTypes.SYSTEM_UI.equals(type)" in permitted or "EventTypes.OTHER_UI.equals(type)" in permitted:
