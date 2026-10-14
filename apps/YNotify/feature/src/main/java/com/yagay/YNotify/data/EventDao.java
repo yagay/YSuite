@@ -18,7 +18,7 @@ public interface EventDao {
             + "source LIKE '%notification_listener%' "
             + "OR (notification_key IS NOT NULL AND notification_key <> '') "
             + "OR (channel_id IS NOT NULL AND channel_id <> '') "
-            + "OR instance_id IS NOT NULL OR original_event_type = 'notification')))";
+            + "OR instance_id IS NOT NULL OR COALESCE(original_event_type, '') = 'notification')))";
     String UI_MATCH =
             "(event_type IN ('toast', 'dialog', 'popup', 'snackbar', 'system_ui', 'other_ui') "
             + "AND NOT " + NOTIFICATION_MATCH + ")";
