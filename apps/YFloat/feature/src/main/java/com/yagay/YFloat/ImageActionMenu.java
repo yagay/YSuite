@@ -1,126 +1,35 @@
 package com.yagay.YFloat;
 
-import com.yagay.yui.YUiGeometry;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.PixelFormat;
 import android.graphics.Rect;
-import android.view.Gravity;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
-/** Image actions using the same floating-menu UI/positioning foundation as text actions. */
+/** Compatibility entry point using the one YFloat text/image selection menu host. */
 public final class ImageActionMenu {
-    private static FlOverlayWindowHost activeHost;
-    private static View activeView;
-    private static final OverlayRegistry.Owner OVERLAY_OWNER = new OverlayRegistry.Owner() {
-        @Override public void onAccessibilityHostChanged(boolean available) {
-            FlOverlayWindowHost host = activeHost;
-            if (!available && host != null && host.isAccessibilityHosted()) dismiss();
-        }
-        @Override public void onDisplayGeometryChanged() { dismiss(); }
-    };
-
-    public static synchronized void show(Context c, Bitmap image, Rect anchor) {
-        if (c == null || image == null || image.isRecycled()) return;
-        dismiss();
-
-        Context app = c.getApplicationContext();
-        WindowManager wm = (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
-        if (wm == null) return;
-        FlOverlayWindowHost host = new FlOverlayWindowHost(app);
-
-        LinearLayout root = FloatingMenuUi.root(app);
-        int inset = com.yagay.yui.YOverlayUi.contentPaddingPx(app, "yfloat");
-        root.setPadding(inset, inset, inset, inset);
-
-        TextView copy = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2141db002cc3), null);
-        TextView share = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bd0e3d6f4b1d), null);
-        TextView openWith = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c41a0fcaa12b), null);
-        TextView save = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_34cebf59ef93), null);
-        root.addView(copy, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
-        root.addView(share, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
-        root.addView(openWith, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
-        root.addView(save, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        root.setOnTouchListener((v, e) -> {
-            if (e.getActionMasked() == MotionEvent.ACTION_OUTSIDE) {
-                dismiss();
-                return true;
-            }
-            return false;
-        });
-
-        Rect usable = ScreenGeometry.usableBounds(app);
-        int maxAvailableWidth = Math.max(1, usable.width() - inset * 2);
-        int width = YUiGeometry.overlayMenuWidthPx(app, "yfloat", maxAvailableWidth);
-        int rowHeight = Math.max(com.yagay.yui.YOverlayUi.actionHeightPx(app, "yfloat"),
-                com.yagay.yui.YView.rowHeight(
-                        com.yagay.yui.YOverlayUi.scopedContext(app, "yfloat")));
-        int height = Math.min(usable.height(), rowHeight * 4 + inset * 2);
-        int[] pos = FloatingMenuPositioner.aroundAnchor(app, usable, anchor, width, height, true);
-
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
-                width,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-                        | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.TOP | Gravity.START;
-        lp.x = pos[0];
-        lp.y = pos[1];
-
-        if (host.add(root, lp, "image_action_menu")) {
-            activeHost = host;
-            activeView = root;
-            OverlayRegistry.register("image_action_menu", OVERLAY_OWNER);
-            DiagnosticLog.i(app, "IMAGE_ACTION_MENU", "SHOW anchor="
-                    + (anchor == null ? "none" : anchor.toShortString())
-                    + " pos=" + lp.x + "," + lp.y
-                    + " actions=copy/share/open/save"
-                    + " ui=FloatingMenuUi positioner=FloatingMenuPositioner"
-                    + " accessibilityHost=" + host.isAccessibilityHosted()
-                    + " type=" + lp.type);
-        } else {
-            DiagnosticLog.i(app, "IMAGE_ACTION_MENU", "SHOW_FAILED all hosts");
-            return;
-        }
-
-        copy.setOnClickListener(v -> {
-            dismiss();
-            ImageShareUtils.copyToClipboard(app, image);
-        });
-        share.setOnClickListener(v -> {
-            dismiss();
-            ImageShareUtils.share(app, image);
-        });
-        openWith.setOnClickListener(v -> {
-            dismiss();
-            ImageShareUtils.openWith(app, image);
-        });
-        save.setOnClickListener(v -> {
-            dismiss();
-            ScreenshotController.save(app, image);
+    public static void show(Context c, Bitmap image, Rect anchor) {
+        if(c==null||image==null||image.isRecycled())return;
+        Context app=c.getApplicationContext();
+        Rect usable=ScreenGeometry.usableBounds(app);
+        Rect where=anchor==null||anchor.isEmpty()
+                ? new Rect(usable.centerX(),usable.centerY(),
+                        usable.centerX()+1,usable.centerY()+1)
+                : new Rect(anchor);
+        FloatActionMenu.showImageAt(app,where,false,index -> {
+            // The source bitmap belongs to the caller; never recycle it here.
+            if(image.isRecycled())return;
+            if(index==ImageMenuSettings.index(ImageMenuSettings.FIND))
+                ImageShareUtils.openWith(app,image);
+            else if(index==ImageMenuSettings.index(ImageMenuSettings.COPY))
+                ImageShareUtils.copyToClipboard(app,image);
+            else if(index==ImageMenuSettings.index(ImageMenuSettings.SHARE))
+                ImageShareUtils.share(app,image);
+            else if(index==ImageMenuSettings.index(ImageMenuSettings.SAVE))
+                ScreenshotController.save(app,image);
         });
     }
 
-    public static synchronized void dismiss() {
-        View view = activeView;
-        FlOverlayWindowHost host = activeHost;
-        activeView = null;
-        activeHost = null;
-        OverlayRegistry.unregister("image_action_menu", OVERLAY_OWNER);
-        if (view != null && host != null) host.remove(view, "image_action_menu");
-    }
-
-    private static int dp(Context c, int v) {
-        return FloatingMenuUi.dp(c, v);
+    public static void dismiss() {
+        FloatActionMenu.dismissImage();
     }
 
     private ImageActionMenu() {}

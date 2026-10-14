@@ -46,7 +46,6 @@ final class NativeCircleWorkspace extends View {
     private final FlOverlayWindowHost host;
     private final Runnable closedCallback;
     private final NativeCircleState state = new NativeCircleState();
-    private final NativeCirclePopupMenu popup;
     private final float density;
     private final Paint screenshotPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint shadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -126,7 +125,6 @@ final class NativeCircleWorkspace extends View {
         this.host = host;
         this.frame = frame;
         closedCallback = onClosed;
-        popup = new NativeCirclePopupMenu(context, this);
         density = getResources().getDisplayMetrics().density;
         shadePaint.setColor(Color.BLACK);
         activationPaint.setStyle(Paint.Style.STROKE);
@@ -246,7 +244,7 @@ final class NativeCircleWorkspace extends View {
 
         drawActiveIndicator(canvas);
         drawClose(canvas);
-        // Commands are Android Views in NativeCirclePopupMenu, not text
+        // Commands are Android Views in FloatActionMenu, not text
         // painted onto the frozen screenshot. The overlay only draws the
         // selection, OCR highlights, handles and active-session indicator.
         if (state.phase == NativeCircleState.Phase.IDLE) {
@@ -370,38 +368,34 @@ final class NativeCircleWorkspace extends View {
                 tx+24*density,ty+24*density);
     }
 
-    /** Text uses the existing YFloat menu; image cropping uses its YUI action adapter. */
+    /** One menu host for both OCR text and selected image rectangles. */
     private void syncPopup() {
         if (closed || touching || handleDrag != 0) return;
         boolean text = state.phase == NativeCircleState.Phase.TEXT_READY;
         boolean image = state.phase == NativeCircleState.Phase.IMAGE_READY;
         if (!text && !image) {
-            popup.dismiss();
             FloatActionMenu.dismiss();
             return;
         }
         RectF selection = selectedViewBox();
         if (selection.isEmpty()) {
-            popup.dismiss();
             FloatActionMenu.dismiss();
             return;
         }
+        int[] origin = new int[2];
+        getLocationOnScreen(origin);
+        Rect screenBounds = new Rect(
+                Math.round(origin[0] + selection.left),
+                Math.round(origin[1] + selection.top),
+                Math.round(origin[0] + selection.right),
+                Math.round(origin[1] + selection.bottom));
         if (text) {
-            popup.dismiss();
             if (!state.selectedText.isBlank()) {
-                int[] origin = new int[2];
-                getLocationOnScreen(origin);
-                Rect screenBounds = new Rect(
-                        Math.round(origin[0] + selection.left),
-                        Math.round(origin[1] + selection.top),
-                        Math.round(origin[0] + selection.right),
-                        Math.round(origin[1] + selection.bottom));
                 FloatActionMenu.showTextAt(app, state.selectedText,
                         this::selectAllText, screenBounds);
             }
         } else {
-            FloatActionMenu.dismiss();
-            popup.show(selection, this::handleAction);
+            FloatActionMenu.showImageAt(app, screenBounds, true, this::handleAction);
         }
     }
 
@@ -558,53 +552,35 @@ final class NativeCircleWorkspace extends View {
         invalidate();
     }
 
-    private void handleAction(int index){
-        if(state.phase==NativeCircleState.Phase.TEXT_READY) {
-            String text=state.selectedText;
-            if(index==4){resetSelection();return;}
-            if(index==0){
-                ClipboardManager clipboard=(ClipboardManager)
-                        app.getSystemService(Context.CLIPBOARD_SERVICE);
-                if(clipboard!=null)clipboard.setPrimaryClip(
-                        ClipData.newPlainText("YFloat",text));
-                Toast.makeText(app,t("已复制","Copied"),Toast.LENGTH_SHORT).show();
-            } else if(index==1){
-                dismissActive("translate");
-                String lang=Locale.getDefault().getLanguage().equals("zh")?"en":"zh-CN";
-                openWeb("https://translate.google.com/?sl=auto&tl="+lang+
-                        "&text="+encode(text)+"&op=translate");
-            } else if(index==2){
-                dismissActive("text_search");
-                openWeb("https://www.google.com/search?q="+encode(text));
-            } else if(index==3){
-                dismissActive("text_share");
-                try {
-                    Intent intent=new Intent(Intent.ACTION_SEND).setType("text/plain")
-                            .putExtra(Intent.EXTRA_TEXT,text);
-                    app.startActivity(Intent.createChooser(intent,t("分享文字","Share text"))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                }catch(Throwable failure){traceError("text_share",failure);}
-            }
+    private void handleAction(int index) {
+        if(state.phase!=NativeCircleState.Phase.IMAGE_READY)return;
+        if(index==ImageMenuSettings.index(ImageMenuSettings.RESET)) {
+            resetSelection();
             return;
         }
-        if(state.phase!=NativeCircleState.Phase.IMAGE_READY)return;
-        if(index==5){resetSelection();return;}
         Bitmap image=selectedImage();
         if(image==null)return;
-        if(index==0) {
+        if(index==ImageMenuSettings.index(ImageMenuSettings.DONE)) {
             Rect source=frame.bitmapRectToScreen(selectedBitmapRect());
             dismissActive("image_result");
             boolean shown=ResultSurfaceRouter.showScreenshot(app,image,source);
             if(!shown&&!image.isRecycled())image.recycle();
             return;
         }
-        if(index==1||index==3)dismissActive(index==1?"image_find":"image_share");
+        if(index==ImageMenuSettings.index(ImageMenuSettings.FIND)
+                || index==ImageMenuSettings.index(ImageMenuSettings.SHARE))
+            dismissActive(index==ImageMenuSettings.index(ImageMenuSettings.FIND)
+                    ? "image_find":"image_share");
         try {
-            if(index==1)ImageShareUtils.openWith(app,image);
-            else if(index==2)ImageShareUtils.copyToClipboard(app,image);
-            else if(index==3)ImageShareUtils.share(app,image);
-            else if(index==4)ScreenshotController.save(app,image);
-        }finally {
+            if(index==ImageMenuSettings.index(ImageMenuSettings.FIND))
+                ImageShareUtils.openWith(app,image);
+            else if(index==ImageMenuSettings.index(ImageMenuSettings.COPY))
+                ImageShareUtils.copyToClipboard(app,image);
+            else if(index==ImageMenuSettings.index(ImageMenuSettings.SHARE))
+                ImageShareUtils.share(app,image);
+            else if(index==ImageMenuSettings.index(ImageMenuSettings.SAVE))
+                ScreenshotController.save(app,image);
+        } finally {
             if(!image.isRecycled())image.recycle();
         }
     }
@@ -643,7 +619,6 @@ final class NativeCircleWorkspace extends View {
                 action+" failed="+ScreenCaptureBackend.safeMessage(error));
     }
     private void resetSelection(){
-        popup.dismiss();
         FloatActionMenu.dismiss();
         state.clear();chosenChars.clear();
         firstChar=lastChar=-1;pendingGesture=null;status="";
@@ -658,7 +633,6 @@ final class NativeCircleWorkspace extends View {
             if(closeHit.contains(x,y)){dismissActive("close");return true;}
             // The menu owns its own touchable popup window. Any touch in the
             // canvas begins a handle adjustment or fresh selection instead.
-            popup.dismiss();
             FloatActionMenu.dismiss();
             if(state.phase==NativeCircleState.Phase.TEXT_READY){
                 if(firstHandle.contains(x,y)){handleDrag=1;return true;}
@@ -776,7 +750,6 @@ final class NativeCircleWorkspace extends View {
     private void close(String reason) {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
-        popup.destroy();
         FloatActionMenu.dismiss();
         host.remove(this,"native_circle_"+reason);
         if(closedCallback!=null)closedCallback.run();
