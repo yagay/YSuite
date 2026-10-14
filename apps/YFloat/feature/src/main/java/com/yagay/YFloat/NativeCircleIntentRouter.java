@@ -5,9 +5,10 @@ final class NativeCircleIntentRouter {
     enum Route { NEED_OCR, IMAGE }
 
     static Route classify(String kind, boolean ocrReady) {
-        // A closed lasso targets an image/object even when text appears inside.
-        if ("CIRCLE".equals(kind)) return Route.IMAGE;
-        // Taps and strokes first try OCR and may fall back to an image.
+        // Closed or free-form region strokes target the cropped image immediately,
+        // without waiting for screen OCR or checking recognized text coverage.
+        if ("CIRCLE".equals(kind) || "SCRIBBLE".equals(kind)) return Route.IMAGE;
+        // Taps and horizontal text highlights first try OCR.
         return Route.NEED_OCR;
     }
     private NativeCircleIntentRouter(){}

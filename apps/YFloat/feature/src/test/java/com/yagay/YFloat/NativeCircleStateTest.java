@@ -31,6 +31,12 @@ public class NativeCircleStateTest {
     @Test public void closedLassoIsImageAndStrokesPreferOcr() {
         assertEquals(NativeCircleIntentRouter.Route.IMAGE,
                 NativeCircleIntentRouter.classify("CIRCLE",false));
+        assertEquals(NativeCircleIntentRouter.Route.IMAGE,
+                NativeCircleIntentRouter.classify("CIRCLE",true));
+        assertEquals(NativeCircleIntentRouter.Route.IMAGE,
+                NativeCircleIntentRouter.classify("SCRIBBLE",false));
+        assertEquals(NativeCircleIntentRouter.Route.IMAGE,
+                NativeCircleIntentRouter.classify("SCRIBBLE",true));
         assertEquals(NativeCircleIntentRouter.Route.NEED_OCR,
                 NativeCircleIntentRouter.classify("TAP",false));
         assertEquals(NativeCircleIntentRouter.Route.NEED_OCR,

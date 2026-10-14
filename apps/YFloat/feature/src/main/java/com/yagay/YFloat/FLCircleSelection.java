@@ -86,8 +86,10 @@ final class FLCircleSelection {
                     && heightForClassification >= minShapePx
                     && closure <= Math.max(minShapePx, diagonal * 0.34f);
 
-            if (highlight) kind = Kind.HIGHLIGHT;
-            else if (closed) kind = Kind.CIRCLE;
+            // A thin/flat lasso may also meet the highlight aspect ratio;
+            // actual closure takes precedence over text highlighting.
+            if (closed) kind = Kind.CIRCLE;
+            else if (highlight) kind = Kind.HIGHLIGHT;
             else kind = Kind.SCRIBBLE;
 
             bounds = new RectF(minX, minY, maxX, maxY);

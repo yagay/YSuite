@@ -504,6 +504,7 @@ public final class FloatActionMenu {
         dismiss();
         resetLockedRow();
         FLCircleInlineOverlay.dismissActive("external_text_action_" + reason);
+        NativeCircleWorkspace.dismissActive("external_text_action_" + reason);
         DiagnosticLog.i(app, "FLOAT_ACTION_MENU", "external prepare reason=" + reason);
         MAIN.post(() -> {
             try {

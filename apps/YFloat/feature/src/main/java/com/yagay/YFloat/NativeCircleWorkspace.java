@@ -328,21 +328,62 @@ final class NativeCircleWorkspace extends View {
                 tx+24*density,ty+24*density);
     }
 
-    /** Publish the latest settled selection to a genuine floating menu. */
+    /** Text uses the existing YFloat menu; image cropping uses its YUI action adapter. */
     private void syncPopup() {
         if (closed || touching || handleDrag != 0) return;
         boolean text = state.phase == NativeCircleState.Phase.TEXT_READY;
         boolean image = state.phase == NativeCircleState.Phase.IMAGE_READY;
-        if (!text && !image) { popup.dismiss(); return; }
+        if (!text && !image) {
+            popup.dismiss();
+            FloatActionMenu.dismiss();
+            return;
+        }
         RectF selection = selectedViewBox();
-        if (selection.isEmpty()) { popup.dismiss(); return; }
-        popup.show(selection, image, this::handleAction);
+        if (selection.isEmpty()) {
+            popup.dismiss();
+            FloatActionMenu.dismiss();
+            return;
+        }
+        if (text) {
+            popup.dismiss();
+            if (!state.selectedText.isBlank()) {
+                int[] origin = new int[2];
+                getLocationOnScreen(origin);
+                Rect screenBounds = new Rect(
+                        Math.round(origin[0] + selection.left),
+                        Math.round(origin[1] + selection.top),
+                        Math.round(origin[0] + selection.right),
+                        Math.round(origin[1] + selection.bottom));
+                FloatActionMenu.showTextAt(app, state.selectedText,
+                        this::selectAllText, screenBounds);
+            }
+        } else {
+            FloatActionMenu.dismiss();
+            popup.show(selection, this::handleAction);
+        }
+    }
+
+    private void selectAllText() {
+        if (closed || fullDocument == null
+                || state.phase != NativeCircleState.Phase.TEXT_READY
+                || fullDocument.chars().isEmpty()) return;
+        firstChar = 0;
+        lastChar = fullDocument.chars().size() - 1;
+        applyTextIndices(state.revision, false);
+        // FloatActionMenu closes itself after Select all: republish next loop.
+        MAIN.post(this::syncPopup);
     }
 
     private void routeResolvedGesture(FLCircleSelection.Selection gesture,long token) {
         if(closed||gesture==null||state.phase!=NativeCircleState.Phase.RESOLVING
                 ||token!=state.revision)return;
         pendingGesture=null;
+        // Screenshot intent must never wait for OCR or be reclassified by text inside it.
+        if (NativeCircleIntentRouter.classify(gesture.kind.name(),
+                fullDocument != null) == NativeCircleIntentRouter.Route.IMAGE) {
+            resolveImage(gesture, token);
+            return;
+        }
         if(fullDocument==null){
             if(ocrBusy) { pendingGesture=gesture;status=t("正在识别…","Recognizing…"); }
             else resolveImage(gesture,token);
@@ -350,11 +391,6 @@ final class NativeCircleWorkspace extends View {
             return;
         }
         List<OcrDocument.CharUnit> all=fullDocument.chars();
-        if(gesture.kind==FLCircleSelection.Kind.CIRCLE){
-            if(resolveEnclosedText(gesture,token,all))return;
-            resolveImage(gesture,token);
-            return;
-        }
         List<CircleGestureTextSelector.GroupHit> groups=CircleGestureTextSelector.hitGroups(
                 app,frame,gesture,fullDocument,10f,10f);
         if(groups.isEmpty()) {
@@ -380,37 +416,6 @@ final class NativeCircleWorkspace extends View {
         firstChar=first;lastChar=last;
         applyTextIndices(token,true);
         DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
-    }
-
-    private boolean resolveEnclosedText(FLCircleSelection.Selection gesture,
-                                        long token, List<OcrDocument.CharUnit> all) {
-        if(gesture.points.size()<4 || all.isEmpty())return false;
-        float[] path=new float[gesture.points.size()*2];
-        for(int i=0;i<gesture.points.size();i++){
-            PointF p=gesture.points.get(i);
-            path[2*i]=p.x;path[2*i+1]=p.y;
-        }
-        int first=-1,last=-1,count=0;
-        float ink=0f;
-        for(int i=0;i<all.size();i++){
-            OcrDocument.CharUnit ch=all.get(i);
-            Rect box=frame.screenRectToBitmap(ch.bounds());
-            if(box.isEmpty())continue;
-            if(NativeCircleLassoText.contains(path,box.exactCenterX(),
-                    box.exactCenterY())){
-                if(first<0)first=i;
-                last=i;count++;
-                ink+=box.width()*box.height();
-            }
-        }
-        float regionArea=Math.max(1f,gesture.bounds.width()*gesture.bounds.height());
-        float fraction=Math.min(1f,ink/regionArea);
-        if(!NativeCircleLassoText.preferText(count,fraction))return false;
-        firstChar=first;lastChar=last;
-        applyTextIndices(token,true);
-        DiagnosticLog.i(app,"CIRCLE_NATIVE",
-                "auto route=enclosed_text count="+count+" coverage="+fraction);
-        return state.phase==NativeCircleState.Phase.TEXT_READY;
     }
 
     private void applyTextIndices(long token,boolean initial) {
@@ -515,22 +520,22 @@ final class NativeCircleWorkspace extends View {
             return;
         }
         if(state.phase!=NativeCircleState.Phase.IMAGE_READY)return;
-        if(index==4){resetSelection();return;}
+        if(index==5){resetSelection();return;}
         Bitmap image=selectedImage();
         if(image==null)return;
-        if(index==1) {
-            Rect source=frame.bitmapRectToScreen(
-                    frame.screenRectToBitmap(frame.bitmapRectToScreen(selectedBitmapRect())));
+        if(index==0) {
+            Rect source=frame.bitmapRectToScreen(selectedBitmapRect());
             dismissActive("image_result");
             boolean shown=ResultSurfaceRouter.showScreenshot(app,image,source);
             if(!shown&&!image.isRecycled())image.recycle();
             return;
         }
-        if(index==0||index==3)dismissActive(index==0?"image_find":"image_share");
+        if(index==1||index==3)dismissActive(index==1?"image_find":"image_share");
         try {
-            if(index==0)ImageShareUtils.openWith(app,image);
+            if(index==1)ImageShareUtils.openWith(app,image);
             else if(index==2)ImageShareUtils.copyToClipboard(app,image);
             else if(index==3)ImageShareUtils.share(app,image);
+            else if(index==4)ScreenshotController.save(app,image);
         }finally {
             if(!image.isRecycled())image.recycle();
         }
@@ -571,6 +576,7 @@ final class NativeCircleWorkspace extends View {
     }
     private void resetSelection(){
         popup.dismiss();
+        FloatActionMenu.dismiss();
         state.clear();chosenChars.clear();
         firstChar=lastChar=-1;pendingGesture=null;status="";
         invalidate();
@@ -585,6 +591,7 @@ final class NativeCircleWorkspace extends View {
             // The menu owns its own touchable popup window. Any touch in the
             // canvas begins a handle adjustment or fresh selection instead.
             popup.dismiss();
+            FloatActionMenu.dismiss();
             if(state.phase==NativeCircleState.Phase.TEXT_READY){
                 if(firstHandle.contains(x,y)){handleDrag=1;return true;}
                 if(lastHandle.contains(x,y)){handleDrag=2;return true;}
@@ -702,6 +709,7 @@ final class NativeCircleWorkspace extends View {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
         popup.destroy();
+        FloatActionMenu.dismiss();
         host.remove(this,"native_circle_"+reason);
         if(closedCallback!=null)closedCallback.run();
         DiagnosticLog.i(app,"CIRCLE_NATIVE","closed "+reason);
