@@ -275,11 +275,16 @@ final class NativeCircleWorkspace extends View {
                 Toast.makeText(app,title("已复制","Copied"),Toast.LENGTH_SHORT).show();
             }else if(index==1){
                 String target=Locale.getDefault().getLanguage().equals("zh")?"en":"zh-CN";
+                // Release the full-screen touch owner before opening any
+                // external activity; otherwise the browser is obscured.
+                dismissActive("translate_action");
                 openWeb("https://translate.google.com/?sl=auto&tl="+target
                         +"&text="+encode(text)+"&op=translate");
             }else if(index==2){
+                dismissActive("search_action");
                 openWeb("https://www.google.com/search?q="+encode(text));
             }else if(index==3){
+                dismissActive("share_action");
                 try{
                     Intent share=new Intent(Intent.ACTION_SEND);
                     share.setType("text/plain");
