@@ -197,4 +197,19 @@
     <string name="ynotify_reason_assistant_cancel">通知助理取消</string>
     <string name="ynotify_reason_unknown">未知</string>
     <string name="ynotify_reason_system">系统原因 %1$d</string>
+    <string name="ynotify_group_communication">消息通信</string>
+    <string name="ynotify_group_reminders">提醒日程</string>
+    <string name="ynotify_group_media_travel">媒体出行</string>
+    <string name="ynotify_group_downloads">下载任务</string>
+    <string name="ynotify_group_system_services">系统服务</string>
+    <string name="ynotify_group_other">其他</string>
+    <string name="ynotify_filter_advanced">高级筛选</string>
+    <string name="ynotify_filter_collapse">收起筛选</string>
+    <string name="ynotify_filter_detail_kind">具体通知类型</string>
+    <string name="ynotify_filter_status">通知状态</string>
+    <string name="ynotify_filter_state_any">任意状态</string>
+    <string name="ynotify_filter_state_silent">静默</string>
+    <string name="ynotify_filter_state_ongoing">常驻</string>
+    <string name="ynotify_filter_state_foreground">前台服务</string>
+    <string name="ynotify_filter_reset">重置高级筛选</string>
 </resources>

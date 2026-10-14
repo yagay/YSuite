@@ -109,6 +109,79 @@ public class NotificationFilterCatalogTest {
                 NotificationFilterCatalog.Kind.MESSAGE, EventFilters.HEADS_UP));
     }
 
+    @Test public void primaryGroupsCoverEveryDetailedNotificationType() {
+        assertEquals(7,NotificationFilterCatalog.Group.values().length);
+        for(NotificationFilterCatalog.Kind kind:NotificationFilterCatalog.Kind.values()) {
+            if(kind==NotificationFilterCatalog.Kind.ALL)continue;
+            NotificationFilterCatalog.Group group=NotificationFilterCatalog.groupOf(kind);
+            assertNotEquals(NotificationFilterCatalog.Group.ALL,group);
+            assertTrue("Missing "+kind,NotificationFilterCatalog.kindsFor(group).contains(kind));
+            assertTrue(NotificationFilterCatalog.kindsFor(NotificationFilterCatalog.Group.ALL)
+                    .contains(kind));
+        }
+    }
+
+    @Test public void basicCategoriesCannotDisappearBehindAdvancedConditions() {
+        EventRecord normal=new EventRecord();
+        assertTrue(EventFilters.matchesNotification(normal,
+                NotificationFilterCatalog.Group.OTHER,
+                NotificationFilterCatalog.Kind.ALL,
+                EventFilters.NOTIFICATIONS,
+                NotificationFilterCatalog.Status.ANY));
+        assertFalse(EventFilters.matchesNotification(normal,
+                NotificationFilterCatalog.Group.COMMUNICATION,
+                NotificationFilterCatalog.Kind.ALL,
+                EventFilters.NOTIFICATIONS,
+                NotificationFilterCatalog.Status.ANY));
+
+        EventRecord msg=new EventRecord();
+        msg.category="msg";
+        msg.headsUp=true;
+        assertTrue(EventFilters.matchesNotification(msg,
+                NotificationFilterCatalog.Group.COMMUNICATION,
+                NotificationFilterCatalog.Kind.MESSAGE,
+                EventFilters.HEADS_UP,
+                NotificationFilterCatalog.Status.ANY));
+        assertFalse(EventFilters.matchesNotification(msg,
+                NotificationFilterCatalog.Group.MEDIA_TRAVEL,
+                NotificationFilterCatalog.Kind.MESSAGE,
+                EventFilters.HEADS_UP,
+                NotificationFilterCatalog.Status.ANY));
+    }
+
+    @Test public void notificationStateFiltersAreIndependentOfContent() {
+        EventRecord message=new EventRecord();
+        message.category="msg";
+        message.ongoing=true;
+        message.silent=true;
+        message.foregroundService=true;
+        for(NotificationFilterCatalog.Status state: new NotificationFilterCatalog.Status[]{
+                NotificationFilterCatalog.Status.SILENT,
+                NotificationFilterCatalog.Status.ONGOING,
+                NotificationFilterCatalog.Status.FOREGROUND_SERVICE}) {
+            assertTrue(EventFilters.matchesNotification(message,
+                    NotificationFilterCatalog.Group.COMMUNICATION,
+                    NotificationFilterCatalog.Kind.ALL,
+                    EventFilters.NOTIFICATIONS,state));
+        }
+        EventRecord other=new EventRecord();
+        assertFalse(EventFilters.matchesNotification(other,
+                NotificationFilterCatalog.Group.OTHER,
+                NotificationFilterCatalog.Kind.ALL,
+                EventFilters.NOTIFICATIONS,
+                NotificationFilterCatalog.Status.SILENT));
+    }
+
+    @Test public void advancedKindChoicesStayWithinSelectedPrimaryGroup() {
+        for(NotificationFilterCatalog.Group group:NotificationFilterCatalog.Group.values()){
+            assertEquals(NotificationFilterCatalog.Kind.ALL,
+                    NotificationFilterCatalog.kindsFor(group).get(0));
+            for(NotificationFilterCatalog.Kind kind:NotificationFilterCatalog.kindsFor(group))
+                if(group!=NotificationFilterCatalog.Group.ALL && kind!=NotificationFilterCatalog.Kind.ALL)
+                    assertEquals(group,NotificationFilterCatalog.groupOf(kind));
+        }
+    }
+
     @Test public void unknownCategoryIsVisibleUnderOtherNotLost() {
         EventRecord record=new EventRecord();
         record.category="new_oem_category";

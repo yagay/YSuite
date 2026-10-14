@@ -197,4 +197,19 @@
     <string name="ynotify_reason_assistant_cancel">Notification assistant cancelled it</string>
     <string name="ynotify_reason_unknown">Unknown</string>
     <string name="ynotify_reason_system">System reason %1$d</string>
+    <string name="ynotify_group_communication">Communication</string>
+    <string name="ynotify_group_reminders">Reminders & schedule</string>
+    <string name="ynotify_group_media_travel">Media & travel</string>
+    <string name="ynotify_group_downloads">Downloads & progress</string>
+    <string name="ynotify_group_system_services">System & services</string>
+    <string name="ynotify_group_other">Other</string>
+    <string name="ynotify_filter_advanced">Advanced filters</string>
+    <string name="ynotify_filter_collapse">Collapse filters</string>
+    <string name="ynotify_filter_detail_kind">Detailed notification type</string>
+    <string name="ynotify_filter_status">Notification status</string>
+    <string name="ynotify_filter_state_any">Any state</string>
+    <string name="ynotify_filter_state_silent">Silent</string>
+    <string name="ynotify_filter_state_ongoing">Ongoing</string>
+    <string name="ynotify_filter_state_foreground">Foreground service</string>
+    <string name="ynotify_filter_reset">Reset advanced filters</string>
 </resources>

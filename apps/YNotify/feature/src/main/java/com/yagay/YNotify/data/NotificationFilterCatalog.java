@@ -49,6 +49,85 @@ public final class NotificationFilterCatalog {
         }
     }
 
+    /** Short, stable primary groups; the full Kind catalog remains in advanced filters. */
+    public enum Group {
+        ALL(R.string.ynotify_filter_all_notifications),
+        COMMUNICATION(R.string.ynotify_group_communication),
+        REMINDERS(R.string.ynotify_group_reminders),
+        MEDIA_TRAVEL(R.string.ynotify_group_media_travel),
+        DOWNLOADS(R.string.ynotify_group_downloads),
+        SYSTEM_SERVICES(R.string.ynotify_group_system_services),
+        OTHER(R.string.ynotify_group_other);
+        @StringRes public final int labelRes;
+        Group(@StringRes int labelRes){this.labelRes=labelRes;}
+    }
+
+    public enum Status {
+        ANY(R.string.ynotify_filter_state_any),
+        SILENT(R.string.ynotify_filter_state_silent),
+        ONGOING(R.string.ynotify_filter_state_ongoing),
+        FOREGROUND_SERVICE(R.string.ynotify_filter_state_foreground);
+        @StringRes public final int labelRes;
+        Status(@StringRes int labelRes){this.labelRes=labelRes;}
+    }
+
+    public static Group groupAt(int index) {
+        Group[] groups=Group.values();
+        return index>=0&&index<groups.length?groups[index]:Group.ALL;
+    }
+
+    public static List<String> groupLabels(Context context) {
+        List<String> labels=new ArrayList<>();
+        for(Group group:Group.values())labels.add(context.getString(group.labelRes));
+        return labels;
+    }
+
+    public static Group groupOf(Kind kind) {
+        if(kind==null||kind==Kind.ALL)return Group.ALL;
+        return switch(kind){
+            case MESSAGE,CALL,MISSED_CALL,VOICEMAIL,EMAIL,SOCIAL -> Group.COMMUNICATION;
+            case EVENT,REMINDER,ALARM,STOPWATCH -> Group.REMINDERS;
+            case MEDIA,NAVIGATION,LOCATION_SHARING,WORKOUT -> Group.MEDIA_TRAVEL;
+            case PROGRESS -> Group.DOWNLOADS;
+            case FOREGROUND_SERVICE,SERVICE,SYSTEM,STATUS,ERROR -> Group.SYSTEM_SERVICES;
+            default -> Group.OTHER;
+        };
+    }
+
+    public static List<Kind> kindsFor(Group group) {
+        List<Kind> selected=new ArrayList<>();
+        selected.add(Kind.ALL);
+        for(Kind kind:Kind.values()) {
+            if(kind!=Kind.ALL && (group==null||group==Group.ALL||groupOf(kind)==group))
+                selected.add(kind);
+        }
+        return selected;
+    }
+
+    public static String[] kindLabels(Context context, List<Kind> kinds) {
+        String[] labels=new String[kinds.size()];
+        for(int i=0;i<kinds.size();i++)labels[i]=context.getString(kinds.get(i).labelRes);
+        return labels;
+    }
+
+    public static String[] statusLabels(Context context) {
+        Status[] states=Status.values();
+        String[] labels=new String[states.length];
+        for(int i=0;i<states.length;i++)labels[i]=context.getString(states[i].labelRes);
+        return labels;
+    }
+
+    public static boolean matchesStatus(EventRecord record,Status status) {
+        if(record==null)return false;
+        if(status==null||status==Status.ANY)return true;
+        return switch(status) {
+            case SILENT -> record.silent;
+            case ONGOING -> record.ongoing;
+            case FOREGROUND_SERVICE -> record.foregroundService;
+            default -> true;
+        };
+    }
+
     private static final Kind[] VALUES=Kind.values();
     public static Kind at(int index) {
         return index>=0&&index<VALUES.length?VALUES[index]:Kind.ALL;

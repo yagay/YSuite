@@ -75,6 +75,22 @@ public final class EventFilters {
                     || matches(event,presentation));
     }
 
+    /** Single shared filtering contract for the timeline and per-application history. */
+    public static boolean matchesNotification(EventRecord event,
+            NotificationFilterCatalog.Group group,
+            NotificationFilterCatalog.Kind kind,
+            String presentation,
+            NotificationFilterCatalog.Status status) {
+        if (!isNotificationRecord(event)) return false;
+        NotificationFilterCatalog.Kind actual = NotificationFilterCatalog.classify(event);
+        if(group!=null && group!=NotificationFilterCatalog.Group.ALL
+                && NotificationFilterCatalog.groupOf(actual)!=group)return false;
+        return NotificationFilterCatalog.matches(event,kind)
+                && NotificationFilterCatalog.matchesStatus(event,status)
+                && (presentation==null || NOTIFICATIONS.equals(presentation)
+                    || matches(event,presentation));
+    }
+
     private static boolean nonBlank(String s){return s!=null&&!s.isBlank();}
     private EventFilters(){}
 }
