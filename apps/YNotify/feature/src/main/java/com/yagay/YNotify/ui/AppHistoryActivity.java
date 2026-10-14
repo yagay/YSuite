@@ -92,55 +92,22 @@ public class AppHistoryActivity extends AppCompatActivity {
                 getString(R.string.ynotify_class_other_ui)), 0);
         groupFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty()) return;
-            selectedGroup = switch (groupFilters.indexForId(ids.get(0))) {
-                case 1 -> EventFilters.NOTIFICATIONS;
-                case 2 -> EventFilters.UI_EVENTS;
-                default -> EventFilters.ALL;
-            };
-            selectedType = switch (selectedGroup) {
-                case EventFilters.NOTIFICATIONS -> switch (
-                        notificationFilters.indexForId(notificationFilters.group.getCheckedChipId())) {
-                    case 1 -> EventFilters.HEADS_UP;
-                    case 2 -> EventFilters.BUBBLE;
-                    case 3 -> EventFilters.FULL_SCREEN;
-                    default -> EventTypes.NOTIFICATION;
-                };
-                case EventFilters.UI_EVENTS -> switch (
-                        uiFilters.indexForId(uiFilters.group.getCheckedChipId())) {
-                    case 1 -> EventTypes.TOAST;
-                    case 2 -> EventTypes.DIALOG;
-                    case 3 -> EventTypes.POPUP;
-                    case 4 -> EventTypes.SNACKBAR;
-                    case 5 -> EventTypes.SYSTEM_UI;
-                    case 6 -> EventTypes.OTHER_UI;
-                    default -> EventFilters.UI_EVENTS;
-                };
-                default -> EventFilters.ALL;
-            };
+            selectedGroup = EventFilters.groupAt(groupFilters.indexForId(ids.get(0)));
+            selectedType = EventFilters.selectedTypeForGroup(
+                    selectedGroup,
+                    notificationFilters.indexForId(notificationFilters.group.getCheckedChipId()),
+                    uiFilters.indexForId(uiFilters.group.getCheckedChipId()));
             updateFilterVisibility();
             observe();
         });
         notificationFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty() || !EventFilters.NOTIFICATIONS.equals(selectedGroup)) return;
-            selectedType = switch (notificationFilters.indexForId(ids.get(0))) {
-                case 1 -> EventFilters.HEADS_UP;
-                case 2 -> EventFilters.BUBBLE;
-                case 3 -> EventFilters.FULL_SCREEN;
-                default -> EventTypes.NOTIFICATION;
-            };
+            selectedType = EventFilters.notificationAt(notificationFilters.indexForId(ids.get(0)));
             observe();
         });
         uiFilters.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty() || !EventFilters.UI_EVENTS.equals(selectedGroup)) return;
-            selectedType = switch (uiFilters.indexForId(ids.get(0))) {
-                case 1 -> EventTypes.TOAST;
-                case 2 -> EventTypes.DIALOG;
-                case 3 -> EventTypes.POPUP;
-                case 4 -> EventTypes.SNACKBAR;
-                case 5 -> EventTypes.SYSTEM_UI;
-                case 6 -> EventTypes.OTHER_UI;
-                default -> EventFilters.UI_EVENTS;
-            };
+            selectedType = EventFilters.uiAt(uiFilters.indexForId(ids.get(0)));
             observe();
         });
         LinearLayout filterColumn = new LinearLayout(this);
@@ -187,10 +154,12 @@ public class AppHistoryActivity extends AppCompatActivity {
         var dao = NotifyDatabase.get(this).eventDao();
         source = switch (selectedType) {
             case EventFilters.ALL -> dao.observePackage(pkg);
+            case EventFilters.NOTIFICATIONS -> dao.observePackageNotifications(pkg);
             case EventFilters.UI_EVENTS -> dao.observePackageUiEvents(pkg);
             case EventFilters.HEADS_UP -> dao.observePackageHeadsUp(pkg);
             case EventFilters.BUBBLE -> dao.observePackageBubbles(pkg);
             case EventFilters.FULL_SCREEN -> dao.observePackageFullScreens(pkg);
+            case EventTypes.NOTIFICATION -> dao.observePackageNotifications(pkg);
             default -> dao.observePackageType(pkg, selectedType);
         };
         source.observe(this, adapter::submit);

@@ -13,6 +13,7 @@ import com.yagay.YNotify.R;
 import com.yagay.yui.YView;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventTypes;
+import com.yagay.YNotify.data.EventFilters;
 import com.yagay.YNotify.databinding.ItemEventBinding;
 import com.yagay.YNotify.util.AppInfoUtil;
 
@@ -69,7 +70,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
         h.b.appName.setText(first(r.appLabel, r.packageName, c.getString(R.string.ynotify_unknown_app)));
         h.b.type.setText(typeLabel(c, r));
 
-        String title = first(r.title, EventTypes.NOTIFICATION.equals(r.eventType) ? "" : r.className, "");
+        String title = first(r.title, EventFilters.isNotificationRecord(r) ? "" : r.className, "");
         h.b.title.setText(title);
         h.b.title.setVisibility(title.isEmpty() ? View.GONE : View.VISIBLE);
 
@@ -134,7 +135,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
 
     private static String details(Context c, EventRecord r) {
         List<String> parts = new ArrayList<>();
-        if (EventTypes.NOTIFICATION.equals(r.eventType)) {
+        if (EventFilters.isNotificationRecord(r)) {
             parts.add(c.getString(
                     R.string.ynotify_detail_surfaces,
                     String.join(", ", surfaces(c, r))));
@@ -174,7 +175,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
     }
 
     private static String typeLabel(Context c, EventRecord r) {
-        if (EventTypes.NOTIFICATION.equals(r.eventType)) {
+        if (EventFilters.isNotificationRecord(r)) {
             String kind = r.notificationKind == null ? "standard" : r.notificationKind;
             String base;
             switch (kind) {

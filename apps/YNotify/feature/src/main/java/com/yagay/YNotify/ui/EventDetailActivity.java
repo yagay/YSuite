@@ -16,6 +16,7 @@ import com.yagay.YNotify.R;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventStore;
 import com.yagay.YNotify.data.EventTypes;
+import com.yagay.YNotify.data.EventFilters;
 import com.yagay.YNotify.data.HistoryRepairEngine;
 import com.yagay.YNotify.data.NotificationRevision;
 import com.yagay.YNotify.data.NotifyDatabase;
@@ -172,7 +173,7 @@ public class EventDetailActivity extends AppCompatActivity {
     }
 
     private static int selectedIndex(EventRecord r) {
-        if (EventTypes.NOTIFICATION.equals(r.eventType)) {
+        if (EventFilters.isNotificationRecord(r)) {
             if (r.bubble || "bubble".equals(r.notificationKind)) return 2;
             if (r.headsUp) return 1;
             return 0;

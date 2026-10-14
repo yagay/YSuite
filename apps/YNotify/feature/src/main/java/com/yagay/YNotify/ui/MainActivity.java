@@ -111,31 +111,22 @@ public class MainActivity extends AppCompatActivity {
 
         groupFilterBar.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty()) return;
-            int index = groupFilterBar.indexForId(ids.get(0));
-            selectedGroup = switch (index) {
-                case 1 -> EventFilters.NOTIFICATIONS;
-                case 2 -> EventFilters.UI_EVENTS;
-                default -> EventFilters.ALL;
-            };
-            // Preserve the selected detail chip when switching between groups.
-            selectedType = switch (selectedGroup) {
-                case EventFilters.NOTIFICATIONS -> notificationTypeForIndex(
-                        notificationFilterBar.indexForId(notificationFilterBar.group.getCheckedChipId()));
-                case EventFilters.UI_EVENTS -> uiTypeForIndex(
-                        uiFilterBar.indexForId(uiFilterBar.group.getCheckedChipId()));
-                default -> FILTER_ALL;
-            };
+            selectedGroup = EventFilters.groupAt(groupFilterBar.indexForId(ids.get(0)));
+            selectedType = EventFilters.selectedTypeForGroup(
+                    selectedGroup,
+                    notificationFilterBar.indexForId(notificationFilterBar.group.getCheckedChipId()),
+                    uiFilterBar.indexForId(uiFilterBar.group.getCheckedChipId()));
             refreshFilterVisibility();
             observeTimeline();
         });
         notificationFilterBar.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty() || !EventFilters.NOTIFICATIONS.equals(selectedGroup)) return;
-            selectedType = notificationTypeForIndex(notificationFilterBar.indexForId(ids.get(0)));
+            selectedType = EventFilters.notificationAt(notificationFilterBar.indexForId(ids.get(0)));
             observeTimeline();
         });
         uiFilterBar.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty() || !EventFilters.UI_EVENTS.equals(selectedGroup)) return;
-            selectedType = uiTypeForIndex(uiFilterBar.indexForId(ids.get(0)));
+            selectedType = EventFilters.uiAt(uiFilterBar.indexForId(ids.get(0)));
             observeTimeline();
         });
 
@@ -557,6 +548,9 @@ public class MainActivity extends AppCompatActivity {
                     : NotifyDatabase.get(this).eventFtsDao().search(fts);
         } else if (FILTER_ALL.equals(selectedType)) {
             eventSource = NotifyDatabase.get(this).eventDao().observeAll();
+        } else if (EventFilters.NOTIFICATIONS.equals(selectedType)
+                || EventTypes.NOTIFICATION.equals(selectedType)) {
+            eventSource = NotifyDatabase.get(this).eventDao().observeNotifications();
         } else if (EventFilters.UI_EVENTS.equals(selectedType)) {
             eventSource = NotifyDatabase.get(this).eventDao().observeUiEvents();
         } else if (FILTER_HEADS_UP.equals(selectedType)) {
@@ -569,22 +563,20 @@ public class MainActivity extends AppCompatActivity {
             eventSource = NotifyDatabase.get(this).eventDao().observeType(selectedType);
         }
 
-        eventSource.observe(this, list -> {
-            if (q.isEmpty() || FILTER_ALL.equals(selectedType)) {
-                eventAdapter.submit(list);
+        // Freeze the filter in this observer. Old asynchronous LiveData queries
+        // must never apply a newer chip's selection to older results.
+        final String requestedFilter = selectedType;
+        eventSource.observe(this, records -> {
+            if (q.isEmpty() || FILTER_ALL.equals(requestedFilter)) {
+                eventAdapter.submit(records);
                 return;
             }
             List<EventRecord> filtered = new ArrayList<>();
-            if (list != null) {
-                for (EventRecord r : list) if (matchesSelectedFilter(r)) filtered.add(r);
+            if (records != null) for (EventRecord record : records) {
+                if (EventFilters.matches(record, requestedFilter)) filtered.add(record);
             }
             eventAdapter.submit(filtered);
         });
-    }
-
-    private boolean matchesSelectedFilter(EventRecord r) {
-        if (r == null) return false;
-        return EventFilters.matches(r, selectedType);
     }
 
     private void observeApps() {
@@ -602,27 +594,6 @@ public class MainActivity extends AppCompatActivity {
                 EventFilters.NOTIFICATIONS.equals(selectedGroup) ? View.VISIBLE : View.GONE);
         uiFilterBar.view.setVisibility(
                 EventFilters.UI_EVENTS.equals(selectedGroup) ? View.VISIBLE : View.GONE);
-    }
-
-    private String notificationTypeForIndex(int index) {
-        return switch (index) {
-            case 1 -> FILTER_HEADS_UP;
-            case 2 -> FILTER_BUBBLE;
-            case 3 -> FILTER_FULL_SCREEN;
-            default -> EventTypes.NOTIFICATION;
-        };
-    }
-
-    private String uiTypeForIndex(int index) {
-        return switch (index) {
-            case 1 -> EventTypes.TOAST;
-            case 2 -> EventTypes.DIALOG;
-            case 3 -> EventTypes.POPUP;
-            case 4 -> EventTypes.SNACKBAR;
-            case 5 -> EventTypes.SYSTEM_UI;
-            case 6 -> EventTypes.OTHER_UI;
-            default -> EventFilters.UI_EVENTS;
-        };
     }
 
     private SharedPreferences retentionPreferences() {

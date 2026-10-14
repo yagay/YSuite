@@ -26,6 +26,38 @@ public class EventFiltersTest {
         assertFalse(EventFilters.matches(notification,EventFilters.UI_EVENTS));
     }
 
+    @Test public void oldNotificationWithUiLabelAppearsInNotificationTab() {
+        EventRecord old=new EventRecord();
+        old.eventType=EventTypes.SYSTEM_UI;
+        old.source="notification_listener+accessibility";
+        old.originalEventType=EventTypes.NOTIFICATION;
+        assertTrue(EventFilters.matches(old,EventFilters.NOTIFICATIONS));
+        assertFalse(EventFilters.matches(old,EventFilters.UI_EVENTS));
+        assertFalse(EventFilters.matches(old,EventTypes.SYSTEM_UI));
+        old.headsUp=true;
+        assertTrue(EventFilters.matches(old,EventFilters.HEADS_UP));
+    }
+
+    @Test public void manuallyCorrectedEventStaysInItsChosenGroup() {
+        EventRecord corrected=new EventRecord();
+        corrected.source="notification_listener";
+        corrected.eventType=EventTypes.DIALOG;
+        corrected.classificationLocked=true;
+        assertFalse(EventFilters.matches(corrected,EventFilters.NOTIFICATIONS));
+        assertTrue(EventFilters.matches(corrected,EventFilters.UI_EVENTS));
+    }
+
+    @Test public void sharedIndexMappingHasCorrectDefaultNotificationFilter() {
+        assertEquals(EventFilters.NOTIFICATIONS,EventFilters.groupAt(1));
+        assertEquals(EventFilters.NOTIFICATIONS,EventFilters.notificationAt(0));
+        assertEquals(EventFilters.NOTIFICATIONS,EventFilters.selectedTypeForGroup(
+                EventFilters.NOTIFICATIONS,0,4));
+        assertEquals(EventFilters.UI_EVENTS,EventFilters.selectedTypeForGroup(
+                EventFilters.UI_EVENTS,2,0));
+        assertEquals(EventFilters.HEADS_UP,EventFilters.selectedTypeForGroup(
+                EventFilters.NOTIFICATIONS,1,0));
+    }
+
     @Test public void allExplicitUiTypesUseUiGroup() {
         for(String type:new String[] {
                 EventTypes.TOAST,EventTypes.DIALOG,EventTypes.POPUP,
