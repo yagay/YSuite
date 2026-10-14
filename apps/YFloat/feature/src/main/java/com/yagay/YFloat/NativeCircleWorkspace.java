@@ -30,10 +30,12 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Native Circle canvas. Exactly one immutable bitmap and one gesture/menu
- * surface for the entire session. No Google app, Hook, Lens viewport or native
- * Google search controller participates. Only the existing screenshot capture
- * and OCR engine supply data to this surface.
+ * Intent-first frozen-screen Circle workspace.
+ *
+ * Nothing moves the screenshot: it is painted once in immutable frame
+ * coordinates. Touch selects content directly, OCR resolves text strokes and
+ * closed loops resolve image regions. A single contextual toolbar follows the
+ * selection; no pre-selected modes, secondary windows or Google process hooks.
  */
 final class NativeCircleWorkspace extends View {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
@@ -42,136 +44,132 @@ final class NativeCircleWorkspace extends View {
     private final Context app;
     private final FLCircleCapture.Frame frame;
     private final FlOverlayWindowHost host;
-    private final WindowManager.LayoutParams window;
     private final Runnable closedCallback;
     private final NativeCircleState state = new NativeCircleState();
-    private final Paint screenshot = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Paint scrim = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint shape = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint select = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint tool = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Path strokePath = new Path();
-    private final ArrayList<PointF> points = new ArrayList<>();
-    private final ArrayList<Action> topActions = new ArrayList<>();
-    private final ArrayList<Action> bottomActions = new ArrayList<>();
     private final float density;
+    private final Paint screenshotPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+    private final Paint shadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path dragPath = new Path();
+    private final ArrayList<PointF> stroke = new ArrayList<>();
+    private final ArrayList<Command> actions = new ArrayList<>();
+    private final RectF closeHit = new RectF();
+    private final RectF menuBox = new RectF();
+    private final RectF firstHandle = new RectF();
+    private final RectF lastHandle = new RectF();
 
+    private Path chosenShape;
     private OcrDocument fullDocument;
-    private boolean ocrBusy;
+    private ArrayList<OcrDocument.CharUnit> chosenChars = new ArrayList<>();
+    private int firstChar = -1, lastChar = -1;
+    private boolean ocrBusy, closed, touching;
+    private int handleDrag;
+    private long gestureRevision;
     private FLCircleSelection.Selection pendingGesture;
-    private boolean closed;
+    private float downX, downY, minX, minY, maxX, maxY;
     private String status = "";
-    private boolean touching;
-    private float startBitmapX;
-    private float startBitmapY;
 
-    private static final class Action {
-        final String title;
-        final RectF hit;
-        final Runnable run;
-        Action(String title, RectF hit, Runnable run) {
-            this.title = title; this.hit = hit; this.run = run;
-        }
+    private static final class Command {
+        final RectF bounds;
+        final Runnable action;
+        Command(RectF b, Runnable a) { bounds = b; action = a; }
     }
 
-    static synchronized boolean show(Context c, FLCircleCapture.Frame frame,
+    static synchronized boolean show(Context context, FLCircleCapture.Frame frame,
                                      Runnable onClosed) {
-        if (c == null || frame == null || frame.bitmap == null
+        if (context == null || frame == null || frame.bitmap == null
                 || frame.bitmap.isRecycled()) return false;
         dismissActive("replace");
-        Context app = c.getApplicationContext();
-        Rect screen = frame.screenBounds;
+        Context app = context.getApplicationContext();
         Rect display = ScreenGeometry.displayBounds(app);
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
-                Math.max(1, screen.width()), Math.max(1, screen.height()),
+        Rect bounds = frame.screenBounds;
+        WindowManager.LayoutParams layout = new WindowManager.LayoutParams(
+                Math.max(1, bounds.width()), Math.max(1, bounds.height()),
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                         | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.TOP | Gravity.START;
-        lp.x = screen.left - display.left;
-        lp.y = screen.top - display.top;
+        layout.gravity = Gravity.TOP | Gravity.START;
+        layout.x = bounds.left - display.left;
+        layout.y = bounds.top - display.top;
         FlOverlayWindowHost host = new FlOverlayWindowHost(app);
-        NativeCircleWorkspace view = new NativeCircleWorkspace(app, host, lp,
-                frame, onClosed);
-        if (!host.addStable(view, lp, "native_circle_workspace")) return false;
+        NativeCircleWorkspace view = new NativeCircleWorkspace(app, host, frame, onClosed);
+        if (!host.addStable(view, layout, "native_circle_workspace")) return false;
         active = view;
         view.setFocusableInTouchMode(true);
         view.requestFocus();
         view.startOcr();
         DiagnosticLog.i(app, "CIRCLE_NATIVE",
-                "created fixed-frame=" + screen
-                        + " bitmap=" + frame.bitmap.getWidth() + "x"
+                "ready intent-first image=" + frame.bitmap.getWidth() + "x"
                         + frame.bitmap.getHeight() + " googleHook=false");
         return true;
     }
 
     static synchronized void dismissActive(String reason) {
-        NativeCircleWorkspace prior = active;
+        NativeCircleWorkspace previous = active;
         active = null;
-        if (prior != null) prior.close(reason);
+        if (previous != null) previous.close(reason);
     }
 
     static synchronized void promoteFocus(String reason) {
         if (active != null && !active.closed) active.requestFocus();
     }
 
-    private NativeCircleWorkspace(Context app, FlOverlayWindowHost host,
-                                  WindowManager.LayoutParams lp,
+    private NativeCircleWorkspace(Context context, FlOverlayWindowHost host,
                                   FLCircleCapture.Frame frame, Runnable onClosed) {
-        super(app);
-        this.app = app;
+        super(context);
+        app = context;
         this.host = host;
-        this.window = lp;
         this.frame = frame;
-        this.closedCallback = onClosed;
+        closedCallback = onClosed;
         density = getResources().getDisplayMetrics().density;
-        scrim.setColor(Color.argb(70, 0, 0, 0));
-        shape.setStyle(Paint.Style.STROKE);
-        shape.setStrokeWidth(3f * density);
-        shape.setColor(Color.rgb(58, 153, 255));
-        select.setStyle(Paint.Style.STROKE);
-        select.setColor(Color.rgb(35, 151, 255));
-        select.setStrokeWidth(2f * density);
-        label.setTextSize(13f * density);
-        label.setColor(Color.WHITE);
-        label.setTextAlign(Paint.Align.CENTER);
-        tool.setColor(Color.argb(228, 24, 29, 41));
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        shadePaint.setColor(Color.argb(55, 0, 0, 0));
+        outlinePaint.setStyle(Paint.Style.STROKE);
+        outlinePaint.setStrokeWidth(2.4f * density);
+        outlinePaint.setColor(YFloatOverlayStyle.selectionColor(app));
+        fillPaint.setColor(Color.argb(76, 64, 145, 255));
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        toolbarPaint.setColor(Color.argb(241, 31, 34, 42));
         setFocusable(true);
         setClickable(true);
     }
 
-    private String title(String zh, String en) {
+    private String t(String zh,String en) {
         return Locale.getDefault().getLanguage().equals("zh") ? zh : en;
     }
 
     private void startOcr() {
         if (ocrBusy) return;
         ocrBusy = true;
-        status = title("正在识别文字…", "Recognizing text…");
+        status = t("正在识别屏幕文字", "Recognizing screen text");
         CircleStableOcr.recognizeFullScreenSelected(app, frame.bitmap,
                 new OcrEngine.DocumentCallback() {
-            @Override public void onSuccess(OcrDocument document) {
+            @Override public void onSuccess(OcrDocument result) {
                 MAIN.post(() -> {
                     if (closed) return;
+                    fullDocument = frame.transform.documentBitmapToScreen(result);
                     ocrBusy = false;
-                    fullDocument = frame.transform.documentBitmapToScreen(document);
                     status = "";
-                    if (pendingGesture != null) resolveText(pendingGesture);
+                    FLCircleSelection.Selection pending = pendingGesture;
+                    if (pending != null) routeResolvedGesture(pending, gestureRevision);
                     invalidate();
                 });
             }
-            @Override public void onFailure(Throwable error) {
+            @Override public void onFailure(Throwable failure) {
                 MAIN.post(() -> {
                     if (closed) return;
                     ocrBusy = false;
-                    status = title("文字识别不可用，可继续截图",
-                            "OCR unavailable; image selection still works");
-                    DiagnosticLog.i(app, "CIRCLE_NATIVE",
-                            "ocr failure=" + ScreenCaptureBackend.safeMessage(error));
+                    status = t("无法识别文字，仍可圈选图片",
+                            "Text unavailable; circle an image instead");
+                    FLCircleSelection.Selection pending = pendingGesture;
+                    if (pending != null) resolveImage(pending, gestureRevision);
                     invalidate();
+                    DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                            "ocr unavailable=" + ScreenCaptureBackend.safeMessage(failure));
                 });
             }
         });
@@ -181,267 +179,438 @@ final class NativeCircleWorkspace extends View {
         super.onDraw(canvas);
         if (closed || frame.bitmap.isRecycled()) return;
         int w = getWidth(), h = getHeight();
-        canvas.drawBitmap(frame.bitmap, null,
-                new Rect(0, 0, Math.max(1,w), Math.max(1,h)), screenshot);
+        canvas.drawBitmap(frame.bitmap, null, new Rect(0,0,w,h), screenshotPaint);
 
         if (state.phase == NativeCircleState.Phase.DRAWING) {
-            canvas.drawPath(strokePath, shape);
-        } else if (state.phase == NativeCircleState.Phase.IMAGE_READY
-                || state.phase == NativeCircleState.Phase.TEXT_READY
-                || state.phase == NativeCircleState.Phase.TEXT_PENDING) {
-            RectF box = frame.bitmapToView(
-                    new RectF(state.left, state.top, state.right, state.bottom), w, h);
-            if (!box.isEmpty()) {
-                canvas.save();
-                canvas.clipOutRect(box);
-                canvas.drawColor(Color.argb(50,0,0,0));
-                canvas.restore();
-                canvas.drawRoundRect(box, 7f*density,7f*density,select);
-                float corner=5f*density;
-                canvas.drawCircle(box.left,box.top,corner,select);
-                canvas.drawCircle(box.right,box.bottom,corner,select);
+            canvas.drawPath(dragPath, outlinePaint);
+        } else if (state.phase == NativeCircleState.Phase.IMAGE_READY) {
+            drawImageRegion(canvas);
+        } else if (state.phase == NativeCircleState.Phase.TEXT_READY) {
+            drawTextSelection(canvas);
+        } else if (state.phase == NativeCircleState.Phase.RESOLVING) {
+            RectF box = selectedViewBox();
+            if (!box.isEmpty()) canvas.drawRoundRect(box, 9*density,9*density,outlinePaint);
+        }
+
+        drawClose(canvas);
+        actions.clear();
+        if (state.phase == NativeCircleState.Phase.TEXT_READY) {
+            drawContextMenu(canvas, new String[]{
+                    t("复制","Copy"),t("翻译","Translate"),t("搜索","Search"),
+                    t("分享","Share"),t("重选","Reset")});
+        } else if (state.phase == NativeCircleState.Phase.IMAGE_READY) {
+            drawContextMenu(canvas, new String[]{
+                    t("识图","Find"),t("截图","Crop"),t("复制","Copy"),
+                    t("分享","Share"),t("重选","Reset")});
+        } else {
+            menuBox.setEmpty();
+        }
+        if (state.phase == NativeCircleState.Phase.IDLE) {
+            drawHint(canvas,t("圈画、点按或划选屏幕内容",
+                    "Circle, tap or highlight anything"));
+        } else if (state.phase == NativeCircleState.Phase.RESOLVING || !status.isBlank()) {
+            drawHint(canvas,status);
+        }
+    }
+
+    private void drawHint(Canvas canvas,String message) {
+        if (message == null || message.isBlank()) return;
+        float y=getHeight()-40*density;
+        float width=Math.min(getWidth()-24*density,Math.max(180*density,
+                message.length()*6.3f*density+32*density));
+        RectF bg=new RectF((getWidth()-width)/2f,y-24*density,
+                (getWidth()+width)/2f,y+20*density);
+        toolbarPaint.setColor(Color.argb(225,28,31,40));
+        canvas.drawRoundRect(bg,22*density,22*density,toolbarPaint);
+        textPaint.setTextSize(12*density);
+        canvas.drawText(message,bg.centerX(),bg.centerY()+4*density,textPaint);
+    }
+
+    private void drawClose(Canvas canvas) {
+        float right=getWidth()-10*density;
+        closeHit.set(right-42*density,12*density,right,54*density);
+        toolbarPaint.setColor(Color.argb(226,28,31,40));
+        canvas.drawRoundRect(closeHit,21*density,21*density,toolbarPaint);
+        outlinePaint.setColor(Color.WHITE);
+        outlinePaint.setStrokeWidth(2*density);
+        float cx=closeHit.centerX(),cy=closeHit.centerY(),r=6*density;
+        canvas.drawLine(cx-r,cy-r,cx+r,cy+r,outlinePaint);
+        canvas.drawLine(cx-r,cy+r,cx+r,cy-r,outlinePaint);
+        outlinePaint.setColor(YFloatOverlayStyle.selectionColor(app));
+        outlinePaint.setStrokeWidth(2.4f*density);
+    }
+
+    private RectF selectedViewBox() {
+        return frame.bitmapToView(
+                new RectF(state.left,state.top,state.right,state.bottom),
+                getWidth(),getHeight());
+    }
+
+    private RectF screenToView(Rect screen) {
+        return frame.bitmapToView(new RectF(frame.screenRectToBitmap(screen)),
+                getWidth(),getHeight());
+    }
+
+    private void drawImageRegion(Canvas canvas) {
+        RectF r=selectedViewBox();
+        if(r.isEmpty())return;
+        Path shape=chosenShape;
+        canvas.save();
+        if(shape!=null)canvas.clipOutPath(shape);
+        else canvas.clipOutRect(r);
+        canvas.drawColor(Color.argb(70,0,0,0));
+        canvas.restore();
+        if(shape!=null) canvas.drawPath(shape,outlinePaint);
+        else canvas.drawRoundRect(r,10*density,10*density,outlinePaint);
+    }
+
+    private void drawTextSelection(Canvas canvas) {
+        if(chosenChars.isEmpty())return;
+        RectF first=null,last=null;
+        for(OcrDocument.CharUnit ch:chosenChars){
+            RectF r=screenToView(ch.bounds());
+            if(r.isEmpty())continue;
+            canvas.drawRoundRect(r,2*density,2*density,fillPaint);
+            if(first==null)first=new RectF(r);
+            last=new RectF(r);
+        }
+        if(first==null||last==null)return;
+        float radius=8*density;
+        float hx=first.left, hy=first.bottom+radius;
+        float tx=last.right, ty=last.bottom+radius;
+        canvas.drawLine(hx,first.top,hx,hy,outlinePaint);
+        canvas.drawLine(tx,last.top,tx,ty,outlinePaint);
+        canvas.drawCircle(hx,hy,radius/1.8f,outlinePaint);
+        canvas.drawCircle(tx,ty,radius/1.8f,outlinePaint);
+        firstHandle.set(hx-24*density,hy-24*density,
+                hx+24*density,hy+24*density);
+        lastHandle.set(tx-24*density,ty-24*density,
+                tx+24*density,ty+24*density);
+    }
+
+    private void drawContextMenu(Canvas canvas,String[] titles){
+        RectF selection=selectedViewBox();
+        if(selection.isEmpty())return;
+        float height=45*density;
+        float left=8*density;
+        float width=getWidth()-16*density;
+        float y=selection.top-height-12*density;
+        if(y<62*density)y=selection.bottom+12*density;
+        y=Math.min(y,getHeight()-height-10*density);
+        y=Math.max(62*density,y);
+        menuBox.set(left,y,left+width,y+height);
+        toolbarPaint.setColor(Color.argb(241,28,31,42));
+        canvas.drawRoundRect(menuBox,17*density,17*density,toolbarPaint);
+        float unit=menuBox.width()/titles.length;
+        textPaint.setTextSize(12*density);
+        Paint.FontMetrics metrics=textPaint.getFontMetrics();
+        for(int i=0;i<titles.length;i++){
+            float cx=menuBox.left+unit*(i+.5f);
+            canvas.drawText(titles[i],cx,menuBox.centerY()
+                    -(metrics.ascent+metrics.descent)/2f,textPaint);
+            final int command=i;
+            RectF hit=new RectF(menuBox.left+unit*i,menuBox.top,
+                    menuBox.left+unit*(i+1),menuBox.bottom);
+            actions.add(new Command(hit,()->handleAction(command)));
+        }
+    }
+
+    private void routeResolvedGesture(FLCircleSelection.Selection gesture,long token) {
+        if(closed||gesture==null||state.phase!=NativeCircleState.Phase.RESOLVING
+                ||token!=state.revision)return;
+        pendingGesture=null;
+        if(NativeCircleIntentRouter.classify(gesture.kind.name(),true)
+                == NativeCircleIntentRouter.Route.IMAGE) {
+            resolveImage(gesture,token);
+            return;
+        }
+        if(fullDocument==null){
+            if(ocrBusy) { pendingGesture=gesture;status=t("正在识别…","Recognizing…"); }
+            else resolveImage(gesture,token);
+            invalidate();
+            return;
+        }
+        List<CircleGestureTextSelector.GroupHit> groups=CircleGestureTextSelector.hitGroups(
+                app,frame,gesture,fullDocument,10f,10f);
+        if(groups.isEmpty()) {
+            resolveImage(gesture,token);
+            return;
+        }
+        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        int first=Integer.MAX_VALUE,last=-1;
+        for(CircleGestureTextSelector.GroupHit hit:groups){
+            for(OcrDocument.CharUnit ch:hit.chars) {
+                for(int i=0;i<all.size();i++){
+                    OcrDocument.CharUnit doc=all.get(i);
+                    if(doc==ch || doc.line()==ch.line()
+                            && doc.order()==ch.order()
+                            && doc.bounds().equals(ch.bounds())){
+                        first=Math.min(first,i);
+                        last=Math.max(last,i);
+                        break;
+                    }
+                }
             }
         }
-        drawActions(canvas, topActions, topLabels(), 12*density, true);
-        if (state.phase == NativeCircleState.Phase.TEXT_READY) {
-            drawActions(canvas, bottomActions,
-                    new String[]{title("复制","Copy"), title("翻译","Translate"),
-                            title("搜索","Search"),title("分享","Share"),
-                            title("重选","Reset")},
-                    h-62*density,false);
-        } else if (state.phase == NativeCircleState.Phase.IMAGE_READY) {
-            drawActions(canvas,bottomActions,
-                    new String[]{title("完成","Done"),title("重选","Reset")},
-                    h-62*density,false);
-        } else {
-            bottomActions.clear();
-        }
-
-        if (!status.isBlank()) {
-            label.setTextSize(12*density);
-            canvas.drawText(status,w/2f,Math.max(91*density,h-82*density),label);
-        }
+        if(first>last){resolveImage(gesture,token);return;}
+        firstChar=first;lastChar=last;
+        applyTextIndices(token,true);
+        DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
     }
 
-    private String[] topLabels() {
-        return new String[]{title("文字","Text"),title("圈画","Circle"),
-                title("截图","Region"),title("关闭","Close")};
-    }
-
-    private void drawActions(Canvas canvas, List<Action> output, String[] names,
-                             float top, boolean mainBar) {
-        output.clear();
-        float gap=5*density;
-        float left=8*density;
-        float width=Math.max(1f,(getWidth()-16*density-gap*(names.length-1))/names.length);
-        for(int i=0;i<names.length;i++){
-            RectF area=new RectF(left,top,left+width,top+43*density);
-            boolean selected=mainBar&&(i==0&&state.mode==NativeCircleState.Mode.TEXT
-                    ||i==1&&state.mode==NativeCircleState.Mode.LASSO
-                    ||i==2&&state.mode==NativeCircleState.Mode.RECTANGLE);
-            tool.setColor(selected?Color.argb(242,24,104,192):Color.argb(229,25,30,40));
-            canvas.drawRoundRect(area,10*density,10*density,tool);
-            label.setTextSize(12*density);
-            Paint.FontMetrics m=label.getFontMetrics();
-            canvas.drawText(names[i],area.centerX(),
-                    area.centerY()-(m.ascent+m.descent)/2,label);
-            final int index=i;
-            output.add(new Action(names[i],area,
-                    ()->{if(mainBar)topAction(index);else bottomAction(index);}));
-            left+=width+gap;
+    private void applyTextIndices(long token,boolean initial) {
+        if(fullDocument==null||firstChar<0||lastChar<firstChar)return;
+        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        if(lastChar>=all.size())return;
+        chosenChars.clear();
+        StringBuilder text=new StringBuilder();
+        Rect screen=new Rect();
+        OcrDocument.CharUnit previous=null;
+        for(int i=firstChar;i<=lastChar;i++){
+            OcrDocument.CharUnit ch=all.get(i);
+            if(ch.text().isEmpty())continue;
+            if(previous!=null && (previous.line()!=ch.line()
+                    || previous.group()!=ch.group()))text.append(' ');
+            text.append(ch.text());
+            screen.union(ch.bounds());
+            chosenChars.add(ch);
+            previous=ch;
         }
-    }
-
-    private void topAction(int index) {
-        if (index == 3) { dismissActive("user_close");return; }
-        state.changeMode(index==0?NativeCircleState.Mode.TEXT:
-                index==1?NativeCircleState.Mode.LASSO:
-                        NativeCircleState.Mode.RECTANGLE);
-        pendingGesture=null;
+        if(text.toString().isBlank())return;
+        Rect inBitmap=frame.screenRectToBitmap(screen);
+        if(initial){
+            if(!state.resolveText(token,text.toString(),inBitmap.left,inBitmap.top,
+                    inBitmap.right,inBitmap.bottom))return;
+        }else{
+            state.updateText(text.toString(),inBitmap.left,inBitmap.top,
+                    inBitmap.right,inBitmap.bottom);
+        }
+        chosenShape=null;
         status="";
         invalidate();
     }
 
-    private void bottomAction(int index) {
-        if (state.phase == NativeCircleState.Phase.IMAGE_READY) {
-            if(index==0)finishRegion();
-            else state.clear();
-        } else if(state.phase==NativeCircleState.Phase.TEXT_READY) {
-            if(index==4){state.clear();invalidate();return;}
-            String text=state.selectedText;
-            if(index==0){
-                ClipboardManager clipboard=(ClipboardManager) app.getSystemService(Context.CLIPBOARD_SERVICE);
-                if(clipboard!=null)clipboard.setPrimaryClip(ClipData.newPlainText("YFloat",text));
-                Toast.makeText(app,title("已复制","Copied"),Toast.LENGTH_SHORT).show();
-            }else if(index==1){
-                String target=Locale.getDefault().getLanguage().equals("zh")?"en":"zh-CN";
-                // Release the full-screen touch owner before opening any
-                // external activity; otherwise the browser is obscured.
-                dismissActive("translate_action");
-                openWeb("https://translate.google.com/?sl=auto&tl="+target
-                        +"&text="+encode(text)+"&op=translate");
-            }else if(index==2){
-                dismissActive("search_action");
-                openWeb("https://www.google.com/search?q="+encode(text));
-            }else if(index==3){
-                dismissActive("share_action");
-                try{
-                    Intent share=new Intent(Intent.ACTION_SEND);
-                    share.setType("text/plain");
-                    share.putExtra(Intent.EXTRA_TEXT,text);
-                    share.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    app.startActivity(Intent.createChooser(share,title("分享","Share"))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                }catch(Throwable t){DiagnosticLog.i(app,"CIRCLE_NATIVE","share failed="+t);}
-            }
+    private void resolveImage(FLCircleSelection.Selection gesture,long token) {
+        if(gesture==null||state.phase!=NativeCircleState.Phase.RESOLVING
+                ||state.revision!=token)return;
+        Rect selection=FLCircleSelection.exactRectAndClamp(gesture.bounds,
+                frame.bitmap.getWidth(),frame.bitmap.getHeight());
+        if(gesture.kind==FLCircleSelection.Kind.TAP){
+            int radius=Math.max(42,Math.round(64*density));
+            int cx=Math.round(gesture.focus.x),cy=Math.round(gesture.focus.y);
+            selection.set(Math.max(0,cx-radius),Math.max(0,cy-radius),
+                    Math.min(frame.bitmap.getWidth(),cx+radius),
+                    Math.min(frame.bitmap.getHeight(),cy+radius));
         }
+        if(!state.resolveImage(token,selection.left,selection.top,
+                selection.right,selection.bottom))return;
+        chosenChars.clear(); firstChar=lastChar=-1;
+        chosenShape=gesture.kind==FLCircleSelection.Kind.CIRCLE
+                ?new Path(dragPath):null;
+        pendingGesture=null;
+        status="";
+        invalidate();
+        DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=image kind="+gesture.kind);
+    }
+
+    private void finishStroke(){
+        FLCircleSelection.Selection gesture=FLCircleSelection.fromStroke(
+                stroke,frame.bitmap.getWidth(),frame.bitmap.getHeight(),
+                9*density,24*density);
+        if(gesture==null){state.clear();invalidate();return;}
+        Rect region=FLCircleSelection.exactRectAndClamp(gesture.bounds,
+                frame.bitmap.getWidth(),frame.bitmap.getHeight());
+        state.bounds(region.left,region.top,region.right,region.bottom);
+        if(!state.resolving())return;
+        gestureRevision=state.revision;
+        pendingGesture=gesture;
+        // Need to keep the lasso Path before the stroke is cleared.
+        if(gesture.kind==FLCircleSelection.Kind.CIRCLE) chosenShape=new Path(dragPath);
+        routeResolvedGesture(gesture,gestureRevision);
         invalidate();
     }
 
-    private static String encode(String value) {
-        return URLEncoder.encode(value,StandardCharsets.UTF_8);
-    }
-
-    private void openWeb(String url) {
+    private void handleAction(int index){
+        if(state.phase==NativeCircleState.Phase.TEXT_READY) {
+            String text=state.selectedText;
+            if(index==4){resetSelection();return;}
+            if(index==0){
+                ClipboardManager clipboard=(ClipboardManager)
+                        app.getSystemService(Context.CLIPBOARD_SERVICE);
+                if(clipboard!=null)clipboard.setPrimaryClip(
+                        ClipData.newPlainText("YFloat",text));
+                Toast.makeText(app,t("已复制","Copied"),Toast.LENGTH_SHORT).show();
+            } else if(index==1){
+                dismissActive("translate");
+                String lang=Locale.getDefault().getLanguage().equals("zh")?"en":"zh-CN";
+                openWeb("https://translate.google.com/?sl=auto&tl="+lang+
+                        "&text="+encode(text)+"&op=translate");
+            } else if(index==2){
+                dismissActive("text_search");
+                openWeb("https://www.google.com/search?q="+encode(text));
+            } else if(index==3){
+                dismissActive("text_share");
+                try {
+                    Intent intent=new Intent(Intent.ACTION_SEND).setType("text/plain")
+                            .putExtra(Intent.EXTRA_TEXT,text);
+                    app.startActivity(Intent.createChooser(intent,t("分享文字","Share text"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                }catch(Throwable failure){traceError("text_share",failure);}
+            }
+            return;
+        }
+        if(state.phase!=NativeCircleState.Phase.IMAGE_READY)return;
+        if(index==4){resetSelection();return;}
+        Bitmap image=selectedImage();
+        if(image==null)return;
+        if(index==1) {
+            Rect source=frame.bitmapRectToScreen(
+                    frame.screenRectToBitmap(frame.bitmapRectToScreen(selectedBitmapRect())));
+            dismissActive("image_result");
+            boolean shown=ResultSurfaceRouter.showScreenshot(app,image,source);
+            if(!shown&&!image.isRecycled())image.recycle();
+            return;
+        }
+        if(index==0||index==3)dismissActive(index==0?"image_find":"image_share");
         try {
-            Intent intent=new Intent(Intent.ACTION_VIEW,Uri.parse(url));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            app.startActivity(intent);
-        }catch(Throwable t){
-            DiagnosticLog.i(app,"CIRCLE_NATIVE","external action failed="+t);
-            Toast.makeText(app,title("没有可用浏览器","No browser available"),
-                    Toast.LENGTH_SHORT).show();
+            if(index==0)ImageShareUtils.openWith(app,image);
+            else if(index==2)ImageShareUtils.copyToClipboard(app,image);
+            else if(index==3)ImageShareUtils.share(app,image);
+        }finally {
+            if(!image.isRecycled())image.recycle();
         }
     }
 
-    private void finishRegion() {
-        if(!state.canFinishImage())return;
-        Rect crop=FLCircleSelection.exactRectAndClamp(
+    private Rect selectedBitmapRect() {
+        return FLCircleSelection.exactRectAndClamp(
                 new RectF(state.left,state.top,state.right,state.bottom),
                 frame.bitmap.getWidth(),frame.bitmap.getHeight());
-        if(crop.isEmpty())return;
-        try {
-            Bitmap cut=Bitmap.createBitmap(frame.bitmap,crop.left,crop.top,
-                    crop.width(),crop.height());
-            // Android may return the original Bitmap for a full-frame crop.
-            // The workspace will recycle that source on close, so the Result
-            // Activity must always receive an independently owned bitmap.
-            if(cut==frame.bitmap){
-                cut=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
-                if(cut==null)throw new IllegalStateException("image copy failed");
-            }
-            Rect source=frame.bitmapRectToScreen(crop);
-            dismissActive("image_committed");
-            boolean ok=ResultSurfaceRouter.showScreenshot(app,cut,source);
-            if(!ok&&!cut.isRecycled())cut.recycle();
-            DiagnosticLog.i(app,"CIRCLE_NATIVE",
-                    "screenshot selection="+source+" shown="+ok);
-        }catch(Throwable failure){
-            DiagnosticLog.i(app,"CIRCLE_NATIVE",
-                    "crop failed="+ScreenCaptureBackend.safeMessage(failure));
-        }
     }
 
-    private void resolveText(FLCircleSelection.Selection gesture) {
-        if(closed||gesture==null)return;
-        pendingGesture=gesture;
-        if(fullDocument==null){
-            if(!ocrBusy)status=title("未识别到文字","No recognized text");
-            invalidate();
-            return;
-        }
-        List<CircleGestureTextSelector.GroupHit> selected=
-                CircleGestureTextSelector.hitGroups(app,frame,gesture,fullDocument,10f,10f);
-        if(selected.isEmpty()){
-            state.clear();
-            status=title("此处没有识别到文字","No text at selection");
-            invalidate();
-            return;
-        }
-        StringBuilder text=new StringBuilder();
-        Rect region=new Rect();
-        for(CircleGestureTextSelector.GroupHit g:selected) {
-            if(g.text.isBlank())continue;
-            if(text.length()>0)text.append(' ');
-            text.append(g.text);
-            region.union(g.bounds);
-        }
-        Rect bitmap=frame.screenRectToBitmap(region);
-        boolean accepted=state.textReady(state.revision,text.toString(),
-                bitmap.left,bitmap.top,bitmap.right,bitmap.bottom);
-        if(accepted)status="";
+    private Bitmap selectedImage(){
+        try {
+            Rect rect=selectedBitmapRect();
+            Bitmap cropped=Bitmap.createBitmap(frame.bitmap,rect.left,rect.top,
+                    rect.width(),rect.height());
+            if(cropped==frame.bitmap){
+                Bitmap copy=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
+                if(copy==null)throw new IllegalStateException("image copy failed");
+                return copy;
+            }
+            return cropped;
+        }catch(Throwable failure){traceError("image_crop",failure);return null;}
+    }
+
+    private void openWeb(String url){
+        try {
+            app.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        }catch(Throwable failure){traceError("web",failure);}
+    }
+    private static String encode(String text){
+        return URLEncoder.encode(text,StandardCharsets.UTF_8);
+    }
+    private void traceError(String action,Throwable error){
+        DiagnosticLog.i(app,"CIRCLE_NATIVE",
+                action+" failed="+ScreenCaptureBackend.safeMessage(error));
+    }
+    private void resetSelection(){
+        state.clear();chosenShape=null;chosenChars.clear();
+        firstChar=lastChar=-1;pendingGesture=null;status="";
         invalidate();
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
-        if (closed) return false;
+        if(closed)return false;
         int action=event.getActionMasked();
         float x=event.getX(),y=event.getY();
         if(action==MotionEvent.ACTION_DOWN){
-            for(Action command:topActions)if(command.hit.contains(x,y)){
-                command.run.run();return true;
+            if(closeHit.contains(x,y)){dismissActive("close");return true;}
+            for(Command item:actions)if(item.bounds.contains(x,y)){
+                item.action.run();return true;
             }
-            for(Action command:bottomActions)if(command.hit.contains(x,y)){
-                command.run.run();return true;
+            if(state.phase==NativeCircleState.Phase.TEXT_READY){
+                if(firstHandle.contains(x,y)){handleDrag=1;return true;}
+                if(lastHandle.contains(x,y)){handleDrag=2;return true;}
             }
-            PointF p=frame.viewToBitmap(x,y,getWidth(),getHeight());
-            state.begin(p.x,p.y);
-            startBitmapX=p.x;
-            startBitmapY=p.y;
-            touching=true;points.clear();points.add(p);
-            strokePath.reset();strokePath.moveTo(x,y);
-            status="";
+            PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
+            state.begin(bitmap.x,bitmap.y);
+            downX=bitmap.x;downY=bitmap.y;
+            minX=maxX=bitmap.x;minY=maxY=bitmap.y;
+            touching=true;
+            handleDrag=0;
+            stroke.clear();stroke.add(bitmap);
+            dragPath.reset();dragPath.moveTo(x,y);
+            chosenShape=null;chosenChars.clear();firstChar=lastChar=-1;
+            pendingGesture=null;status="";
             invalidate();return true;
+        }
+        if(handleDrag!=0){
+            if(action==MotionEvent.ACTION_MOVE||action==MotionEvent.ACTION_UP){
+                adjustTextHandle(x,y);
+                if(action==MotionEvent.ACTION_UP)handleDrag=0;
+            }else if(action==MotionEvent.ACTION_CANCEL)handleDrag=0;
+            return true;
         }
         if(!touching)return true;
         if(action==MotionEvent.ACTION_MOVE){
-            for(int i=0;i<event.getHistorySize();i++){
-                PointF prior=frame.viewToBitmap(event.getHistoricalX(i),
-                        event.getHistoricalY(i),getWidth(),getHeight());
-                points.add(prior);
-                strokePath.lineTo(event.getHistoricalX(i),event.getHistoricalY(i));
-            }
-            PointF p=frame.viewToBitmap(x,y,getWidth(),getHeight());
-            points.add(p);
-            strokePath.lineTo(x,y);
-            state.bounds(startBitmapX,startBitmapY,p.x,p.y);
-            invalidate();return true;
+            for(int i=0;i<event.getHistorySize();i++)
+                record(event.getHistoricalX(i),event.getHistoricalY(i));
+            record(x,y);invalidate();return true;
         }
-        if(action==MotionEvent.ACTION_CANCEL){touching=false;state.clear();invalidate();return true;}
+        if(action==MotionEvent.ACTION_CANCEL){
+            touching=false;resetSelection();return true;
+        }
         if(action==MotionEvent.ACTION_UP){
+            record(x,y);
             touching=false;
-            PointF p=frame.viewToBitmap(x,y,getWidth(),getHeight());
-            points.add(p);strokePath.lineTo(x,y);
-            FLCircleSelection.Selection selection=FLCircleSelection.fromStroke(points,
-                    frame.bitmap.getWidth(),frame.bitmap.getHeight(),
-                    9*density,24*density);
-            points.clear();strokePath.reset();
-            if(selection==null){state.clear();invalidate();return true;}
-            Rect bounds=FLCircleSelection.exactRectAndClamp(selection.bounds,
-                    frame.bitmap.getWidth(),frame.bitmap.getHeight());
-            state.bounds(bounds.left,bounds.top,bounds.right,bounds.bottom);
-            if(state.mode==NativeCircleState.Mode.RECTANGLE){
-                if(bounds.width()<4||bounds.height()<4){state.clear();invalidate();return true;}
-            }
-            boolean done=state.finish(true);
-            if(done&&state.mode==NativeCircleState.Mode.TEXT)resolveText(selection);
-            else invalidate();
-            return true;
+            finishStroke();
+            stroke.clear();dragPath.reset();
+            invalidate();return true;
         }
         return true;
     }
 
-    @Override public boolean onKeyDown(int code, KeyEvent event) {
-        if(code==KeyEvent.KEYCODE_BACK){dismissActive("back");return true;}
+    private void record(float x,float y){
+        PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
+        stroke.add(bitmap);
+        minX=Math.min(minX,bitmap.x);minY=Math.min(minY,bitmap.y);
+        maxX=Math.max(maxX,bitmap.x);maxY=Math.max(maxY,bitmap.y);
+        state.bounds(minX,minY,maxX,maxY);
+        dragPath.lineTo(x,y);
+    }
+
+    private void adjustTextHandle(float x,float y){
+        if(fullDocument==null)return;
+        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        if(all.isEmpty())return;
+        PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
+        PointF screen=frame.bitmapPointToScreen(bitmap.x,bitmap.y);
+        float best=Float.MAX_VALUE;
+        int candidate=-1;
+        for(int i=0;i<all.size();i++){
+            Rect r=all.get(i).bounds();
+            float distance=(float)Math.hypot(screen.x-r.centerX(),screen.y-r.centerY());
+            if(distance<best){best=distance;candidate=i;}
+        }
+        if(candidate<0)return;
+        if(handleDrag==1)firstChar=Math.min(candidate,lastChar);
+        else lastChar=Math.max(candidate,firstChar);
+        applyTextIndices(state.revision,false);
+    }
+
+    @Override public boolean onKeyDown(int code,KeyEvent event){
+        if(code==KeyEvent.KEYCODE_BACK){
+            dismissActive("back");return true;
+        }
         return super.onKeyDown(code,event);
     }
 
     private void close(String reason) {
         if(closed)return;
-        closed=true;
-        state.close();
-        host.remove(this,"native_circle_workspace_"+reason);
+        closed=true;state.close();pendingGesture=null;
+        host.remove(this,"native_circle_"+reason);
         if(closedCallback!=null)closedCallback.run();
-        DiagnosticLog.i(app,"CIRCLE_NATIVE","closed reason="+reason);
+        DiagnosticLog.i(app,"CIRCLE_NATIVE","closed "+reason);
     }
 }
