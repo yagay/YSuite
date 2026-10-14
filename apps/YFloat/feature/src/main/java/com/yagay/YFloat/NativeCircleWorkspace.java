@@ -323,6 +323,13 @@ final class NativeCircleWorkspace extends View {
         try {
             Bitmap cut=Bitmap.createBitmap(frame.bitmap,crop.left,crop.top,
                     crop.width(),crop.height());
+            // Android may return the original Bitmap for a full-frame crop.
+            // The workspace will recycle that source on close, so the Result
+            // Activity must always receive an independently owned bitmap.
+            if(cut==frame.bitmap){
+                cut=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
+                if(cut==null)throw new IllegalStateException("image copy failed");
+            }
             Rect source=frame.bitmapRectToScreen(crop);
             dismissActive("image_committed");
             boolean ok=ResultSurfaceRouter.showScreenshot(app,cut,source);
