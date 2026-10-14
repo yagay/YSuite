@@ -331,15 +331,16 @@ final class NativeCircleWorkspace extends View {
         if(closed||gesture==null||state.phase!=NativeCircleState.Phase.RESOLVING
                 ||token!=state.revision)return;
         pendingGesture=null;
-        if(NativeCircleIntentRouter.classify(gesture.kind.name(),true)
-                == NativeCircleIntentRouter.Route.IMAGE) {
-            resolveImage(gesture,token);
-            return;
-        }
         if(fullDocument==null){
             if(ocrBusy) { pendingGesture=gesture;status=t("正在识别…","Recognizing…"); }
             else resolveImage(gesture,token);
             invalidate();
+            return;
+        }
+        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        if(gesture.kind==FLCircleSelection.Kind.CIRCLE){
+            if(resolveEnclosedText(gesture,token,all))return;
+            resolveImage(gesture,token);
             return;
         }
         List<CircleGestureTextSelector.GroupHit> groups=CircleGestureTextSelector.hitGroups(
@@ -348,7 +349,6 @@ final class NativeCircleWorkspace extends View {
             resolveImage(gesture,token);
             return;
         }
-        List<OcrDocument.CharUnit> all=fullDocument.chars();
         int first=Integer.MAX_VALUE,last=-1;
         for(CircleGestureTextSelector.GroupHit hit:groups){
             for(OcrDocument.CharUnit ch:hit.chars) {
@@ -368,6 +368,37 @@ final class NativeCircleWorkspace extends View {
         firstChar=first;lastChar=last;
         applyTextIndices(token,true);
         DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
+    }
+
+    private boolean resolveEnclosedText(FLCircleSelection.Selection gesture,
+                                        long token, List<OcrDocument.CharUnit> all) {
+        if(gesture.points.size()<4 || all.isEmpty())return false;
+        float[] path=new float[gesture.points.size()*2];
+        for(int i=0;i<gesture.points.size();i++){
+            PointF p=gesture.points.get(i);
+            path[2*i]=p.x;path[2*i+1]=p.y;
+        }
+        int first=-1,last=-1,count=0;
+        float ink=0f;
+        for(int i=0;i<all.size();i++){
+            OcrDocument.CharUnit ch=all.get(i);
+            Rect box=frame.screenRectToBitmap(ch.bounds());
+            if(box.isEmpty())continue;
+            if(NativeCircleLassoText.contains(path,box.exactCenterX(),
+                    box.exactCenterY())){
+                if(first<0)first=i;
+                last=i;count++;
+                ink+=box.width()*box.height();
+            }
+        }
+        float regionArea=Math.max(1f,gesture.bounds.width()*gesture.bounds.height());
+        float fraction=Math.min(1f,ink/regionArea);
+        if(!NativeCircleLassoText.preferText(count,fraction))return false;
+        firstChar=first;lastChar=last;
+        applyTextIndices(token,true);
+        DiagnosticLog.i(app,"CIRCLE_NATIVE",
+                "auto route=enclosed_text count="+count+" coverage="+fraction);
+        return state.phase==NativeCircleState.Phase.TEXT_READY;
     }
 
     private void applyTextIndices(long token,boolean initial) {
