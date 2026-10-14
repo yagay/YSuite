@@ -701,7 +701,7 @@ final class NativeCircleWorkspace extends View {
     private void close(String reason) {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
-        popup.dismiss();
+        popup.destroy();
         host.remove(this,"native_circle_"+reason);
         if(closedCallback!=null)closedCallback.run();
         DiagnosticLog.i(app,"CIRCLE_NATIVE","closed "+reason);
