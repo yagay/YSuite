@@ -6,8 +6,11 @@ package com.yagay.YMiniGuard;
  * background task as a visible window in future SystemUI/OPlus Hook changes.
  */
 final class LockScreenPolicy {
-    static boolean allowSystemPause(boolean uiSleeping) {
-        return uiSleeping;
+    /** A lock transition must retain the protected app's playback state.
+     *  OPlus visibility/sleep hooks independently allow the surface to hide.
+     */
+    static boolean preservePlaybackOnLock(boolean uiSleeping, boolean keyguardShowing) {
+        return uiSleeping || keyguardShowing;
     }
 
     static boolean keepWindowVisible(boolean foregroundSelected,

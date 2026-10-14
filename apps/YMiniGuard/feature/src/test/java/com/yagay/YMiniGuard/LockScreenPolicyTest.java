@@ -26,8 +26,18 @@ public class LockScreenPolicyTest {
                 true, false, false, false, false, false));
     }
 
-    @Test public void sleepingUiAlwaysPassesThroughSystemPause() {
-        assertTrue(LockScreenPolicy.allowSystemPause(true));
-        assertFalse(LockScreenPolicy.allowSystemPause(false));
+    @Test public void playbackPauseIsSuppressedDuringScreenOffOrKeyguard() {
+        assertTrue(LockScreenPolicy.preservePlaybackOnLock(true, false));
+        assertTrue(LockScreenPolicy.preservePlaybackOnLock(false, true));
+        assertTrue(LockScreenPolicy.preservePlaybackOnLock(true, true));
+        assertFalse(LockScreenPolicy.preservePlaybackOnLock(false, false));
+    }
+
+    @Test public void lockPlaybackCannotOverrideWindowVisibilityPolicy() {
+        assertTrue(LockScreenPolicy.preservePlaybackOnLock(true, true));
+        assertFalse(LockScreenPolicy.keepWindowVisible(
+                false, true, false, false, false, false));
+        assertFalse(LockScreenPolicy.keepWindowVisible(
+                true, true, true, true, true, true));
     }
 }

@@ -535,10 +535,21 @@ final class OplusFlexibleWindowController {
         if (showing) {
             for (Session session :
                     sessions.values()) {
-                if (!session.active
-                        || !GuardConfig
-                        .foregroundPackage(
-                                session.packageName)) {
+                if (!session.active) {
+                    continue;
+                }
+
+                // Arm STOP/freeze protection before system_server applies its
+                // keyguard transition. This flag never authorizes lock-screen
+                // window visibility; it only preserves background playback.
+                if (GuardConfig.backgroundPlaybackPackage(session.packageName)) {
+                    session.backgroundProtected = true;
+                    log("BACKGROUND_LOCK_ARM",
+                            "pkg=" + session.packageName
+                                    + " taskId=" + session.taskId
+                                    + " keepPlayback=true allowWindowHide=true");
+                }
+                if (!GuardConfig.foregroundPackage(session.packageName)) {
                     continue;
                 }
 
@@ -611,20 +622,24 @@ final class OplusFlexibleWindowController {
             return false;
         }
 
-        // Locking a foreground activity is not an ordinary app switch.
-        // Let ActivityTaskManager pause and hide its UI for keyguard, but
-        // remember its background-playback session so STOP/freeze protection
-        // can still operate after the window becomes invisible.
-        if (LockScreenPolicy.allowSystemPause(uiSleeping)) {
+        // Activity.onPause() is used by some video apps to stop playback.
+        // Preserve the playback lifecycle on lock, while deliberately allowing
+        // OPlus/WindowManager to hide the Activity surface and put the task to
+        // sleep. The separate shouldKeepTaskAwake() predicate excludes every
+        // background-playback package from lock visibility suppression.
+        if (LockScreenPolicy.preservePlaybackOnLock(uiSleeping, keyguardShowing)) {
             session.backgroundProtected = true;
             session.taskObject = task;
             session.lastSeenElapsed = SystemClock.elapsedRealtime();
-            log("BACKGROUND_LOCK_HIDE",
+            log("BACKGROUND_LOCK_PLAYBACK",
                     "pkg=" + session.packageName
                             + " taskId=" + session.taskId
-                            + " keepProcess=true"
-                            + " suppressPause=false");
-            return false;
+                            + " preservePlayback=true"
+                            + " suppressPause=true"
+                            + " allowWindowHide=true"
+                            + " uiSleeping=" + uiSleeping
+                            + " keyguardShowing=" + keyguardShowing);
+            return true;
         }
 
         if (resumingPackage != null
