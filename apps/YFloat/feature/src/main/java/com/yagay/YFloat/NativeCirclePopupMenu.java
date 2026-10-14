@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -50,7 +51,7 @@ final class NativeCirclePopupMenu {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setOrientation(LinearLayout.HORIZONTAL);
         root.addView(row, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
         lp = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -81,9 +82,11 @@ final class NativeCirclePopupMenu {
             buildRow();
         }
         position();
+        lp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        root.setVisibility(View.VISIBLE);
         if (attached) {
             if (!host.update(root, lp, "native_circle_popup_update")) {
-                dismiss();
+                root.setVisibility(View.INVISIBLE);
             }
             return;
         }
@@ -94,14 +97,26 @@ final class NativeCirclePopupMenu {
         }
     }
 
+    /** Hide without detaching: Android's overlay window stays owned by the
+     * workspace and cannot race the asynchronous WindowManager detach.
+     */
     void dismiss() {
         if (attached) {
-            attached = false;
-            host.remove(root, "native_circle_popup");
+            root.setVisibility(View.INVISIBLE);
+            lp.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+            host.update(root, lp, "native_circle_popup_hide");
         }
         hasMode = false;
         expanded = false;
         command = null;
+    }
+
+    void destroy() {
+        dismiss();
+        if (attached) {
+            attached = false;
+            host.remove(root, "native_circle_popup_close");
+        }
     }
 
     private String[] labels() {
