@@ -95,6 +95,19 @@ public final class MenuPickerActivity extends AppCompatActivity {
                         + (zh ? " 个 · 同时控制文字与图片" : " · shared by text and images"),
                 () -> startActivity(new Intent(this, AppearanceSettingsActivity.class))));
         YViewLayout.addSection(root, common);
+        YViewSection add = YViewLayout.section(this,
+                zh ? "添加图片操作" : "Add image actions",
+                zh ? "仅显示支持接收图片的应用操作。" : "Shows activities that can receive images.");
+        YViewLayout.addRow(add.body,YViewLayout.navRow(this,
+                zh ? "添加图片分享应用" : "Add image sharing app",
+                zh ? "添加支持图片分享的应用快捷操作" : "Add an app shortcut for image sharing",
+                () -> showImageAddTargets(ImageCustomMenuStore.SEND)));
+        YViewLayout.addRow(add.body,YViewLayout.navRow(this,
+                zh ? "添加图片打开／编辑应用" : "Add image open/edit app",
+                zh ? "添加支持打开图片的应用快捷操作" : "Add a shortcut for opening images",
+                () -> showImageAddTargets(ImageCustomMenuStore.VIEW)));
+        YViewLayout.addSection(root,add);
+
         YViewSection items = YViewLayout.section(this,
                 zh ? "图片操作顺序与显示" : "Image action order and visibility",
                 zh ? "点击操作可隐藏、显示、上移或下移。" : "Tap an action to show, hide or move it.");
@@ -104,7 +117,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
             if (ImageMenuSettings.DONE.equals(id) || ImageMenuSettings.RESET.equals(id)) {
                 subtitle += zh ? " · 仅圈画截图" : " · crop selection only";
             }
-            View item = YViewLayout.navRow(this, ImageMenuSettings.label(id), subtitle, null);
+            View item = YViewLayout.navRow(this, ImageMenuSettings.label(this,id), subtitle, null);
             item.setOnClickListener(v -> showImageOptions(id, v));
             YViewLayout.addRow(items.body, item);
         }
@@ -129,14 +142,99 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 .setEnabled(order.indexOf(id) > 0);
         popup.getMenu().add(0,3,2,zh ? "下移" : "Move down")
                 .setEnabled(order.indexOf(id) < order.size()-1);
+        if(ImageCustomMenuStore.isCustom(id)) {
+            popup.getMenu().add(0,4,3,zh ? "重命名" : "Rename");
+            popup.getMenu().add(0,5,4,zh ? "删除" : "Remove");
+        }
         popup.setOnMenuItemClickListener(item -> {
             if (item.getItemId()==1) ImageMenuSettings.setVisible(this,id,!visible);
             else if (item.getItemId()==2) ImageMenuSettings.move(this,id,-1);
             else if (item.getItemId()==3) ImageMenuSettings.move(this,id,1);
+            else if (item.getItemId()==4) {
+                editImageActionLabel(id);
+                return true;
+            }
+            else if (item.getItemId()==5) ImageMenuSettings.removeCustom(this,id);
             showImageManager();
             return true;
         });
         popup.show();
+    }
+
+    private void editImageActionLabel(String id) {
+        ImageCustomMenuStore.Item item=ImageCustomMenuStore.find(this,id);
+        if(item==null)return;
+        android.widget.EditText input=new android.widget.EditText(this);
+        YViewLayout.styleInput(this,input);
+        input.setSingleLine(true);
+        input.setText(item.label);
+        input.selectAll();
+        boolean zh=java.util.Locale.getDefault().getLanguage().equals("zh");
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(zh?"重命名图片操作":"Rename image action")
+                .setView(input)
+                .setNegativeButton(zh?"取消":"Cancel",null)
+                .setPositiveButton(zh?"保存":"Save",(dialog,which) -> {
+                    ImageCustomMenuStore.rename(this,id,input.getText().toString());
+                    showImageManager();
+                }).show();
+    }
+
+    private void showImageAddTargets(String mode) {
+        boolean zh=java.util.Locale.getDefault().getLanguage().equals("zh");
+        boolean send=ImageCustomMenuStore.SEND.equals(mode);
+        Intent probe=send
+                ? new Intent(Intent.ACTION_SEND).setType("image/png")
+                : new Intent(Intent.ACTION_VIEW).setDataAndType(
+                        android.net.Uri.parse("content://com.yagay.yfloat.menu/image.png"),
+                        "image/png");
+        List<ResolveInfo> handlers=query(probe);
+        handlers.removeIf(ri -> ri.activityInfo==null
+                || !ri.activityInfo.exported
+                || getPackageName().equals(ri.activityInfo.packageName));
+        handlers.sort(Comparator.comparing(this::resolveAppThenActivityLabel,
+                String.CASE_INSENSITIVE_ORDER));
+        LinearLayout root=page(
+                send ? (zh?"图片分享应用":"Image sharing apps")
+                        : (zh?"图片打开／编辑应用":"Image open/edit apps"),
+                zh?"选择操作后，将作为图片菜单中的快捷按钮。"
+                        :"Select a receiver to add it as a screenshot menu shortcut.",
+                this::showImageManager);
+        addLocalBack(root,zh?"返回图片菜单":"Back to image menu");
+        YViewSection targets=YViewLayout.section(this,
+                zh?"兼容应用（"+handlers.size()+"）":"Compatible handlers ("+handlers.size()+")",null);
+        renderImageTargets(targets.body,handlers,mode,"");
+        addSearchField(root,zh?"搜索应用或操作":"Search apps or actions",
+                query -> renderImageTargets(targets.body,handlers,mode,query));
+        YViewLayout.addSection(root,targets);
+        show(root);
+    }
+
+    private void renderImageTargets(LinearLayout body,List<ResolveInfo> handlers,
+                                    String mode,String query) {
+        body.removeAllViews();
+        boolean zh=java.util.Locale.getDefault().getLanguage().equals("zh");
+        int shown=0;
+        for(ResolveInfo ri:handlers) {
+            if(ri==null||ri.activityInfo==null)continue;
+            ActivityInfo ai=ri.activityInfo;
+            String application=appLabel(ai.applicationInfo);
+            String name=resolveLabel(ri);
+            if(!matchesSearch(query,application,name,ai.packageName,ai.name))continue;
+            String title=application+": "+name;
+            YViewLayout.addRow(body,actionRow(title,shortClass(ai.name),
+                    appIcon(ai.packageName),() -> {
+                        boolean added=ImageCustomMenuStore.add(this,title,
+                                ai.packageName,ai.name,mode);
+                        Toast.makeText(this,added
+                                ? (zh?"已添加图片操作":"Image action added")
+                                : (zh?"操作已存在或无法添加":"Already added or unavailable"),
+                                Toast.LENGTH_SHORT).show();
+                        if(added)showImageManager();
+                    },zh?"添加":"Add"));
+            shown++;
+        }
+        if(shown==0)addEmpty(body,zh?"没有找到兼容的图片操作":"No compatible image actions found");
     }
 
     // -----------------------------------------------------------------------------------------

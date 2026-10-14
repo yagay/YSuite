@@ -14,6 +14,16 @@ public class ImageMenuSettingsTest {
         assertEquals(5,ImageMenuSettings.primaryCount(6,5));
         assertEquals(6,ImageMenuSettings.primaryCount(6,32));
     }
+    @Test public void customImageActionsAreRetainedAndDeduplicated() {
+        String custom="imageapp:valid";
+        assertEquals(List.of("share",custom,"done","find","copy","save","reset"),
+                ImageMenuSettings.normalized(List.of("share",custom,custom,"unknown"),
+                        List.of(custom)));
+        assertTrue(ImageCustomMenuStore.supportedMode(ImageCustomMenuStore.SEND));
+        assertTrue(ImageCustomMenuStore.supportedMode(ImageCustomMenuStore.VIEW));
+        assertFalse(ImageCustomMenuStore.supportedMode("process_text"));
+    }
+
     @Test public void callbackIndicesRemainStableWhenOrderChanges() {
         assertEquals(0,ImageMenuSettings.index(ImageMenuSettings.DONE));
         assertEquals(2,ImageMenuSettings.index(ImageMenuSettings.COPY));

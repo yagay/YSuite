@@ -102,6 +102,31 @@ public final class ImageShareUtils {
         }
     }
 
+    /** Launch user-selected image receiver using an actual image URI and read grant. */
+    public static boolean openExplicit(Context c,Bitmap image,String pkg,String cls,boolean viewMode){
+        if(c==null||image==null||image.isRecycled()
+                ||pkg==null||pkg.isBlank()||cls==null||cls.isBlank())return false;
+        Context app=c.getApplicationContext();
+        try {
+            SharedImage shared=prepareSharedImage(app,image);
+            Intent intent=new Intent(viewMode?Intent.ACTION_VIEW:Intent.ACTION_SEND);
+            if(viewMode)intent.setDataAndType(shared.uri,"image/png");
+            else intent.setType("image/png").putExtra(Intent.EXTRA_STREAM,shared.uri);
+            intent.setClipData(ClipData.newRawUri("YFloat image",shared.uri));
+            intent.setClassName(pkg,cls);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    |Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            app.startActivity(intent);
+            DiagnosticLog.i(app,"IMAGE_CUSTOM_MENU","launched "+pkg+"/"+cls);
+            return true;
+        }catch(Throwable t){
+            DiagnosticLog.i(app,"IMAGE_CUSTOM_MENU","launch failed="+t);
+            Toast.makeText(app,java.util.Locale.getDefault().getLanguage().equals("zh")
+                    ?"无法打开该图片应用":"Unable to open image target",Toast.LENGTH_SHORT).show();
+            return false;
+        }
+    }
+
     private static SharedImage prepareSharedImage(Context app, Bitmap image) throws Exception {
         File dir = new File(app.getCacheDir(), DIR);
         if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Cannot create share cache");

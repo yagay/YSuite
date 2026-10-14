@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntConsumer;
+import java.util.function.Consumer;
 
 /** YFloat-owned text action menu using the shared floating-menu UI and positioning core. */
 public final class FloatActionMenu {
@@ -50,7 +50,7 @@ public final class FloatActionMenu {
     private static int activeMenuHeight;
     private static int activeMode = -1;
     private static String activeText = "";
-    private static IntConsumer activeImageCommand;
+    private static Consumer<String> activeImageCommand;
     private static Rect activeImageAnchor;
     private static boolean activeImageCrop;
     private static int activeCenterX = NO_POSITION;
@@ -223,7 +223,7 @@ public final class FloatActionMenu {
      * Only the available actions differ; all YUI and menu-count settings are shared.
      */
     public static synchronized void showImageAt(Context c, Rect anchor,
-                                                boolean crop, IntConsumer command) {
+                                                boolean crop, Consumer<String> command) {
         if (c == null || command == null || anchor == null || anchor.isEmpty()) return;
         if (Looper.myLooper() != Looper.getMainLooper()) {
             Context app = c.getApplicationContext();
@@ -246,7 +246,7 @@ public final class FloatActionMenu {
     }
 
     private static synchronized void showImageMenu(Context app, Rect anchor,
-                              boolean crop, IntConsumer command, boolean expanded) {
+                              boolean crop, Consumer<String> command, boolean expanded) {
         if (anchor == null || anchor.isEmpty() || command == null) return;
         dismiss();
         resetLockedRow();
@@ -284,7 +284,7 @@ public final class FloatActionMenu {
     }
 
     private static void changeImagePage(Context app, boolean expanded) {
-        IntConsumer callback = activeImageCommand;
+        Consumer<String> callback = activeImageCommand;
         Rect anchor = activeImageAnchor == null ? null : new Rect(activeImageAnchor);
         boolean crop = activeImageCrop;
         if (callback != null && anchor != null)
@@ -292,11 +292,11 @@ public final class FloatActionMenu {
     }
 
     private static TextView imageActionButton(Context app,String action) {
-        TextView button=FloatingMenuUi.action(app,ImageMenuSettings.label(action));
+        TextView button=FloatingMenuUi.action(app,ImageMenuSettings.label(app,action));
         button.setOnClickListener(v -> {
-            IntConsumer callback=activeImageCommand;
+            Consumer<String> callback=activeImageCommand;
             dismiss();
-            if(callback!=null) callback.accept(ImageMenuSettings.index(action));
+            if(callback!=null) callback.accept(action);
         });
         return button;
     }

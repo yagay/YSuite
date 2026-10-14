@@ -14,17 +14,19 @@ public final class ImageActionMenu {
                 ? new Rect(usable.centerX(),usable.centerY(),
                         usable.centerX()+1,usable.centerY()+1)
                 : new Rect(anchor);
-        FloatActionMenu.showImageAt(app,where,false,index -> {
+        FloatActionMenu.showImageAt(app,where,false,action -> {
             // The source bitmap belongs to the caller; never recycle it here.
             if(image.isRecycled())return;
-            if(index==ImageMenuSettings.index(ImageMenuSettings.FIND))
+            if(ImageMenuSettings.FIND.equals(action))
                 ImageShareUtils.openWith(app,image);
-            else if(index==ImageMenuSettings.index(ImageMenuSettings.COPY))
+            else if(ImageMenuSettings.COPY.equals(action))
                 ImageShareUtils.copyToClipboard(app,image);
-            else if(index==ImageMenuSettings.index(ImageMenuSettings.SHARE))
+            else if(ImageMenuSettings.SHARE.equals(action))
                 ImageShareUtils.share(app,image);
-            else if(index==ImageMenuSettings.index(ImageMenuSettings.SAVE))
+            else if(ImageMenuSettings.SAVE.equals(action))
                 ScreenshotController.save(app,image);
+            else if(ImageCustomMenuStore.isCustom(action))
+                ImageCustomMenuStore.launch(app,action,image);
         });
     }
 

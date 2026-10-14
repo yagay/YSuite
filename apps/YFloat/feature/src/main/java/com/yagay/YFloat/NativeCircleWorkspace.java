@@ -552,34 +552,35 @@ final class NativeCircleWorkspace extends View {
         invalidate();
     }
 
-    private void handleAction(int index) {
+    private void handleAction(String action) {
         if(state.phase!=NativeCircleState.Phase.IMAGE_READY)return;
-        if(index==ImageMenuSettings.index(ImageMenuSettings.RESET)) {
+        if(ImageMenuSettings.RESET.equals(action)){
             resetSelection();
             return;
         }
         Bitmap image=selectedImage();
         if(image==null)return;
-        if(index==ImageMenuSettings.index(ImageMenuSettings.DONE)) {
+        if(ImageMenuSettings.DONE.equals(action)){
             Rect source=frame.bitmapRectToScreen(selectedBitmapRect());
             dismissActive("image_result");
             boolean shown=ResultSurfaceRouter.showScreenshot(app,image,source);
             if(!shown&&!image.isRecycled())image.recycle();
             return;
         }
-        if(index==ImageMenuSettings.index(ImageMenuSettings.FIND)
-                || index==ImageMenuSettings.index(ImageMenuSettings.SHARE))
-            dismissActive(index==ImageMenuSettings.index(ImageMenuSettings.FIND)
-                    ? "image_find":"image_share");
+        if(ImageMenuSettings.FIND.equals(action)||ImageMenuSettings.SHARE.equals(action)
+                ||ImageCustomMenuStore.isCustom(action))
+            dismissActive("image_external_action");
         try {
-            if(index==ImageMenuSettings.index(ImageMenuSettings.FIND))
+            if(ImageMenuSettings.FIND.equals(action))
                 ImageShareUtils.openWith(app,image);
-            else if(index==ImageMenuSettings.index(ImageMenuSettings.COPY))
+            else if(ImageMenuSettings.COPY.equals(action))
                 ImageShareUtils.copyToClipboard(app,image);
-            else if(index==ImageMenuSettings.index(ImageMenuSettings.SHARE))
+            else if(ImageMenuSettings.SHARE.equals(action))
                 ImageShareUtils.share(app,image);
-            else if(index==ImageMenuSettings.index(ImageMenuSettings.SAVE))
+            else if(ImageMenuSettings.SAVE.equals(action))
                 ScreenshotController.save(app,image);
+            else if(ImageCustomMenuStore.isCustom(action))
+                ImageCustomMenuStore.launch(app,action,image);
         } finally {
             if(!image.isRecycled())image.recycle();
         }

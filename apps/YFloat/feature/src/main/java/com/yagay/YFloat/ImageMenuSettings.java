@@ -18,13 +18,23 @@ final class ImageMenuSettings {
 
     static List<String> ordered(Context context) {
         String raw=prefs(context).getString(ORDER,"");
-        return normalized(raw==null || raw.isBlank() ? List.of() : Arrays.asList(raw.split(",")));
+        ArrayList<String> ids=new ArrayList<>();
+        for(ImageCustomMenuStore.Item item:ImageCustomMenuStore.load(context))ids.add(item.id);
+        return normalized(raw==null||raw.isBlank()?List.of():Arrays.asList(raw.split(",")),ids);
     }
 
     static List<String> normalized(List<String> stored) {
+        return normalized(stored,List.of());
+    }
+
+    static List<String> normalized(List<String> stored,List<String> extras) {
+        ArrayList<String> allowed=new ArrayList<>(ALL);
+        if(extras!=null)for(String id:extras)
+            if(ImageCustomMenuStore.isCustom(id)&&!allowed.contains(id))allowed.add(id);
         ArrayList<String> out=new ArrayList<>();
-        if(stored!=null) for(String id:stored) if(ALL.contains(id)&&!out.contains(id)) out.add(id);
-        for(String id:ALL) if(!out.contains(id)) out.add(id);
+        if(stored!=null)for(String id:stored)
+            if(allowed.contains(id)&&!out.contains(id))out.add(id);
+        for(String id:allowed)if(!out.contains(id))out.add(id);
         return out;
     }
 
@@ -33,7 +43,7 @@ final class ImageMenuSettings {
     }
 
     static void setVisible(Context c,String id,boolean enabled) {
-        if(!ALL.contains(id))return;
+        if(!ordered(c).contains(id))return;
         Set<String> hidden=new HashSet<>(prefs(c).getStringSet(HIDDEN,Set.of()));
         if(enabled)hidden.remove(id);else hidden.add(id);
         prefs(c).edit().putStringSet(HIDDEN,hidden).apply();
@@ -71,6 +81,23 @@ final class ImageMenuSettings {
     }
 
     static int index(String id){return ALL.indexOf(id);}
+
+    static String label(Context c,String id) {
+        if(ImageCustomMenuStore.isCustom(id)) {
+            ImageCustomMenuStore.Item item=ImageCustomMenuStore.find(c,id);
+            return item==null ? id : item.label;
+        }
+        return label(id);
+    }
+
+    static boolean removeCustom(Context c,String id){
+        if(!ImageCustomMenuStore.remove(c,id))return false;
+        Set<String> hidden=new HashSet<>(prefs(c).getStringSet(HIDDEN,Set.of()));
+        hidden.remove(id);
+        prefs(c).edit().putString(ORDER,String.join(",",ordered(c)))
+                .putStringSet(HIDDEN,hidden).apply();
+        return true;
+    }
 
     static String label(String id) {
         boolean zh=Locale.getDefault().getLanguage().equals("zh");
