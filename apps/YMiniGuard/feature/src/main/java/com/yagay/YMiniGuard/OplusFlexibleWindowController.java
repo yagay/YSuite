@@ -611,6 +611,22 @@ final class OplusFlexibleWindowController {
             return false;
         }
 
+        // Locking a foreground activity is not an ordinary app switch.
+        // Let ActivityTaskManager pause and hide its UI for keyguard, but
+        // remember its background-playback session so STOP/freeze protection
+        // can still operate after the window becomes invisible.
+        if (LockScreenPolicy.allowSystemPause(uiSleeping)) {
+            session.backgroundProtected = true;
+            session.taskObject = task;
+            session.lastSeenElapsed = SystemClock.elapsedRealtime();
+            log("BACKGROUND_LOCK_HIDE",
+                    "pkg=" + session.packageName
+                            + " taskId=" + session.taskId
+                            + " keepProcess=true"
+                            + " suppressPause=false");
+            return false;
+        }
+
         if (resumingPackage != null
                 && session.packageName.equals(
                 resumingPackage)) {
@@ -838,21 +854,17 @@ final class OplusFlexibleWindowController {
             return false;
         }
 
-        boolean oplusProtected =
-                GuardConfig.foregroundPackage(
-                        session.packageName)
-                        && (isNativeOplusWindow(session)
-                        || session.lockKeepAlive
-                        || session.edgeHung
-                        || session.edgeMinimizeRequested);
-
-        boolean backgroundProtected =
-                GuardConfig.backgroundPlaybackPackage(
-                        session.packageName)
-                        && session.backgroundProtected;
-
-        return oplusProtected
-                || backgroundProtected;
+        // This predicate is used by lock-screen visibility/sleep hooks, not
+        // by process keepalive. Background playback must never keep the UI
+        // surface visible on top of (or behind) the system keyguard.
+        // When an app is selected in both lists, privacy wins on lock.
+        return LockScreenPolicy.keepWindowVisible(
+                GuardConfig.foregroundPackage(session.packageName),
+                GuardConfig.backgroundPlaybackPackage(session.packageName),
+                isNativeOplusWindow(session),
+                session.lockKeepAlive,
+                session.edgeHung,
+                session.edgeMinimizeRequested);
     }
 
     private Session sessionForTask(Object task) {

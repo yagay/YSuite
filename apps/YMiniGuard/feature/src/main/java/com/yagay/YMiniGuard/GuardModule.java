@@ -1215,10 +1215,10 @@ public final class GuardModule extends XposedModule {
         }
 
         // OPlus itself hides the flexible Activity inside
-        // FlexibleTaskController.onScreenLockedChanged. For an always-foreground
-        // OPlus task, suppress only those exact visibility calls while the OEM
-        // lock callback is on this thread. This is deliberately NOT a global
-        // Activity lifecycle override.
+        // FlexibleTaskController.onScreenLockedChanged. Preserve only explicitly
+        // foreground-protected OPlus windows. Background-playback apps must
+        // always be hidden by keyguard, even if present in both lists.
+        // The policy is enforced by shouldKeepTaskAwake(), not by process state.
         Class<?> lockActivityRecord =
                 load(
                         loader,
