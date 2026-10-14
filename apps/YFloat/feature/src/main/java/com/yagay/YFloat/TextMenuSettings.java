@@ -24,7 +24,7 @@ final class TextMenuSettings {
      * Counted built-ins are copy + share, plus select-all when that action is available.
      */
     static int customSlots(Context c, boolean hasSelectAll, int customSize) {
-        int countedBuiltIns = hasSelectAll ? 3 : 2;
+        int countedBuiltIns = hasSelectAll && mainItemCount(c) >= 3 ? 3 : 2;
         int available = Math.max(0, mainItemCount(c) - countedBuiltIns);
         return Math.min(available, Math.max(0, customSize));
     }

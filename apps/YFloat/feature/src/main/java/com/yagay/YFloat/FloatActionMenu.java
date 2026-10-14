@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntConsumer;
 
 /** YFloat-owned text action menu using the shared floating-menu UI and positioning core. */
 public final class FloatActionMenu {
@@ -37,6 +38,8 @@ public final class FloatActionMenu {
     private static final int MODE_SHARE = 1;
     private static final int MODE_PROCESS = 2;
     private static final int MODE_MORE = 3;
+    private static final int MODE_IMAGE = 4;
+    private static final int MODE_IMAGE_MORE = 5;
     private static final int NO_POSITION = Integer.MIN_VALUE;
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
@@ -47,6 +50,9 @@ public final class FloatActionMenu {
     private static int activeMenuHeight;
     private static int activeMode = -1;
     private static String activeText = "";
+    private static IntConsumer activeImageCommand;
+    private static Rect activeImageAnchor;
+    private static boolean activeImageCrop;
     private static int activeCenterX = NO_POSITION;
     private static int activeTopY = NO_POSITION;
     private static int lockedCenterX = NO_POSITION;
@@ -134,6 +140,12 @@ public final class FloatActionMenu {
             buildTargetMenu(app, root, text, selectAll, mode);
         }
 
+        attachOverlay(app, host, root, mode, anchor, text);
+    }
+
+    /** Shared WindowManager lifecycle and YUI layout for text/image selection menus. */
+    private static void attachOverlay(Context app, FlOverlayWindowHost host,
+                    LinearLayout root, int mode, Rect anchor, String text) {
         root.setOnTouchListener((v, e) -> {
             if (e.getActionMasked() == MotionEvent.ACTION_OUTSIDE) {
                 dismiss();
@@ -144,7 +156,7 @@ public final class FloatActionMenu {
 
         Rect usable = ScreenGeometry.usableBounds(app);
         int maxPopupWidth = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), usable.width() - YUiGeometry.overlayMenuInsetPx(app, "yfloat") * 2);
-        int width = mode == MODE_MAIN
+        int width = (mode == MODE_MAIN || mode == MODE_IMAGE)
                 ? WindowManager.LayoutParams.WRAP_CONTENT
                 : contentAdaptiveWidth(app, root, mode, maxPopupWidth);
 
@@ -206,6 +218,108 @@ public final class FloatActionMenu {
         }
     }
 
+    /**
+     * The single selection-menu host handles both OCR text and image crops.
+     * Only the available actions differ; all YUI and menu-count settings are shared.
+     */
+    public static synchronized void showImageAt(Context c, Rect anchor,
+                                                boolean crop, IntConsumer command) {
+        if (c == null || command == null || anchor == null || anchor.isEmpty()) return;
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            Context app = c.getApplicationContext();
+            Rect copy = new Rect(anchor);
+            MAIN.post(() -> showImageAt(app, copy, crop, command));
+            return;
+        }
+        if (activeMode == MODE_IMAGE && activeImageCrop == crop
+                && activeView != null && activeView.isAttachedToWindow()
+                && activeHost != null && activeParams != null) {
+            activeImageCommand = command;
+            activeImageAnchor = new Rect(anchor);
+            if (positionActiveImage(c, anchor)) return;
+        }
+        showImageMenu(c.getApplicationContext(), anchor, crop, command, false);
+    }
+
+    public static synchronized void dismissImage() {
+        if (activeMode == MODE_IMAGE || activeMode == MODE_IMAGE_MORE) dismiss();
+    }
+
+    private static synchronized void showImageMenu(Context app, Rect anchor,
+                              boolean crop, IntConsumer command, boolean expanded) {
+        if (anchor == null || anchor.isEmpty() || command == null) return;
+        dismiss();
+        resetLockedRow();
+        FlOverlayWindowHost host = new FlOverlayWindowHost(app);
+        LinearLayout root = FloatingMenuUi.root(app);
+        List<String> actions = ImageMenuSettings.visibleActions(app,crop);
+        int primary = ImageMenuSettings.primaryCount(app,actions.size());
+        if (!expanded) {
+            LinearLayout row = toolbarRow(app);
+            for (int i=0;i<primary;i++) {
+                YViewLayout.addAction(row,imageActionButton(app,actions.get(i)));
+            }
+            if (actions.size()>primary) {
+                TextView more = FloatingMenuUi.action(app,"⋮");
+                more.setContentDescription(imageMenuLabel("更多","More"));
+                more.setOnClickListener(v -> changeImagePage(app,true));
+                YViewLayout.addAction(row,more);
+            }
+            root.addView(row,new LinearLayout.LayoutParams(-1,-2));
+        } else {
+            TextView back = FloatingMenuUi.row(app,imageMenuLabel("‹ 返回","‹ Back"),null);
+            back.setOnClickListener(v -> changeImagePage(app,false));
+            root.addView(back,new LinearLayout.LayoutParams(-1,-2));
+            for(int i=primary;i<actions.size();i++) {
+                root.addView(imageActionButton(app,actions.get(i)),
+                        new LinearLayout.LayoutParams(-1,-2));
+            }
+        }
+        attachOverlay(app,host,root,expanded?MODE_IMAGE_MORE:MODE_IMAGE,anchor,"");
+        if (activeView == root) {
+            activeImageCommand = command;
+            activeImageAnchor = new Rect(anchor);
+            activeImageCrop = crop;
+        }
+    }
+
+    private static void changeImagePage(Context app, boolean expanded) {
+        IntConsumer callback = activeImageCommand;
+        Rect anchor = activeImageAnchor == null ? null : new Rect(activeImageAnchor);
+        boolean crop = activeImageCrop;
+        if (callback != null && anchor != null)
+            showImageMenu(app, anchor, crop, callback, expanded);
+    }
+
+    private static TextView imageActionButton(Context app,String action) {
+        TextView button=FloatingMenuUi.action(app,ImageMenuSettings.label(action));
+        button.setOnClickListener(v -> {
+            IntConsumer callback=activeImageCommand;
+            dismiss();
+            if(callback!=null) callback.accept(ImageMenuSettings.index(action));
+        });
+        return button;
+    }
+
+    private static String imageMenuLabel(String zh,String en) {
+        return java.util.Locale.getDefault().getLanguage().equals("zh") ? zh : en;
+    }
+
+    private static boolean positionActiveImage(Context app, Rect anchor) {
+        Rect bounds = ScreenGeometry.usableBounds(app);
+        int[] position = FloatingMenuPositioner.aroundAnchor(app,bounds,anchor,
+                activeMenuWidth,activeMenuHeight,false);
+        if(position[0]==activeParams.x && position[1]==activeParams.y) return true;
+        activeParams.x=position[0];
+        activeParams.y=position[1];
+        if (!activeHost.update(activeView,activeParams,"float_image_menu_follow")) {
+            return false;
+        }
+        activeCenterX=activeParams.x+activeMenuWidth/2;
+        activeTopY=activeParams.y;
+        return true;
+    }
+
     /** Match Android's compact popup feel without forcing every submenu to a fixed wide size. */
     private static int contentAdaptiveWidth(Context app, View root, int mode, int screenMax) {
         int min = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"),
@@ -259,7 +373,7 @@ public final class FloatActionMenu {
         items.add(copy);
 
         TextView all = null;
-        if (hasSelectAll) {
+        if (hasSelectAll && TextMenuSettings.mainItemCount(app) >= 3) {
             all = FloatingMenuUi.action(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_3e44b2a93338));
             items.add(all);
         }
@@ -328,6 +442,19 @@ public final class FloatActionMenu {
         root.addView(back, new LinearLayout.LayoutParams(-1, -2));
         back.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MAIN));
 
+        if (selectAll != null && TextMenuSettings.mainItemCount(app) < 3) {
+            TextView selectAllAction = FloatingMenuUi.row(app,
+                    com.yagay.suite.api.YLocale.text(
+                            com.yagay.YFloat.R.string.yfloat_dynamic_3e44b2a93338), null);
+            selectAllAction.setOnClickListener(v -> {
+                try { selectAll.run(); }
+                catch (Throwable failure) {
+                    DiagnosticLog.i(app,"FLOAT_ACTION_MENU","select all failed="+failure);
+                }
+                dismiss();
+            });
+            root.addView(selectAllAction,new LinearLayout.LayoutParams(-1,-2));
+        }
         List<CustomMenuActionStore.Item> customs = CustomMenuActionStore.load(app);
         int skip = mainCustomCount(app, customs.size(), selectAll != null);
         for (int i = skip; i < customs.size(); i++) {
@@ -563,6 +690,9 @@ public final class FloatActionMenu {
         activeMenuHeight = 0;
         activeMode = -1;
         activeText = "";
+        activeImageCommand = null;
+        activeImageAnchor = null;
+        activeImageCrop = false;
         activeCenterX = NO_POSITION;
         activeTopY = NO_POSITION;
         OverlayRegistry.unregister("text_action_menu", OVERLAY_OWNER);
