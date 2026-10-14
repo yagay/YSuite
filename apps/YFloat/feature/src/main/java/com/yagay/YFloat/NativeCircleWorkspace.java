@@ -60,6 +60,10 @@ final class NativeCircleWorkspace extends View {
     private final RectF menuBox = new RectF();
     private final RectF firstHandle = new RectF();
     private final RectF lastHandle = new RectF();
+    private final RectF[] imageHandles = {
+            new RectF(), new RectF(), new RectF(), new RectF()
+    };
+    private final RectF imageDragOrigin = new RectF();
 
     private Path chosenShape;
     private OcrDocument fullDocument;
@@ -262,6 +266,14 @@ final class NativeCircleWorkspace extends View {
         canvas.restore();
         if(shape!=null) canvas.drawPath(shape,outlinePaint);
         else canvas.drawRoundRect(r,10*density,10*density,outlinePaint);
+        float[] xs={r.left,r.right,r.right,r.left};
+        float[] ys={r.top,r.top,r.bottom,r.bottom};
+        for(int i=0;i<4;i++){
+            canvas.drawCircle(xs[i],ys[i],5*density,fillPaint);
+            canvas.drawCircle(xs[i],ys[i],5*density,outlinePaint);
+            imageHandles[i].set(xs[i]-21*density,ys[i]-21*density,
+                    xs[i]+21*density,ys[i]+21*density);
+        }
     }
 
     private void drawTextSelection(Canvas canvas) {
@@ -533,6 +545,15 @@ final class NativeCircleWorkspace extends View {
                 if(firstHandle.contains(x,y)){handleDrag=1;return true;}
                 if(lastHandle.contains(x,y)){handleDrag=2;return true;}
             }
+            if(state.phase==NativeCircleState.Phase.IMAGE_READY){
+                for(int i=0;i<imageHandles.length;i++){
+                    if(imageHandles[i].contains(x,y)){
+                        handleDrag=3+i;
+                        imageDragOrigin.set(state.left,state.top,state.right,state.bottom);
+                        return true;
+                    }
+                }
+            }
             PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
             state.begin(bitmap.x,bitmap.y);
             downX=bitmap.x;downY=bitmap.y;
@@ -547,9 +568,11 @@ final class NativeCircleWorkspace extends View {
         }
         if(handleDrag!=0){
             if(action==MotionEvent.ACTION_MOVE||action==MotionEvent.ACTION_UP){
-                adjustTextHandle(x,y);
+                if(handleDrag<=2)adjustTextHandle(x,y);
+                else adjustImageHandle(x,y);
                 if(action==MotionEvent.ACTION_UP)handleDrag=0;
             }else if(action==MotionEvent.ACTION_CANCEL)handleDrag=0;
+            invalidate();
             return true;
         }
         if(!touching)return true;
@@ -578,6 +601,26 @@ final class NativeCircleWorkspace extends View {
         maxX=Math.max(maxX,bitmap.x);maxY=Math.max(maxY,bitmap.y);
         state.bounds(minX,minY,maxX,maxY);
         dragPath.lineTo(x,y);
+    }
+
+    private void adjustImageHandle(float x,float y) {
+        PointF p=frame.viewToBitmap(x,y,getWidth(),getHeight());
+        float x1=imageDragOrigin.left,y1=imageDragOrigin.top;
+        float x2=imageDragOrigin.right,y2=imageDragOrigin.bottom;
+        switch(handleDrag){
+            case 3 -> { x1=p.x; y1=p.y; }
+            case 4 -> { x2=p.x; y1=p.y; }
+            case 5 -> { x2=p.x; y2=p.y; }
+            case 6 -> { x1=p.x; y2=p.y; }
+            default -> { return; }
+        }
+        float l=Math.max(0f,Math.min(x1,x2));
+        float t=Math.max(0f,Math.min(y1,y2));
+        float r=Math.min(frame.bitmap.getWidth(),Math.max(x1,x2));
+        float b=Math.min(frame.bitmap.getHeight(),Math.max(y1,y2));
+        if(r-l<2f || b-t<2f)return;
+        chosenShape=null; // Edits convert a freeform lasso to an explicit crop.
+        state.bounds(l,t,r,b);
     }
 
     private void adjustTextHandle(float x,float y){
