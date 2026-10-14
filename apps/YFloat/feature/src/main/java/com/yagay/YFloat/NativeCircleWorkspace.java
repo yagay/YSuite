@@ -175,7 +175,14 @@ final class NativeCircleWorkspace extends View {
                     recycleOcrBitmap(input);
                     MAIN.post(() -> {
                         if (closed) return;
-                        fullDocument = frame.transform.documentBitmapToScreen(result);
+                        try {
+                            fullDocument = frame.transform.documentBitmapToScreen(result);
+                        } catch (Throwable error) {
+                            fullDocument = null;
+                            DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                                    "ocr coordinates failed="
+                                            + ScreenCaptureBackend.safeMessage(error));
+                        }
                         ocrBusy = false;
                         status = "";
                         FLCircleSelection.Selection pending = pendingGesture;
@@ -426,9 +433,17 @@ final class NativeCircleWorkspace extends View {
             return;
         }
         List<OcrDocument.CharUnit> all=fullDocument.chars();
-        List<CircleGestureTextSelector.GroupHit> groups=CircleGestureTextSelector.hitGroups(
-                app,frame,gesture,fullDocument,10f,10f);
-        if(groups.isEmpty()) {
+        List<CircleGestureTextSelector.GroupHit> groups;
+        try {
+            groups = CircleGestureTextSelector.hitGroups(
+                    app,frame,gesture,fullDocument,10f,10f);
+        } catch (Throwable error) {
+            DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                    "ocr hit matching failed=" + ScreenCaptureBackend.safeMessage(error));
+            resolveImage(gesture,token);
+            return;
+        }
+        if(groups==null || groups.isEmpty()) {
             resolveImage(gesture,token);
             return;
         }
@@ -450,6 +465,11 @@ final class NativeCircleWorkspace extends View {
         if(first>last){resolveImage(gesture,token);return;}
         firstChar=first;lastChar=last;
         applyTextIndices(token,true);
+        if (state.phase != NativeCircleState.Phase.TEXT_READY) {
+            // Empty/invalid OCR text must not leave the workspace stuck in RESOLVING.
+            resolveImage(gesture, token);
+            return;
+        }
         DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
     }
 

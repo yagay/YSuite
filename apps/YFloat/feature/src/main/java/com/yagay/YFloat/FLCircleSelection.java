@@ -81,9 +81,12 @@ final class FLCircleSelection {
         } else {
             boolean highlight = widthForClassification >= heightForClassification * 2.35f
                     && heightForClassification <= minShapePx * 1.35f;
+            // Thin but genuinely closed loops are image selections too;
+            // requiring 24dp height made narrow loops turn into text highlights.
+            float minLoopSpan = Math.max(tapSlopPx * 1.25f, minShapePx * 0.55f);
             boolean closed = points.size() >= 8
-                    && widthForClassification >= minShapePx
-                    && heightForClassification >= minShapePx
+                    && widthForClassification >= minLoopSpan
+                    && heightForClassification >= minLoopSpan
                     && closure <= Math.max(minShapePx, diagonal * 0.34f);
 
             // A thin/flat lasso may also meet the highlight aspect ratio;
