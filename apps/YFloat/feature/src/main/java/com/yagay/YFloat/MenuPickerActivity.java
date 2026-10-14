@@ -42,6 +42,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
     public static final String EXTRA_MODE = "mode";
     public static final String SECTION_CUSTOM = "custom";
     public static final String SECTION_TARGET = "target";
+    public static final String SECTION_IMAGE = "image";
 
     private String section;
     private String targetMode;
@@ -59,6 +60,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
                         ? TargetMenuStore.MODE_PROCESS : TargetMenuStore.MODE_SHARE);
     }
 
+    public static Intent imageIntent(Context c) {
+        return new Intent(c, MenuPickerActivity.class).putExtra(EXTRA_SECTION, SECTION_IMAGE);
+    }
+
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -66,12 +71,72 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 handleBackNavigation();
             }
         });
-        section = SECTION_TARGET.equals(getIntent().getStringExtra(EXTRA_SECTION))
-                ? SECTION_TARGET : SECTION_CUSTOM;
+        String requested = getIntent().getStringExtra(EXTRA_SECTION);
+        section = SECTION_TARGET.equals(requested) ? SECTION_TARGET
+                : SECTION_IMAGE.equals(requested) ? SECTION_IMAGE : SECTION_CUSTOM;
         targetMode = TargetMenuStore.MODE_PROCESS.equals(getIntent().getStringExtra(EXTRA_MODE))
                 ? TargetMenuStore.MODE_PROCESS : TargetMenuStore.MODE_SHARE;
-        if (isTargetSection()) showTargetManager();
+        if (SECTION_IMAGE.equals(section)) showImageManager();
+        else if (isTargetSection()) showTargetManager();
         else showCustomHome();
+    }
+
+    private void showImageManager() {
+        boolean zh = java.util.Locale.getDefault().getLanguage().equals("zh");
+        LinearLayout root = page(zh ? "图片与圈画截图菜单" : "Image and screenshot menu",
+                zh ? "与文字菜单共用数量、圆角、颜色及按钮大小；操作内容独立管理。"
+                        : "Shares menu count, corners, colors and sizing with text actions.",
+                null);
+        YViewSection common = YViewLayout.section(this,
+                zh ? "统一菜单设置" : "Shared menu settings", null);
+        YViewLayout.addRow(common.body, YViewLayout.navRow(this,
+                zh ? "菜单主栏数量" : "Primary action count",
+                TextMenuSettings.mainItemCount(this)
+                        + (zh ? " 个 · 同时控制文字与图片" : " · shared by text and images"),
+                () -> startActivity(new Intent(this, AppearanceSettingsActivity.class))));
+        YViewLayout.addSection(root, common);
+        YViewSection items = YViewLayout.section(this,
+                zh ? "图片操作顺序与显示" : "Image action order and visibility",
+                zh ? "点击操作可隐藏、显示、上移或下移。" : "Tap an action to show, hide or move it.");
+        for (String id : ImageMenuSettings.ordered(this)) {
+            String subtitle = ImageMenuSettings.isVisible(this,id)
+                    ? (zh ? "已显示" : "Visible") : (zh ? "已隐藏" : "Hidden");
+            if (ImageMenuSettings.DONE.equals(id) || ImageMenuSettings.RESET.equals(id)) {
+                subtitle += zh ? " · 仅圈画截图" : " · crop selection only";
+            }
+            View item = YViewLayout.navRow(this, ImageMenuSettings.label(id), subtitle, null);
+            item.setOnClickListener(v -> showImageOptions(id, v));
+            YViewLayout.addRow(items.body, item);
+        }
+        YViewLayout.addSection(root, items);
+        YViewSection reset = YViewLayout.section(this,
+                zh ? "恢复设置" : "Restore defaults", null);
+        YViewLayout.addRow(reset.body, YViewLayout.navRow(this,
+                zh ? "重置图片菜单" : "Reset image actions",
+                zh ? "恢复默认排序、全部显示" : "Restore default order and visibility",
+                () -> { ImageMenuSettings.reset(this); showImageManager(); }));
+        YViewLayout.addSection(root, reset);
+        show(root);
+    }
+
+    private void showImageOptions(String id, View anchor) {
+        boolean zh = java.util.Locale.getDefault().getLanguage().equals("zh");
+        PopupMenu popup = com.yagay.yui.YViewTransientControls.popupMenu(this, anchor);
+        List<String> order = ImageMenuSettings.ordered(this);
+        boolean visible = ImageMenuSettings.isVisible(this,id);
+        popup.getMenu().add(0,1,0,visible ? (zh ? "隐藏" : "Hide") : (zh ? "显示" : "Show"));
+        popup.getMenu().add(0,2,1,zh ? "上移" : "Move up")
+                .setEnabled(order.indexOf(id) > 0);
+        popup.getMenu().add(0,3,2,zh ? "下移" : "Move down")
+                .setEnabled(order.indexOf(id) < order.size()-1);
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId()==1) ImageMenuSettings.setVisible(this,id,!visible);
+            else if (item.getItemId()==2) ImageMenuSettings.move(this,id,-1);
+            else if (item.getItemId()==3) ImageMenuSettings.move(this,id,1);
+            showImageManager();
+            return true;
+        });
+        popup.show();
     }
 
     // -----------------------------------------------------------------------------------------

@@ -29,7 +29,9 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
                     getString(R.string.yfloat_text_menu_desc));
             addMainItemCountSlider(textMenu.body);
             YViewLayout.addRow(textMenu.body, YViewLayout.sectionNote(this,
-                    getString(R.string.yfloat_text_menu_note)));
+                    java.util.Locale.getDefault().getLanguage().equals("zh")
+                        ? "文字选择与圈画截图共用菜单数量、按钮尺寸、字体、间距和 YUI 外观。"
+                        : "Text and screenshot selection share the menu count and all YUI appearance settings."));
             YViewLayout.addSection(root, textMenu);
         }
 
@@ -40,6 +42,13 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
                 getString(R.string.yfloat_text_action_menu),
                 getString(R.string.yfloat_text_action_menu_desc),
                 () -> startActivity(MenuPickerActivity.customIntent(this))));
+        YViewLayout.addRow(menus.body, YViewLayout.navRow(this,
+                java.util.Locale.getDefault().getLanguage().equals("zh")
+                        ? "图片与圈画截图菜单" : "Image and screenshot actions",
+                java.util.Locale.getDefault().getLanguage().equals("zh")
+                        ? "分别管理图片操作的显示与顺序，外观与文字统一"
+                        : "Configure image actions and order; appearance shared with text",
+                () -> startActivity(MenuPickerActivity.imageIntent(this))));
         YViewLayout.addRow(menus.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_share_menu),
                 getString(R.string.yfloat_share_menu_desc),
