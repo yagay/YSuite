@@ -40,6 +40,9 @@ final class GoogleV2HookEngine {
     private final GoogleLensFrameCapture frames;
     private final GoogleTextSelectionLiveHook words;
     private final GoogleRegionGestureHook gestures;
+    private final GoogleV2Viewport viewport;
+    private final GoogleV2SearchGuard nativeSearch;
+    private final GoogleV2SearchChrome nativeChrome;
     private final GoogleSelectionAdapter.Binding selection;
     private final AtomicInteger revision = new AtomicInteger();
     private volatile String token = "";
@@ -61,6 +64,11 @@ final class GoogleV2HookEngine {
                 ()->owner,this::onWords);
         gestures=new GoogleRegionGestureHook(module,loader,this::active,
                 this::onGesture,(action,x,y,detail)->{});
+        viewport=new GoogleV2Viewport(module,this::active,this::logEvent);
+        nativeSearch=new GoogleV2SearchGuard(module,
+                ()->active()&&(textMode||regionMode),this::logEvent);
+        nativeChrome=new GoogleV2SearchChrome(
+                ()->active()&&(textMode||regionMode),this::logEvent);
         selection=GoogleSelectionAdapter.resolve(loader);
     }
 
@@ -69,6 +77,8 @@ final class GoogleV2HookEngine {
         count+=hookVoiceShow();
         count+=hookVoiceFrame();
         count+=hookActivities();
+        count+=viewport.install();
+        count+=nativeSearch.install();
         count+=frames.install();
         count+=words.install();
         count+=gestures.install();
@@ -89,6 +99,8 @@ final class GoogleV2HookEngine {
         if(!key.equals(token)){
             transport.reset();
             gestures.reset();
+            viewport.reset();
+            nativeChrome.reset();
             revision.incrementAndGet();
             textMode=false;regionMode=false;currentText="";currentBounds=null;
         }
@@ -108,6 +120,8 @@ final class GoogleV2HookEngine {
         owner=null;voice=null;
         transport.reset();
         gestures.reset();
+        viewport.reset();
+        nativeChrome.reset();
         revision.incrementAndGet();
     }
 
@@ -201,14 +215,28 @@ final class GoogleV2HookEngine {
                         if(activity.getClass().getName().endsWith("LensientActivity")
                                 ||owner==null)owner=activity;
                         frames.captureFromIntent(incoming);
+                        // This Activity is a search handoff, not the initial
+                        // LensientActivity. Keep Google on the owned selection.
+                        if("callActivityOnNewIntent".equals(method.getName())
+                                && (textMode||regionMode) && incoming!=null
+                                && GoogleV2ScenePolicy.suppressNativeSearch(
+                                        true,incoming.getAction())) {
+                            logEvent("NATIVE_SEARCH_BLOCKED","source=new_intent");
+                            return null;
+                        }
                     }
                     Object result=chain.proceed();
                     if(active()&&owner==activity){
+                        viewport.attach(activity);
+                        nativeChrome.attach(activity);
                         int current=revision.get();
                         for(long wait:new long[]{160L,470L,950L}){
                             main.postDelayed(()->{
-                                if(active()&&revision.get()==current&&owner==activity)
+                                if(active()&&revision.get()==current&&owner==activity){
+                                    viewport.attach(activity);
+                                    nativeChrome.attach(activity);
                                     frames.probeFrozenView(activity,"v2_activity_"+wait);
+                                }
                             },wait);
                         }
                     }
@@ -234,6 +262,8 @@ final class GoogleV2HookEngine {
                         if(candidate.directRegionCommit()&&bounds!=null&&!bounds.isEmpty()){
                             regionMode=true;textMode=false;
                             currentBounds=new Rect(bounds);
+                            viewport.attach(owner);
+                            nativeChrome.onSelection();
                             transport.sendEvent(GoogleCtsContract.EVENT_REGION_SELECTION,
                                     "",candidate.detail(),bounds);
                         } else {
@@ -244,6 +274,8 @@ final class GoogleV2HookEngine {
                             if(!value.isBlank()){
                                 textMode=true;regionMode=false;currentText=value;
                                 if(bounds!=null&&!bounds.isEmpty())currentBounds=new Rect(bounds);
+                                viewport.attach(owner);
+                                nativeChrome.onSelection();
                                 transport.sendEvent(GoogleCtsContract.EVENT_SELECTION,
                                         value,candidate.detail(),currentBounds);
                             }
@@ -261,6 +293,8 @@ final class GoogleV2HookEngine {
         if(wordsText!=null&&!wordsText.isBlank()){
             textMode=true;regionMode=false;currentText=wordsText;
             if(bounds!=null&&!bounds.isEmpty())currentBounds=new Rect(bounds);
+            viewport.attach(owner);
+            nativeChrome.onSelection();
             transport.sendEvent(GoogleCtsContract.EVENT_SELECTION,wordsText,detail,currentBounds);
         }else if(textMode&&bounds!=null&&!bounds.isEmpty()){
             currentBounds=new Rect(bounds);
