@@ -11,9 +11,7 @@ import io.github.libxposed.api.XposedModule;
 public final class YFloatModule extends XposedModule {
     private static final String TAG = "YFloat-LSPosed";
     private static final String FEATURE_ID = "yfloat";
-    private static final String GOOGLE_PACKAGE = "com.google.android.googlequicksearchbox";
     private LsposedRuntimeProvider runtimeProvider;
-    private boolean googleCtsInspectorInstalled;
     private boolean suiteHost;
     private String processName = "";
 
@@ -64,34 +62,14 @@ public final class YFloatModule extends XposedModule {
 
     @Override
     public void onPackageLoaded(PackageLoadedParam param) {
-        // Google CTS hooks are installed at PackageReady so the app ClassLoader is final.
+        // Native Circle does not hook Google packages.
     }
 
     @Override
     public void onPackageReady(PackageReadyParam param) {
-        if (googleCtsInspectorInstalled || !GOOGLE_PACKAGE.equals(param.getPackageName())) return;
-
-        final String target = processName.isEmpty() ? param.getPackageName() : processName;
-        if (suiteHost) {
-            RuntimeHandoffGate.markSuiteActive(FEATURE_ID, target);
-        } else if (!RuntimeHandoffGate.shouldStandaloneFallback(FEATURE_ID, target)) {
-            log(Log.INFO, TAG,
-                    "Standalone Google CTS hook passive; live YSuite hook acknowledged target=" + target);
-            return;
-        }
-
-        LsposedRuntimeProvider provider = runtimeProvider;
-        if (provider == null) return;
-        try {
-            new GoogleV2HookEngine(this, provider, param.getClassLoader()).install();
-            googleCtsInspectorInstalled = true;
-            log(Log.INFO, TAG,
-                    "Google CTS marked-session inspector installed; owner="
-                            + RuntimeOwnerGate.readOwner(FEATURE_ID)
-                            + "; suiteHost=" + suiteHost
-                            + "; target=" + target);
-        } catch (Throwable t) {
-            log(Log.ERROR, TAG, "Failed to install Google CTS marked-session inspector", t);
-        }
+        // Native Circle V3 requires no Google App process hooks. Retain
+        // system_server's optional secure-screenshot enhancement only.
+        // Do not install the V2/legacy Google hook even if older app settings
+        // still mention Google CTS.
     }
 }
