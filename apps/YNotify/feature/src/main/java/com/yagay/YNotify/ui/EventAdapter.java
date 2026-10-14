@@ -14,6 +14,7 @@ import com.yagay.yui.YView;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.EventFilters;
+import com.yagay.YNotify.data.NotificationFilterCatalog;
 import com.yagay.YNotify.databinding.ItemEventBinding;
 import com.yagay.YNotify.util.AppInfoUtil;
 
@@ -176,20 +177,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
 
     private static String typeLabel(Context c, EventRecord r) {
         if (EventFilters.isNotificationRecord(r)) {
-            String kind = r.notificationKind == null ? "standard" : r.notificationKind;
-            String base;
-            switch (kind) {
-                case "call": base = c.getString(R.string.ynotify_kind_call); break;
-                case "alarm": base = c.getString(R.string.ynotify_kind_alarm); break;
-                case "media": base = c.getString(R.string.ynotify_kind_media); break;
-                case "progress": base = c.getString(R.string.ynotify_kind_progress); break;
-                case "foreground_service": base = c.getString(R.string.ynotify_kind_foreground_service); break;
-                case "message": base = c.getString(R.string.ynotify_kind_message); break;
-                case "system": base = c.getString(R.string.ynotify_kind_system); break;
-                case "ongoing": base = c.getString(R.string.ynotify_kind_ongoing); break;
-                case "silent": base = c.getString(R.string.ynotify_kind_silent); break;
-                default: base = c.getString(R.string.ynotify_class_notification); break;
-            }
+            String base = c.getString(NotificationFilterCatalog.classify(r).labelRes);
             return c.getString(
                     R.string.ynotify_type_with_surfaces,
                     base,

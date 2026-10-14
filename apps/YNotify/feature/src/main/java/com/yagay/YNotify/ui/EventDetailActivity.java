@@ -17,6 +17,7 @@ import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventStore;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.EventFilters;
+import com.yagay.YNotify.data.NotificationFilterCatalog;
 import com.yagay.YNotify.data.HistoryRepairEngine;
 import com.yagay.YNotify.data.NotificationRevision;
 import com.yagay.YNotify.data.NotifyDatabase;
@@ -220,7 +221,10 @@ public class EventDetailActivity extends AppCompatActivity {
         if (r.groupSummary) line(m, R.string.ynotify_meta_group_summary, getString(R.string.ynotify_yes));
         line(m, R.string.ynotify_meta_template, r.template);
         line(m, R.string.ynotify_meta_category, r.category);
-        line(m, R.string.ynotify_meta_notification_kind, displayNotificationKind(r.notificationKind));
+        line(m, R.string.ynotify_meta_notification_kind,
+                EventFilters.isNotificationRecord(r)
+                        ? getString(NotificationFilterCatalog.classify(r).labelRes)
+                        : null);
         if (r.importance != 0) line(m, R.string.ynotify_meta_ranking_importance, String.valueOf(r.importance));
         if (r.conversation) line(m, R.string.ynotify_meta_conversation, getString(R.string.ynotify_yes));
         if (r.rankingCanBubble) line(m, R.string.ynotify_meta_ranking_can_bubble, getString(R.string.ynotify_yes));
@@ -264,22 +268,6 @@ public class EventDetailActivity extends AppCompatActivity {
         return value;
     }
 
-    private String displayNotificationKind(String value) {
-        if (value == null || value.isBlank()) return value;
-        switch (value) {
-            case "call": return getString(R.string.ynotify_kind_call);
-            case "alarm": return getString(R.string.ynotify_kind_alarm);
-            case "media": return getString(R.string.ynotify_kind_media);
-            case "progress": return getString(R.string.ynotify_kind_progress);
-            case "foreground_service": return getString(R.string.ynotify_kind_foreground_service);
-            case "message": return getString(R.string.ynotify_kind_message);
-            case "system": return getString(R.string.ynotify_kind_system);
-            case "ongoing": return getString(R.string.ynotify_kind_ongoing);
-            case "silent": return getString(R.string.ynotify_kind_silent);
-            case "standard": return getString(R.string.ynotify_class_notification);
-            default: return value;
-        }
-    }
 
     private String formatRevisions(List<NotificationRevision> revisions) {
         if (revisions == null || revisions.isEmpty()) return getString(R.string.ynotify_not_available);
