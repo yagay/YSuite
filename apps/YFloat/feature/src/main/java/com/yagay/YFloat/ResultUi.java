@@ -17,6 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import androidx.core.content.ContextCompat;
 
 /** Shared geometry and widget helpers for every result surface. */
 final class ResultUi {
@@ -78,7 +79,7 @@ final class ResultUi {
     static LinearLayout actionRow(Context c) {
         LinearLayout row = new LinearLayout(c);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setGravity(Gravity.CENTER);
         return row;
     }
 
@@ -95,14 +96,36 @@ final class ResultUi {
 
     static void addResultActions(LinearLayout row,
                                  Button ocr, Button copy, Button save, Button close) {
+        // Keep YUI's live visual/touch geometry: four icon-only actions share
+        // one row; the existing HorizontalScrollView handles small screens.
+        Context scoped = YOverlayUi.scopedContext(row.getContext(), "yfloat");
+        int cellWidth = Math.max(YView.touchTarget(scoped),
+                YView.iconSize(scoped) + 2 * YView.buttonHorizontalPadding(scoped));
         for (Button button : new Button[]{ocr, copy, save, close}) {
-            // Retain YUI's button styling, insets and minimum touch size.
-            button.setSingleLine(true);
             LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                    cellWidth, LinearLayout.LayoutParams.WRAP_CONTENT);
             row.addView(button, cell);
         }
+    }
+
+    /** Icon-only button, derived from the existing YUI secondary MaterialButton. */
+    static MaterialButton iconButton(Context c, int iconRes, String label) {
+        Context scoped = YOverlayUi.scopedContext(c, "yfloat");
+        MaterialButton button = YViewLayout.secondaryButton(scoped, "");
+        button.setText("");
+        button.setGravity(Gravity.CENTER);
+        button.setIcon(ContextCompat.getDrawable(scoped, iconRes));
+        button.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
+        button.setIconPadding(0);
+        button.setIconSize(YView.iconSize(scoped));
+        button.setIconTint(button.getTextColors());
+        setActionHint(button, label);
+        return button;
+    }
+
+    static void setActionHint(Button button, String label) {
+        button.setContentDescription(label);
+        button.setTooltipText(label);
     }
 
     static Button button(Context c, String text) {

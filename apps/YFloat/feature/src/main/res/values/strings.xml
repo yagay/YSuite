@@ -25,4 +25,6 @@
     <string name="yfloat_text_handle_snap">Text handle snap distance</string>
     <string name="yfloat_crop_min_size">Minimum crop rectangle</string>
     <string name="yfloat_crop_drag_slop">Crop handle drag tolerance</string>
+    <string name="yfloat_result_action_ocr">Recognize text (OCR)</string>
+    <string name="yfloat_result_action_ocr_running">Recognizing text…</string>
 </resources>

@@ -80,10 +80,14 @@ final class UnifiedResultPanel {
         bindSelectionMenu();
 
         actions = ResultUi.actionRow(context);
-        ocrButton = ResultUi.button(context, "OCR");
-        copyButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7));
-        saveButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_82522e2a87bf));
-        closeButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_59a26fdc46ce));
+        ocrButton = ResultUi.iconButton(context, R.drawable.yfloat_ic_result_ocr,
+                context.getString(R.string.yfloat_result_action_ocr));
+        copyButton = ResultUi.iconButton(context, R.drawable.yfloat_ic_result_copy,
+                com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_f5a24d2506d7));
+        saveButton = ResultUi.iconButton(context, R.drawable.yfloat_ic_result_save,
+                com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_82522e2a87bf));
+        closeButton = ResultUi.iconButton(context, R.drawable.yfloat_ic_close,
+                com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_59a26fdc46ce));
         ResultUi.addResultActions(actions, ocrButton, copyButton, saveButton, closeButton);
         actionsViewport = ResultUi.actionViewport(context, actions);
         root.addView(actionsViewport, new LinearLayout.LayoutParams(-1, -2));
@@ -195,20 +199,24 @@ final class UnifiedResultPanel {
         boolean canSave = s != null && s.canSave();
 
         ocrButton.setEnabled(canOcr && !ocrRunning);
-        ocrButton.setText(ocrRunning ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_27662fcdbce1)
-                : s != null && s.mode() == ResultSession.Mode.OCR ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_b579e97a6ef4) : "OCR");
+        ResultUi.setActionHint(ocrButton, context.getString(ocrRunning
+                ? R.string.yfloat_result_action_ocr_running
+                : R.string.yfloat_result_action_ocr));
         setEnabledVisual(ocrButton, canOcr && !ocrRunning);
 
         copyButton.setEnabled(canCopy);
-        copyButton.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7));
+        ResultUi.setActionHint(copyButton,
+                com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_f5a24d2506d7));
         setEnabledVisual(copyButton, canCopy);
 
         saveButton.setEnabled(canSave);
-        saveButton.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_82522e2a87bf));
+        ResultUi.setActionHint(saveButton,
+                com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_82522e2a87bf));
         setEnabledVisual(saveButton, canSave);
 
         closeButton.setEnabled(true);
-        closeButton.setText(com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_59a26fdc46ce));
+        ResultUi.setActionHint(closeButton,
+                com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_59a26fdc46ce));
         setEnabledVisual(closeButton, true);
     }
 

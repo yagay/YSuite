@@ -25,4 +25,6 @@
     <string name="yfloat_text_handle_snap">文字选框手柄吸附距离</string>
     <string name="yfloat_crop_min_size">截图选区最小尺寸</string>
     <string name="yfloat_crop_drag_slop">截图手柄拖动容差</string>
+    <string name="yfloat_result_action_ocr">识别文字（OCR）</string>
+    <string name="yfloat_result_action_ocr_running">正在识别文字…</string>
 </resources>
