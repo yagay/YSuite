@@ -4,6 +4,7 @@ import com.yagay.yui.YOverlayUi;
 import com.yagay.yui.YUiGeometry;
 
 import com.yagay.yui.YView;
+import com.yagay.yui.YViewLayout;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -155,8 +156,7 @@ public final class FloatActionMenu {
 
         Rect usable = ScreenGeometry.usableBounds(app);
         int maxPopupWidth = Math.max(YOverlayUi.actionHeightPx(app, "yfloat"), usable.width() - YUiGeometry.overlayMenuInsetPx(app, "yfloat") * 2);
-        int width = (mode == MODE_MAIN || mode == MODE_MORE
-                || mode == MODE_IMAGE || mode == MODE_IMAGE_MORE)
+        int width = (mode == MODE_MAIN || mode == MODE_IMAGE)
                 ? WindowManager.LayoutParams.WRAP_CONTENT
                 : contentAdaptiveWidth(app, root, mode, maxPopupWidth);
 
@@ -254,24 +254,26 @@ public final class FloatActionMenu {
         LinearLayout root = FloatingMenuUi.root(app);
         List<String> actions = ImageMenuSettings.visibleActions(app,crop);
         int primary = ImageMenuSettings.primaryCount(app,actions.size());
-        ArrayList<View> buttons = new ArrayList<>();
         if (!expanded) {
-            for (int i=0;i<primary;i++)
-                buttons.add(imageActionButton(app,actions.get(i)));
+            LinearLayout row = toolbarRow(app);
+            for (int i=0;i<primary;i++) {
+                YViewLayout.addAction(row,imageActionButton(app,actions.get(i)));
+            }
             if (actions.size()>primary) {
                 TextView more = FloatingMenuUi.action(app,"⋮");
                 more.setContentDescription(imageMenuLabel("更多","More"));
                 more.setOnClickListener(v -> changeImagePage(app,true));
-                buttons.add(more);
+                YViewLayout.addAction(row,more);
             }
-            addCompactActions(app,root,buttons,false);
+            root.addView(row,new LinearLayout.LayoutParams(-1,-2));
         } else {
             TextView back = FloatingMenuUi.row(app,imageMenuLabel("‹ 返回","‹ Back"),null);
             back.setOnClickListener(v -> changeImagePage(app,false));
             root.addView(back,new LinearLayout.LayoutParams(-1,-2));
-            for (int i=primary;i<actions.size();i++)
-                buttons.add(imageActionButton(app,actions.get(i)));
-            addCompactActions(app,root,buttons,true);
+            for(int i=primary;i<actions.size();i++) {
+                root.addView(imageActionButton(app,actions.get(i)),
+                        new LinearLayout.LayoutParams(-1,-2));
+            }
         }
         attachOverlay(app,host,root,expanded?MODE_IMAGE_MORE:MODE_IMAGE,anchor,"");
         if (activeView == root) {
@@ -410,36 +412,20 @@ public final class FloatActionMenu {
         more.setOnClickListener(v -> showOnCurrentRow(
                 app, currentSelectionText(text), selectAll, MODE_MORE));
 
-        addCompactActions(app,root,items,false);
+        // The shared row measures every action from its label and wraps into a vertical
+        // stack when the popup is narrow. No slot width or two-line truncation.
+        LinearLayout row = toolbarRow(app);
+        for (View item : items) {
+            YViewLayout.addAction(row, item);
+        }
+        root.addView(row, new LinearLayout.LayoutParams(-1, -2));
     }
 
-    /** Text and image menus use one responsive horizontal grid instead of
-     * YUI's general form-row layout that stacks actions vertically.
-     * Only expanded menus scroll; Back stays outside the scrolling area.
-     */
-    private static void addCompactActions(Context app,LinearLayout root,
-                                          List<? extends View> actions,boolean scrollable) {
-        if(actions==null || actions.isEmpty())return;
-        View grid=FloatingMenuUi.actionGrid(app,actions,
-                root.getPaddingLeft()+root.getPaddingRight());
-        if(!scrollable) {
-            root.addView(grid);
-            return;
-        }
-        final int maxHeight=Math.max(YView.rowHeight(app),
-                ScreenGeometry.usableBounds(app).height()*2/3);
-        ScrollView scroll=new ScrollView(app) {
-            @Override protected void onMeasure(int w,int h) {
-                super.onMeasure(w, View.MeasureSpec.makeMeasureSpec(
-                        Math.min(maxHeight,View.MeasureSpec.getSize(h)),
-                        View.MeasureSpec.AT_MOST));
-            }
-        };
-        scroll.setVerticalScrollBarEnabled(false);
-        scroll.setFillViewport(false);
-        scroll.addView(grid,new android.widget.FrameLayout.LayoutParams(
-                grid.getLayoutParams().width,ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(scroll,new LinearLayout.LayoutParams(-2,-2));
+    private static LinearLayout toolbarRow(Context app) {
+        LinearLayout row = YViewLayout.buttonRow(app);
+        int inset = Math.max(0, YUiGeometry.overlayMenuInsetPx(app, "yfloat") / 4);
+        row.setPadding(inset, inset, inset, inset);
+        return row;
     }
 
     private static int mainCustomCount(Context app, int size, boolean hasSelectAll) {
@@ -456,7 +442,6 @@ public final class FloatActionMenu {
         root.addView(back, new LinearLayout.LayoutParams(-1, -2));
         back.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_MAIN));
 
-        ArrayList<View> moreActions = new ArrayList<>();
         if (selectAll != null && TextMenuSettings.mainItemCount(app) < 3) {
             TextView selectAllAction = FloatingMenuUi.row(app,
                     com.yagay.suite.api.YLocale.text(
@@ -468,7 +453,7 @@ public final class FloatActionMenu {
                 }
                 dismiss();
             });
-            moreActions.add(selectAllAction);
+            root.addView(selectAllAction,new LinearLayout.LayoutParams(-1,-2));
         }
         List<CustomMenuActionStore.Item> customs = CustomMenuActionStore.load(app);
         int skip = mainCustomCount(app, customs.size(), selectAll != null);
@@ -478,14 +463,13 @@ public final class FloatActionMenu {
             try { icon = app.getPackageManager().getApplicationIcon(item.packageName); }
             catch (Throwable ignored) {}
             TextView custom = FloatingMenuUi.row(app, item.label, icon);
-            moreActions.add(custom);
+            root.addView(custom, new LinearLayout.LayoutParams(-1, -2));
             custom.setOnClickListener(v -> launchCustom(app, item, text));
         }
 
         TextView process = FloatingMenuUi.row(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_dynamic_60c2b0e40300), null);
-        moreActions.add(process);
+        root.addView(process, new LinearLayout.LayoutParams(-1, -2));
         process.setOnClickListener(v -> showOnCurrentRow(app, text, selectAll, MODE_PROCESS));
-        addCompactActions(app,root,moreActions,true);
     }
 
     private static void launchCustom(Context app, CustomMenuActionStore.Item item, String text) {

@@ -3,13 +3,13 @@ package com.yagay.YFloat;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YOverlayUi;
 import android.graphics.Rect;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.Toast;
 
 /**
@@ -38,6 +38,7 @@ final class UnifiedResultPanel {
     private final int minimumActionsHeight;
     private final int maxPanelHeight;
     private final LinearLayout actions;
+    private final HorizontalScrollView actionsViewport;
     private int contentBudget;
 
     private ResultSession session;
@@ -83,11 +84,9 @@ final class UnifiedResultPanel {
         copyButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_f5a24d2506d7));
         saveButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_82522e2a87bf));
         closeButton = ResultUi.button(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_59a26fdc46ce));
-        YViewLayout.addAction(actions, ocrButton);
-        YViewLayout.addAction(actions, copyButton);
-        YViewLayout.addAction(actions, saveButton);
-        YViewLayout.addAction(actions, closeButton);
-        root.addView(actions, new LinearLayout.LayoutParams(-1, -2));
+        ResultUi.addResultActions(actions, ocrButton, copyButton, saveButton, closeButton);
+        actionsViewport = ResultUi.actionViewport(context, actions);
+        root.addView(actionsViewport, new LinearLayout.LayoutParams(-1, -2));
 
         copyButton.setOnClickListener(v -> copyAll());
         render(initial);
@@ -120,11 +119,11 @@ final class UnifiedResultPanel {
                 availableWidth, android.view.View.MeasureSpec.EXACTLY);
         int maxHeightSpec = android.view.View.MeasureSpec.makeMeasureSpec(
                 maxPanelHeight, android.view.View.MeasureSpec.AT_MOST);
-        actions.measure(exactWidth, maxHeightSpec);
+        actionsViewport.measure(exactWidth, maxHeightSpec);
         title.measure(exactWidth, maxHeightSpec);
         contentBudget = Math.max(1, maxPanelHeight -
                 Math.max(titleHeight, title.getMeasuredHeight()) -
-                Math.max(minimumActionsHeight, actions.getMeasuredHeight()) -
+                Math.max(minimumActionsHeight, actionsViewport.getMeasuredHeight()) -
                 ResultUi.verticalPadding(context));
         boolean showImage = next.showImage(settings);
         boolean showText = next.showText(settings);

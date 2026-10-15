@@ -14,6 +14,8 @@ import android.view.Gravity;
 import android.view.ViewOutlineProvider;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.HorizontalScrollView;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
 /** Shared geometry and widget helpers for every result surface. */
@@ -68,8 +70,39 @@ final class ResultUi {
         return title;
     }
 
+    /**
+     * The screenshot/result dialog always presents OCR, Copy, Save, Close in
+     * one horizontal action strip. The normal selection popup is unrelated.
+     * If translated labels cannot fit, scroll horizontally instead of stacking.
+     */
     static LinearLayout actionRow(Context c) {
-        return YViewLayout.buttonRow(c);
+        LinearLayout row = new LinearLayout(c);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        return row;
+    }
+
+    static HorizontalScrollView actionViewport(Context c, LinearLayout row) {
+        HorizontalScrollView viewport = new HorizontalScrollView(c);
+        viewport.setFillViewport(true);
+        viewport.setHorizontalScrollBarEnabled(false);
+        viewport.setOverScrollMode(android.view.View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        viewport.addView(row, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT));
+        return viewport;
+    }
+
+    static void addResultActions(LinearLayout row,
+                                 Button ocr, Button copy, Button save, Button close) {
+        for (Button button : new Button[]{ocr, copy, save, close}) {
+            // Retain YUI's button styling, insets and minimum touch size.
+            button.setSingleLine(true);
+            LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            row.addView(button, cell);
+        }
     }
 
     static Button button(Context c, String text) {
