@@ -82,6 +82,13 @@ final class TextSelectionController {
         DiagnosticLog.i(context, "TEXT_SELECT", "range start=" + start + " end=" + end);
     }
 
+    /** Reposition an active OCR menu when the dialog's text viewport scrolls. */
+    void onViewportChanged() {
+        if (actionMode == null) return;
+        if (observer != null) observer.onChanging();
+        scheduleStable(80L);
+    }
+
     String selectedText() {
         if (textView.getText() == null) return "";
         int a = textView.getSelectionStart();
@@ -151,6 +158,10 @@ final class TextSelectionController {
     }
 
     private void scheduleStable() {
+        scheduleStable(stableDelayMs);
+    }
+
+    private void scheduleStable(long delayMs) {
         if (actionMode == null) return;
         long expected = generation;
         cancelStable();
@@ -166,8 +177,8 @@ final class TextSelectionController {
                     + " anchor=" + (anchor == null ? "none" : anchor.toShortString())
                     + " geometry=SelectionGeometry");
         };
-        if (stableDelayMs == 0L) textView.post(delayedStable);
-        else textView.postDelayed(delayedStable, stableDelayMs);
+        if (delayMs == 0L) textView.post(delayedStable);
+        else textView.postDelayed(delayedStable, delayMs);
     }
 
     private void cancelStable() {

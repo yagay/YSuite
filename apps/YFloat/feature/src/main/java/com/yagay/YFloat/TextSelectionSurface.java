@@ -71,6 +71,9 @@ public class TextSelectionSurface extends FrameLayout {
                     }
                 });
         controller.install();
+        scrollView.setOnScrollChangeListener((view, x, y, oldX, oldY) -> {
+            if (x != oldX || y != oldY) controller.onViewportChanged();
+        });
     }
 
     public void setListener(Listener listener) { this.listener = listener; }

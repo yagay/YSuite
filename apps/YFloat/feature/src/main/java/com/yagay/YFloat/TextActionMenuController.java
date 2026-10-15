@@ -14,6 +14,12 @@ final class TextActionMenuController {
     void show(SelectionSnapshot snapshot, Runnable selectAll) {
         if (context == null || snapshot == null || snapshot.text().isBlank()) return;
         Rect anchor = snapshot.screenBounds();
+        if (anchor == null || anchor.isEmpty()) {
+            // Without valid physical-screen geometry a missing anchor would
+            // place the menu at a fixed default position unrelated to text.
+            dismiss();
+            return;
+        }
         FloatActionMenu.showTextAt(context, snapshot.text(), selectAll, anchor);
     }
 
