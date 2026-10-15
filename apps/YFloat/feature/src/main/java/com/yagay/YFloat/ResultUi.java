@@ -88,6 +88,8 @@ final class ResultUi {
         viewport.setFillViewport(true);
         viewport.setHorizontalScrollBarEnabled(false);
         viewport.setOverScrollMode(android.view.View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        // Fill the dialog width when possible; preserve the row's minimum
+        // readable width when the screen is too narrow (horizontal scrolling).
         viewport.addView(row, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT));
@@ -96,15 +98,23 @@ final class ResultUi {
 
     static void addResultActions(LinearLayout row,
                                  Button ocr, Button copy, Button save, Button close) {
-        // Keep YUI's live visual/touch geometry: four icon-only actions share
-        // one row; the existing HorizontalScrollView handles small screens.
+        // Equal-width slots distribute the four icons across the dialog
+        // instead of grouping four minimum-width buttons tightly at its center.
+        // Buttons themselves keep their YUI touch size, color and corner radius.
         Context scoped = YOverlayUi.scopedContext(row.getContext(), "yfloat");
-        int cellWidth = Math.max(YView.touchTarget(scoped),
+        int buttonWidth = Math.max(YView.touchTarget(scoped),
                 YView.iconSize(scoped) + 2 * YView.buttonHorizontalPadding(scoped));
+        int slotGap = Math.max(0, YView.controlGap(scoped));
+        int minSlotWidth = buttonWidth + slotGap;
+        row.setMinimumWidth(minSlotWidth * 4);
         for (Button button : new Button[]{ocr, copy, save, close}) {
-            LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(
-                    cellWidth, LinearLayout.LayoutParams.WRAP_CONTENT);
-            row.addView(button, cell);
+            FrameLayout slot = new FrameLayout(row.getContext());
+            slot.setMinimumWidth(minSlotWidth);
+            FrameLayout.LayoutParams buttonLayout = new FrameLayout.LayoutParams(
+                    buttonWidth, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+            slot.addView(button, buttonLayout);
+            row.addView(slot, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         }
     }
 
