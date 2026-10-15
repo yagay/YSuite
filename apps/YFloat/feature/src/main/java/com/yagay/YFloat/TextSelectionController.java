@@ -82,11 +82,13 @@ final class TextSelectionController {
         DiagnosticLog.i(context, "TEXT_SELECT", "range start=" + start + " end=" + end);
     }
 
-    /** Reposition an active OCR menu when the dialog's text viewport scrolls. */
+    /** Reposition the attached menu without tearing it down on every scroll. */
     void onViewportChanged() {
         if (actionMode == null) return;
-        if (observer != null) observer.onChanging();
-        scheduleStable(80L);
+        // An unchanged text selection is a position update, not a new selection.
+        // The stable observer forwards the new physical screen anchor to the
+        // existing menu; if the text scrolls offscreen it dismisses instead.
+        scheduleStable(32L);
     }
 
     String selectedText() {
