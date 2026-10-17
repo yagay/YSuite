@@ -111,7 +111,9 @@ final class GoogleCtsRuntimeInspector implements GoogleCtsLifecycleHooks.Host {
                 this::report, this::currentApplicationContext);
         this.textSelectionLiveHook = new GoogleTextSelectionLiveHook(
                 module, classLoader, this::active, () -> markedActivity.get(),
-                (bounds, selectedText, detail) -> {
+                (bounds, selectedText, detail, rows) -> {
+                    // Legacy hook is kept compilable for compatibility; the active
+                    // Google V2 runtime owns per-row rendering via its own bridge.
                     if (bounds == null || bounds.isEmpty()) return;
                     // dnrs.g/dtvm are text-selection-only sources. Do not suppress their live
                     // geometry just because FrozenImageView briefly marked a region gesture before
