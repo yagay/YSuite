@@ -74,6 +74,8 @@ public final class YFloatModule extends XposedModule {
     public void onPackageReady(PackageReadyParam param) {
         if (googleHookInstalled || !GOOGLE_PACKAGE.equals(param.getPackageName())) return;
         final String target=processName.isEmpty()?param.getPackageName():processName;
+        log(Log.INFO,TAG,"Google PackageReady received process="+target
+                +" suiteHost="+suiteHost);
         if(suiteHost) RuntimeHandoffGate.markSuiteActive(FEATURE_ID,target);
         else if(!RuntimeHandoffGate.shouldStandaloneFallback(FEATURE_ID,target)) {
             log(Log.INFO,TAG,"Google Hook passive; active YSuite owner="+target);

@@ -54,9 +54,11 @@ final class GoogleHookManualScan {
                 return;
             }
             launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // Set waiting BEFORE Google startup: never overwrite a real fast
+            // indexing/matching callback with an obsolete host-side stage.
+            GoogleHookProfileCache.hostStage(app,"waiting");
             try {
                 app.startActivity(launch);
-                GoogleHookProfileCache.hostStage(app,"waiting");
                 respond(finished,app.getString(R.string.yfloat_google_manual_scan_started));
             } catch(Throwable t) {
                 GoogleHookProfileCache.manualFailure(app,
