@@ -42,6 +42,12 @@ final class GoogleV2ScenePolicy {
         return Math.abs(requested - expected) > tolerance;
     }
 
+    /** Google's text-handle hit testing needs its own viewport transitions.
+     * Only freeze the image before text mode and while drawing a region. */
+    static boolean shouldProtectFrozenViewport(boolean owned, boolean textSelecting) {
+        return owned && !textSelecting;
+    }
+
     static boolean needsReconcile(boolean owned, float scaleX, float scaleY,
                                   float translationX, float translationY) {
         return owned && (shouldBlockTransform(true, "setScaleX", scaleX)

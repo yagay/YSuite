@@ -76,7 +76,7 @@ final class GoogleV2HookEngine {
                 ()->owner,this::onWords);
         gestures=new GoogleRegionGestureHook(module,loader,this::active,
                 this::onGesture,(action,x,y,detail)->{});
-        viewport=new GoogleV2Viewport(module,this::active,this::logEvent);
+        viewport=new GoogleV2Viewport(module,this::active,()->textMode,this::logEvent);
         // Scope the Intent and chrome suppression to an authenticated YFloat
         // CTS session. A dynamic selection Hook can register but NEVER fire on
         // this Google release, leaving textMode=false and native Google search
@@ -591,10 +591,13 @@ final class GoogleV2HookEngine {
                         ?GoogleCtsContract.EVENT_REGION_GESTURE_START
                         :GoogleCtsContract.EVENT_REGION_GESTURE_END,
                 "",detail,currentBounds);
-        else if(textMode)transport.sendEvent(adjusting
-                        ?GoogleCtsContract.EVENT_TEXT_GESTURE_START
-                        :GoogleCtsContract.EVENT_TEXT_GESTURE_END,
-                "",detail,currentBounds);
+        else if(textMode){
+            words.onSelectionGesture(adjusting);
+            transport.sendEvent(adjusting
+                            ?GoogleCtsContract.EVENT_TEXT_GESTURE_START
+                            :GoogleCtsContract.EVENT_TEXT_GESTURE_END,
+                    "",detail,currentBounds);
+        }
     }
 
     private void onOriginalFrame(Bitmap frame){

@@ -37,6 +37,7 @@ final class GoogleTextSelectionLiveHook {
     private final Profile profile;
     private int installedHooks;
 
+    private volatile boolean selectionGestureActive;
     private Rect lastPublishedBounds;
     private long lastPublishedAt;
     private String lastPublishedText = "";
@@ -195,12 +196,19 @@ final class GoogleTextSelectionLiveHook {
 
     /** A new Google CTS token must never inherit prior OCR text or geometry. */
     synchronized void reset() {
+        selectionGestureActive = false;
         lastPublishedBounds = null;
         lastPublishedAt = 0L;
         lastPublishedText = "";
         pendingLargeBounds = null;
         pendingLargeSince = 0L;
         pendingLargeHits = 0;
+    }
+
+    /** A real handle drag can legitimately expand well beyond the old bounds.
+     * Keep the large-expansion noise filter only while the user is idle. */
+    void onSelectionGesture(boolean dragging) {
+        selectionGestureActive = dragging;
     }
 
     synchronized Rect recentBounds() {
@@ -271,7 +279,7 @@ final class GoogleTextSelectionLiveHook {
         boolean largeExpansion = previousArea > 0L
                 && nextArea > previousArea * LARGE_EXPANSION_AREA_RATIO;
 
-        if (largeExpansion) {
+        if (largeExpansion && !selectionGestureActive) {
             if (pendingLargeBounds != null && similarBounds(pendingLargeBounds, next)) {
                 pendingLargeHits++;
                 if (now - pendingLargeSince < LARGE_EXPANSION_STABLE_MS

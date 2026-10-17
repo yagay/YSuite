@@ -65,6 +65,12 @@ public class GoogleV2ScenePolicyTest {
         assertFalse(GoogleV2ScenePolicy.shouldBlockTransform(true, "setAlpha", 0f));
     }
 
+    @Test public void textHandleDragMustNotHaveItsViewportForceReset() {
+        assertTrue(GoogleV2ScenePolicy.shouldProtectFrozenViewport(true, false));
+        assertFalse(GoogleV2ScenePolicy.shouldProtectFrozenViewport(true, true));
+        assertFalse(GoogleV2ScenePolicy.shouldProtectFrozenViewport(false, false));
+    }
+
     @Test public void reconcilerTracksHardwareAnimatorChanges() {
         assertTrue(GoogleV2ScenePolicy.needsReconcile(true, 0.915f, 1f, 0f, -558f));
         assertFalse(GoogleV2ScenePolicy.needsReconcile(true, 1f, 1f, 0f, 0f));

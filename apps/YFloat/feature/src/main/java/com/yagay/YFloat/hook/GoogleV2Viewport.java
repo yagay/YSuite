@@ -33,6 +33,7 @@ final class GoogleV2Viewport {
 
     private final XposedModule module;
     private final BooleanSupplier owned;
+    private final BooleanSupplier textSelecting;
     private final BiConsumer<String, String> diagnostics;
     private final Handler ui = new Handler(Looper.getMainLooper());
 
@@ -42,9 +43,11 @@ final class GoogleV2Viewport {
     private long lastReport;
 
     GoogleV2Viewport(XposedModule module, BooleanSupplier owned,
+                     BooleanSupplier textSelecting,
                      BiConsumer<String, String> diagnostics) {
         this.module = module;
         this.owned = owned;
+        this.textSelecting = textSelecting;
         this.diagnostics = diagnostics;
     }
 
@@ -57,7 +60,8 @@ final class GoogleV2Viewport {
                     Object obj = chain.getThisObject();
                     if (obj instanceof View view
                             && FROZEN.equals(view.getClass().getName())
-                            && owned.getAsBoolean()
+                            && GoogleV2ScenePolicy.shouldProtectFrozenViewport(
+                                    owned.getAsBoolean(),textSelecting.getAsBoolean())
                             && chain.getArg(0) instanceof Float requested
                             && GoogleV2ScenePolicy.shouldBlockTransform(
                                     true, name, requested)) {
@@ -107,7 +111,8 @@ final class GoogleV2Viewport {
 
     private void reconcile() {
         View image = frozen;
-        if (image == null || !owned.getAsBoolean()) return;
+        if (image == null || !GoogleV2ScenePolicy.shouldProtectFrozenViewport(
+                owned.getAsBoolean(),textSelecting.getAsBoolean())) return;
         float scaleX = image.getScaleX();
         float scaleY = image.getScaleY();
         float translationX = image.getTranslationX();

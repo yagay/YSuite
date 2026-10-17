@@ -25,6 +25,9 @@ final class GoogleV2UiEngine {
     // Gesture hooks may miss ACTION_UP when a Google view is replaced.
     // An idle timeout is permitted only after no fresh selection/gesture input.
     private static final long GESTURE_IDLE_RECOVERY_MS = 700;
+    // Text handles may stop moving while the finger remains pressed; avoid
+    // re-opening the toolbar over a stationary hold before actual ACTION_UP.
+    private static final long TEXT_GESTURE_IDLE_RECOVERY_MS = 1500;
 
     private static final class Session {
         final String token;
@@ -140,7 +143,7 @@ final class GoogleV2UiEngine {
                 DiagnosticLog.i(s.app,"GOOGLE_V2","text menu paused for gesture");
             }
             showTextWhenStable(s,dragging
-                    ?GESTURE_IDLE_RECOVERY_MS:TEXT_MENU_SETTLE_MS);
+                    ?TEXT_GESTURE_IDLE_RECOVERY_MS:TEXT_MENU_SETTLE_MS);
         });
     }
 
@@ -159,7 +162,7 @@ final class GoogleV2UiEngine {
             long now=SystemClock.elapsedRealtime();
             long wait=GoogleV2MenuRecoveryPolicy.waitForIdle(
                     now,s.lastTextUpdateElapsed,s.lastGestureElapsed,
-                    s.state.dragging,TEXT_MENU_SETTLE_MS,GESTURE_IDLE_RECOVERY_MS);
+                    s.state.dragging,TEXT_MENU_SETTLE_MS,TEXT_GESTURE_IDLE_RECOVERY_MS);
             if(wait>0){
                 showTextWhenStable(s,wait);
                 return;
@@ -293,18 +296,6 @@ final class GoogleV2UiEngine {
             // Back, gesture navigation and Google Activity stop are cancellation.
             // Never resurrect a menu/outline after the native selection surface exits.
             release(s,"google_end:"+reason,false);
-        });
-    }
-    /** An outside tap cancels the selection instead of merely hiding its menu. */
-    static void dismissActiveTextSelection(Context context,String reason){
-        if(context==null)return;
-        WorkflowSessionManager.Session workflow=WorkflowSessionManager.current();
-        if(workflow==null)return;
-        Session s=SESSIONS.get(workflow.externalKey());
-        if(s==null)return;
-        MAIN.post(()->{
-            if(ownsUi(s)&&s.state.phase==GoogleV2State.Phase.TEXT)
-                release(s,"user_dismiss:"+reason,false);
         });
     }
     private static void release(Session s,String reason,boolean keepMenu){

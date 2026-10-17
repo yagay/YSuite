@@ -54,12 +54,34 @@ final class GoogleRegionGestureHook {
                     GoogleLens1758Profile.FROZEN_IMAGE_VIEW, false, loader);
             List<Method> methods = new ArrayList<>();
             for (Method method : GoogleReflection.declaredMethods(cls)) {
-                if (motionEventIndex(method.getParameterTypes()) >= 0) methods.add(method);
+                if (motionEventIndex(method.getParameterTypes()) >= 0
+                        && !java.lang.reflect.Modifier.isStatic(method.getModifiers()))
+                    methods.add(method);
+            }
+            int frozenCount = methods.size();
+            // FrozenImageView receives the initial circle gesture, but handle
+            // drags are dispatched by the separate native TextSelectionView.
+            // Observe its concrete touch entrypoints too; never intercept or
+            // consume Google's MotionEvents.
+            int textCount = 0;
+            try {
+                Class<?> textView = Class.forName(
+                        "com.google.android.libraries.lens.common.text.selection.ui.TextSelectionView",
+                        false, loader);
+                for (Method method : GoogleReflection.declaredMethods(textView)) {
+                    if (motionEventIndex(method.getParameterTypes()) >= 0
+                            && !java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                        methods.add(method);
+                        textCount++;
+                    }
+                }
+            } catch (Throwable ignored) {
+                // Later Google releases may move the text view class.
             }
             int confidence = methods.isEmpty() ? 0 : 95;
             return new Binding(cls, methods.toArray(new Method[0]), confidence,
-                    "frozen-image-view",
-                    "class=" + cls.getName() + " touchMethods=" + methods.size());
+                    "frozen-and-text-selection-views",
+                    "frozenTouchMethods=" + frozenCount + " textTouchMethods=" + textCount);
         } catch (Throwable t) {
             return new Binding(null, null, 0, "none",
                     "resolve=" + t.getClass().getSimpleName());

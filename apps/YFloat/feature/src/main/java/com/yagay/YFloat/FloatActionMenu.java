@@ -151,8 +151,10 @@ public final class FloatActionMenu {
                     LinearLayout root, int mode, Rect anchor, String text) {
         root.setOnTouchListener((v, e) -> {
             if (e.getActionMasked() == MotionEvent.ACTION_OUTSIDE) {
-                dismiss();
-                GoogleV2UiEngine.dismissActiveTextSelection(app, "outside_touch");
+                // A selection-handle drag starts outside the toolbar. This is
+                // not Back/Cancel: never revoke the live Google CTS session.
+                if (activeMode == MODE_MAIN) dismissPreservingTextOutline();
+                else dismiss();
                 return true;
             }
             return false;

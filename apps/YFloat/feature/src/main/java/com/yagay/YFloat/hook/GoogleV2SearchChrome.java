@@ -79,7 +79,10 @@ final class GoogleV2SearchChrome {
         if((ACTION_MENU.equals(name)&&selectionVerified.getAsBoolean())
                 ||INFO_PANEL.equals(name)||OMNIBOX.equals(name)){
             if(!originals.containsKey(v))originals.put(v,v.getVisibility());
-            if(v.getVisibility()!=View.GONE)v.setVisibility(View.GONE);
+            // GONE tears down Google's text/handle layout every time Lens
+            // refreshes the selection. INVISIBLE hides native search chrome
+            // without causing relayout and full-screen flashes.
+            if(v.getVisibility()!=View.INVISIBLE)v.setVisibility(View.INVISIBLE);
             return 1;
         }
         int count=0;
