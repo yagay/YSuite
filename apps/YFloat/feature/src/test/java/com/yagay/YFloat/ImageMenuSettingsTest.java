@@ -24,6 +24,19 @@ public class ImageMenuSettingsTest {
         assertFalse(ImageCustomMenuStore.supportedMode("process_text"));
     }
 
+    @Test public void googleRecognitionNeverAppearsOnScreenshotResultMenu() {
+        assertTrue(ImageMenuSettings.availableForSelection(true,
+                ImageMenuSettings.GOOGLE_OCR));
+        assertFalse(ImageMenuSettings.availableForSelection(false,
+                ImageMenuSettings.GOOGLE_OCR));
+        assertFalse(ImageMenuSettings.availableForSelection(false,
+                ImageMenuSettings.DONE));
+        assertTrue(ImageMenuSettings.availableForSelection(false,
+                ImageMenuSettings.SAVE));
+        assertTrue(ImageMenuSettings.availableForSelection(false,
+                ImageMenuSettings.COPY));
+    }
+
     @Test public void callbackIndicesRemainStableWhenOrderChanges() {
         assertEquals(0,ImageMenuSettings.index(ImageMenuSettings.GOOGLE_OCR));
         assertEquals(1,ImageMenuSettings.index(ImageMenuSettings.DONE));

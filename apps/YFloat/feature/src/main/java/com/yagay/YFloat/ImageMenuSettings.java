@@ -14,8 +14,8 @@ final class ImageMenuSettings {
     static final String GOOGLE_OCR="google_ocr", DONE="done", FIND="find", COPY="copy",
             SHARE="share", SAVE="save", RESET="reset";
     private static final String FILE="yfloat_image_menu", ORDER="order_v1", HIDDEN="hidden_v1";
-    // Experimental Google OCR is visible first in the image popup. "Find"
-    // keeps its original external-app behavior.
+    // Google recognition belongs to editable native circle crops only.
+    // Regular screenshot/result-image menus never offer Google recognition.
     private static final List<String> ALL=List.of(GOOGLE_OCR,DONE,FIND,COPY,SHARE,SAVE,RESET);
 
     static List<String> ordered(Context context) {
@@ -67,11 +67,17 @@ final class ImageMenuSettings {
         Set<String> hidden=prefs(c).getStringSet(HIDDEN,Set.of());
         ArrayList<String> out=new ArrayList<>();
         for(String id:ordered(c)) {
-            if(!crop&&(DONE.equals(id)||RESET.equals(id)))continue;
+            if(!availableForSelection(crop,id))continue;
             if(!hidden.contains(id))out.add(id);
         }
         if(out.isEmpty())out.add(crop?DONE:COPY);
         return out;
+    }
+
+    /** Only a live editable circle crop can offer Google recognition. */
+    static boolean availableForSelection(boolean editableCircleCrop,String id) {
+        return editableCircleCrop || (!DONE.equals(id)
+                && !RESET.equals(id) && !GOOGLE_OCR.equals(id));
     }
 
     static int primaryCount(Context c,int total) {
@@ -104,7 +110,7 @@ final class ImageMenuSettings {
     static String label(String id) {
         boolean zh=Locale.getDefault().getLanguage().equals("zh");
         return switch(id) {
-            case GOOGLE_OCR -> zh?"Google OCR（实验）":"Google OCR (test)";
+            case GOOGLE_OCR -> zh?"谷歌识别":"Google OCR";
             case DONE -> zh?"完成":"Done";
             case FIND -> zh?"识图":"Find";
             case COPY -> zh?"复制":"Copy";

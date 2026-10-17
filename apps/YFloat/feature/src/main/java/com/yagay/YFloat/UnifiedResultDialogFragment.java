@@ -121,7 +121,6 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
                         ScreenshotController.save(requireContext(), session.image());
                     }
                 }, this::closeResult);
-        panel.bindGoogleOcrAction(this::launchGoogleLensImageProbe);
         panel.setOcrRunning(false);
         return panel.root();
     }
@@ -173,29 +172,6 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
                 "measured=" + panel.root().getWidth() + "x" + panel.root().getHeight()
                         + " width=" + panel.width() + " mode="
                         + (session == null ? "none" : session.mode())));
-    }
-
-    /**
-     * Explicit screenshot-result experiment entry. Clone before closing the
-     * result dialog, since result teardown owns and recycles its Bitmap.
-     */
-    private void launchGoogleLensImageProbe() {
-        if (closing || session == null || !session.hasImage()) return;
-        android.content.Context app = requireContext().getApplicationContext();
-        Bitmap isolated;
-        try {
-            isolated = session.image().copy(Bitmap.Config.ARGB_8888,false);
-            if (isolated == null) throw new IllegalStateException("copy returned null");
-        } catch (Throwable error) {
-            DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
-                    "result_clone_failed="+error.getClass().getSimpleName());
-            return;
-        }
-        DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
-                "selected_from=result_dialog image="+isolated.getWidth()
-                        +"x"+isolated.getHeight());
-        closeResult();
-        GoogleLensImageInputProbe.launch(app,isolated);
     }
 
     private void beginInlineOcr() {

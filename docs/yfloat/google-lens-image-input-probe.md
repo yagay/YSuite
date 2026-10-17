@@ -264,3 +264,48 @@ To test on-device:
 3. Require `hook_ready`, `native_ocr_callback`, and the text menu.
 4. After returning, verify `nativeTextDelivered=true` and `success=true`
    for successful text selections. A mere successful URI read is not OCR.
+
+## Native YFloat circle integration; screenshot workflows kept local
+
+User-requested production-behavior change on the experimental branch:
+**YFloat's own native circle text recognition uses Google Lens, while
+screenshot capture/results remain YFloat-local.** The experiment's validated
+Google 17.66 LensShareEntryPointActivity / exact-token Hook bridge is reused;
+we do not reintroduce Google CTS frozen-screen capture as a prerequisite.
+
+| YFloat native gesture/action | After change |
+| --- | --- |
+| Tap a word (TAP) | Encode a padded, bounded crop and open Google Lens OCR |
+| Drag across text (HIGHLIGHT) | Encode padded neighbourhood, open Google Lens OCR |
+| Closed circle (CIRCLE) | Keep adjustable image crop and native YFloat image menu |
+| Scribble (SCRIBBLE) | Keep adjustable image crop and native YFloat image menu |
+| Circle image menu -> 谷歌识别 | Open Google Lens OCR on selected image crop |
+| Circle image menu -> 完成 | **Local YFloat screenshot result only** |
+| Screenshot result's OCR action | Existing **local** OCR, not Google |
+| Screenshot result image context menu | No Google OCR item |
+| Copy, Save, Share, Find on screenshot | Unchanged local/external actions |
+
+Before this change, NativeCircleWorkspace invoked
+CircleStableOcr.recognizeFullScreenSelected immediately on show and attempted
+local text glyph matching to route TAP/HIGHLIGHT. This duplicated the Google
+engine and delayed text gestures. Native text intent now takes only a
+minimal padded crop using NativeCircleGoogleRecognitionCrop; **no local
+full-screen OCR starts on entry**. Readable tap neighbourhoods and highlight
+strokes are expanded enough to include real glyph height, clipped/shunted
+inside the captured bitmap. The test policy asserts correct edge dimensions.
+
+NativeCircleWorkspace no longer owns a parallel OCR document and character
+handle UI; Google handles OCR word selection and the shared YFloat menu shows
+the selected text via the existing authenticated live-word callback. In
+particular, Google OCR is *not* launched from the screenshot result dialog
+or regular screenshot ImageActionMenu. The persisted google_ocr action ID
+remains unchanged, but is only visible in the editable circle image menu.
+
+The 22:40 trial had old Google Hook processes. The launch readiness preflight
+from the preceding commit remains active: if an old Google LSPosed generation
+is known running, the experimental OCR launch is blocked with a restart prompt
+instead of falsely claiming an OCR read failure.
+
+This does not provide automatic full-image text enumeration without a Google
+selection gesture: the proven integration receives selected Google OCR text
+after the user selects it in Lens.
