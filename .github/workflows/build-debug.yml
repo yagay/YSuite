@@ -132,7 +132,8 @@ jobs:
           HEAD_SHA: ${{ github.sha }}
         run: |
           python3 -m unittest discover -s tools/tests -p 'test_plan_ysuite_debug.py'
-          python3 tools/plan_ysuite_debug.py --base "${BASE_SHA:-}" --head "${HEAD_SHA:-}" >> "$GITHUB_OUTPUT"
+          # The planner appends test_tasks to GITHUB_OUTPUT itself; keep logs on stdout.
+          python3 tools/plan_ysuite_debug.py --base "${BASE_SHA:-}" --head "${HEAD_SHA:-}"
 
       - name: Incrementally compile features and merge ARM64 YSuite APK
         shell: bash
