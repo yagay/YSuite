@@ -15,8 +15,12 @@ final class GoogleV2State {
     boolean frameReady;
 
     boolean text(String value, int l, int t, int r, int b) {
-        if (terminal() || phase == Phase.AWAITING_FRAME || value == null
-                || value.isBlank()) return false;
+        // A committed region intent owns this session. Google may still emit
+        // late OCR word callbacks during region drawing; they must never
+        // reopen the text menu or steal the screenshot confirmation.
+        if (terminal() || phase == Phase.AWAITING_FRAME || phase == Phase.REGION
+                || value == null || value.isBlank()) return false;
+        if (phase != Phase.TEXT) dragging = false;
         phase = Phase.TEXT;
         text = value.trim();
         setBounds(l,t,r,b);
@@ -26,6 +30,7 @@ final class GoogleV2State {
     boolean region(int l,int t,int r,int b) {
         if (terminal() || phase == Phase.AWAITING_FRAME || r <= l || b <= t)
             return false;
+        if (phase != Phase.REGION) dragging = false;
         phase = Phase.REGION;
         text = "";
         setBounds(l,t,r,b);

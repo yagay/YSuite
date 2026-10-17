@@ -21,6 +21,14 @@ final class GoogleV2TextOutline {
 
     static synchronized void show(Context context, Rect bounds) {
         if (context == null || bounds == null || bounds.isEmpty()) return;
+        // A single bounding rectangle covering multiple OCR lines includes
+        // whitespace that Google never selected. Leave those highlights to
+        // Google's word/handle overlay instead of drawing a false huge box.
+        if (!shouldDrawSingleLine(bounds,
+                context.getResources().getDisplayMetrics().density)) {
+            dismiss();
+            return;
+        }
         if (frame != null && frame.getParent() != null) {
             frame.bounds.set(bounds);
             frame.invalidate();
@@ -44,6 +52,12 @@ final class GoogleV2TextOutline {
             frame = view;
             host = next;
         }
+    }
+
+    static boolean shouldDrawSingleLine(Rect bounds,float density) {
+        if(bounds==null||bounds.isEmpty())return false;
+        float pxPerDp=Math.max(1f,density);
+        return bounds.height()<=Math.max(1f,72f*pxPerDp);
     }
 
     static synchronized void dismiss(){

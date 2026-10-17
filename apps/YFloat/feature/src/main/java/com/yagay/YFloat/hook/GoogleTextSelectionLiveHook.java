@@ -193,6 +193,16 @@ final class GoogleTextSelectionLiveHook {
         }
     }
 
+    /** A new Google CTS token must never inherit prior OCR text or geometry. */
+    synchronized void reset() {
+        lastPublishedBounds = null;
+        lastPublishedAt = 0L;
+        lastPublishedText = "";
+        pendingLargeBounds = null;
+        pendingLargeSince = 0L;
+        pendingLargeHits = 0;
+    }
+
     synchronized Rect recentBounds() {
         if (lastPublishedBounds == null || lastPublishedBounds.isEmpty()
                 || SystemClock.elapsedRealtime() - lastPublishedAt > 1800L) return null;

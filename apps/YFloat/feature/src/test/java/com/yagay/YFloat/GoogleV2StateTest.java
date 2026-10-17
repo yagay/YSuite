@@ -12,6 +12,24 @@ public class GoogleV2StateTest {
         assertEquals("",s.text);
         assertEquals(GoogleV2State.Phase.REGION,s.phase);
     }
+    @Test public void lateOcrCannotTurnRegionSelectionIntoTextSearch() {
+        GoogleV2State s=new GoogleV2State();
+        assertTrue(s.text("OCR before draw",100,200,320,260));
+        assertTrue(s.region(40,80,400,580));
+        assertFalse(s.text("late Google OCR",110,215,330,270));
+        assertEquals(GoogleV2State.Phase.REGION,s.phase);
+        assertEquals("",s.text);
+        assertEquals(40,s.left);
+        assertEquals(580,s.bottom);
+        assertTrue(s.confirm());
+    }
+    @Test public void drawingNewRegionClearsOldDraggingMode() {
+        GoogleV2State s=new GoogleV2State();
+        assertTrue(s.text("word",100,200,300,250));
+        s.drag(true);
+        assertTrue(s.region(10,20,400,560));
+        assertFalse(s.dragging);
+    }
     @Test public void screenshotWaitsForOriginalFrameAndCommitsOnce() {
         GoogleV2State s = new GoogleV2State();
         assertTrue(s.region(10,20,300,400));

@@ -58,6 +58,7 @@ final class GoogleV2HookEngine {
     private volatile boolean selectionCallbackObserved;
     private volatile boolean liveWordsObserved;
     private volatile boolean textSelectionObserved;
+    private volatile boolean ignoredRegionOcrLogged;
     private int emptySelectionTraces;
 
     GoogleV2HookEngine(XposedModule module, LsposedRuntimeProvider provider,
@@ -151,6 +152,7 @@ final class GoogleV2HookEngine {
         if(!key.equals(token)){
             transport.reset();
             gestures.reset();
+            words.reset();
             viewport.reset();
             nativeChrome.reset();
             revision.incrementAndGet();
@@ -158,6 +160,7 @@ final class GoogleV2HookEngine {
             selectionCallbackObserved=false;
             liveWordsObserved=false;
             textSelectionObserved=false;
+            ignoredRegionOcrLogged=false;
             emptySelectionTraces=0;
         }
         boolean newSession=!key.equals(token);
@@ -191,6 +194,7 @@ final class GoogleV2HookEngine {
         owner=null;voice=null;
         transport.reset();
         gestures.reset();
+        words.reset();
         viewport.reset();
         nativeChrome.reset();
         revision.incrementAndGet();
@@ -411,6 +415,9 @@ final class GoogleV2HookEngine {
             transport.sendEvent(GoogleCtsContract.EVENT_REGION_SELECTION,
                     "",candidate.detail()+" stage="+stage,bounds);
         }else{
+            // A late model/OCR callback must not turn a region draw into a
+            // text search, even if old words remain briefly cached.
+            if(regionMode)return;
             String value=candidate.text();
             if(value.isBlank())value=words.recentText();
             Rect fromWords=words.recentBounds();
@@ -435,6 +442,15 @@ final class GoogleV2HookEngine {
 
     private void onWords(Rect bounds,String wordsText,String detail){
         if(!active())return;
+        if(regionMode){
+            if(!ignoredRegionOcrLogged){
+                ignoredRegionOcrLogged=true;
+                logEvent("REGION_IGNORED_LATE_OCR",
+                        "ignored text update after region ownership"
+                                +" chars="+(wordsText==null?0:wordsText.length()));
+            }
+            return;
+        }
         if(wordsText!=null&&!wordsText.isBlank())textSelectionObserved=true;
         if(!liveWordsObserved) {
             liveWordsObserved=true;
