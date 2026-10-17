@@ -59,6 +59,24 @@ public class GoogleLensDynamicResolverTest {
         assertTrue(candidate.score>=GoogleLensDynamicResolver.MIN_SELECTION_CONFIDENCE);
     }
 
+    @Test public void selectionTypeProbeDoesNotLogRawOcrContent() throws Exception {
+        Method method=FakeController.class.getDeclaredMethod(
+                "onSelection",FakeMetadata.class,boolean.class);
+        GoogleLensDynamicResolver.Candidate candidate=
+                GoogleLensDynamicResolver.scoreSelectionMethod(method);
+        assertNotNull(candidate);
+        GoogleLensDynamicResolver.SelectionBinding binding=
+                new GoogleLensDynamicResolver.SelectionBinding(method,
+                        candidate.userSelectionField,candidate.textMethod,
+                        candidate.boundsMethod,candidate.pointMethod,
+                        candidate.score,"test");
+        String types=GoogleLensDynamicResolver.describeSelectionShape(
+                binding,new FakeMetadata());
+        assertTrue(types.contains("metadata="));
+        assertTrue(types.contains("selection="));
+        assertFalse(types.contains("hello"));
+    }
+
     @Test public void structuralSelectionCandidateRequiresSemanticShape() throws Exception {
         Method method = FakeController.class.getDeclaredMethod(
                 "onSelection", FakeMetadata.class, boolean.class);

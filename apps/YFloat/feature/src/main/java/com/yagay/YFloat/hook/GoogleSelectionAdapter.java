@@ -19,6 +19,7 @@ final class GoogleSelectionAdapter {
         String detail();
         String source();
         int confidence();
+        default String diagnosticShape(Object metadata) { return ""; }
     }
 
     static final class Snapshot {
@@ -198,6 +199,9 @@ final class GoogleSelectionAdapter {
         @Override public Method method() { return binding.method(); }
         @Override public String source() { return source; }
         @Override public int confidence() { return binding.confidence(); }
+        @Override public String diagnosticShape(Object metadata) {
+            return GoogleLensDynamicResolver.describeSelectionShape(binding,metadata);
+        }
         @Override public String detail() {
             return binding.detail() + " profileError=" + profileError;
         }

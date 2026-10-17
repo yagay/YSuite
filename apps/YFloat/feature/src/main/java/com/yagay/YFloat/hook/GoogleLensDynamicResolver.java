@@ -574,6 +574,59 @@ final class GoogleLensDynamicResolver {
     }
 
     /**
+     * Inspect types and field nullness only, never OCR text or object values.
+     * On the observed 17.66 build, dwqi.z is called but dxzo's text and
+     * RectF accessors return no values on either side of the callback.
+     */
+    static String describeSelectionShape(SelectionBinding binding,Object metadata) {
+        if(binding==null||metadata==null)return "binding_or_metadata_null";
+        StringBuilder out=new StringBuilder();
+        appendTypeShape(out,"metadata",metadata,10);
+        try {
+            Field field=binding.userSelectionField();
+            if(field!=null) {
+                field.setAccessible(true);
+                Object value=field.get(metadata);
+                out.append(" bound=").append(field.getName()).append(":")
+                        .append(field.getType().getName())
+                        .append(value==null?"=null":"=set");
+                if(value!=null) {
+                    appendTypeShape(out,"selection",value,14);
+                    out.append(" getters=")
+                            .append(binding.textMethod()==null?"none":
+                                    binding.textMethod().getName()+":String")
+                            .append(",")
+                            .append(binding.boundsMethod()==null?"none":
+                                    binding.boundsMethod().getName()+":RectF");
+                }
+            }
+        }catch(Throwable t){out.append(" probeError=")
+                .append(t.getClass().getSimpleName());}
+        return out.length()>900?out.substring(0,900):out.toString();
+    }
+
+    private static void appendTypeShape(StringBuilder out,String label,Object value,int max) {
+        if(value==null)return;
+        out.append(" ").append(label).append("=[");
+        int count=0;
+        for(Field field:instanceFields(value.getClass())) {
+            if(count>=max)break;
+            if(count++>0)out.append(",");
+            out.append(field.getName()).append(":")
+                    .append(field.getType().getSimpleName());
+            try {
+                field.setAccessible(true);
+                Object item=field.get(value);
+                out.append(item==null?"=null":"=set");
+                if(item!=null&&!field.getType().isPrimitive()
+                        &&item.getClass()!=field.getType())
+                    out.append("(").append(item.getClass().getSimpleName()).append(")");
+            }catch(Throwable ignored){out.append("=unreadable");}
+        }
+        out.append("]");
+    }
+
+    /**
      * Google 17.60 and 17.64 store OCR text inside a TextSelection value
      * whose first field is String and second field is an ImmutableList.
      * The wrapper is owned by a concrete UserSelection and is not itself OCR.

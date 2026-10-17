@@ -35,6 +35,7 @@ final class GoogleTextSelectionLiveHook {
     private final LiveSink sink;
     private final Supplier<Activity> owner;
     private final Profile profile;
+    private int installedHooks;
 
     private Rect lastPublishedBounds;
     private long lastPublishedAt;
@@ -94,12 +95,20 @@ final class GoogleTextSelectionLiveHook {
         if (profile.updateTask != null && !profile.updateTask.isBlank()) {
             count += installFinalTaskHook();
         }
+        installedHooks=count;
         module.log(Log.INFO, TAG,
                 "Google live text selection hooks=" + count
                         + " profile=" + profile.name
                         + " sources=" + profile.state + "." + profile.listMethod
                         + (profile.updateTask == null ? "" : "," + profile.updateTask + ".run"));
         return count;
+    }
+
+    String installedSummary() {
+        return "hooks="+installedHooks
+                +" profile="+(profile==null?"unavailable":profile.name)
+                +" state="+(profile==null?"none":profile.state)
+                +" stateMethod="+(profile==null?"none":profile.listMethod);
     }
 
     private int installStateListHook() {
@@ -424,8 +433,7 @@ final class GoogleTextSelectionLiveHook {
     private static Profile resolveProfile(ClassLoader loader) {
         // Exact Google 17.60 word-list and final-selection update paths first.
         // These are required for selection highlights to follow handle drags.
-        if (hasClass(loader, GoogleLens1760Profile.TEXT_SELECTION_STATE)
-                && hasClass(loader, GoogleLens1760Profile.TEXT_SELECTION_UPDATE_TASK)) {
+        if (valid1760Profile(loader)) {
             return new Profile(GoogleLens1760Profile.NAME,
                     GoogleLens1760Profile.TEXT_SELECTION_UPDATE_TASK,
                     GoogleLens1760Profile.TEXT_SELECTION_CONTROLLER,
@@ -434,6 +442,43 @@ final class GoogleTextSelectionLiveHook {
                     GoogleLens1760Profile.TEXT_SELECTION_RANGE);
         }
         return resolveFromStableView(loader);
+    }
+
+    /**
+     * Validate the live OCR ABI, not just two obfuscated class names that
+     * later Google builds may reuse for unrelated code.
+     */
+    private static boolean valid1760Profile(ClassLoader loader) {
+        if(loader==null)return false;
+        try {
+            Class<?> state=Class.forName(GoogleLens1760Profile.TEXT_SELECTION_STATE,
+                    false,loader);
+            Class<?> task=Class.forName(GoogleLens1760Profile.TEXT_SELECTION_UPDATE_TASK,
+                    false,loader);
+            Class<?> word=Class.forName(GoogleLens1760Profile.WORD,false,loader);
+            boolean listUpdate=false,view=false,list=false,run=false,box=false;
+            for(Method method:GoogleReflection.declaredMethods(state)) {
+                Class<?>[] p=method.getParameterTypes();
+                if("g".equals(method.getName())&&method.getReturnType()==void.class
+                        &&p.length==3
+                        &&GoogleLens1758Profile.IMMUTABLE_LIST.equals(p[0].getName())
+                        &&p[1]==boolean.class&&p[2]==int.class)listUpdate=true;
+            }
+            for(Field field:GoogleReflection.instanceFields(state)) {
+                view|=TEXT_SELECTION_VIEW.equals(field.getType().getName());
+                list|=GoogleLens1758Profile.IMMUTABLE_LIST
+                        .equals(field.getType().getName());
+            }
+            for(Method method:GoogleReflection.declaredMethods(task))
+                if("run".equals(method.getName())&&method.getParameterCount()==0
+                        &&method.getReturnType()==void.class)run=true;
+            int strings=0;
+            for(Field field:GoogleReflection.instanceFields(word)) {
+                if(field.getType()==String.class)strings++;
+                if(field.getType()==Rect.class)box=true;
+            }
+            return listUpdate&&view&&list&&run&&box&&strings>=2;
+        }catch(Throwable ignored){return false;}
     }
 
     /**

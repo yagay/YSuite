@@ -105,6 +105,7 @@ final class GoogleV2HookEngine {
         count+=nativeSearch.install();
         count+=frames.install();
         count+=words.install();
+        logEvent("LIVE_TEXT_PROFILE",words.installedSummary());
         count+=gestures.install();
         int selectionHooks=hookSelection();
         count+=selectionHooks;
@@ -375,7 +376,9 @@ final class GoogleV2HookEngine {
                         +" selectionClass="+candidate.selectionClass()
                         +" bounds="+(bounds==null?"none":bounds)
                         +" metadata="+(metadata==null?"null":metadata.getClass().getName())
-                        +" detail="+candidate.detail());
+                        +" detail="+candidate.detail()
+                        +(emptySelectionTraces<=3
+                            ?" shape="+selection.diagnosticShape(metadata):""));
             }
             return candidate;
         }catch(Throwable t) {
