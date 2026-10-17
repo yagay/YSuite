@@ -128,7 +128,7 @@ public final class ImageShareUtils {
     }
 
     /**
-     * Google Lens experiment input; reuse the existing host FileProvider.
+     * Google Lens experiment input; reuse the host-owned content URI share capability.
      * The caller owns the returned lease and must revoke it after the probe.
      */
     static LensShare prepareGoogleLensImage(Context app,Bitmap image) throws Exception {
