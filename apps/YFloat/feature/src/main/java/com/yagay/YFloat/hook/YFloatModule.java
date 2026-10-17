@@ -87,35 +87,18 @@ public final class YFloatModule extends XposedModule {
         }
         if(googleHookInitializationPending)return;
         googleHookInitializationPending=true;
-        initializeGoogleHook(param.getClassLoader(),target,0);
-    }
-
-    /** Google PackageReady may arrive before ActivityThread.currentApplication(). */
-    private void initializeGoogleHook(ClassLoader loader,String target,int attempt) {
-        if(googleHookInstalled) {
-            googleHookInitializationPending=false;
-            return;
-        }
-        if(!GoogleHookProfileStore.contextReady()) {
-            if(attempt>=25) {
-                googleHookInitializationPending=false;
-                log(Log.WARN,TAG,"Google Hook could not start: Application context"
-                        +" unavailable after startup retries; target="+target);
-                return;
-            }
-            if(attempt==0)log(Log.INFO,TAG,
-                    "Google Hook waiting for Google Application context after PackageReady");
-            new Handler(Looper.getMainLooper()).postDelayed(
-                    ()->initializeGoogleHook(loader,target,attempt+1),200L);
-            return;
-        }
+        // Install lifecycle interception now; optional DEX search runs later.
+        // Delaying ALL callbacks until Application Context exists previously
+        // allowed Google's first voice session to bypass YFloat entirely.
         try {
-            googleHookInstalled=new GoogleV2HookEngine(this,runtimeProvider,loader).install();
+            googleHookInstalled=new GoogleV2HookEngine(
+                    this,runtimeProvider,param.getClassLoader()).install();
             log(googleHookInstalled?Log.INFO:Log.WARN,TAG,
-                    "Google semantic Hook installed="+googleHookInstalled
-                    +" provider="+runtimeProvider.isActive()+" process="+target);
-        }catch(Throwable t) {
-            log(Log.ERROR,TAG,"Google V2 initialization failed; process="+target,t);
+                    "Google bootstrap installed="+googleHookInstalled
+                    +" provider="+runtimeProvider.isActive()+" process="+target
+                    +" semanticSelection=asynchronous");
+        }catch(Throwable t){
+            log(Log.ERROR,TAG,"Google bootstrap initialization failed; process="+target,t);
         }finally {
             googleHookInitializationPending=false;
         }

@@ -275,6 +275,8 @@ final class GoogleV2UiEngine {
             DiagnosticLog.i(s.app,"GOOGLE_V2","crop error="+t.getClass().getSimpleName());
         }
         ResultSession result=ResultSession.screenshot(output,screen);
+        // Result is committed before Android emits any navigation callbacks.
+        GoogleCtsSessionCoordinator.resultCommitted(s.token);
         WorkflowSessionManager.Session workflow=WorkflowSessionManager.current();
         if(workflow!=null&&s.token.equals(workflow.externalKey()))
             WorkflowSessionManager.transition(s.app,workflow,
@@ -282,7 +284,10 @@ final class GoogleV2UiEngine {
         boolean shown=ResultController.showAfterFirstFrame(s.app,result,
                 // A screenshot handoff is final. Do not preserve a text
                 // toolbar/outline behind the result dialog after closing it.
-                ()->release(s,"result_visible",false));
+                ()->{
+                    GoogleCtsSessionCoordinator.resultVisible(s.token);
+                    release(s,"result_visible",false);
+                });
         if(!shown){
             result.close();
             release(s,"result_launch_failed",false);
@@ -306,23 +311,21 @@ final class GoogleV2UiEngine {
         cancelRegionMenu(s);
         s.state.close();
         GoogleRegionConfirmOverlay.dismiss(s.token,"v2_"+reason);
-        if(!keepMenu) {
+        // This cleanup is shared UI; a late old-session callback must not
+        // dismiss the selection/menu already owned by the next gesture.
+        boolean current=WorkflowSessionManager.matchesExternal(s.token);
+        if(current&&!keepMenu) {
             GoogleV2TextOutline.dismiss();
             FloatActionMenu.dismiss();
         }
         if(s.frame!=null&&!s.frame.isRecycled())s.frame.recycle();
         s.frame=null;
-        // Scoped remote lease may always be released; unscoped app-local
-        // state and FloatService MUST belong to this exact workflow.
-        boolean current=WorkflowSessionManager.matchesExternal(s.token);
-        LsposedStatusManager.clearGoogleCtsSessionRemote(s.token);
-        if(current){
-            new FloatSettings(s.app).clearGoogleCtsSession();
-            WorkflowSessionManager.finishExternal(s.app,s.token,"v2_"+reason);
-            FloatService service=FloatService.get();
-            if(service!=null)service.onCircleFinished("google_v2_"+reason);
-        }
-        DiagnosticLog.i(s.app,"GOOGLE_V2","released "+reason+" currentOwner="+current);
+        // GoogleCtsSessionCoordinator is the sole authority for lease and
+        // workflow cleanup. No other V2 class clears Remote Preferences.
+        GoogleCtsSessionCoordinator.end(s.app,s.token,
+                "v2_"+reason,"result_visible".equals(reason));
+        DiagnosticLog.i(s.app,"GOOGLE_V2",
+                "released "+reason+" currentOwner="+current);
     }
     private static Rect rect(GoogleV2State state){
         return state.validBounds()

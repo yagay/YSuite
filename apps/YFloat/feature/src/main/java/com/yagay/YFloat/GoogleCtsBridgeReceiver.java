@@ -40,9 +40,12 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
         if(rows!=null&&(rows.length<4||rows.length>512||rows.length%4!=0))
             rows=null;
 
+        if (GoogleCtsContract.EVENT_SELECTION.equals(event)
+                || GoogleCtsContract.EVENT_REGION_SELECTION.equals(event))
+            GoogleCtsSessionCoordinator.selecting(token);
         switch (event) {
             case GoogleCtsContract.EVENT_HOOK_READY ->
-                    GoogleCtsTrigger.onOwnedHookReady(context,token,detail);
+                    GoogleCtsSessionCoordinator.hookReady(context,token,detail);
             case GoogleCtsContract.EVENT_FRAME_READY ->
                     GoogleCtsBridgeProvider.consumeSharedFrame(context, token);
             case GoogleCtsContract.EVENT_SELECTION ->

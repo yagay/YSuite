@@ -209,9 +209,7 @@ final class HookReloadManager {
         Context app = context.getApplicationContext();
         if (!GOOGLE_RELOAD_RUNNING.compareAndSet(false, true)) return false;
 
-        GoogleCtsBridgeController.onNativeRelease(app, "hook_hot_reload");
-        new FloatSettings(app).clearGoogleCtsSession();
-        LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
+        GoogleCtsSessionCoordinator.cancelCurrent(app,"hook_hot_reload");
 
         IO.execute(() -> {
             Result result;
@@ -256,8 +254,7 @@ final class HookReloadManager {
         }
 
         if (google) {
-            GoogleCtsBridgeController.onNativeRelease(app, "manual_hook_reload");
-            LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
+            GoogleCtsSessionCoordinator.cancelCurrent(app,"manual_hook_reload");
         }
 
         IO.execute(() -> {

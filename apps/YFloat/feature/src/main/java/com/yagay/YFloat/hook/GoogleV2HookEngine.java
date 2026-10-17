@@ -46,7 +46,9 @@ final class GoogleV2HookEngine {
     private final GoogleV2Viewport viewport;
     private final GoogleV2SearchGuard nativeSearch;
     private final GoogleV2SearchChrome nativeChrome;
-    private final GoogleSelectionAdapter.Binding selection;
+    /** The lifecycle hooks must be live before slow obfuscated DEX discovery. */
+    private volatile GoogleSelectionAdapter.Binding selection;
+    private volatile boolean selectionResolverStarted;
     private final GoogleHookProfileStore profileStore;
     private final AtomicInteger revision = new AtomicInteger();
     private volatile boolean loggedInactiveSelection;
@@ -94,18 +96,15 @@ final class GoogleV2HookEngine {
                 this::ownsNativeSearchBoundary,
                 ()->active()&&(textMode||regionMode),this::logEvent);
         profileStore=new GoogleHookProfileStore(module);
-        selection=GoogleSelectionAdapter.resolve(loader,profileStore);
     }
 
+    /**
+     * Bootstrap must never be blocked by Google's changing semantic DEX symbols.
+     * First install stable OS/Google view callbacks, THEN discover the optional
+     * selection controller on a worker. The Hook remains capable of owning and
+     * closing YFloat's session even if selection discovery fails.
+     */
     boolean install() {
-        if (selection.available()) profileStore.reportProgress("registering",0,0);
-        if (!selection.available()) {
-            module.log(Log.WARN,TAG,"Google selection Hook unresolved: "+selection.detail());
-            if (GoogleSelectionAdapter.scanned(selection)
-                    || profileStore.manualRequested())
-                profileStore.reportScan(false,0,selection.detail());
-            return false;
-        }
         int count=0;
         count+=hookVoiceShow();
         count+=hookVoiceFrame();
@@ -116,28 +115,62 @@ final class GoogleV2HookEngine {
         count+=words.install();
         logEvent("LIVE_TEXT_PROFILE",words.installedSummary());
         count+=gestures.install();
-        int selectionHooks=hookSelection();
-        count+=selectionHooks;
-        if(selectionHooks>0)
-            GoogleSelectionAdapter.recordInstalled(selection,profileStore);
-        if (GoogleSelectionAdapter.scanned(selection)
-                || profileStore.manualRequested()) {
-            String method = selection.method() == null ? "no selection method"
-                    : selection.method().getDeclaringClass().getSimpleName()
-                            + "." + selection.method().getName();
-            profileStore.reportScan(selectionHooks>0,count,
-                    "selection=" + method + " source=" + selection.source()
-                            + " status=installed_not_runtime_verified");
+        logEvent("BOOTSTRAP","installed="+count+" semanticSelection=pending");
+        if(count>0)startSelectionResolver(count);
+        return count>0;
+    }
+
+    private void startSelectionResolver(int baselineCount) {
+        if(selectionResolverStarted)return;
+        selectionResolverStarted=true;
+        Thread worker=new Thread(()->{
+            try {
+                // PackageReady precedes ActivityThread.currentApplication on
+                // several Google versions. Only the optional symbol resolver
+                // waits for context, never the lifecycle or search guards.
+                for(int attempt=0;attempt<25
+                        &&!GoogleHookProfileStore.contextReady();attempt++){
+                    Thread.sleep(200L);
+                }
+                GoogleSelectionAdapter.Binding resolved=
+                        GoogleSelectionAdapter.resolve(loader,profileStore);
+                main.post(()->installSelectionBinding(resolved,baselineCount));
+            } catch(Throwable error){
+                module.log(Log.WARN,TAG,
+                        "Optional Google selection discovery failed",error);
+                logEvent("CAPABILITY","semantic_selection=unavailable error="
+                        +error.getClass().getSimpleName());
+            }
+        },"YFloat-Google-Selection-Resolver");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private void installSelectionBinding(GoogleSelectionAdapter.Binding resolved,
+                                         int baselineCount) {
+        selection=resolved;
+        if(resolved==null||!resolved.available()){
+            logEvent("CAPABILITY","semantic_selection=unavailable bootstrap_alive=true detail="
+                    +(resolved==null?"null":resolved.detail()));
+            if(resolved!=null && (GoogleSelectionAdapter.scanned(resolved)
+                    ||profileStore.manualRequested()))
+                profileStore.reportScan(false,baselineCount,resolved.detail());
+            return;
         }
-        module.log(Log.INFO,TAG,"V2 installed hooks="+count
-                +" selection="+selection.source()
-                +" confidence="+selection.confidence()
-                +" compatibility="+(selection.available() ? "selection_bound" : "selection_unavailable")
-                +" detail="+selection.detail()
-                +" installedBinding="+(selectionHooks>0)
-                +" runtimeSelectionVerified=false"
-                +" old_runtime_not_installed=true");
-        return selectionHooks>0;
+        profileStore.reportProgress("registering",0,0);
+        int selectionHooks=hookSelection();
+        if(selectionHooks>0)GoogleSelectionAdapter.recordInstalled(resolved,profileStore);
+        if(GoogleSelectionAdapter.scanned(resolved)||profileStore.manualRequested()){
+            String method=resolved.method()==null?"no selection method"
+                    :resolved.method().getDeclaringClass().getSimpleName()
+                        +"."+resolved.method().getName();
+            profileStore.reportScan(selectionHooks>0,baselineCount+selectionHooks,
+                    "selection="+method+" source="+resolved.source()
+                            +" status=installed_not_runtime_verified");
+        }
+        logEvent("CAPABILITY","semantic_selection_hooks="+selectionHooks
+                +" bootstrap_alive=true source="+resolved.source()
+                +" confidence="+resolved.confidence());
     }
 
     private boolean active() {
@@ -208,7 +241,7 @@ final class GoogleV2HookEngine {
                     logEvent("TEXT_SELECTION_NOT_DELIVERED",
                             "after=8s methodReached="+selectionCallbackObserved
                                     +" liveWordsObserved="+liveWordsObserved
-                                    +" method="+(selection.method()==null?"none"
+                                    +" method="+(selection==null||selection.method()==null?"pending"
                                     :selection.method().getDeclaringClass().getName()
                                             +"."+selection.method().getName())
                                     +" boundsOnlyDoesNotProveText=true");

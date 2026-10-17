@@ -15,37 +15,9 @@ import java.util.UUID;
 /** YFloat-owned trigger for Google Circle to Search. MiCTS is referenced only for this layer. */
 final class GoogleCtsTrigger {
     private static final int CTS_SHOW_FLAGS = 7;
-    // Google 17.66 can finish cold-start DEX discovery AFTER 5 seconds.
-    // A missing acknowledgement is diagnostic only, never grounds to hide CTS.
-    private static final long HOOK_ACK_DIAGNOSTIC_MS = 12_000L;
-    private static volatile String acknowledgedHookToken = "";
 
     static void onOwnedHookReady(Context context,String token,String detail) {
-        if(context==null||token==null||token.isBlank()
-                ||!WorkflowSessionManager.matchesExternal(token))return;
-        acknowledgedHookToken=token;
-        DiagnosticLog.i(context,"GOOGLE_CTS_HOOK_ACK",
-                "strict intercept ready session="
-                        +token.substring(0,Math.min(8,token.length()))
-                        +" detail="+(detail==null?"":detail));
-    }
-
-    /**
-     * An unverified callback during cold start is not a failed Hook.
-     * Google runs PackageReady and semantic DEX discovery after launching.
-     * Do not terminate the voice/Lens Activity before those hooks get a chance
-     * to activate. Keep the regular token-scoped lifecycle and 120s watchdog.
-     */
-    private static void reportPendingHook(Context app,
-            WorkflowSessionManager.Session workflow,String expectedToken) {
-        if(!GoogleCtsHookAckPolicy.shouldReportPending(
-                workflow.current()&&WorkflowSessionManager.matchesExternal(expectedToken),
-                expectedToken,acknowledgedHookToken))return;
-        DiagnosticLog.i(app,"GOOGLE_CTS_HOOK_ACK",
-                "startup_pending session="
-                        +expectedToken.substring(0,Math.min(8,expectedToken.length()))
-                        +" not_force_closed=true"
-                        +" googleLoaded="+LsposedStatusManager.snapshot().googleTargetLoaded());
+        GoogleCtsSessionCoordinator.hookReady(context,token,detail);
     }
 
     static boolean trigger(Context c) {
@@ -62,9 +34,7 @@ final class GoogleCtsTrigger {
                                             0, Math.min(8, previous.externalKey().length()))));
             // A new user gesture is an explicit retry, not proof the old Google
             // activity is healthy. Clear YFloat/remote leases before re-arming.
-            if(previous!=null)
-                GoogleV2UiEngine.abandon(app,previous.externalKey(),"user_retry");
-            GoogleCtsBridgeController.onNativeRelease(app, "user_retry");
+            GoogleCtsSessionCoordinator.cancelCurrent(app,"user_retry");
         }
 
         FloatSettings fs = new FloatSettings(app);
@@ -106,26 +76,11 @@ final class GoogleCtsTrigger {
 
         Bundle args = new Bundle();
         String token = UUID.randomUUID().toString();
-        acknowledgedHookToken="";
-        WorkflowSessionManager.Session workflow = WorkflowSessionManager.beginExternal(
-                app, WorkflowSessionManager.Type.GOOGLE_CTS, token, "google_cts_trigger");
-        WorkflowSessionManager.transition(app, workflow,
-                WorkflowSessionManager.Phase.CAPTURING, "google_cts_trigger");
-        // A pending launcher navigation event from the *previous* Google
-        // session must never revoke the token we are about to arm.
-        LensAccessibilityService.onNewGoogleCtsWorkflow(workflow);
         long nowElapsed = SystemClock.elapsedRealtime();
-        fs.armGoogleCtsSession(token, nowElapsed + GoogleCtsContract.TRACE_SESSION_TTL_MS);
-        long fallbackUntil = nowElapsed + LsposedRuntimeConfig.GOOGLE_CTS_FALLBACK_WINDOW_MS;
-        boolean remoteArmed = LsposedStatusManager.armGoogleCtsSessionRemote(
-                token, nowElapsed, fallbackUntil);
-        DiagnosticLog.i(app, "GOOGLE_CTS_ARM",
-                "remote=" + remoteArmed + " session=" + token.substring(0, 8)
-                        + " fallbackMs=" + LsposedRuntimeConfig.GOOGLE_CTS_FALLBACK_WINDOW_MS);
-        if (!remoteArmed) {
-            fs.clearGoogleCtsSession();
-            WorkflowSessionManager.fail(app, workflow, "google_remote_arm_failed");
-            DiagnosticLog.i(app, "GOOGLE_CTS_ARM", "missing remote ownership lease; local fallback");
+        WorkflowSessionManager.Session workflow=
+                GoogleCtsSessionCoordinator.begin(app,token,nowElapsed);
+        if(workflow==null){
+            DiagnosticLog.i(app,"GOOGLE_CTS_TRIGGER","remote arm failed");
             return false;
         }
         args.putLong(GoogleCtsContract.K_INVOCATION_TIME, nowElapsed);
@@ -161,35 +116,15 @@ final class GoogleCtsTrigger {
                             + " entryPoint="
                             + LsposedRuntimeConfig.GOOGLE_CTS_EXPECTED_OMNI_ENTRY_POINT
                             + " flags=" + CTS_SHOW_FLAGS);
-            if (!ok) {
-                fs.clearGoogleCtsSession();
-                LsposedStatusManager.clearGoogleCtsSessionRemote(token);
-                WorkflowSessionManager.fail(app, workflow, "google_cts_start_failed");
-                Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_63d7415102df), Toast.LENGTH_SHORT).show();
-            } else {
-                WorkflowSessionManager.transition(app, workflow,
-                        WorkflowSessionManager.Phase.SELECTING, "google_cts_visible");
-                new Handler(Looper.getMainLooper()).postDelayed(
-                        ()->reportPendingHook(app,workflow,token),
-                        HOOK_ACK_DIAGNOSTIC_MS);
-                // Google can accept showSessionFromSession while its LSPosed
-                // callbacks are missing. No bridge event means no State is ever
-                // created, so the normal State TTL cannot release SELECTING.
-                // Bound the top-level workflow by the same Google CTS lease.
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    if (!workflow.current() || !WorkflowSessionManager.googleCtsInFlight())
-                        return;
-                    DiagnosticLog.i(app, "GOOGLE_CTS_TRIGGER",
-                            "session watchdog expired; no terminal CTS event session="
-                                    + token.substring(0, 8));
-                    GoogleCtsBridgeController.onNativeRelease(app, "session_watchdog");
-                }, GoogleCtsContract.TRACE_SESSION_TTL_MS);
-            }
+            GoogleCtsSessionCoordinator.launchResult(app,token,ok);
+            if(!ok)Toast.makeText(app,
+                    com.yagay.suite.api.YLocale.text(
+                            com.yagay.YFloat.R.string.yfloat_generated_63d7415102df),
+                    Toast.LENGTH_SHORT).show();
             return ok;
         } catch (Throwable t) {
-            fs.clearGoogleCtsSession();
-            LsposedStatusManager.clearGoogleCtsSessionRemote(token);
-            WorkflowSessionManager.fail(app, workflow, "google_cts_exception");
+            GoogleCtsSessionCoordinator.end(app,token,
+                    "google_cts_exception",false);
             DiagnosticLog.i(app, "GOOGLE_CTS_TRIGGER",
                     "failed=" + t.getClass().getSimpleName() + ":" + String.valueOf(t.getMessage()));
             Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_def9b880703d) + t.getClass().getSimpleName(),

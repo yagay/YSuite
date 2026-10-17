@@ -244,8 +244,14 @@ public class LensAccessibilityService extends AccessibilityService {
                 return;
             }
 
-            // A user-confirmed Google region still needs its original Bitmap. Android
-            // accessibility window transitions are not proof that the image bridge failed.
+            // Screenshot handoff is not navigation cancellation. The V2
+            // coordinator owns its COMMITTED/HANDOFF state until delivery.
+            if (!GoogleCtsSessionCoordinator.mayCancelOnNavigation(
+                    scheduled.externalKey())) {
+                DiagnosticLog.i(this,"GOOGLE_CTS_RELEASE_GUARD",
+                        "owned session committing screenshot; skip navigation exit");
+                return;
+            }
             if (GoogleCtsBridgeController.hasPendingGoogleScreenshotResult()) {
                 DiagnosticLog.i(this, "GOOGLE_CTS_RELEASE_GUARD",
                         "pending Google screenshot; defer navigation release reason=" + reason);
@@ -255,16 +261,11 @@ public class LensAccessibilityService extends AccessibilityService {
             // All work runs on the main looper. Check the identity again
             // immediately before revoking the shared remote session.
             if(!scheduled.current()||WorkflowSessionManager.current()!=scheduled)return;
-            new FloatSettings(this).clearGoogleCtsSession();
-            boolean remoteCleared = LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
-            DiagnosticLog.i(this, "GOOGLE_CTS_NATIVE_RELEASE",
-                    "reason=" + reason + " remoteCleared=" + remoteCleared
-                            + " observed=" + observedPkg + " cls=" + observedCls
-                            + " settled=" + settledPkg
-                            + " graceMs=" + GOOGLE_EXIT_GRACE_MS
-                            + " workflowId=" + scheduled.id());
-            GoogleV2UiEngine.abandon(this,scheduled.externalKey(),reason);
-            GoogleCtsBridgeController.onNativeRelease(this, reason);
+            DiagnosticLog.i(this,"GOOGLE_CTS_NATIVE_RELEASE",
+                    "reason="+reason+" observed="+observedPkg
+                            +" cls="+observedCls+" settled="+settledPkg
+                            +" workflowId="+scheduled.id());
+            GoogleCtsSessionCoordinator.cancelCurrent(this,reason);
             FLCircleInlineOverlay.dismissActive(reason);
         };
         pendingGoogleExit = holder[0];

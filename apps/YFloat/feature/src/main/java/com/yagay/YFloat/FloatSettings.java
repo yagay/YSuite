@@ -300,17 +300,35 @@ public final class FloatSettings {
     public int circleCancelYBp() { return p.getInt(K_CIRCLE_CANCEL_Y_BP, -1); }
 
     public void armGoogleCtsSession(String token, long untilElapsed) {
-        p.edit()
-                .putString(K_GOOGLE_CTS_ACTIVE_SESSION, token == null ? "" : token)
-                .putLong(K_GOOGLE_CTS_ACTIVE_UNTIL, Math.max(0L, untilElapsed))
-                .commit();
+        synchronized (FloatSettings.class) {
+            p.edit()
+                    .putString(K_GOOGLE_CTS_ACTIVE_SESSION, token == null ? "" : token)
+                    .putLong(K_GOOGLE_CTS_ACTIVE_UNTIL, Math.max(0L, untilElapsed))
+                    .commit();
+        }
     }
 
+    /** An old callback must never clear the next Google CTS session. */
+    public boolean clearGoogleCtsSession(String expectedToken) {
+        if(expectedToken==null||expectedToken.isBlank())return false;
+        synchronized (FloatSettings.class) {
+            if(!expectedToken.equals(p.getString(K_GOOGLE_CTS_ACTIVE_SESSION,"")))
+                return false;
+            return p.edit()
+                    .remove(K_GOOGLE_CTS_ACTIVE_SESSION)
+                    .remove(K_GOOGLE_CTS_ACTIVE_UNTIL)
+                    .commit();
+        }
+    }
+
+    /** Retained for administrative reset paths. */
     public void clearGoogleCtsSession() {
-        p.edit()
-                .remove(K_GOOGLE_CTS_ACTIVE_SESSION)
-                .remove(K_GOOGLE_CTS_ACTIVE_UNTIL)
-                .apply();
+        synchronized (FloatSettings.class) {
+            p.edit()
+                    .remove(K_GOOGLE_CTS_ACTIVE_SESSION)
+                    .remove(K_GOOGLE_CTS_ACTIVE_UNTIL)
+                    .commit();
+        }
     }
 
     public void setBoolean(String key, boolean value) {
