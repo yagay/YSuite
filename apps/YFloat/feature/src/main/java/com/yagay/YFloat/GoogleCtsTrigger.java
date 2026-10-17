@@ -15,7 +15,9 @@ import java.util.UUID;
 /** YFloat-owned trigger for Google Circle to Search. MiCTS is referenced only for this layer. */
 final class GoogleCtsTrigger {
     private static final int CTS_SHOW_FLAGS = 7;
-    private static final long HOOK_ACK_TIMEOUT_MS = 5_000L;
+    // Google 17.66 can finish cold-start DEX discovery AFTER 5 seconds.
+    // A missing acknowledgement is diagnostic only, never grounds to hide CTS.
+    private static final long HOOK_ACK_DIAGNOSTIC_MS = 12_000L;
     private static volatile String acknowledgedHookToken = "";
 
     static void onOwnedHookReady(Context context,String token,String detail) {
@@ -29,41 +31,21 @@ final class GoogleCtsTrigger {
     }
 
     /**
-     * The system may accept showSessionFromSession even if the Google Hook did
-     * not install. Never let that unowned session continue into default search.
-     * This only runs while the exact YFloat workflow token remains current.
+     * An unverified callback during cold start is not a failed Hook.
+     * Google runs PackageReady and semantic DEX discovery after launching.
+     * Do not terminate the voice/Lens Activity before those hooks get a chance
+     * to activate. Keep the regular token-scoped lifecycle and 120s watchdog.
      */
-    private static void failClosedIfHookMissing(Context app,
+    private static void reportPendingHook(Context app,
             WorkflowSessionManager.Session workflow,String expectedToken) {
-        if(!GoogleCtsHookAckPolicy.shouldFailClosed(
+        if(!GoogleCtsHookAckPolicy.shouldReportPending(
                 workflow.current()&&WorkflowSessionManager.matchesExternal(expectedToken),
                 expectedToken,acknowledgedHookToken))return;
         DiagnosticLog.i(app,"GOOGLE_CTS_HOOK_ACK",
-                "timeout strict_fail_closed session="
-                        +expectedToken.substring(0,Math.min(8,expectedToken.length())));
-        boolean hidden=false;
-        try {
-            Class<?> manager=Class.forName("android.os.ServiceManager");
-            Object raw=HiddenApiBypass.invoke(manager,null,"getService","voiceinteraction");
-            if(raw instanceof IBinder binder){
-                Class<?> stub=Class.forName(
-                        "com.android.internal.app.IVoiceInteractionManagerService$Stub");
-                Object voiceService=HiddenApiBypass.invoke(stub,null,"asInterface",binder);
-                Class<?> iface=Class.forName(
-                        "com.android.internal.app.IVoiceInteractionManagerService");
-                // hideSessionFromSession(null) is the inverse of our
-                // showSessionFromSession(null, ...) system-side entry.
-                Object result=HiddenApiBypass.invoke(
-                        iface,voiceService,"hideSessionFromSession",(IBinder)null);
-                hidden=Boolean.TRUE.equals(result);
-            }
-        }catch(Throwable t){
-            DiagnosticLog.i(app,"GOOGLE_CTS_HOOK_ACK",
-                    "system_hide_failed="+t.getClass().getSimpleName());
-        }
-        DiagnosticLog.i(app,"GOOGLE_CTS_HOOK_ACK","system_hide="+hidden);
-        GoogleV2UiEngine.abandon(app,expectedToken,"hook_not_ready");
-        GoogleCtsBridgeController.onNativeRelease(app,"hook_not_ready");
+                "startup_pending session="
+                        +expectedToken.substring(0,Math.min(8,expectedToken.length()))
+                        +" not_force_closed=true"
+                        +" googleLoaded="+LsposedStatusManager.snapshot().googleTargetLoaded());
     }
 
     static boolean trigger(Context c) {
@@ -188,8 +170,8 @@ final class GoogleCtsTrigger {
                 WorkflowSessionManager.transition(app, workflow,
                         WorkflowSessionManager.Phase.SELECTING, "google_cts_visible");
                 new Handler(Looper.getMainLooper()).postDelayed(
-                        ()->failClosedIfHookMissing(app,workflow,token),
-                        HOOK_ACK_TIMEOUT_MS);
+                        ()->reportPendingHook(app,workflow,token),
+                        HOOK_ACK_DIAGNOSTIC_MS);
                 // Google can accept showSessionFromSession while its LSPosed
                 // callbacks are missing. No bridge event means no State is ever
                 // created, so the normal State TTL cannot release SELECTING.

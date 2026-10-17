@@ -6,18 +6,18 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class GoogleCtsHookAckPolicyTest {
-    @Test public void noHookAckMustCloseCurrentOwnedSession() {
-        assertTrue(GoogleCtsHookAckPolicy.shouldFailClosed(true,"token-b",""));
-        assertTrue(GoogleCtsHookAckPolicy.shouldFailClosed(true,"token-b","token-a"));
+    @Test public void noHookAckReportsPendingForCurrentOwnedSession() {
+        assertTrue(GoogleCtsHookAckPolicy.shouldReportPending(true,"token-b",""));
+        assertTrue(GoogleCtsHookAckPolicy.shouldReportPending(true,"token-b","token-a"));
     }
 
-    @Test public void validCurrentAckStaysInInterceptedMode() {
-        assertFalse(GoogleCtsHookAckPolicy.shouldFailClosed(true,"token-b","token-b"));
+    @Test public void validCurrentAckNeedsNoStartupWarning() {
+        assertFalse(GoogleCtsHookAckPolicy.shouldReportPending(true,"token-b","token-b"));
     }
 
-    @Test public void staleTimeoutNeverClosesNewOrNormalGoogleSession() {
-        assertFalse(GoogleCtsHookAckPolicy.shouldFailClosed(false,"token-b",""));
-        assertFalse(GoogleCtsHookAckPolicy.shouldFailClosed(true,"",""));
-        assertFalse(GoogleCtsHookAckPolicy.shouldFailClosed(true,null,""));
+    @Test public void staleDiagnosticIsNeverAttributedToAnotherSession() {
+        assertFalse(GoogleCtsHookAckPolicy.shouldReportPending(false,"token-b",""));
+        assertFalse(GoogleCtsHookAckPolicy.shouldReportPending(true,"",""));
+        assertFalse(GoogleCtsHookAckPolicy.shouldReportPending(true,null,""));
     }
 }
