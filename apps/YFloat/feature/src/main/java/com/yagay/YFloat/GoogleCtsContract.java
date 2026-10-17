@@ -50,6 +50,12 @@ public final class GoogleCtsContract {
     public static final String EVENT_TEXT_MENU_COMMIT = "text_menu_commit";
     public static final String EVENT_END = "end";
     public static final String EVENT_FRAME_READY = "frame_ready";
+    /** Persistent one-time Google ABI scan cache, never a live CTS session token. */
+    public static final String METHOD_READ_HOOK_PROFILE = "read_hook_profile_v1";
+    public static final String METHOD_WRITE_HOOK_PROFILE = "write_hook_profile_v1";
+    public static final String EXTRA_HOOK_APK_IDENTITY = "hook_apk_identity";
+    public static final String EXTRA_HOOK_FINGERPRINT = "hook_fingerprint";
+    public static final String EXTRA_HOOK_SYMBOLS = "hook_symbols";
     public static final String METHOD_ALLOCATE_SHARED_FRAME = "allocate_shared_frame";
     public static final String METHOD_RELEASE_SHARED_FRAME = "release_shared_frame";
     public static final String EXTRA_FRAME_WIDTH =

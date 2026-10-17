@@ -68,6 +68,11 @@ public class GoogleCtsBridgeProvider extends ContentProvider {
         Bundle out = new Bundle();
         if (context == null || extras == null) return out;
 
+        if (GoogleCtsContract.METHOD_READ_HOOK_PROFILE.equals(method)
+                || GoogleCtsContract.METHOD_WRITE_HOOK_PROFILE.equals(method)) {
+            return GoogleHookProfileCache.handle(context, method, extras);
+        }
+
         if (GoogleCtsContract.METHOD_RELEASE_SHARED_FRAME.equals(method)) {
             String token = extras.getString(GoogleCtsContract.EXTRA_BRIDGE_SESSION, "");
             if (authorized(context, token)) releaseSharedFrame(token);

@@ -59,8 +59,9 @@ final class GoogleHookVersionTracker {
                 + "\nLSPosed scope: " + (scoped ? "enabled" : "missing")
                 + " · provider: " + (ready ? "enabled" : "unavailable")
                 + " · process: " + (loaded ? "loaded" : "not reported")
-                + "\nStructural Hook binding is checked in the next Google process."
-                + " Loaded does not mean the selection methods have been verified.";
+                + "\nProfile cache: " + GoogleHookProfileCache.status(context, version)
+                + "\nStored symbols are revalidated in the next Google process."
+                + " Matched does not mean the Hook fired.";
     }
 
     private static String currentIdentity(Context context) {

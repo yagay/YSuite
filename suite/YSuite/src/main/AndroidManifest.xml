@@ -6,6 +6,7 @@
 
     <!-- Android 11+ package visibility for standalone feature APK management. -->
     <queries>
+        <package android:name="com.google.android.googlequicksearchbox" />
         <package android:name="com.yagay.YEntryCleaner" />
         <package android:name="com.yagay.ydiag" />
         <package android:name="com.yagay.YNotify" />

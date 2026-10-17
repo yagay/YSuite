@@ -44,6 +44,7 @@ final class GoogleV2HookEngine {
     private final GoogleV2SearchGuard nativeSearch;
     private final GoogleV2SearchChrome nativeChrome;
     private final GoogleSelectionAdapter.Binding selection;
+    private final GoogleHookProfileStore profileStore;
     private final AtomicInteger revision = new AtomicInteger();
     private volatile boolean loggedInactiveSelection;
     private volatile boolean loggedRejectedActivation;
@@ -71,7 +72,8 @@ final class GoogleV2HookEngine {
                 ()->active()&&(textMode||regionMode),this::logEvent);
         nativeChrome=new GoogleV2SearchChrome(
                 ()->active()&&(textMode||regionMode),this::logEvent);
-        selection=GoogleSelectionAdapter.resolve(loader);
+        profileStore=new GoogleHookProfileStore(module);
+        selection=GoogleSelectionAdapter.resolve(loader,profileStore);
     }
 
     boolean install() {
@@ -90,6 +92,8 @@ final class GoogleV2HookEngine {
         count+=gestures.install();
         int selectionHooks=hookSelection();
         count+=selectionHooks;
+        if(selectionHooks>0)
+            GoogleSelectionAdapter.recordInstalled(selection,profileStore);
         module.log(Log.INFO,TAG,"V2 installed hooks="+count
                 +" selection="+selection.source()
                 +" confidence="+selection.confidence()

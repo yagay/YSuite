@@ -50,14 +50,18 @@ final class GoogleSelectionAdapter {
     private static Binding cachedBinding;
 
     static synchronized Binding resolve(ClassLoader loader) {
+        return resolve(loader,null);
+    }
+
+    static synchronized Binding resolve(ClassLoader loader, GoogleHookProfileStore store) {
         if (loader == cachedLoader && cachedBinding != null) return cachedBinding;
-        Binding found = resolveUncached(loader);
+        Binding found = resolveUncached(loader,store);
         cachedLoader = loader;
         cachedBinding = found;
         return found;
     }
 
-    private static Binding resolveUncached(ClassLoader loader) {
+    private static Binding resolveUncached(ClassLoader loader, GoogleHookProfileStore store) {
         if (loader == null) return new MissingBinding("classLoader=null");
         String error = GoogleLens1760Profile.selectionValidationError(loader);
         if (error.isBlank()) {
@@ -75,14 +79,32 @@ final class GoogleSelectionAdapter {
                 error=t.getClass().getSimpleName()+":"+String.valueOf(t.getMessage());
             }
         }
-        // Every differently-obfuscated APK uses the same 17.60 semantics;
-        // no 17.58 or 17.64 hard-coded profile is installed.
+        // Bind persisted symbols FIRST. No full DEX scan on an unchanged APK.
+        // The resolver verifies metadata, return types and confidence again
+        // inside this process's own ClassLoader.
+        String symbols=store==null?"":store.read();
+        if(!symbols.isBlank()) {
+            GoogleLensDynamicResolver.SelectionBinding remembered=
+                    GoogleLensDynamicResolver.resolveCached(loader,symbols);
+            if(remembered.available())
+                return new DynamicBinding(remembered,"APK="+store.identity(),
+                        "cached-1760-semantic");
+        }
+        // New APK, changed Hook matcher, or invalid cache: one bounded scan
+        // per ClassLoader. A failed scan stays memoized for this process.
         GoogleLensDynamicResolver.SelectionBinding dynamic =
                 GoogleLensDynamicResolver.discoverSelection(loader);
         if (!dynamic.available()) return new MissingBinding(
                 "1760="+error+"; semantic="+dynamic.detail());
         return new DynamicBinding(dynamic,"1760="+error,
-                "auto-1760-selection-shape");
+                "scanned-1760-selection-shape");
+    }
+
+    /** Write only after LSPosed registered the selected Method successfully. */
+    static void recordInstalled(Binding binding, GoogleHookProfileStore store) {
+        if (store==null || !(binding instanceof DynamicBinding dynamic)
+                || !dynamic.source().startsWith("scanned-"))return;
+        store.save(GoogleLensDynamicResolver.encode(dynamic.binding));
     }
 
     private static final class Profile1760Binding implements Binding {

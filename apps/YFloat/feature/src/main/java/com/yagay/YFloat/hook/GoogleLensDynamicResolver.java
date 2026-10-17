@@ -97,6 +97,58 @@ final class GoogleLensDynamicResolver {
         return SelectionBinding.none("no structural candidate scanned=" + scanned);
     }
 
+    /**
+     * Serialize one discovered semantic selection role for the installed APK.
+     * No Java reflective handle crosses process restarts.
+     */
+    static String encode(SelectionBinding binding) {
+        if(binding==null || !binding.available()) return "";
+        return String.join("|",
+                binding.method().getDeclaringClass().getName(),
+                binding.method().getName(),
+                binding.method().getParameterTypes()[0].getName(),
+                binding.userSelectionField().getName(),
+                binding.userSelectionField().getType().getName(),
+                binding.textMethod().getName(),
+                binding.boundsMethod().getName(),
+                binding.pointMethod()==null?"":binding.pointMethod().getName());
+    }
+
+    /**
+     * Fast cached binding. Always resolve in the NEW process ClassLoader and
+     * score the semantic contract again. Any changed signature fails closed
+     * and calls the full scanner exactly once for this ClassLoader.
+     */
+    static SelectionBinding resolveCached(ClassLoader loader, String encoded) {
+        if(loader==null || encoded==null || encoded.isBlank() || encoded.length()>2048)
+            return SelectionBinding.none("empty/invalid cached match");
+        String[] s=encoded.split("\\|",-1);
+        if(s.length!=8) return SelectionBinding.none("cached match field count mismatch");
+        try {
+            Class<?> cls=Class.forName(s[0],false,loader);
+            for(Method method:declaredMethods(cls)) {
+                if(!method.getName().equals(s[1])
+                        || !method.getReturnType().equals(void.class)
+                        || method.getParameterCount()!=2
+                        || !method.getParameterTypes()[0].getName().equals(s[2])
+                        || method.getParameterTypes()[1]!=boolean.class)continue;
+                Candidate candidate=scoreSelectionMethod(method);
+                if(candidate==null || candidate.score<MIN_SELECTION_CONFIDENCE)continue;
+                if(!candidate.userSelectionField.getName().equals(s[3])
+                        || !candidate.userSelectionField.getType().getName().equals(s[4])
+                        || !candidate.textMethod.getName().equals(s[5])
+                        || !candidate.boundsMethod.getName().equals(s[6])
+                        || !(candidate.pointMethod==null?s[7].isEmpty()
+                              :candidate.pointMethod.getName().equals(s[7])))continue;
+                return new SelectionBinding(method,candidate.userSelectionField,
+                        candidate.textMethod,candidate.boundsMethod,
+                        candidate.pointMethod,candidate.score,
+                        "cached-1760-semantic validated class="+s[0]);
+            }
+        } catch(Throwable ignored) { }
+        return SelectionBinding.none("cached selection contract mismatch");
+    }
+
     static Candidate scoreSelectionMethod(Method method) {
         if (method == null || method.getReturnType() != void.class) return null;
         Class<?>[] params = method.getParameterTypes();
