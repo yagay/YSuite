@@ -17,5 +17,23 @@ public final class GoogleLensShareEventPolicy {
         return !imageInputProbe;
     }
 
+    /**
+     * Google live word-list callback explicitly projects the selected word
+     * rectangle through TextSelectionView onto screen coordinates. Only
+     * these verified screen rectangles may anchor YFloat's text toolbar.
+     * A generic semantic snapshot or image-local crop rectangle cannot.
+     */
+    public static boolean mayAnchorTextMenu(boolean imageInputProbe,String detail) {
+        if(!imageInputProbe)return true;
+        return detail!=null&&detail.contains("liveFilter=accepted")
+                &&detail.contains(" space=")
+                &&detail.contains(" screen=");
+    }
+
+    /** A selected OCR result is successful even if Lens later exits via Back. */
+    public static boolean workflowSucceeded(boolean screenshotSuccess,boolean nativeTextReceived) {
+        return screenshotSuccess||nativeTextReceived;
+    }
+
     private GoogleLensShareEventPolicy() {}
 }

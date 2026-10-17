@@ -58,6 +58,13 @@ final class GoogleLensImageInputProbe {
         return RESULTS.get(token);
     }
 
+    /** The workflow has delivered verified, nonempty native selected text. */
+    static boolean hasNativeText(String token) {
+        if(token==null||token.isBlank())return false;
+        NativeResult result=RESULTS.get(token);
+        return result!=null&&!result.selectedText.isBlank();
+    }
+
     static boolean ownsPendingImage(String token) {
         return token!=null&&SHARES.containsKey(token);
     }

@@ -137,6 +137,12 @@ final class GoogleCtsSessionCoordinator {
             if(owned==null||!owned.token.equals(token)||!owned.state.close())return false;
             current=null;
         }
+        // A Lens ACTION_SEND workflow may end when the external Activity
+        // closes, even after a real selected-text callback reached YFloat.
+        // Capture this before probe cleanup removes its short-lived result.
+        boolean nativeTextDelivered=GoogleLensImageInputProbe.hasNativeText(token);
+        boolean terminalSuccess=GoogleLensShareEventPolicy.workflowSucceeded(
+                success,nativeTextDelivered);
         // Closing the exact token is idempotent; stale callbacks cannot revoke
         // the remotely armed token of a newly started Google session.
         LsposedStatusManager.clearGoogleCtsSessionRemote(token);
@@ -145,13 +151,15 @@ final class GoogleCtsSessionCoordinator {
         GoogleLensImageInputProbe.onCtsWorkflowEnd(owned.app,token,reason);
         if(WorkflowSessionManager.matchesExternal(token)){
             new FloatSettings(owned.app).clearGoogleCtsSession(token);
-            if(success)WorkflowSessionManager.finish(owned.app,owned.workflow,reason);
+            if(terminalSuccess)WorkflowSessionManager.finish(owned.app,owned.workflow,reason);
             else WorkflowSessionManager.cancel(owned.app,owned.workflow,reason);
             FloatService floatService=FloatService.get();
             if(floatService!=null)floatService.onCircleFinished("google_"+reason);
         }
         DiagnosticLog.i(owned.app,"GOOGLE_CTS_SESSION",
-                "terminal="+reason+" success="+success+" session="+shortToken(token));
+                "terminal="+reason+" success="+terminalSuccess
+                +" nativeTextDelivered="+nativeTextDelivered
+                +" session="+shortToken(token));
         return true;
     }
 

@@ -251,8 +251,8 @@ final class GoogleV2HookEngine {
             main.postDelayed(()->{
                 if(active()&&key.equals(token)
                         &&!textSelectionObserved && !regionMode) {
-                    logEvent("TEXT_SELECTION_NOT_DELIVERED",
-                            "after=8s methodReached="+selectionCallbackObserved
+                    logEvent("TEXT_SELECTION_PENDING",
+                            "after=8s no_user_text_selection_yet=true methodReached="+selectionCallbackObserved
                                     +" liveWordsObserved="+liveWordsObserved
                                     +" method="+(selection==null||selection.method()==null?"pending"
                                     :selection.method().getDeclaringClass().getName()

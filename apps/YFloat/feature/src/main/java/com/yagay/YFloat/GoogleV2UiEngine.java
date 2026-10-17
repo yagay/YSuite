@@ -180,19 +180,25 @@ final class GoogleV2UiEngine {
             // coordinates with the captured OCR result but never draw a
             // misleading screen outline from them.
             boolean imageProbe=GoogleLensImageInputProbe.ownsPendingImage(s.token);
-            Rect visualBounds=imageProbe?null:use;
+            boolean verifiedScreenBounds=GoogleLensShareEventPolicy.mayAnchorTextMenu(
+                    imageProbe,detail);
+            Rect visualBounds=verifiedScreenBounds?use:null;
             if(!s.state.text(text,at(visualBounds,0),at(visualBounds,1),
                     at(visualBounds,2),at(visualBounds,3)))return;
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
             s.textRows=rows==null?null:rows.clone();
             cancelRegionMenu(s);
             GoogleRegionConfirmOverlay.dismiss(token,"v2_text");
-            if(visualBounds!=null)
+            // In image-share mode Google owns the visible selection outline.
+            // We only anchor YFloat's menu near trusted screen-projected text.
+            if(!imageProbe&&visualBounds!=null)
                 GoogleV2TextOutline.show(s.app,s.token,visualBounds,rows);
             else GoogleV2TextOutline.dismiss(s.token);
             showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
             GoogleLensImageInputProbe.onNativeText(s.app,s.token,text,use);
-            DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()+" bounds="+use);
+            DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()
+                    +" bounds="+use+" anchorVerified="+verifiedScreenBounds
+                    +" imageInput="+imageProbe);
         });
     }
     static void onTextBounds(Context c,String token,Rect bounds){

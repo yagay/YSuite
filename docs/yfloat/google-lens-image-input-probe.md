@@ -172,3 +172,54 @@ signal is `LIVE_TEXT_CALLBACK` or `TEXT_SELECTION_READY` followed by
 `native_ocr_callback`. The Google LSPosed process was still marked
 STALE v56 in the supplied diagnostic, so reload before attributing
 callback absence to the Google 17.66 implementation.
+
+## 2026-10-17 22:26 trace: first **confirmed** Google-selected OCR return
+
+The full diagnostic has **three** image-input sessions, not only the last one.
+At 22:20:19 session `2a467d41`, with a verified 614x719 Google image
+source and successful host URI opens, emitted:
+- `LIVE_TEXT_CALLBACK chars=1 bounds=true`
+- `native_ocr_callback chars=1` then `native_ocr_callback chars=3`
+- `GOOGLE_V2 text menu visible=true` twice.
+
+This is strong device evidence that the image-share -> Google Lens selection ->
+YFloat text callback / own floating text menu chain works **for selected
+fragments**, not proof of an automatic full-image OCR API. The 22:25:34
+585x862-image session had successful file reads and Google image decoding but
+only `SELECTION_SNAPSHOT_EMPTY` until `TEXT_SELECTION_NOT_DELIVERED` at 8s;
+it does not refute the earlier positive test. Current Google LSPosed status was
+`googleStale=false`, `UP_TO_DATE v56`.
+
+Real lifecycle bug: after receiving selected text at 22:20:19/22:20:21, the
+session ended at 22:20:49 via `v2_google_end:v2:activity_stopped` as
+`CANCELLED success=false` and discarded its in-memory selection, incorrectly
+treating a delivered OCR result as an unsuccessful workflow. The coordinator
+now computes successful termination from **either** screenshot result success
+or verified `GoogleLensImageInputProbe.hasNativeText(token)` *before cleanup*
+and logs `nativeTextDelivered`. It does not count resolved Activities or
+empty semantic snapshots as successful OCR.
+
+The Google live-word hook's `readStateBounds` already projects the selection
+word geometry onto screen via `GoogleSelectionCoordinateSpace.map` and embeds
+`space=...` and `screen=...` in its callback detail. For these **verified
+liveFilter=accepted** word-list callbacks only, share mode now anchors the
+YFloat text popup to the projected screen Rect without drawing YFloat's own
+outline over Google's native selection UI. Generic image-local rectangles
+remain untrusted for popup placement. No selected text is logged.
+
+The 8-second watcher is diagnostic, not a failure verdict: 22:20 selected
+text only became available 15 seconds after activation. The log event is now
+`TEXT_SELECTION_PENDING` to avoid labeling legitimate late selections as
+failed.
+
+Check next APK on device:
+1. Image input and host PNG read success remain unchanged.
+2. Select one or more recognizable words within Lens and observe
+   `native_ocr_callback` and `text menu visible=true anchorVerified=true`.
+3. Exit Lens: `GOOGLE_CTS_SESSION terminal=... success=true
+   nativeTextDelivered=true` and workflow `FINISHED` if OCR was returned;
+   `CANCELLED` only if no selected text was ever delivered.
+4. 22:16 in the previous diagnostic still showed a blocked FrozenImageView
+   transform despite an image share. The latest 22:20/22:25 runs did not show
+   that event; if it recurs with the same installed build, inspect multiple
+   Hook installers or stale process state rather than assuming cause.
