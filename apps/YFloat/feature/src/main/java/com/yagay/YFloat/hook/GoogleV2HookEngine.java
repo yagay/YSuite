@@ -33,6 +33,8 @@ import io.github.libxposed.api.XposedModule;
  */
 final class GoogleV2HookEngine {
     private static final String TAG = "YFloat-GoogleV2";
+    /** Host result handoff revokes Remote Preferences without resuming Lens. */
+    private static final long OWNED_LEASE_CHECK_MS = 300L;
     private final XposedModule module;
     private final LsposedRuntimeProvider provider;
     private final ClassLoader loader;
@@ -169,6 +171,10 @@ final class GoogleV2HookEngine {
         if(voiceOwner!=null)voice=voiceOwner;
         logEvent("SESSION","activated="+source);
         if(newSession) {
+            // The host revokes its lease once the YFloat result screen owns
+            // the output. Google does not always call Activity.onResume again,
+            // so a token-bound watchdog must close the original CTS surface.
+            scheduleOwnedLeaseWatch(key,revision.get());
             main.postDelayed(()->{
                 if(active()&&key.equals(token)
                         &&!textSelectionObserved && !regionMode) {
@@ -184,12 +190,32 @@ final class GoogleV2HookEngine {
         }
     }
 
+    /**
+     * Recheck the exact authenticated token, never an unscoped Google window.
+     * This is a short, low-cost Remote Preferences read while a YFloat-owned
+     * session is alive, not a DEX scan or a search interception guess.
+     */
+    private void scheduleOwnedLeaseWatch(String expected,int generation) {
+        main.postDelayed(()->{
+            if(!expected.equals(token)||revision.get()!=generation)return;
+            if(!provider.ownsGoogleCtsSession(expected)){
+                closeOwnedGoogleSession(expected,"lease_revoked");
+                return;
+            }
+            scheduleOwnedLeaseWatch(expected,generation);
+        },OWNED_LEASE_CHECK_MS);
+    }
+
     private int unused() { return revision.incrementAndGet(); }
 
     private void terminate(String reason) {
-        if(!active())return;
-        transport.sendEvent(GoogleCtsContract.EVENT_END,"","v2:"+reason,null);
-        logEvent("SESSION","ended="+reason);
+        if(token.isBlank())return;
+        // The Google voice session may hide AFTER YFloat revoked the lease.
+        // Local cleanup must not depend on a now-invalid Remote Pref token.
+        if(active()){
+            transport.sendEvent(GoogleCtsContract.EVENT_END,"","v2:"+reason,null);
+            logEvent("SESSION","ended="+reason);
+        }else module.log(Log.INFO,TAG,"SESSION ended="+reason+" after_remote_revoke");
         clearLocalSession();
     }
 
@@ -210,36 +236,58 @@ final class GoogleV2HookEngine {
     }
 
     private void closeRevokedLensOnResume(Activity activity) {
-        if(activity==null)return;
-        final String expiredToken=token;
-        boolean sameOwner=owner==activity;
-        if(!GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
-                sameOwner,!expiredToken.isBlank(),
-                !expiredToken.isBlank()&&provider.ownsGoogleCtsSession(expiredToken),
-                activity.getClass().getName().endsWith("LensientActivity"),
-                activity.isFinishing()||activity.isDestroyed()))return;
+        if(activity==null||owner!=activity)return;
+        final String expected=token;
+        if(expected.isBlank()
+                ||!activity.getClass().getName().endsWith("LensientActivity"))
+            return;
         main.post(()->{
-            // Recheck on the main thread. A new YFloat token can be armed
-            // between Instrumentation.onResume and this close operation.
-            if(owner!=activity||!expiredToken.equals(token)||expiredToken.isBlank()
-                    ||provider.ownsGoogleCtsSession(expiredToken)
-                    ||activity.isFinishing()||activity.isDestroyed())return;
-            logEvent("STALE_CTS_CLOSING",
-                    "revoked owned LensientActivity after result handoff");
-            Object oldVoice=voice;
-            try {
-                if(oldVoice instanceof VoiceInteractionSession voiceSession)
-                    voiceSession.finish();
-            }catch(Throwable t){
-                module.log(Log.WARN,TAG,"stale owned voice session finish failed",t);
-            }
-            try {
-                activity.finish();
-            }catch(Throwable t){
-                module.log(Log.WARN,TAG,"stale owned LensientActivity finish failed",t);
-            }
-            clearLocalSession();
+            if(owner!=activity||!expected.equals(token))return;
+            closeOwnedGoogleSession(expected,"activity_resumed");
         });
+    }
+
+    /**
+     * Once YFloat owns the result, do not leave Google's old FrozenImageView
+     * interactive. Finish the exact old VoiceInteractionSession and Activity.
+     * A newly armed CTS token takes priority, because Android may reuse the
+     * same voice process/activity when YFloat is triggered again quickly.
+     */
+    private void closeOwnedGoogleSession(String expected,String source) {
+        if(expected==null||expected.isBlank()||!expected.equals(token)
+                ||provider.ownsGoogleCtsSession(expected))return;
+        String replacement=provider.googleCtsArmedToken();
+        if(!GoogleV2ScenePolicy.shouldCloseRevokedOwnedSession(
+                true,true,false,
+                !replacement.isBlank()&&!expected.equals(replacement))){
+            module.log(Log.INFO,TAG,
+                    "OWNED_SESSION_SUPERSEDED source="+source
+                            +" replacementArmed="+!replacement.isBlank());
+            // Leave the Google-owned view in place for the replacement token,
+            // but stop all old YFloat listeners/selection data.
+            clearLocalSession();
+            return;
+        }
+        Activity oldActivity=owner;
+        Object oldVoice=voice;
+        boolean lens=oldActivity!=null
+                &&oldActivity.getClass().getName().endsWith("LensientActivity")
+                &&!oldActivity.isFinishing()&&!oldActivity.isDestroyed();
+        module.log(Log.INFO,TAG,"OWNED_SESSION_FINISH source="+source
+                +" lens="+lens+" voice="+(oldVoice instanceof VoiceInteractionSession));
+        // Prevent asynchronous old-session callbacks from being misinterpreted
+        // as selection events for the next session.
+        clearLocalSession();
+        if(oldVoice instanceof VoiceInteractionSession oldSession){
+            try{oldSession.finish();}
+            catch(Throwable t){module.log(Log.WARN,TAG,
+                    "owned voice finish failed",t);}
+        }
+        if(lens){
+            try{oldActivity.finish();}
+            catch(Throwable t){module.log(Log.WARN,TAG,
+                    "owned LensientActivity finish failed",t);}
+        }
     }
 
     private int hookVoiceShow() {

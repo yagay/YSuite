@@ -43,6 +43,20 @@ public class GoogleV2ScenePolicyTest {
                 true,true,false,true,true));
     }
 
+    @Test public void revokedOwnedSessionClosesEvenWithoutActivityResume() {
+        assertTrue(GoogleV2ScenePolicy.shouldCloseRevokedOwnedSession(
+                true,true,false,false));
+        assertFalse(GoogleV2ScenePolicy.shouldCloseRevokedOwnedSession(
+                false,true,false,false));
+        assertFalse(GoogleV2ScenePolicy.shouldCloseRevokedOwnedSession(
+                true,false,false,false));
+        assertFalse(GoogleV2ScenePolicy.shouldCloseRevokedOwnedSession(
+                true,true,true,false));
+        // Fast consecutive CTS launches must not terminate the next session.
+        assertFalse(GoogleV2ScenePolicy.shouldCloseRevokedOwnedSession(
+                true,true,false,true));
+    }
+
     @Test public void freezeOnlyOwnsFrozenImageProperties() {
         assertTrue(GoogleV2ScenePolicy.shouldBlockTransform(true, "setScaleX", 0.915f));
         assertTrue(GoogleV2ScenePolicy.shouldBlockTransform(true, "setTranslationY", -1369f));

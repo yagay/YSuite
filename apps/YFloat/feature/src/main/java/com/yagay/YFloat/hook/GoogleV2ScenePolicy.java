@@ -62,5 +62,14 @@ final class GoogleV2ScenePolicy {
                 && lensientActivity && !alreadyFinishing;
     }
 
+    /**
+     * A previously owned YFloat CTS surface must be closed after its lease
+     * expires, unless a replacement session is already armed in Google.
+     */
+    static boolean shouldCloseRevokedOwnedSession(boolean owned,
+            boolean tokenPresent,boolean leaseStillOwned,boolean replacementArmed) {
+        return owned && tokenPresent && !leaseStillOwned && !replacementArmed;
+    }
+
     private GoogleV2ScenePolicy() { }
 }
