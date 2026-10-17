@@ -50,4 +50,5 @@
     <string name="yfloat_google_scan_timeout_detail">扫描超时：Google Hook 未返回结果，请检查 LSPosed 作用域和诊断日志。</string>
     <string name="yfloat_google_manual_scan_waiting">正在扫描 Google Hook（最长 45 秒）</string>
     <string name="yfloat_google_scan_status">最近一次扫描：%1$s · 注册 %2$d 个 Hook · %3$s</string>
+    <string name="yfloat_google_scan_timeout_unloaded">Google 进程没有报告 LSPosed Hook 已加载，请检查作用域、进程注入及 Google 模块日志。</string>
 </resources>

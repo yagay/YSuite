@@ -20,18 +20,17 @@ final class GoogleCtsTrigger {
         if (c == null) return false;
         Context app = c.getApplicationContext();
         if (WorkflowSessionManager.googleCtsInFlight()) {
-            WorkflowSessionManager.Session current = WorkflowSessionManager.current();
+            WorkflowSessionManager.Session previous = WorkflowSessionManager.current();
             DiagnosticLog.i(app, "GOOGLE_CTS_TRIGGER",
-                    "duplicate ignored current="
-                            + (current == null ? "none" : current.phase())
+                    "explicit retrigger: release previous CTS state="
+                            + (previous == null ? "none" : previous.phase())
                             + " session="
-                            + (current == null || current.externalKey().isBlank()
-                                    ? "none"
-                                    : current.externalKey().substring(
-                                            0, Math.min(8, current.externalKey().length()))));
-            // Treat the duplicate gesture as handled so ActionExecutor does not fall back to the
-            // native YFloat circle workflow while Google CTS is already on screen.
-            return true;
+                            + (previous == null || previous.externalKey().isBlank()
+                                    ? "none" : previous.externalKey().substring(
+                                            0, Math.min(8, previous.externalKey().length()))));
+            // A new user gesture is an explicit retry, not proof the old Google
+            // activity is healthy. Clear YFloat/remote leases before re-arming.
+            GoogleCtsBridgeController.onNativeRelease(app, "user_retry");
         }
 
         FloatSettings fs = new FloatSettings(app);
@@ -132,6 +131,18 @@ final class GoogleCtsTrigger {
             } else {
                 WorkflowSessionManager.transition(app, workflow,
                         WorkflowSessionManager.Phase.SELECTING, "google_cts_visible");
+                // Google can accept showSessionFromSession while its LSPosed
+                // callbacks are missing. No bridge event means no State is ever
+                // created, so the normal State TTL cannot release SELECTING.
+                // Bound the top-level workflow by the same Google CTS lease.
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    if (!workflow.current() || !WorkflowSessionManager.googleCtsInFlight())
+                        return;
+                    DiagnosticLog.i(app, "GOOGLE_CTS_TRIGGER",
+                            "session watchdog expired; no terminal CTS event session="
+                                    + token.substring(0, 8));
+                    GoogleCtsBridgeController.onNativeRelease(app, "session_watchdog");
+                }, GoogleCtsContract.TRACE_SESSION_TTL_MS);
             }
             return ok;
         } catch (Throwable t) {

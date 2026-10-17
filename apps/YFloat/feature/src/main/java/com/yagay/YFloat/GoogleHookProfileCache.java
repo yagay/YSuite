@@ -155,13 +155,21 @@ public final class GoogleHookProfileCache {
         if(!p.getBoolean(K_MANUAL_PENDING,false) || !manualTimedOut(p))return;
         String apk=p.getString(K_MANUAL_APK,"");
         clearPending(p);
-        String detail=context.getString(R.string.yfloat_google_scan_timeout_detail);
+        // Scope enabled is not equivalent to the Google process actually
+        // reporting its module load. Surface that distinction in diagnostics.
+        LsposedStatusManager.Snapshot scope = LsposedStatusManager.snapshot();
+        boolean loaded = scope != null && scope.googleTargetLoaded();
+        String detail=context.getString(loaded
+                ? R.string.yfloat_google_scan_timeout_detail
+                : R.string.yfloat_google_scan_timeout_unloaded);
         p.edit().putString(K_LAST_SCAN_APK,apk)
                 .putString(K_LAST_SCAN_RESULT,"timeout")
                 .putString(K_LAST_SCAN_DETAIL,detail)
                 .putInt(K_LAST_SCAN_COUNT,0).commit();
         DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN",
-                "manual scan timed out apk="+apk+" result_not_received");
+                "manual scan timed out apk="+apk+" result_not_received"
+                        +" googleHookReportedLoaded="+loaded
+                        +" googleScopeEnabled="+(scope != null && scope.googleScopeEnabled()));
         String version=apk.split("/",2)[0];
         notifyUser(context,context.getString(R.string.yfloat_google_scan_toast_failure,
                 version,detail));
