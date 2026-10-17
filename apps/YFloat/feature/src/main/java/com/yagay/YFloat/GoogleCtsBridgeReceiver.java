@@ -35,13 +35,18 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
             bounds = new Rect(left, top, right, bottom);
         }
 
+        // Bound a variable-length drawing payload to 128 text rows.
+        int[] rows = intent.getIntArrayExtra(GoogleCtsContract.EXTRA_TEXT_ROWS);
+        if(rows!=null&&(rows.length<4||rows.length>512||rows.length%4!=0))
+            rows=null;
+
         switch (event) {
             case GoogleCtsContract.EVENT_FRAME_READY ->
                     GoogleCtsBridgeProvider.consumeSharedFrame(context, token);
             case GoogleCtsContract.EVENT_SELECTION ->
-                    GoogleV2UiEngine.onText(context, token, text, bounds, detail);
+                    GoogleV2UiEngine.onText(context, token, text, bounds, detail, rows);
             case GoogleCtsContract.EVENT_TEXT_BOUNDS ->
-                    GoogleV2UiEngine.onTextBounds(context, token, bounds);
+                    GoogleV2UiEngine.onTextBounds(context, token, bounds, rows);
             case GoogleCtsContract.EVENT_TEXT_GESTURE_START ->
                     GoogleV2UiEngine.onTextGesture(context, token, true);
             case GoogleCtsContract.EVENT_TEXT_GESTURE_END ->

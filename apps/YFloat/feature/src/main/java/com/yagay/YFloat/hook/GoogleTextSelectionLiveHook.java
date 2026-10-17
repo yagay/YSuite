@@ -30,7 +30,7 @@ final class GoogleTextSelectionLiveHook {
     private final XposedModule module;
     private final ClassLoader classLoader;
     private final BooleanSupplier active;
-    interface LiveSink { void accept(Rect bounds, String text, String detail); }
+    interface LiveSink { void accept(Rect bounds, String text, String detail, int[] rows); }
 
     private final LiveSink sink;
     private final Supplier<Activity> owner;
@@ -235,7 +235,8 @@ final class GoogleTextSelectionLiveHook {
             target = accepted;
         }
         sink.accept(target, selectedText, live.detail
-                + " selectedChars=" + selectedText.length() + " liveFilter=accepted");
+                + " selectedChars=" + selectedText.length() + " liveFilter=accepted",
+                live.rows);
     }
 
     /**
@@ -356,12 +357,13 @@ final class GoogleTextSelectionLiveHook {
 
         Rect union = new Rect();
         StringBuilder selectedText = new StringBuilder();
-        int words = addWords(union, selected, selectedText);
+        java.util.ArrayList<Rect> selectedWordBoxes = new java.util.ArrayList<>();
+        int words = addWords(union, selected, selectedText, selectedWordBoxes);
         if (words == 0) {
             words += addWord(union, GoogleReflection.readField(state, "a", profile.word),
-                    selectedText);
+                    selectedText, selectedWordBoxes);
             words += addWord(union, GoogleReflection.readField(state, "b", profile.word),
-                    selectedText);
+                    selectedText, selectedWordBoxes);
         }
         if (words == 0 || union.isEmpty()) {
             return LiveBounds.empty(source + " selected_words_empty");
@@ -392,26 +394,31 @@ final class GoogleTextSelectionLiveHook {
         if (screen == null || screen.isEmpty()) {
             return LiveBounds.empty(source + " outside_text_view");
         }
+        int[] rows = GoogleWordLineGeometry.projectRows(selectedWordBoxes,
+                textView.getWidth(), textView.getHeight(), origin[0], origin[1], viewport);
         return new LiveBounds(screen, selectedText.toString(),
                 "profile=" + profile.name
                         + " source=" + source
                         + " selectedWords=" + words
                         + " selectedChars=" + selectedText.length()
                         + " space=" + mapped.space
-                        + " local=" + union + " screen=" + screen);
+                        + " local=" + union + " screen=" + screen,
+                rows);
     }
 
-    private int addWords(Rect union, Object value, StringBuilder out) {
+    private int addWords(Rect union, Object value, StringBuilder out,
+                         java.util.List<Rect> wordBoxes) {
         if (!(value instanceof Iterable<?> items)) return 0;
         int count = 0;
         for (Object item : items) {
             if (count >= 128 || out.length() >= 8000) break;
-            count += addWord(union, item, out);
+            count += addWord(union, item, out, wordBoxes);
         }
         return count;
     }
 
-    private int addWord(Rect union, Object word, StringBuilder out) {
+    private int addWord(Rect union, Object word, StringBuilder out,
+                        java.util.List<Rect> wordBoxes) {
         if (word == null || !profile.word.equals(word.getClass().getName())) return 0;
         Object value = GoogleReflection.readField(word, "d", Rect.class.getName());
         if (!(value instanceof Rect)) {
@@ -419,6 +426,7 @@ final class GoogleTextSelectionLiveHook {
         }
         if (!(value instanceof Rect rect) || rect.isEmpty()) return 0;
         if (union.isEmpty()) union.set(rect); else union.union(rect);
+        if(wordBoxes.size()<128)wordBoxes.add(new Rect(rect));
 
         // APK-verified 17.64 selected-word class dqzy owns two String
         // properties and a Rect. Unlike dwtg.k() on dwti, these strings
@@ -560,11 +568,17 @@ final class GoogleTextSelectionLiveHook {
         final Rect bounds;
         final String text;
         final String detail;
+        final int[] rows;
 
         LiveBounds(Rect bounds, String text, String detail) {
+            this(bounds,text,detail,null);
+        }
+
+        LiveBounds(Rect bounds, String text, String detail, int[] rows) {
             this.bounds = bounds == null ? null : new Rect(bounds);
             this.text = text == null ? "" : text.trim();
             this.detail = detail == null ? "" : detail;
+            this.rows = rows == null ? null : rows.clone();
         }
 
         static LiveBounds empty(String detail) {

@@ -42,6 +42,13 @@ public class GoogleV2StateTest {
         assertFalse(s.delivered());
         assertFalse(s.region(0,0,100,100));
     }
+    @Test public void missingBoundsNeverReusePreviousSelectionOutline() {
+        GoogleV2State s = new GoogleV2State();
+        assertTrue(s.text("first", 100, 200, 300, 250));
+        assertTrue(s.text("second", 0, 0, 0, 0));
+        assertFalse(s.validBounds());
+        assertEquals("second", s.text);
+    }
     @Test public void oldAsyncWorkCannotOverrideLatestSelection() {
         GoogleV2State s = new GoogleV2State();
         s.text("a",1,2,10,20);

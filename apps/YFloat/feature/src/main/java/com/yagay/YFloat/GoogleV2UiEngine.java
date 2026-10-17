@@ -96,28 +96,35 @@ final class GoogleV2UiEngine {
     }
 
     static void onText(Context context,String token,String text,Rect bounds,String detail){
+        onText(context,token,text,bounds,detail,null);
+    }
+    static void onText(Context context,String token,String text,Rect bounds,String detail,int[] rows){
         Session s=session(context,token);
         if(s==null||text==null||text.isBlank()) return;
         MAIN.post(()->{
             if(!ownsUi(s))return;
-            Rect use=pickBounds(s,bounds);
+            Rect use=bounds!=null&&!bounds.isEmpty()?new Rect(bounds):null;
             if(!s.state.text(text,at(use,0),at(use,1),at(use,2),at(use,3)))return;
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
             cancelRegionMenu(s);
             GoogleRegionConfirmOverlay.dismiss(token,"v2_text");
-            if(use!=null)GoogleV2TextOutline.show(s.app,use);
+            if(use!=null)GoogleV2TextOutline.show(s.app,use,rows);
+            else GoogleV2TextOutline.dismiss();
             showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()+" bounds="+use);
         });
     }
     static void onTextBounds(Context c,String token,Rect bounds){
+        onTextBounds(c,token,bounds,null);
+    }
+    static void onTextBounds(Context c,String token,Rect bounds,int[] rows){
         Session s=session(c,token);
         if(s==null||bounds==null||bounds.isEmpty())return;
         MAIN.post(()->{
             if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.TEXT)return;
             s.state.bounds(bounds.left,bounds.top,bounds.right,bounds.bottom);
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
-            GoogleV2TextOutline.show(s.app,bounds);
+            GoogleV2TextOutline.show(s.app,bounds,rows);
             showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
         });
     }
@@ -283,20 +290,21 @@ final class GoogleV2UiEngine {
             if(!ownsUi(s))return;
             if(s.state.phase==GoogleV2State.Phase.AWAITING_FRAME
                     ||s.state.phase==GoogleV2State.Phase.DELIVERED)return;
-            if(s.state.phase==GoogleV2State.Phase.TEXT&&!s.state.text.isBlank()){
-                // End the Google-owned workflow first, because closing its
-                // OverlayScene would otherwise delete a just-created toolbar.
-                String finalText=s.state.text;
-                Rect finalBounds=rect(s.state);
-                release(s,"text_handoff",true);
-                MAIN.post(()->{
-                    if(WorkflowSessionManager.googleCtsInFlight())return;
-                    if(finalBounds!=null)GoogleV2TextOutline.show(s.app,finalBounds);
-                    FloatActionMenu.showTextAt(s.app,finalText,null,finalBounds);
-                    DiagnosticLog.i(s.app,"GOOGLE_V2",
-                            "final text handoff visible="+FloatActionMenu.hasVisibleTextMenu());
-                });
-            }else release(s,"google_end:"+reason,false);
+            // Back, gesture navigation and Google Activity stop are cancellation.
+            // Never resurrect a menu/outline after the native selection surface exits.
+            release(s,"google_end:"+reason,false);
+        });
+    }
+    /** An outside tap cancels the selection instead of merely hiding its menu. */
+    static void dismissActiveTextSelection(Context context,String reason){
+        if(context==null)return;
+        WorkflowSessionManager.Session workflow=WorkflowSessionManager.current();
+        if(workflow==null)return;
+        Session s=SESSIONS.get(workflow.externalKey());
+        if(s==null)return;
+        MAIN.post(()->{
+            if(ownsUi(s)&&s.state.phase==GoogleV2State.Phase.TEXT)
+                release(s,"user_dismiss:"+reason,false);
         });
     }
     private static void release(Session s,String reason,boolean keepMenu){
@@ -322,9 +330,6 @@ final class GoogleV2UiEngine {
             if(service!=null)service.onCircleFinished("google_v2_"+reason);
         }
         DiagnosticLog.i(s.app,"GOOGLE_V2","released "+reason+" currentOwner="+current);
-    }
-    private static Rect pickBounds(Session s,Rect bounds){
-        return bounds!=null&&!bounds.isEmpty()?new Rect(bounds):rect(s.state);
     }
     private static Rect rect(GoogleV2State state){
         return state.validBounds()

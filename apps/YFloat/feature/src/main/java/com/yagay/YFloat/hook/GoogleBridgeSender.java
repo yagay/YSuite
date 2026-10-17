@@ -108,6 +108,10 @@ final class GoogleBridgeSender {
     }
 
     boolean sendEvent(String event, String text, String detail, Rect bounds) {
+        return sendEventWithRows(event, text, detail, bounds, null);
+    }
+
+    boolean sendEventWithRows(String event, String text, String detail, Rect bounds, int[] rows) {
         String token = token();
         if (token.isBlank() || event == null || event.isBlank()) return false;
         try {
@@ -133,6 +137,8 @@ final class GoogleBridgeSender {
                 intent.putExtra(GoogleCtsContract.EXTRA_RIGHT, bounds.right);
                 intent.putExtra(GoogleCtsContract.EXTRA_BOTTOM, bounds.bottom);
             }
+            if(rows!=null&&rows.length>=4&&rows.length<=512&&rows.length%4==0)
+                intent.putExtra(GoogleCtsContract.EXTRA_TEXT_ROWS, rows.clone());
             context.sendBroadcast(intent);
             return true;
         } catch (Throwable t) {

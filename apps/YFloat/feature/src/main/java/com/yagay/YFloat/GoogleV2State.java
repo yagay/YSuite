@@ -23,7 +23,9 @@ final class GoogleV2State {
         if (phase != Phase.TEXT) dragging = false;
         phase = Phase.TEXT;
         text = value.trim();
-        setBounds(l,t,r,b);
+        // New text without measured bounds must not inherit a stale selection.
+        if(r>l&&b>t)setBounds(l,t,r,b);
+        else left=top=right=bottom=0;
         ++revision;
         return true;
     }

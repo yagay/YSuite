@@ -152,6 +152,7 @@ public final class FloatActionMenu {
         root.setOnTouchListener((v, e) -> {
             if (e.getActionMasked() == MotionEvent.ACTION_OUTSIDE) {
                 dismiss();
+                GoogleV2UiEngine.dismissActiveTextSelection(app, "outside_touch");
                 return true;
             }
             return false;

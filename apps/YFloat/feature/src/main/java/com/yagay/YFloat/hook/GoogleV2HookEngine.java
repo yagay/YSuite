@@ -57,6 +57,7 @@ final class GoogleV2HookEngine {
     private volatile boolean textMode;
     private volatile boolean regionMode;
     private volatile Rect currentBounds;
+    private volatile int[] currentTextRows;
     private volatile String currentText = "";
     private volatile boolean selectionCallbackObserved;
     private volatile boolean liveWordsObserved;
@@ -159,7 +160,7 @@ final class GoogleV2HookEngine {
             viewport.reset();
             nativeChrome.reset();
             revision.incrementAndGet();
-            textMode=false;regionMode=false;currentText="";currentBounds=null;
+            textMode=false;regionMode=false;currentText="";currentBounds=null;currentTextRows=null;
             selectionCallbackObserved=false;
             liveWordsObserved=false;
             textSelectionObserved=false;
@@ -225,7 +226,7 @@ final class GoogleV2HookEngine {
      */
     private void clearLocalSession() {
         token="";
-        textMode=false;regionMode=false;currentText="";currentBounds=null;
+        textMode=false;regionMode=false;currentText="";currentBounds=null;currentTextRows=null;
         owner=null;voice=null;
         transport.reset();
         gestures.reset();
@@ -356,7 +357,8 @@ final class GoogleV2HookEngine {
                 if(!(e instanceof Method method))continue;
                 if(!"callActivityOnCreate".equals(method.getName())
                         &&!"callActivityOnNewIntent".equals(method.getName())
-                        &&!"callActivityOnResume".equals(method.getName()))continue;
+                        &&!"callActivityOnResume".equals(method.getName())
+                        &&!"callActivityOnStop".equals(method.getName()))continue;
                 module.hook(method).intercept(chain->{
                     if(!(chain.getArg(0) instanceof Activity activity))
                         return chain.proceed();
@@ -364,6 +366,13 @@ final class GoogleV2HookEngine {
                         Object resumed=chain.proceed();
                         closeRevokedLensOnResume(activity);
                         return resumed;
+                    }
+                    if("callActivityOnStop".equals(method.getName())){
+                        Object stopped=chain.proceed();
+                        // Back gestures need not deliver key events or voice-hide callbacks.
+                        if(owner==activity&&active()&&(textMode||regionMode))
+                            terminate("activity_stopped");
+                        return stopped;
                     }
                     Intent incoming=activity.getIntent();
                     if("callActivityOnNewIntent".equals(method.getName())){
@@ -505,6 +514,7 @@ final class GoogleV2HookEngine {
         if(candidate.directRegionCommit()&&bounds!=null&&!bounds.isEmpty()){
             if(regionMode&&bounds.equals(currentBounds))return;
             regionMode=true;textMode=false;
+            currentTextRows=null;
             currentBounds=new Rect(bounds);
             viewport.attach(owner);
             nativeChrome.onSelection();
@@ -523,20 +533,25 @@ final class GoogleV2HookEngine {
                         ||(bounds!=null&&!bounds.equals(currentBounds));
                 textMode=true;regionMode=false;currentText=value;
                 textSelectionObserved=true;
-                if(bounds!=null&&!bounds.isEmpty())currentBounds=new Rect(bounds);
+                if(bounds!=null&&!bounds.isEmpty()){
+                    if(currentBounds==null||!currentBounds.equals(bounds))
+                        currentTextRows=null;
+                    currentBounds=new Rect(bounds);
+                }
                 if(!changed)return;
                 logEvent("TEXT_SELECTION_READY","stage="+stage
                         +" chars="+value.length()
                         +" bounds="+(currentBounds!=null&&!currentBounds.isEmpty()));
                 viewport.attach(owner);
                 nativeChrome.onSelection();
-                transport.sendEvent(GoogleCtsContract.EVENT_SELECTION,
-                        value,candidate.detail()+" stage="+stage,currentBounds);
+                transport.sendEventWithRows(GoogleCtsContract.EVENT_SELECTION,
+                        value,candidate.detail()+" stage="+stage,
+                        currentBounds,currentTextRows);
             }
         }
     }
 
-    private void onWords(Rect bounds,String wordsText,String detail){
+    private void onWords(Rect bounds,String wordsText,String detail,int[] rows){
         if(!active())return;
         if(regionMode){
             if(!ignoredRegionOcrLogged){
@@ -557,12 +572,16 @@ final class GoogleV2HookEngine {
         if(wordsText!=null&&!wordsText.isBlank()){
             textMode=true;regionMode=false;currentText=wordsText;
             if(bounds!=null&&!bounds.isEmpty())currentBounds=new Rect(bounds);
+            currentTextRows=rows==null?null:rows.clone();
             viewport.attach(owner);
             nativeChrome.onSelection();
-            transport.sendEvent(GoogleCtsContract.EVENT_SELECTION,wordsText,detail,currentBounds);
+            transport.sendEventWithRows(GoogleCtsContract.EVENT_SELECTION,
+                    wordsText,detail,currentBounds,currentTextRows);
         }else if(textMode&&bounds!=null&&!bounds.isEmpty()){
             currentBounds=new Rect(bounds);
-            transport.sendEvent(GoogleCtsContract.EVENT_TEXT_BOUNDS,"",detail,bounds);
+            currentTextRows=rows==null?null:rows.clone();
+            transport.sendEventWithRows(GoogleCtsContract.EVENT_TEXT_BOUNDS,
+                    "",detail,bounds,currentTextRows);
         }
     }
 
