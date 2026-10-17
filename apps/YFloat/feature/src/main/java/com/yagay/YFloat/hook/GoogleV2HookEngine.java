@@ -235,6 +235,26 @@ final class GoogleV2HookEngine {
 
     private int unused() { return revision.incrementAndGet(); }
 
+    /**
+     * Do not discard the tracked LensientActivity as soon as Android pauses
+     * it for YFloat's screenshot result dialog. That used to cancel the
+     * 300-ms lease watchdog, leaving Google's old frozen screenshot active
+     * behind the dialog. Once the result revokes this token, finish the exact
+     * Google voice session and Lens Activity. Real Back/Hide still cancels
+     * the session if no screenshot handoff occurred.
+     */
+    private void scheduleOwnedExit(String expected,String reason) {
+        int generation=revision.get();
+        main.postDelayed(()->{
+            if(!expected.equals(token)||generation!=revision.get())return;
+            if(!provider.ownsGoogleCtsSession(expected)) {
+                closeOwnedGoogleSession(expected,reason+"_lease_revoked");
+            } else {
+                terminate(reason);
+            }
+        },700L);
+    }
+
     private void terminate(String reason) {
         if(token.isBlank())return;
         // The Google voice session may hide AFTER YFloat revoked the lease.
@@ -343,7 +363,7 @@ final class GoogleV2HookEngine {
                     module.hook(method).intercept(chain->{
                         Object result=chain.proceed();
                         if(active()&&(voice==null||voice==chain.getThisObject()))
-                            terminate("voice_hide");
+                            scheduleOwnedExit(token,"voice_hide");
                         return result;
                     });
                     count++;
@@ -396,9 +416,11 @@ final class GoogleV2HookEngine {
                     }
                     if("callActivityOnStop".equals(method.getName())){
                         Object stopped=chain.proceed();
-                        // Back gestures need not deliver key events or voice-hide callbacks.
+                        // A screenshot dialog backgrounds Lens without ending
+                        // the selection synchronously. Preserve the owner for
+                        // token-scoped remote release instead of dropping it now.
                         if(owner==activity&&active()&&(textMode||regionMode))
-                            terminate("activity_stopped");
+                            scheduleOwnedExit(token,"activity_stopped");
                         return stopped;
                     }
                     Intent incoming=activity.getIntent();

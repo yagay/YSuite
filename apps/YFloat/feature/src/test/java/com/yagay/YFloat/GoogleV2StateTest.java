@@ -42,6 +42,25 @@ public class GoogleV2StateTest {
         assertFalse(s.delivered());
         assertFalse(s.region(0,0,100,100));
     }
+    @Test public void finishedScreenshotCannotReopenOldConfirmOnLateGoogleEvents() {
+        GoogleV2State previous = new GoogleV2State();
+        assertTrue(previous.region(100,200,300,400));
+        previous.frameReady = true;
+        assertTrue(previous.confirm());
+        assertTrue(previous.delivered());
+        previous.close();
+        assertEquals(GoogleV2State.Phase.CLOSED, previous.phase);
+        assertFalse(previous.region(150,210,350,430));
+        assertFalse(previous.confirm());
+        assertFalse(previous.text("late ocr",1,2,20,30));
+
+        // The next user gesture must own a fresh, independent reducer.
+        GoogleV2State next = new GoogleV2State();
+        assertTrue(next.region(300,350,500,600));
+        assertTrue(next.confirm());
+        assertEquals(GoogleV2State.Phase.AWAITING_FRAME,next.phase);
+    }
+
     @Test public void missingBoundsNeverReusePreviousSelectionOutline() {
         GoogleV2State s = new GoogleV2State();
         assertTrue(s.text("first", 100, 200, 300, 250));

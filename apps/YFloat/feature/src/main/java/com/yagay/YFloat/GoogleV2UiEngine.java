@@ -280,7 +280,9 @@ final class GoogleV2UiEngine {
             WorkflowSessionManager.transition(s.app,workflow,
                     WorkflowSessionManager.Phase.RESULT_PENDING,"v2_handoff");
         boolean shown=ResultController.showAfterFirstFrame(s.app,result,
-                ()->release(s,"result_visible",true));
+                // A screenshot handoff is final. Do not preserve a text
+                // toolbar/outline behind the result dialog after closing it.
+                ()->release(s,"result_visible",false));
         if(!shown){
             result.close();
             release(s,"result_launch_failed",false);
