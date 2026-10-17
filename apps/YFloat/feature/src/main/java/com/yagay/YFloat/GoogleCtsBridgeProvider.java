@@ -69,7 +69,8 @@ public class GoogleCtsBridgeProvider extends ContentProvider {
         if (context == null || extras == null) return out;
 
         if (GoogleCtsContract.METHOD_READ_HOOK_PROFILE.equals(method)
-                || GoogleCtsContract.METHOD_WRITE_HOOK_PROFILE.equals(method)) {
+                || GoogleCtsContract.METHOD_WRITE_HOOK_PROFILE.equals(method)
+                || GoogleCtsContract.METHOD_REPORT_HOOK_SCAN.equals(method)) {
             return GoogleHookProfileCache.handle(context, method, extras);
         }
 
