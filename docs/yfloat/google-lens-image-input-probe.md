@@ -59,3 +59,22 @@ The refreshed runtime evidence should be read in this order:
 6. `workflow_ended_input_retained` vs `image_released` with reason.
 
 Even if steps 1–4 succeed, Google Lens may implement OCR selection in a different process/controller than Circle to Search. Do not claim a working OCR results interface until a genuine Google text selection event is observed.
+
+## 21:22 follow-up: verify the host-side PNG read
+
+The latest capture is 615x742 pixels / 511140 bytes. The direct scheme resolved
+to com.google.android.apps.lens.MainActivity, entered LensExportedActivity
+and returned a custom result code 1 about 204 ms later; no text was returned.
+A custom Activity result code is not proof of an OCR result or image read.
+
+The current build prefers the Chromium default gateway contract, and only
+falls back to direct when the gateway is unavailable. Resolver availability
+alone no longer changes the protocol.
+
+YSuite's original host .files FileProvider has a compatible concrete subclass
+with the same authority, paths and URI permission policy. It records
+host_file_open_attempt / host_file_open_result / host_file_open_failed only
+for the YFloat_*.png images, without recording image contents or filenames.
+A verified host_file_open_result success=true proves the Android provider
+opened the PNG for a client; it does not prove Google completed OCR.
+The old Google process ContentResolver tracing remains supplementary.

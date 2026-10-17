@@ -110,15 +110,10 @@ final class GoogleLensImageInputProbe {
             ComponentName directReceiver=direct.resolveActivity(app.getPackageManager());
             if(gateway==null&&directReceiver==null)
                 throw new IllegalStateException("No supported Google Lens image activity");
-            // Prefer a real Lens Activity only if the installed Google App
-            // advertises it; otherwise preserve the working gateway path.
-            boolean directLens=directReceiver!=null
-                    &&(gateway==null||!directReceiver.equals(gateway))
-                    &&directReceiver.getClassName().toLowerCase(java.util.Locale.ROOT)
-                            .contains("lens")
-                    &&!directReceiver.getClassName().contains("Gateway");
-            Intent launch=directLens||gateway==null?direct:normal;
-            String contract=launch==direct?"google_direct":"googleapp_gateway";
+            // Match Chromium's default gateway contract. The direct Lens
+            // scheme requires opt-in and is reserved for gateway absence.
+            Intent launch=gateway!=null?normal:direct;
+            String contract=launch==direct?"direct_fallback":"gateway_default";
             DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
                     "resolvers gateway="+(gateway==null?"none":gateway.getClassName())
                     +" direct="+(directReceiver==null?"none":directReceiver.getClassName())

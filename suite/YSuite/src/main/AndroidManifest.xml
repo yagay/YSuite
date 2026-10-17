@@ -39,7 +39,7 @@
 
         <!-- One host-owned file-share surface for every embedded feature. -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".ipc.SuiteLensImageFileProvider"
             android:authorities="${applicationId}.files"
             android:exported="false"
             android:grantUriPermissions="true">

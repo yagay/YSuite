@@ -54,9 +54,14 @@ public final class GoogleLensImageLaunchActivity extends Activity {
         super.onActivityResult(request,result,data);
         if(request==LENS_REQUEST) {
             String token=getIntent().getStringExtra(EXTRA_SESSION);
+            String scheme=data==null||data.getData()==null?"none"
+                    :data.getData().getScheme();
+            int extras=data==null||data.getExtras()==null?0:data.getExtras().size();
             DiagnosticLog.i(this,"LENS_IMAGE_INPUT",
                     "caller_result_received session="+GoogleLensImageInputProbe.shortToken(token)
-                    +" resultCode="+result+" returnsOcr=false");
+                    +" resultCode="+result+" dataPresent="+(data!=null)
+                    +" dataScheme="+scheme+" extrasCount="+extras
+                    +" interpretedAsOcr=false");
             finish();
         }
     }
