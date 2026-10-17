@@ -42,7 +42,10 @@ public class LensAccessibilityService extends AccessibilityService {
      * become the reported package while Google's frozen CTS surface is still the active window.
      * Re-check the active/focused window after this grace period before tearing the session down.
      */
-    private static final long GOOGLE_EXIT_GRACE_MS = 320L;
+    // The launcher remains reported as focused during some Google CTS start
+    // and teardown animations. A 320ms release can revoke a freshly armed
+    // token before LensientActivity has settled on screen.
+    private static final long GOOGLE_EXIT_GRACE_MS = 1100L;
 
     private volatile EnvironmentState env = new EnvironmentState("", false, 0, true, false, false);
     private final Set<String> homePackages = new HashSet<>();
@@ -50,6 +53,22 @@ public class LensAccessibilityService extends AccessibilityService {
     private long lastEnvironmentInspectAt;
     private Runnable pendingGoogleExit;
     private int googleExitGeneration;
+
+    /** Called as soon as a new authenticated Google CTS workflow is armed.
+     * Cancels an old launcher's pending navigation-release callback so it
+     * cannot revoke this NEW session's remote token.
+     */
+    static void onNewGoogleCtsWorkflow(WorkflowSessionManager.Session workflow) {
+        LensAccessibilityService service=s;
+        if(service==null||workflow==null)return;
+        if(Looper.myLooper()==Looper.getMainLooper()) {
+            if(workflow.current())service.cancelPendingGoogleExit("new_cts_workflow");
+        } else {
+            service.main.post(()->{
+                if(workflow.current())service.cancelPendingGoogleExit("new_cts_workflow");
+            });
+        }
+    }
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
@@ -191,12 +210,27 @@ public class LensAccessibilityService extends AccessibilityService {
     private void scheduleGoogleCtsRelease(String reason, String observedPkg, String observedCls) {
         if (!WorkflowSessionManager.googleCtsInFlight()) return;
         cancelPendingGoogleExit(null);
+        // Pin the callback to the exact workflow that produced the event.
+        // The previous implementation checked only whether *any* Google CTS
+        // workflow was active; an old launcher event could clear a new token.
+        final WorkflowSessionManager.Session scheduled=
+                WorkflowSessionManager.current();
+        if(scheduled==null||!scheduled.current()
+                ||scheduled.type()!=WorkflowSessionManager.Type.GOOGLE_CTS)return;
         final int generation = ++googleExitGeneration;
         final Runnable[] holder = new Runnable[1];
         holder[0] = () -> {
             if (pendingGoogleExit != holder[0] || generation != googleExitGeneration) return;
             pendingGoogleExit = null;
-            if (!WorkflowSessionManager.googleCtsInFlight()) return;
+            if (!scheduled.current()
+                    ||WorkflowSessionManager.current()!=scheduled
+                    ||!WorkflowSessionManager.googleCtsInFlight()) {
+                DiagnosticLog.i(this,"GOOGLE_CTS_RELEASE_GUARD",
+                        "stale navigation release skipped reason="+reason
+                                +" originId="+scheduled.id()
+                                +" currentId="+WorkflowSessionManager.currentId());
+                return;
+            }
 
             String activePkg = activeWindowPackage();
             String settledPkg = activePkg == null || activePkg.isBlank()
@@ -218,13 +252,17 @@ public class LensAccessibilityService extends AccessibilityService {
                 return;
             }
 
+            // All work runs on the main looper. Check the identity again
+            // immediately before revoking the shared remote session.
+            if(!scheduled.current()||WorkflowSessionManager.current()!=scheduled)return;
             new FloatSettings(this).clearGoogleCtsSession();
             boolean remoteCleared = LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
             DiagnosticLog.i(this, "GOOGLE_CTS_NATIVE_RELEASE",
                     "reason=" + reason + " remoteCleared=" + remoteCleared
                             + " observed=" + observedPkg + " cls=" + observedCls
                             + " settled=" + settledPkg
-                            + " graceMs=" + GOOGLE_EXIT_GRACE_MS);
+                            + " graceMs=" + GOOGLE_EXIT_GRACE_MS
+                            + " workflowId=" + scheduled.id());
             GoogleCtsBridgeController.onNativeRelease(this, reason);
             FLCircleInlineOverlay.dismissActive(reason);
         };

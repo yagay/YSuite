@@ -22,6 +22,20 @@ public class WorkflowSessionManagerTest {
         assertNull(WorkflowSessionManager.current());
     }
 
+    @Test public void oldNavigationCallbackIdentityNeverOwnsReplacementSession() {
+        WorkflowSessionManager.Session old=WorkflowSessionManager.beginExternal(
+                null,WorkflowSessionManager.Type.GOOGLE_CTS,"old-token","old");
+        assertTrue(old.current());
+        WorkflowSessionManager.Session next=WorkflowSessionManager.beginExternal(
+                null,WorkflowSessionManager.Type.GOOGLE_CTS,"next-token","new");
+        assertFalse(old.current());
+        assertTrue(next.current());
+        assertNotEquals(old.id(),next.id());
+        assertFalse(WorkflowSessionManager.matchesExternal("old-token"));
+        assertTrue(WorkflowSessionManager.matchesExternal("next-token"));
+        WorkflowSessionManager.finish(null,next,"done");
+    }
+
     @Test public void googleCtsInFlightCoversCaptureSelectionAndPendingOnly() {
         WorkflowSessionManager.Session session = WorkflowSessionManager.beginExternal(
                 null, WorkflowSessionManager.Type.GOOGLE_CTS, "token-busy", "google");

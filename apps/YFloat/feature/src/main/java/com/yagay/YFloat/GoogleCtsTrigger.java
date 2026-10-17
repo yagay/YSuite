@@ -76,6 +76,9 @@ final class GoogleCtsTrigger {
                 app, WorkflowSessionManager.Type.GOOGLE_CTS, token, "google_cts_trigger");
         WorkflowSessionManager.transition(app, workflow,
                 WorkflowSessionManager.Phase.CAPTURING, "google_cts_trigger");
+        // A pending launcher navigation event from the *previous* Google
+        // session must never revoke the token we are about to arm.
+        LensAccessibilityService.onNewGoogleCtsWorkflow(workflow);
         long nowElapsed = SystemClock.elapsedRealtime();
         fs.armGoogleCtsSession(token, nowElapsed + GoogleCtsContract.TRACE_SESSION_TTL_MS);
         long fallbackUntil = nowElapsed + LsposedRuntimeConfig.GOOGLE_CTS_FALLBACK_WINDOW_MS;
