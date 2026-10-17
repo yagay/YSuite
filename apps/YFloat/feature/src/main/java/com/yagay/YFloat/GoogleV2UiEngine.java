@@ -111,8 +111,8 @@ final class GoogleV2UiEngine {
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
             cancelRegionMenu(s);
             GoogleRegionConfirmOverlay.dismiss(token,"v2_text");
-            if(use!=null)GoogleV2TextOutline.show(s.app,use,rows);
-            else GoogleV2TextOutline.dismiss();
+            if(use!=null)GoogleV2TextOutline.show(s.app,s.token,use,rows);
+            else GoogleV2TextOutline.dismiss(s.token);
             showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()+" bounds="+use);
         });
@@ -127,7 +127,7 @@ final class GoogleV2UiEngine {
             if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.TEXT)return;
             s.state.bounds(bounds.left,bounds.top,bounds.right,bounds.bottom);
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
-            GoogleV2TextOutline.show(s.app,bounds,rows);
+            GoogleV2TextOutline.show(s.app,s.token,bounds,rows);
             showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
         });
     }
@@ -189,7 +189,7 @@ final class GoogleV2UiEngine {
             s.lastRegionUpdateElapsed=SystemClock.elapsedRealtime();
             cancelTextMenu(s);
             FloatActionMenu.dismiss();
-            GoogleV2TextOutline.dismiss();
+            GoogleV2TextOutline.dismiss(s.token);
             showDoneWhenStable(s,REGION_MENU_SETTLE_MS);
         });
     }
@@ -314,10 +314,10 @@ final class GoogleV2UiEngine {
         // This cleanup is shared UI; a late old-session callback must not
         // dismiss the selection/menu already owned by the next gesture.
         boolean current=WorkflowSessionManager.matchesExternal(s.token);
-        if(current&&!keepMenu) {
-            GoogleV2TextOutline.dismiss();
-            FloatActionMenu.dismiss();
-        }
+        // Token-owned outline cleanup always runs, even for a superseded
+        // session, without touching the next session's outline.
+        GoogleV2TextOutline.dismiss(s.token);
+        if(current&&!keepMenu)FloatActionMenu.dismiss();
         if(s.frame!=null&&!s.frame.isRecycled())s.frame.recycle();
         s.frame=null;
         // GoogleCtsSessionCoordinator is the sole authority for lease and

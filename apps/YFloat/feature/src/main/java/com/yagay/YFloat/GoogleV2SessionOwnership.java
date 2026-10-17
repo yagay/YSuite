@@ -7,5 +7,9 @@ final class GoogleV2SessionOwnership {
         return eventToken!=null&&!eventToken.isBlank()
                 &&eventToken.equals(workflowToken)&&sameStoredSession&&!terminal;
     }
+    static boolean ownsOutline(String ownerToken,String eventToken) {
+        return ownerToken!=null&&!ownerToken.isBlank()
+                &&ownerToken.equals(eventToken);
+    }
     private GoogleV2SessionOwnership() {}
 }

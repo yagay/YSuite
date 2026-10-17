@@ -11,6 +11,12 @@ public class GoogleV2SessionOwnershipTest {
         assertFalse(GoogleV2SessionOwnership.accepts("new","new",true,true));
         assertFalse(GoogleV2SessionOwnership.accepts("","",true,false));
     }
+    @Test public void lateOutlineCleanupCannotRemoveNewGestureOutline() {
+        assertTrue(GoogleV2SessionOwnership.ownsOutline("session2","session2"));
+        assertFalse(GoogleV2SessionOwnership.ownsOutline("session2","session1"));
+        assertFalse(GoogleV2SessionOwnership.ownsOutline("","session1"));
+        assertFalse(GoogleV2SessionOwnership.ownsOutline("session2",null));
+    }
     @Test public void nullTokensCannotMatch() {
         assertFalse(GoogleV2SessionOwnership.accepts(null,"new",true,false));
         assertFalse(GoogleV2SessionOwnership.accepts("new",null,true,false));

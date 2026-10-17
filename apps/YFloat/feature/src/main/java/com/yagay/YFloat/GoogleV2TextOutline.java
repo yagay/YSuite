@@ -18,18 +18,26 @@ import android.view.WindowManager;
 final class GoogleV2TextOutline {
     private static ViewFrame frame;
     private static FlOverlayWindowHost host;
+    private static String ownerToken = "";
 
     static synchronized void show(Context context, Rect bounds) {
-        show(context,bounds,null);
+        show(context,"",bounds,null);
     }
 
     static synchronized void show(Context context, Rect bounds, int[] rows) {
+        show(context,"",bounds,rows);
+    }
+
+    /** Only the exact V2 session can update or dismiss this shared window. */
+    static synchronized void show(Context context,String token,Rect bounds,int[] rows) {
         if (context == null || bounds == null || bounds.isEmpty()) return;
-        if (frame != null && frame.getParent() != null) {
+        String key=token==null?"":token;
+        if (frame != null && frame.getParent() != null && key.equals(ownerToken)) {
             frame.update(bounds, rows);
             return;
         }
         dismiss();
+        ownerToken=key;
         Context app = context.getApplicationContext();
         FlOverlayWindowHost next = new FlOverlayWindowHost(app);
         ViewFrame view = new ViewFrame(app, bounds, rows);
@@ -49,7 +57,14 @@ final class GoogleV2TextOutline {
         }
     }
 
+    static synchronized void dismiss(String token) {
+        if(token!=null&&!token.isBlank()
+                &&!GoogleV2SessionOwnership.ownsOutline(ownerToken,token))return;
+        dismiss();
+    }
+
     static synchronized void dismiss(){
+        ownerToken="";
         ViewFrame prior=frame;
         FlOverlayWindowHost old=host;
         frame=null;host=null;
