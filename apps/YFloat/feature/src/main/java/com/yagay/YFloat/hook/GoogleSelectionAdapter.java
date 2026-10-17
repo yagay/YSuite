@@ -59,108 +59,30 @@ final class GoogleSelectionAdapter {
 
     private static Binding resolveUncached(ClassLoader loader) {
         if (loader == null) return new MissingBinding("classLoader=null");
-
-        // Primary implementation: Google App 17.60.16.ve.
-        // Require selection + metadata semantics; query/bridge capabilities
-        // are independent and must not invalidate a sound selection binding.
-        String profile1760Error = GoogleLens1760Profile.selectionValidationError(loader);
-        if (profile1760Error.isBlank()) {
+        String error = GoogleLens1760Profile.selectionValidationError(loader);
+        if (error.isBlank()) {
             try {
-                Class<?> controller = Class.forName(
-                        GoogleLens1760Profile.CONTROLLER, false, loader);
-                for (Executable executable : HiddenApiBypass.getDeclaredMethods(controller)) {
+                Class<?> cls = Class.forName(GoogleLens1760Profile.CONTROLLER,false,loader);
+                for (Executable executable:HiddenApiBypass.getDeclaredMethods(cls)) {
                     if (executable instanceof Method method
                             && GoogleLens1760Profile.isSelectionMethod(method)) {
                         return new Profile1760Binding(method,
-                                "baseline=" + GoogleLens1760Profile.NAME);
+                                "fixed 17.60 metadata+selection contract");
                     }
                 }
-                profile1760Error = "17.60 selection method missing";
+                error = "17.60 selection method missing";
             } catch (Throwable t) {
-                profile1760Error = t.getClass().getSimpleName() + ":"
-                        + String.valueOf(t.getMessage());
+                error=t.getClass().getSimpleName()+":"+String.valueOf(t.getMessage());
             }
         }
-
-        // Explicitly reject the 17.64 profile, which needs separate runtime
-        // fixes. A 17.64 signature is not proof of correct selection behavior.
-        if (GoogleLens1764Profile.resolveSelection(loader).available()) {
-            return new MissingBinding("17.64 compatibility disabled; baseline=17.60");
-        }
-
-        // Preserve Google 17.58 as a legacy compatibility path only.
-        String profile1758Error = GoogleLens1758Profile.selectionValidationError(loader);
-        if (profile1758Error.isBlank()) {
-            try {
-                Class<?> controller = Class.forName(
-                        GoogleLens1758Profile.CONTROLLER, false, loader);
-                for (Executable executable : HiddenApiBypass.getDeclaredMethods(controller)) {
-                    if (executable instanceof Method method
-                            && GoogleLens1758Profile.isSelectionMethod(method)
-                            && method.getReturnType() == void.class) {
-                        return new ExactBinding(method, "legacy-1758", 100,
-                                "profile=" + GoogleLens1758Profile.NAME);
-                    }
-                }
-                profile1758Error = "17.58 selection method missing";
-            } catch (Throwable t) {
-                profile1758Error = t.getClass().getSimpleName() + ":"
-                        + String.valueOf(t.getMessage());
-            }
-        }
-
-        // A method rename inside the 17.58 model can still be handled without
-        // treating the old profile as the preferred implementation.
-        Binding legacyRenamed = resolveRenamedProfileSelection(loader, profile1758Error);
-        if (legacyRenamed.available()) return legacyRenamed;
-
-        // Unknown versions: scan for the shared (metadata,boolean)->void
-        // selection semantics used by 17.60. The bounded structural resolver
-        // rejects ambiguous candidates instead of risking arbitrary hooks.
-        GoogleLensDynamicResolver.SelectionBinding structural =
+        // Every differently-obfuscated APK uses the same 17.60 semantics;
+        // no 17.58 or 17.64 hard-coded profile is installed.
+        GoogleLensDynamicResolver.SelectionBinding dynamic =
                 GoogleLensDynamicResolver.discoverSelection(loader);
-        if (!structural.available()) {
-            return new MissingBinding("baseline1760=" + profile1760Error
-                    + "; legacy1758=" + profile1758Error
-                    + "; renamed1758=" + legacyRenamed.detail()
-                    + "; structural1760=" + structural.detail());
-        }
-        return new DynamicBinding(structural,
-                "baseline1760=" + profile1760Error
-                        + "; legacy1758=" + profile1758Error,
-                "experimental-1760-structural");
-    }
-
-    private static Binding resolveRenamedProfileSelection(ClassLoader loader, String profileError) {
-        if (loader == null) return new MissingBinding("classLoader=null");
-        String modelError = GoogleLens1758Profile.selectionModelValidationError(loader);
-        if (!modelError.isBlank()) {
-            return new MissingBinding("17.58 model contract mismatch=" + modelError);
-        }
-        try {
-            Class<?> controller = Class.forName(
-                    GoogleLens1758Profile.CONTROLLER, false, loader);
-            for (Executable executable : HiddenApiBypass.getDeclaredMethods(controller)) {
-                if (!(executable instanceof Method method)) continue;
-                if (!isKnownProfileSelectionSignature(method)) continue;
-                return new ExactBinding(method, "profile-signature-1758", 98,
-                        "profile=" + GoogleLens1758Profile.NAME
-                                + " renamedMethod=" + method.getName()
-                                + " previousValidation=" + safe(profileError));
-            }
-            return new MissingBinding("known 17.58 controller has no SelectionMetadata,boolean->void method");
-        } catch (Throwable t) {
-            return new MissingBinding("known 17.58 profile signature lookup failed="
-                    + t.getClass().getSimpleName() + ":" + String.valueOf(t.getMessage()));
-        }
-    }
-
-    static boolean isKnownProfileSelectionSignature(Method method) {
-        if (method == null || method.getReturnType() != void.class) return false;
-        Class<?>[] params = method.getParameterTypes();
-        return params.length == 2
-                && GoogleLens1758Profile.SELECTION_METADATA.equals(params[0].getName())
-                && params[1] == boolean.class;
+        if (!dynamic.available()) return new MissingBinding(
+                "1760="+error+"; semantic="+dynamic.detail());
+        return new DynamicBinding(dynamic,"1760="+error,
+                "auto-1760-selection-shape");
     }
 
     private static final class Profile1760Binding implements Binding {

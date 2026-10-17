@@ -6,7 +6,22 @@ final class GoogleV2ScenePolicy {
             "android.app.contextualsearch.action.LAUNCH_CONTEXTUAL_SEARCH";
 
     static boolean suppressNativeSearch(boolean ownedSession, String action) {
-        return ownedSession && CTS_SEARCH.equals(action);
+        return suppressNativeSearch(ownedSession,action,null,null);
+    }
+
+    static boolean suppressNativeSearch(boolean ownedSession, String action,
+                                        String host, String path) {
+        if (!ownedSession) return false;
+        if (CTS_SEARCH.equals(action)
+                || "android.intent.action.WEB_SEARCH".equals(action)
+                || "android.intent.action.SEARCH".equals(action)) return true;
+        if (!"android.intent.action.VIEW".equals(action) || host==null || path==null)
+            return false;
+        String h=host.toLowerCase(java.util.Locale.ROOT);
+        if (!(h.equals("google.com") || h.endsWith(".google.com")
+                || h.equals("lens.google")))return false;
+        return path.equals("/search") || path.startsWith("/search/")
+                || path.equals("/lens") || path.startsWith("/lens/");
     }
 
     static boolean shouldBlockTransform(boolean ownedSession, String property,

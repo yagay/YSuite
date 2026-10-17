@@ -84,10 +84,12 @@ public final class YFloatModule extends XposedModule {
         try {
             // All interceptors remain inactive without a short-lived YFloat CTS token.
             // Never alter the user's unmarked Home/gesture Circle-to-Search sessions.
-            new GoogleV2HookEngine(this, provider, param.getClassLoader()).install();
-            googleHookInstalled = true;
-            log(Log.INFO, TAG, "Google V2 adaptive hook installed; process=" + target
-                    + " owner=" + RuntimeOwnerGate.readOwner(FEATURE_ID));
+            googleHookInstalled = new GoogleV2HookEngine(
+                    this, provider, param.getClassLoader()).install();
+            log(googleHookInstalled ? Log.INFO : Log.WARN, TAG,
+                    "Google 17.60 semantic Hook installation="+googleHookInstalled
+                    +" provider="+provider.isActive()+" process="+target
+                    +" owner="+RuntimeOwnerGate.readOwner(FEATURE_ID));
         } catch (Throwable t) {
             // A changed Google APK may invalidate an internal ABI. Fail without
             // destabilizing Google or replacing the user's native CTS workflow.

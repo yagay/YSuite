@@ -433,19 +433,12 @@ final class GoogleTextSelectionLiveHook {
                     GoogleLens1760Profile.WORD,
                     GoogleLens1760Profile.TEXT_SELECTION_RANGE);
         }
-        // Legacy 17.58 support; do not resolve it ahead of the 17.60 baseline.
-        if (hasClass(loader, "dnrs") && hasClass(loader, "dtvm")) {
-            return new Profile(GoogleLens1758Profile.NAME,
-                    "dtvm", "dtvr", "dnrs", "dnrd", "dnqv");
-        }
         return resolveFromStableView(loader);
     }
 
     /**
-     * Resolve from the non-obfuscated TextSelectionView, not a version-specific
-     * controller. Google 17.64.15 has TextSelectionView.q:dran, dran.g(list,Z,I)
-     * and dran.a/b:dqzy where dqzy.d is the selected word's Rect.
-     * This also survives future changes to dran/dqzy obfuscated names.
+     * Find the same 17.60 word-selection data contract through stable
+     * TextSelectionView reflection when R8 class/method names change.
      */
     private static Profile resolveFromStableView(ClassLoader loader) {
         if (loader == null) return null;

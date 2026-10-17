@@ -22,26 +22,61 @@ import io.github.libxposed.api.XposedModule;
 final class GoogleV2SearchGuard {
     private static final String TAG = "YFloat-GoogleV2";
     private final XposedModule module;
+    private final ClassLoader loader;
     private final BooleanSupplier ownedSelection;
     private final BiConsumer<String,String> log;
 
-    GoogleV2SearchGuard(XposedModule module, BooleanSupplier ownedSelection,
-                        BiConsumer<String,String> log) {
-        this.module=module;this.ownedSelection=ownedSelection;this.log=log;
+    GoogleV2SearchGuard(XposedModule module, ClassLoader loader,
+                        BooleanSupplier ownedSelection, BiConsumer<String,String> log) {
+        this.module=module;this.loader=loader;
+        this.ownedSelection=ownedSelection;this.log=log;
     }
 
     int install() {
         int installed=0;
         installed+=hookInstrumentation();
         installed+=hookVoiceLaunch();
+        installed+=hook1760LensResult();
         return installed;
     }
 
     private boolean block(Intent intent, String source) {
-        if(intent==null||!GoogleV2ScenePolicy.suppressNativeSearch(
-                ownedSelection.getAsBoolean(),intent.getAction())) return false;
+        if(intent==null)return false;
+        android.net.Uri data=intent.getData();
+        if(!GoogleV2ScenePolicy.suppressNativeSearch(
+                ownedSelection.getAsBoolean(),intent.getAction(),
+                data==null?null:data.getHost(),data==null?null:data.getPath()))return false;
         log.accept("NATIVE_SEARCH_BLOCKED", "source="+source+" action="+intent.getAction());
         return true;
+    }
+
+    // 17.60 dsxb.q(dukp) delivers native Lens query results. Do not
+    // interrupt selection or PendingLensQuery; block only post-selection
+    // search result presentation in an authenticated YFloat session.
+    // Unknown obfuscated names are not guessed: Intent guards still apply.
+    private int hook1760LensResult() {
+        if(loader==null)return 0;
+        try {
+            Class<?> cls=Class.forName(GoogleLens1760Profile.CONTROLLER,false,loader);
+            int count=0;
+            for(Executable executable:HiddenApiBypass.getDeclaredMethods(cls)) {
+                if(!(executable instanceof Method method)
+                        ||!GoogleLens1760Profile.isQueryResultMethod(method))continue;
+                module.hook(method).intercept(chain->{
+                    if(ownedSelection.getAsBoolean()) {
+                        log.accept("NATIVE_SEARCH_BLOCKED","source=1760_lens_query_result");
+                        return null;
+                    }
+                    return chain.proceed();
+                });
+                count++;
+            }
+            log.accept("NATIVE_SEARCH_GUARD","1760 query-result hooks="+count);
+            return count;
+        }catch(Throwable t){
+            module.log(Log.INFO,TAG,"1760 query-result unavailable; intent guard retained");
+            return 0;
+        }
     }
 
     private int hookVoiceLaunch() {

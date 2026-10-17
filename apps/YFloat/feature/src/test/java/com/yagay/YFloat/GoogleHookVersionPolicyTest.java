@@ -19,17 +19,13 @@ public class GoogleHookVersionPolicyTest {
         assertFalse(GoogleHookVersionPolicy.changed(null, "17.64/1764@123"));
         assertFalse(GoogleHookVersionPolicy.changed("17.64/1764@123", ""));
     }
-    @Test public void google1760IsBaselineWith1758LegacyAnd1764Blocked() {
-        assertEquals(GoogleHookVersionPolicy.Compatibility.BASELINE_1760,
-                GoogleHookVersionPolicy.compatibility("17.60.16.ve"));
+    @Test public void use1760OnlyAsFixedProfileAndScanAllOtherVersions() {
         assertEquals(GoogleHookVersionPolicy.Compatibility.BASELINE_1760,
                 GoogleHookVersionPolicy.compatibility("17.60.16.ve.arm64"));
-        assertEquals(GoogleHookVersionPolicy.Compatibility.LEGACY_1758,
-                GoogleHookVersionPolicy.compatibility("17.58.16.ve.arm64"));
-        assertEquals(GoogleHookVersionPolicy.Compatibility.KNOWN_BAD,
+        assertEquals(GoogleHookVersionPolicy.Compatibility.EXPERIMENTAL,
                 GoogleHookVersionPolicy.compatibility("17.64.15.ve.arm64"));
         assertEquals(GoogleHookVersionPolicy.Compatibility.EXPERIMENTAL,
-                GoogleHookVersionPolicy.compatibility("17.65.1.ve"));
+                GoogleHookVersionPolicy.compatibility("17.58.16.ve"));
         assertEquals(GoogleHookVersionPolicy.Compatibility.EXPERIMENTAL,
                 GoogleHookVersionPolicy.compatibility(null));
     }

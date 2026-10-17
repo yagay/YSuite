@@ -53,8 +53,6 @@ final class GoogleHookVersionTracker {
         boolean loaded = snapshot != null && snapshot.googleTargetLoaded();
         String compatibilityStatus = switch (compatibility(context)) {
             case BASELINE_1760 -> context.getString(R.string.yfloat_google_1760_baseline);
-            case LEGACY_1758 -> context.getString(R.string.yfloat_google_1758_legacy);
-            case KNOWN_BAD -> context.getString(R.string.yfloat_google_known_bad_version);
             case EXPERIMENTAL -> context.getString(R.string.yfloat_google_unverified_version);
         };
         return "Google APK: " + version + "\n" + compatibilityStatus

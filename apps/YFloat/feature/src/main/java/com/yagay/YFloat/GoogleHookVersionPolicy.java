@@ -13,16 +13,11 @@ final class GoogleHookVersionPolicy {
                 && !previous.equals(current);
     }
 
-    // 17.60 is the selected implementation baseline; 17.58 is legacy
-    // compatible. Keep the separately reported 17.64 regressions isolated.
-    enum Compatibility { BASELINE_1760, LEGACY_1758, KNOWN_BAD, EXPERIMENTAL }
-
+    // One 17.60 symbol baseline. Other builds require semantic discovery.
+    enum Compatibility { BASELINE_1760, EXPERIMENTAL }
     static Compatibility compatibility(String versionName) {
-        String version = versionName == null ? "" : versionName.trim();
-        if (version.startsWith("17.60.")) return Compatibility.BASELINE_1760;
-        if (version.startsWith("17.58.")) return Compatibility.LEGACY_1758;
-        if (version.startsWith("17.64.")) return Compatibility.KNOWN_BAD;
-        return Compatibility.EXPERIMENTAL;
+        return versionName!=null && versionName.trim().startsWith("17.60.")
+                ? Compatibility.BASELINE_1760 : Compatibility.EXPERIMENTAL;
     }
 
     private GoogleHookVersionPolicy() {}

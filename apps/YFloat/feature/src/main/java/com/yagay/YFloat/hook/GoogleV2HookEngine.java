@@ -45,6 +45,8 @@ final class GoogleV2HookEngine {
     private final GoogleV2SearchChrome nativeChrome;
     private final GoogleSelectionAdapter.Binding selection;
     private final AtomicInteger revision = new AtomicInteger();
+    private volatile boolean loggedInactiveSelection;
+    private volatile boolean loggedRejectedActivation;
     private volatile String token = "";
     private volatile Activity owner;
     private volatile Object voice;
@@ -65,19 +67,17 @@ final class GoogleV2HookEngine {
         gestures=new GoogleRegionGestureHook(module,loader,this::active,
                 this::onGesture,(action,x,y,detail)->{});
         viewport=new GoogleV2Viewport(module,this::active,this::logEvent);
-        nativeSearch=new GoogleV2SearchGuard(module,
+        nativeSearch=new GoogleV2SearchGuard(module,loader,
                 ()->active()&&(textMode||regionMode),this::logEvent);
         nativeChrome=new GoogleV2SearchChrome(
                 ()->active()&&(textMode||regionMode),this::logEvent);
         selection=GoogleSelectionAdapter.resolve(loader);
     }
 
-    void install() {
-        // Never install search/UI suppression against a known-bad or ambiguous
-        // selection ABI. Inactive Google processes must remain untouched.
+    boolean install() {
         if (!selection.available()) {
-            module.log(Log.WARN, TAG, "Google hooks disabled: " + selection.detail());
-            return;
+            module.log(Log.WARN,TAG,"Google selection Hook unresolved: "+selection.detail());
+            return false;
         }
         int count=0;
         count+=hookVoiceShow();
@@ -88,13 +88,16 @@ final class GoogleV2HookEngine {
         count+=frames.install();
         count+=words.install();
         count+=gestures.install();
-        count+=hookSelection();
+        int selectionHooks=hookSelection();
+        count+=selectionHooks;
         module.log(Log.INFO,TAG,"V2 installed hooks="+count
                 +" selection="+selection.source()
                 +" confidence="+selection.confidence()
                 +" compatibility="+(selection.available() ? "selection_bound" : "selection_unavailable")
                 +" detail="+selection.detail()
+                +" verifiedBinding="+(selectionHooks>0)
                 +" old_runtime_not_installed=true");
+        return selectionHooks>0;
     }
 
     private boolean active() {
@@ -104,7 +107,16 @@ final class GoogleV2HookEngine {
 
     private void activate(String key, Object voiceOwner, String source) {
         if(key==null||key.isBlank()||!provider.isActive()
-                ||!provider.ownsGoogleCtsSession(key))return;
+                ||!provider.ownsGoogleCtsSession(key)) {
+            if(!loggedRejectedActivation) {
+                loggedRejectedActivation=true;
+                module.log(Log.WARN,TAG,"Google CTS activation rejected"
+                        +" provider="+provider.isActive()
+                        +" tokenPresent="+(key!=null&&!key.isBlank()));
+            }
+            return;
+        }
+        loggedRejectedActivation=false;
         if(!key.equals(token)){
             transport.reset();
             gestures.reset();
@@ -263,7 +275,14 @@ final class GoogleV2HookEngine {
         }
         try {
             module.hook(selection.method()).intercept(chain->{
+                if(!active()&&!loggedInactiveSelection){
+                    loggedInactiveSelection=true;
+                    module.log(Log.WARN,TAG,"selection Hook reached without active YFloat session;"
+                            +" provider="+provider.isActive()
+                            +" tokenPresent="+!token.isBlank());
+                }
                 if(active()){
+                    loggedInactiveSelection=false;
                     try{
                         GoogleSelectionAdapter.Snapshot candidate=
                                 selection.snapshot(chain.getArg(0),context());
