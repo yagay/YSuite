@@ -74,6 +74,16 @@ final class GoogleSelectionAdapter {
         String symbols=store==null?"":store.read();
         boolean manual=store!=null && store.manualRequested();
         if(store!=null)store.reportProgress("resolving",0,0);
+        // Prefer the APK-verified 17.66 callback over bounded DEX guessing.
+        // The complete ABI is revalidated on every new Google ClassLoader.
+        String error1766=GoogleLens1766Profile.selectionValidationError(loader);
+        if(error1766.isBlank()){
+            Method exact=GoogleLens1766Profile.findSelectionMethod(loader);
+            if(exact!=null)
+                return new Profile1766Binding(exact,
+                        "APK-verified 17.66 metadata+word-data contract");
+            error1766="17.66 callback disappeared after validation";
+        }
         String error = GoogleLens1760Profile.selectionValidationError(loader);
         if (error.isBlank()) {
             try {
@@ -108,7 +118,7 @@ final class GoogleSelectionAdapter {
                             if(store!=null)store.reportProgress(phase,done,total);
                         });
         if (!dynamic.available()) return new MissingBinding(
-                "1760="+error+"; semantic="+dynamic.detail());
+                "1766="+error1766+"; 1760="+error+"; semantic="+dynamic.detail());
         return new DynamicBinding(dynamic,"1760="+error,
                 "scanned-1760-selection-shape");
     }
@@ -124,6 +134,29 @@ final class GoogleSelectionAdapter {
         if (store==null || !(binding instanceof DynamicBinding dynamic)
                 || !dynamic.source().startsWith("scanned-"))return;
         store.save(GoogleLensDynamicResolver.encode(dynamic.binding));
+    }
+
+    private static final class Profile1766Binding implements Binding {
+        private final Method method;
+        private final String detail;
+        Profile1766Binding(Method method,String detail){
+            this.method=method;
+            this.detail=detail;
+            try{method.setAccessible(true);}catch(Throwable ignored){}
+        }
+        @Override public boolean available(){return method!=null;}
+        @Override public Method method(){return method;}
+        @Override public String source(){return "baseline-1766";}
+        @Override public String detail(){return detail;}
+        @Override public int confidence(){return 100;}
+        @Override public Snapshot snapshot(Object metadata,Context context){
+            GoogleLens1766Profile.SelectionSnapshot selected=
+                    GoogleLens1766Profile.selection(metadata);
+            Rect bounds=dynamicBounds(selected.rawBounds,context);
+            return new Snapshot(selected.text,bounds,selected.selectionClass,
+                    selected.detail+" adapter=baseline-1766",
+                    selected.regionModel&&bounds!=null&&!bounds.isEmpty());
+        }
     }
 
     private static final class Profile1760Binding implements Binding {

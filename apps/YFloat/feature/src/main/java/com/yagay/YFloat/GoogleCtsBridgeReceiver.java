@@ -52,11 +52,19 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
                 // OCR data must not depend on the Google selection overlay
                 // being visible or a screenshot SharedMemory frame arriving
                 // first. The authenticated exact-token bridge owns the data.
-                if(GoogleLensImageInputProbe.isOcrEngineRequest(token)
-                        &&!text.isBlank())
-                    GoogleLensImageInputProbe.onNativeText(
-                            context.getApplicationContext(),token,text,bounds);
-                GoogleV2UiEngine.onText(context, token, text, bounds, detail, rows);
+                boolean imageOcr=GoogleLensImageInputProbe.isOcrEngineRequest(token);
+                if(imageOcr){
+                    DiagnosticLog.i(context,"LENS_IMAGE_INPUT",
+                            "authenticated_ocr_event session="+shortToken(token)
+                                    +" chars="+text.length()+" bounds="+(bounds!=null));
+                    if(!text.isBlank())
+                        GoogleLensImageInputProbe.onNativeText(
+                                context.getApplicationContext(),token,text,bounds);
+                    // The original YFloat crop owns the output. Never display
+                    // a competing V2 word menu over Google's share Activity.
+                }else{
+                    GoogleV2UiEngine.onText(context,token,text,bounds,detail,rows);
+                }
             }
             case GoogleCtsContract.EVENT_TEXT_BOUNDS ->
                     GoogleV2UiEngine.onTextBounds(context, token, bounds, rows);
@@ -74,11 +82,13 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
                  GoogleCtsContract.EVENT_QUERY_RESULT ->
                     GoogleV2UiEngine.onCommit(context, token, detail);
             case GoogleCtsContract.EVENT_TEXT_MENU_COMMIT -> {
-                if(GoogleLensImageInputProbe.isOcrEngineRequest(token)
-                        &&!text.isBlank())
-                    GoogleLensImageInputProbe.onNativeText(
-                            context.getApplicationContext(),token,text,bounds);
-                GoogleV2UiEngine.onText(context, token, text, bounds, detail);
+                if(GoogleLensImageInputProbe.isOcrEngineRequest(token)){
+                    if(!text.isBlank())
+                        GoogleLensImageInputProbe.onNativeText(
+                                context.getApplicationContext(),token,text,bounds);
+                }else{
+                    GoogleV2UiEngine.onText(context,token,text,bounds,detail);
+                }
             }
             case GoogleCtsContract.EVENT_VISUAL_EXIT ->
                     GoogleV2UiEngine.onNavigationExit(context, token, "hook:"+detail);
