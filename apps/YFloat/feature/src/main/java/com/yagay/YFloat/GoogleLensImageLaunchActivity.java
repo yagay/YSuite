@@ -10,8 +10,11 @@ import android.os.Bundle;
  * to preserve the initiating app identity; a Context.startActivity launcher
  * does not supply an Activity result identity.
  *
- * This class never launches any other package or receives an OCR result
- * through onActivityResult. OCR results, if any, still require the Hook bridge.
+ * YUiWindowOptOut: no app controls are rendered; this translucent Android
+ * caller must not install a full-screen YUI page around a foreign Activity.
+ *
+ * This class never receives an OCR result through onActivityResult;
+ * OCR results, if any, still require the Hook bridge.
  */
 public final class GoogleLensImageLaunchActivity extends Activity {
     static final String EXTRA_LENS_INTENT="yfloat_lens_launch_intent";
