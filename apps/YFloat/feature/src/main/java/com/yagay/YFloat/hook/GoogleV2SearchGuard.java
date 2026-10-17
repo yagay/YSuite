@@ -23,12 +23,15 @@ final class GoogleV2SearchGuard {
     private static final String TAG = "YFloat-GoogleV2";
     private final XposedModule module;
     private final ClassLoader loader;
+    private final BooleanSupplier ownedSession;
     private final BooleanSupplier ownedSelection;
     private final BiConsumer<String,String> log;
 
     GoogleV2SearchGuard(XposedModule module, ClassLoader loader,
-                        BooleanSupplier ownedSelection, BiConsumer<String,String> log) {
+                        BooleanSupplier ownedSession,BooleanSupplier ownedSelection,
+                        BiConsumer<String,String> log) {
         this.module=module;this.loader=loader;
+        this.ownedSession=ownedSession;
         this.ownedSelection=ownedSelection;this.log=log;
     }
 
@@ -44,7 +47,7 @@ final class GoogleV2SearchGuard {
         if(intent==null)return false;
         android.net.Uri data=intent.getData();
         if(!GoogleV2ScenePolicy.suppressNativeSearch(
-                ownedSelection.getAsBoolean(),intent.getAction(),
+                ownedSession.getAsBoolean(),intent.getAction(),
                 data==null?null:data.getHost(),data==null?null:data.getPath()))return false;
         log.accept("NATIVE_SEARCH_BLOCKED", "source="+source+" action="+intent.getAction());
         return true;

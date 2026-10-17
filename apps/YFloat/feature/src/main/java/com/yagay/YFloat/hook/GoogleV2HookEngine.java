@@ -55,6 +55,8 @@ final class GoogleV2HookEngine {
     private volatile boolean regionMode;
     private volatile Rect currentBounds;
     private volatile String currentText = "";
+    private volatile boolean selectionCallbackObserved;
+    private volatile boolean liveWordsObserved;
 
     GoogleV2HookEngine(XposedModule module, LsposedRuntimeProvider provider,
                        ClassLoader loader) {
@@ -68,10 +70,14 @@ final class GoogleV2HookEngine {
         gestures=new GoogleRegionGestureHook(module,loader,this::active,
                 this::onGesture,(action,x,y,detail)->{});
         viewport=new GoogleV2Viewport(module,this::active,this::logEvent);
+        // Scope the Intent and chrome suppression to an authenticated YFloat
+        // CTS session. A dynamic selection Hook can register but NEVER fire on
+        // this Google release, leaving textMode=false and native Google search
+        // active. Keep Lens result-query interception guarded by confirmed
+        // selection to avoid blocking Google's OCR processing.
         nativeSearch=new GoogleV2SearchGuard(module,loader,
-                ()->active()&&(textMode||regionMode),this::logEvent);
-        nativeChrome=new GoogleV2SearchChrome(
-                ()->active()&&(textMode||regionMode),this::logEvent);
+                this::active,()->active()&&(textMode||regionMode),this::logEvent);
+        nativeChrome=new GoogleV2SearchChrome(this::active,this::logEvent);
         profileStore=new GoogleHookProfileStore(module);
         selection=GoogleSelectionAdapter.resolve(loader,profileStore);
     }
@@ -104,14 +110,16 @@ final class GoogleV2HookEngine {
                     : selection.method().getDeclaringClass().getSimpleName()
                             + "." + selection.method().getName();
             profileStore.reportScan(selectionHooks>0,count,
-                    "selection=" + method + " source=" + selection.source());
+                    "selection=" + method + " source=" + selection.source()
+                            + " status=installed_not_runtime_verified");
         }
         module.log(Log.INFO,TAG,"V2 installed hooks="+count
                 +" selection="+selection.source()
                 +" confidence="+selection.confidence()
                 +" compatibility="+(selection.available() ? "selection_bound" : "selection_unavailable")
                 +" detail="+selection.detail()
-                +" verifiedBinding="+(selectionHooks>0)
+                +" installedBinding="+(selectionHooks>0)
+                +" runtimeSelectionVerified=false"
                 +" old_runtime_not_installed=true");
         return selectionHooks>0;
     }
@@ -140,10 +148,26 @@ final class GoogleV2HookEngine {
             nativeChrome.reset();
             revision.incrementAndGet();
             textMode=false;regionMode=false;currentText="";currentBounds=null;
+            selectionCallbackObserved=false;
+            liveWordsObserved=false;
         }
+        boolean newSession=!key.equals(token);
         token=key;
         if(voiceOwner!=null)voice=voiceOwner;
         logEvent("SESSION","activated="+source);
+        if(newSession) {
+            main.postDelayed(()->{
+                if(active()&&key.equals(token)
+                        &&!selectionCallbackObserved&&!liveWordsObserved) {
+                    logEvent("SELECTION_CALLBACK_MISSING",
+                            "no selected-text callback observed in 8s"
+                                    +" method="+(selection.method()==null?"none"
+                                    :selection.method().getDeclaringClass().getName()
+                                            +"."+selection.method().getName())
+                                    +" installedOnly=true");
+                }
+            },8000L);
+        }
     }
 
     private int unused() { return revision.incrementAndGet(); }
@@ -291,6 +315,15 @@ final class GoogleV2HookEngine {
         }
         try {
             module.hook(selection.method()).intercept(chain->{
+                if(active()&&!selectionCallbackObserved) {
+                    selectionCallbackObserved=true;
+                    Object metadata=chain.getArg(0);
+                    logEvent("SELECTION_METHOD_REACHED",
+                            "method="+selection.method().getDeclaringClass().getName()
+                                    +"."+selection.method().getName()
+                                    +" metadata="+(metadata==null?"null"
+                                    :metadata.getClass().getName()));
+                }
                 if(!active()&&!loggedInactiveSelection){
                     loggedInactiveSelection=true;
                     module.log(Log.WARN,TAG,"selection Hook reached without active YFloat session;"
@@ -334,6 +367,12 @@ final class GoogleV2HookEngine {
 
     private void onWords(Rect bounds,String wordsText,String detail){
         if(!active())return;
+        if(!liveWordsObserved) {
+            liveWordsObserved=true;
+            logEvent("LIVE_TEXT_CALLBACK",
+                    "chars="+(wordsText==null?0:wordsText.length())
+                            +" bounds="+(bounds!=null&&!bounds.isEmpty()));
+        }
         if(wordsText!=null&&!wordsText.isBlank()){
             textMode=true;regionMode=false;currentText=wordsText;
             if(bounds!=null&&!bounds.isEmpty())currentBounds=new Rect(bounds);
