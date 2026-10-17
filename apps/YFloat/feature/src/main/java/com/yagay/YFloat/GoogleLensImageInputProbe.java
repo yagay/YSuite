@@ -58,6 +58,10 @@ final class GoogleLensImageInputProbe {
         return RESULTS.get(token);
     }
 
+    static boolean ownsPendingImage(String token) {
+        return token!=null&&SHARES.containsKey(token);
+    }
+
     /** Takes ownership of the supplied crop and recycles it after encoding. */
     static void launch(Context context,Bitmap ownedImage) {
         if(context==null||ownedImage==null||ownedImage.isRecycled()){

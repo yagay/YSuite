@@ -114,6 +114,11 @@ final class GoogleCtsSessionCoordinator {
     static boolean mayCancelOnNavigation(String token) {
         Owned owned=owned(token);
         if(owned==null)return false;
+        // A Google Lens share can transition through multiple Google
+        // Activities before its asynchronous image read/text selection.
+        // Navigation is not a terminal event for this exact input lease.
+        // Normal Circle to Search retains its original exit policy.
+        if(GoogleLensImageInputProbe.ownsPendingImage(token))return false;
         synchronized(LOCK){return owned.state.mayCancelOnNavigation();}
     }
 
