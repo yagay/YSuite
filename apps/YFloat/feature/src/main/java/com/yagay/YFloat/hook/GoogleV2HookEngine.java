@@ -14,6 +14,7 @@ import android.service.voice.VoiceInteractionSession;
 import android.util.Log;
 
 import com.yagay.YFloat.GoogleCtsContract;
+import com.yagay.YFloat.GoogleLensShareEventPolicy;
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
 import java.lang.reflect.Executable;
@@ -68,6 +69,8 @@ final class GoogleV2HookEngine {
     private volatile boolean liveWordsObserved;
     private volatile boolean textSelectionObserved;
     private volatile boolean ignoredRegionOcrLogged;
+    /** A Lens image-share request must not become YFloat's full-screen region UI. */
+    private volatile boolean ignoredProbeRegionLogged;
     private int emptySelectionTraces;
 
     GoogleV2HookEngine(XposedModule module, LsposedRuntimeProvider provider,
@@ -81,7 +84,9 @@ final class GoogleV2HookEngine {
                 ()->owner,this::onWords);
         gestures=new GoogleRegionGestureHook(module,loader,this::active,
                 this::onGesture,(action,x,y,detail)->{});
-        viewport=new GoogleV2Viewport(module,this::active,()->textMode,this::logEvent);
+        viewport=new GoogleV2Viewport(module,
+                ()->active()&&GoogleLensShareEventPolicy.mayProtectViewport(lensImageInputProbe),
+                ()->textMode,this::logEvent);
         // Scope the Intent and chrome suppression to an authenticated YFloat
         // CTS session. A dynamic selection Hook can register but NEVER fire on
         // this Google release, leaving textMode=false and native Google search
@@ -223,6 +228,7 @@ final class GoogleV2HookEngine {
             liveWordsObserved=false;
             textSelectionObserved=false;
             ignoredRegionOcrLogged=false;
+            ignoredProbeRegionLogged=false;
             emptySelectionTraces=0;
         }
         boolean newSession=!key.equals(token);
@@ -637,6 +643,19 @@ final class GoogleV2HookEngine {
         if(candidate==null||!active())return;
         Rect bounds=candidate.bounds();
         if(candidate.directRegionCommit()&&bounds!=null&&!bounds.isEmpty()){
+            // On ACTION_SEND Lens operates on a crop, not the whole screen.
+            // Its image-space rectangle is NOT a screen-space screenshot region.
+            // Let Google keep its native selection UI; YFloat only observes
+            // selected OCR text from this experiment.
+            if(!GoogleLensShareEventPolicy.mayForwardRegion(lensImageInputProbe)){
+                if(!ignoredProbeRegionLogged){
+                    ignoredProbeRegionLogged=true;
+                    logEvent("LENS_IMAGE_INPUT",
+                            "native_region_not_forwarded bounds="+bounds
+                                    +" reason=share_image_coordinates");
+                }
+                return;
+            }
             if(regionMode&&bounds.equals(currentBounds))return;
             regionMode=true;textMode=false;
             currentTextRows=null;
@@ -682,7 +701,7 @@ final class GoogleV2HookEngine {
 
     private void onWords(Rect bounds,String wordsText,String detail,int[] rows){
         if(!active())return;
-        if(regionMode){
+        if(regionMode&&!lensImageInputProbe){
             if(!ignoredRegionOcrLogged){
                 ignoredRegionOcrLogged=true;
                 logEvent("REGION_IGNORED_LATE_OCR",
@@ -718,6 +737,12 @@ final class GoogleV2HookEngine {
 
     private void onGesture(Boolean adjusting,String detail){
         if(!active())return;
+        if(lensImageInputProbe){
+            // Keep Google's own gesture/touch hierarchy on image-share
+            // experiments; YFloat has no screen region to confirm.
+            if(textMode)words.onSelectionGesture(adjusting);
+            return;
+        }
         if(regionMode)transport.sendEvent(adjusting
                         ?GoogleCtsContract.EVENT_REGION_GESTURE_START
                         :GoogleCtsContract.EVENT_REGION_GESTURE_END,

@@ -131,3 +131,44 @@ transitions, then a native OCR text callback. The ACTION_SEND activity
 may still use its own selection implementation, so old Circle-to-Search
 selection Hooks may not emit the desired callback. That must be measured
 independently; image-read success is not OCR-result success.
+
+## 22:05 trace: the image path is now proven; keep screenshot regions separate
+
+The exact-session native crop was 675x695 pixels, PNG 543066 bytes. Google
+successfully launched LensShareEntryPointActivity followed by
+LensExportedActivity. The host's URI provider observed several successful
+read-mode opens from Google uid 10135. The Google process decoded an identical
+675x695 ARGB_8888 Bitmap from `injected_image_uri.source_uri`; the frame
+subsequently reached YFloat through SharedMemory. These are runtime facts,
+not a heuristic based on Activity launches.
+
+At 22:04:53 the semantic selection hook `dwqi.z(dwpz)` was reached, but no
+`LIVE_TEXT_CALLBACK` or `native_ocr_callback` was observed. A late
+region/gesture event was incorrectly interpreted as a regular full-screen
+Circle-to-Search region, even though Google's source bitmap was only 675x695.
+YFloat displayed its own giant region confirmation Rect(0,7-1251,2772),
+then delivered an extra screenshot result, released the URI and ended the
+experiment at `v2_result_visible`. This host-induced transition explains
+why the previous trial could not accurately test native OCR selection.
+
+Now, only for the ACTION_SEND experiment:
+- The Google Hook does not forward native image-local region rectangles to
+  the host as full-screen CTS regions; it also leaves FrozenImageView
+  transformations alone instead of blocking setTranslationY.
+- The host ignores image-share region and region-confirm events as a
+  second boundary defense. No screenshot-result overlay is synthesized.
+- Google retains its own Lens region/selection UI. The existing OCR
+  text-selection hooks remain active. If text genuinely arrives, YFloat
+  can display its own text actions, but it must not draw a screen outline
+  using untransformed Lens image-local coordinates.
+- Ordinary Google CTS sessions still preserve their existing screen-region
+  handling, viewport guards and screenshot result behavior.
+
+Next run acceptance: `host_file_open_result success=true` and
+`GOOGLE_FRAME_CAPTURED bitmap=675x695` should remain true; there should
+be no `GOOGLE_REGION confirm overlay`, `GOOGLE_V2 screenshot delivered`,
+or `v2_result_visible` from a shared-image selection. The next critical
+signal is `LIVE_TEXT_CALLBACK` or `TEXT_SELECTION_READY` followed by
+`native_ocr_callback`. The Google LSPosed process was still marked
+STALE v56 in the supplied diagnostic, so reload before attributing
+callback absence to the Google 17.66 implementation.

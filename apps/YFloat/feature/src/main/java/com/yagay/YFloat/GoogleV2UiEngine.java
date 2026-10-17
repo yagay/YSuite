@@ -42,6 +42,7 @@ final class GoogleV2UiEngine {
         Runnable pendingRegionMenu;
         int[] textRows;
         boolean visualSuspended;
+        boolean ignoredShareRegionLogged;
         Session(Context app, String token) { this.app=app;this.token=token; }
     }
 
@@ -98,6 +99,10 @@ final class GoogleV2UiEngine {
         Runnable action=()->{
             if(!ownsSession(s)||!s.visualSuspended)return;
             s.visualSuspended=false;
+            if(GoogleLensImageInputProbe.ownsPendingImage(s.token)){
+                // Google owns image-share selection chrome/handles, not YFloat.
+                return;
+            }
             if(s.state.phase==GoogleV2State.Phase.TEXT) {
                 Rect bounds=rect(s.state);
                 if(bounds!=null)
@@ -170,12 +175,20 @@ final class GoogleV2UiEngine {
         MAIN.post(()->{
             if(!ownsUi(s))return;
             Rect use=bounds!=null&&!bounds.isEmpty()?new Rect(bounds):null;
-            if(!s.state.text(text,at(use,0),at(use,1),at(use,2),at(use,3)))return;
+            // Lens ACTION_SEND selection bounds describe its image-local
+            // viewport, not YFloat's whole screen. Preserve the raw
+            // coordinates with the captured OCR result but never draw a
+            // misleading screen outline from them.
+            boolean imageProbe=GoogleLensImageInputProbe.ownsPendingImage(s.token);
+            Rect visualBounds=imageProbe?null:use;
+            if(!s.state.text(text,at(visualBounds,0),at(visualBounds,1),
+                    at(visualBounds,2),at(visualBounds,3)))return;
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
             s.textRows=rows==null?null:rows.clone();
             cancelRegionMenu(s);
             GoogleRegionConfirmOverlay.dismiss(token,"v2_text");
-            if(use!=null)GoogleV2TextOutline.show(s.app,s.token,use,rows);
+            if(visualBounds!=null)
+                GoogleV2TextOutline.show(s.app,s.token,visualBounds,rows);
             else GoogleV2TextOutline.dismiss(s.token);
             showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
             GoogleLensImageInputProbe.onNativeText(s.app,s.token,text,use);
@@ -190,6 +203,7 @@ final class GoogleV2UiEngine {
         if(s==null||bounds==null||bounds.isEmpty())return;
         MAIN.post(()->{
             if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.TEXT)return;
+            if(GoogleLensImageInputProbe.ownsPendingImage(s.token))return;
             s.state.bounds(bounds.left,bounds.top,bounds.right,bounds.bottom);
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
             s.textRows=rows==null?null:rows.clone();
@@ -238,7 +252,7 @@ final class GoogleV2UiEngine {
                 DiagnosticLog.i(s.app,"GOOGLE_V2",
                         "text gesture end missing; recovered after idle");
             }
-            Rect anchor=rect(s.state);
+            Rect anchor=s.state.validBounds()?rect(s.state):null;
             FloatActionMenu.showTextAt(s.app,s.state.text,null,anchor);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text menu visible="
                     +FloatActionMenu.hasVisibleTextMenu()
@@ -251,7 +265,17 @@ final class GoogleV2UiEngine {
     static void onRegion(Context context,String token,Rect bounds,String detail){
         Session s=session(context,token);if(s==null||bounds==null||bounds.isEmpty())return;
         MAIN.post(()->{
-            if(!ownsUi(s)||!s.state.region(bounds.left,bounds.top,bounds.right,bounds.bottom))return;
+            if(!ownsUi(s))return;
+            if(!GoogleLensShareEventPolicy.mayForwardRegion(
+                    GoogleLensImageInputProbe.ownsPendingImage(s.token))){
+                if(!s.ignoredShareRegionLogged){
+                    s.ignoredShareRegionLogged=true;
+                    DiagnosticLog.i(s.app,"LENS_IMAGE_INPUT",
+                            "host_region_not_forwarded reason=share_image_coordinates");
+                }
+                return;
+            }
+            if(!s.state.region(bounds.left,bounds.top,bounds.right,bounds.bottom))return;
             s.lastRegionUpdateElapsed=SystemClock.elapsedRealtime();
             s.textRows=null;
             cancelTextMenu(s);
@@ -263,6 +287,7 @@ final class GoogleV2UiEngine {
     static void onRegionGesture(Context context,String token,boolean dragging){
         Session s=session(context,token);if(s==null)return;
         MAIN.post(()->{
+            if(GoogleLensImageInputProbe.ownsPendingImage(s.token))return;
             if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.REGION)return;
             s.lastGestureElapsed=SystemClock.elapsedRealtime();
             s.state.drag(dragging);
@@ -307,10 +332,16 @@ final class GoogleV2UiEngine {
     }
 
     static void onCommit(Context context,String token,String reason){
+        // The Google share experiment has no host-owned region confirmation.
+        if(GoogleLensImageInputProbe.ownsPendingImage(token))return;
         Session s=session(context,token);
-        if(s!=null)MAIN.post(()->{if(ownsUi(s))confirm(s);});
+        if(s!=null)MAIN.post(()->{
+            if(ownsUi(s)&&!GoogleLensImageInputProbe.ownsPendingImage(s.token))
+                confirm(s);
+        });
     }
     private static void confirm(Session s){
+        if(GoogleLensImageInputProbe.ownsPendingImage(s.token))return;
         if(!ownsUi(s)||!s.state.confirm())return;
         GoogleRegionConfirmOverlay.dismiss(s.token,"v2_confirm");
         DiagnosticLog.i(s.app,"GOOGLE_V2","confirm requested frameReady="+s.state.frameReady);
