@@ -2,6 +2,7 @@ package com.yagay.YFloat.hook;
 
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.os.SystemClock;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
@@ -31,6 +32,8 @@ import dalvik.system.DexFile;
 final class GoogleLensDynamicResolver {
     static final int MIN_SELECTION_CONFIDENCE = 95;
     private static final int MAX_SCANNED_CLASSES = 14_000;
+    // Bound a cold Google DEX scan instead of blocking PackageReady indefinitely.
+    private static final long MAX_SCAN_ELAPSED_MS = 7_000L;
     private static final String LENS_DEX_ANCHOR =
             "com.google.android.libraries.lens.view.frozenimage.FrozenImageView";
 
@@ -39,11 +42,15 @@ final class GoogleLensDynamicResolver {
 
         SelectionBinding best = SelectionBinding.none("no structural candidate");
         int scanned = 0;
+        final long deadline = SystemClock.elapsedRealtime() + MAX_SCAN_ELAPSED_MS;
         Set<String> seen = new HashSet<>();
         boolean ambiguous = false;
 
         try {
-            for (String name : dexClassNames(loader)) {
+            for (String name : dexClassNames(loader, deadline)) {
+                if (SystemClock.elapsedRealtime() >= deadline)
+                    return SelectionBinding.none("scan timeout after "
+                            + MAX_SCAN_ELAPSED_MS + "ms scanned=" + scanned);
                 if (scanned >= MAX_SCANNED_CLASSES) break;
                 if (!eligibleClassName(name) || !seen.add(name)) continue;
                 scanned++;
@@ -60,6 +67,9 @@ final class GoogleLensDynamicResolver {
                 }
 
                 for (Method method : declaredMethods(controller)) {
+                    if (SystemClock.elapsedRealtime() >= deadline)
+                        return SelectionBinding.none("scan timeout after "
+                                + MAX_SCAN_ELAPSED_MS + "ms scanned=" + scanned);
                     Candidate candidate = scoreSelectionMethod(method);
                     if (candidate == null || candidate.score < MIN_SELECTION_CONFIDENCE) continue;
                     if (candidate.score == best.confidence() && best.method() != method) {
@@ -195,7 +205,7 @@ final class GoogleLensDynamicResolver {
      * The stable FrozenImageView class identifies the Lens partition without
      * depending on any R8-obfuscated class name. Scan that partition first.
      */
-    private static Set<String> dexClassNames(ClassLoader loader) {
+    private static Set<String> dexClassNames(ClassLoader loader, long deadline) {
         Set<String> lens = new LinkedHashSet<>();
         Set<String> others = new LinkedHashSet<>();
         for (ClassLoader current = loader; current != null; current = current.getParent()) {
@@ -211,7 +221,11 @@ final class GoogleLensDynamicResolver {
                     List<String> partition = new ArrayList<>();
                     boolean containsLens = false;
                     Enumeration<String> entries = dexFile.entries();
+                    int enumerated = 0;
                     while (entries.hasMoreElements()) {
+                        if ((++enumerated & 127) == 0
+                                && SystemClock.elapsedRealtime() >= deadline)
+                            return new LinkedHashSet<>();
                         String name = entries.nextElement();
                         if (!eligibleClassName(name)) {
                             if (LENS_DEX_ANCHOR.equals(name)) containsLens = true;
