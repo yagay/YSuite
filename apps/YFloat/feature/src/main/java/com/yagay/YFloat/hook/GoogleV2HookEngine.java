@@ -57,6 +57,8 @@ final class GoogleV2HookEngine {
     private volatile String currentText = "";
     private volatile boolean selectionCallbackObserved;
     private volatile boolean liveWordsObserved;
+    private volatile boolean textSelectionObserved;
+    private int emptySelectionTraces;
 
     GoogleV2HookEngine(XposedModule module, LsposedRuntimeProvider provider,
                        ClassLoader loader) {
@@ -77,8 +79,11 @@ final class GoogleV2HookEngine {
         // selection to avoid blocking Google's OCR processing.
         nativeSearch=new GoogleV2SearchGuard(module,loader,
                 this::active,()->active()&&(textMode||regionMode),this::logEvent);
+        // Do not hide Google's text-selection chrome BEFORE recognition
+        // completes. Search Intent guards still protect YFloat-owned sessions.
         nativeChrome=new GoogleV2SearchChrome(
-                this::active,()->active()&&(textMode||regionMode),this::logEvent);
+                ()->active()&&(textMode||regionMode),
+                ()->active()&&(textMode||regionMode),this::logEvent);
         profileStore=new GoogleHookProfileStore(module);
         selection=GoogleSelectionAdapter.resolve(loader,profileStore);
     }
@@ -151,6 +156,8 @@ final class GoogleV2HookEngine {
             textMode=false;regionMode=false;currentText="";currentBounds=null;
             selectionCallbackObserved=false;
             liveWordsObserved=false;
+            textSelectionObserved=false;
+            emptySelectionTraces=0;
         }
         boolean newSession=!key.equals(token);
         token=key;
@@ -159,13 +166,14 @@ final class GoogleV2HookEngine {
         if(newSession) {
             main.postDelayed(()->{
                 if(active()&&key.equals(token)
-                        &&!selectionCallbackObserved&&!liveWordsObserved) {
-                    logEvent("SELECTION_CALLBACK_MISSING",
-                            "no selected-text callback observed in 8s"
+                        &&!textSelectionObserved && !regionMode) {
+                    logEvent("TEXT_SELECTION_NOT_DELIVERED",
+                            "after=8s methodReached="+selectionCallbackObserved
+                                    +" liveWordsObserved="+liveWordsObserved
                                     +" method="+(selection.method()==null?"none"
                                     :selection.method().getDeclaringClass().getName()
                                             +"."+selection.method().getName())
-                                    +" installedOnly=true");
+                                    +" boundsOnlyDoesNotProveText=true");
                 }
             },8000L);
         }
@@ -310,64 +318,121 @@ final class GoogleV2HookEngine {
         return count;
     }
 
+    /**
+     * Google 17.66's obfuscated controller can receive metadata before it
+     * populates the selected text. Observe both sides of the SAME method
+     * invocation. Never short-circuit Google's own selection processing.
+     */
     private int hookSelection() {
         if(!selection.available()) {
             logEvent("CAPABILITY","selection unavailable "+selection.detail());return 0;
         }
         try {
             module.hook(selection.method()).intercept(chain->{
-                if(active()&&!selectionCallbackObserved) {
+                boolean owned=active();
+                Object metadata=chain.getArg(0);
+                if(owned&&!selectionCallbackObserved) {
                     selectionCallbackObserved=true;
-                    Object metadata=chain.getArg(0);
                     logEvent("SELECTION_METHOD_REACHED",
                             "method="+selection.method().getDeclaringClass().getName()
                                     +"."+selection.method().getName()
                                     +" metadata="+(metadata==null?"null"
                                     :metadata.getClass().getName()));
                 }
-                if(!active()&&!loggedInactiveSelection){
+                if(!owned&&!loggedInactiveSelection){
                     loggedInactiveSelection=true;
                     module.log(Log.WARN,TAG,"selection Hook reached without active YFloat session;"
                             +" provider="+provider.isActive()
                             +" tokenPresent="+!token.isBlank());
                 }
-                if(active()){
+                GoogleSelectionAdapter.Snapshot pre=null;
+                if(owned) {
                     loggedInactiveSelection=false;
-                    try{
-                        GoogleSelectionAdapter.Snapshot candidate=
-                                selection.snapshot(chain.getArg(0),context());
-                        Rect bounds=candidate.bounds();
-                        if(candidate.directRegionCommit()&&bounds!=null&&!bounds.isEmpty()){
-                            regionMode=true;textMode=false;
-                            currentBounds=new Rect(bounds);
-                            viewport.attach(owner);
-                            nativeChrome.onSelection();
-                            transport.sendEvent(GoogleCtsContract.EVENT_REGION_SELECTION,
-                                    "",candidate.detail(),bounds);
-                        } else {
-                            String value=candidate.text();
-                            if(value.isBlank())value=words.recentText();
-                            Rect fromWords=words.recentBounds();
-                            if(fromWords!=null&&!fromWords.isEmpty())bounds=fromWords;
-                            if(!value.isBlank()){
-                                textMode=true;regionMode=false;currentText=value;
-                                if(bounds!=null&&!bounds.isEmpty())currentBounds=new Rect(bounds);
-                                viewport.attach(owner);
-                                nativeChrome.onSelection();
-                                transport.sendEvent(GoogleCtsContract.EVENT_SELECTION,
-                                        value,candidate.detail(),currentBounds);
-                            }
-                        }
-                    }catch(Throwable t){logEvent("SELECTION_ERROR",t.getClass().getSimpleName());}
+                    pre=selectionSnapshot(metadata,"before");
+                    publishSelection(pre,"before");
                 }
-                return chain.proceed();
+                // Proceed EXACTLY once, even if the pre-state was empty.
+                Object result=chain.proceed();
+                if(owned&&active()){
+                    GoogleSelectionAdapter.Snapshot post=selectionSnapshot(metadata,"after");
+                    if(!equivalentSnapshots(pre,post))publishSelection(post,"after");
+                }
+                return result;
             });
             return 1;
-        } catch(Throwable t) {module.log(Log.WARN,TAG,"V2 selection binding failed",t);return 0;}
+        }catch(Throwable t){module.log(Log.WARN,TAG,"V2 selection binding failed",t);return 0;}
+    }
+
+    private GoogleSelectionAdapter.Snapshot selectionSnapshot(Object metadata,String stage) {
+        try {
+            GoogleSelectionAdapter.Snapshot candidate=selection.snapshot(metadata,context());
+            if(emptySelectionTraces<8 &&
+                    (candidate.text().isBlank() && !candidate.directRegionCommit())) {
+                emptySelectionTraces++;
+                Rect bounds=candidate.bounds();
+                logEvent("SELECTION_SNAPSHOT_EMPTY",
+                        "stage="+stage
+                        +" selectionClass="+candidate.selectionClass()
+                        +" bounds="+(bounds==null?"none":bounds)
+                        +" metadata="+(metadata==null?"null":metadata.getClass().getName())
+                        +" detail="+candidate.detail());
+            }
+            return candidate;
+        }catch(Throwable t) {
+            if(emptySelectionTraces++<8)
+                logEvent("SELECTION_ERROR","stage="+stage+" type="
+                        +t.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private static boolean equivalentSnapshots(GoogleSelectionAdapter.Snapshot a,
+            GoogleSelectionAdapter.Snapshot b) {
+        if(a==b)return true;
+        if(a==null||b==null)return false;
+        return a.directRegionCommit()==b.directRegionCommit()
+                &&a.text().equals(b.text())
+                &&java.util.Objects.equals(a.bounds(),b.bounds())
+                &&a.selectionClass().equals(b.selectionClass());
+    }
+
+    private void publishSelection(GoogleSelectionAdapter.Snapshot candidate,String stage) {
+        if(candidate==null||!active())return;
+        Rect bounds=candidate.bounds();
+        if(candidate.directRegionCommit()&&bounds!=null&&!bounds.isEmpty()){
+            if(regionMode&&bounds.equals(currentBounds))return;
+            regionMode=true;textMode=false;
+            currentBounds=new Rect(bounds);
+            viewport.attach(owner);
+            nativeChrome.onSelection();
+            transport.sendEvent(GoogleCtsContract.EVENT_REGION_SELECTION,
+                    "",candidate.detail()+" stage="+stage,bounds);
+        }else{
+            String value=candidate.text();
+            if(value.isBlank())value=words.recentText();
+            Rect fromWords=words.recentBounds();
+            if(fromWords!=null&&!fromWords.isEmpty())bounds=fromWords;
+            if(!value.isBlank()){
+                boolean changed=!textMode||!value.equals(currentText)
+                        ||(bounds!=null&&!bounds.equals(currentBounds));
+                textMode=true;regionMode=false;currentText=value;
+                textSelectionObserved=true;
+                if(bounds!=null&&!bounds.isEmpty())currentBounds=new Rect(bounds);
+                if(!changed)return;
+                logEvent("TEXT_SELECTION_READY","stage="+stage
+                        +" chars="+value.length()
+                        +" bounds="+(currentBounds!=null&&!currentBounds.isEmpty()));
+                viewport.attach(owner);
+                nativeChrome.onSelection();
+                transport.sendEvent(GoogleCtsContract.EVENT_SELECTION,
+                        value,candidate.detail()+" stage="+stage,currentBounds);
+            }
+        }
     }
 
     private void onWords(Rect bounds,String wordsText,String detail){
         if(!active())return;
+        if(wordsText!=null&&!wordsText.isBlank())textSelectionObserved=true;
         if(!liveWordsObserved) {
             liveWordsObserved=true;
             logEvent("LIVE_TEXT_CALLBACK",
