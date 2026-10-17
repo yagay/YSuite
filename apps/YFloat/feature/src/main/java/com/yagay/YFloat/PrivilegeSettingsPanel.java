@@ -211,6 +211,22 @@ public final class PrivilegeSettingsPanel {
                 });
         YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(googleCircleSwitch));
 
+        MaterialSwitch oneShotScan = YViewLayout.switchRow(activity,
+                activity.getString(R.string.yfloat_google_manual_scan),
+                activity.getString(R.string.yfloat_google_manual_scan_desc),
+                false, (button, checked) -> {
+                    if (!checked) return;
+                    button.setEnabled(false);
+                    GoogleHookManualScan.start(activity, message -> {
+                        button.setChecked(false);
+                        button.setEnabled(true);
+                        refreshLsposed(activity, lsposedStatus);
+                        if (message != null && !message.isBlank())
+                            Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
+                    });
+                });
+        YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(oneShotScan));
+
         MaterialSwitch secureScreenshotSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_secure_screenshot),
                 activity.getString(R.string.yfloat_priv_secure_screenshot_desc),
