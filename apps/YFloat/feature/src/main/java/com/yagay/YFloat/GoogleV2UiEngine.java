@@ -194,7 +194,10 @@ final class GoogleV2UiEngine {
             if(!imageProbe&&visualBounds!=null)
                 GoogleV2TextOutline.show(s.app,s.token,visualBounds,rows);
             else GoogleV2TextOutline.dismiss(s.token);
-            showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
+            if(!GoogleLensImageInputProbe.isOcrEngineRequest(s.token))
+                showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
+            // Exact Google OCR engine requests render YFloat's own selectable
+            // crop + text result, not a second floating menu over Lens.
             GoogleLensImageInputProbe.onNativeText(s.app,s.token,text,use);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()
                     +" bounds="+use+" anchorVerified="+verifiedScreenBounds
@@ -240,6 +243,7 @@ final class GoogleV2UiEngine {
      * the latest content has settled, then safely recover a stale drag state.
      */
     private static void showTextWhenStable(Session s,long delay){
+        if(GoogleLensImageInputProbe.isOcrEngineRequest(s.token))return;
         if(s.pendingTextMenu!=null)MAIN.removeCallbacks(s.pendingTextMenu);
         Runnable request=()->{
             s.pendingTextMenu=null;

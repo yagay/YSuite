@@ -106,7 +106,9 @@ final class SettingsPageUi {
                 activity.getString(R.string.yfloat_ocr_mlkit),
                 activity.getString(R.string.yfloat_ocr_tiny),
                 activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_medium)
+                activity.getString(R.string.yfloat_ocr_medium),
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                        ? "Google Lens（实验）" : "Google Lens (experimental)"
         }, fs.circleFullOcrEngine(), FloatSettings.K_CIRCLE_FULL_OCR_ENGINE, true);
     }
 

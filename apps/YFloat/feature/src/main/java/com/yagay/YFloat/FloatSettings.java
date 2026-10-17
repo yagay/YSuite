@@ -33,7 +33,7 @@ public final class FloatSettings {
     public static final String K_CIRCLE_BORDER_WIDTH_DP = "circle_active_border_width_dp_v1";
     /** Legacy migration source for the earlier one-switch hybrid OCR experiment. */
     public static final String K_CIRCLE_HYBRID_OCR = "circle_hybrid_ocr_v1";
-    /** 0=ML Kit, 1=PP Tiny, 2=PP Small, 3=PP Medium. */
+    /** 0=ML Kit, 1=PP Tiny, 2=PP Small, 3=PP Medium, 4=Google Lens. */
     public static final String K_CIRCLE_FULL_OCR_ENGINE = "circle_full_ocr_engine_v1";
     /** 0=disabled, 1=PP Tiny, 2=PP Small, 3=PP Medium. */
     public static final String K_CIRCLE_CORRECTION_ENGINE = "circle_correction_engine_v1";
@@ -178,8 +178,8 @@ public final class FloatSettings {
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 3);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 3); } catch (Throwable ignored) {} }
+        if (raw instanceof Number n) return clamp(n.intValue(), 0, 4);
+        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 4); } catch (Throwable ignored) {} }
         return 0;
     }
     public int circleCorrectionEngine() {

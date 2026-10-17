@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Handler;
@@ -13,6 +14,8 @@ import android.os.SystemClock;
 import android.widget.Toast;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -39,6 +42,14 @@ final class GoogleLensImageInputProbe {
             new ConcurrentHashMap<>();
     private static final Map<String,NativeResult> RESULTS=
             new ConcurrentHashMap<>();
+    /** Only these sessions are selected as YFloat's actual circle OCR engine. */
+    private static final Set<String> OCR_ENGINE_SESSIONS=
+            ConcurrentHashMap.newKeySet();
+    private static final Set<String> OCR_RESULTS_DELIVERED=
+            ConcurrentHashMap.newKeySet();
+    private static final Map<String,Integer> OCR_RESULT_REVISIONS=
+            new ConcurrentHashMap<>();
+    private static final long OCR_TEXT_STABLE_MS=1600L;
 
     /** In-memory, exact-session pairing of Google's actual OCR with YFloat's own crop. */
     static final class NativeResult {
@@ -69,8 +80,20 @@ final class GoogleLensImageInputProbe {
         return token!=null&&SHARES.containsKey(token);
     }
 
+    static boolean isOcrEngineRequest(String token) {
+        return token!=null&&OCR_ENGINE_SESSIONS.contains(token);
+    }
+
+    static void launchForOcr(Context context,Bitmap image) {
+        launch(context,image,true);
+    }
+
     /** Takes ownership of the supplied crop and recycles it after encoding. */
     static void launch(Context context,Bitmap ownedImage) {
+        launch(context,ownedImage,false);
+    }
+
+    private static void launch(Context context,Bitmap ownedImage,boolean asOcrEngine) {
         if(context==null||ownedImage==null||ownedImage.isRecycled()){
             if(ownedImage!=null&&!ownedImage.isRecycled())ownedImage.recycle();
             return;
@@ -87,7 +110,7 @@ final class GoogleLensImageInputProbe {
             try{
                 share=ImageShareUtils.prepareGoogleLensImage(app,ownedImage);
                 ImageShareUtils.LensShare ready=share;
-                MAIN.post(()->start(app,ready));
+                MAIN.post(()->start(app,ready,asOcrEngine));
             }catch(Throwable error){
                 if(share!=null)share.close(app);
                 DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
@@ -100,7 +123,8 @@ final class GoogleLensImageInputProbe {
         });
     }
 
-    private static void start(Context app,ImageShareUtils.LensShare share) {
+    private static void start(Context app,ImageShareUtils.LensShare share,
+                              boolean asOcrEngine) {
         LsposedStatusManager.Snapshot snapshot=LsposedStatusManager.snapshot();
         boolean loaded=snapshot.googleTargetLoaded();
         boolean stale=snapshot.googleTargetStale();
@@ -116,12 +140,17 @@ final class GoogleLensImageInputProbe {
             return;
         }
         String token=UUID.randomUUID().toString();
+        if(asOcrEngine)OCR_ENGINE_SESSIONS.add(token);
         long now=SystemClock.elapsedRealtime();
         for(String old:SHARES.keySet())release(app,old,"new_image_input");
         GoogleCtsSessionCoordinator.cancelCurrent(app,"new_lens_image_input");
         WorkflowSessionManager.Session workflow=
                 GoogleCtsSessionCoordinator.begin(app,token,now);
-        if(workflow==null){share.close(app);return;}
+        if(workflow==null){
+            OCR_ENGINE_SESSIONS.remove(token);
+            share.close(app);
+            return;
+        }
         try{
             app.grantUriPermission(GoogleCtsContract.GOOGLE_PACKAGE,imageUri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -232,6 +261,8 @@ final class GoogleLensImageInputProbe {
     }
 
     static void onCtsWorkflowEnd(Context app,String token,String reason) {
+        if(isOcrEngineRequest(token)&&hasNativeText(token))
+            deliverToYFloat(app,token,-1,true);
         // Navigation from the general Lens gateway is not proof the image was
         // read. Preserve the grant until TTL so later Google processes can read.
         if(SHARES.containsKey(token)
@@ -253,10 +284,50 @@ final class GoogleLensImageInputProbe {
         DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
                 "native_ocr_callback session="+shortToken(token)
                 +" chars="+text.length()+" bounds="+(bounds!=null)
-                +" paired_with_host_image=true source=google_live_selection");
+                +" paired_with_host_image=true source=google_live_selection"
+                +" target="+(isOcrEngineRequest(token)?"yfloat_ocr":"lens_toolbar"));
+        if(isOcrEngineRequest(token)){
+            int generation=OCR_RESULT_REVISIONS.merge(token,1,Integer::sum);
+            MAIN.postDelayed(()->deliverToYFloat(app,token,generation,false),
+                    OCR_TEXT_STABLE_MS);
+        }
+    }
+
+    /** Present actual Google-selected words with the original YFloat crop. */
+    private static void deliverToYFloat(Context app,String token,
+                                         int generation,boolean onEnd) {
+        if(!isOcrEngineRequest(token)||OCR_RESULTS_DELIVERED.contains(token))return;
+        if(!onEnd&&!java.util.Objects.equals(
+                OCR_RESULT_REVISIONS.get(token),generation))return;
+        ImageShareUtils.LensShare share=SHARES.get(token);
+        NativeResult recognized=RESULTS.get(token);
+        if(share==null||recognized==null||recognized.selectedText.isBlank())return;
+        if(!OCR_RESULTS_DELIVERED.add(token))return;
+        Bitmap original=null;
+        try {
+            original=BitmapFactory.decodeFile(share.file.getAbsolutePath());
+            if(original==null)throw new IllegalStateException("shared bitmap missing");
+            boolean shown=ResultSurfaceRouter.showOcr(app,recognized.selectedText,
+                    List.of(recognized.selectedText),original,null);
+            DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                    "ocr_return_to_yfloat session="+shortToken(token)
+                    +" chars="+recognized.selectedText.length()
+                    +" originalCrop=true resultVisible="+shown
+                    +" source=google_native_selection");
+            if(!shown)OCR_RESULTS_DELIVERED.remove(token);
+        }catch(Throwable failure){
+            if(original!=null&&!original.isRecycled())original.recycle();
+            OCR_RESULTS_DELIVERED.remove(token);
+            DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                    "ocr_return_failed session="+shortToken(token)
+                    +" type="+failure.getClass().getSimpleName());
+        }
     }
 
     static void release(Context context,String token,String reason) {
+        OCR_ENGINE_SESSIONS.remove(token);
+        OCR_RESULT_REVISIONS.remove(token);
+        OCR_RESULTS_DELIVERED.remove(token);
         RESULTS.remove(token);
         ImageShareUtils.LensShare share=SHARES.remove(token);
         if(share==null)return;
