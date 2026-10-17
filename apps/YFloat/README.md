@@ -19,7 +19,7 @@ FV 只决定已经实测确认的交互、时序和窗口行为。截图后端�
 
 ## 圈画识别：单一 OCR-only 主链
 
-默认圈画为 **YFloat Native Circle V3**（`FLCircleController → FLCircleCapture → NativeCircleWorkspace`）。可在「截图与 OCR → 圈画引擎」切换到独立的 Google Circle to Search V2 Hook。只有 YFloat 标记的 Google 会话会被处理，系统原生 Home/手势圈画入口不受影响。目前仅以 **Google App 17.58.16.ve** 为实测适配基准，17.60、17.64 因用户反馈异常默认禁用并回退 Native V3。其他未来版本可尝试 17.58 结构特征动态匹配；Google APK 更新后，新进程重新解析 Hook，仍需实机验证。
+默认圈画为 **YFloat Native Circle V3**（`FLCircleController → FLCircleCapture → NativeCircleWorkspace`）。可在「截图与 OCR → 圈画引擎」切换到独立的 Google Circle to Search V2 Hook。只有 YFloat 标记的 Google 会话会被处理，系统原生 Home/手势圈画入口不受影响。当前以 **Google App 17.60.16.ve** 为首选 Hook 开发基准，恢复原有的 17.60 文字选择、边框更新和区域选择映射。17.58 保留旧版兼容，17.64 继续隔离并回退 Native V3。未来版本尝试基于 17.60 语义结构的动态匹配；Google APK 更新后在新进程重新解析 Hook。17.60 的完整运行效果仍需实机验证。
 
 圈画识别只有一条正式主链：
 

@@ -59,10 +59,38 @@ final class GoogleSelectionAdapter {
 
     private static Binding resolveUncached(ClassLoader loader) {
         if (loader == null) return new MissingBinding("classLoader=null");
-        // Prioritize the sole field-verified 17.58 path. Do not promote the
-        // 17.60/17.64 profiles, even when their obfuscated signatures resolve.
-        String profileError = GoogleLens1758Profile.selectionValidationError(loader);
-        if (profileError.isBlank()) {
+
+        // Primary implementation: Google App 17.60.16.ve.
+        // Require selection + metadata semantics; query/bridge capabilities
+        // are independent and must not invalidate a sound selection binding.
+        String profile1760Error = GoogleLens1760Profile.selectionValidationError(loader);
+        if (profile1760Error.isBlank()) {
+            try {
+                Class<?> controller = Class.forName(
+                        GoogleLens1760Profile.CONTROLLER, false, loader);
+                for (Executable executable : HiddenApiBypass.getDeclaredMethods(controller)) {
+                    if (executable instanceof Method method
+                            && GoogleLens1760Profile.isSelectionMethod(method)) {
+                        return new Profile1760Binding(method,
+                                "baseline=" + GoogleLens1760Profile.NAME);
+                    }
+                }
+                profile1760Error = "17.60 selection method missing";
+            } catch (Throwable t) {
+                profile1760Error = t.getClass().getSimpleName() + ":"
+                        + String.valueOf(t.getMessage());
+            }
+        }
+
+        // Explicitly reject the 17.64 profile, which needs separate runtime
+        // fixes. A 17.64 signature is not proof of correct selection behavior.
+        if (GoogleLens1764Profile.resolveSelection(loader).available()) {
+            return new MissingBinding("17.64 compatibility disabled; baseline=17.60");
+        }
+
+        // Preserve Google 17.58 as a legacy compatibility path only.
+        String profile1758Error = GoogleLens1758Profile.selectionValidationError(loader);
+        if (profile1758Error.isBlank()) {
             try {
                 Class<?> controller = Class.forName(
                         GoogleLens1758Profile.CONTROLLER, false, loader);
@@ -70,46 +98,37 @@ final class GoogleSelectionAdapter {
                     if (executable instanceof Method method
                             && GoogleLens1758Profile.isSelectionMethod(method)
                             && method.getReturnType() == void.class) {
-                        return new ExactBinding(method, "exact-1758", 100,
-                                "verified-baseline=" + GoogleLens1758Profile.NAME);
+                        return new ExactBinding(method, "legacy-1758", 100,
+                                "profile=" + GoogleLens1758Profile.NAME);
                     }
                 }
-                profileError = "validated 17.58 selection method missing";
+                profile1758Error = "17.58 selection method missing";
             } catch (Throwable t) {
-                profileError = t.getClass().getSimpleName() + ":" + String.valueOf(t.getMessage());
+                profile1758Error = t.getClass().getSimpleName() + ":"
+                        + String.valueOf(t.getMessage());
             }
         }
-        if (isKnownProblemProfile(loader)) {
-            return new MissingBinding("known-problem-17.60-or-17.64; "
-                    + "baseline=17.58; native-v3-fallback");
-        }
-        Binding renamed1758 = resolveRenamedProfileSelection(loader, profileError);
-        if (renamed1758.available()) return renamed1758;
-        // Unknown future builds may match the 17.58 semantic shape. Ambiguous
-        // candidates fail closed rather than installing a guessed method.
-        GoogleLensDynamicResolver.SelectionBinding dynamic =
-                GoogleLensDynamicResolver.discoverSelection(loader);
-        if (!dynamic.available()) {
-            return new MissingBinding("baseline1758=" + profileError
-                    + "; renamed1758=" + renamed1758.detail()
-                    + "; structural1758=" + dynamic.detail());
-        }
-        return new DynamicBinding(dynamic,
-                "baseline1758=" + profileError + "; renamed1758=" + renamed1758.detail(),
-                "experimental-1758-structural");
-    }
 
-    private static boolean isKnownProblemProfile(ClassLoader loader) {
-        if (loader == null) return false;
-        if (GoogleLens1764Profile.resolveSelection(loader).available()) return true;
-        try {
-            Class<?> cls = Class.forName(GoogleLens1760Profile.CONTROLLER, false, loader);
-            for (Executable executable : HiddenApiBypass.getDeclaredMethods(cls)) {
-                if (executable instanceof Method method
-                        && GoogleLens1760Profile.isSelectionMethod(method)) return true;
-            }
-        } catch (Throwable ignored) { }
-        return false;
+        // A method rename inside the 17.58 model can still be handled without
+        // treating the old profile as the preferred implementation.
+        Binding legacyRenamed = resolveRenamedProfileSelection(loader, profile1758Error);
+        if (legacyRenamed.available()) return legacyRenamed;
+
+        // Unknown versions: scan for the shared (metadata,boolean)->void
+        // selection semantics used by 17.60. The bounded structural resolver
+        // rejects ambiguous candidates instead of risking arbitrary hooks.
+        GoogleLensDynamicResolver.SelectionBinding structural =
+                GoogleLensDynamicResolver.discoverSelection(loader);
+        if (!structural.available()) {
+            return new MissingBinding("baseline1760=" + profile1760Error
+                    + "; legacy1758=" + profile1758Error
+                    + "; renamed1758=" + legacyRenamed.detail()
+                    + "; structural1760=" + structural.detail());
+        }
+        return new DynamicBinding(structural,
+                "baseline1760=" + profile1760Error
+                        + "; legacy1758=" + profile1758Error,
+                "experimental-1760-structural");
     }
 
     private static Binding resolveRenamedProfileSelection(ClassLoader loader, String profileError) {
@@ -142,6 +161,33 @@ final class GoogleSelectionAdapter {
         return params.length == 2
                 && GoogleLens1758Profile.SELECTION_METADATA.equals(params[0].getName())
                 && params[1] == boolean.class;
+    }
+
+    private static final class Profile1760Binding implements Binding {
+        private final Method method;
+        private final String detail;
+
+        Profile1760Binding(Method method, String detail) {
+            this.method = method;
+            this.detail = detail;
+            try { method.setAccessible(true); } catch (Throwable ignored) { }
+        }
+
+        @Override public boolean available() { return method != null; }
+        @Override public Method method() { return method; }
+        @Override public String source() { return "baseline-1760"; }
+        @Override public String detail() { return detail; }
+        @Override public int confidence() { return 100; }
+
+        @Override public Snapshot snapshot(Object metadata, Context context) {
+            GoogleLens1760Profile.SelectionSnapshot selected =
+                    GoogleLens1760Profile.selection(metadata, context);
+            Rect bounds = selected.bounds();
+            boolean region = GoogleLens1760Profile.isDirectRegionSelectionClass(
+                    selected.selectionClass()) && bounds != null && !bounds.isEmpty();
+            return new Snapshot(selected.text(), bounds, selected.selectionClass(),
+                    selected.detail() + " adapter=baseline-1760", region);
+        }
     }
 
     private static final class ExactBinding implements Binding {

@@ -65,6 +65,41 @@ final class GoogleLens1760Profile {
         return validationError(loader).isBlank();
     }
 
+    /**
+     * The CTS V2 selector depends on this contract, not on unrelated
+     * PendingLensQuery / LensQueryResult methods. Check these separately so
+     * an unrelated renamed query handler cannot disable text selection.
+     */
+    static String selectionValidationError(ClassLoader loader) {
+        if (loader == null) return "classLoader=null";
+        try {
+            Class<?> controller = Class.forName(CONTROLLER, false, loader);
+            boolean selectionMethod = false;
+            for (Executable executable : HiddenApiBypass.getDeclaredMethods(controller)) {
+                if (executable instanceof Method method && isSelectionMethod(method)) {
+                    selectionMethod = true;
+                    break;
+                }
+            }
+            if (!selectionMethod) return "17.60 controller selection signature mismatch";
+            Class<?> metadata = Class.forName(SELECTION_METADATA, false, loader);
+            if (!hasField(metadata, "a", USER_SELECTION)) {
+                return "17.60 SelectionWithMetadata.a UserSelection missing";
+            }
+            Class<?> user = Class.forName(USER_SELECTION, false, loader);
+            if (!hasNoArgMethod(user, "b", RectF.class.getName())
+                    || !hasNoArgMethod(user, "k", String.class.getName())) {
+                return "17.60 UserSelection bounds/text accessors mismatch";
+            }
+            Class.forName(REGION_SELECTION, false, loader);
+            Class.forName(WORD_SELECTION, false, loader);
+            Class.forName(TEXT_SELECTION, false, loader);
+            return "";
+        } catch (Throwable t) {
+            return t.getClass().getSimpleName() + ":" + String.valueOf(t.getMessage());
+        }
+    }
+
     static String validationError(ClassLoader loader) {
         if (loader == null) return "classLoader=null";
         try {

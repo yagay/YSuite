@@ -32,7 +32,9 @@
     <string name="yfloat_circle_engine_native">YFloat Native Circle V3</string>
     <string name="yfloat_circle_engine_google">Google Circle to Search (adaptive Hook)</string>
     <string name="yfloat_google_check_status">Refresh Google compatibility status</string>
-    <string name="yfloat_google_1758_baseline">Google 17.58: preferred baseline; Hook signature checked on process load.</string>
-    <string name="yfloat_google_known_bad_version">Google 17.60/17.64 have known selection issues; using YFloat Native V3 instead.</string>
-    <string name="yfloat_google_unverified_version">Unverified Google version: experimental 17.58-based Hook discovery; compatibility not guaranteed.</string>
+    <string name="yfloat_google_1758_baseline">Google 17.58: legacy compatibility; the 17.60 mapping is preferred.</string>
+    <string name="yfloat_google_known_bad_version">Google 17.64 is not enabled in the 17.60-based Hook; using Native V3.</string>
+    <string name="yfloat_google_unverified_version">Unverified Google version: experimental 17.60-based Hook discovery; compatibility not guaranteed.</string>
+    <string name="yfloat_google_1760_baseline">Google 17.60: preferred Hook baseline. Device verification is still required.</string>
+    <string name="yfloat_google_1758_legacy">Google 17.58: legacy compatibility mode. Primary development targets 17.60.</string>
 </resources>

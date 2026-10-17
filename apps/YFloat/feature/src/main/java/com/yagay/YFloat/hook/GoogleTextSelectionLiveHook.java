@@ -422,17 +422,21 @@ final class GoogleTextSelectionLiveHook {
     }
 
     private static Profile resolveProfile(ClassLoader loader) {
-        // Use the 17.58 state/update task contract before any structural probe.
-        // Previously the 17.64-derived view heuristic could shadow 17.58.
+        // Exact Google 17.60 word-list and final-selection update paths first.
+        // These are required for selection highlights to follow handle drags.
+        if (hasClass(loader, GoogleLens1760Profile.TEXT_SELECTION_STATE)
+                && hasClass(loader, GoogleLens1760Profile.TEXT_SELECTION_UPDATE_TASK)) {
+            return new Profile(GoogleLens1760Profile.NAME,
+                    GoogleLens1760Profile.TEXT_SELECTION_UPDATE_TASK,
+                    GoogleLens1760Profile.TEXT_SELECTION_CONTROLLER,
+                    GoogleLens1760Profile.TEXT_SELECTION_STATE,
+                    GoogleLens1760Profile.WORD,
+                    GoogleLens1760Profile.TEXT_SELECTION_RANGE);
+        }
+        // Legacy 17.58 support; do not resolve it ahead of the 17.60 baseline.
         if (hasClass(loader, "dnrs") && hasClass(loader, "dtvm")) {
             return new Profile(GoogleLens1758Profile.NAME,
                     "dtvm", "dtvr", "dnrs", "dnrd", "dnqv");
-        }
-        // Do not revive the known-problematic 17.60 selection state profile.
-        // Unknown Google builds may still supply this stable-view contract.
-        if (hasClass(loader, GoogleLens1760Profile.TEXT_SELECTION_STATE)
-                && hasClass(loader, GoogleLens1760Profile.TEXT_SELECTION_UPDATE_TASK)) {
-            return null;
         }
         return resolveFromStableView(loader);
     }

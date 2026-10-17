@@ -41,7 +41,7 @@ final class GoogleCtsTrigger {
         if (GoogleHookVersionTracker.compatibility(app)
                 == GoogleHookVersionPolicy.Compatibility.KNOWN_BAD) {
             DiagnosticLog.i(app, "GOOGLE_CTS_VERSION",
-                    "17.60/17.64 profile disabled; reference=17.58 fallback=native_v3");
+                    "17.64 profile disabled; reference=17.60 fallback=native_v3");
             Toast.makeText(app, R.string.yfloat_google_known_bad_version,
                     Toast.LENGTH_LONG).show();
             return false;
