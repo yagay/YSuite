@@ -89,7 +89,13 @@ def main() -> int:
     suite_manifest = read(ROOT / "suite/YSuite/src/main/AndroidManifest.xml")
     standalone_manifest = read(ROOT / "standalone/host/src/main/AndroidManifest.xml")
     for owner, manifest in (("YSuite", suite_manifest), ("standalone", standalone_manifest)):
-        if 'android:name="androidx.core.content.FileProvider"' not in manifest:
+        raw = 'android:name="androidx.core.content.FileProvider"' in manifest
+        audited = 'android:name=".ipc.SuiteLensImageFileProvider"' in manifest
+        if owner == "YSuite" and audited:
+            host_provider = read(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/ipc/SuiteLensImageFileProvider.java")
+            if "extends FileProvider" not in host_provider or "openFile(" not in host_provider:
+                error("YSuite: audited host provider must extend FileProvider and preserve openFile contract", errors)
+        elif not raw:
             error(f"{owner}: host-owned FileProvider is missing", errors)
         if 'android:authorities="${applicationId}.files"' not in manifest:
             error(f"{owner}: host FileProvider must own ${{applicationId}}.files", errors)
