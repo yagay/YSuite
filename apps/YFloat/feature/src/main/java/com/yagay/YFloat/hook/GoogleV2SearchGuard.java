@@ -77,6 +77,10 @@ final class GoogleV2SearchGuard {
             log.accept("NATIVE_SEARCH_GUARD","1760 query-result hooks="+count);
             return count;
         }catch(Throwable t){
+            // The 17.66 selection controller is discovered dynamically, but
+            // the legacy 17.60 result signature must never be guessed.
+            log.accept("NATIVE_SEARCH_GUARD",
+                    "legacy_1760_result_hook=unavailable intent_guard=retained");
             module.log(Log.INFO,TAG,"1760 query-result unavailable; intent guard retained");
             return 0;
         }

@@ -83,7 +83,8 @@ final class GoogleV2HookEngine {
         // active. Keep Lens result-query interception guarded by confirmed
         // selection to avoid blocking Google's OCR processing.
         nativeSearch=new GoogleV2SearchGuard(module,loader,
-                this::active,()->active()&&(textMode||regionMode),this::logEvent);
+                this::ownsNativeSearchBoundary,
+                ()->ownsNativeSearchBoundary()&&(textMode||regionMode),this::logEvent);
         // Do not hide Google's text-selection chrome BEFORE recognition
         // completes. Search Intent guards still protect YFloat-owned sessions.
         nativeChrome=new GoogleV2SearchChrome(
@@ -139,6 +140,20 @@ final class GoogleV2HookEngine {
     private boolean active() {
         String key=token;
         return provider.isActive()&&!key.isBlank()&&provider.ownsGoogleCtsSession(key);
+    }
+
+    /** A remote lease can be revoked while Google's own Lens Activity is still
+     * alive. Keep the native-search exit guarded until that exact owner is
+     * actually finished (at most the 300ms lease-watch interval).
+     * Never guard unrelated Google searches after local session cleanup. */
+    private boolean ownsNativeSearchBoundary() {
+        String key=token;
+        if(key.isBlank()||!provider.isActive())return false;
+        if(provider.ownsGoogleCtsSession(key))return true;
+        Activity tracked=owner;
+        return (tracked!=null&&!tracked.isFinishing()&&!tracked.isDestroyed()
+                &&tracked.getClass().getName().endsWith("LensientActivity"))
+                ||voice instanceof VoiceInteractionSession;
     }
 
     private void activate(String key, Object voiceOwner, String source) {

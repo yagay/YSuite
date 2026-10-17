@@ -28,6 +28,23 @@ public class GoogleV2ScenePolicyTest {
                 true,"android.intent.action.VIEW","www.google.com","/maps"));
     }
 
+    @Test public void interceptCountrySpecificGoogleSearchWithoutMatchingLookalikes() {
+        assertTrue(GoogleV2ScenePolicy.suppressNativeSearch(true,
+                "android.intent.action.VIEW","www.google.co.uk","/search"));
+        assertTrue(GoogleV2ScenePolicy.suppressNativeSearch(true,
+                "android.intent.action.VIEW","www.google.com.hk","/search"));
+        assertTrue(GoogleV2ScenePolicy.suppressNativeSearch(true,
+                "android.intent.action.VIEW","lens.google","/lens"));
+        assertFalse(GoogleV2ScenePolicy.suppressNativeSearch(false,
+                "android.intent.action.VIEW","www.google.co.uk","/search"));
+        assertFalse(GoogleV2ScenePolicy.suppressNativeSearch(true,
+                "android.intent.action.VIEW","www.google.co.uk.evil","/search"));
+        assertFalse(GoogleV2ScenePolicy.suppressNativeSearch(true,
+                "android.intent.action.VIEW","notgoogle.co.uk","/search"));
+        assertFalse(GoogleV2ScenePolicy.suppressNativeSearch(true,
+                "android.intent.action.VIEW","www.google.co.uk","/maps"));
+    }
+
     @Test public void onlyCloseRevokedYFloatOwnedLensActivity() {
         assertTrue(GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
                 true,true,false,true,false));

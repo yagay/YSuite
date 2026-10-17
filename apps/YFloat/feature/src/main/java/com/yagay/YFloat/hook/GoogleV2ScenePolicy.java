@@ -18,10 +18,17 @@ final class GoogleV2ScenePolicy {
         if (!"android.intent.action.VIEW".equals(action) || host==null || path==null)
             return false;
         String h=host.toLowerCase(java.util.Locale.ROOT);
-        if (!(h.equals("google.com") || h.endsWith(".google.com")
-                || h.equals("lens.google")))return false;
+        if (!isGoogleSearchHost(h)) return false;
         return path.equals("/search") || path.startsWith("/search/")
                 || path.equals("/lens") || path.startsWith("/lens/");
+    }
+
+    /** Google's search Intent uses country-specific hosts, e.g. google.co.uk.
+     * Match only real Google registrable domains, never lookalike suffixes. */
+    private static boolean isGoogleSearchHost(String host) {
+        if (host == null || host.isBlank()) return false;
+        if (host.equals("lens.google")) return true;
+        return host.matches("(?:[a-z0-9-]+\\.)*google\\.(?:[a-z]{2,}|co\\.[a-z]{2}|com\\.[a-z]{2})");
     }
 
     static boolean shouldBlockTransform(boolean ownedSession, String property,
