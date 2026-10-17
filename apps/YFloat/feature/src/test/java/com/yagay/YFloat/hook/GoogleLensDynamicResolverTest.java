@@ -11,6 +11,8 @@ import android.graphics.RectF;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Set;
 
 public class GoogleLensDynamicResolverTest {
 
@@ -126,6 +128,25 @@ public class GoogleLensDynamicResolverTest {
         Method method = FakeController.class.getDeclaredMethod(
                 "onSelection", FakeMetadata.class, boolean.class);
         assertNotNull(GoogleLensDynamicResolver.scoreSelectionMethod(method));
+    }
+
+    @Test public void symbolWindowStartsNearOldControllerNotAtDexBeginning() {
+        // Old code incorrectly selected the first 6000 of 145k DEX classes.
+        Set<String> nearby=GoogleLensDynamicResolver.nearestObfuscatedNames(
+                List.of("aaaa","aaab","dsxa","dsxb","dsxc","zzza"),
+                "dsxb",1);
+        assertTrue(nearby.contains("dsxa"));
+        assertTrue(nearby.contains("dsxb"));
+        assertTrue(nearby.contains("dsxc"));
+        assertFalse(nearby.contains("aaaa"));
+        assertFalse(nearby.contains("zzza"));
+    }
+
+    @Test public void symbolWindowCanResolveMissingExactOldName() {
+        Set<String> nearby=GoogleLensDynamicResolver.nearestObfuscatedNames(
+                List.of("dsxa","dsxc","dsxd"),"dsxb",1);
+        assertTrue(nearby.contains("dsxa"));
+        assertTrue(nearby.contains("dsxc"));
     }
 
     @Test public void targetedDexAnchorPolicyIncludesOnlyLensCategories() {
