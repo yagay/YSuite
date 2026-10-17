@@ -309,3 +309,31 @@ instead of falsely claiming an OCR read failure.
 This does not provide automatic full-image text enumeration without a Google
 selection gesture: the proven integration receives selected Google OCR text
 after the user selects it in Lens.
+
+## 2026-10-17: do not force a restart on every upgrade
+
+User feedback: updating YFloat does NOT automatically mean Google must
+restart; even a process status `googleStale=true` is insufficient to block
+normal use. Previous preflight code rejected `launch()` before Google could
+demonstrate a live Hook. That safeguard was too aggressive.
+
+New behaviour:
+- Always launch the native YFloat text crop through the APK-confirmed Lens
+  ACTION_SEND path. Status is logged as `preflight ... policy=allow_runtime_hook_check`,
+  regardless of whether `googleStale` is currently true. The image is not
+  discarded just because app versions have changed.
+- A real `hook_ready` callback from the active token overrides stale process
+  metadata; no restart is suggested if the callback actually works.
+- At **30 seconds** into an experimental image session, ONLY if Google is
+  scoped and running, the process is reported STALE, **and** no exact-session
+  Hook acknowledgement arrived, log `hook_recovery_check ... restartSuggestion=true`
+  and suggest (not mandate) manually restarting Google's process if OCR still
+  does not work. Never force-stop Google or automatically reboot the device.
+- If the Hook responds, the app operates normally even if process-generation
+  metadata has not yet refreshed. Non-image CTS workflows receive no new toast.
+- Keep session start, image sharing, full-text-selection callbacks, and the
+  local screenshot Done flow entirely separate.
+
+Thus **upgrading alone is not a trigger** for a restart message. A concrete
+failed Hook startup is necessary, and a running stale version is a
+secondary diagnostic hint, not an absolute failure verdict.

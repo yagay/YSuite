@@ -13,6 +13,8 @@ import android.os.SystemClock;
 final class GoogleCtsSessionCoordinator {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final long STARTUP_DIAGNOSTIC_MS = 12_000L;
+    /** Suggest a recovery only after an actual unanswered Hook handshake. */
+    private static final long HOOK_RECOVERY_DIAGNOSTIC_MS = 30_000L;
     private static final Object LOCK = new Object();
 
     private static final class Owned {
@@ -74,6 +76,31 @@ final class GoogleCtsSessionCoordinator {
                     +" googleStale="+state.googleTargetStale()
                     +" no_automatic_hide=true");
         },STARTUP_DIAGNOSTIC_MS);
+        MAIN.postDelayed(()->{
+            if(owned(token)!=owned
+                    ||!GoogleLensImageInputProbe.ownsPendingImage(token))return;
+            boolean acknowledged;
+            synchronized(LOCK){acknowledged=owned.state.acknowledged();}
+            LsposedStatusManager.Snapshot process=LsposedStatusManager.snapshot();
+            boolean suggest=GoogleLensHookReadinessPolicy
+                    .shouldSuggestRestartAfterTimeout(
+                            process.googleScopeEnabled(),
+                            process.googleTargetLoaded(),
+                            process.googleTargetStale(),acknowledged);
+            DiagnosticLog.i(owned.app,"GOOGLE_CTS_SESSION",
+                    "hook_recovery_check session="+shortToken(token)
+                    +" hookReady="+acknowledged
+                    +" googleStale="+process.googleTargetStale()
+                    +" restartSuggestion="+suggest
+                    +" launchWasNotBlocked=true");
+            if(suggest) {
+                String msg=java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                        ?"Google Hook 未响应；如果识别仍无法使用，可尝试重启 Google 进程"
+                        :"Google Hook has not responded. If OCR still fails, try restarting Google.";
+                android.widget.Toast.makeText(owned.app,msg,
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+        },HOOK_RECOVERY_DIAGNOSTIC_MS);
         MAIN.postDelayed(()->{
             if(owned(token)!=owned)return;
             DiagnosticLog.i(owned.app,"GOOGLE_CTS_SESSION",
