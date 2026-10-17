@@ -111,6 +111,30 @@ jobs:
             "platform-tools"
           test -s "${ANDROID_HOME}/platforms/android-${{ steps.versions.outputs.android_platform }}/android.jar"
           test -x "${ANDROID_HOME}/build-tools/${{ steps.versions.outputs.build_tools }}/aapt2"
+          # YPower's externalNativeBuild pins NDK/CMake versions. Never let
+          # Gradle auto-install native tools from a partially downloaded ZIP.
+          # Retry transient Google SDK archive failures and verify each install.
+          for component in "ndk;27.2.12479018" "cmake;3.22.1"; do
+            case "$component" in
+              ndk*) installed="${ANDROID_HOME}/ndk/27.2.12479018/source.properties" ;;
+              *)    installed="${ANDROID_HOME}/cmake/3.22.1/source.properties" ;;
+            esac
+            if test -s "$installed"; then continue; fi
+            for attempt in 1 2 3 4; do
+              echo "::group::Install $component attempt $attempt"
+              if "$SDKMANAGER" --channel=3 "$component" && test -s "$installed"; then
+                echo "::endgroup::"
+                break
+              fi
+              echo "::warning::Android SDK archive installation failed: $component attempt $attempt"
+              echo "::endgroup::"
+              if [ "$attempt" -eq 4 ]; then
+                echo "::error::Required Android native tool remains unavailable: $component"
+                exit 1
+              fi
+              sleep $((attempt * 8))
+            done
+          done
 
       - name: Verify shared platform data sources
         run: python3 tools/verify_shared_app_catalog.py
