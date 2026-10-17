@@ -73,17 +73,24 @@ final class GoogleLens1758Profile {
     static final String GEOMETRY_UTIL = "dnpv";
 
     static String selectionValidationError(ClassLoader loader) {
-        if (loader == null) return "classLoader=null";
+        String modelError = selectionModelValidationError(loader);
+        if (!modelError.isBlank()) return modelError;
         try {
             Class<?> controller = Class.forName(CONTROLLER, false, loader);
-            boolean selection = false;
             for (Executable executable : HiddenApiBypass.getDeclaredMethods(controller)) {
-                if (executable instanceof Method method) {
-                    selection |= isSelectionMethod(method);
-                }
+                if (executable instanceof Method method && isSelectionMethod(method)
+                        && method.getReturnType() == void.class) return "";
             }
-            if (!selection) return "Lens selection method mismatch";
+            return "Lens selection method mismatch";
+        } catch (Throwable t) {
+            return t.getClass().getSimpleName();
+        }
+    }
 
+    // Verify 17.58 metadata separately when only controller method names vary.
+    static String selectionModelValidationError(ClassLoader loader) {
+        if (loader == null) return "classLoader=null";
+        try {
             Class<?> selectionMetadata = Class.forName(SELECTION_METADATA, false, loader);
             if (!hasField(selectionMetadata, "a", USER_SELECTION)) {
                 return "SelectionWithMetadata UserSelection missing";

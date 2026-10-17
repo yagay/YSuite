@@ -38,6 +38,14 @@ final class GoogleCtsTrigger {
         // An APK replacement restarts the Google process. The next PackageReady
         // installs freshly resolved hooks; this records the new APK identity.
         GoogleHookVersionTracker.observe(app);
+        if (GoogleHookVersionTracker.compatibility(app)
+                == GoogleHookVersionPolicy.Compatibility.KNOWN_BAD) {
+            DiagnosticLog.i(app, "GOOGLE_CTS_VERSION",
+                    "17.60/17.64 profile disabled; reference=17.58 fallback=native_v3");
+            Toast.makeText(app, R.string.yfloat_google_known_bad_version,
+                    Toast.LENGTH_LONG).show();
+            return false;
+        }
         if (!fs.enhancedMode() || !fs.lsposedEnabled()) {
             Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a72460296503), Toast.LENGTH_SHORT).show();
             return false;

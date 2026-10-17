@@ -73,6 +73,12 @@ final class GoogleV2HookEngine {
     }
 
     void install() {
+        // Never install search/UI suppression against a known-bad or ambiguous
+        // selection ABI. Inactive Google processes must remain untouched.
+        if (!selection.available()) {
+            module.log(Log.WARN, TAG, "Google hooks disabled: " + selection.detail());
+            return;
+        }
         int count=0;
         count+=hookVoiceShow();
         count+=hookVoiceFrame();

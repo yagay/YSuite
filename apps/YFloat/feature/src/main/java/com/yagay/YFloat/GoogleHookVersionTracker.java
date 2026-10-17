@@ -30,13 +30,33 @@ final class GoogleHookVersionTracker {
         return current;
     }
 
+    static GoogleHookVersionPolicy.Compatibility compatibility(Context context) {
+        return GoogleHookVersionPolicy.compatibility(versionName(context));
+    }
+
+    private static String versionName(Context context) {
+        if (context == null) return "";
+        try {
+            PackageInfo info = context.getPackageManager()
+                    .getPackageInfo(GoogleCtsContract.GOOGLE_PACKAGE, 0);
+            return info.versionName == null ? "" : info.versionName;
+        } catch (Throwable unavailable) {
+            return "";
+        }
+    }
+
     static String status(Context context) {
         String version = observe(context);
         LsposedStatusManager.Snapshot snapshot = LsposedStatusManager.snapshot();
         boolean scoped = snapshot != null && snapshot.googleScopeEnabled();
         boolean ready = snapshot != null && snapshot.remoteProviderEnabled();
         boolean loaded = snapshot != null && snapshot.googleTargetLoaded();
-        return "Google APK: " + version
+        String compatibilityStatus = switch (compatibility(context)) {
+            case BASELINE_1758 -> context.getString(R.string.yfloat_google_1758_baseline);
+            case KNOWN_BAD -> context.getString(R.string.yfloat_google_known_bad_version);
+            case EXPERIMENTAL -> context.getString(R.string.yfloat_google_unverified_version);
+        };
+        return "Google APK: " + version + "\n" + compatibilityStatus
                 + "\nLSPosed scope: " + (scoped ? "enabled" : "missing")
                 + " · provider: " + (ready ? "enabled" : "unavailable")
                 + " · process: " + (loaded ? "loaded" : "not reported")

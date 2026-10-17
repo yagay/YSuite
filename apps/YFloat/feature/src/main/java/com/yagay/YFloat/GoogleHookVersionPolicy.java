@@ -13,5 +13,17 @@ final class GoogleHookVersionPolicy {
                 && !previous.equals(current);
     }
 
+    // 17.58 is the field-tested baseline. 17.60/17.64 are known regressions.
+    enum Compatibility { BASELINE_1758, KNOWN_BAD, EXPERIMENTAL }
+
+    static Compatibility compatibility(String versionName) {
+        String version = versionName == null ? "" : versionName.trim();
+        if (version.startsWith("17.58.")) return Compatibility.BASELINE_1758;
+        if (version.startsWith("17.60.") || version.startsWith("17.64.")) {
+            return Compatibility.KNOWN_BAD;
+        }
+        return Compatibility.EXPERIMENTAL;
+    }
+
     private GoogleHookVersionPolicy() {}
 }
