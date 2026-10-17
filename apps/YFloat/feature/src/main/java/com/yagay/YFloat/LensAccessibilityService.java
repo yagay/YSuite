@@ -168,6 +168,11 @@ public class LensAccessibilityService extends AccessibilityService {
             String eventCls = eventClass(event);
             if (GoogleCtsContract.GOOGLE_PACKAGE.equals(eventPkg)) {
                 cancelPendingGoogleExit("google_window_returned");
+                WorkflowSessionManager.Session currentGoogle=WorkflowSessionManager.current();
+                if(currentGoogle!=null
+                        &&currentGoogle.type()==WorkflowSessionManager.Type.GOOGLE_CTS)
+                    GoogleV2UiEngine.onNavigationReturn(
+                            this,currentGoogle.externalKey(),"google_window_returned");
             }
 
             // Only a live Google CTS workflow needs navigation release handling. Home/launcher
@@ -217,6 +222,13 @@ public class LensAccessibilityService extends AccessibilityService {
                 WorkflowSessionManager.current();
         if(scheduled==null||!scheduled.current()
                 ||scheduled.type()!=WorkflowSessionManager.Type.GOOGLE_CTS)return;
+        // Do not hold YFloat's separate text outline / screenshot Done button
+        // on top of the launcher for the 1.1s navigation settle timeout.
+        // Only visuals are suspended here; remote lease, Google recognition
+        // and session termination keep the original safeguards.
+        if(GoogleCtsSessionCoordinator.mayCancelOnNavigation(scheduled.externalKey()))
+            GoogleV2UiEngine.onNavigationExit(
+                    this,scheduled.externalKey(),"accessibility:"+reason);
         final int generation = ++googleExitGeneration;
         final Runnable[] holder = new Runnable[1];
         holder[0] = () -> {

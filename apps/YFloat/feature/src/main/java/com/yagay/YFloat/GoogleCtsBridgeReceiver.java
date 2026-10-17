@@ -67,6 +67,8 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
                     GoogleV2UiEngine.onCommit(context, token, detail);
             case GoogleCtsContract.EVENT_TEXT_MENU_COMMIT ->
                     GoogleV2UiEngine.onText(context, token, text, bounds, detail);
+            case GoogleCtsContract.EVENT_VISUAL_EXIT ->
+                    GoogleV2UiEngine.onNavigationExit(context, token, "hook:"+detail);
             case GoogleCtsContract.EVENT_END ->
                     GoogleV2UiEngine.onEnd(context, token, detail);
             default -> DiagnosticLog.i(context, "GOOGLE_V2",

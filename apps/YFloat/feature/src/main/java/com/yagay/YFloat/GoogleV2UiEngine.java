@@ -40,15 +40,78 @@ final class GoogleV2UiEngine {
         long lastGestureElapsed;
         Runnable pendingTextMenu;
         Runnable pendingRegionMenu;
+        int[] textRows;
+        boolean visualSuspended;
         Session(Context app, String token) { this.app=app;this.token=token; }
     }
 
     /** Reject events queued by a superseded Google CTS workflow. */
-    private static boolean ownsUi(Session s) {
+    private static boolean ownsSession(Session s) {
         WorkflowSessionManager.Session workflow=WorkflowSessionManager.current();
         return s!=null && GoogleV2SessionOwnership.accepts(s.token,
                 workflow==null?"":workflow.externalKey(),SESSIONS.get(s.token)==s,
                 s.state.terminal()) && WorkflowSessionManager.matchesExternal(s.token);
+    }
+
+    /** Visual suspension prevents late OCR/gesture messages recreating a closed overlay. */
+    private static boolean ownsUi(Session s) {
+        return ownsSession(s) && !s.visualSuspended;
+    }
+
+    /**
+     * A confirmed Google Activity stop or an accessibility navigation
+     * candidate is sufficient to hide YFloat's separate UI immediately.
+     * This does NOT revoke a Hook token, end the workflow, or interrupt
+     * screenshot frame delivery. The coordinator still owns final release.
+     */
+    static void onNavigationExit(Context context,String token,String reason) {
+        if(token==null||token.isBlank())return;
+        Session s=SESSIONS.get(token);
+        if(s==null)return;
+        Runnable action=()->{
+            if(!ownsSession(s)
+                    ||!GoogleV2VisualExitPolicy.canSuspend(s.state.phase)
+                    ||s.visualSuspended)return;
+            s.visualSuspended=true;
+            cancelTextMenu(s);
+            cancelRegionMenu(s);
+            GoogleV2TextOutline.dismiss(s.token);
+            GoogleRegionConfirmOverlay.dismiss(s.token,"v2_navigation_exit");
+            FloatActionMenu.dismiss();
+            DiagnosticLog.i(s.app,"GOOGLE_V2",
+                    "visuals_hidden_immediate reason="+reason+" session="
+                            +s.token.substring(0,Math.min(8,s.token.length())));
+        };
+        if(Looper.myLooper()==Looper.getMainLooper())action.run();
+        else MAIN.post(action);
+    }
+
+    /**
+     * A transient Google window handoff may resolve back into the original
+     * Google session. Restore its existing selection from the same token,
+     * never from a superseded session or after terminal teardown.
+     */
+    static void onNavigationReturn(Context context,String token,String reason) {
+        if(token==null||token.isBlank())return;
+        Session s=SESSIONS.get(token);
+        if(s==null)return;
+        Runnable action=()->{
+            if(!ownsSession(s)||!s.visualSuspended)return;
+            s.visualSuspended=false;
+            if(s.state.phase==GoogleV2State.Phase.TEXT) {
+                Rect bounds=rect(s.state);
+                if(bounds!=null)
+                    GoogleV2TextOutline.show(s.app,s.token,bounds,s.textRows);
+                showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
+            }else if(s.state.phase==GoogleV2State.Phase.REGION) {
+                showDoneWhenStable(s,REGION_MENU_SETTLE_MS);
+            }
+            DiagnosticLog.i(s.app,"GOOGLE_V2",
+                    "visuals_resumed reason="+reason+" session="
+                            +s.token.substring(0,Math.min(8,s.token.length())));
+        };
+        if(Looper.myLooper()==Looper.getMainLooper())action.run();
+        else MAIN.post(action);
     }
 
     /** Legacy release does not own V2 sessions; abandon the exact old token. */
@@ -109,6 +172,7 @@ final class GoogleV2UiEngine {
             Rect use=bounds!=null&&!bounds.isEmpty()?new Rect(bounds):null;
             if(!s.state.text(text,at(use,0),at(use,1),at(use,2),at(use,3)))return;
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
+            s.textRows=rows==null?null:rows.clone();
             cancelRegionMenu(s);
             GoogleRegionConfirmOverlay.dismiss(token,"v2_text");
             if(use!=null)GoogleV2TextOutline.show(s.app,s.token,use,rows);
@@ -127,6 +191,7 @@ final class GoogleV2UiEngine {
             if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.TEXT)return;
             s.state.bounds(bounds.left,bounds.top,bounds.right,bounds.bottom);
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
+            s.textRows=rows==null?null:rows.clone();
             GoogleV2TextOutline.show(s.app,s.token,bounds,rows);
             showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
         });
@@ -187,6 +252,7 @@ final class GoogleV2UiEngine {
         MAIN.post(()->{
             if(!ownsUi(s)||!s.state.region(bounds.left,bounds.top,bounds.right,bounds.bottom))return;
             s.lastRegionUpdateElapsed=SystemClock.elapsedRealtime();
+            s.textRows=null;
             cancelTextMenu(s);
             FloatActionMenu.dismiss();
             GoogleV2TextOutline.dismiss(s.token);
@@ -297,7 +363,8 @@ final class GoogleV2UiEngine {
     static void onEnd(Context c,String token,String reason){
         Session s=session(c,token);if(s==null)return;
         MAIN.post(()->{
-            if(!ownsUi(s))return;
+            // A visual-only exit must not suppress the later real END event.
+            if(!ownsSession(s))return;
             if(s.state.phase==GoogleV2State.Phase.AWAITING_FRAME
                     ||s.state.phase==GoogleV2State.Phase.DELIVERED)return;
             // Back, gesture navigation and Google Activity stop are cancellation.
@@ -310,6 +377,8 @@ final class GoogleV2UiEngine {
         cancelTextMenu(s);
         cancelRegionMenu(s);
         s.state.close();
+        s.visualSuspended=false;
+        s.textRows=null;
         GoogleRegionConfirmOverlay.dismiss(s.token,"v2_"+reason);
         // This cleanup is shared UI; a late old-session callback must not
         // dismiss the selection/menu already owned by the next gesture.

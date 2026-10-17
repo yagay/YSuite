@@ -277,6 +277,11 @@ final class GoogleV2HookEngine {
      * the session if no screenshot handoff occurred.
      */
     private void scheduleOwnedExit(String expected,String reason) {
+        // Visual teardown is immediate. Keep the existing delayed, token-bound
+        // final release so lifecycle races cannot close a replacement session.
+        if(expected!=null && expected.equals(token) && active())
+            transport.sendEvent(GoogleCtsContract.EVENT_VISUAL_EXIT,
+                    "",reason,null);
         int generation=revision.get();
         main.postDelayed(()->{
             if(!expected.equals(token)||generation!=revision.get())return;

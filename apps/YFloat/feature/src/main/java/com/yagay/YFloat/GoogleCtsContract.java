@@ -52,6 +52,8 @@ public final class GoogleCtsContract {
     public static final String EVENT_QUERY_RESULT = "query_result";
     /** Finalize a text selection whose YFloat action menu was already shown at selection time. */
     public static final String EVENT_TEXT_MENU_COMMIT = "text_menu_commit";
+    /** Hook observed a real voice-hide / Lens Activity stop: hide overlays immediately. */
+    public static final String EVENT_VISUAL_EXIT = "visual_exit";
     public static final String EVENT_END = "end";
     public static final String EVENT_FRAME_READY = "frame_ready";
     /** Persistent one-time Google ABI scan cache, never a live CTS session token. */
