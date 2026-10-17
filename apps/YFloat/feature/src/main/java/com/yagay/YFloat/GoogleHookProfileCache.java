@@ -103,8 +103,8 @@ public final class GoogleHookProfileCache {
 
     private static String sanitize(String value,int max) {
         if(value==null)return "";
-        String safe=value.replace('\\n',' ').replace('\\r',' ')
-                .replace('\\u0000',' ').trim();
+        String safe=value.replace('\n',' ').replace('\r',' ')
+                .replace('\0',' ').trim();
         return safe.length()>max?safe.substring(0,max):safe;
     }
 
