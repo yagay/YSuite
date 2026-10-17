@@ -654,8 +654,10 @@ final class GoogleV2HookEngine {
                 logEvent("TEXT_SELECTION_READY","stage="+stage
                         +" chars="+value.length()
                         +" bounds="+(currentBounds!=null&&!currentBounds.isEmpty()));
-                viewport.attach(owner);
-                nativeChrome.onSelection();
+                if(!lensImageInputProbe){
+                    viewport.attach(owner);
+                    nativeChrome.onSelection();
+                }
                 transport.sendEventWithRows(GoogleCtsContract.EVENT_SELECTION,
                         value,candidate.detail()+" stage="+stage,
                         currentBounds,currentTextRows);
