@@ -34,10 +34,12 @@ public final class ActionExecutor {
                 if (settings.circleEngine() == 1) {
                     GoogleHookVersionTracker.observe(c);
                     DiagnosticLog.i(c, "AI_SCREEN", "engine=google_cts_v2");
-                    if (GoogleCtsTrigger.trigger(c)) break;
-                    // Only fall back when Google did not start a session. Never
-                    // overlay Native Circle on top of a live Google session.
-                    DiagnosticLog.i(c, "AI_SCREEN", "google_start_failed fallback=native_v3");
+                    // Explicit Google mode is strict: never silently switch
+                    // to another Circle implementation when its Hook is unavailable.
+                    if (!GoogleCtsTrigger.trigger(c))
+                        DiagnosticLog.i(c, "AI_SCREEN",
+                                "google_start_failed strict_google_only=true");
+                    break;
                 }
                 FLCircleController.show(c);
             }

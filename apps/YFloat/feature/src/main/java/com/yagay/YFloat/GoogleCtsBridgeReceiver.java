@@ -41,6 +41,8 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
             rows=null;
 
         switch (event) {
+            case GoogleCtsContract.EVENT_HOOK_READY ->
+                    GoogleCtsTrigger.onOwnedHookReady(context,token,detail);
             case GoogleCtsContract.EVENT_FRAME_READY ->
                     GoogleCtsBridgeProvider.consumeSharedFrame(context, token);
             case GoogleCtsContract.EVENT_SELECTION ->

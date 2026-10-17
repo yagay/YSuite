@@ -52,6 +52,7 @@ final class GoogleV2HookEngine {
     private volatile boolean loggedInactiveSelection;
     private volatile boolean loggedRejectedActivation;
     private volatile String token = "";
+    private volatile String hookReadySentToken = "";
     private volatile Activity owner;
     private volatile Object voice;
     private volatile boolean textMode;
@@ -88,7 +89,9 @@ final class GoogleV2HookEngine {
         // Do not hide Google's text-selection chrome BEFORE recognition
         // completes. Search Intent guards still protect YFloat-owned sessions.
         nativeChrome=new GoogleV2SearchChrome(
-                ()->active()&&(textMode||regionMode),
+                // Suppress default Google result/search surfaces as soon as
+                // the authenticated YFloat session starts, not only after OCR.
+                this::ownsNativeSearchBoundary,
                 ()->active()&&(textMode||regionMode),this::logEvent);
         profileStore=new GoogleHookProfileStore(module);
         selection=GoogleSelectionAdapter.resolve(loader,profileStore);
@@ -186,6 +189,14 @@ final class GoogleV2HookEngine {
         token=key;
         if(voiceOwner!=null)voice=voiceOwner;
         logEvent("SESSION","activated="+source);
+        // Do not acknowledge on DEX scan alone: Google reached our live
+        // LSPosed activation callback with the exact Remote Pref token.
+        // Retry on Activity entry if Application Context was not ready in doShow.
+        if(!key.equals(hookReadySentToken)
+                &&transport.sendEvent(GoogleCtsContract.EVENT_HOOK_READY,
+                        "","owned_callback="+source,null)) {
+            hookReadySentToken=key;
+        }
         if(newSession) {
             // The host revokes its lease once the YFloat result screen owns
             // the output. Google does not always call Activity.onResume again,
@@ -241,6 +252,7 @@ final class GoogleV2HookEngine {
      */
     private void clearLocalSession() {
         token="";
+        hookReadySentToken="";
         textMode=false;regionMode=false;currentText="";currentBounds=null;currentTextRows=null;
         owner=null;voice=null;
         transport.reset();

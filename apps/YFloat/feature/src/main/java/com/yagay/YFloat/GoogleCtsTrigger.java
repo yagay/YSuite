@@ -15,6 +15,56 @@ import java.util.UUID;
 /** YFloat-owned trigger for Google Circle to Search. MiCTS is referenced only for this layer. */
 final class GoogleCtsTrigger {
     private static final int CTS_SHOW_FLAGS = 7;
+    private static final long HOOK_ACK_TIMEOUT_MS = 5_000L;
+    private static volatile String acknowledgedHookToken = "";
+
+    static void onOwnedHookReady(Context context,String token,String detail) {
+        if(context==null||token==null||token.isBlank()
+                ||!WorkflowSessionManager.matchesExternal(token))return;
+        acknowledgedHookToken=token;
+        DiagnosticLog.i(context,"GOOGLE_CTS_HOOK_ACK",
+                "strict intercept ready session="
+                        +token.substring(0,Math.min(8,token.length()))
+                        +" detail="+(detail==null?"":detail));
+    }
+
+    /**
+     * The system may accept showSessionFromSession even if the Google Hook did
+     * not install. Never let that unowned session continue into default search.
+     * This only runs while the exact YFloat workflow token remains current.
+     */
+    private static void failClosedIfHookMissing(Context app,
+            WorkflowSessionManager.Session workflow,String expectedToken) {
+        if(!GoogleCtsHookAckPolicy.shouldFailClosed(
+                workflow.current()&&WorkflowSessionManager.matchesExternal(expectedToken),
+                expectedToken,acknowledgedHookToken))return;
+        DiagnosticLog.i(app,"GOOGLE_CTS_HOOK_ACK",
+                "timeout strict_fail_closed session="
+                        +expectedToken.substring(0,Math.min(8,expectedToken.length())));
+        boolean hidden=false;
+        try {
+            Class<?> manager=Class.forName("android.os.ServiceManager");
+            Object raw=HiddenApiBypass.invoke(manager,null,"getService","voiceinteraction");
+            if(raw instanceof IBinder binder){
+                Class<?> stub=Class.forName(
+                        "com.android.internal.app.IVoiceInteractionManagerService$Stub");
+                Object voiceService=HiddenApiBypass.invoke(stub,null,"asInterface",binder);
+                Class<?> iface=Class.forName(
+                        "com.android.internal.app.IVoiceInteractionManagerService");
+                // hideSessionFromSession(null) is the inverse of our
+                // showSessionFromSession(null, ...) system-side entry.
+                Object result=HiddenApiBypass.invoke(
+                        iface,voiceService,"hideSessionFromSession",(IBinder)null);
+                hidden=Boolean.TRUE.equals(result);
+            }
+        }catch(Throwable t){
+            DiagnosticLog.i(app,"GOOGLE_CTS_HOOK_ACK",
+                    "system_hide_failed="+t.getClass().getSimpleName());
+        }
+        DiagnosticLog.i(app,"GOOGLE_CTS_HOOK_ACK","system_hide="+hidden);
+        GoogleV2UiEngine.abandon(app,expectedToken,"hook_not_ready");
+        GoogleCtsBridgeController.onNativeRelease(app,"hook_not_ready");
+    }
 
     static boolean trigger(Context c) {
         if (c == null) return false;
@@ -74,6 +124,7 @@ final class GoogleCtsTrigger {
 
         Bundle args = new Bundle();
         String token = UUID.randomUUID().toString();
+        acknowledgedHookToken="";
         WorkflowSessionManager.Session workflow = WorkflowSessionManager.beginExternal(
                 app, WorkflowSessionManager.Type.GOOGLE_CTS, token, "google_cts_trigger");
         WorkflowSessionManager.transition(app, workflow,
@@ -136,6 +187,9 @@ final class GoogleCtsTrigger {
             } else {
                 WorkflowSessionManager.transition(app, workflow,
                         WorkflowSessionManager.Phase.SELECTING, "google_cts_visible");
+                new Handler(Looper.getMainLooper()).postDelayed(
+                        ()->failClosedIfHookMissing(app,workflow,token),
+                        HOOK_ACK_TIMEOUT_MS);
                 // Google can accept showSessionFromSession while its LSPosed
                 // callbacks are missing. No bridge event means no State is ever
                 // created, so the normal State TTL cannot release SELECTING.

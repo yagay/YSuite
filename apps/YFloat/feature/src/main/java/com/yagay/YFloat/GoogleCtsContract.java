@@ -37,6 +37,8 @@ public final class GoogleCtsContract {
     public static final String EXTRA_BOTTOM = "com.yagay.YFloat.extra.CTS_BOTTOM";
     /** Four screen-space integers per selected text row. */
     public static final String EXTRA_TEXT_ROWS = "com.yagay.YFloat.extra.CTS_TEXT_ROWS";
+    /** A live, token-matched Google Hook acknowledged the YFloat-owned session. */
+    public static final String EVENT_HOOK_READY = "hook_ready";
     public static final String EVENT_SELECTION = "selection";
     /** Google native text-selection geometry changed during a handle drag. */
     public static final String EVENT_TEXT_BOUNDS = "text_bounds";
