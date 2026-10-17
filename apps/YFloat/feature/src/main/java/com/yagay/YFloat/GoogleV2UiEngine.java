@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,13 +20,23 @@ final class GoogleV2UiEngine {
     private static final Map<String, Session> SESSIONS = new ConcurrentHashMap<>();
     private static final long FRAME_TIMEOUT_MS = 6500;
     private static final long SESSION_TTL_MS = 120000;
+    private static final long TEXT_MENU_SETTLE_MS = 260;
+    private static final long REGION_MENU_SETTLE_MS = 280;
+    // Gesture hooks may miss ACTION_UP when a Google view is replaced.
+    // An idle timeout is permitted only after no fresh selection/gesture input.
+    private static final long GESTURE_IDLE_RECOVERY_MS = 700;
 
     private static final class Session {
         final String token;
         final GoogleV2State state = new GoogleV2State();
         Bitmap frame;
         Context app;
-        long issuedAt = android.os.SystemClock.elapsedRealtime();
+        long issuedAt = SystemClock.elapsedRealtime();
+        long lastTextUpdateElapsed;
+        long lastRegionUpdateElapsed;
+        long lastGestureElapsed;
+        Runnable pendingTextMenu;
+        Runnable pendingRegionMenu;
         Session(Context app, String token) { this.app=app;this.token=token; }
     }
 
@@ -72,9 +83,11 @@ final class GoogleV2UiEngine {
         MAIN.post(()->{
             Rect use=pickBounds(s,bounds);
             if(!s.state.text(text,at(use,0),at(use,1),at(use,2),at(use,3)))return;
+            s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
+            cancelRegionMenu(s);
             GoogleRegionConfirmOverlay.dismiss(token,"v2_text");
             if(use!=null)GoogleV2TextOutline.show(s.app,use);
-            showTextWhenStable(s,100);
+            showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()+" bounds="+use);
         });
     }
@@ -84,59 +97,119 @@ final class GoogleV2UiEngine {
         MAIN.post(()->{
             if(s.state.phase!=GoogleV2State.Phase.TEXT)return;
             s.state.bounds(bounds.left,bounds.top,bounds.right,bounds.bottom);
+            s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
             GoogleV2TextOutline.show(s.app,bounds);
-            if(!s.state.dragging)showTextWhenStable(s,90);
+            showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
         });
     }
     static void onTextGesture(Context c,String token,boolean dragging){
         Session s=session(c,token);if(s==null)return;
         MAIN.post(()->{
             if(s.state.phase!=GoogleV2State.Phase.TEXT)return;
-            if(s.state.drag(dragging)&&dragging)FloatActionMenu.dismiss();
-            if(!dragging)showTextWhenStable(s,110);
+            s.lastGestureElapsed=SystemClock.elapsedRealtime();
+            if(s.state.drag(dragging)&&dragging) {
+                // A drag temporarily dismisses actions but must not delete
+                // the selected-text outline or permanently suppress the menu.
+                FloatActionMenu.dismissPreservingTextOutline();
+                DiagnosticLog.i(s.app,"GOOGLE_V2","text menu paused for gesture");
+            }
+            showTextWhenStable(s,dragging
+                    ?GESTURE_IDLE_RECOVERY_MS:TEXT_MENU_SETTLE_MS);
         });
     }
 
+    /**
+     * Trailing-edge, coalesced menu presenter. The previous one-shot
+     * revision/dragging guard silently dropped EVERY pending menu when Google
+     * emitted another word update or missed a gesture END. Reschedule until
+     * the latest content has settled, then safely recover a stale drag state.
+     */
     private static void showTextWhenStable(Session s,long delay){
-        final int revision=s.state.revision;
-        MAIN.postDelayed(()->{
-            if(SESSIONS.get(s.token)!=s||revision!=s.state.revision
-                    ||s.state.dragging||s.state.phase!=GoogleV2State.Phase.TEXT)return;
+        if(s.pendingTextMenu!=null)MAIN.removeCallbacks(s.pendingTextMenu);
+        Runnable request=()->{
+            s.pendingTextMenu=null;
+            if(SESSIONS.get(s.token)!=s||s.state.phase!=GoogleV2State.Phase.TEXT
+                    ||s.state.text.isBlank())return;
+            long now=SystemClock.elapsedRealtime();
+            long wait=GoogleV2MenuRecoveryPolicy.waitForIdle(
+                    now,s.lastTextUpdateElapsed,s.lastGestureElapsed,
+                    s.state.dragging,TEXT_MENU_SETTLE_MS,GESTURE_IDLE_RECOVERY_MS);
+            if(wait>0){
+                showTextWhenStable(s,wait);
+                return;
+            }
+            if(s.state.dragging){
+                s.state.drag(false);
+                DiagnosticLog.i(s.app,"GOOGLE_V2",
+                        "text gesture end missing; recovered after idle");
+            }
             Rect anchor=rect(s.state);
             FloatActionMenu.showTextAt(s.app,s.state.text,null,anchor);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text menu visible="
-                    +FloatActionMenu.hasVisibleTextMenu()+" revision="+revision);
-        },delay);
+                    +FloatActionMenu.hasVisibleTextMenu()
+                    +" revision="+s.state.revision+" idleRecovered=true");
+        };
+        s.pendingTextMenu=request;
+        MAIN.postDelayed(request,Math.max(1L,delay));
     }
 
     static void onRegion(Context context,String token,Rect bounds,String detail){
         Session s=session(context,token);if(s==null||bounds==null||bounds.isEmpty())return;
         MAIN.post(()->{
             if(!s.state.region(bounds.left,bounds.top,bounds.right,bounds.bottom))return;
+            s.lastRegionUpdateElapsed=SystemClock.elapsedRealtime();
+            cancelTextMenu(s);
             FloatActionMenu.dismiss();
             GoogleV2TextOutline.dismiss();
-            showDoneWhenStable(s,280);
+            showDoneWhenStable(s,REGION_MENU_SETTLE_MS);
         });
     }
     static void onRegionGesture(Context context,String token,boolean dragging){
         Session s=session(context,token);if(s==null)return;
         MAIN.post(()->{
             if(s.state.phase!=GoogleV2State.Phase.REGION)return;
+            s.lastGestureElapsed=SystemClock.elapsedRealtime();
             s.state.drag(dragging);
             if(dragging)GoogleRegionConfirmOverlay.dismiss(token,"v2_drag");
-            else showDoneWhenStable(s,180);
+            showDoneWhenStable(s,dragging
+                    ?GESTURE_IDLE_RECOVERY_MS:REGION_MENU_SETTLE_MS);
         });
     }
-    private static void showDoneWhenStable(Session s,long wait){
-        final int revision=s.state.revision;
-        MAIN.postDelayed(()->{
-            if(SESSIONS.get(s.token)!=s||s.state.revision!=revision
-                    ||s.state.phase!=GoogleV2State.Phase.REGION
-                    ||s.state.dragging||!s.state.validBounds())return;
+    /** Screenshot completion must never be synthesized without a real Region. */
+    private static void showDoneWhenStable(Session s,long delay){
+        if(s.pendingRegionMenu!=null)MAIN.removeCallbacks(s.pendingRegionMenu);
+        Runnable request=()->{
+            s.pendingRegionMenu=null;
+            if(SESSIONS.get(s.token)!=s||s.state.phase!=GoogleV2State.Phase.REGION
+                    ||!s.state.validBounds())return;
+            long now=SystemClock.elapsedRealtime();
+            long wait=GoogleV2MenuRecoveryPolicy.waitForIdle(
+                    now,s.lastRegionUpdateElapsed,s.lastGestureElapsed,
+                    s.state.dragging,REGION_MENU_SETTLE_MS,GESTURE_IDLE_RECOVERY_MS);
+            if(wait>0){
+                showDoneWhenStable(s,wait);
+                return;
+            }
+            if(s.state.dragging){
+                s.state.drag(false);
+                DiagnosticLog.i(s.app,"GOOGLE_V2",
+                        "region gesture end missing; recovered after idle");
+            }
             GoogleRegionConfirmOverlay.show(s.app,s.token,rect(s.state),()->confirm(s));
             DiagnosticLog.i(s.app,"GOOGLE_V2","region confirm visible "+rect(s.state));
-        },wait);
+        };
+        s.pendingRegionMenu=request;
+        MAIN.postDelayed(request,Math.max(1L,delay));
     }
+    private static void cancelTextMenu(Session s){
+        if(s.pendingTextMenu!=null)MAIN.removeCallbacks(s.pendingTextMenu);
+        s.pendingTextMenu=null;
+    }
+    private static void cancelRegionMenu(Session s){
+        if(s.pendingRegionMenu!=null)MAIN.removeCallbacks(s.pendingRegionMenu);
+        s.pendingRegionMenu=null;
+    }
+
     static void onCommit(Context context,String token,String reason){
         Session s=session(context,token);if(s!=null)MAIN.post(()->confirm(s));
     }
@@ -206,6 +279,8 @@ final class GoogleV2UiEngine {
     }
     private static void release(Session s,String reason,boolean keepMenu){
         if(!SESSIONS.remove(s.token,s))return;
+        cancelTextMenu(s);
+        cancelRegionMenu(s);
         s.state.close();
         GoogleRegionConfirmOverlay.dismiss(s.token,"v2_"+reason);
         if(!keepMenu) {

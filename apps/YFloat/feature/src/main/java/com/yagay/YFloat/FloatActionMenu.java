@@ -123,7 +123,10 @@ public final class FloatActionMenu {
         if (c == null) return;
         String text = value == null ? "" : value.trim();
         if (text.isEmpty()) return;
-        dismiss();
+        // Replacing text actions must not remove Google's live selection
+        // outline; it is owned by the CTS session rather than this menu.
+        if(mode==MODE_MAIN)dismissPreservingTextOutline();
+        else dismiss();
 
         Context app = c.getApplicationContext();
         WindowManager wm = (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
@@ -679,8 +682,20 @@ public final class FloatActionMenu {
     }
 
     public static synchronized void dismiss() {
+        dismissInternal(true);
+    }
+
+    /**
+     * Called during text-handle drags: hide only the toolbar, not the
+     * independently owned selection outline. New stable text restores actions.
+     */
+    static synchronized void dismissPreservingTextOutline() {
+        dismissInternal(false);
+    }
+
+    private static void dismissInternal(boolean removeSelectionOutline) {
         GoogleTextResultFrameOverlay.dismiss();
-        GoogleV2TextOutline.dismiss();
+        if(removeSelectionOutline)GoogleV2TextOutline.dismiss();
         View v = activeView;
         FlOverlayWindowHost host = activeHost;
         activeView = null;
