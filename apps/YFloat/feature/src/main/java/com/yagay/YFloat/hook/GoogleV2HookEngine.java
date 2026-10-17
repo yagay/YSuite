@@ -77,6 +77,7 @@ final class GoogleV2HookEngine {
     }
 
     boolean install() {
+        if (selection.available()) profileStore.reportProgress("registering",0,0);
         if (!selection.available()) {
             module.log(Log.WARN,TAG,"Google selection Hook unresolved: "+selection.detail());
             if (GoogleSelectionAdapter.scanned(selection)

@@ -51,4 +51,14 @@
     <string name="yfloat_google_manual_scan_waiting">正在扫描 Google Hook（最长 45 秒）</string>
     <string name="yfloat_google_scan_status">最近一次扫描：%1$s · 注册 %2$d 个 Hook · %3$s</string>
     <string name="yfloat_google_scan_timeout_unloaded">Google 进程没有报告 LSPosed Hook 已加载，请检查作用域、进程注入及 Google 模块日志。</string>
+    <string name="yfloat_scan_phase_reload">正在重启 Google 进程</string>
+    <string name="yfloat_scan_phase_launch">正在启动 Google</string>
+    <string name="yfloat_scan_phase_wait">等待 Google 进程加载 LSPosed Hook（尚未开始扫描）</string>
+    <string name="yfloat_scan_phase_resolve">正在校验 Lens Hook 特征</string>
+    <string name="yfloat_scan_phase_index">正在索引相关 Lens DEX 分区</string>
+    <string name="yfloat_scan_phase_match">正在匹配 Lens 文字选择类</string>
+    <string name="yfloat_scan_phase_register">正在注册匹配的 Hook</string>
+    <string name="yfloat_scan_phase_success">Hook 匹配完成</string>
+    <string name="yfloat_scan_phase_failed">Hook 匹配失败</string>
+    <string name="yfloat_scan_phase_timeout">Hook 扫描超时</string>
 </resources>

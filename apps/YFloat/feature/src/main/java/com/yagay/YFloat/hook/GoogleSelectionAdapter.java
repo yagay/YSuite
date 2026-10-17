@@ -67,6 +67,7 @@ final class GoogleSelectionAdapter {
         // profile. Even the built-in 17.60 ABI is revalidated on demand.
         String symbols=store==null?"":store.read();
         boolean manual=store!=null && store.manualRequested();
+        if(store!=null)store.reportProgress("resolving",0,0);
         String error = GoogleLens1760Profile.selectionValidationError(loader);
         if (error.isBlank()) {
             try {
@@ -96,7 +97,10 @@ final class GoogleSelectionAdapter {
         // New APK, changed Hook matcher, or invalid cache: one bounded scan
         // per ClassLoader. A failed scan stays memoized for this process.
         GoogleLensDynamicResolver.SelectionBinding dynamic =
-                GoogleLensDynamicResolver.discoverSelection(loader);
+                GoogleLensDynamicResolver.discoverSelection(loader,
+                        (phase, done, total) -> {
+                            if(store!=null)store.reportProgress(phase,done,total);
+                        });
         if (!dynamic.available()) return new MissingBinding(
                 "1760="+error+"; semantic="+dynamic.detail());
         return new DynamicBinding(dynamic,"1760="+error,

@@ -51,4 +51,14 @@
     <string name="yfloat_google_manual_scan_waiting">Google Hook scan in progress (up to 45 seconds)</string>
     <string name="yfloat_google_scan_status">Last Hook scan: %1$s · %2$d registered · %3$s</string>
     <string name="yfloat_google_scan_timeout_unloaded">Google process did not report an active LSPosed Hook; verify target scope, process injection, and Google module logs.</string>
+    <string name="yfloat_scan_phase_reload">Restarting Google process</string>
+    <string name="yfloat_scan_phase_launch">Opening Google</string>
+    <string name="yfloat_scan_phase_wait">Waiting for Google LSPosed Hook injection (not scanning yet)</string>
+    <string name="yfloat_scan_phase_resolve">Checking Lens Hook contract</string>
+    <string name="yfloat_scan_phase_index">Indexing related Lens DEX partitions</string>
+    <string name="yfloat_scan_phase_match">Matching Lens selection classes</string>
+    <string name="yfloat_scan_phase_register">Registering matched Hooks</string>
+    <string name="yfloat_scan_phase_success">Hook match completed</string>
+    <string name="yfloat_scan_phase_failed">Hook match failed</string>
+    <string name="yfloat_scan_phase_timeout">Hook scan timed out</string>
 </resources>

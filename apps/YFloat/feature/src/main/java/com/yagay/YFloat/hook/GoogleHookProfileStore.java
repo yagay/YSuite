@@ -79,6 +79,26 @@ final class GoogleHookProfileStore {
 
     boolean manualRequested() { return manualRequested; }
 
+    /** Only manual scans send progress; throttle to avoid startup IPC storms. */
+    private long lastProgressReport;
+    void reportProgress(String phase,int done,int total) {
+        if(!manualRequested || context==null || identity.isBlank())return;
+        long now=android.os.SystemClock.elapsedRealtime();
+        if(now-lastProgressReport<220L && !("registering".equals(phase)))return;
+        lastProgressReport=now;
+        try {
+            Bundle req=request();
+            req.putString(GoogleCtsContract.EXTRA_HOOK_SCAN_PHASE,phase);
+            req.putInt(GoogleCtsContract.EXTRA_HOOK_SCAN_DONE,done);
+            req.putInt(GoogleCtsContract.EXTRA_HOOK_SCAN_TOTAL,total);
+            context.getContentResolver().call(uri,
+                    GoogleCtsContract.METHOD_REPORT_HOOK_SCAN_PROGRESS,null,req);
+        }catch(Throwable t) {
+            module.log(Log.WARN,TAG,"Google scan progress IPC failed "
+                    +t.getClass().getSimpleName());
+        }
+    }
+
     void reportScan(boolean success,int installedHooks,String method) {
         if(context==null || identity.isBlank()) {
             module.log(Log.WARN,TAG,"Google scan Toast unavailable: process context missing");

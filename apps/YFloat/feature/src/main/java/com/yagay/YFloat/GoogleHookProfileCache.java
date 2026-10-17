@@ -34,6 +34,10 @@ public final class GoogleHookProfileCache {
     private static final String K_LAST_SCAN_DETAIL = "last_scan_detail";
     private static final String K_LAST_SCAN_COUNT = "last_scan_count";
     private static final String K_LAST_SCAN_APK = "last_scan_apk";
+    private static final String K_SCAN_PHASE = "scan_phase";
+    private static final String K_SCAN_DONE = "scan_done";
+    private static final String K_SCAN_TOTAL = "scan_total";
+    private static final String K_SCAN_UPDATED = "scan_updated_elapsed";
     private static final long MANUAL_SCAN_TIMEOUT_MS = 45_000L;
     private static final int MAX_SYMBOL_BYTES = 2048;
 
@@ -45,6 +49,24 @@ public final class GoogleHookProfileCache {
         if (identity.isBlank() || !identity.equals(installedIdentity(context))
                 || !BuildConfig.GOOGLE_HOOK_FINGERPRINT.equals(fingerprint)) return result;
         SharedPreferences cache = context.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        if (GoogleCtsContract.METHOD_REPORT_HOOK_SCAN_PROGRESS.equals(method)) {
+            if (!manualPending(cache,identity,fingerprint) || manualTimedOut(cache))
+                return result;
+            String phase = extras.getString(GoogleCtsContract.EXTRA_HOOK_SCAN_PHASE,"");
+            if (!("resolving".equals(phase) || "indexing".equals(phase)
+                    || "matching".equals(phase) || "registering".equals(phase)))
+                return result;
+            int done = Math.max(0,extras.getInt(GoogleCtsContract.EXTRA_HOOK_SCAN_DONE,0));
+            int total = Math.max(0,extras.getInt(GoogleCtsContract.EXTRA_HOOK_SCAN_TOTAL,0));
+            // All progress is actual work observed in the Google process.
+            // total=0 means unknown: UI must use an indeterminate indicator.
+            cache.edit().putString(K_SCAN_PHASE,phase)
+                    .putInt(K_SCAN_DONE,done)
+                    .putInt(K_SCAN_TOTAL,total)
+                    .putLong(K_SCAN_UPDATED,SystemClock.elapsedRealtime()).commit();
+            result.putBoolean("received",true);
+            return result;
+        }
         if (GoogleCtsContract.METHOD_REPORT_HOOK_SCAN.equals(method)) {
             boolean success=extras.getBoolean(GoogleCtsContract.EXTRA_HOOK_SCAN_SUCCESS,false);
             int count=Math.max(0,Math.min(250,extras.getInt(
@@ -57,7 +79,9 @@ public final class GoogleHookProfileCache {
                     +(manual ? "|manual" : "");
             DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN","finished version="
                     +identity+" success="+success+" hooks="+count+" detail="+detail);
-            cache.edit().putString(K_LAST_SCAN_APK,identity)
+            cache.edit().putString(K_SCAN_PHASE,success?"success":"failed")
+                    .putInt(K_SCAN_DONE,success?count:0).putInt(K_SCAN_TOTAL,0)
+                    .putString(K_LAST_SCAN_APK,identity)
                     .putString(K_LAST_SCAN_RESULT,success?"success":"failed")
                     .putString(K_LAST_SCAN_DETAIL,detail)
                     .putInt(K_LAST_SCAN_COUNT,count).commit();
@@ -118,11 +142,40 @@ public final class GoogleHookProfileCache {
                 .putString(K_MANUAL_APK,identity)
                 .putString(K_MANUAL_FINGERPRINT,BuildConfig.GOOGLE_HOOK_FINGERPRINT)
                 .putLong(K_MANUAL_STARTED,SystemClock.elapsedRealtime())
+                .putLong(K_SCAN_UPDATED,SystemClock.elapsedRealtime())
+                .putString(K_SCAN_PHASE,"reloading")
+                .putInt(K_SCAN_DONE,0).putInt(K_SCAN_TOTAL,0)
                 .remove(K_LAST_SCAN_TOAST)
                 .remove(K_LAST_SCAN_RESULT).remove(K_LAST_SCAN_DETAIL).commit();
         if(started) new Handler(Looper.getMainLooper()).postDelayed(
                 () -> expirePending(app),MANUAL_SCAN_TIMEOUT_MS);
         return started;
+    }
+
+    static void hostStage(Context context,String phase) {
+        if(context==null)return;
+        Context app=context.getApplicationContext();
+        SharedPreferences p=app.getSharedPreferences(PREF,Context.MODE_PRIVATE);
+        if(!manualPending(p,installedIdentity(app),BuildConfig.GOOGLE_HOOK_FINGERPRINT))return;
+        if(!("reloading".equals(phase) || "launching".equals(phase)
+                || "waiting".equals(phase)))return;
+        p.edit().putString(K_SCAN_PHASE,phase)
+                .putInt(K_SCAN_DONE,0).putInt(K_SCAN_TOTAL,0)
+                .putLong(K_SCAN_UPDATED,SystemClock.elapsedRealtime()).commit();
+        DiagnosticLog.i(app,"GOOGLE_HOOK_SCAN","host progress phase="+phase);
+    }
+
+    static void manualFailure(Context context,String detail) {
+        if(context==null)return;
+        Context app=context.getApplicationContext();
+        SharedPreferences p=app.getSharedPreferences(PREF,Context.MODE_PRIVATE);
+        String apk=p.getString(K_MANUAL_APK,"");
+        clearPending(p);
+        p.edit().putString(K_LAST_SCAN_APK,apk)
+                .putString(K_LAST_SCAN_RESULT,"failed")
+                .putString(K_SCAN_PHASE,"failed")
+                .putString(K_LAST_SCAN_DETAIL,sanitize(detail,160)).commit();
+        DiagnosticLog.i(app,"GOOGLE_HOOK_SCAN","manual failed="+sanitize(detail,160));
     }
 
     static void cancelManualScan(Context context) {
@@ -162,7 +215,8 @@ public final class GoogleHookProfileCache {
         String detail=context.getString(loaded
                 ? R.string.yfloat_google_scan_timeout_detail
                 : R.string.yfloat_google_scan_timeout_unloaded);
-        p.edit().putString(K_LAST_SCAN_APK,apk)
+        p.edit().putString(K_SCAN_PHASE,"timeout")
+                .putString(K_LAST_SCAN_APK,apk)
                 .putString(K_LAST_SCAN_RESULT,"timeout")
                 .putString(K_LAST_SCAN_DETAIL,detail)
                 .putInt(K_LAST_SCAN_COUNT,0).commit();
@@ -175,14 +229,49 @@ public final class GoogleHookProfileCache {
                 version,detail));
     }
 
+    static final class ScanSnapshot {
+        final boolean pending;
+        final String phase;
+        final int done;
+        final int total;
+        final long elapsedMs;
+        final String detail;
+        ScanSnapshot(boolean pending,String phase,int done,int total,
+                long elapsedMs,String detail) {
+            this.pending=pending;this.phase=phase;this.done=done;
+            this.total=total;this.elapsedMs=elapsedMs;this.detail=detail;
+        }
+    }
+
+    static ScanSnapshot scanSnapshot(Context context) {
+        Context app=context.getApplicationContext();
+        expirePending(app);
+        SharedPreferences p=app.getSharedPreferences(PREF,Context.MODE_PRIVATE);
+        String apk=installedIdentity(app);
+        boolean pending=manualPending(p,apk,BuildConfig.GOOGLE_HOOK_FINGERPRINT);
+        String phase=p.getString(K_SCAN_PHASE,"");
+        if(!pending && !apk.equals(p.getString(K_LAST_SCAN_APK,"")))
+            return new ScanSnapshot(false,"",0,0,0,"");
+        long started=p.getLong(K_MANUAL_STARTED,0L);
+        long elapsed=pending && started>0
+                ?Math.max(0,SystemClock.elapsedRealtime()-started):0;
+        return new ScanSnapshot(pending,phase,
+                p.getInt(K_SCAN_DONE,0),p.getInt(K_SCAN_TOTAL,0),
+                elapsed,p.getString(K_LAST_SCAN_DETAIL,""));
+    }
+
     public static String scanStatus(Context context) {
         if(context==null)return "";
         Context app=context.getApplicationContext();
         expirePending(app);
         SharedPreferences p=app.getSharedPreferences(PREF,Context.MODE_PRIVATE);
         String identity=installedIdentity(app);
-        if(manualPending(p,identity,BuildConfig.GOOGLE_HOOK_FINGERPRINT))
-            return app.getString(R.string.yfloat_google_manual_scan_waiting);
+        if(manualPending(p,identity,BuildConfig.GOOGLE_HOOK_FINGERPRINT)) {
+            ScanSnapshot snap=scanSnapshot(app);
+            return snap.phase + (snap.total>0
+                    ? " " + snap.done + "/" + snap.total : "")
+                    + " (" + (snap.elapsedMs/1000) + "s)";
+        }
         if(!identity.equals(p.getString(K_LAST_SCAN_APK,"")))return "";
         String result=p.getString(K_LAST_SCAN_RESULT,"");
         if(result.isBlank())return "";

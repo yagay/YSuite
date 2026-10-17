@@ -38,7 +38,15 @@ final class GoogleLensDynamicResolver {
     private static final String LENS_DEX_ANCHOR = GoogleLens1760Profile.FROZEN_IMAGE_VIEW;
     private static final String SELECTION_DEX_ANCHOR = GoogleLens1760Profile.TEXT_SELECTION_VIEW;
 
+    interface ProgressListener {
+        void onProgress(String phase,int done,int total);
+    }
+
     static SelectionBinding discoverSelection(ClassLoader loader) {
+        return discoverSelection(loader,(phase,done,total)->{});
+    }
+
+    static SelectionBinding discoverSelection(ClassLoader loader,ProgressListener progress) {
         if (loader == null) return SelectionBinding.none("classLoader=null");
 
         SelectionBinding best = SelectionBinding.none("no structural candidate");
@@ -48,13 +56,18 @@ final class GoogleLensDynamicResolver {
         boolean ambiguous = false;
 
         try {
-            for (String name : dexClassNames(loader, deadline)) {
+            Set<String> names = dexClassNames(loader, deadline, progress);
+            int total = Math.min(MAX_SCANNED_CLASSES,names.size());
+            progress.onProgress("matching",0,total);
+            for (String name : names) {
                 if (SystemClock.elapsedRealtime() >= deadline)
                     return SelectionBinding.none("scan timeout after "
                             + MAX_SCAN_ELAPSED_MS + "ms scanned=" + scanned);
                 if (scanned >= MAX_SCANNED_CLASSES) break;
                 if (!eligibleClassName(name) || !seen.add(name)) continue;
                 scanned++;
+                if ((scanned & 63) == 0 || scanned == total)
+                    progress.onProgress("matching",scanned,total);
 
                 Class<?> controller;
                 try {
@@ -209,8 +222,11 @@ final class GoogleLensDynamicResolver {
      * Class-name enumeration is necessary to locate the stable anchors;
      * Java reflection is limited to eligible names in those partitions.
      */
-    private static Set<String> dexClassNames(ClassLoader loader, long deadline) {
+    private static Set<String> dexClassNames(ClassLoader loader,long deadline,
+            ProgressListener progress) {
         Set<String> related = new LinkedHashSet<>();
+        int indexedPartitions=0;
+        progress.onProgress("indexing",0,0);
         for (ClassLoader current = loader; current != null; current = current.getParent()) {
             if (SystemClock.elapsedRealtime() >= deadline) return related;
             Object pathList = readNamedField(current, "pathList");
@@ -237,6 +253,8 @@ final class GoogleLensDynamicResolver {
                     }
                     if (relevant) related.addAll(partition);
                 } catch (Throwable ignored) { }
+                indexedPartitions++;
+                progress.onProgress("indexing",indexedPartitions,0);
             }
         }
         return related;

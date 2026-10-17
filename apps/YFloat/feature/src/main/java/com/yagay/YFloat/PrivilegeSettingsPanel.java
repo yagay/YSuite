@@ -7,6 +7,9 @@ import android.text.format.DateFormat;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.os.Handler;
+import android.os.Looper;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -226,6 +229,70 @@ public final class PrivilegeSettingsPanel {
                     });
                 });
         YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(oneShotScan));
+
+        // Display actual Google IPC progress, not an animated fake percentage.
+        LinearLayout scanBlock=YViewLayout.settingBlock(activity);
+        TextView scanLabel=YViewLayout.rowSubtitle(activity,"");
+        LinearProgressIndicator scanBar=new LinearProgressIndicator(activity);
+        scanBar.setMax(100);
+        scanBlock.addView(scanLabel);
+        scanBlock.addView(scanBar,new LinearLayout.LayoutParams(-1,-2));
+        YViewLayout.addRow(lsposedSection.body,scanBlock);
+        Handler scanHandler=new Handler(Looper.getMainLooper());
+        Runnable scanUpdater=new Runnable() {
+            @Override public void run() {
+                if(!scanBlock.isAttachedToWindow() || activity.isFinishing())return;
+                GoogleHookProfileCache.ScanSnapshot snapshot=
+                        GoogleHookProfileCache.scanSnapshot(activity);
+                boolean visible= !snapshot.phase.isBlank();
+                scanBlock.setVisibility(visible?View.VISIBLE:View.GONE);
+                if(visible) {
+                    boolean determinate=snapshot.pending
+                            && "matching".equals(snapshot.phase) && snapshot.total>0;
+                    scanBar.setIndeterminate(!determinate && snapshot.pending);
+                    if(determinate) scanBar.setProgressCompat(
+                            Math.min(100,(int)(100L*snapshot.done/snapshot.total)),true);
+                    if(!snapshot.pending) {
+                        scanBar.setIndeterminate(false);
+                        scanBar.setProgressCompat("success".equals(snapshot.phase)?100:0,true);
+                    }
+                    String phaseLabel=switch(snapshot.phase) {
+                        case "reloading" -> activity.getString(R.string.yfloat_scan_phase_reload);
+                        case "launching" -> activity.getString(R.string.yfloat_scan_phase_launch);
+                        case "waiting" -> activity.getString(R.string.yfloat_scan_phase_wait);
+                        case "resolving" -> activity.getString(R.string.yfloat_scan_phase_resolve);
+                        case "indexing" -> activity.getString(R.string.yfloat_scan_phase_index);
+                        case "matching" -> activity.getString(R.string.yfloat_scan_phase_match);
+                        case "registering" -> activity.getString(R.string.yfloat_scan_phase_register);
+                        case "success" -> activity.getString(R.string.yfloat_scan_phase_success);
+                        case "failed" -> activity.getString(R.string.yfloat_scan_phase_failed);
+                        case "timeout" -> activity.getString(R.string.yfloat_scan_phase_timeout);
+                        default -> snapshot.phase;
+                    };
+                    String count=snapshot.total>0
+                            ? " " + snapshot.done + "/" + snapshot.total
+                                + " (" + Math.min(100,100L*snapshot.done/snapshot.total) + "%)"
+                            : snapshot.done>0 ? " " + snapshot.done : "";
+                    String elapsed=snapshot.pending?" · "+snapshot.elapsedMs/1000+"s":"";
+                    scanLabel.setText(phaseLabel+count+elapsed+
+                            (snapshot.pending || snapshot.detail.isBlank()
+                                    ? "" : "\n"+snapshot.detail));
+                }
+                scanHandler.postDelayed(this,750L);
+            }
+        };
+        scanBlock.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View v) {
+                scanHandler.removeCallbacks(scanUpdater);
+                scanHandler.post(scanUpdater);
+            }
+            @Override public void onViewDetachedFromWindow(View v) {
+                scanHandler.removeCallbacks(scanUpdater);
+            }
+        });
+        GoogleHookProfileCache.ScanSnapshot initialScan=GoogleHookProfileCache.scanSnapshot(activity);
+        scanBlock.setVisibility(initialScan.phase.isBlank()?View.GONE:View.VISIBLE);
+        if(!initialScan.phase.isBlank())scanLabel.setText(initialScan.phase);
 
         MaterialSwitch secureScreenshotSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_secure_screenshot),

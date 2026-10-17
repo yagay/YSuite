@@ -39,22 +39,26 @@ final class GoogleHookManualScan {
                 +GoogleHookVersionTracker.observe(app));
         boolean started=HookReloadManager.reloadGoogleForCtsAsync(app,result->{
             if(!result.success) {
-                GoogleHookProfileCache.cancelManualScan(app);
+                GoogleHookProfileCache.manualFailure(app,result.detail);
                 respond(finished,app.getString(R.string.yfloat_google_manual_scan_reload_failed,
                         result.detail.isBlank()?result.userMessage(app):result.detail));
                 return;
             }
+            GoogleHookProfileCache.hostStage(app,"launching");
             Intent launch=app.getPackageManager().getLaunchIntentForPackage(
                     GoogleCtsContract.GOOGLE_PACKAGE);
             if(launch==null) {
+                GoogleHookProfileCache.hostStage(app,"waiting");
                 respond(finished,app.getString(R.string.yfloat_google_manual_scan_launch_failed));
                 return;
             }
             launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
                 app.startActivity(launch);
+                GoogleHookProfileCache.hostStage(app,"waiting");
                 respond(finished,app.getString(R.string.yfloat_google_manual_scan_started));
             } catch(Throwable t) {
+                GoogleHookProfileCache.hostStage(app,"waiting");
                 DiagnosticLog.i(app,"GOOGLE_HOOK_SCAN","Google launch failed="
                         +t.getClass().getSimpleName());
                 respond(finished,app.getString(R.string.yfloat_google_manual_scan_launch_failed));
