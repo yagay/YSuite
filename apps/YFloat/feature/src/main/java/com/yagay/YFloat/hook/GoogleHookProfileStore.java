@@ -66,6 +66,10 @@ final class GoogleHookProfileStore {
             Bundle req=request();
             Bundle res=context.getContentResolver().call(uri,
                     GoogleCtsContract.METHOD_READ_HOOK_PROFILE,null,req);
+            if(res==null || !res.containsKey(GoogleCtsContract.EXTRA_HOOK_SCAN_MANUAL)) {
+                module.log(Log.WARN,TAG,"Google profile Provider not acknowledged; uri="+uri
+                        +" apk="+identity+" result="+(res==null?"null":"empty"));
+            }
             manualRequested=res!=null
                     && res.getBoolean(GoogleCtsContract.EXTRA_HOOK_SCAN_MANUAL,false);
             if (manualRequested) {

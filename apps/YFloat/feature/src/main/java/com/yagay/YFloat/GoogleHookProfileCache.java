@@ -43,11 +43,23 @@ public final class GoogleHookProfileCache {
 
     static Bundle handle(Context context, String method, Bundle extras) {
         Bundle result = new Bundle();
-        if (context == null || extras == null || !authorizedGoogleUid(context)) return result;
+        if(context == null || extras == null)return result;
+        if(!authorizedGoogleUid(context)) {
+            DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN",
+                    "provider rejected unauthorised Google Hook caller uid="+Binder.getCallingUid());
+            return result;
+        }
         String identity = extras.getString(GoogleCtsContract.EXTRA_HOOK_APK_IDENTITY, "");
         String fingerprint = extras.getString(GoogleCtsContract.EXTRA_HOOK_FINGERPRINT, "");
-        if (identity.isBlank() || !identity.equals(installedIdentity(context))
-                || !BuildConfig.GOOGLE_HOOK_FINGERPRINT.equals(fingerprint)) return result;
+        String installed = installedIdentity(context);
+        if(identity.isBlank() || !identity.equals(installed)
+                || !BuildConfig.GOOGLE_HOOK_FINGERPRINT.equals(fingerprint)) {
+            DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN",
+                    "profile IPC rejected: apkMatches="+identity.equals(installed)
+                            +" fingerprintMatches="+BuildConfig.GOOGLE_HOOK_FINGERPRINT.equals(fingerprint)
+                            +" method="+method);
+            return result;
+        }
         SharedPreferences cache = context.getSharedPreferences(PREF, Context.MODE_PRIVATE);
         if (GoogleCtsContract.METHOD_REPORT_HOOK_SCAN_PROGRESS.equals(method)) {
             if (!manualPending(cache,identity,fingerprint) || manualTimedOut(cache))
@@ -68,6 +80,12 @@ public final class GoogleHookProfileCache {
             return result;
         }
         if (GoogleCtsContract.METHOD_REPORT_HOOK_SCAN.equals(method)) {
+            // A late result must not hide the actual completed timeout.
+            if(!cache.getBoolean(K_MANUAL_PENDING,false)
+                    && "timeout".equals(cache.getString(K_LAST_SCAN_RESULT,""))) {
+                result.putBoolean("reported",false);
+                return result;
+            }
             boolean success=extras.getBoolean(GoogleCtsContract.EXTRA_HOOK_SCAN_SUCCESS,false);
             int count=Math.max(0,Math.min(250,extras.getInt(
                     GoogleCtsContract.EXTRA_HOOK_SCAN_COUNT,0)));
@@ -212,9 +230,17 @@ public final class GoogleHookProfileCache {
         // reporting its module load. Surface that distinction in diagnostics.
         LsposedStatusManager.Snapshot scope = LsposedStatusManager.snapshot();
         boolean loaded = scope != null && scope.googleTargetLoaded();
-        String detail=context.getString(loaded
-                ? R.string.yfloat_google_scan_timeout_detail
-                : R.string.yfloat_google_scan_timeout_unloaded);
+        String lastPhase=p.getString(K_SCAN_PHASE,"");
+        boolean acknowledged = "resolving".equals(lastPhase)
+                || "indexing".equals(lastPhase)
+                || "matching".equals(lastPhase)
+                || "registering".equals(lastPhase);
+        // Only an authenticated progress callback proves the Google process
+        // entered the scan. The LSPosed process list is not an IPC heartbeat.
+        String detail=acknowledged
+                ? context.getString(R.string.yfloat_google_scan_timeout_after_progress,
+                        lastPhase,p.getInt(K_SCAN_DONE,0),p.getInt(K_SCAN_TOTAL,0))
+                : context.getString(R.string.yfloat_google_scan_timeout_no_callback);
         p.edit().putString(K_SCAN_PHASE,"timeout")
                 .putString(K_LAST_SCAN_APK,apk)
                 .putString(K_LAST_SCAN_RESULT,"timeout")
@@ -223,7 +249,9 @@ public final class GoogleHookProfileCache {
         DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN",
                 "manual scan timed out apk="+apk+" result_not_received"
                         +" googleHookReportedLoaded="+loaded
-                        +" googleScopeEnabled="+(scope != null && scope.googleScopeEnabled()));
+                        +" googleScopeEnabled="+(scope != null && scope.googleScopeEnabled())
+                        +" googleScanCallbackReceived="+acknowledged
+                        +" lastPhase="+lastPhase);
         String version=apk.split("/",2)[0];
         notifyUser(context,context.getString(R.string.yfloat_google_scan_toast_failure,
                 version,detail));

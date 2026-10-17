@@ -61,4 +61,6 @@
     <string name="yfloat_scan_phase_success">Hook 匹配完成</string>
     <string name="yfloat_scan_phase_failed">Hook 匹配失败</string>
     <string name="yfloat_scan_phase_timeout">Hook 扫描超时</string>
+    <string name="yfloat_google_scan_timeout_no_callback">未收到 Google 进程的扫描回传。虽然已配置 LSPosed 作用域，但仅凭运行进程列表不能判断是注入失败还是桥接通信失败。请查看 LSPosed 中的 YSuite.Xposed / YFloat-GoogleV2 日志。</string>
+    <string name="yfloat_google_scan_timeout_after_progress">Google Hook 已进入 %1$s 阶段（%2$d/%3$d），但没有完成。请查看 Google 进程的 LSPosed 日志。</string>
 </resources>

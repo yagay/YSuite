@@ -61,4 +61,6 @@
     <string name="yfloat_scan_phase_success">Hook match completed</string>
     <string name="yfloat_scan_phase_failed">Hook match failed</string>
     <string name="yfloat_scan_phase_timeout">Hook scan timed out</string>
+    <string name="yfloat_google_scan_timeout_no_callback">No scan callback arrived from Google's process. LSPosed scope is configured, but target injection and bridge IPC cannot be distinguished without module logs. Check YSuite.Xposed and YFloat-GoogleV2 in LSPosed logs.</string>
+    <string name="yfloat_google_scan_timeout_after_progress">Google Hook entered %1$s (%2$d/%3$d) but did not finish. Check the Google target's LSPosed module logs.</string>
 </resources>

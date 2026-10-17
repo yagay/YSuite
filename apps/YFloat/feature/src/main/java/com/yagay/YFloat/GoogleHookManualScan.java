@@ -48,7 +48,8 @@ final class GoogleHookManualScan {
             Intent launch=app.getPackageManager().getLaunchIntentForPackage(
                     GoogleCtsContract.GOOGLE_PACKAGE);
             if(launch==null) {
-                GoogleHookProfileCache.hostStage(app,"waiting");
+                GoogleHookProfileCache.manualFailure(app,
+                        app.getString(R.string.yfloat_google_manual_scan_launch_failed));
                 respond(finished,app.getString(R.string.yfloat_google_manual_scan_launch_failed));
                 return;
             }
@@ -58,7 +59,8 @@ final class GoogleHookManualScan {
                 GoogleHookProfileCache.hostStage(app,"waiting");
                 respond(finished,app.getString(R.string.yfloat_google_manual_scan_started));
             } catch(Throwable t) {
-                GoogleHookProfileCache.hostStage(app,"waiting");
+                GoogleHookProfileCache.manualFailure(app,
+                        app.getString(R.string.yfloat_google_manual_scan_launch_failed));
                 DiagnosticLog.i(app,"GOOGLE_HOOK_SCAN","Google launch failed="
                         +t.getClass().getSimpleName());
                 respond(finished,app.getString(R.string.yfloat_google_manual_scan_launch_failed));
