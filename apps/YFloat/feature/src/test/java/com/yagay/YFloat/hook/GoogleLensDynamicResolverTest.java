@@ -107,4 +107,13 @@ public class GoogleLensDynamicResolverTest {
         assertNotNull(GoogleLensDynamicResolver.scoreSelectionMethod(method));
     }
 
+    @Test public void targetedDexAnchorPolicyIncludesOnlyLensCategories() {
+        assertTrue(GoogleLensDynamicResolver.isRelevantDexAnchor(
+                GoogleLens1760Profile.FROZEN_IMAGE_VIEW));
+        assertTrue(GoogleLensDynamicResolver.isRelevantDexAnchor(
+                GoogleLens1760Profile.TEXT_SELECTION_VIEW));
+        assertFalse(GoogleLensDynamicResolver.isRelevantDexAnchor("com.google.android.apps.search.feed.FeedView"));
+        assertFalse(GoogleLensDynamicResolver.isRelevantDexAnchor("com.google.android.apps.search.omnient.MiniApp"));
+    }
+
 }

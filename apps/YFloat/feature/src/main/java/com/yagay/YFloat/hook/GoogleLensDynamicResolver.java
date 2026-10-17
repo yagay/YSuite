@@ -31,11 +31,12 @@ import dalvik.system.DexFile;
  */
 final class GoogleLensDynamicResolver {
     static final int MIN_SELECTION_CONFIDENCE = 95;
-    private static final int MAX_SCANNED_CLASSES = 14_000;
+    // Only Lens-related DEX partitions are inspected; never the whole Google APK.
+    private static final int MAX_SCANNED_CLASSES = 6_000;
     // Bound a cold Google DEX scan instead of blocking PackageReady indefinitely.
     private static final long MAX_SCAN_ELAPSED_MS = 7_000L;
-    private static final String LENS_DEX_ANCHOR =
-            "com.google.android.libraries.lens.view.frozenimage.FrozenImageView";
+    private static final String LENS_DEX_ANCHOR = GoogleLens1760Profile.FROZEN_IMAGE_VIEW;
+    private static final String SELECTION_DEX_ANCHOR = GoogleLens1760Profile.TEXT_SELECTION_VIEW;
 
     static SelectionBinding discoverSelection(ClassLoader loader) {
         if (loader == null) return SelectionBinding.none("classLoader=null");
@@ -104,7 +105,8 @@ final class GoogleLensDynamicResolver {
                     best.textMethod(), best.boundsMethod(), best.pointMethod(),
                     best.confidence(), best.detail() + " scannedFinal=" + scanned);
         }
-        return SelectionBinding.none("no structural candidate scanned=" + scanned);
+        return SelectionBinding.none("no selection Hook candidate within Lens-related DEX"
+                + " scanned=" + scanned + " (other Google DEX partitions skipped)");
     }
 
     /**
@@ -200,51 +202,56 @@ final class GoogleLensDynamicResolver {
     }
 
     /**
-     * Keep DEX partitions intact. The Google APK has many DEX files; gathering all
-     * names in a HashSet and inspecting only the first 14k makes discovery random.
-     * The stable FrozenImageView class identifies the Lens partition without
-     * depending on any R8-obfuscated class name. Scan that partition first.
+     * Scan only the FrozenImageView / TextSelectionView DEX partitions.
+     * Unrelated Google DEX partitions are excluded even if they contain
+     * plausible (Metadata, boolean) methods. No APK-wide fallback.
+     *
+     * Class-name enumeration is necessary to locate the stable anchors;
+     * Java reflection is limited to eligible names in those partitions.
      */
     private static Set<String> dexClassNames(ClassLoader loader, long deadline) {
-        Set<String> lens = new LinkedHashSet<>();
-        Set<String> others = new LinkedHashSet<>();
+        Set<String> related = new LinkedHashSet<>();
         for (ClassLoader current = loader; current != null; current = current.getParent()) {
+            if (SystemClock.elapsedRealtime() >= deadline) return related;
             Object pathList = readNamedField(current, "pathList");
             Object elements = readNamedField(pathList, "dexElements");
             if (elements == null || !elements.getClass().isArray()) continue;
             int length = Array.getLength(elements);
             for (int i = 0; i < length; i++) {
+                if (SystemClock.elapsedRealtime() >= deadline) return related;
                 Object element = Array.get(elements, i);
                 Object dex = readNamedField(element, "dexFile");
                 if (!(dex instanceof DexFile dexFile)) continue;
                 try {
-                    List<String> partition = new ArrayList<>();
-                    boolean containsLens = false;
+                    Set<String> partition = new LinkedHashSet<>();
+                    boolean relevant = false;
                     Enumeration<String> entries = dexFile.entries();
                     int enumerated = 0;
                     while (entries.hasMoreElements()) {
                         if ((++enumerated & 127) == 0
                                 && SystemClock.elapsedRealtime() >= deadline)
-                            return new LinkedHashSet<>();
+                            return related;
                         String name = entries.nextElement();
-                        if (!eligibleClassName(name)) {
-                            if (LENS_DEX_ANCHOR.equals(name)) containsLens = true;
-                            continue;
-                        }
-                        partition.add(name);
+                        if (isRelevantDexAnchor(name)) relevant = true;
+                        if (eligibleClassName(name)) partition.add(name);
                     }
-                    if (containsLens) lens.addAll(partition);
-                    else others.addAll(partition);
+                    if (relevant) related.addAll(partition);
                 } catch (Throwable ignored) { }
             }
         }
-        if (lens.isEmpty()) return others;
-        lens.addAll(others);
-        return lens;
+        return related;
+    }
+
+    static boolean isRelevantDexAnchor(String name) {
+        return LENS_DEX_ANCHOR.equals(name) || SELECTION_DEX_ANCHOR.equals(name);
     }
 
     private static boolean eligibleClassName(String name) {
         if (name == null || name.isBlank() || name.contains("$")) return false;
+        // Also consider named Lens selection classes in the related DEX.
+        if (name.startsWith("com.google.android.libraries.lens.common.text.selection.")
+                || name.startsWith("com.google.android.libraries.lens.view.frozenimage."))
+            return true;
         int dot = name.lastIndexOf('.');
         String simple = dot < 0 ? name : name.substring(dot + 1);
         if (simple.length() < 2 || simple.length() > 8) return false;
