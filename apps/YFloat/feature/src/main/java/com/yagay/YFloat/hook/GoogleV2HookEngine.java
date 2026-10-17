@@ -113,6 +113,8 @@ final class GoogleV2HookEngine {
         count+=hookVoiceShow();
         count+=hookVoiceFrame();
         count+=hookActivities();
+        count+=new GoogleLensImageReadProbe(module,
+                ()->active()&&lensImageInputProbe,this::logEvent).install();
         count+=viewport.install();
         count+=nativeSearch.install();
         count+=frames.install();
@@ -497,7 +499,20 @@ final class GoogleV2HookEngine {
                         }
                     }
                     if(active()){
-                        if(activity.getClass().getName().endsWith("LensientActivity")
+                        String activityName=activity.getClass().getName();
+                        if(lensImageInputProbe) {
+                            // Observe the *actual* Lens processing Activity,
+                            // not only the GoogleAppGatewayActivity redirect.
+                            android.net.Uri data=incoming==null?null:incoming.getData();
+                            logEvent("LENS_IMAGE_INPUT","google_activity="+activityName
+                                    +" event="+method.getName()
+                                    +" scheme="+(data==null?"none":data.getScheme()));
+                            if(activityName.toLowerCase(java.util.Locale.ROOT)
+                                    .contains("lens")
+                                    &&!activityName.endsWith("GoogleAppGatewayActivity"))
+                                owner=activity;
+                        }
+                        if(activityName.endsWith("LensientActivity")
                                 ||owner==null)owner=activity;
                         frames.captureFromIntent(incoming);
                         // This Activity is a search handoff, not the initial

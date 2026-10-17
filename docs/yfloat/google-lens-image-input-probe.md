@@ -39,3 +39,23 @@ https://chromium.googlesource.com/chromium/src/+/5ce55c161eed982e49ceb58e0d3265e
 A launch `startActivity()` success is NOT OCR success. Google may repackage the activity and strip YFloat extras, or run a different Lens selection pipeline; both require evidence-based adaptation. Do **not** auto-hide Google, apply Hook symbol guesses, intercept network traffic, extend ownership to unrelated Google sessions, or claim full-screen OCR availability before observing a live result.
 
 If input fails, investigate exported Google Activity/Intent contract first. If input works but OCR return fails, inspect selection output specifically with the Google 17.66 diagnostics; don't replace the working image input or re-enable speculative search blocking.
+
+## 2026-10-17 21:10 log findings and next gate
+
+- Real native crop at 21:09:55 had 648x609 pixels; the YFloat temporary PNG was 460035 bytes.
+- Legacy googleapp://lens Intent entered GoogleAppGatewayActivity, but no Google screenshot read or OCR selection was observed before diagnostic export. The earlier 21:03 input was revoked by top_package_changed at ~5 seconds.
+- New candidate caller fix follows Chromium's actual startActivityForResult pattern with a private transparent YFloat Activity. It is an experimental source-attribution adjustment, NOT a confirmed AGSA 17.66 OCR result API.
+- When the installed Google App exposes a separate direct Lens activity for google://lens, use it in preference to the generic gateway. This is determined by PackageManager.resolveActivity; never guess an obfuscated class.
+- Diagnostic hook now reports ContentResolver opens of the **exact YFloat image authority** and whether the Java open returned successfully, without logging image bytes or OCR contents. Native/binder-level opens may not be visible, so a missing open event is inconclusive.
+- If Google navigates away, leave the one-shot image URI readable for at most 2 minutes instead of immediately deleting on an accessibility top-package change.
+
+The refreshed runtime evidence should be read in this order:
+
+1. `selected_from`, `encode_begin`, `resolvers gateway=... direct=... chosen=...`
+2. `caller_started`, `intent_dispatched caller=startActivityForResult`
+3. `GOOGLE_CTS_HOOK V2 LENS_IMAGE_INPUT google_activity=...`
+4. `google_image_open_attempt` / `google_image_open_result success=true`
+5. `native_ocr_callback` (ONLY this confirms YFloat received Google-selected OCR text)
+6. `workflow_ended_input_retained` vs `image_released` with reason.
+
+Even if steps 1–4 succeed, Google Lens may implement OCR selection in a different process/controller than Circle to Search. Do not claim a working OCR results interface until a genuine Google text selection event is observed.

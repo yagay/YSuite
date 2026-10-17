@@ -137,7 +137,7 @@ final class GoogleCtsSessionCoordinator {
         LsposedStatusManager.clearGoogleCtsSessionRemote(token);
         // Probe-specific URI grant/file cleanup is token-scoped, and must not
         // close the next Google Lens image input in a quick retry.
-        GoogleLensImageInputProbe.release(owned.app,token,"workflow_"+reason);
+        GoogleLensImageInputProbe.onCtsWorkflowEnd(owned.app,token,reason);
         if(WorkflowSessionManager.matchesExternal(token)){
             new FloatSettings(owned.app).clearGoogleCtsSession(token);
             if(success)WorkflowSessionManager.finish(owned.app,owned.workflow,reason);

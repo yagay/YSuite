@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import android.content.ClipData;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -94,6 +95,7 @@ final class GoogleLensImageInputProbe {
         }
         String token=UUID.randomUUID().toString();
         long now=SystemClock.elapsedRealtime();
+        for(String old:SHARES.keySet())release(app,old,"new_image_input");
         GoogleCtsSessionCoordinator.cancelCurrent(app,"new_lens_image_input");
         WorkflowSessionManager.Session workflow=
                 GoogleCtsSessionCoordinator.begin(app,token,now);
@@ -104,19 +106,34 @@ final class GoogleLensImageInputProbe {
             long nanos=SystemClock.elapsedRealtimeNanos();
             Intent normal=makeIntent(imageUri,token,now,nanos,false);
             Intent direct=makeIntent(imageUri,token,now,nanos,true);
-            Intent launch=normal.resolveActivity(app.getPackageManager())!=null
-                    ?normal:direct;
-            if(launch.resolveActivity(app.getPackageManager())==null)
+            ComponentName gateway=normal.resolveActivity(app.getPackageManager());
+            ComponentName directReceiver=direct.resolveActivity(app.getPackageManager());
+            if(gateway==null&&directReceiver==null)
                 throw new IllegalStateException("No supported Google Lens image activity");
-            SHARES.put(token,share);
-            app.startActivity(launch);
+            // Prefer a real Lens Activity only if the installed Google App
+            // advertises it; otherwise preserve the working gateway path.
+            boolean directLens=directReceiver!=null
+                    &&(gateway==null||!directReceiver.equals(gateway))
+                    &&directReceiver.getClassName().toLowerCase(java.util.Locale.ROOT)
+                            .contains("lens")
+                    &&!directReceiver.getClassName().contains("Gateway");
+            Intent launch=directLens||gateway==null?direct:normal;
+            String contract=launch==direct?"google_direct":"googleapp_gateway";
             DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
-                    "intent_dispatched contract="+(launch==normal?"googleapp":"google")
-                    +" session="+shortToken(token)
-                    +" image_bytes="+share.file.length()
-                    +" awaiting_google_read_and_ocr=true");
-            GoogleCtsSessionCoordinator.launchResult(app,token,true);
+                    "resolvers gateway="+(gateway==null?"none":gateway.getClassName())
+                    +" direct="+(directReceiver==null?"none":directReceiver.getClassName())
+                    +" chosen="+contract);
+            SHARES.put(token,share);
             MAIN.postDelayed(()->release(app,token,"retention_timeout"),RETENTION_MS);
+            Intent host=new Intent(app,GoogleLensImageLaunchActivity.class)
+                    .putExtra(GoogleLensImageLaunchActivity.EXTRA_SESSION,token)
+                    .putExtra(GoogleLensImageLaunchActivity.EXTRA_LENS_INTENT,launch)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            app.startActivity(host);
+            DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                    "caller_started session="+shortToken(token)
+                    +" via=YFloatActivity startActivityForResult_pending"
+                    +" image_bytes="+share.file.length());
         }catch(Throwable error){
             release(app,token,"launch_failed");
             share.close(app);
@@ -134,14 +151,48 @@ final class GoogleLensImageInputProbe {
                 image.toString(),nanos,direct));
         Intent intent=new Intent(Intent.ACTION_VIEW,lens)
                 .setPackage(GoogleCtsContract.GOOGLE_PACKAGE)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                        |Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 .putExtra(GoogleCtsContract.K_TRIGGER,true)
                 .putExtra(GoogleCtsContract.K_SESSION_TOKEN,token)
                 .putExtra(GoogleCtsContract.K_INVOCATION_TIME,now)
                 .putExtra(GoogleCtsContract.K_LENS_IMAGE_INPUT_PROBE,true);
         intent.setClipData(ClipData.newRawUri("YFloat Lens image",image));
         return intent;
+    }
+
+    static void onLaunchDispatched(Context app,String token) {
+        if(!SHARES.containsKey(token))return;
+        DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                "intent_dispatched session="+shortToken(token)
+                +" caller=startActivityForResult awaiting_image_read_and_ocr=true");
+        GoogleCtsSessionCoordinator.launchResult(app,token,true);
+    }
+
+    static void onLaunchFailed(Context app,String token,String reason) {
+        if(token!=null&&!token.isBlank()){
+            release(app,token,"caller_launch_failed");
+            GoogleCtsSessionCoordinator.end(app,token,"lens_image_launch_failed",false);
+        }
+        DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                "caller_launch_failed session="+shortToken(token)
+                +" reason="+reason);
+        MAIN.post(()->Toast.makeText(app,
+                "Google Lens cannot accept this image",Toast.LENGTH_SHORT).show());
+    }
+
+    static void onCtsWorkflowEnd(Context app,String token,String reason) {
+        // Navigation from the general Lens gateway is not proof the image was
+        // read. Preserve the grant until TTL so later Google processes can read.
+        if(SHARES.containsKey(token)
+                &&("top_package_changed".equals(reason)
+                  ||"system_navigation".equals(reason)
+                  ||"activity_stopped".equals(reason))) {
+            DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                    "workflow_ended_input_retained session="+shortToken(token)
+                    +" reason="+reason+" ttlMs="+RETENTION_MS);
+            return;
+        }
+        release(app,token,"workflow_"+reason);
     }
 
     static void onNativeText(Context app,String token,String text,Rect bounds){
@@ -163,7 +214,8 @@ final class GoogleLensImageInputProbe {
                 "image_released reason="+reason+" session="+shortToken(token));
     }
 
-    private static String shortToken(String token) {
+    static String shortToken(String token) {
+        if(token==null||token.isBlank())return "none";
         return token.substring(0,Math.min(8,token.length()));
     }
     private GoogleLensImageInputProbe(){}
