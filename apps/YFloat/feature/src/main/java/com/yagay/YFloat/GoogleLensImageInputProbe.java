@@ -108,14 +108,32 @@ final class GoogleLensImageInputProbe {
             Intent direct=makeIntent(imageUri,token,now,nanos,true);
             ComponentName gateway=normal.resolveActivity(app.getPackageManager());
             ComponentName directReceiver=direct.resolveActivity(app.getPackageManager());
-            if(gateway==null&&directReceiver==null)
+            // Google 17.66.12 APK declares this exported ACTION_SEND receiver
+            // with image/png and image/jpeg filters. Its onCreate checks
+            // ACTION_SEND + image/* + EXTRA_STREAM, unlike the URI gateway.
+            ComponentName shareReceiver=new ComponentName(
+                    GoogleCtsContract.GOOGLE_PACKAGE,
+                    "com.google.android.apps.search.lens.LensShareEntryPointActivity");
+            boolean shareAvailable=false;
+            try {
+                android.content.pm.ActivityInfo info=app.getPackageManager()
+                        .getActivityInfo(shareReceiver,0);
+                shareAvailable=info!=null&&info.exported
+                        &&GoogleCtsContract.GOOGLE_PACKAGE.equals(info.packageName);
+            }catch(android.content.pm.PackageManager.NameNotFoundException ignored){
+                // Only the actual Google 17.66 package declares this route;
+                // fallback to the original gateway on other versions.
+            }
+            if(!shareAvailable&&gateway==null&&directReceiver==null)
                 throw new IllegalStateException("No supported Google Lens image activity");
-            // Match Chromium's default gateway contract. The direct Lens
-            // scheme requires opt-in and is reserved for gateway absence.
-            Intent launch=gateway!=null?normal:direct;
-            String contract=launch==direct?"direct_fallback":"gateway_default";
+            Intent launch=shareAvailable
+                    ?makeSharedImageIntent(imageUri,token,now,shareReceiver)
+                    :(gateway!=null?normal:direct);
+            String contract=shareAvailable?"apk_verified_image_share"
+                    :(launch==direct?"direct_fallback":"gateway_default");
             DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
-                    "resolvers gateway="+(gateway==null?"none":gateway.getClassName())
+                    "resolvers share="+shareAvailable
+                    +" gateway="+(gateway==null?"none":gateway.getClassName())
                     +" direct="+(directReceiver==null?"none":directReceiver.getClassName())
                     +" chosen="+contract);
             SHARES.put(token,share);
@@ -151,6 +169,21 @@ final class GoogleLensImageInputProbe {
                 .putExtra(GoogleCtsContract.K_SESSION_TOKEN,token)
                 .putExtra(GoogleCtsContract.K_INVOCATION_TIME,now)
                 .putExtra(GoogleCtsContract.K_LENS_IMAGE_INPUT_PROBE,true);
+        intent.setClipData(ClipData.newRawUri("YFloat Lens image",image));
+        return intent;
+    }
+
+    private static Intent makeSharedImageIntent(Uri image,String token,long now,
+                                                ComponentName receiver) {
+        Intent intent=new Intent(Intent.ACTION_SEND)
+                .setComponent(receiver)
+                .setType("image/png")
+                .putExtra(Intent.EXTRA_STREAM,image)
+                .putExtra(GoogleCtsContract.K_TRIGGER,true)
+                .putExtra(GoogleCtsContract.K_SESSION_TOKEN,token)
+                .putExtra(GoogleCtsContract.K_INVOCATION_TIME,now)
+                .putExtra(GoogleCtsContract.K_LENS_IMAGE_INPUT_PROBE,true)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.setClipData(ClipData.newRawUri("YFloat Lens image",image));
         return intent;
     }

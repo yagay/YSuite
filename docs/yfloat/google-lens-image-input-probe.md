@@ -78,3 +78,56 @@ for the YFloat_*.png images, without recording image contents or filenames.
 A verified host_file_open_result success=true proves the Android provider
 opened the PNG for a client; it does not prove Google completed OCR.
 The old Google process ContentResolver tracing remains supplementary.
+
+## Google 17.66.12 APK + 21:37 diagnosis (verified 2026-10-17)
+
+The user-provided APKS bundle contains a 245.54 MiB base APK and separate
+on-device Lens engine modules (feature 18.55 MiB; Play ML 67.72 MiB).
+The recognition implementation is therefore not reducible to the main
+Activity handoff, and none of the static inspection proves OCR results
+are accessible through a public API.
+
+The 21:37 trial captured **685 × 743** pixels and sent **638152** PNG bytes.
+`resolvers ... chosen=gateway_default`, then
+`GoogleAppGatewayActivity scheme=googleapp`. The caller received an
+empty RESULT_CANCELED (code 0), with **no** `host_file_open_result` and
+**no** `native_ocr_callback`. This indicates a gateway launch but does not
+prove the PNG was ever accessed. LSPosed status reported googleStale=true;
+that is a separate caveat for custom Hook validation.
+
+In the actual 17.66.12 DEX:
+- `classes6.dex Lcuqi.e` reads **LensBitmapUriKey**,
+  **AccountNameUriKey**, **IncognitoUriKey**, **ImageSrc**, **PageDomain**,
+  **Gid**, and **ActivityLaunchTimestampNanos**, plus
+  **lens_intent_type** from a `googleapp://lens` URI.
+  This proves these protocol keys exist. A separate
+  **lens_data**/LensDeeplinkRequest branch checks Entry Point ID; this
+  must NOT be confused with a missing mandatory query parameter for
+  the legacy bitmap URI branch.
+- `classes8.dex Ldufb.a` includes a caller-package requirement for
+  LensExportedActivity. Identity and successful Activity resolution are
+  not sufficient evidence that image processing ran.
+- The base AndroidManifest.xml declares
+  **com.google.android.apps.search.lens.LensShareEntryPointActivity**
+  as **exported=true**, with an **ACTION_SEND** filter for
+  **image/jpeg** and **image/png**.
+- `classes6.dex LensShareEntryPointActivity.onCreate` explicitly checks
+  **android.intent.action.SEND**, **image/** MIME type, and
+  **android.intent.extra.STREAM** before handling the shared image.
+  This is a materially stronger, directly APK-confirmed image-input
+  route than a generalized URI gateway.
+
+**Changed behavior:** the explicit experimental Google OCR command now
+prefers the APK's exported ACTION_SEND LensShareEntryPointActivity when
+it is installed and exported. The request uses
+`Intent.EXTRA_STREAM=content://<YSuite>.files/...`,
+`type=image/png`, `FLAG_GRANT_READ_URI_PERMISSION`, and ClipData.
+Other Google versions retain the original gateway and direct-scheme
+fallback; ordinary YFloat and Google CTS paths remain unaffected.
+
+On next run, check `resolvers share=true chosen=apk_verified_image_share`,
+then `host_file_open_result success=true`, then Google activity
+transitions, then a native OCR text callback. The ACTION_SEND activity
+may still use its own selection implementation, so old Circle-to-Search
+selection Hooks may not emit the desired callback. That must be measured
+independently; image-read success is not OCR-result success.
