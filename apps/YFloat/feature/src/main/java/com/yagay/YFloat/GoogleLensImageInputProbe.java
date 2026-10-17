@@ -129,15 +129,16 @@ final class GoogleLensImageInputProbe {
                                      boolean direct) {
         Uri lens=Uri.parse(GoogleLensImageInputContract.buildLensUri(
                 image.toString(),nanos,direct));
-        return new Intent(Intent.ACTION_VIEW,lens)
+        Intent intent=new Intent(Intent.ACTION_VIEW,lens)
                 .setPackage(GoogleCtsContract.GOOGLE_PACKAGE)
-                .setClipData(ClipData.newRawUri("YFloat Lens image",image))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                         |Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 .putExtra(GoogleCtsContract.K_TRIGGER,true)
                 .putExtra(GoogleCtsContract.K_SESSION_TOKEN,token)
                 .putExtra(GoogleCtsContract.K_INVOCATION_TIME,now)
                 .putExtra(GoogleCtsContract.K_LENS_IMAGE_INPUT_PROBE,true);
+        intent.setClipData(ClipData.newRawUri("YFloat Lens image",image));
+        return intent;
     }
 
     static void onNativeText(Context app,String token,String text,Rect bounds){
