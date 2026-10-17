@@ -223,3 +223,44 @@ Check next APK on device:
    transform despite an image share. The latest 22:20/22:25 runs did not show
    that event; if it recurs with the same installed build, inspect multiple
    Hook installers or stale process state rather than assuming cause.
+
+## 2026-10-17 22:41 diagnostic and stale Google process safeguard
+
+Latest **22:40:41** exact-session `5135027e`: native YFloat crop
+508x680, PNG 422609 bytes, image share sent to the APK-confirmed
+LensShareEntryPointActivity. The host provider returned TWO successful
+read-only opens from Google UID 10135, so this is **not** a screenshot,
+Content URI, or Android permission problem.
+
+Unlike the previous 22:20 successful word-selection experiment, there
+was NO `GOOGLE_CTS_SESSION hook_ready`, `GOOGLE_FRAME_CAPTURED`,
+`LIVE_TEXT_CALLBACK`, or `native_ocr_callback`. At 22:40:53 the startup
+watchdog printed `bootstrap_confirmed=false googleLoaded=true`, and
+the final LSPosed status was `googleStale=true`; Google process roles
+`:googleapp`, `:search`, and `:interactor` were all `[STALE v56]`.
+
+The installed APK can update, but an already-running Google process retains
+the old LSPosed Hook generation until that process restarts. To prevent a
+misleading "Lens opened but OCR doesn't work" trial, the explicit Google OCR
+experiment now refreshes LSPosed status while encoding and **blocks the
+external Lens launch when scoped, loaded Google processes are known stale**.
+It closes the prepared image share, logs
+`launch_blocked reason=stale_google_hook recovery=restart_google_processes_or_device`,
+and shows a short actionable toast. It NEVER force-stops Google in the
+background and does not block cold starts with no Google process yet running.
+A fresh `googleStale=false` image trial still proceeds normally.
+
+The accessibility cleanup trace previously said
+`owned session committing screenshot; skip navigation exit` even when
+a share-image lease was merely being kept alive. The message now explicitly
+distinguishes `lens_image_input_navigation_held` and
+`screenshot_result_handoff_navigation_held`. This is a diagnostic correction,
+not an extra change to Google activity ownership.
+
+To test on-device:
+1. Restart device or manually restart Google's process group after installing
+   the latest LSPosed module build; verify `googleStale=false`.
+2. Open Google OCR (experimental), select a real word in the Google UI.
+3. Require `hook_ready`, `native_ocr_callback`, and the text menu.
+4. After returning, verify `nativeTextDelivered=true` and `success=true`
+   for successful text selections. A mere successful URI read is not OCR.

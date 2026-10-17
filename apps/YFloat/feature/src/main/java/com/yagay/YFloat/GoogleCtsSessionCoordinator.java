@@ -66,10 +66,12 @@ final class GoogleCtsSessionCoordinator {
             synchronized(LOCK){
                 if(owned.state.acknowledged())return;
             }
+            LsposedStatusManager.Snapshot state=LsposedStatusManager.snapshot();
             DiagnosticLog.i(owned.app,"GOOGLE_CTS_SESSION",
                     "startup_pending session="+shortToken(token)
                     +" bootstrap_confirmed=false googleLoaded="
-                    +LsposedStatusManager.snapshot().googleTargetLoaded()
+                    +state.googleTargetLoaded()
+                    +" googleStale="+state.googleTargetStale()
                     +" no_automatic_hide=true");
         },STARTUP_DIAGNOSTIC_MS);
         MAIN.postDelayed(()->{

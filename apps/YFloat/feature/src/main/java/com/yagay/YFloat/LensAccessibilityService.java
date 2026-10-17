@@ -260,8 +260,14 @@ public class LensAccessibilityService extends AccessibilityService {
             // coordinator owns its COMMITTED/HANDOFF state until delivery.
             if (!GoogleCtsSessionCoordinator.mayCancelOnNavigation(
                     scheduled.externalKey())) {
+                boolean imageInput=GoogleLensImageInputProbe.ownsPendingImage(
+                        scheduled.externalKey());
                 DiagnosticLog.i(this,"GOOGLE_CTS_RELEASE_GUARD",
-                        "owned session committing screenshot; skip navigation exit");
+                        (imageInput
+                            ?"lens_image_input_navigation_held"
+                            :"screenshot_result_handoff_navigation_held")
+                        +" reason="+reason
+                        +" workflowId="+scheduled.id());
                 return;
             }
             if (GoogleCtsBridgeController.hasPendingGoogleScreenshotResult()) {

@@ -76,6 +76,10 @@ final class GoogleLensImageInputProbe {
             return;
         }
         Context app=context.getApplicationContext();
+        // The Google APK keeps LSPosed Hook code resident until its processes
+        // restart. Refresh early while the image is being encoded, then gate
+        // launch on the latest known process generation.
+        LsposedStatusManager.refreshAsync();
         DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
                 "encode_begin bitmap="+ownedImage.getWidth()+"x"+ownedImage.getHeight());
         IO.execute(()->{
@@ -97,6 +101,27 @@ final class GoogleLensImageInputProbe {
     }
 
     private static void start(Context app,ImageShareUtils.LensShare share) {
+        LsposedStatusManager.Snapshot snapshot=LsposedStatusManager.snapshot();
+        boolean loaded=snapshot.googleTargetLoaded();
+        boolean stale=snapshot.googleTargetStale();
+        if(GoogleLensHookReadinessPolicy.requiresRestart(
+                snapshot.googleScopeEnabled(),loaded,stale)){
+            share.close(app);
+            DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                    "launch_blocked reason=stale_google_hook"
+                    +" googleLoaded="+loaded
+                    +" googleStale="+stale
+                    +" hookGenerationCurrent=false"
+                    +" recovery=restart_google_processes_or_device");
+            String message=java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                    ?"Google Hook 仍是旧版本，请重启手机后重试"
+                    :"Google Hook is outdated. Restart the device and retry.";
+            Toast.makeText(app,message,Toast.LENGTH_LONG).show();
+            return;
+        }
+        DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                "preflight googleLoaded="+loaded+" googleStale="+stale
+                +" scope="+snapshot.googleScopeEnabled());
         Uri imageUri=share.uri;
         if(!GoogleLensImageInputContract.isHostImageUri(
                 imageUri.toString(),app.getPackageName())){
