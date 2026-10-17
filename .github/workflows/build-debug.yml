@@ -169,6 +169,12 @@ jobs:
           # changes). Gradle follows the actual project dependency graph and
           # loads cacheable unchanged task outputs from the restored cache.
           read -r -a tests <<< "${CHANGED_MODULE_TESTS:-}"
+          # A new refactor branch has no comparable previous module diff in
+          # the planner. Always run real YFloat reducer/ownership JUnit tests
+          # for this branch, rather than treating "none" as validation.
+          if [[ "${GITHUB_REF_NAME}" == "refactor/yfloat-cts-session" ]]; then
+            tests+=( :yfloat-feature:testDebugUnitTest )
+          fi
           echo "Selected module tests: ${tests[*]:-(none)}"
           gradle --no-daemon --build-cache --parallel --max-workers=2 --stacktrace \
             "${tests[@]}" :suite:assembleDebug
