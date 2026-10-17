@@ -39,4 +39,12 @@
     <string name="yfloat_google_1758_legacy">Google 17.58：保留旧版兼容；后续以 17.60 为主要开发基准。</string>
     <string name="yfloat_google_scan_toast_success">Google %1$s：Hook 扫描匹配成功\n已注册 %2$d 个 Hook · %3$s</string>
     <string name="yfloat_google_scan_toast_failure">Google %1$s：Hook 扫描匹配失败\n%2$s</string>
+    <string name="yfloat_google_manual_scan">一键重新扫描 Google Hook</string>
+    <string name="yfloat_google_manual_scan_desc">本次强制重新匹配当前 Google 版本的 Hook（需要 Root 和 LSPosed）；自动复位，启动 Google 后显示扫描 Toast。</string>
+    <string name="yfloat_google_manual_scan_started">已启动 Google Hook 扫描，完成后会显示结果 Toast。</string>
+    <string name="yfloat_google_manual_scan_missing_root">一键重启 Google 并立即扫描需要 Root 授权。</string>
+    <string name="yfloat_google_manual_scan_unavailable">请先启用 LSPosed 增强模式及 Google App 作用域。</string>
+    <string name="yfloat_google_manual_scan_busy">已有一次 Google Hook 扫描正在等待执行。</string>
+    <string name="yfloat_google_manual_scan_reload_failed">无法重新加载 Google：%1$s</string>
+    <string name="yfloat_google_manual_scan_launch_failed">已重新加载 Google，但未能自动启动，请手动打开 Google 以完成扫描。</string>
 </resources>

@@ -21,6 +21,7 @@ final class GoogleHookProfileStore {
     private final Context context;
     private final String identity;
     private final Uri uri;
+    private boolean manualRequested;
 
     GoogleHookProfileStore(XposedModule module) {
         this.module = module;
@@ -44,6 +45,12 @@ final class GoogleHookProfileStore {
             Bundle req=request();
             Bundle res=context.getContentResolver().call(uri,
                     GoogleCtsContract.METHOD_READ_HOOK_PROFILE,null,req);
+            manualRequested=res!=null
+                    && res.getBoolean(GoogleCtsContract.EXTRA_HOOK_SCAN_MANUAL,false);
+            if (manualRequested) {
+                module.log(Log.INFO,TAG,"manual 17.60 semantic scan requested: cache bypassed");
+                return "";
+            }
             return res==null?"":res.getString(GoogleCtsContract.EXTRA_HOOK_SYMBOLS,"");
         } catch(Throwable t) {
             module.log(Log.WARN,TAG,"Google cached matcher read failed "
@@ -69,6 +76,8 @@ final class GoogleHookProfileStore {
             return false;
         }
     }
+
+    boolean manualRequested() { return manualRequested; }
 
     void reportScan(boolean success,int installedHooks,String method) {
         if(context==null || identity.isBlank()) {

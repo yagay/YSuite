@@ -79,7 +79,8 @@ final class GoogleV2HookEngine {
     boolean install() {
         if (!selection.available()) {
             module.log(Log.WARN,TAG,"Google selection Hook unresolved: "+selection.detail());
-            if (GoogleSelectionAdapter.scanned(selection))
+            if (GoogleSelectionAdapter.scanned(selection)
+                    || profileStore.manualRequested())
                 profileStore.reportScan(false,0,selection.detail());
             return false;
         }
@@ -96,7 +97,8 @@ final class GoogleV2HookEngine {
         count+=selectionHooks;
         if(selectionHooks>0)
             GoogleSelectionAdapter.recordInstalled(selection,profileStore);
-        if (GoogleSelectionAdapter.scanned(selection)) {
+        if (GoogleSelectionAdapter.scanned(selection)
+                || profileStore.manualRequested()) {
             String method = selection.method() == null ? "no selection method"
                     : selection.method().getDeclaringClass().getSimpleName()
                             + "." + selection.method().getName();

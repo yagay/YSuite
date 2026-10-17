@@ -39,4 +39,12 @@
     <string name="yfloat_google_1758_legacy">Google 17.58: legacy compatibility mode. Primary development targets 17.60.</string>
     <string name="yfloat_google_scan_toast_success">Google %1$s: Hook scan completed ✓\n%2$d hooks registered · %3$s</string>
     <string name="yfloat_google_scan_toast_failure">Google %1$s: Hook scan failed\n%2$s</string>
+    <string name="yfloat_google_manual_scan">One-time rescan Google Hooks</string>
+    <string name="yfloat_google_manual_scan_desc">Force a fresh Hook match for the installed Google App; needs Root and LSPosed. Automatically turns off. The Google app opens to finish scanning.</string>
+    <string name="yfloat_google_manual_scan_started">Google Hook rescan started. Result will appear in a Toast.</string>
+    <string name="yfloat_google_manual_scan_missing_root">Root permission is required to restart Google and scan immediately.</string>
+    <string name="yfloat_google_manual_scan_unavailable">Enable LSPosed enhancement and Google App scope before scanning.</string>
+    <string name="yfloat_google_manual_scan_busy">A Google Hook scan is already pending.</string>
+    <string name="yfloat_google_manual_scan_reload_failed">Cannot restart Google: %1$s</string>
+    <string name="yfloat_google_manual_scan_launch_failed">Google was restarted but could not be opened. Launch Google manually to complete scanning.</string>
 </resources>

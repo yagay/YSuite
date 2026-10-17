@@ -25,6 +25,9 @@ public final class GoogleHookProfileCache {
     private static final String K_FINGERPRINT = "hook_fingerprint";
     private static final String K_SYMBOLS = "matched_symbols";
     private static final String K_LAST_SCAN_TOAST = "last_scan_toast";
+    private static final String K_MANUAL_PENDING = "manual_scan_pending";
+    private static final String K_MANUAL_APK = "manual_scan_apk";
+    private static final String K_MANUAL_FINGERPRINT = "manual_scan_fingerprint";
     private static final int MAX_SYMBOL_BYTES = 2048;
 
     static Bundle handle(Context context, String method, Bundle extras) {
@@ -41,7 +44,9 @@ public final class GoogleHookProfileCache {
                     GoogleCtsContract.EXTRA_HOOK_SCAN_COUNT,0)));
             String raw=extras.getString(GoogleCtsContract.EXTRA_HOOK_SCAN_METHOD,"");
             String detail=sanitize(raw,75);
-            String noticeId=identity+"|"+fingerprint+"|"+success;
+            boolean manual = manualPending(cache, identity, fingerprint);
+            String noticeId=identity+"|"+fingerprint+"|"+success
+                    +(manual ? "|manual" : "");
             DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN","finished version="
                     +identity+" success="+success+" hooks="+count+" detail="+detail);
             // One result Toast per APK, matcher version, and result transition.
@@ -65,10 +70,14 @@ public final class GoogleHookProfileCache {
                     });
                 }
             }
+            if (manual) cache.edit().remove(K_MANUAL_PENDING)
+                    .remove(K_MANUAL_APK).remove(K_MANUAL_FINGERPRINT).commit();
             result.putBoolean("reported",true);
             return result;
         }
         if (GoogleCtsContract.METHOD_READ_HOOK_PROFILE.equals(method)) {
+            result.putBoolean(GoogleCtsContract.EXTRA_HOOK_SCAN_MANUAL,
+                    manualPending(cache, identity, fingerprint));
             if (identity.equals(cache.getString(K_APK, ""))
                     && fingerprint.equals(cache.getString(K_FINGERPRINT, ""))) {
                 result.putString(GoogleCtsContract.EXTRA_HOOK_SYMBOLS,
@@ -90,9 +99,47 @@ public final class GoogleHookProfileCache {
         return result;
     }
 
+    /** Called only after a user requests a manual re-scan. No root operation here. */
+    static boolean beginManualScan(Context context) {
+        if(context==null)return false;
+        Context app=context.getApplicationContext();
+        String identity=installedIdentity(app);
+        if(identity.isBlank())return false;
+        SharedPreferences prefs=app.getSharedPreferences(PREF,Context.MODE_PRIVATE);
+        if(manualPending(prefs,identity,BuildConfig.GOOGLE_HOOK_FINGERPRINT))
+            return false;
+        return prefs.edit()
+                .putBoolean(K_MANUAL_PENDING,true)
+                .putString(K_MANUAL_APK,identity)
+                .putString(K_MANUAL_FINGERPRINT,BuildConfig.GOOGLE_HOOK_FINGERPRINT)
+                .remove(K_LAST_SCAN_TOAST).commit();
+    }
+
+    static void cancelManualScan(Context context) {
+        if(context==null)return;
+        context.getApplicationContext().getSharedPreferences(PREF,Context.MODE_PRIVATE)
+                .edit().remove(K_MANUAL_PENDING).remove(K_MANUAL_APK)
+                .remove(K_MANUAL_FINGERPRINT).apply();
+    }
+
+    static boolean manualScanPending(Context context) {
+        if(context==null)return false;
+        Context app=context.getApplicationContext();
+        return manualPending(app.getSharedPreferences(PREF,Context.MODE_PRIVATE),
+                installedIdentity(app),BuildConfig.GOOGLE_HOOK_FINGERPRINT);
+    }
+
+    private static boolean manualPending(SharedPreferences p,String apk,String fingerprint) {
+        return p.getBoolean(K_MANUAL_PENDING,false)
+                && apk.equals(p.getString(K_MANUAL_APK,""))
+                && fingerprint.equals(p.getString(K_MANUAL_FINGERPRINT,""));
+    }
+
     public static String status(Context context, String currentIdentity) {
         if (context == null) return "unavailable";
         SharedPreferences p = context.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        if(manualPending(p, currentIdentity==null?"":currentIdentity,
+                BuildConfig.GOOGLE_HOOK_FINGERPRINT)) return "manual scan pending";
         return currentIdentity != null
                 && currentIdentity.equals(p.getString(K_APK, ""))
                 && BuildConfig.GOOGLE_HOOK_FINGERPRINT.equals(

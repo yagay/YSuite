@@ -63,6 +63,10 @@ final class GoogleSelectionAdapter {
 
     private static Binding resolveUncached(ClassLoader loader, GoogleHookProfileStore store) {
         if (loader == null) return new MissingBinding("classLoader=null");
+        // Check the one-shot manual request before selecting a fixed or cached
+        // profile. Even the built-in 17.60 ABI is revalidated on demand.
+        String symbols=store==null?"":store.read();
+        boolean manual=store!=null && store.manualRequested();
         String error = GoogleLens1760Profile.selectionValidationError(loader);
         if (error.isBlank()) {
             try {
@@ -82,8 +86,7 @@ final class GoogleSelectionAdapter {
         // Bind persisted symbols FIRST. No full DEX scan on an unchanged APK.
         // The resolver verifies metadata, return types and confidence again
         // inside this process's own ClassLoader.
-        String symbols=store==null?"":store.read();
-        if(!symbols.isBlank()) {
+        if(!manual && !symbols.isBlank()) {
             GoogleLensDynamicResolver.SelectionBinding remembered=
                     GoogleLensDynamicResolver.resolveCached(loader,symbols);
             if(remembered.available())

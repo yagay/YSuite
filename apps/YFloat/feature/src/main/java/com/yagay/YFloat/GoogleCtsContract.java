@@ -54,6 +54,7 @@ public final class GoogleCtsContract {
     public static final String METHOD_READ_HOOK_PROFILE = "read_hook_profile_v1";
     public static final String METHOD_WRITE_HOOK_PROFILE = "write_hook_profile_v1";
     public static final String METHOD_REPORT_HOOK_SCAN = "report_hook_scan_v1";
+    public static final String EXTRA_HOOK_SCAN_MANUAL = "hook_scan_manual";
     public static final String EXTRA_HOOK_SCAN_SUCCESS = "hook_scan_success";
     public static final String EXTRA_HOOK_SCAN_COUNT = "hook_scan_count";
     public static final String EXTRA_HOOK_SCAN_METHOD = "hook_scan_method";

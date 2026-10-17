@@ -4,6 +4,7 @@ import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.button.MaterialButton;
 
 /** Screenshot, result and OCR settings page. */
@@ -49,6 +50,23 @@ final class SettingsCapturePage {
             compatibility.setText(GoogleHookVersionTracker.status(activity));
         });
         YViewLayout.addRow(circleEngine.body, recheck);
+
+        MaterialSwitch oneShotScan = YViewLayout.switchRow(activity,
+                activity.getString(R.string.yfloat_google_manual_scan),
+                activity.getString(R.string.yfloat_google_manual_scan_desc),
+                false, (button, checked) -> {
+                    if (!checked) return;
+                    button.setEnabled(false);
+                    GoogleHookManualScan.start(activity, message -> {
+                        button.setChecked(false);
+                        button.setEnabled(true);
+                        compatibility.setText(GoogleHookVersionTracker.status(activity));
+                        if(message!=null && !message.isBlank())
+                            android.widget.Toast.makeText(activity,message,
+                                    android.widget.Toast.LENGTH_LONG).show();
+                    });
+                });
+        YViewLayout.addRow(circleEngine.body, YViewLayout.switchContainer(oneShotScan));
         YViewLayout.addSection(root, circleEngine);
 
         // Module page and global YUI editor share the same appearance tokens.
