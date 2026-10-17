@@ -13,6 +13,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Enumeration;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,8 +33,13 @@ import dalvik.system.DexFile;
  */
 final class GoogleLensDynamicResolver {
     static final int MIN_SELECTION_CONFIDENCE = 95;
-    // Only Lens-related DEX partitions are inspected; never the whole Google APK.
+    // A single Google DEX can hold >145k unrelated obfuscated classes.
+    // Limit reflection to linked Lens types and bounded old-symbol neighborhoods.
     private static final int MAX_SCANNED_CLASSES = 6_000;
+    private static final int MAX_GRAPH_TYPES = 768;
+    private static final int MAX_GRAPH_DEPTH = 3;
+    private static final int MAX_GRAPH_SEEDS = 100;
+    private static final int NEIGHBORHOOD_RADIUS = 96;
     // Bound a cold Google DEX scan instead of blocking PackageReady indefinitely.
     private static final long MAX_SCAN_ELAPSED_MS = 7_000L;
     private static final String LENS_DEX_ANCHOR = GoogleLens1760Profile.FROZEN_IMAGE_VIEW;
@@ -54,18 +61,21 @@ final class GoogleLensDynamicResolver {
         int loaded = 0;
         int methodShapes = 0;
         ScanScope scope = null;
+        CandidatePlan plan = null;
         final long deadline = SystemClock.elapsedRealtime() + MAX_SCAN_ELAPSED_MS;
         Set<String> seen = new HashSet<>();
         boolean ambiguous = false;
 
         try {
             scope = dexClassNames(loader, deadline, progress);
-            Set<String> names = scope.names;
+            plan = candidatePlan(scope.names,loader,deadline);
+            Set<String> names = plan.names;
             int total = Math.min(MAX_SCANNED_CLASSES,names.size());
             if (total == 0) return SelectionBinding.none(
-                    "no related candidates: dex=" + scope.dexCount
+                    "no targeted candidates: dex=" + scope.dexCount
                     + " lensDex=" + scope.relatedDexCount
-                    + " eligible=" + scope.eligibleCount
+                    + " broadDexEligible=" + scope.eligibleCount
+                    + " graph=" + plan.graphCount + " nearby=" + plan.nearbyCount
                     + " dexErrors=" + scope.dexErrors
                     + " timedOut=" + (SystemClock.elapsedRealtime() >= deadline));
             progress.onProgress("matching",0,total);
@@ -138,9 +148,12 @@ final class GoogleLensDynamicResolver {
                 + " loaded=" + loaded + " methodShapes=" + methodShapes
                 + " dex=" + (scope == null ? -1 : scope.dexCount)
                 + " lensDex=" + (scope == null ? -1 : scope.relatedDexCount)
-                + " eligible=" + (scope == null ? -1 : scope.eligibleCount)
+                + " broadDexEligible=" + (scope == null ? -1 : scope.eligibleCount)
+                + " graph=" + (plan == null ? -1 : plan.graphCount)
+                + " nearby=" + (plan == null ? -1 : plan.nearbyCount)
+                + " targeted=" + (plan == null ? -1 : plan.names.size())
                 + " dexErrors=" + (scope == null ? -1 : scope.dexErrors)
-                + " (only Lens-related categories scanned)");
+                + " (no APK-wide reflection)");
     }
 
     /**
@@ -239,13 +252,141 @@ final class GoogleLensDynamicResolver {
     }
 
     /**
-     * Scan only the FrozenImageView / TextSelectionView DEX partitions.
-     * Unrelated Google DEX partitions are excluded even if they contain
-     * plausible (Metadata, boolean) methods. No APK-wide fallback.
-     *
-     * Class-name enumeration is necessary to locate the stable anchors;
-     * Java reflection is limited to eligible names in those partitions.
+     * A DexFile that contains Lens UI may ALSO contain most of Google App.
+     * Its entries are only a name index, not verified Lens-related classes.
      */
+
+    private static final class CandidatePlan {
+        final Set<String> names=new LinkedHashSet<>();
+        int graphCount;
+        int nearbyCount;
+    }
+
+    private static final class GraphNode {
+        final Class<?> type;
+        final int depth;
+        GraphNode(Class<?> t,int d) {type=t;depth=d;}
+    }
+
+    private static CandidatePlan candidatePlan(Set<String> dexNames,
+            ClassLoader loader,long deadline) {
+        CandidatePlan plan=new CandidatePlan();
+        ArrayDeque<GraphNode> queue=new ArrayDeque<>();
+        Set<String> queued=new HashSet<>();
+        // Reachability evidence: real type references from the Lens UI.
+        for(int pass=0;pass<2;pass++) {
+            int seeded=0;
+            for(String name:dexNames) {
+                if(SystemClock.elapsedRealtime()>=deadline)return plan;
+                boolean selection=name.startsWith(
+                        "com.google.android.libraries.lens.common.text.selection.");
+                boolean frozen=name.startsWith(
+                        "com.google.android.libraries.lens.view.frozenimage.");
+                if(pass==0 ? !selection : !frozen)continue;
+                plan.names.add(name);
+                if(seeded>=MAX_GRAPH_SEEDS || !queued.add(name))continue;
+                try {
+                    queue.add(new GraphNode(Class.forName(name,false,loader),0));
+                    seeded++;
+                }catch(Throwable ignored){}
+            }
+        }
+        int visited=0;
+        while(!queue.isEmpty() && visited<MAX_GRAPH_TYPES
+                && SystemClock.elapsedRealtime()<deadline) {
+            GraphNode node=queue.removeFirst();
+            Class<?> type=node.type;
+            if(!isGoogleType(type))continue;
+            visited++;
+            plan.names.add(type.getName());
+            if(node.depth>=MAX_GRAPH_DEPTH)continue;
+            int count=0;
+            try {
+                for(Field field:type.getDeclaredFields()) {
+                    if(count++>=48)break;
+                    enqueueType(field.getType(),node.depth+1,queue,queued);
+                }
+            }catch(Throwable ignored){}
+            count=0;
+            try {
+                for(Method method:type.getDeclaredMethods()) {
+                    if(count++>=64)break;
+                    enqueueType(method.getReturnType(),node.depth+1,queue,queued);
+                    for(Class<?> p:method.getParameterTypes())
+                        enqueueType(p,node.depth+1,queue,queued);
+                }
+            }catch(Throwable ignored){}
+            try {
+                enqueueType(type.getSuperclass(),node.depth+1,queue,queued);
+                for(Class<?> iface:type.getInterfaces())
+                    enqueueType(iface,node.depth+1,queue,queued);
+            }catch(Throwable ignored){}
+        }
+        plan.graphCount=plan.names.size();
+        // Hint-only fallback: a bounded lexical window around VERIFIED old
+        // R8 symbols. Never reflect the first 6000 arbitrary DEX entries.
+        List<String> names=new ArrayList<>();
+        for(String name:dexNames)if(isObfuscatedName(name))names.add(name);
+        Collections.sort(names);
+        String[] hints={
+                GoogleLens1760Profile.CONTROLLER,
+                GoogleLens1760Profile.SELECTION_METADATA,
+                GoogleLens1760Profile.USER_SELECTION,
+                GoogleLens1760Profile.WORD_SELECTION,
+                GoogleLens1760Profile.REGION_SELECTION,
+                GoogleLens1760Profile.TEXT_SELECTION,
+                GoogleLens1760Profile.TEXT_SELECTION_CONTROLLER,
+                GoogleLens1760Profile.ACTION_MENU_CONTROLLER
+        };
+        for(String hint:hints) {
+            if(SystemClock.elapsedRealtime()>=deadline)break;
+            for(String name:nearestObfuscatedNames(names,hint,NEIGHBORHOOD_RADIUS)) {
+                if(plan.names.size()>=MAX_SCANNED_CLASSES)break;
+                if(plan.names.add(name))plan.nearbyCount++;
+            }
+        }
+        return plan;
+    }
+
+    static Set<String> nearestObfuscatedNames(List<String> sorted,String hint,int radius) {
+        Set<String> found=new LinkedHashSet<>();
+        if(sorted==null || sorted.isEmpty() || hint==null || hint.isBlank()
+                || radius<0)return found;
+        int pos=Collections.binarySearch(sorted,hint);
+        if(pos<0)pos=-pos-1;
+        for(int d=0;d<=radius;d++) {
+            int left=pos-d;
+            int right=pos+d;
+            if(left>=0 && left<sorted.size())found.add(sorted.get(left));
+            if(right>=0 && right<sorted.size())found.add(sorted.get(right));
+        }
+        return found;
+    }
+
+    private static boolean isObfuscatedName(String name) {
+        if(name==null || name.indexOf('.')>=0 || name.contains("$")
+                || name.length()<2 || name.length()>8)return false;
+        for(int i=0;i<name.length();i++) {
+            char c=name.charAt(i);
+            if(c<'a'||c>'z')return false;
+        }
+        return true;
+    }
+
+    private static boolean isGoogleType(Class<?> type) {
+        if(type==null || type.isPrimitive() || type.isArray()
+                || type.isAnnotation() || type.isEnum())return false;
+        String name=type.getName();
+        return name.startsWith("com.google.android.libraries.lens.")
+                || isObfuscatedName(name);
+    }
+
+    private static void enqueueType(Class<?> type,int depth,
+            ArrayDeque<GraphNode> queue,Set<String> queued) {
+        if(!isGoogleType(type) || queued.size()>MAX_GRAPH_TYPES*12)return;
+        if(queued.add(type.getName()))queue.addLast(new GraphNode(type,depth));
+    }
+
     private static final class ScanScope {
         final Set<String> names = new LinkedHashSet<>();
         int dexCount;
