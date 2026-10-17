@@ -31,7 +31,32 @@ object PaddlePipelineV2 {
         check(OcrModelManager.isReady(app,model)){"PP-OCRv6 model not downloaded"}
         return files.joinToString(":") { "${it.length()}-${it.lastModified()}" }
     }
+    private var layoutEngine:PPDocLayoutV2?=null
+    private var layoutSignature:String?=null
     @Volatile private var latestPage:PaddlePageV2.Page?=null
+
+    /** The layout ONNX runtime is owned by the same serialized inference lane. */
+    private fun layout(app:Context):PPDocLayoutV2? {
+        if(!PaddleStructureModelV2.enabled(app)){
+            layoutEngine?.close()
+            layoutEngine=null
+            layoutSignature=null
+            return null
+        }
+        val file=PaddleStructureModelV2.model(app)
+        val signature="${file.length()}:${file.lastModified()}"
+        if(layoutEngine!=null && layoutSignature==signature)return layoutEngine
+        layoutEngine?.close()
+        layoutEngine=null
+        layoutSignature=null
+        check(PaddleStructureModelV2.verifyIntegrity(app)) {
+            "PP-StructureV3 layout model integrity failed"
+        }
+        return PPDocLayoutV2(file).also {
+            layoutEngine=it
+            layoutSignature=signature
+        }
+    }
     @JvmStatic fun lastPage():PaddlePageV2.Page?=latestPage
 
     @JvmStatic fun recognize(context:Context,image:Bitmap,model:Int,callback:Callback){
@@ -62,15 +87,14 @@ object PaddlePipelineV2 {
                             }
                     }
                     val output=ocr.recognize(image)
-                    val structure=if(PaddleStructureModelV2.enabled(app)) {
-                        try {
-                            PPDocLayoutV2(PaddleStructureModelV2.model(app)).use {it.detect(image)}
-                        }catch(t:Throwable){
-                            DiagnosticLog.i(app,"PP_STRUCTURE_V2",
-                                "layout_failed="+t.javaClass.simpleName)
-                            emptyList()
-                        }
-                    }else emptyList()
+                    val structure=try {
+                        layout(app)?.detect(image) ?: emptyList()
+                    }catch(t:Throwable){
+                        DiagnosticLog.i(app,"PP_STRUCTURE_V2",
+                            "layout_failed="+t.javaClass.simpleName+
+                            " detail="+(t.message ?: "unknown"))
+                        emptyList()
+                    }
                     DiagnosticLog.i(app,"PADDLE_V2",
                         "ocr_lines="+output.results.size+" layout_regions="+structure.size+
                         " layoutEnabled="+PaddleStructureModelV2.enabled(app))
@@ -94,6 +118,10 @@ object PaddlePipelineV2 {
             lock.withLock {
                 models.remove(model)?.release()
                 modelSignatures.remove(model)
+                // Also drop layout session when model management invalidates OCR.
+                layoutEngine?.close()
+                layoutEngine=null
+                layoutSignature=null
             }
         }
     }
