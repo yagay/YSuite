@@ -53,6 +53,10 @@ public final class GoogleCtsContract {
     /** Persistent one-time Google ABI scan cache, never a live CTS session token. */
     public static final String METHOD_READ_HOOK_PROFILE = "read_hook_profile_v1";
     public static final String METHOD_WRITE_HOOK_PROFILE = "write_hook_profile_v1";
+    public static final String METHOD_REPORT_HOOK_SCAN = "report_hook_scan_v1";
+    public static final String EXTRA_HOOK_SCAN_SUCCESS = "hook_scan_success";
+    public static final String EXTRA_HOOK_SCAN_COUNT = "hook_scan_count";
+    public static final String EXTRA_HOOK_SCAN_METHOD = "hook_scan_method";
     public static final String EXTRA_HOOK_APK_IDENTITY = "hook_apk_identity";
     public static final String EXTRA_HOOK_FINGERPRINT = "hook_fingerprint";
     public static final String EXTRA_HOOK_SYMBOLS = "hook_symbols";

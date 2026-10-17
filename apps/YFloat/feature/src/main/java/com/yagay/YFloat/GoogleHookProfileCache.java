@@ -5,6 +5,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
 
 /**
  * Host-only persistent cache of Google Lens symbol matches.
@@ -21,6 +24,7 @@ public final class GoogleHookProfileCache {
     private static final String K_APK = "apk";
     private static final String K_FINGERPRINT = "hook_fingerprint";
     private static final String K_SYMBOLS = "matched_symbols";
+    private static final String K_LAST_SCAN_TOAST = "last_scan_toast";
     private static final int MAX_SYMBOL_BYTES = 2048;
 
     static Bundle handle(Context context, String method, Bundle extras) {
@@ -31,6 +35,39 @@ public final class GoogleHookProfileCache {
         if (identity.isBlank() || !identity.equals(installedIdentity(context))
                 || !BuildConfig.GOOGLE_HOOK_FINGERPRINT.equals(fingerprint)) return result;
         SharedPreferences cache = context.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        if (GoogleCtsContract.METHOD_REPORT_HOOK_SCAN.equals(method)) {
+            boolean success=extras.getBoolean(GoogleCtsContract.EXTRA_HOOK_SCAN_SUCCESS,false);
+            int count=Math.max(0,Math.min(250,extras.getInt(
+                    GoogleCtsContract.EXTRA_HOOK_SCAN_COUNT,0)));
+            String raw=extras.getString(GoogleCtsContract.EXTRA_HOOK_SCAN_METHOD,"");
+            String detail=sanitize(raw,75);
+            String noticeId=identity+"|"+fingerprint+"|"+success;
+            DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN","finished version="
+                    +identity+" success="+success+" hooks="+count+" detail="+detail);
+            // One result Toast per APK, matcher version, and result transition.
+            // Cache hits do not reach this call, so app/Google process restart
+            // does not repeatedly display notifications.
+            if(!noticeId.equals(cache.getString(K_LAST_SCAN_TOAST,""))) {
+                if(cache.edit().putString(K_LAST_SCAN_TOAST,noticeId).commit()) {
+                    String version=identity.split("/",2)[0];
+                    int titleRes=success?R.string.yfloat_google_scan_toast_success
+                            :R.string.yfloat_google_scan_toast_failure;
+                    String message=success
+                            ? context.getString(titleRes,version,count,detail)
+                            : context.getString(titleRes,version,detail);
+                    Context app=context.getApplicationContext();
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        try {Toast.makeText(app,message,Toast.LENGTH_LONG).show();}
+                        catch(Throwable t) {
+                            DiagnosticLog.i(app,"GOOGLE_HOOK_SCAN",
+                                    "Toast failed="+t.getClass().getSimpleName());
+                        }
+                    });
+                }
+            }
+            result.putBoolean("reported",true);
+            return result;
+        }
         if (GoogleCtsContract.METHOD_READ_HOOK_PROFILE.equals(method)) {
             if (identity.equals(cache.getString(K_APK, ""))
                     && fingerprint.equals(cache.getString(K_FINGERPRINT, ""))) {
@@ -62,6 +99,13 @@ public final class GoogleHookProfileCache {
                         p.getString(K_FINGERPRINT, ""))
                 && !p.getString(K_SYMBOLS, "").isBlank()
                 ? "cached (method revalidation required)" : "not matched for installed APK";
+    }
+
+    private static String sanitize(String value,int max) {
+        if(value==null)return "";
+        String safe=value.replace('\\n',' ').replace('\\r',' ')
+                .replace('\\u0000',' ').trim();
+        return safe.length()>max?safe.substring(0,max):safe;
     }
 
     private static String installedIdentity(Context context) {

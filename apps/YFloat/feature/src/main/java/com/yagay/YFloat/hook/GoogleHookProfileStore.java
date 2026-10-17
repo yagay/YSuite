@@ -9,7 +9,6 @@ import android.util.Log;
 import com.yagay.YFloat.BuildConfig;
 import com.yagay.YFloat.GoogleCtsContract;
 import com.yagay.suite.api.HostIdentity;
-import com.yagay.YFloat.GoogleHookVersionPolicy;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
@@ -68,6 +67,28 @@ final class GoogleHookProfileStore {
             module.log(Log.WARN,TAG,"Google cached matcher write failed "
                     +t.getClass().getSimpleName());
             return false;
+        }
+    }
+
+    void reportScan(boolean success,int installedHooks,String method) {
+        if(context==null || identity.isBlank()) {
+            module.log(Log.WARN,TAG,"Google scan Toast unavailable: process context missing");
+            return;
+        }
+        try {
+            Bundle req=request();
+            req.putBoolean(GoogleCtsContract.EXTRA_HOOK_SCAN_SUCCESS,success);
+            req.putInt(GoogleCtsContract.EXTRA_HOOK_SCAN_COUNT,installedHooks);
+            req.putString(GoogleCtsContract.EXTRA_HOOK_SCAN_METHOD,
+                    method==null?"":method);
+            Bundle res=context.getContentResolver().call(uri,
+                    GoogleCtsContract.METHOD_REPORT_HOOK_SCAN,null,req);
+            module.log(Log.INFO,TAG,"Google scan completion reported="+
+                    (res!=null&&res.getBoolean("reported",false))
+                    +" success="+success+" hooks="+installedHooks);
+        } catch(Throwable t) {
+            module.log(Log.WARN,TAG,"Google scan completion Toast report failed "
+                    +t.getClass().getSimpleName());
         }
     }
 

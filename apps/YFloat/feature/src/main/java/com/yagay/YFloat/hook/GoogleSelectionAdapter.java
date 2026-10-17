@@ -100,6 +100,12 @@ final class GoogleSelectionAdapter {
                 "scanned-1760-selection-shape");
     }
 
+    /** Fixed 17.60 and validated cache hits do not require a scan Toast. */
+    static boolean scanned(Binding binding) {
+        return binding != null && (binding.source().startsWith("scanned-")
+                || (!binding.available() && binding.detail().contains("; semantic=")));
+    }
+
     /** Write only after LSPosed registered the selected Method successfully. */
     static void recordInstalled(Binding binding, GoogleHookProfileStore store) {
         if (store==null || !(binding instanceof DynamicBinding dynamic)
