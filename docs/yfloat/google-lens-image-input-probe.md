@@ -337,3 +337,48 @@ New behaviour:
 Thus **upgrading alone is not a trigger** for a restart message. A concrete
 failed Hook startup is necessary, and a running stale version is a
 secondary diagnostic hint, not an absolute failure verdict.
+
+## 23:09 diagnostic: original-image text selection vs launching Lens
+
+The user wants to select text **on YFloat's existing frozen screenshot** and
+keep YFloat's own text handles/menu. Exporting a crop to Google's separate
+Lens Activity does NOT achieve that.
+
+The 23:09:32 run proves the regression: `native_text_gesture kind=HIGHLIGHT`
+-> `closed google_text_recognition` -> explicit `ACTION_SEND` into
+`LensShareEntryPointActivity`. Google successfully opened the content
+provider twice, but no current YFloat Hook bootstrap or native OCR text
+callback followed. This is a Lens image export, not in-place recognition.
+
+The YFloat original-frame workflow is restored:
+- `NativeCircleWorkspace.show` asynchronously indexes the **whole frozen frame**
+  through `CircleStableOcr.recognizeFullScreenSelected`; its default Google
+  ML Kit recognizer returns an `OcrDocument` with per-character positions.
+- TAP / HIGHLIGHT select matching original-image character spans with native
+  selection handles and a floating text action toolbar. Neither action calls
+  `GoogleLensImageInputProbe.launch` or closes the workspace.
+- CIRCLE / SCRIBBLE remain purely local editable crop / screenshot routes.
+  The screenshot result panel has only the original local OCR/copy/save/close
+  buttons and NO Google Lens entry.
+- Only a **separate, explicit** Google OCR action from the editable native
+  image-crop menu still exports to Lens. It remains experimental, and does
+  not claim a headless Google Lens API exists.
+- The short-lived Google process version flag is advisory; the current branch
+  already allows launch despite a stale-looking tag, and suggests a restart
+  only after an actual Hook handshake timeout. Updating the app alone must
+  never require a restart.
+
+**Important implementation distinction:** the local in-place engine is
+Google ML Kit (or optional configured Paddle OCR), **not Google's proprietary
+Google Lens OCR backend**. This restores functional in-place selection now.
+An actual Google Lens backend with in-place word boxes still needs a separately
+verified internal OCR-result callback that returns a complete document without
+switching into the visible Lens Activity. Prior `native_ocr_callback` proved
+selected fragments after interaction inside Lens, not that headless interface.
+
+Regression: unit tests cover TAP/HIGHLIGHT native text routing, CIRCLE/SCRIBBLE
+local image routing, and the NativeCircleState `TEXT_READY`/IMAGE_READY
+terminal invariants. Check runtime log
+`ready ... textSelection=local_in_place screenshots=local_only` then
+`auto route=text kind=HIGHLIGHT` without any
+`selected_from=native_text_gesture` or Lens Activity launch.

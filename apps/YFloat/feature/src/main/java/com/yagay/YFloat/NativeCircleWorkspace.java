@@ -33,12 +33,14 @@ import java.util.Locale;
  * Intent-first frozen-screen Circle workspace.
  *
  * Nothing moves the screenshot: it is painted once in immutable frame
- * coordinates. Taps and text highlights hand a bounded crop to Google's
- * native Lens OCR; closed circles remain an editable local screenshot crop.
- * Screenshot actions never launch Google. The Google OCR action is explicitly
- * available on a closed-circle image selection.
+ * coordinates. YFloat resolves taps and text highlights in place via its
+ * stable full-screen OCR document, preserving draggable character handles,
+ * live selection and the native text action menu. Closed circles and scribbles
+ * remain local screenshot regions. Google Lens is an explicitly chosen
+ * experiment from the circle image menu, never an automatic text redirect.
  */
 final class NativeCircleWorkspace extends View {
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static NativeCircleWorkspace active;
 
     private final Context app;
@@ -58,13 +60,20 @@ final class NativeCircleWorkspace extends View {
     private final Path dragPath = new Path();
     private final ArrayList<PointF> stroke = new ArrayList<>();
     private final RectF closeHit = new RectF();
+    private final RectF firstHandle = new RectF();
+    private final RectF lastHandle = new RectF();
     private final RectF[] imageHandles = {
             new RectF(), new RectF(), new RectF(), new RectF()
     };
     private final RectF imageDragOrigin = new RectF();
 
-    private boolean closed, touching;
+    private OcrDocument fullDocument;
+    private ArrayList<OcrDocument.CharUnit> chosenChars = new ArrayList<>();
+    private int firstChar = -1, lastChar = -1;
+    private boolean ocrBusy, closed, touching;
     private int handleDrag;
+    private long gestureRevision;
+    private FLCircleSelection.Selection pendingGesture;
     private float downX, downY, minX, minY, maxX, maxY;
     private String status = "";
 
@@ -94,11 +103,12 @@ final class NativeCircleWorkspace extends View {
         active = view;
         view.setFocusableInTouchMode(true);
         view.requestFocus();
-        DiagnosticLog.i(app,"CIRCLE_NATIVE",
-                "ready intent-first image="+frame.bitmap.getWidth()+"x"
-                        +frame.bitmap.getHeight()
-                        +" textRecognition=google_lens_on_demand"
-                        +" screenshots=local_only");
+        view.startOcr();
+        DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                "ready intent-first image=" + frame.bitmap.getWidth() + "x"
+                        + frame.bitmap.getHeight()
+                        + " textSelection=local_in_place screenshots=local_only"
+                        + " googleHook=false");
         return true;
     }
 
@@ -140,6 +150,78 @@ final class NativeCircleWorkspace extends View {
         return Locale.getDefault().getLanguage().equals("zh") ? zh : en;
     }
 
+    private void startOcr() {
+        if (ocrBusy) return;
+        // The frozen frame may be recycled as soon as the user finishes a crop.
+        // OCR runs asynchronously and must own its bitmap until the recognizer
+        // has reported completion. Never pass that soon-to-be-recycled frame.
+        final Bitmap input;
+        try {
+            input = frame.bitmap.copy(Bitmap.Config.ARGB_8888, false);
+            if (input == null) throw new IllegalStateException("OCR bitmap copy failed");
+        } catch (Throwable error) {
+            ocrBusy = false;
+            status = t("文字识别不可用，截图仍可使用",
+                    "Text recognition unavailable; image crops still work");
+            DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                    "ocr snapshot failed=" + ScreenCaptureBackend.safeMessage(error));
+            invalidate();
+            return;
+        }
+        ocrBusy = true;
+        status = t("正在识别屏幕文字", "Recognizing screen text");
+        try {
+            CircleStableOcr.recognizeFullScreenSelected(app, input,
+                    new OcrEngine.DocumentCallback() {
+                @Override public void onSuccess(OcrDocument result) {
+                    recycleOcrBitmap(input);
+                    MAIN.post(() -> {
+                        if (closed) return;
+                        try {
+                            fullDocument = frame.transform.documentBitmapToScreen(result);
+                        } catch (Throwable error) {
+                            fullDocument = null;
+                            DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                                    "ocr coordinates failed="
+                                            + ScreenCaptureBackend.safeMessage(error));
+                        }
+                        ocrBusy = false;
+                        status = "";
+                        FLCircleSelection.Selection pending = pendingGesture;
+                        if (pending != null) routeResolvedGesture(pending, gestureRevision);
+                        invalidate();
+                    });
+                }
+                @Override public void onFailure(Throwable failure) {
+                    recycleOcrBitmap(input);
+                    MAIN.post(() -> {
+                        if (closed) return;
+                        ocrBusy = false;
+                        status = t("无法识别文字，仍可圈选图片",
+                                "Text unavailable; circle an image instead");
+                        FLCircleSelection.Selection pending = pendingGesture;
+                        if (pending != null) resolveImage(pending, gestureRevision);
+                        invalidate();
+                        DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                                "ocr unavailable=" + ScreenCaptureBackend.safeMessage(failure));
+                    });
+                }
+            });
+        } catch (Throwable error) {
+            recycleOcrBitmap(input);
+            ocrBusy = false;
+            status = t("文字识别不可用，截图仍可使用",
+                    "Text recognition unavailable; image crops still work");
+            DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                    "ocr start failed=" + ScreenCaptureBackend.safeMessage(error));
+            invalidate();
+        }
+    }
+
+    private static void recycleOcrBitmap(Bitmap bitmap) {
+        if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+    }
+
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (closed || frame.bitmap.isRecycled()) return;
@@ -154,6 +236,8 @@ final class NativeCircleWorkspace extends View {
             canvas.drawPath(dragPath, outlinePaint);
         } else if (state.phase == NativeCircleState.Phase.IMAGE_READY) {
             drawImageRegion(canvas);
+        } else if (state.phase == NativeCircleState.Phase.TEXT_READY) {
+            drawTextSelection(canvas);
         } else if (state.phase == NativeCircleState.Phase.RESOLVING) {
             RectF box = selectedViewBox();
             if (!box.isEmpty()) {
@@ -242,6 +326,11 @@ final class NativeCircleWorkspace extends View {
                 getWidth(),getHeight());
     }
 
+    private RectF screenToView(Rect screen) {
+        return frame.bitmapToView(new RectF(frame.screenRectToBitmap(screen)),
+                getWidth(),getHeight());
+    }
+
     private void drawImageRegion(Canvas canvas) {
         RectF r=selectedViewBox();
         if(r.isEmpty())return;
@@ -259,61 +348,159 @@ final class NativeCircleWorkspace extends View {
         }
     }
 
-    /** Circle/image menus are independent from Google's native text toolbar. */
+    private void drawTextSelection(Canvas canvas) {
+        if(chosenChars.isEmpty())return;
+        RectF first=null,last=null;
+        for(OcrDocument.CharUnit ch:chosenChars){
+            RectF r=screenToView(ch.bounds());
+            if(r.isEmpty())continue;
+            canvas.drawRoundRect(r,2*density,2*density,fillPaint);
+            if(first==null)first=new RectF(r);
+            last=new RectF(r);
+        }
+        if(first==null||last==null)return;
+        float radius=8*density;
+        float hx=first.left, hy=first.bottom+radius;
+        float tx=last.right, ty=last.bottom+radius;
+        canvas.drawLine(hx,first.top,hx,hy,outlinePaint);
+        canvas.drawLine(tx,last.top,tx,ty,outlinePaint);
+        canvas.drawCircle(hx,hy,radius/1.8f,outlinePaint);
+        canvas.drawCircle(tx,ty,radius/1.8f,outlinePaint);
+        firstHandle.set(hx-24*density,hy-24*density,
+                hx+24*density,hy+24*density);
+        lastHandle.set(tx-24*density,ty-24*density,
+                tx+24*density,ty+24*density);
+    }
+
+    /** One menu host for both OCR text and selected image rectangles. */
     private void syncPopup() {
-        if(closed||touching||handleDrag!=0
-                ||state.phase!=NativeCircleState.Phase.IMAGE_READY){
+        if (closed || touching || handleDrag != 0) return;
+        boolean text = state.phase == NativeCircleState.Phase.TEXT_READY;
+        boolean image = state.phase == NativeCircleState.Phase.IMAGE_READY;
+        if (!text && !image) {
             FloatActionMenu.dismiss();
             return;
         }
-        RectF selection=selectedViewBox();
-        if(selection.isEmpty()){FloatActionMenu.dismiss();return;}
-        int[] origin=new int[2];
+        RectF selection = selectedViewBox();
+        if (selection.isEmpty()) {
+            FloatActionMenu.dismiss();
+            return;
+        }
+        int[] origin = new int[2];
         getLocationOnScreen(origin);
-        Rect screenBounds=new Rect(
-                Math.round(origin[0]+selection.left),
-                Math.round(origin[1]+selection.top),
-                Math.round(origin[0]+selection.right),
-                Math.round(origin[1]+selection.bottom));
-        FloatActionMenu.showImageAt(app,screenBounds,true,this::handleAction);
+        Rect screenBounds = new Rect(
+                Math.round(origin[0] + selection.left),
+                Math.round(origin[1] + selection.top),
+                Math.round(origin[0] + selection.right),
+                Math.round(origin[1] + selection.bottom));
+        if (text) {
+            if (!state.selectedText.isBlank()) {
+                FloatActionMenu.showTextAt(app, state.selectedText,
+                        this::selectAllText, screenBounds);
+            }
+        } else {
+            FloatActionMenu.showImageAt(app, screenBounds, true, this::handleAction);
+        }
+    }
+
+    private void selectAllText() {
+        if (closed || fullDocument == null
+                || state.phase != NativeCircleState.Phase.TEXT_READY
+                || fullDocument.chars().isEmpty()) return;
+        firstChar = 0;
+        lastChar = fullDocument.chars().size() - 1;
+        applyTextIndices(state.revision, false);
+        // FloatActionMenu closes itself after Select all: republish next loop.
+        MAIN.post(this::syncPopup);
     }
 
     private void routeResolvedGesture(FLCircleSelection.Selection gesture,long token) {
         if(closed||gesture==null||state.phase!=NativeCircleState.Phase.RESOLVING
                 ||token!=state.revision)return;
-        if(NativeCircleIntentRouter.classify(gesture.kind.name(),false)
-                ==NativeCircleIntentRouter.Route.IMAGE){
-            resolveImage(gesture,token);
+        pendingGesture=null;
+        // Screenshot intent must never wait for OCR or be reclassified by text inside it.
+        if (NativeCircleIntentRouter.classify(gesture.kind.name(),
+                fullDocument != null) == NativeCircleIntentRouter.Route.IMAGE) {
+            resolveImage(gesture, token);
             return;
         }
-        // The gesture denotes TEXT recognition, NOT a screenshot request.
-        // Do not initialize the local full-screen OCR engine. Lens receives
-        // only a readable neighbourhood of the tap/highlight, never the whole
-        // frozen screen.
-        int[] c=NativeCircleGoogleRecognitionCrop.forGesture(
-                gesture.kind.name(),gesture.bounds.left,gesture.bounds.top,
-                gesture.bounds.right,gesture.bounds.bottom,
-                gesture.focus.x,gesture.focus.y,
-                frame.bitmap.getWidth(),frame.bitmap.getHeight(),density);
-        if(c==null){resolveImage(gesture,token);return;}
-        Bitmap input=null;
+        if(fullDocument==null){
+            if(ocrBusy) { pendingGesture=gesture;status=t("正在识别…","Recognizing…"); }
+            else resolveImage(gesture,token);
+            invalidate();
+            return;
+        }
+        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        List<CircleGestureTextSelector.GroupHit> groups;
         try {
-            input=Bitmap.createBitmap(frame.bitmap,c[0],c[1],c[2]-c[0],c[3]-c[1]);
-            if(input==frame.bitmap){
-                input=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
-                if(input==null)throw new IllegalStateException("bitmap copy returned null");
-            }
-        }catch(Throwable failure){
-            traceError("google_text_crop",failure);
+            groups = CircleGestureTextSelector.hitGroups(
+                    app,frame,gesture,fullDocument,10f,10f);
+        } catch (Throwable error) {
+            DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                    "ocr hit matching failed=" + ScreenCaptureBackend.safeMessage(error));
             resolveImage(gesture,token);
             return;
         }
-        DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
-                "selected_from=native_text_gesture kind="+gesture.kind
-                +" crop="+input.getWidth()+"x"+input.getHeight()
-                +" screenshots=local_only");
-        dismissActive("google_text_recognition");
-        GoogleLensImageInputProbe.launch(app,input);
+        if(groups==null || groups.isEmpty()) {
+            resolveImage(gesture,token);
+            return;
+        }
+        int first=Integer.MAX_VALUE,last=-1;
+        for(CircleGestureTextSelector.GroupHit hit:groups){
+            for(OcrDocument.CharUnit ch:hit.chars) {
+                for(int i=0;i<all.size();i++){
+                    OcrDocument.CharUnit doc=all.get(i);
+                    if(doc==ch || doc.line()==ch.line()
+                            && doc.order()==ch.order()
+                            && doc.bounds().equals(ch.bounds())){
+                        first=Math.min(first,i);
+                        last=Math.max(last,i);
+                        break;
+                    }
+                }
+            }
+        }
+        if(first>last){resolveImage(gesture,token);return;}
+        firstChar=first;lastChar=last;
+        applyTextIndices(token,true);
+        if (state.phase != NativeCircleState.Phase.TEXT_READY) {
+            // Empty/invalid OCR text must not leave the workspace stuck in RESOLVING.
+            resolveImage(gesture, token);
+            return;
+        }
+        DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
+    }
+
+    private void applyTextIndices(long token,boolean initial) {
+        if(fullDocument==null||firstChar<0||lastChar<firstChar)return;
+        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        if(lastChar>=all.size())return;
+        chosenChars.clear();
+        StringBuilder text=new StringBuilder();
+        Rect screen=new Rect();
+        OcrDocument.CharUnit previous=null;
+        for(int i=firstChar;i<=lastChar;i++){
+            OcrDocument.CharUnit ch=all.get(i);
+            if(ch.text().isEmpty())continue;
+            if(previous!=null && (previous.line()!=ch.line()
+                    || previous.group()!=ch.group()))text.append(' ');
+            text.append(ch.text());
+            screen.union(ch.bounds());
+            chosenChars.add(ch);
+            previous=ch;
+        }
+        if(text.toString().isBlank())return;
+        Rect inBitmap=frame.screenRectToBitmap(screen);
+        if(initial){
+            if(!state.resolveText(token,text.toString(),inBitmap.left,inBitmap.top,
+                    inBitmap.right,inBitmap.bottom))return;
+        }else{
+            state.updateText(text.toString(),inBitmap.left,inBitmap.top,
+                    inBitmap.right,inBitmap.bottom);
+        }
+        status="";
+        invalidate();
+        syncPopup();
     }
 
     private void resolveImage(FLCircleSelection.Selection gesture,long token) {
@@ -330,7 +517,9 @@ final class NativeCircleWorkspace extends View {
         }
         if(!state.resolveImage(token,selection.left,selection.top,
                 selection.right,selection.bottom))return;
+        chosenChars.clear(); firstChar=lastChar=-1;
         // Image intent always resolves to a rectangle with four resize handles.
+        pendingGesture=null;
         status="";
         invalidate();
         syncPopup();
@@ -346,7 +535,24 @@ final class NativeCircleWorkspace extends View {
                 frame.bitmap.getWidth(),frame.bitmap.getHeight());
         state.bounds(region.left,region.top,region.right,region.bottom);
         if(!state.resolving())return;
-        routeResolvedGesture(gesture,state.revision);
+        gestureRevision=state.revision;
+        pendingGesture=gesture;
+        // The stroke is feedback only. The selected region is its bounding
+        // rectangle and can be previewed while OCR intent is still resolving.
+        routeResolvedGesture(gesture,gestureRevision);
+        if (pendingGesture == gesture && ocrBusy) {
+            long token = gestureRevision;
+            // OCR engines/models may stall. A text stroke still must resolve
+            // to an editable crop instead of leaving the canvas unresponsive.
+            MAIN.postDelayed(() -> {
+                if (closed || state.phase != NativeCircleState.Phase.RESOLVING
+                        || state.revision != token || pendingGesture != gesture) return;
+                DiagnosticLog.i(app, "CIRCLE_NATIVE",
+                        "text OCR timeout; falling back to image crop");
+                pendingGesture = null;
+                resolveImage(gesture, token);
+            }, 4000L);
+        }
         invalidate();
     }
 
@@ -360,7 +566,8 @@ final class NativeCircleWorkspace extends View {
         if(image==null)return;
         if(ImageMenuSettings.GOOGLE_OCR.equals(action)){
             DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
-                    "selected_from=native_circle_image_menu screenshots=local_only");
+                    "selected_from=explicit_native_circle_image_menu"
+                    +" screenshots=local_only");
             dismissActive("google_ocr_probe");
             GoogleLensImageInputProbe.launch(app,image);
             return;
@@ -411,13 +618,23 @@ final class NativeCircleWorkspace extends View {
         }catch(Throwable failure){traceError("image_crop",failure);return null;}
     }
 
+    private void openWeb(String url){
+        try {
+            app.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        }catch(Throwable failure){traceError("web",failure);}
+    }
+    private static String encode(String text){
+        return URLEncoder.encode(text,StandardCharsets.UTF_8);
+    }
     private void traceError(String action,Throwable error){
         DiagnosticLog.i(app,"CIRCLE_NATIVE",
                 action+" failed="+ScreenCaptureBackend.safeMessage(error));
     }
     private void resetSelection(){
         FloatActionMenu.dismiss();
-        state.clear();status="";
+        state.clear();chosenChars.clear();
+        firstChar=lastChar=-1;pendingGesture=null;status="";
         invalidate();
     }
 
@@ -430,6 +647,10 @@ final class NativeCircleWorkspace extends View {
             // The menu owns its own touchable popup window. Any touch in the
             // canvas begins a handle adjustment or fresh selection instead.
             FloatActionMenu.dismiss();
+            if(state.phase==NativeCircleState.Phase.TEXT_READY){
+                if(firstHandle.contains(x,y)){handleDrag=1;return true;}
+                if(lastHandle.contains(x,y)){handleDrag=2;return true;}
+            }
             if(state.phase==NativeCircleState.Phase.IMAGE_READY){
                 for(int i=0;i<imageHandles.length;i++){
                     if(imageHandles[i].contains(x,y)){
@@ -447,12 +668,14 @@ final class NativeCircleWorkspace extends View {
             handleDrag=0;
             stroke.clear();stroke.add(bitmap);
             dragPath.reset();dragPath.moveTo(x,y);
-            status="";
+            chosenChars.clear();firstChar=lastChar=-1;
+            pendingGesture=null;status="";
             invalidate();return true;
         }
         if(handleDrag!=0){
             if(action==MotionEvent.ACTION_MOVE||action==MotionEvent.ACTION_UP){
-                adjustImageHandle(x,y);
+                if(handleDrag<=2)adjustTextHandle(x,y);
+                else adjustImageHandle(x,y);
                 if(action==MotionEvent.ACTION_UP) {
                     handleDrag=0;
                     syncPopup();
@@ -511,6 +734,25 @@ final class NativeCircleWorkspace extends View {
         state.bounds(l,t,r,b);
     }
 
+    private void adjustTextHandle(float x,float y){
+        if(fullDocument==null)return;
+        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        if(all.isEmpty())return;
+        PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
+        PointF screen=frame.bitmapPointToScreen(bitmap.x,bitmap.y);
+        float best=Float.MAX_VALUE;
+        int candidate=-1;
+        for(int i=0;i<all.size();i++){
+            Rect r=all.get(i).bounds();
+            float distance=(float)Math.hypot(screen.x-r.centerX(),screen.y-r.centerY());
+            if(distance<best){best=distance;candidate=i;}
+        }
+        if(candidate<0)return;
+        if(handleDrag==1)firstChar=Math.min(candidate,lastChar);
+        else lastChar=Math.max(candidate,firstChar);
+        applyTextIndices(state.revision,false);
+    }
+
     @Override public boolean onKeyDown(int code,KeyEvent event){
         if(code==KeyEvent.KEYCODE_BACK){
             dismissActive("back");return true;
@@ -520,7 +762,7 @@ final class NativeCircleWorkspace extends View {
 
     private void close(String reason) {
         if(closed)return;
-        closed=true;state.close();
+        closed=true;state.close();pendingGesture=null;
         FloatActionMenu.dismiss();
         host.remove(this,"native_circle_"+reason);
         if(closedCallback!=null)closedCallback.run();
