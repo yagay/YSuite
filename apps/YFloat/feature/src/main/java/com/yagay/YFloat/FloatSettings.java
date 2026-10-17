@@ -287,8 +287,8 @@ public final class FloatSettings {
     public int ocrType() { return clamp(p.getInt(K_OCR_TYPE, 0), 0, 1); }
     public int ocrEngineMode() {
         Object raw = p.getAll().get(K_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 3);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 3); } catch (Throwable ignored) {} }
+        if (raw instanceof Number n) return clamp(n.intValue(), 0, 4);
+        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 4); } catch (Throwable ignored) {} }
         return 0;
     }
     public String customIconUri() { return p.getString(K_CUSTOM_ICON, ""); }

@@ -99,6 +99,16 @@ final class SettingsCapturePage {
         }
         YViewLayout.addSection(root, models);
 
+        // Full official PP-StructureV3 is a separate explicit network mode,
+        // never silently conflated with offline PP-DocLayout-S detection.
+        YViewSection fullStructure = YViewLayout.section(activity,
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                        ? "完整 PP-StructureV3 服务"
+                        : "Full PP-StructureV3 service",
+                null);
+        PaddleStructureFullSettingsV3.add(activity, fullStructure.body, fs);
+        YViewLayout.addSection(root, fullStructure);
+
         YViewSection languages = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_recognition_languages_section),
                 activity.getString(R.string.yfloat_recognition_languages_desc));

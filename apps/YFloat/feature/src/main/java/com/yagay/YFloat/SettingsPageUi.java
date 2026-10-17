@@ -89,7 +89,10 @@ final class SettingsPageUi {
                 activity.getString(R.string.yfloat_ocr_auto),
                 activity.getString(R.string.yfloat_ocr_medium),
                 activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_mlkit)
+                activity.getString(R.string.yfloat_ocr_mlkit),
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                        ? "PP-StructureV3 完整（HTTPS 服务）"
+                        : "PP-StructureV3 Full (HTTPS service)"
         }, fs.ocrEngineMode(), FloatSettings.K_OCR_ENGINE, true);
     }
 
