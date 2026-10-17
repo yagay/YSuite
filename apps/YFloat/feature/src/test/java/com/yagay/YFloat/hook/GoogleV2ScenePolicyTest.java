@@ -28,6 +28,21 @@ public class GoogleV2ScenePolicyTest {
                 true,"android.intent.action.VIEW","www.google.com","/maps"));
     }
 
+    @Test public void onlyCloseRevokedYFloatOwnedLensActivity() {
+        assertTrue(GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
+                true,true,false,true,false));
+        assertFalse(GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
+                false,true,false,true,false));
+        assertFalse(GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
+                true,true,true,true,false));
+        assertFalse(GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
+                true,false,false,true,false));
+        assertFalse(GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
+                true,true,false,false,false));
+        assertFalse(GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
+                true,true,false,true,true));
+    }
+
     @Test public void freezeOnlyOwnsFrozenImageProperties() {
         assertTrue(GoogleV2ScenePolicy.shouldBlockTransform(true, "setScaleX", 0.915f));
         assertTrue(GoogleV2ScenePolicy.shouldBlockTransform(true, "setTranslationY", -1369f));

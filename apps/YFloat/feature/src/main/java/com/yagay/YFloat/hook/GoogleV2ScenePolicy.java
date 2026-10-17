@@ -50,5 +50,17 @@ final class GoogleV2ScenePolicy {
                 || shouldBlockTransform(true, "setTranslationY", translationY));
     }
 
+    /**
+     * A YFloat-owned Google LensientActivity may outlive YFloat's result
+     * dialog. Once its specific token has been revoked, it must no longer
+     * accept drawing/search gestures. Never close a normal Google session.
+     */
+    static boolean shouldFinishStaleOwnedLens(boolean markedOwner,
+            boolean sessionTokenPresent,boolean leaseStillOwned,
+            boolean lensientActivity,boolean alreadyFinishing) {
+        return markedOwner && sessionTokenPresent && !leaseStillOwned
+                && lensientActivity && !alreadyFinishing;
+    }
+
     private GoogleV2ScenePolicy() { }
 }

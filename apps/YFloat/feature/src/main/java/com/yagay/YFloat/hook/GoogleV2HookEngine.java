@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.service.voice.VoiceInteractionSession;
 import android.util.Log;
 
 import com.yagay.YFloat.GoogleCtsContract;
@@ -189,6 +190,14 @@ final class GoogleV2HookEngine {
         if(!active())return;
         transport.sendEvent(GoogleCtsContract.EVENT_END,"","v2:"+reason,null);
         logEvent("SESSION","ended="+reason);
+        clearLocalSession();
+    }
+
+    /**
+     * Clear local Java state after a true Google doHide or after the
+     * remotely revoked YFloat session is closed on resume.
+     */
+    private void clearLocalSession() {
         token="";
         textMode=false;regionMode=false;currentText="";currentBounds=null;
         owner=null;voice=null;
@@ -198,6 +207,39 @@ final class GoogleV2HookEngine {
         viewport.reset();
         nativeChrome.reset();
         revision.incrementAndGet();
+    }
+
+    private void closeRevokedLensOnResume(Activity activity) {
+        if(activity==null)return;
+        final String expiredToken=token;
+        boolean sameOwner=owner==activity;
+        if(!GoogleV2ScenePolicy.shouldFinishStaleOwnedLens(
+                sameOwner,!expiredToken.isBlank(),
+                !expiredToken.isBlank()&&provider.ownsGoogleCtsSession(expiredToken),
+                activity.getClass().getName().endsWith("LensientActivity"),
+                activity.isFinishing()||activity.isDestroyed()))return;
+        main.post(()->{
+            // Recheck on the main thread. A new YFloat token can be armed
+            // between Instrumentation.onResume and this close operation.
+            if(owner!=activity||!expiredToken.equals(token)||expiredToken.isBlank()
+                    ||provider.ownsGoogleCtsSession(expiredToken)
+                    ||activity.isFinishing()||activity.isDestroyed())return;
+            logEvent("STALE_CTS_CLOSING",
+                    "revoked owned LensientActivity after result handoff");
+            Object oldVoice=voice;
+            try {
+                if(oldVoice instanceof VoiceInteractionSession voiceSession)
+                    voiceSession.finish();
+            }catch(Throwable t){
+                module.log(Log.WARN,TAG,"stale owned voice session finish failed",t);
+            }
+            try {
+                activity.finish();
+            }catch(Throwable t){
+                module.log(Log.WARN,TAG,"stale owned LensientActivity finish failed",t);
+            }
+            clearLocalSession();
+        });
     }
 
     private int hookVoiceShow() {
@@ -265,10 +307,16 @@ final class GoogleV2HookEngine {
             for(Executable e:HiddenApiBypass.getDeclaredMethods(Instrumentation.class)){
                 if(!(e instanceof Method method))continue;
                 if(!"callActivityOnCreate".equals(method.getName())
-                        &&!"callActivityOnNewIntent".equals(method.getName()))continue;
+                        &&!"callActivityOnNewIntent".equals(method.getName())
+                        &&!"callActivityOnResume".equals(method.getName()))continue;
                 module.hook(method).intercept(chain->{
                     if(!(chain.getArg(0) instanceof Activity activity))
                         return chain.proceed();
+                    if("callActivityOnResume".equals(method.getName())){
+                        Object resumed=chain.proceed();
+                        closeRevokedLensOnResume(activity);
+                        return resumed;
+                    }
                     Intent incoming=activity.getIntent();
                     if("callActivityOnNewIntent".equals(method.getName())){
                         Class<?>[] args=method.getParameterTypes();
