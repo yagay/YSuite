@@ -47,4 +47,7 @@
     <string name="yfloat_google_manual_scan_busy">A Google Hook scan is already pending.</string>
     <string name="yfloat_google_manual_scan_reload_failed">Cannot restart Google: %1$s</string>
     <string name="yfloat_google_manual_scan_launch_failed">Google was restarted but could not be opened. Launch Google manually to complete scanning.</string>
+    <string name="yfloat_google_scan_timeout_detail">Timeout: Google Hook did not return a result; check LSPosed scope and diagnostic logs.</string>
+    <string name="yfloat_google_manual_scan_waiting">Google Hook scan in progress (up to 45 seconds)</string>
+    <string name="yfloat_google_scan_status">Last Hook scan: %1$s · %2$d registered · %3$s</string>
 </resources>

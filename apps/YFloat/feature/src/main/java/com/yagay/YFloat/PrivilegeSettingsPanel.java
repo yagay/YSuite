@@ -442,6 +442,7 @@ public final class PrivilegeSettingsPanel {
                 : activity.getString(R.string.yfloat_priv_google_hook_not_running);
         String googleLine = activity.getString(R.string.yfloat_priv_google_line,
                 enabled(activity, new FloatSettings(activity).circleEngine() == 1), googleHook);
+        String scanStatus = GoogleHookProfileCache.scanStatus(activity);
         String updatedLine = s.remoteUpdatedAt <= 0L ? ""
                 : " " + DateFormat.format("HH:mm:ss", s.remoteUpdatedAt);
         String hookGenerationLine = HookReloadManager.statusSummary(activity, s);
@@ -455,6 +456,7 @@ public final class PrivilegeSettingsPanel {
                 + "\n" + remoteLine + updatedLine
                 + "\n" + secureLine
                 + "\n" + googleLine
+                + (scanStatus.isBlank() ? "" : "\n" + scanStatus)
                 + "\n" + hookGenerationLine
                 + "\n" + scopeLine
                 + "\n" + loadedLine

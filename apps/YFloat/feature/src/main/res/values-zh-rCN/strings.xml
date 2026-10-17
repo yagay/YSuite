@@ -47,4 +47,7 @@
     <string name="yfloat_google_manual_scan_busy">已有一次 Google Hook 扫描正在等待执行。</string>
     <string name="yfloat_google_manual_scan_reload_failed">无法重新加载 Google：%1$s</string>
     <string name="yfloat_google_manual_scan_launch_failed">已重新加载 Google，但未能自动启动，请手动打开 Google 以完成扫描。</string>
+    <string name="yfloat_google_scan_timeout_detail">扫描超时：Google Hook 未返回结果，请检查 LSPosed 作用域和诊断日志。</string>
+    <string name="yfloat_google_manual_scan_waiting">正在扫描 Google Hook（最长 45 秒）</string>
+    <string name="yfloat_google_scan_status">最近一次扫描：%1$s · 注册 %2$d 个 Hook · %3$s</string>
 </resources>

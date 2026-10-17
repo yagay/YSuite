@@ -29,5 +29,11 @@ public class GoogleHookVersionPolicyTest {
         assertEquals(GoogleHookVersionPolicy.Compatibility.EXPERIMENTAL,
                 GoogleHookVersionPolicy.compatibility(null));
     }
+    @org.junit.Test public void manualScanTimeoutIsBounded() {
+        org.junit.Assert.assertFalse(GoogleHookVersionPolicy.scanTimedOut(100, 300, 201));
+        org.junit.Assert.assertTrue(GoogleHookVersionPolicy.scanTimedOut(100, 301, 201));
+        org.junit.Assert.assertTrue(GoogleHookVersionPolicy.scanTimedOut(100, 10, 201));
+        org.junit.Assert.assertTrue(GoogleHookVersionPolicy.scanTimedOut(0, 100, 201));
+    }
 
 }

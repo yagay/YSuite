@@ -7,6 +7,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.widget.Toast;
 
 /**
@@ -28,6 +29,12 @@ public final class GoogleHookProfileCache {
     private static final String K_MANUAL_PENDING = "manual_scan_pending";
     private static final String K_MANUAL_APK = "manual_scan_apk";
     private static final String K_MANUAL_FINGERPRINT = "manual_scan_fingerprint";
+    private static final String K_MANUAL_STARTED = "manual_scan_started_elapsed";
+    private static final String K_LAST_SCAN_RESULT = "last_scan_result";
+    private static final String K_LAST_SCAN_DETAIL = "last_scan_detail";
+    private static final String K_LAST_SCAN_COUNT = "last_scan_count";
+    private static final String K_LAST_SCAN_APK = "last_scan_apk";
+    private static final long MANUAL_SCAN_TIMEOUT_MS = 45_000L;
     private static final int MAX_SYMBOL_BYTES = 2048;
 
     static Bundle handle(Context context, String method, Bundle extras) {
@@ -44,11 +51,16 @@ public final class GoogleHookProfileCache {
                     GoogleCtsContract.EXTRA_HOOK_SCAN_COUNT,0)));
             String raw=extras.getString(GoogleCtsContract.EXTRA_HOOK_SCAN_METHOD,"");
             String detail=sanitize(raw,75);
-            boolean manual = manualPending(cache, identity, fingerprint);
+            boolean manual = manualPending(cache, identity, fingerprint)
+                    && !manualTimedOut(cache);
             String noticeId=identity+"|"+fingerprint+"|"+success
                     +(manual ? "|manual" : "");
             DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN","finished version="
                     +identity+" success="+success+" hooks="+count+" detail="+detail);
+            cache.edit().putString(K_LAST_SCAN_APK,identity)
+                    .putString(K_LAST_SCAN_RESULT,success?"success":"failed")
+                    .putString(K_LAST_SCAN_DETAIL,detail)
+                    .putInt(K_LAST_SCAN_COUNT,count).commit();
             // One result Toast per APK, matcher version, and result transition.
             // Cache hits do not reach this call, so app/Google process restart
             // does not repeatedly display notifications.
@@ -60,18 +72,10 @@ public final class GoogleHookProfileCache {
                     String message=success
                             ? context.getString(titleRes,version,count,detail)
                             : context.getString(titleRes,version,detail);
-                    Context app=context.getApplicationContext();
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        try {Toast.makeText(app,message,Toast.LENGTH_LONG).show();}
-                        catch(Throwable t) {
-                            DiagnosticLog.i(app,"GOOGLE_HOOK_SCAN",
-                                    "Toast failed="+t.getClass().getSimpleName());
-                        }
-                    });
+                    notifyUser(context,message);
                 }
             }
-            if (manual) cache.edit().remove(K_MANUAL_PENDING)
-                    .remove(K_MANUAL_APK).remove(K_MANUAL_FINGERPRINT).commit();
+            if (manual) clearPending(cache);
             result.putBoolean("reported",true);
             return result;
         }
@@ -106,27 +110,88 @@ public final class GoogleHookProfileCache {
         String identity=installedIdentity(app);
         if(identity.isBlank())return false;
         SharedPreferences prefs=app.getSharedPreferences(PREF,Context.MODE_PRIVATE);
+        expirePending(app);
         if(manualPending(prefs,identity,BuildConfig.GOOGLE_HOOK_FINGERPRINT))
             return false;
-        return prefs.edit()
+        boolean started=prefs.edit()
                 .putBoolean(K_MANUAL_PENDING,true)
                 .putString(K_MANUAL_APK,identity)
                 .putString(K_MANUAL_FINGERPRINT,BuildConfig.GOOGLE_HOOK_FINGERPRINT)
-                .remove(K_LAST_SCAN_TOAST).commit();
+                .putLong(K_MANUAL_STARTED,SystemClock.elapsedRealtime())
+                .remove(K_LAST_SCAN_TOAST)
+                .remove(K_LAST_SCAN_RESULT).remove(K_LAST_SCAN_DETAIL).commit();
+        if(started) new Handler(Looper.getMainLooper()).postDelayed(
+                () -> expirePending(app),MANUAL_SCAN_TIMEOUT_MS);
+        return started;
     }
 
     static void cancelManualScan(Context context) {
         if(context==null)return;
-        context.getApplicationContext().getSharedPreferences(PREF,Context.MODE_PRIVATE)
-                .edit().remove(K_MANUAL_PENDING).remove(K_MANUAL_APK)
-                .remove(K_MANUAL_FINGERPRINT).apply();
+        clearPending(context.getApplicationContext().getSharedPreferences(
+                PREF,Context.MODE_PRIVATE));
     }
 
     static boolean manualScanPending(Context context) {
         if(context==null)return false;
         Context app=context.getApplicationContext();
+        expirePending(app);
         return manualPending(app.getSharedPreferences(PREF,Context.MODE_PRIVATE),
                 installedIdentity(app),BuildConfig.GOOGLE_HOOK_FINGERPRINT);
+    }
+
+    private static boolean manualTimedOut(SharedPreferences p) {
+        return GoogleHookVersionPolicy.scanTimedOut(
+                p.getLong(K_MANUAL_STARTED,0L),
+                SystemClock.elapsedRealtime(),MANUAL_SCAN_TIMEOUT_MS);
+    }
+
+    private static void clearPending(SharedPreferences p) {
+        p.edit().remove(K_MANUAL_PENDING).remove(K_MANUAL_APK)
+                .remove(K_MANUAL_FINGERPRINT).remove(K_MANUAL_STARTED).commit();
+    }
+
+    private static void expirePending(Context context) {
+        SharedPreferences p=context.getSharedPreferences(PREF,Context.MODE_PRIVATE);
+        if(!p.getBoolean(K_MANUAL_PENDING,false) || !manualTimedOut(p))return;
+        String apk=p.getString(K_MANUAL_APK,"");
+        clearPending(p);
+        String detail=context.getString(R.string.yfloat_google_scan_timeout_detail);
+        p.edit().putString(K_LAST_SCAN_APK,apk)
+                .putString(K_LAST_SCAN_RESULT,"timeout")
+                .putString(K_LAST_SCAN_DETAIL,detail)
+                .putInt(K_LAST_SCAN_COUNT,0).commit();
+        DiagnosticLog.i(context,"GOOGLE_HOOK_SCAN",
+                "manual scan timed out apk="+apk+" result_not_received");
+        String version=apk.split("/",2)[0];
+        notifyUser(context,context.getString(R.string.yfloat_google_scan_toast_failure,
+                version,detail));
+    }
+
+    public static String scanStatus(Context context) {
+        if(context==null)return "";
+        Context app=context.getApplicationContext();
+        expirePending(app);
+        SharedPreferences p=app.getSharedPreferences(PREF,Context.MODE_PRIVATE);
+        String identity=installedIdentity(app);
+        if(manualPending(p,identity,BuildConfig.GOOGLE_HOOK_FINGERPRINT))
+            return app.getString(R.string.yfloat_google_manual_scan_waiting);
+        if(!identity.equals(p.getString(K_LAST_SCAN_APK,"")))return "";
+        String result=p.getString(K_LAST_SCAN_RESULT,"");
+        if(result.isBlank())return "";
+        return app.getString(R.string.yfloat_google_scan_status,
+                result,p.getInt(K_LAST_SCAN_COUNT,0),
+                p.getString(K_LAST_SCAN_DETAIL,""));
+    }
+
+    private static void notifyUser(Context context,String message) {
+        Context app=context.getApplicationContext();
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try { Toast.makeText(app,message,Toast.LENGTH_LONG).show(); }
+            catch(Throwable t) {
+                DiagnosticLog.i(app,"GOOGLE_HOOK_SCAN",
+                        "Toast error="+t.getClass().getSimpleName());
+            }
+        });
     }
 
     private static boolean manualPending(SharedPreferences p,String apk,String fingerprint) {
@@ -137,7 +202,9 @@ public final class GoogleHookProfileCache {
 
     public static String status(Context context, String currentIdentity) {
         if (context == null) return "unavailable";
-        SharedPreferences p = context.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        Context app=context.getApplicationContext();
+        expirePending(app);
+        SharedPreferences p = app.getSharedPreferences(PREF, Context.MODE_PRIVATE);
         if(manualPending(p, currentIdentity==null?"":currentIdentity,
                 BuildConfig.GOOGLE_HOOK_FINGERPRINT)) return "manual scan pending";
         return currentIdentity != null

@@ -20,5 +20,11 @@ final class GoogleHookVersionPolicy {
                 ? Compatibility.BASELINE_1760 : Compatibility.EXPERIMENTAL;
     }
 
+    /** Missing timestamps and monotonic-clock reset also expire pending requests. */
+    static boolean scanTimedOut(long started,long now,long timeoutMillis) {
+        return started<=0 || now<started || timeoutMillis<=0
+                || now-started>=timeoutMillis;
+    }
+
     private GoogleHookVersionPolicy() {}
 }
