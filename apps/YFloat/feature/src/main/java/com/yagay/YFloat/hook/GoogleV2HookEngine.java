@@ -77,7 +77,8 @@ final class GoogleV2HookEngine {
         // selection to avoid blocking Google's OCR processing.
         nativeSearch=new GoogleV2SearchGuard(module,loader,
                 this::active,()->active()&&(textMode||regionMode),this::logEvent);
-        nativeChrome=new GoogleV2SearchChrome(this::active,this::logEvent);
+        nativeChrome=new GoogleV2SearchChrome(
+                this::active,()->active()&&(textMode||regionMode),this::logEvent);
         profileStore=new GoogleHookProfileStore(module);
         selection=GoogleSelectionAdapter.resolve(loader,profileStore);
     }

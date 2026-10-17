@@ -37,7 +37,7 @@
     <string name="yfloat_google_unverified_version">未验证的 Google 版本：尝试基于 17.60 特征动态匹配，不保证兼容。</string>
     <string name="yfloat_google_1760_baseline">Google 17.60：优先适配基准，实际效果仍需手机验证。</string>
     <string name="yfloat_google_1758_legacy">Google 17.58：保留旧版兼容；后续以 17.60 为主要开发基准。</string>
-    <string name="yfloat_google_scan_toast_success">Google %1$s：Hook 扫描匹配成功\n已注册 %2$d 个 Hook · %3$s</string>
+    <string name="yfloat_google_scan_toast_success">Google %1$s：Hook 安装完成（功能待验证）\n已注册 %2$d 个 Hook · %3$s</string>
     <string name="yfloat_google_scan_toast_failure">Google %1$s：Hook 扫描匹配失败\n%2$s</string>
     <string name="yfloat_google_manual_scan">一键重新扫描 Google Hook</string>
     <string name="yfloat_google_manual_scan_desc">本次强制重新匹配当前 Google 版本的 Hook（需要 Root 和 LSPosed）；自动复位，启动 Google 后显示扫描 Toast。</string>

@@ -37,7 +37,7 @@
     <string name="yfloat_google_unverified_version">Unverified Google version: experimental 17.60-based Hook discovery; compatibility not guaranteed.</string>
     <string name="yfloat_google_1760_baseline">Google 17.60: preferred Hook baseline. Device verification is still required.</string>
     <string name="yfloat_google_1758_legacy">Google 17.58: legacy compatibility mode. Primary development targets 17.60.</string>
-    <string name="yfloat_google_scan_toast_success">Google %1$s: Hook scan completed ✓\n%2$d hooks registered · %3$s</string>
+    <string name="yfloat_google_scan_toast_success">Google %1$s: Hook registration complete (runtime unverified)\n%2$d hooks registered · %3$s</string>
     <string name="yfloat_google_scan_toast_failure">Google %1$s: Hook scan failed\n%2$s</string>
     <string name="yfloat_google_manual_scan">One-time rescan Google Hooks</string>
     <string name="yfloat_google_manual_scan_desc">Force a fresh Hook match for the installed Google App; needs Root and LSPosed. Automatically turns off. The Google app opens to finish scanning.</string>

@@ -27,14 +27,16 @@ final class GoogleV2SearchChrome {
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final BooleanSupplier shouldHide;
+    private final BooleanSupplier selectionVerified;
     private final BiConsumer<String,String> log;
     private final IdentityHashMap<View, Integer> originals = new IdentityHashMap<>();
     private View root;
     private ViewTreeObserver.OnPreDrawListener predraw;
     private int lastHidden;
 
-    GoogleV2SearchChrome(BooleanSupplier shouldHide, BiConsumer<String,String> log) {
-        this.shouldHide=shouldHide;this.log=log;
+    GoogleV2SearchChrome(BooleanSupplier shouldHide,
+            BooleanSupplier selectionVerified, BiConsumer<String,String> log) {
+        this.shouldHide=shouldHide;this.selectionVerified=selectionVerified;this.log=log;
     }
 
     void attach(Activity owner) {
@@ -71,7 +73,11 @@ final class GoogleV2SearchChrome {
     private int hideTree(View v,int[] scanned){
         if(v==null||++scanned[0]>320)return 0;
         String name=v.getClass().getName();
-        if(ACTION_MENU.equals(name)||INFO_PANEL.equals(name)||OMNIBOX.equals(name)){
+        // Preserve Google's text-action surface until YFloat has received a
+        // real text/region callback. Otherwise a structurally matching but
+        // inactive Hook could remove the ONLY selectable menu from the user.
+        if((ACTION_MENU.equals(name)&&selectionVerified.getAsBoolean())
+                ||INFO_PANEL.equals(name)||OMNIBOX.equals(name)){
             if(!originals.containsKey(v))originals.put(v,v.getVisibility());
             if(v.getVisibility()!=View.GONE)v.setVisibility(View.GONE);
             return 1;
