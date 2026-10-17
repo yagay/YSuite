@@ -107,20 +107,26 @@ final class GoogleHookProfileStore {
 
     /** Only manual scans send progress; throttle to avoid startup IPC storms. */
     private long lastProgressReport;
+    private String lastProgressPhase = "";
     void reportProgress(String phase,int done,int total) {
         if(!manualRequested)return;
         Context context=refreshContext();
         if(context==null || identity.isBlank())return;
         long now=android.os.SystemClock.elapsedRealtime();
-        if(now-lastProgressReport<220L && !("registering".equals(phase)))return;
+        boolean newPhase=!phase.equals(lastProgressPhase);
+        if(!newPhase && now-lastProgressReport<220L)return;
+        lastProgressPhase=phase;
         lastProgressReport=now;
         try {
             Bundle req=request();
             req.putString(GoogleCtsContract.EXTRA_HOOK_SCAN_PHASE,phase);
             req.putInt(GoogleCtsContract.EXTRA_HOOK_SCAN_DONE,done);
             req.putInt(GoogleCtsContract.EXTRA_HOOK_SCAN_TOTAL,total);
-            context.getContentResolver().call(uri,
+            Bundle result=context.getContentResolver().call(uri,
                     GoogleCtsContract.METHOD_REPORT_HOOK_SCAN_PROGRESS,null,req);
+            if(newPhase)module.log(Log.INFO,TAG,"Google scan phase="+phase
+                    +" done="+done+" total="+total
+                    +" accepted="+(result!=null && result.getBoolean("received",false)));
         }catch(Throwable t) {
             module.log(Log.WARN,TAG,"Google scan progress IPC failed "
                     +t.getClass().getSimpleName());

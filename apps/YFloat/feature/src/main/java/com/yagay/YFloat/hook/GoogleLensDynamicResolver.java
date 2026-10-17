@@ -51,13 +51,23 @@ final class GoogleLensDynamicResolver {
 
         SelectionBinding best = SelectionBinding.none("no structural candidate");
         int scanned = 0;
+        int loaded = 0;
+        int methodShapes = 0;
+        ScanScope scope = null;
         final long deadline = SystemClock.elapsedRealtime() + MAX_SCAN_ELAPSED_MS;
         Set<String> seen = new HashSet<>();
         boolean ambiguous = false;
 
         try {
-            Set<String> names = dexClassNames(loader, deadline, progress);
+            scope = dexClassNames(loader, deadline, progress);
+            Set<String> names = scope.names;
             int total = Math.min(MAX_SCANNED_CLASSES,names.size());
+            if (total == 0) return SelectionBinding.none(
+                    "no related candidates: dex=" + scope.dexCount
+                    + " lensDex=" + scope.relatedDexCount
+                    + " eligible=" + scope.eligibleCount
+                    + " dexErrors=" + scope.dexErrors
+                    + " timedOut=" + (SystemClock.elapsedRealtime() >= deadline));
             progress.onProgress("matching",0,total);
             for (String name : names) {
                 if (SystemClock.elapsedRealtime() >= deadline)
@@ -75,6 +85,7 @@ final class GoogleLensDynamicResolver {
                 } catch (Throwable ignored) {
                     continue;
                 }
+                loaded++;
                 if (controller.isInterface() || controller.isAnnotation()
                         || controller.isEnum() || controller.isArray()) {
                     continue;
@@ -84,6 +95,11 @@ final class GoogleLensDynamicResolver {
                     if (SystemClock.elapsedRealtime() >= deadline)
                         return SelectionBinding.none("scan timeout after "
                                 + MAX_SCAN_ELAPSED_MS + "ms scanned=" + scanned);
+                    if (method.getReturnType() == void.class
+                            && method.getParameterCount() == 2
+                            && method.getParameterTypes()[1] == boolean.class
+                            && !isPlatformType(method.getParameterTypes()[0]))
+                        methodShapes++;
                     Candidate candidate = scoreSelectionMethod(method);
                     if (candidate == null || candidate.score < MIN_SELECTION_CONFIDENCE) continue;
                     if (candidate.score == best.confidence() && best.method() != method) {
@@ -118,8 +134,13 @@ final class GoogleLensDynamicResolver {
                     best.textMethod(), best.boundsMethod(), best.pointMethod(),
                     best.confidence(), best.detail() + " scannedFinal=" + scanned);
         }
-        return SelectionBinding.none("no selection Hook candidate within Lens-related DEX"
-                + " scanned=" + scanned + " (other Google DEX partitions skipped)");
+        return SelectionBinding.none("no selection Hook candidate: scanned=" + scanned
+                + " loaded=" + loaded + " methodShapes=" + methodShapes
+                + " dex=" + (scope == null ? -1 : scope.dexCount)
+                + " lensDex=" + (scope == null ? -1 : scope.relatedDexCount)
+                + " eligible=" + (scope == null ? -1 : scope.eligibleCount)
+                + " dexErrors=" + (scope == null ? -1 : scope.dexErrors)
+                + " (only Lens-related categories scanned)");
     }
 
     /**
@@ -189,7 +210,10 @@ final class GoogleLensDynamicResolver {
             Method text = null;
             Method bounds = null;
             Method point = null;
-            for (Method semantic : declaredMethods(userSelection)) {
+            // Later Google releases can inherit these semantic accessors from
+            // a base selection class. Inspect the hierarchy, not only the
+            // concrete R8 class. Still require exact String+RectF semantics.
+            for (Method semantic : GoogleReflection.methodsInHierarchy(userSelection)) {
                 if (semantic.getParameterCount() != 0) continue;
                 if (semantic.getReturnType() == String.class && text == null) {
                     text = semantic;
@@ -222,46 +246,59 @@ final class GoogleLensDynamicResolver {
      * Class-name enumeration is necessary to locate the stable anchors;
      * Java reflection is limited to eligible names in those partitions.
      */
-    private static Set<String> dexClassNames(ClassLoader loader,long deadline,
+    private static final class ScanScope {
+        final Set<String> names = new LinkedHashSet<>();
+        int dexCount;
+        int relatedDexCount;
+        int eligibleCount;
+        int dexErrors;
+    }
+
+    private static ScanScope dexClassNames(ClassLoader loader,long deadline,
             ProgressListener progress) {
-        Set<String> related = new LinkedHashSet<>();
-        int indexedPartitions=0;
+        ScanScope scope = new ScanScope();
         progress.onProgress("indexing",0,0);
-        for (ClassLoader current = loader; current != null; current = current.getParent()) {
-            if (SystemClock.elapsedRealtime() >= deadline) return related;
-            Object pathList = readNamedField(current, "pathList");
-            Object elements = readNamedField(pathList, "dexElements");
-            if (elements == null || !elements.getClass().isArray()) continue;
-            int length = Array.getLength(elements);
-            for (int i = 0; i < length; i++) {
-                if (SystemClock.elapsedRealtime() >= deadline) return related;
-                Object element = Array.get(elements, i);
-                Object dex = readNamedField(element, "dexFile");
-                if (!(dex instanceof DexFile dexFile)) continue;
+        for (ClassLoader current=loader;current!=null;current=current.getParent()) {
+            if(SystemClock.elapsedRealtime()>=deadline)return scope;
+            Object pathList=readNamedField(current,"pathList");
+            Object elements=readNamedField(pathList,"dexElements");
+            if(elements==null || !elements.getClass().isArray())continue;
+            int length=Array.getLength(elements);
+            for(int i=0;i<length;i++) {
+                if(SystemClock.elapsedRealtime()>=deadline)return scope;
+                Object element=Array.get(elements,i);
+                Object dex=readNamedField(element,"dexFile");
+                if(!(dex instanceof DexFile dexFile))continue;
+                scope.dexCount++;
                 try {
-                    Set<String> partition = new LinkedHashSet<>();
-                    boolean relevant = false;
-                    Enumeration<String> entries = dexFile.entries();
-                    int enumerated = 0;
-                    while (entries.hasMoreElements()) {
-                        if ((++enumerated & 127) == 0
-                                && SystemClock.elapsedRealtime() >= deadline)
-                            return related;
-                        String name = entries.nextElement();
-                        if (isRelevantDexAnchor(name)) relevant = true;
-                        if (eligibleClassName(name)) partition.add(name);
+                    Set<String> partition=new LinkedHashSet<>();
+                    boolean relevant=false;
+                    Enumeration<String> entries=dexFile.entries();
+                    int enumerated=0;
+                    while(entries.hasMoreElements()) {
+                        if((++enumerated & 127)==0
+                                && SystemClock.elapsedRealtime()>=deadline)return scope;
+                        String name=entries.nextElement();
+                        if(isRelevantDexAnchor(name))relevant=true;
+                        if(eligibleClassName(name))partition.add(name);
                     }
-                    if (relevant) related.addAll(partition);
-                } catch (Throwable ignored) { }
-                indexedPartitions++;
-                progress.onProgress("indexing",indexedPartitions,0);
+                    if(relevant) {
+                        scope.relatedDexCount++;
+                        scope.eligibleCount+=partition.size();
+                        scope.names.addAll(partition);
+                    }
+                }catch(Throwable ignored) {scope.dexErrors++;}
+                progress.onProgress("indexing",scope.dexCount,0);
             }
         }
-        return related;
+        return scope;
     }
 
     static boolean isRelevantDexAnchor(String name) {
-        return LENS_DEX_ANCHOR.equals(name) || SELECTION_DEX_ANCHOR.equals(name);
+        return LENS_DEX_ANCHOR.equals(name) || SELECTION_DEX_ANCHOR.equals(name)
+                || (name != null
+                    && (name.startsWith("com.google.android.libraries.lens.view.frozenimage.")
+                      || name.startsWith("com.google.android.libraries.lens.common.text.selection.")));
     }
 
     private static boolean eligibleClassName(String name) {

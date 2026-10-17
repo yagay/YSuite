@@ -72,6 +72,10 @@ public final class GoogleHookProfileCache {
             int total = Math.max(0,extras.getInt(GoogleCtsContract.EXTRA_HOOK_SCAN_TOTAL,0));
             // All progress is actual work observed in the Google process.
             // total=0 means unknown: UI must use an indeterminate indicator.
+            String previousPhase=cache.getString(K_SCAN_PHASE,"");
+            if(!phase.equals(previousPhase)) DiagnosticLog.i(context,
+                    "GOOGLE_HOOK_SCAN","progress phase="+phase
+                            +" done="+done+" total="+total);
             cache.edit().putString(K_SCAN_PHASE,phase)
                     .putInt(K_SCAN_DONE,done)
                     .putInt(K_SCAN_TOTAL,total)
@@ -90,7 +94,9 @@ public final class GoogleHookProfileCache {
             int count=Math.max(0,Math.min(250,extras.getInt(
                     GoogleCtsContract.EXTRA_HOOK_SCAN_COUNT,0)));
             String raw=extras.getString(GoogleCtsContract.EXTRA_HOOK_SCAN_METHOD,"");
-            String detail=sanitize(raw,75);
+            // Keep the full bounded reason in host diagnostics. The old 75
+            // character limit cut off the candidate count and actual cause.
+            String detail=sanitize(raw,512);
             boolean manual = manualPending(cache, identity, fingerprint)
                     && !manualTimedOut(cache);
             String noticeId=identity+"|"+fingerprint+"|"+success
@@ -111,9 +117,10 @@ public final class GoogleHookProfileCache {
                     String version=identity.split("/",2)[0];
                     int titleRes=success?R.string.yfloat_google_scan_toast_success
                             :R.string.yfloat_google_scan_toast_failure;
+                    String toastDetail=sanitize(detail,160);
                     String message=success
-                            ? context.getString(titleRes,version,count,detail)
-                            : context.getString(titleRes,version,detail);
+                            ? context.getString(titleRes,version,count,toastDetail)
+                            : context.getString(titleRes,version,toastDetail);
                     notifyUser(context,message);
                 }
             }

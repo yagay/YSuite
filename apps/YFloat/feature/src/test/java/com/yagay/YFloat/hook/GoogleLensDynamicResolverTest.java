@@ -36,6 +36,27 @@ public class GoogleLensDynamicResolverTest {
         int notSelection(WrongMetadata metadata, boolean primary) { return 0; }
     }
 
+    private static class InheritedUserSelection {
+        String selectedText() {return "inherited";}
+        RectF bounds() {return new RectF();}
+    }
+    private static final class DerivedUserSelection extends InheritedUserSelection {}
+    private static final class InheritedMetadata {
+        final DerivedUserSelection selection=new DerivedUserSelection();
+    }
+    private static final class InheritedController {
+        void changed(InheritedMetadata metadata,boolean active) {}
+    }
+
+    @Test public void inheritedSelectionAccessorsAreStillValidated() throws Exception {
+        Method method=InheritedController.class.getDeclaredMethod(
+                "changed",InheritedMetadata.class,boolean.class);
+        GoogleLensDynamicResolver.Candidate candidate=
+                GoogleLensDynamicResolver.scoreSelectionMethod(method);
+        assertNotNull(candidate);
+        assertTrue(candidate.score>=GoogleLensDynamicResolver.MIN_SELECTION_CONFIDENCE);
+    }
+
     @Test public void structuralSelectionCandidateRequiresSemanticShape() throws Exception {
         Method method = FakeController.class.getDeclaredMethod(
                 "onSelection", FakeMetadata.class, boolean.class);
@@ -112,6 +133,10 @@ public class GoogleLensDynamicResolverTest {
                 GoogleLens1760Profile.FROZEN_IMAGE_VIEW));
         assertTrue(GoogleLensDynamicResolver.isRelevantDexAnchor(
                 GoogleLens1760Profile.TEXT_SELECTION_VIEW));
+        assertTrue(GoogleLensDynamicResolver.isRelevantDexAnchor(
+                "com.google.android.libraries.lens.view.frozenimage.RenamedFrozenView"));
+        assertTrue(GoogleLensDynamicResolver.isRelevantDexAnchor(
+                "com.google.android.libraries.lens.common.text.selection.ui.SelectionLayer"));
         assertFalse(GoogleLensDynamicResolver.isRelevantDexAnchor("com.google.android.apps.search.feed.FeedView"));
         assertFalse(GoogleLensDynamicResolver.isRelevantDexAnchor("com.google.android.apps.search.omnient.MiniApp"));
     }
