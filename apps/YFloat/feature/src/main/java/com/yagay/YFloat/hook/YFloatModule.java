@@ -11,6 +11,8 @@ import io.github.libxposed.api.XposedModule;
 public final class YFloatModule extends XposedModule {
     private static final String TAG = "YFloat-LSPosed";
     private static final String FEATURE_ID = "yfloat";
+    private static final String GOOGLE_PACKAGE = "com.google.android.googlequicksearchbox";
+    private boolean googleHookInstalled;
     private LsposedRuntimeProvider runtimeProvider;
     private boolean suiteHost;
     private String processName = "";
@@ -62,14 +64,34 @@ public final class YFloatModule extends XposedModule {
 
     @Override
     public void onPackageLoaded(PackageLoadedParam param) {
-        // Native Circle does not hook Google packages.
+        // Wait for PackageReady: Google needs its finalized application ClassLoader.
     }
 
     @Override
     public void onPackageReady(PackageReadyParam param) {
-        // Native Circle V3 requires no Google App process hooks. Retain
-        // system_server's optional secure-screenshot enhancement only.
-        // Do not install the V2/legacy Google hook even if older app settings
-        // still mention Google CTS.
+        if (googleHookInstalled || !GOOGLE_PACKAGE.equals(param.getPackageName())) return;
+
+        final String target = processName.isEmpty() ? param.getPackageName() : processName;
+        if (suiteHost) {
+            RuntimeHandoffGate.markSuiteActive(FEATURE_ID, target);
+        } else if (!RuntimeHandoffGate.shouldStandaloneFallback(FEATURE_ID, target)) {
+            log(Log.INFO, TAG, "Google hook passive; active YSuite owner=" + target);
+            return;
+        }
+
+        LsposedRuntimeProvider provider = runtimeProvider;
+        if (provider == null || param.getClassLoader() == null) return;
+        try {
+            // All interceptors remain inactive without a short-lived YFloat CTS token.
+            // Never alter the user's unmarked Home/gesture Circle-to-Search sessions.
+            new GoogleV2HookEngine(this, provider, param.getClassLoader()).install();
+            googleHookInstalled = true;
+            log(Log.INFO, TAG, "Google V2 adaptive hook installed; process=" + target
+                    + " owner=" + RuntimeOwnerGate.readOwner(FEATURE_ID));
+        } catch (Throwable t) {
+            // A changed Google APK may invalidate an internal ABI. Fail without
+            // destabilizing Google or replacing the user's native CTS workflow.
+            log(Log.ERROR, TAG, "Google V2 adaptive hook unavailable; process=" + target, t);
+        }
     }
 }

@@ -93,6 +93,14 @@ final class SettingsPageUi {
         }, fs.ocrEngineMode(), FloatSettings.K_OCR_ENGINE, true);
     }
 
+    void circleEngineSpinner(LinearLayout parent) {
+        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_circle_engine_section),
+                new String[]{
+                        activity.getString(R.string.yfloat_circle_engine_native),
+                        activity.getString(R.string.yfloat_circle_engine_google)
+                }, fs.circleEngine(), FloatSettings.K_CIRCLE_ENGINE, true);
+    }
+
     void circleFullOcrEngineSpinner(LinearLayout parent) {
         addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_fullscreen_ocr_engine), new String[]{
                 activity.getString(R.string.yfloat_ocr_mlkit),

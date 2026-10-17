@@ -27,4 +27,9 @@
     <string name="yfloat_crop_drag_slop">Crop handle drag tolerance</string>
     <string name="yfloat_result_action_ocr">Recognize text (OCR)</string>
     <string name="yfloat_result_action_ocr_running">Recognizing text…</string>
+    <string name="yfloat_circle_engine_section">Circle engine</string>
+    <string name="yfloat_circle_engine_desc">Choose Google native Circle to Search or YFloat Native V3. Google requires LSPosed scope and a supported Google App. An unsupported session falls back to Native V3.</string>
+    <string name="yfloat_circle_engine_native">YFloat Native Circle V3</string>
+    <string name="yfloat_circle_engine_google">Google Circle to Search (adaptive Hook)</string>
+    <string name="yfloat_google_check_status">Refresh Google compatibility status</string>
 </resources>

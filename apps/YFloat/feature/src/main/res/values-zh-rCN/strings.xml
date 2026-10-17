@@ -27,4 +27,9 @@
     <string name="yfloat_crop_drag_slop">截图手柄拖动容差</string>
     <string name="yfloat_result_action_ocr">识别文字（OCR）</string>
     <string name="yfloat_result_action_ocr_running">正在识别文字…</string>
+    <string name="yfloat_circle_engine_section">圈画引擎</string>
+    <string name="yfloat_circle_engine_desc">可选择 Google 原生圈画或 YFloat 自研 V3。Google 模式需要 LSPosed 作用域和兼容的 Google App；无法启动时回退到自研引擎。</string>
+    <string name="yfloat_circle_engine_native">YFloat 自研圈画 V3</string>
+    <string name="yfloat_circle_engine_google">Google 原生圈画（自适应 Hook）</string>
+    <string name="yfloat_google_check_status">刷新 Google 兼容状态</string>
 </resources>

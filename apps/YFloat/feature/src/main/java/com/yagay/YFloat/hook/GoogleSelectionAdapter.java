@@ -44,7 +44,20 @@ final class GoogleSelectionAdapter {
         boolean directRegionCommit() { return directRegionCommit; }
     }
 
-    static Binding resolve(ClassLoader loader) {
+    // A mapping is only valid for the ClassLoader that produced its Method.
+    // APK updates replace the Google process, so this cache never crosses versions.
+    private static ClassLoader cachedLoader;
+    private static Binding cachedBinding;
+
+    static synchronized Binding resolve(ClassLoader loader) {
+        if (loader == cachedLoader && cachedBinding != null) return cachedBinding;
+        Binding found = resolveUncached(loader);
+        cachedLoader = loader;
+        cachedBinding = found;
+        return found;
+    }
+
+    private static Binding resolveUncached(ClassLoader loader) {
         // The APK-verified 17.64 path only relies on the structural selection
         // signature. The same resolver handles future renamed profiles.
         GoogleLensDynamicResolver.SelectionBinding profile1764 =

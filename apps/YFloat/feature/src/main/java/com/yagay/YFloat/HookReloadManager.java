@@ -142,6 +142,10 @@ final class HookReloadManager {
     static boolean googleNeedsReload(Context context, LsposedStatusManager.Snapshot snapshot) {
         if (context == null || snapshot == null) return false;
         Context app = context.getApplicationContext();
+        // A Google App upgrade is distinct from a YFloat hook source change.
+        // Record its APK identity here; Android restarts Google on replacement,
+        // and PackageReady resolves the updated DEX when that process loads.
+        GoogleHookVersionTracker.observe(app);
         String applied = preference(app).getString(K_GOOGLE_APPLIED, "");
         boolean running = hasProcess(snapshot.runningProcesses, GOOGLE);
         boolean changed = fingerprintNeedsReload(

@@ -85,6 +85,9 @@ final class GoogleV2HookEngine {
         count+=hookSelection();
         module.log(Log.INFO,TAG,"V2 installed hooks="+count
                 +" selection="+selection.source()
+                +" confidence="+selection.confidence()
+                +" compatibility="+(selection.available() ? "selection_bound" : "selection_unavailable")
+                +" detail="+selection.detail()
                 +" old_runtime_not_installed=true");
     }
 

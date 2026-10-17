@@ -35,6 +35,9 @@ final class GoogleCtsTrigger {
         }
 
         FloatSettings fs = new FloatSettings(app);
+        // An APK replacement restarts the Google process. The next PackageReady
+        // installs freshly resolved hooks; this records the new APK identity.
+        GoogleHookVersionTracker.observe(app);
         if (!fs.enhancedMode() || !fs.lsposedEnabled()) {
             Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a72460296503), Toast.LENGTH_SHORT).show();
             return false;
@@ -82,6 +85,12 @@ final class GoogleCtsTrigger {
         DiagnosticLog.i(app, "GOOGLE_CTS_ARM",
                 "remote=" + remoteArmed + " session=" + token.substring(0, 8)
                         + " fallbackMs=" + LsposedRuntimeConfig.GOOGLE_CTS_FALLBACK_WINDOW_MS);
+        if (!remoteArmed) {
+            fs.clearGoogleCtsSession();
+            WorkflowSessionManager.fail(app, workflow, "google_remote_arm_failed");
+            DiagnosticLog.i(app, "GOOGLE_CTS_ARM", "missing remote ownership lease; local fallback");
+            return false;
+        }
         args.putLong(GoogleCtsContract.K_INVOCATION_TIME, nowElapsed);
         args.putInt(GoogleCtsContract.K_OMNI_ENTRY_POINT,
                 LsposedRuntimeConfig.GOOGLE_CTS_EXPECTED_OMNI_ENTRY_POINT);

@@ -4,6 +4,7 @@ import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import com.google.android.material.button.MaterialButton;
 
 /** Screenshot, result and OCR settings page. */
 final class SettingsCapturePage {
@@ -32,6 +33,23 @@ final class SettingsCapturePage {
                 activity.getString(R.string.yfloat_prefer_accessibility_screenshot_desc),
                 FloatSettings.K_ACCESSIBILITY_SCREENSHOT, fs.accessibilityScreenshot());
         YViewLayout.addSection(root, capture);
+
+        YViewSection circleEngine = YViewLayout.section(activity,
+                activity.getString(R.string.yfloat_circle_engine_section),
+                activity.getString(R.string.yfloat_circle_engine_desc));
+        ui.circleEngineSpinner(circleEngine.body);
+        TextView compatibility = YViewLayout.rowSubtitle(activity,
+                GoogleHookVersionTracker.status(activity));
+        circleEngine.body.addView(compatibility);
+        MaterialButton recheck = YViewLayout.compactButton(activity,
+                activity.getString(R.string.yfloat_google_check_status));
+        recheck.setOnClickListener(v -> {
+            GoogleHookVersionTracker.observe(activity);
+            LsposedStatusManager.refreshAsync();
+            compatibility.setText(GoogleHookVersionTracker.status(activity));
+        });
+        YViewLayout.addRow(circleEngine.body, recheck);
+        YViewLayout.addSection(root, circleEngine);
 
         // Module page and global YUI editor share the same appearance tokens.
         {

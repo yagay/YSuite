@@ -29,11 +29,16 @@ public final class ActionExecutor {
                 ScreenshotController.captureForOcr(c);
             }
             case ActionId.AI_SCREEN -> {
-                // Native Circle is the only V3 engine. The historical Google
-                // preference is ignored in this isolated development branch;
-                // never launch Google CTS or load its internal Hook.
-                OcrEngine.invalidatePending(c, "native_circle_start");
-                DiagnosticLog.i(c, "AI_SCREEN", "engine=circle_native_v3 google=false");
+                OcrEngine.invalidatePending(c, "circle_start");
+                FloatSettings settings = new FloatSettings(c);
+                if (settings.circleEngine() == 1) {
+                    GoogleHookVersionTracker.observe(c);
+                    DiagnosticLog.i(c, "AI_SCREEN", "engine=google_cts_v2");
+                    if (GoogleCtsTrigger.trigger(c)) break;
+                    // Only fall back when Google did not start a session. Never
+                    // overlay Native Circle on top of a live Google session.
+                    DiagnosticLog.i(c, "AI_SCREEN", "google_start_failed fallback=native_v3");
+                }
                 FLCircleController.show(c);
             }
             case ActionId.MOVE_ICON -> {
