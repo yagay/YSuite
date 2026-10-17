@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout monorepo
         uses: actions/checkout@v4
+        with:
+          # Compare full push ranges, including multi-commit pushes.
+          fetch-depth: 0
 
       - name: Verify generated feature catalog is current
         run: python3 tools/generate_feature_catalog.py --check
@@ -78,6 +81,18 @@ jobs:
         with:
           gradle-version: ${{ steps.versions.outputs.gradle }}
 
+      # setup-gradle restores dependencies; this separate cache stores Gradle
+      # output snapshots for unchanged feature/library compilation tasks.
+      # Keys are immutable per commit, with prior successful commits as fallback.
+      - name: Restore reusable module compilation results
+        id: module-cache
+        uses: actions/cache@v4
+        with:
+          path: .gradle/ci-build-cache
+          key: ysuite-arm64-gradle-tasks-v1-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ysuite-arm64-gradle-tasks-v1-${{ runner.os }}-
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -109,8 +124,30 @@ jobs:
       - name: Verify row alignment on the actual shared YUI renderer
         run: python3 tools/verify_yui_row_alignment.py
 
-      - name: Build YSuite debug APK
-        run: gradle --no-daemon --stacktrace :ynfc-feature:testDebugUnitTest :ynotify-feature:testDebugUnitTest :yfloat-feature:testDebugUnitTest :yminiguard-feature:testDebugUnitTest :ytask-feature:testDebugUnitTest :suite:assembleDebug
+      - name: Select tests affected by changed source modules
+        id: affected
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          python3 -m unittest discover -s tools/tests -p 'test_plan_ysuite_debug.py'
+          python3 tools/plan_ysuite_debug.py --base "${BASE_SHA:-}" --head "${HEAD_SHA:-}" >> "$GITHUB_OUTPUT"
+
+      - name: Incrementally compile features and merge ARM64 YSuite APK
+        shell: bash
+        env:
+          CHANGED_MODULE_TESTS: ${{ steps.affected.outputs.test_tasks }}
+        run: |
+          set -euo pipefail
+          # Test only directly affected features (or all on shared API/build
+          # changes). Gradle follows the actual project dependency graph and
+          # loads cacheable unchanged task outputs from the restored cache.
+          read -r -a tests <<< "${CHANGED_MODULE_TESTS:-}"
+          echo "Selected module tests: ${tests[*]:-(none)}"
+          gradle --no-daemon --build-cache --parallel --max-workers=2 --stacktrace \
+            "${tests[@]}" :suite:assembleDebug
+          echo "Build cache usage (up-to-date / from-cache tasks) is reported in Gradle logs."
 
       - name: Verify debug APK ABI and Xposed entry
         shell: bash

@@ -15,6 +15,19 @@ dependencyResolutionManagement {
     }
 }
 
+// CI uses a dedicated disk-backed Gradle task output cache. GitHub Actions restores
+// this directory between commits on the same branch. Gradle input fingerprints
+// decide whether compiled modules can be reused; the :suite APK is still
+// merged/packaged normally on every source change.
+if (System.getenv("GITHUB_ACTIONS") == "true") {
+    buildCache {
+        local {
+            directory = file(".gradle/ci-build-cache")
+            isEnabled = true
+        }
+    }
+}
+
 rootProject.name = "YSuite"
 
 include(":api")
