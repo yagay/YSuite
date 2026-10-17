@@ -30,6 +30,8 @@ final class GoogleCtsTrigger {
                                             0, Math.min(8, previous.externalKey().length()))));
             // A new user gesture is an explicit retry, not proof the old Google
             // activity is healthy. Clear YFloat/remote leases before re-arming.
+            if(previous!=null)
+                GoogleV2UiEngine.abandon(app,previous.externalKey(),"user_retry");
             GoogleCtsBridgeController.onNativeRelease(app, "user_retry");
         }
 

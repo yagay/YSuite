@@ -263,6 +263,7 @@ public class LensAccessibilityService extends AccessibilityService {
                             + " settled=" + settledPkg
                             + " graceMs=" + GOOGLE_EXIT_GRACE_MS
                             + " workflowId=" + scheduled.id());
+            GoogleV2UiEngine.abandon(this,scheduled.externalKey(),reason);
             GoogleCtsBridgeController.onNativeRelease(this, reason);
             FLCircleInlineOverlay.dismissActive(reason);
         };

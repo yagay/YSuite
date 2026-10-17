@@ -40,6 +40,24 @@ final class GoogleV2UiEngine {
         Session(Context app, String token) { this.app=app;this.token=token; }
     }
 
+    /** Reject events queued by a superseded Google CTS workflow. */
+    private static boolean ownsUi(Session s) {
+        WorkflowSessionManager.Session workflow=WorkflowSessionManager.current();
+        return s!=null && GoogleV2SessionOwnership.accepts(s.token,
+                workflow==null?"":workflow.externalKey(),SESSIONS.get(s.token)==s,
+                s.state.terminal()) && WorkflowSessionManager.matchesExternal(s.token);
+    }
+
+    /** Legacy release does not own V2 sessions; abandon the exact old token. */
+    static void abandon(Context context,String token,String reason) {
+        if(token==null||token.isBlank())return;
+        Session s=SESSIONS.get(token);
+        if(s==null)return;
+        if(Looper.myLooper()==Looper.getMainLooper())
+            release(s,"abandon_"+reason,false);
+        else MAIN.post(()->release(s,"abandon_"+reason,false));
+    }
+
     private static Session session(Context context, String token) {
         if (context == null || token == null || token.isBlank()
                 || !WorkflowSessionManager.matchesExternal(token)) return null;
@@ -62,7 +80,7 @@ final class GoogleV2UiEngine {
         Session s=session(context,token);
         if(s==null){frame.recycle();return;}
         MAIN.post(()->{
-            if(s.state.terminal()){frame.recycle();return;}
+            if(!ownsUi(s)){frame.recycle();return;}
             Bitmap prior=s.frame;
             if(prior!=null&&!prior.isRecycled()
                     && !CanonicalFramePolicy.shouldReplace(
@@ -81,6 +99,7 @@ final class GoogleV2UiEngine {
         Session s=session(context,token);
         if(s==null||text==null||text.isBlank()) return;
         MAIN.post(()->{
+            if(!ownsUi(s))return;
             Rect use=pickBounds(s,bounds);
             if(!s.state.text(text,at(use,0),at(use,1),at(use,2),at(use,3)))return;
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
@@ -95,7 +114,7 @@ final class GoogleV2UiEngine {
         Session s=session(c,token);
         if(s==null||bounds==null||bounds.isEmpty())return;
         MAIN.post(()->{
-            if(s.state.phase!=GoogleV2State.Phase.TEXT)return;
+            if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.TEXT)return;
             s.state.bounds(bounds.left,bounds.top,bounds.right,bounds.bottom);
             s.lastTextUpdateElapsed=SystemClock.elapsedRealtime();
             GoogleV2TextOutline.show(s.app,bounds);
@@ -105,7 +124,7 @@ final class GoogleV2UiEngine {
     static void onTextGesture(Context c,String token,boolean dragging){
         Session s=session(c,token);if(s==null)return;
         MAIN.post(()->{
-            if(s.state.phase!=GoogleV2State.Phase.TEXT)return;
+            if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.TEXT)return;
             s.lastGestureElapsed=SystemClock.elapsedRealtime();
             if(s.state.drag(dragging)&&dragging) {
                 // A drag temporarily dismisses actions but must not delete
@@ -128,7 +147,7 @@ final class GoogleV2UiEngine {
         if(s.pendingTextMenu!=null)MAIN.removeCallbacks(s.pendingTextMenu);
         Runnable request=()->{
             s.pendingTextMenu=null;
-            if(SESSIONS.get(s.token)!=s||s.state.phase!=GoogleV2State.Phase.TEXT
+            if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.TEXT
                     ||s.state.text.isBlank())return;
             long now=SystemClock.elapsedRealtime();
             long wait=GoogleV2MenuRecoveryPolicy.waitForIdle(
@@ -156,7 +175,7 @@ final class GoogleV2UiEngine {
     static void onRegion(Context context,String token,Rect bounds,String detail){
         Session s=session(context,token);if(s==null||bounds==null||bounds.isEmpty())return;
         MAIN.post(()->{
-            if(!s.state.region(bounds.left,bounds.top,bounds.right,bounds.bottom))return;
+            if(!ownsUi(s)||!s.state.region(bounds.left,bounds.top,bounds.right,bounds.bottom))return;
             s.lastRegionUpdateElapsed=SystemClock.elapsedRealtime();
             cancelTextMenu(s);
             FloatActionMenu.dismiss();
@@ -167,7 +186,7 @@ final class GoogleV2UiEngine {
     static void onRegionGesture(Context context,String token,boolean dragging){
         Session s=session(context,token);if(s==null)return;
         MAIN.post(()->{
-            if(s.state.phase!=GoogleV2State.Phase.REGION)return;
+            if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.REGION)return;
             s.lastGestureElapsed=SystemClock.elapsedRealtime();
             s.state.drag(dragging);
             if(dragging)GoogleRegionConfirmOverlay.dismiss(token,"v2_drag");
@@ -180,7 +199,7 @@ final class GoogleV2UiEngine {
         if(s.pendingRegionMenu!=null)MAIN.removeCallbacks(s.pendingRegionMenu);
         Runnable request=()->{
             s.pendingRegionMenu=null;
-            if(SESSIONS.get(s.token)!=s||s.state.phase!=GoogleV2State.Phase.REGION
+            if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.REGION
                     ||!s.state.validBounds())return;
             long now=SystemClock.elapsedRealtime();
             long wait=GoogleV2MenuRecoveryPolicy.waitForIdle(
@@ -211,17 +230,18 @@ final class GoogleV2UiEngine {
     }
 
     static void onCommit(Context context,String token,String reason){
-        Session s=session(context,token);if(s!=null)MAIN.post(()->confirm(s));
+        Session s=session(context,token);
+        if(s!=null)MAIN.post(()->{if(ownsUi(s))confirm(s);});
     }
     private static void confirm(Session s){
-        if(!s.state.confirm())return;
+        if(!ownsUi(s)||!s.state.confirm())return;
         GoogleRegionConfirmOverlay.dismiss(s.token,"v2_confirm");
         DiagnosticLog.i(s.app,"GOOGLE_V2","confirm requested frameReady="+s.state.frameReady);
         LsposedStatusManager.confirmGoogleCtsRegionRemoteAsync(s.token,
                 success->DiagnosticLog.i(s.app,"GOOGLE_V2","remote ack="+success));
         if(s.state.canDeliver())deliver(s);
         else MAIN.postDelayed(()->{
-            if(s.state.phase!=GoogleV2State.Phase.AWAITING_FRAME)return;
+            if(!ownsUi(s)||s.state.phase!=GoogleV2State.Phase.AWAITING_FRAME)return;
             DiagnosticLog.i(s.app,"GOOGLE_V2","original frame timeout; no secondary screen capture");
             release(s,"missing_google_original_frame",false);
         },FRAME_TIMEOUT_MS);
@@ -260,6 +280,7 @@ final class GoogleV2UiEngine {
     static void onEnd(Context c,String token,String reason){
         Session s=session(c,token);if(s==null)return;
         MAIN.post(()->{
+            if(!ownsUi(s))return;
             if(s.state.phase==GoogleV2State.Phase.AWAITING_FRAME
                     ||s.state.phase==GoogleV2State.Phase.DELIVERED)return;
             if(s.state.phase==GoogleV2State.Phase.TEXT&&!s.state.text.isBlank()){
@@ -269,6 +290,7 @@ final class GoogleV2UiEngine {
                 Rect finalBounds=rect(s.state);
                 release(s,"text_handoff",true);
                 MAIN.post(()->{
+                    if(WorkflowSessionManager.googleCtsInFlight())return;
                     if(finalBounds!=null)GoogleV2TextOutline.show(s.app,finalBounds);
                     FloatActionMenu.showTextAt(s.app,finalText,null,finalBounds);
                     DiagnosticLog.i(s.app,"GOOGLE_V2",
@@ -289,12 +311,17 @@ final class GoogleV2UiEngine {
         }
         if(s.frame!=null&&!s.frame.isRecycled())s.frame.recycle();
         s.frame=null;
-        new FloatSettings(s.app).clearGoogleCtsSession();
+        // Scoped remote lease may always be released; unscoped app-local
+        // state and FloatService MUST belong to this exact workflow.
+        boolean current=WorkflowSessionManager.matchesExternal(s.token);
         LsposedStatusManager.clearGoogleCtsSessionRemote(s.token);
-        WorkflowSessionManager.finishExternal(s.app,s.token,"v2_"+reason);
-        FloatService service=FloatService.get();
-        if(service!=null)service.onCircleFinished("google_v2_"+reason);
-        DiagnosticLog.i(s.app,"GOOGLE_V2","released "+reason);
+        if(current){
+            new FloatSettings(s.app).clearGoogleCtsSession();
+            WorkflowSessionManager.finishExternal(s.app,s.token,"v2_"+reason);
+            FloatService service=FloatService.get();
+            if(service!=null)service.onCircleFinished("google_v2_"+reason);
+        }
+        DiagnosticLog.i(s.app,"GOOGLE_V2","released "+reason+" currentOwner="+current);
     }
     private static Rect pickBounds(Session s,Rect bounds){
         return bounds!=null&&!bounds.isEmpty()?new Rect(bounds):rect(s.state);
