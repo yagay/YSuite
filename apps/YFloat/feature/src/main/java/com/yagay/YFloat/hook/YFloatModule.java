@@ -1,6 +1,8 @@
 package com.yagay.YFloat.hook;
 
 import android.util.Log;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.yagay.suite.api.RuntimeHandoffGate;
 import com.yagay.suite.api.RuntimeOwnerGate;
@@ -13,6 +15,7 @@ public final class YFloatModule extends XposedModule {
     private static final String FEATURE_ID = "yfloat";
     private static final String GOOGLE_PACKAGE = "com.google.android.googlequicksearchbox";
     private boolean googleHookInstalled;
+    private boolean googleHookInitializationPending;
     private LsposedRuntimeProvider runtimeProvider;
     private boolean suiteHost;
     private String processName = "";
@@ -70,30 +73,49 @@ public final class YFloatModule extends XposedModule {
     @Override
     public void onPackageReady(PackageReadyParam param) {
         if (googleHookInstalled || !GOOGLE_PACKAGE.equals(param.getPackageName())) return;
-
-        final String target = processName.isEmpty() ? param.getPackageName() : processName;
-        if (suiteHost) {
-            RuntimeHandoffGate.markSuiteActive(FEATURE_ID, target);
-        } else if (!RuntimeHandoffGate.shouldStandaloneFallback(FEATURE_ID, target)) {
-            log(Log.INFO, TAG, "Google hook passive; active YSuite owner=" + target);
+        final String target=processName.isEmpty()?param.getPackageName():processName;
+        if(suiteHost) RuntimeHandoffGate.markSuiteActive(FEATURE_ID,target);
+        else if(!RuntimeHandoffGate.shouldStandaloneFallback(FEATURE_ID,target)) {
+            log(Log.INFO,TAG,"Google Hook passive; active YSuite owner="+target);
             return;
         }
+        if(runtimeProvider==null || param.getClassLoader()==null) {
+            log(Log.WARN,TAG,"Google PackageReady missing provider or classloader");
+            return;
+        }
+        if(googleHookInitializationPending)return;
+        googleHookInitializationPending=true;
+        initializeGoogleHook(param.getClassLoader(),target,0);
+    }
 
-        LsposedRuntimeProvider provider = runtimeProvider;
-        if (provider == null || param.getClassLoader() == null) return;
+    /** Google PackageReady may arrive before ActivityThread.currentApplication(). */
+    private void initializeGoogleHook(ClassLoader loader,String target,int attempt) {
+        if(googleHookInstalled) {
+            googleHookInitializationPending=false;
+            return;
+        }
+        if(!GoogleHookProfileStore.contextReady()) {
+            if(attempt>=25) {
+                googleHookInitializationPending=false;
+                log(Log.WARN,TAG,"Google Hook could not start: Application context"
+                        +" unavailable after startup retries; target="+target);
+                return;
+            }
+            if(attempt==0)log(Log.INFO,TAG,
+                    "Google Hook waiting for Google Application context after PackageReady");
+            new Handler(Looper.getMainLooper()).postDelayed(
+                    ()->initializeGoogleHook(loader,target,attempt+1),200L);
+            return;
+        }
         try {
-            // All interceptors remain inactive without a short-lived YFloat CTS token.
-            // Never alter the user's unmarked Home/gesture Circle-to-Search sessions.
-            googleHookInstalled = new GoogleV2HookEngine(
-                    this, provider, param.getClassLoader()).install();
-            log(googleHookInstalled ? Log.INFO : Log.WARN, TAG,
-                    "Google 17.60 semantic Hook installation="+googleHookInstalled
-                    +" provider="+provider.isActive()+" process="+target
-                    +" owner="+RuntimeOwnerGate.readOwner(FEATURE_ID));
-        } catch (Throwable t) {
-            // A changed Google APK may invalidate an internal ABI. Fail without
-            // destabilizing Google or replacing the user's native CTS workflow.
-            log(Log.ERROR, TAG, "Google V2 adaptive hook unavailable; process=" + target, t);
+            googleHookInstalled=new GoogleV2HookEngine(this,runtimeProvider,loader).install();
+            log(googleHookInstalled?Log.INFO:Log.WARN,TAG,
+                    "Google semantic Hook installed="+googleHookInstalled
+                    +" provider="+runtimeProvider.isActive()+" process="+target);
+        }catch(Throwable t) {
+            log(Log.ERROR,TAG,"Google V2 initialization failed; process="+target,t);
+        }finally {
+            googleHookInitializationPending=false;
         }
     }
 }

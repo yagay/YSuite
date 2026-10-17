@@ -18,29 +18,50 @@ import io.github.libxposed.api.XposedModule;
 final class GoogleHookProfileStore {
     private static final String TAG = "YFloat-GoogleV2";
     private final XposedModule module;
-    private final Context context;
-    private final String identity;
+    private volatile Context context;
+    private volatile String identity = "";
     private final Uri uri;
     private boolean manualRequested;
 
     GoogleHookProfileStore(XposedModule module) {
         this.module = module;
-        Context app = null;
+        String host=HostIdentity.compiledPackage(BuildConfig.HOST_PACKAGE,"com.yagay.YFloat");
+        uri=Uri.parse("content://"+host+".googlebridge");
+        Context app=refreshContext();
+        module.log(Log.INFO,TAG,"Google matcher APK="+identity
+                +" cacheHost="+host+" contextReady="+(app!=null));
+    }
+
+    /** The target app may not exist at the initial LSPosed lifecycle callback. */
+    static boolean contextReady() { return googleApplication()!=null; }
+
+    private static Context googleApplication() {
         try {
             Class<?> thread=Class.forName("android.app.ActivityThread");
             Object value=HiddenApiBypass.invoke(thread,null,"currentApplication");
-            if(value instanceof Context c) app=c.getApplicationContext();
-        } catch(Throwable ignored) { }
-        context=app;
-        identity=apkIdentity(app);
-        String host=HostIdentity.compiledPackage(BuildConfig.HOST_PACKAGE,"com.yagay.YFloat");
-        uri=Uri.parse("content://"+host+".googlebridge");
-        module.log(Log.INFO,TAG,"Google matcher APK="+identity
-                +" cacheHost="+host+" contextReady="+(context!=null));
+            if(value instanceof Context c) {
+                Context app=c.getApplicationContext();
+                if(GoogleCtsContract.GOOGLE_PACKAGE.equals(app.getPackageName()))return app;
+            }
+        }catch(Throwable ignored){}
+        return null;
+    }
+
+    private Context refreshContext() {
+        Context live=googleApplication();
+        if(live!=null) {
+            context=live;
+            if(identity.isBlank())identity=apkIdentity(live);
+        }
+        return context;
     }
 
     String read() {
-        if (context==null || identity.isBlank()) return "";
+        Context context=refreshContext();
+        if (context==null || identity.isBlank()) {
+            module.log(Log.WARN,TAG,"Google profile read skipped: app context unavailable");
+            return "";
+        }
         try {
             Bundle req=request();
             Bundle res=context.getContentResolver().call(uri,
@@ -60,6 +81,7 @@ final class GoogleHookProfileStore {
     }
 
     boolean save(String symbols) {
+        Context context=refreshContext();
         if(context==null || identity.isBlank() || symbols==null || symbols.isBlank()) return false;
         try {
             Bundle req=request();
@@ -82,7 +104,9 @@ final class GoogleHookProfileStore {
     /** Only manual scans send progress; throttle to avoid startup IPC storms. */
     private long lastProgressReport;
     void reportProgress(String phase,int done,int total) {
-        if(!manualRequested || context==null || identity.isBlank())return;
+        if(!manualRequested)return;
+        Context context=refreshContext();
+        if(context==null || identity.isBlank())return;
         long now=android.os.SystemClock.elapsedRealtime();
         if(now-lastProgressReport<220L && !("registering".equals(phase)))return;
         lastProgressReport=now;
@@ -100,6 +124,7 @@ final class GoogleHookProfileStore {
     }
 
     void reportScan(boolean success,int installedHooks,String method) {
+        Context context=refreshContext();
         if(context==null || identity.isBlank()) {
             module.log(Log.WARN,TAG,"Google scan Toast unavailable: process context missing");
             return;

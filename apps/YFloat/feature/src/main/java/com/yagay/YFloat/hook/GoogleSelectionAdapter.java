@@ -54,7 +54,12 @@ final class GoogleSelectionAdapter {
     }
 
     static synchronized Binding resolve(ClassLoader loader, GoogleHookProfileStore store) {
-        if (loader == cachedLoader && cachedBinding != null) return cachedBinding;
+        if (loader == cachedLoader && cachedBinding != null) {
+            if(store==null)return cachedBinding;
+            // A manual scan in this process must bypass even the in-memory binding.
+            store.read();
+            if(!store.manualRequested())return cachedBinding;
+        }
         Binding found = resolveUncached(loader,store);
         cachedLoader = loader;
         cachedBinding = found;
