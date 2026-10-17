@@ -125,13 +125,13 @@ final class CircleStableOcr {
                         + " bitmap=" + bitmap.getWidth() + "x" + bitmap.getHeight()
                         + " role=" + role
                         + " postLogic=ml_semantics_no_ml_runtime");
-        PaddleOcrBridge.recognize(app, bitmap, model, new PaddleOcrBridge.Callback() {
+        PaddlePipelineV2.recognize(app, bitmap, model, new PaddlePipelineV2.Callback() {
             @Override public void onSuccess(OcrDocument raw, long totalMs, int lineCount) {
                 if (raw == null || raw.fullText().isBlank() || raw.chars().isEmpty()) {
                     callback.onFailure(new IllegalStateException(app.getString(R.string.yfloat_ppocr_empty)));
                     return;
                 }
-                // PaddleOcrBridge already normalizes PP output through OcrCanonicalGeometry.
+                // PaddlePipelineV2 owns normalized OCR/layout output without the old adapter.
                 DiagnosticLog.i(app, role.equals("gesture_correction")
                                 ? "FL_CIRCLE_PP_REGION" : "FL_CIRCLE_PP_INDEX",
                         "success model=" + model

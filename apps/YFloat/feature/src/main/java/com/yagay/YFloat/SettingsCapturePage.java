@@ -87,6 +87,7 @@ final class SettingsCapturePage {
             ui.addOcrModelRow(models.body, OcrModelManager.TINY);
             ui.addOcrModelRow(models.body, OcrModelManager.SMALL);
             ui.addOcrModelRow(models.body, OcrModelManager.MEDIUM);
+            PaddleStructureSettingsV2.add(activity,models.body);
         } catch (Throwable t) {
             DiagnosticLog.i(activity, "OCR_MODEL_UI",
                     "init failure=" + t.getClass().getSimpleName() + ":" + String.valueOf(t.getMessage()));

@@ -178,12 +178,11 @@ public final class OcrEngine {
             return;
         }
 
-        PaddleOcrBridge.recognize(app, source, model, new PaddleOcrBridge.Callback() {
+        PaddlePipelineV2.recognize(app, source, model, new PaddlePipelineV2.Callback() {
             @Override public void onSuccess(OcrDocument raw, long totalMs, int lineCount) {
                 if (stale(app, request, "paddle_success")) return;
                 double score = paddleScore(raw.fullText(), raw.confidence(), raw.blocks().size());
-                OcrDocument now = new OcrDocument(raw.fullText(), raw.blocks(), raw.lines(),
-                        raw.engine(), raw.confidence(), score, source.getWidth(), source.getHeight());
+                OcrDocument now = raw; // Preserve V2 block grouping; no legacy reserialization.
                 DiagnosticLog.i(app, "PPOCRV6", "success request=" + request.requestId + " model=" + model
                         + " lane=" + request.lane()
                         + " chars=" + now.chars().size() + " lines=" + lineCount
