@@ -48,8 +48,16 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
                     GoogleCtsSessionCoordinator.hookReady(context,token,detail);
             case GoogleCtsContract.EVENT_FRAME_READY ->
                     GoogleCtsBridgeProvider.consumeSharedFrame(context, token);
-            case GoogleCtsContract.EVENT_SELECTION ->
-                    GoogleV2UiEngine.onText(context, token, text, bounds, detail, rows);
+            case GoogleCtsContract.EVENT_SELECTION -> {
+                // OCR data must not depend on the Google selection overlay
+                // being visible or a screenshot SharedMemory frame arriving
+                // first. The authenticated exact-token bridge owns the data.
+                if(GoogleLensImageInputProbe.isOcrEngineRequest(token)
+                        &&!text.isBlank())
+                    GoogleLensImageInputProbe.onNativeText(
+                            context.getApplicationContext(),token,text,bounds);
+                GoogleV2UiEngine.onText(context, token, text, bounds, detail, rows);
+            }
             case GoogleCtsContract.EVENT_TEXT_BOUNDS ->
                     GoogleV2UiEngine.onTextBounds(context, token, bounds, rows);
             case GoogleCtsContract.EVENT_TEXT_GESTURE_START ->
@@ -65,8 +73,13 @@ public final class GoogleCtsBridgeReceiver extends BroadcastReceiver {
             case GoogleCtsContract.EVENT_COMMIT,
                  GoogleCtsContract.EVENT_QUERY_RESULT ->
                     GoogleV2UiEngine.onCommit(context, token, detail);
-            case GoogleCtsContract.EVENT_TEXT_MENU_COMMIT ->
-                    GoogleV2UiEngine.onText(context, token, text, bounds, detail);
+            case GoogleCtsContract.EVENT_TEXT_MENU_COMMIT -> {
+                if(GoogleLensImageInputProbe.isOcrEngineRequest(token)
+                        &&!text.isBlank())
+                    GoogleLensImageInputProbe.onNativeText(
+                            context.getApplicationContext(),token,text,bounds);
+                GoogleV2UiEngine.onText(context, token, text, bounds, detail);
+            }
             case GoogleCtsContract.EVENT_VISUAL_EXIT ->
                     GoogleV2UiEngine.onNavigationExit(context, token, "hook:"+detail);
             case GoogleCtsContract.EVENT_END ->

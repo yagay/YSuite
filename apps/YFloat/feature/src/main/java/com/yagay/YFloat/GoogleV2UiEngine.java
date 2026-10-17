@@ -198,7 +198,8 @@ final class GoogleV2UiEngine {
                 showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
             // Exact Google OCR engine requests render YFloat's own selectable
             // crop + text result, not a second floating menu over Lens.
-            GoogleLensImageInputProbe.onNativeText(s.app,s.token,text,use);
+            if(!GoogleLensImageInputProbe.isOcrEngineRequest(s.token))
+                GoogleLensImageInputProbe.onNativeText(s.app,s.token,text,use);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()
                     +" bounds="+use+" anchorVerified="+verifiedScreenBounds
                     +" imageInput="+imageProbe);
