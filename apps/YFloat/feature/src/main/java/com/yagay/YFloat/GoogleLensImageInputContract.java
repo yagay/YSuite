@@ -15,6 +15,19 @@ final class GoogleLensImageInputContract {
     static final String GOOGLEAPP_SCHEME = "googleapp://lens";
     static final String DIRECT_SCHEME = "google://lens";
 
+    /**
+     * An explicit setComponent() target may have Intent.getPackage()==null.
+     * Either routing form is valid only if every supplied destination agrees
+     * on the real Google package. Never trust a foreign ComponentName.
+     */
+    static boolean isGoogleTarget(String declaredPackage,String componentPackage,
+                                  String googlePackage) {
+        if(googlePackage==null||googlePackage.isBlank())return false;
+        if(declaredPackage!=null&&!googlePackage.equals(declaredPackage))return false;
+        if(componentPackage!=null&&!googlePackage.equals(componentPackage))return false;
+        return declaredPackage!=null||componentPackage!=null;
+    }
+
     static boolean isHostImageUri(String value, String hostPackage) {
         if(value==null||hostPackage==null||hostPackage.isBlank())return false;
         try {

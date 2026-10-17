@@ -24,6 +24,31 @@ public class GoogleLensImageInputContractTest {
         assertFalse(GoogleLensImageInputContract.isHostImageUri(
                 "content://com.yagay.YSuite.files","com.yagay.YSuite"));
     }
+    @Test public void acceptExplicitGoogleLensShareComponentWithoutDeclaredPackage() {
+        assertTrue(GoogleLensImageInputContract.isGoogleTarget(
+                null,"com.google.android.googlequicksearchbox",
+                "com.google.android.googlequicksearchbox"));
+        assertTrue(GoogleLensImageInputContract.isGoogleTarget(
+                "com.google.android.googlequicksearchbox",
+                "com.google.android.googlequicksearchbox",
+                "com.google.android.googlequicksearchbox"));
+    }
+    @Test public void acceptGooglePackageOnlyLegacyDeepLink() {
+        assertTrue(GoogleLensImageInputContract.isGoogleTarget(
+                "com.google.android.googlequicksearchbox",null,
+                "com.google.android.googlequicksearchbox"));
+    }
+    @Test public void rejectForeignOrUnspecifiedTargets() {
+        String google="com.google.android.googlequicksearchbox";
+        assertFalse(GoogleLensImageInputContract.isGoogleTarget(null,null,google));
+        assertFalse(GoogleLensImageInputContract.isGoogleTarget(
+                null,"com.example.fake",google));
+        assertFalse(GoogleLensImageInputContract.isGoogleTarget(
+                "com.example.fake",google,google));
+        assertFalse(GoogleLensImageInputContract.isGoogleTarget(
+                google,"com.example.fake",google));
+    }
+
     @Test public void noEmptyInputOrTimestamp() {
         assertThrows(IllegalArgumentException.class,
                 ()->GoogleLensImageInputContract.buildLensUri("",1234L,false));

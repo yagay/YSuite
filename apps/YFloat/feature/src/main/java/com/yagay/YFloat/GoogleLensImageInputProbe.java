@@ -181,6 +181,7 @@ final class GoogleLensImageInputProbe {
                                                 ComponentName receiver) {
         Intent intent=new Intent(Intent.ACTION_SEND)
                 .setComponent(receiver)
+                .setPackage(GoogleCtsContract.GOOGLE_PACKAGE)
                 .setType("image/png")
                 .putExtra(Intent.EXTRA_STREAM,image)
                 .putExtra(GoogleCtsContract.K_TRIGGER,true)

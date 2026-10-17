@@ -29,13 +29,26 @@ public final class GoogleLensImageLaunchActivity extends Activity {
         String token=request==null?null:request.getStringExtra(EXTRA_SESSION);
         Intent google=request==null?null:request.getParcelableExtra(
                 EXTRA_LENS_INTENT,Intent.class);
+        String targetPackage=google==null?null:google.getPackage();
+        String componentPackage=google==null||google.getComponent()==null
+                ?null:google.getComponent().getPackageName();
         if(token==null||token.isBlank()||google==null
-                ||!GoogleCtsContract.GOOGLE_PACKAGE.equals(google.getPackage())) {
+                ||!GoogleLensImageInputContract.isGoogleTarget(
+                        targetPackage,componentPackage,GoogleCtsContract.GOOGLE_PACKAGE)) {
+            DiagnosticLog.i(this,"LENS_IMAGE_INPUT",
+                    "caller_target_validation_failed session="
+                    +GoogleLensImageInputProbe.shortToken(token)
+                    +" declaredPackage="+targetPackage
+                    +" componentPackage="+componentPackage);
             GoogleLensImageInputProbe.onLaunchFailed(this,token,
                     "caller_invalid_request");
             finish();
             return;
         }
+        DiagnosticLog.i(this,"LENS_IMAGE_INPUT",
+                "caller_target_valid session="+GoogleLensImageInputProbe.shortToken(token)
+                +" route="+(google.getComponent()==null?"package":"component")
+                +" action="+google.getAction());
         try {
             // Do not re-add FLAG_ACTIVITY_NEW_TASK here: it defeats caller
             // identity and result semantics for this explicit handoff.
