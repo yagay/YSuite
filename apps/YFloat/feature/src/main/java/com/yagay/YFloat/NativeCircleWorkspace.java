@@ -567,13 +567,19 @@ final class NativeCircleWorkspace extends View {
             if(!shown&&!image.isRecycled())image.recycle();
             return;
         }
-        if(ImageMenuSettings.FIND.equals(action)||ImageMenuSettings.SHARE.equals(action)
+        // Experimental branch: use the image Find command to test YFloat's
+        // own cropped bitmap -> Google's real Lens image-input contract.
+        // The probe takes ownership of this fresh crop and recycles it on IO.
+        if(ImageMenuSettings.FIND.equals(action)) {
+            dismissActive("google_lens_image_input");
+            GoogleLensImageInputProbe.launch(app,image);
+            return;
+        }
+        if(ImageMenuSettings.SHARE.equals(action)
                 ||ImageCustomMenuStore.isCustom(action))
             dismissActive("image_external_action");
         try {
-            if(ImageMenuSettings.FIND.equals(action))
-                ImageShareUtils.openWith(app,image);
-            else if(ImageMenuSettings.COPY.equals(action))
+            if(ImageMenuSettings.COPY.equals(action))
                 ImageShareUtils.copyToClipboard(app,image);
             else if(ImageMenuSettings.SHARE.equals(action))
                 ImageShareUtils.share(app,image);

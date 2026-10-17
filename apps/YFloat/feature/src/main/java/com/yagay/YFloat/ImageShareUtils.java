@@ -127,6 +127,26 @@ public final class ImageShareUtils {
         }
     }
 
+    /**
+     * Google Lens experiment input; reuse the existing host FileProvider.
+     * The caller owns the returned lease and must revoke it after the probe.
+     */
+    static LensShare prepareGoogleLensImage(Context app,Bitmap image) throws Exception {
+        SharedImage exported=prepareSharedImage(app,image);
+        return new LensShare(exported.file,exported.uri);
+    }
+
+    static final class LensShare {
+        final File file;
+        final Uri uri;
+        LensShare(File file,Uri uri){this.file=file;this.uri=uri;}
+        void close(Context context) {
+            try{context.revokeUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);}
+            catch(Throwable ignored){}
+            try{if(file.isFile())file.delete();}catch(Throwable ignored){}
+        }
+    }
+
     private static SharedImage prepareSharedImage(Context app, Bitmap image) throws Exception {
         File dir = new File(app.getCacheDir(), DIR);
         if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Cannot create share cache");

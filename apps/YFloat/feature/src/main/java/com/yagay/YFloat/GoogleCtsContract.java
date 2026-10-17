@@ -8,6 +8,8 @@ public final class GoogleCtsContract {
     public static final String GOOGLE_PACKAGE = "com.google.android.googlequicksearchbox";
     public static final String K_TRIGGER = "yfloat_trigger";
     public static final String K_SESSION_TOKEN = "yfloat_session_token";
+    /** Explicit opt-in test: host image URI handed into Google's Lens Activity. */
+    public static final String K_LENS_IMAGE_INPUT_PROBE = "yfloat_lens_image_input_probe";
     public static final String K_INVOCATION_TIME = "invocation_time_ms";
     public static final String K_OMNI_ENTRY_POINT = "omni.entry_point";
     public static final String CONTEXTUAL_SEARCH_ACTION =

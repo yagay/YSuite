@@ -178,6 +178,7 @@ final class GoogleV2UiEngine {
             if(use!=null)GoogleV2TextOutline.show(s.app,s.token,use,rows);
             else GoogleV2TextOutline.dismiss(s.token);
             showTextWhenStable(s,TEXT_MENU_SETTLE_MS);
+            GoogleLensImageInputProbe.onNativeText(s.app,s.token,text,use);
             DiagnosticLog.i(s.app,"GOOGLE_V2","text chars="+text.length()+" bounds="+use);
         });
     }

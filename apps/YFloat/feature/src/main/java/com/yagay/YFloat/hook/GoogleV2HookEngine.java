@@ -59,6 +59,8 @@ final class GoogleV2HookEngine {
     private volatile Object voice;
     private volatile boolean textMode;
     private volatile boolean regionMode;
+    /** Image-input experiment never suppresses Google's Lens search/UI. */
+    private volatile boolean lensImageInputProbe;
     private volatile Rect currentBounds;
     private volatile int[] currentTextRows;
     private volatile String currentText = "";
@@ -86,15 +88,17 @@ final class GoogleV2HookEngine {
         // active. Keep Lens result-query interception guarded by confirmed
         // selection to avoid blocking Google's OCR processing.
         nativeSearch=new GoogleV2SearchGuard(module,loader,
-                this::ownsNativeSearchBoundary,
-                ()->ownsNativeSearchBoundary()&&(textMode||regionMode),this::logEvent);
+                ()->!lensImageInputProbe&&ownsNativeSearchBoundary(),
+                ()->!lensImageInputProbe&&ownsNativeSearchBoundary()
+                        &&(textMode||regionMode),this::logEvent);
         // Do not hide Google's text-selection chrome BEFORE recognition
         // completes. Search Intent guards still protect YFloat-owned sessions.
         nativeChrome=new GoogleV2SearchChrome(
                 // Suppress default Google result/search surfaces as soon as
                 // the authenticated YFloat session starts, not only after OCR.
-                this::ownsNativeSearchBoundary,
-                ()->active()&&(textMode||regionMode),this::logEvent);
+                ()->!lensImageInputProbe&&ownsNativeSearchBoundary(),
+                ()->!lensImageInputProbe&&active()
+                        &&(textMode||regionMode),this::logEvent);
         profileStore=new GoogleHookProfileStore(module);
     }
 
@@ -211,7 +215,8 @@ final class GoogleV2HookEngine {
             viewport.reset();
             nativeChrome.reset();
             revision.incrementAndGet();
-            textMode=false;regionMode=false;currentText="";currentBounds=null;currentTextRows=null;
+            textMode=false;regionMode=false;lensImageInputProbe=false;
+            currentText="";currentBounds=null;currentTextRows=null;
             selectionCallbackObserved=false;
             liveWordsObserved=false;
             textSelectionObserved=false;
@@ -311,7 +316,8 @@ final class GoogleV2HookEngine {
     private void clearLocalSession() {
         token="";
         hookReadySentToken="";
-        textMode=false;regionMode=false;currentText="";currentBounds=null;currentTextRows=null;
+        textMode=false;regionMode=false;lensImageInputProbe=false;
+        currentText="";currentBounds=null;currentTextRows=null;
         owner=null;voice=null;
         transport.reset();
         gestures.reset();
@@ -476,7 +482,19 @@ final class GoogleV2HookEngine {
                         String key=GoogleCtsContract.isYFloatSession(extras)
                                 ?extras.getString(GoogleCtsContract.K_SESSION_TOKEN,"")
                                 :provider.googleCtsArmedToken(extras);
-                        if(!key.isBlank())activate(key,null,"activity");
+                        if(!key.isBlank()) {
+                            activate(key,null,"activity");
+                            // Explicit marker survives direct Google Lens image
+                            // launch. It is not inferred from a normal Google
+                            // search or an unrelated image-sharing Intent.
+                            if(key.equals(token)&&extras!=null
+                                    &&extras.getBoolean(
+                                            GoogleCtsContract.K_LENS_IMAGE_INPUT_PROBE,false)){
+                                if(!lensImageInputProbe)logEvent("LENS_IMAGE_INPUT",
+                                        "marked_activity="+activity.getClass().getName());
+                                lensImageInputProbe=true;
+                            }
+                        }
                     }
                     if(active()){
                         if(activity.getClass().getName().endsWith("LensientActivity")
@@ -485,6 +503,7 @@ final class GoogleV2HookEngine {
                         // This Activity is a search handoff, not the initial
                         // LensientActivity. Keep Google on the owned selection.
                         if("callActivityOnNewIntent".equals(method.getName())
+                                && !lensImageInputProbe
                                 && (textMode||regionMode) && incoming!=null
                                 && GoogleV2ScenePolicy.suppressNativeSearch(
                                         true,incoming.getAction())) {
@@ -494,14 +513,18 @@ final class GoogleV2HookEngine {
                     }
                     Object result=chain.proceed();
                     if(active()&&owner==activity){
-                        viewport.attach(activity);
-                        nativeChrome.attach(activity);
+                        if(!lensImageInputProbe){
+                            viewport.attach(activity);
+                            nativeChrome.attach(activity);
+                        }
                         int current=revision.get();
                         for(long wait:new long[]{160L,470L,950L}){
                             main.postDelayed(()->{
                                 if(active()&&revision.get()==current&&owner==activity){
-                                    viewport.attach(activity);
-                                    nativeChrome.attach(activity);
+                                    if(!lensImageInputProbe){
+                                        viewport.attach(activity);
+                                        nativeChrome.attach(activity);
+                                    }
                                     frames.probeFrozenView(activity,"v2_activity_"+wait);
                                 }
                             },wait);
@@ -603,8 +626,10 @@ final class GoogleV2HookEngine {
             regionMode=true;textMode=false;
             currentTextRows=null;
             currentBounds=new Rect(bounds);
-            viewport.attach(owner);
-            nativeChrome.onSelection();
+            if(!lensImageInputProbe){
+                viewport.attach(owner);
+                nativeChrome.onSelection();
+            }
             transport.sendEvent(GoogleCtsContract.EVENT_REGION_SELECTION,
                     "",candidate.detail()+" stage="+stage,bounds);
         }else{
@@ -660,8 +685,10 @@ final class GoogleV2HookEngine {
             textMode=true;regionMode=false;currentText=wordsText;
             if(bounds!=null&&!bounds.isEmpty())currentBounds=new Rect(bounds);
             currentTextRows=rows==null?null:rows.clone();
-            viewport.attach(owner);
-            nativeChrome.onSelection();
+            if(!lensImageInputProbe){
+                viewport.attach(owner);
+                nativeChrome.onSelection();
+            }
             transport.sendEventWithRows(GoogleCtsContract.EVENT_SELECTION,
                     wordsText,detail,currentBounds,currentTextRows);
         }else if(textMode&&bounds!=null&&!bounds.isEmpty()){

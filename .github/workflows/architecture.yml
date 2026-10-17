@@ -2,7 +2,7 @@ name: Validate YSuite Architecture
 
 on:
   push:
-    branches: [main, rebuild/material3-full-ui, refactor/yfloat-google-v2, refactor/yfloat-circle-native, refactor/yfloat-cts-session]
+    branches: [main, rebuild/material3-full-ui, refactor/yfloat-google-v2, refactor/yfloat-circle-native, refactor/yfloat-cts-session, experiment/yfloat-google-lens-image-bridge]
   pull_request:
   workflow_dispatch:
 
