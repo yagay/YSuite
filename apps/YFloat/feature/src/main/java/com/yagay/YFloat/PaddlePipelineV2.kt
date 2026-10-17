@@ -24,6 +24,13 @@ object PaddlePipelineV2 {
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
     private val lock=Mutex()
     private val models=mutableMapOf<Int,PaddleOCR>()
+    private val modelSignatures=mutableMapOf<Int,String>()
+    private fun signature(app:Context,model:Int):String {
+        val files=listOf(OcrModelManager.detFile(app,model),
+            OcrModelManager.recFile(app,model),OcrModelManager.ymlFile(app,model))
+        check(OcrModelManager.isReady(app,model)){"PP-OCRv6 model not downloaded"}
+        return files.joinToString(":") { "${it.length()}-${it.lastModified()}" }
+    }
     @Volatile private var latestPage:PaddlePageV2.Page?=null
     @JvmStatic fun lastPage():PaddlePageV2.Page?=latestPage
 
@@ -34,8 +41,13 @@ object PaddlePipelineV2 {
                 require(!image.isRecycled && image.width>0 && image.height>0)
                 val started=System.currentTimeMillis()
                 val page=lock.withLock {
+                    val revision=signature(app,model)
+                    if(models.containsKey(model) && modelSignatures[model]!=revision){
+                        models.remove(model)?.release()
+                        modelSignatures.remove(model)
+                        DiagnosticLog.i(app,"PADDLE_V2","model_replaced="+model)
+                    }
                     val ocr=models[model] ?: run {
-                        check(OcrModelManager.isReady(app,model)){"PP-OCRv6 model not downloaded"}
                         check(OcrModelManager.verifyIntegrity(app,model)){"PP-OCRv6 model integrity failed"}
                         check(OpenCVUtils.init(app)){"OpenCV initialization failed"}
                         val cfg=PaddleOCRConfig(
@@ -44,7 +56,10 @@ object PaddlePipelineV2 {
                         PaddleOCR.create(app,cfg,EngineConfig(numThreads=4),
                             OcrModelManager.detFile(app,model).absolutePath,
                             OcrModelManager.recFile(app,model).absolutePath,
-                            OcrModelManager.ymlFile(app,model).absolutePath).also{models[model]=it}
+                            OcrModelManager.ymlFile(app,model).absolutePath).also{
+                                models[model]=it
+                                modelSignatures[model]=revision
+                            }
                     }
                     val output=ocr.recognize(image)
                     val structure=if(PaddleStructureModelV2.enabled(app)) {
@@ -76,7 +91,10 @@ object PaddlePipelineV2 {
     }
     @JvmStatic fun releaseModel(model:Int){
         scope.launch {
-            lock.withLock { models.remove(model)?.release() }
+            lock.withLock {
+                models.remove(model)?.release()
+                modelSignatures.remove(model)
+            }
         }
     }
 }

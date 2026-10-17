@@ -64,8 +64,8 @@ object PaddlePageV2 {
             val text=result.text.trim()
             if(text.isBlank())return@mapNotNull null
             val quad=quad(result.box,Origin.DETECTOR)
-            val symbols=result.characters.mapNotNull { c ->
-                if(c.text.isBlank())null else Symbol(c.text,quad(c.box,Origin.CTC_ALIGNED),c.confidence)
+            val symbols=result.characters.map { c ->
+                Symbol(c.text,quad(c.box,Origin.CTC_ALIGNED),c.confidence)
             }
             val words=groupWords(symbols,text,quad)
             Line(text,quad,result.confidence,words)
@@ -114,8 +114,16 @@ object PaddlePageV2 {
             if(current.isEmpty())return
             val box=Rect()
             for(s in current){if(box.isEmpty)box.set(s.bounds.rect()) else box.union(s.bounds.rect())}
+            val first=current.first().bounds.points
+            val last=current.last().bounds.points
+            val grouped=if(first.size==4&&last.size==4)
+                Quad(listOf(PointF(first[0].x,first[0].y),
+                    PointF(last[1].x,last[1].y),
+                    PointF(last[2].x,last[2].y),
+                    PointF(first[3].x,first[3].y)),Origin.WORD_GROUP)
+                else quadFromRect(box,Origin.WORD_GROUP)
             words.add(Word(current.joinToString(""){it.text},
-                quadFromRect(box,Origin.WORD_GROUP),current.toList()))
+                grouped,current.toList()))
             current.clear()
         }
         for(symbol in symbols){

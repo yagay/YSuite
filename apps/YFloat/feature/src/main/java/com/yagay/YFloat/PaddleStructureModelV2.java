@@ -37,6 +37,20 @@ public final class PaddleStructureModelV2 {
         File f=model(context);
         return f.isFile()&&f.length()==BYTES;
     }
+    /** Size alone is not sufficient before loading an executable ONNX graph. */
+    public static boolean verifyIntegrity(Context context) {
+        File source=model(context);
+        if(!isReady(context))return false;
+        try(FileInputStream in=new FileInputStream(source)){
+            MessageDigest sha=MessageDigest.getInstance("SHA-256");
+            byte[] buffer=new byte[65536];
+            int n;
+            while((n=in.read(buffer))!=-1)sha.update(buffer,0,n);
+            StringBuilder out=new StringBuilder(64);
+            for(byte b:sha.digest())out.append(String.format(Locale.ROOT,"%02x",b&0xff));
+            return SHA256.equals(out.toString());
+        }catch(Throwable ignored){return false;}
+    }
     public static boolean enabled(Context context) {
         return context.getSharedPreferences(FloatSettings.PREF,Context.MODE_PRIVATE)
                 .getBoolean(PREF_ENABLED,false) && isReady(context);
