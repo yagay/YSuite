@@ -22,8 +22,9 @@ import java.util.concurrent.Executors;
  * input. No private Google model is invoked. Results are *observed* by the
  * already-existing LSPosed live-selection bridge, not promised by ACTION_VIEW.
  *
- * Only the explicit image Find action in this branch invokes this class.
- * The original Google Circle-to-Search trigger is completely unaffected.
+ * Only the explicit Google OCR experiment actions in native image selection
+ * and the screenshot result dialog invoke this class. The original Google
+ * Circle-to-Search trigger and generic Find action remain unaffected.
  */
 final class GoogleLensImageInputProbe {
     private static final Handler MAIN=new Handler(Looper.getMainLooper());
@@ -63,6 +64,8 @@ final class GoogleLensImageInputProbe {
             return;
         }
         Context app=context.getApplicationContext();
+        DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
+                "encode_begin bitmap="+ownedImage.getWidth()+"x"+ownedImage.getHeight());
         IO.execute(()->{
             ImageShareUtils.LensShare share=null;
             try{

@@ -96,18 +96,17 @@ final class ResultUi {
         return viewport;
     }
 
-    static void addResultActions(LinearLayout row,
-                                 Button ocr, Button copy, Button save, Button close) {
-        // Equal-width slots distribute the four icons across the dialog
-        // instead of grouping four minimum-width buttons tightly at its center.
+    static void addResultActions(LinearLayout row, Button... buttons) {
+        // Equal-width slots distribute the icons across the dialog
+        // instead of grouping minimum-width buttons tightly at its center.
         // Buttons themselves keep their YUI touch size, color and corner radius.
         Context scoped = YOverlayUi.scopedContext(row.getContext(), "yfloat");
         int buttonWidth = Math.max(YView.touchTarget(scoped),
                 YView.iconSize(scoped) + 2 * YView.buttonHorizontalPadding(scoped));
         int slotGap = Math.max(0, YView.controlGap(scoped));
         int minSlotWidth = buttonWidth + slotGap;
-        row.setMinimumWidth(minSlotWidth * 4);
-        for (Button button : new Button[]{ocr, copy, save, close}) {
+        row.setMinimumWidth(minSlotWidth * buttons.length);
+        for (Button button : buttons) {
             FrameLayout slot = new FrameLayout(row.getContext());
             slot.setMinimumWidth(minSlotWidth);
             FrameLayout.LayoutParams buttonLayout = new FrameLayout.LayoutParams(

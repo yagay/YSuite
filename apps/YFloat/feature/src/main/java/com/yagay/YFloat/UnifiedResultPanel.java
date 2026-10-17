@@ -30,6 +30,8 @@ final class UnifiedResultPanel {
     private final TextSelectionSurface selection;
     private final TextActionMenuController textMenu;
     private final Button ocrButton;
+    /** Experiment only: visible in screenshot result, separate from ML Kit OCR. */
+    private final Button googleOcrButton;
     private final Button copyButton;
     private final Button saveButton;
     private final Button closeButton;
@@ -82,13 +84,21 @@ final class UnifiedResultPanel {
         actions = ResultUi.actionRow(context);
         ocrButton = ResultUi.iconButton(context, R.drawable.yfloat_ic_result_ocr,
                 context.getString(R.string.yfloat_result_action_ocr));
+        googleOcrButton = initial.originMode() == ResultSession.Mode.SCREENSHOT
+                ? ResultUi.iconButton(context, android.R.drawable.ic_menu_search,
+                        ImageMenuSettings.label(ImageMenuSettings.GOOGLE_OCR)) : null;
         copyButton = ResultUi.iconButton(context, R.drawable.yfloat_ic_result_copy,
                 com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_f5a24d2506d7));
         saveButton = ResultUi.iconButton(context, R.drawable.yfloat_ic_result_save,
                 com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_82522e2a87bf));
         closeButton = ResultUi.iconButton(context, R.drawable.yfloat_ic_close,
                 com.yagay.suite.api.YLocale.text(R.string.yfloat_generated_59a26fdc46ce));
-        ResultUi.addResultActions(actions, ocrButton, copyButton, saveButton, closeButton);
+        if (googleOcrButton != null) {
+            ResultUi.addResultActions(actions, ocrButton, googleOcrButton,
+                    copyButton, saveButton, closeButton);
+        } else {
+            ResultUi.addResultActions(actions, ocrButton, copyButton, saveButton, closeButton);
+        }
         actionsViewport = ResultUi.actionViewport(context, actions);
         root.addView(actionsViewport, new LinearLayout.LayoutParams(-1, -2));
 
@@ -100,6 +110,11 @@ final class UnifiedResultPanel {
     int width() { return width; }
     TextSelectionSurface selection() { return selection; }
     ResultSession session() { return session; }
+
+    void bindGoogleOcrAction(Runnable action) {
+        if (googleOcrButton != null)
+            googleOcrButton.setOnClickListener(v -> { if (action != null) action.run(); });
+    }
 
     void bindActions(Runnable onOcr, Runnable onSave, Runnable onClose) {
         ocrButton.setOnClickListener(v -> { if (onOcr != null) onOcr.run(); });
@@ -179,7 +194,8 @@ final class UnifiedResultPanel {
                 + " image=" + showImage + " imageH=" + imageHeight
                 + " text=" + showText + " textH=" + textHeight
                 + " width=" + width + " wrapContent=true intrinsicActions=true"
-                + " buttons=ocr/copy/save/close");
+                + " buttons=" + (googleOcrButton == null
+                        ? "ocr/copy/save/close" : "ocr/google_ocr/copy/save/close"));
     }
 
     void setOcrRunning(boolean running) {
@@ -198,6 +214,10 @@ final class UnifiedResultPanel {
         boolean canCopy = s != null && s.canCopy();
         boolean canSave = s != null && s.canSave();
 
+        if (googleOcrButton != null) {
+            googleOcrButton.setEnabled(canOcr);
+            setEnabledVisual(googleOcrButton,canOcr);
+        }
         ocrButton.setEnabled(canOcr && !ocrRunning);
         ResultUi.setActionHint(ocrButton, context.getString(ocrRunning
                 ? R.string.yfloat_result_action_ocr_running

@@ -560,6 +560,12 @@ final class NativeCircleWorkspace extends View {
         }
         Bitmap image=selectedImage();
         if(image==null)return;
+        if(ImageMenuSettings.GOOGLE_OCR.equals(action)){
+            DiagnosticLog.i(app,"LENS_IMAGE_INPUT","selected_from=native_crop");
+            dismissActive("google_ocr_probe");
+            GoogleLensImageInputProbe.launch(app,image);
+            return;
+        }
         if(ImageMenuSettings.DONE.equals(action)){
             Rect source=frame.bitmapRectToScreen(selectedBitmapRect());
             dismissActive("image_result");
@@ -567,19 +573,13 @@ final class NativeCircleWorkspace extends View {
             if(!shown&&!image.isRecycled())image.recycle();
             return;
         }
-        // Experimental branch: use the image Find command to test YFloat's
-        // own cropped bitmap -> Google's real Lens image-input contract.
-        // The probe takes ownership of this fresh crop and recycles it on IO.
-        if(ImageMenuSettings.FIND.equals(action)) {
-            dismissActive("google_lens_image_input");
-            GoogleLensImageInputProbe.launch(app,image);
-            return;
-        }
-        if(ImageMenuSettings.SHARE.equals(action)
+        if(ImageMenuSettings.FIND.equals(action)||ImageMenuSettings.SHARE.equals(action)
                 ||ImageCustomMenuStore.isCustom(action))
             dismissActive("image_external_action");
         try {
-            if(ImageMenuSettings.COPY.equals(action))
+            if(ImageMenuSettings.FIND.equals(action))
+                ImageShareUtils.openWith(app,image);
+            else if(ImageMenuSettings.COPY.equals(action))
                 ImageShareUtils.copyToClipboard(app,image);
             else if(ImageMenuSettings.SHARE.equals(action))
                 ImageShareUtils.share(app,image);

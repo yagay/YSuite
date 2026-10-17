@@ -11,10 +11,12 @@ import java.util.Set;
 
 /** Image actions only: appearance, layout and menu count use the shared YFloat/YUI pipeline. */
 final class ImageMenuSettings {
-    static final String DONE="done", FIND="find", COPY="copy",
+    static final String GOOGLE_OCR="google_ocr", DONE="done", FIND="find", COPY="copy",
             SHARE="share", SAVE="save", RESET="reset";
     private static final String FILE="yfloat_image_menu", ORDER="order_v1", HIDDEN="hidden_v1";
-    private static final List<String> ALL=List.of(DONE,FIND,COPY,SHARE,SAVE,RESET);
+    // Experimental Google OCR is visible first in the image popup. "Find"
+    // keeps its original external-app behavior.
+    private static final List<String> ALL=List.of(GOOGLE_OCR,DONE,FIND,COPY,SHARE,SAVE,RESET);
 
     static List<String> ordered(Context context) {
         String raw=prefs(context).getString(ORDER,"");
@@ -102,6 +104,7 @@ final class ImageMenuSettings {
     static String label(String id) {
         boolean zh=Locale.getDefault().getLanguage().equals("zh");
         return switch(id) {
+            case GOOGLE_OCR -> zh?"Google OCR（实验）":"Google OCR (test)";
             case DONE -> zh?"完成":"Done";
             case FIND -> zh?"识图":"Find";
             case COPY -> zh?"复制":"Copy";
