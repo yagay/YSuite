@@ -20,6 +20,7 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -27,6 +28,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -56,6 +58,7 @@ final class NativeCircleWorkspace extends View {
     private final Paint activationBadgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint selectionHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path dragPath = new Path();
@@ -84,6 +87,8 @@ final class NativeCircleWorkspace extends View {
             sourceSpans=new IdentityHashMap<>();
     private ArrayList<OcrDocument.CharUnit> chosenChars = new ArrayList<>();
     private int firstChar = -1, lastChar = -1;
+    /** -1 means explicit Select all; otherwise hands stay on initial OCR line. */
+    private int selectedLine=-1;
     private boolean ocrBusy, closed, touching;
     private int handleDrag;
     private long gestureRevision;
@@ -152,7 +157,11 @@ final class NativeCircleWorkspace extends View {
         outlinePaint.setStyle(Paint.Style.STROKE);
         outlinePaint.setStrokeWidth(2.4f * density);
         outlinePaint.setColor(YFloatOverlayStyle.selectionColor(app));
-        fillPaint.setColor(Color.argb(76, 64, 145, 255));
+        fillPaint.setColor(YFloatOverlayStyle.accentWithAlpha(app,76));
+        // Blue selection is ONLY a background overlay on screenshot pixels.
+        // It must never synthesize OCR glyphs or pretend to know app fonts.
+        selectionHighlightPaint.setStyle(Paint.Style.FILL);
+        selectionHighlightPaint.setColor(YFloatOverlayStyle.accentWithAlpha(app,48));
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.CENTER);
         toolbarPaint.setColor(Color.argb(241, 31, 34, 42));
@@ -255,6 +264,7 @@ final class NativeCircleWorkspace extends View {
                             List<OcrDocument.CharUnit> allChars=fullDocument.chars();
                             if(!allChars.isEmpty() &&
                                 state.phase==NativeCircleState.Phase.TEXT_READY){
+                                selectedLine=-1;
                                 firstChar=0;lastChar=allChars.size()-1;
                                 applyTextIndices(state.revision,false);
                             }
@@ -365,6 +375,16 @@ final class NativeCircleWorkspace extends View {
         }
     }
 
+    private float safeToolbarTop(){
+        // FLAG_LAYOUT_NO_LIMITS overlay can draw over the status bar, so
+        // android's insets may be zero. Keep a minimum safe status-band.
+        float top=30f*density;
+        WindowInsets insets=getRootWindowInsets();
+        if(insets!=null)top=Math.max(top,
+                insets.getInsets(WindowInsets.Type.statusBars()).top);
+        return top+8f*density;
+    }
+
     private void drawActiveIndicator(Canvas canvas) {
         float margin=3f*density;
         float right=Math.max(margin+2f,getWidth()-margin);
@@ -374,7 +394,7 @@ final class NativeCircleWorkspace extends View {
         // Keep a persistent, highly visible but compact active-state pill.
         String text=t("圈画已开启","Circle active");
         float pillLeft=10f*density;
-        float pillTop=12f*density;
+        float pillTop=safeToolbarTop();
         float pillWidth=(Locale.getDefault().getLanguage().equals("zh")?112f:127f)*density;
         RectF pill=new RectF(pillLeft,pillTop,pillLeft+pillWidth,pillTop+40f*density);
         canvas.drawRoundRect(pill,20f*density,20f*density,activationBadgePaint);
@@ -414,7 +434,8 @@ final class NativeCircleWorkspace extends View {
 
     private void drawClose(Canvas canvas) {
         float right=getWidth()-10*density;
-        closeHit.set(right-42*density,12*density,right,54*density);
+        float top=safeToolbarTop();
+        closeHit.set(right-42*density,top,right,top+42*density);
         toolbarPaint.setColor(Color.argb(226,28,31,40));
         canvas.drawRoundRect(closeHit,21*density,21*density,toolbarPaint);
         outlinePaint.setColor(Color.WHITE);
@@ -455,19 +476,47 @@ final class NativeCircleWorkspace extends View {
     }
 
     private void drawTextSelection(Canvas canvas) {
-        if(chosenChars.isEmpty())return;
+        if(chosenChars.isEmpty()||fullDocument==null)return;
         RectF first=null,last=null;
-        for(OcrDocument.CharUnit ch:chosenChars){
-            RectF r=screenToView(ch.bounds());
-            if(r.isEmpty())continue;
-            canvas.drawRoundRect(r,2*density,2*density,fillPaint);
-            if(first==null)first=new RectF(r);
-            last=new RectF(r);
+        // OCR CTC character boxes are approximate hit targets, not rendered
+        // glyph contours. Merge them into their ORIGINAL OCR text line and
+        // use that line's baseline band to draw one consistent highlight.
+        LinkedHashMap<Integer,Rect> glyphsByLine=new LinkedHashMap<>();
+        for(OcrDocument.CharUnit glyph:chosenChars){
+            Rect b=glyph.bounds();
+            if(b.isEmpty())continue;
+            Rect union=glyphsByLine.get(glyph.line());
+            if(union==null)glyphsByLine.put(glyph.line(),new Rect(b));
+            else union.union(b);
+            RectF display=screenToView(b);
+            if(first==null)first=display;
+            last=display;
+        }
+        for(var entry:glyphsByLine.entrySet()){
+            Rect glyphBounds=entry.getValue();
+            Rect rowBounds=null;
+            for(OcrDocument.Line row:fullDocument.lines()){
+                if(!row.chars().isEmpty()&&row.chars().get(0).line()==entry.getKey()){
+                    rowBounds=row.bounds();break;
+                }
+            }
+            if(rowBounds==null||rowBounds.isEmpty())rowBounds=glyphBounds;
+            float centerY=rowBounds.exactCenterY();
+            float height=Math.max(1f,Math.min(rowBounds.height()*0.78f,
+                    Math.max(glyphBounds.height(),rowBounds.height()*0.64f)));
+            RectF screenBand=new RectF(
+                    Math.max(rowBounds.left,glyphBounds.left-1f),
+                    centerY-height/2f,
+                    Math.min(rowBounds.right,glyphBounds.right+1f),
+                    centerY+height/2f);
+            RectF highlight=screenToViewF(screenBand);
+            if(!highlight.isEmpty())
+                canvas.drawRoundRect(highlight,2*density,2*density,selectionHighlightPaint);
         }
         if(first==null||last==null)return;
-        float radius=8*density;
-        float hx=first.left, hy=first.bottom+radius;
-        float tx=last.right, ty=last.bottom+radius;
+        float radius=YFloatOverlayStyle.handleRadius(app);
+        float hx=first.left,hy=first.bottom+radius;
+        float tx=last.right,ty=last.bottom+radius;
         canvas.drawLine(hx,first.top,hx,hy,outlinePaint);
         canvas.drawLine(tx,last.top,tx,ty,outlinePaint);
         canvas.drawCircle(hx,hy,radius/1.8f,outlinePaint);
@@ -476,6 +525,13 @@ final class NativeCircleWorkspace extends View {
                 hx+24*density,hy+24*density);
         lastHandle.set(tx-24*density,ty-24*density,
                 tx+24*density,ty+24*density);
+    }
+
+    private RectF screenToViewF(RectF screen){
+        return frame.bitmapToView(new RectF(frame.screenRectToBitmap(
+                new Rect((int)Math.floor(screen.left),(int)Math.floor(screen.top),
+                         (int)Math.ceil(screen.right),(int)Math.ceil(screen.bottom)))),
+                getWidth(),getHeight());
     }
 
     /** One menu host for both OCR text and selected image rectangles. */
@@ -520,6 +576,7 @@ final class NativeCircleWorkspace extends View {
             startOcr(null,true);
             return;
         }
+        selectedLine=-1;
         firstChar = 0;
         lastChar = fullDocument.chars().size() - 1;
         applyTextIndices(state.revision, false);
@@ -608,6 +665,10 @@ final class NativeCircleWorkspace extends View {
             else resolveImage(gesture,token);
             return;
         }
+        selectedLine=all.get(first).line();
+        // Non-explicit initial selection cannot bridge unrelated icon words
+        // and launcher captions merely due to document reading order.
+        while(last>first && all.get(last).line()!=selectedLine)last--;
         firstChar=first;lastChar=last;
         applyTextIndices(token,true);
         if (state.phase != NativeCircleState.Phase.TEXT_READY) {
@@ -683,6 +744,7 @@ final class NativeCircleWorkspace extends View {
         for(int i=firstChar;i<=lastChar;i++){
             OcrDocument.CharUnit unit=all.get(i);
             if(unit.text().isBlank()||unit.bounds().isEmpty())continue;
+            if(selectedLine>=0 && unit.line()!=selectedLine)continue;
             OcrSelectionText.Span span=sourceSpans.get(unit);
             if(span!=null)mapped++;
             tokens.add(unit.text());
@@ -727,7 +789,7 @@ final class NativeCircleWorkspace extends View {
         if(activeOcr!=null){activeOcr.cancel();activeOcr=null;ocrBusy=false;}
         awaitingTextPath.reset();
         chosenChars.clear();
-        firstChar=lastChar=-1;
+        firstChar=lastChar=-1;selectedLine=-1;
         state.clear();
         status=t("没有识别到划线文字，请重新划线",
                  "No highlighted text found; try drawing the line again");
@@ -750,7 +812,7 @@ final class NativeCircleWorkspace extends View {
         }
         if(!state.resolveImage(token,selection.left,selection.top,
                 selection.right,selection.bottom))return;
-        chosenChars.clear(); firstChar=lastChar=-1;
+        chosenChars.clear(); firstChar=lastChar=-1;selectedLine=-1;
         // Image intent always resolves to a rectangle with four resize handles.
         pendingGesture=null;
         status="";
@@ -867,7 +929,7 @@ final class NativeCircleWorkspace extends View {
     private void resetSelection(){
         FloatActionMenu.dismiss();
         state.clear();chosenChars.clear();
-        firstChar=lastChar=-1;pendingGesture=null;status="";
+        firstChar=lastChar=-1;selectedLine=-1;pendingGesture=null;status="";
         awaitingTextPath.reset();
         invalidate();
     }
@@ -977,6 +1039,21 @@ final class NativeCircleWorkspace extends View {
         PointF screen=frame.bitmapPointToScreen(bitmap.x,bitmap.y);
         int candidate=charIndex.nearest(screen.x,screen.y);
         if(candidate<0)return;
+        if(selectedLine>=0&&all.get(candidate).line()!=selectedLine){
+            // Dragging over another row must not snap to its unrelated
+            // caption. Clamp to the closest source glyph in the same line.
+            float best=Float.POSITIVE_INFINITY;
+            candidate=-1;
+            for(int i=0;i<all.size();i++){
+                if(all.get(i).line()!=selectedLine)continue;
+                Rect b=all.get(i).bounds();
+                float dx=b.exactCenterX()-screen.x;
+                float dy=b.exactCenterY()-screen.y;
+                float distance=dx*dx+dy*dy;
+                if(distance<best){best=distance;candidate=i;}
+            }
+            if(candidate<0)return;
+        }
         if(handleDrag==1)firstChar=Math.min(candidate,lastChar);
         else lastChar=Math.max(candidate,firstChar);
         applyTextIndices(state.revision,false);
