@@ -383,7 +383,7 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
 for needle in ("selectedLine=all.get(first).line()",
                "CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)",
                "canvas.clipRect(selected)", "screenToViewF(screenBand)",
-               "if(first==null)first=new RectF(highlight)",
+               "if(first==null)first=new RectF(outline)",
                "WindowInsets.Type.statusBars()", "float pillTop=safeToolbarTop();",
                "float top=safeToolbarTop();"):
     if needle not in native:
