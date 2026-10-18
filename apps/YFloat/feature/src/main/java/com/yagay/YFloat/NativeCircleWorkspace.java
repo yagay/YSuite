@@ -993,8 +993,11 @@ final class NativeCircleWorkspace extends View {
             // canvas begins a handle adjustment or fresh selection instead.
             FloatActionMenu.dismiss();
             if(state.phase==NativeCircleState.Phase.TEXT_READY){
-                if(firstHandle.contains(x,y)){handleDrag=1;return true;}
-                if(lastHandle.contains(x,y)){handleDrag=2;return true;}
+                int picked=NativeCircleVisualPolicy.chooseTouchedTextHandle(
+                        firstHandle.contains(x,y),lastHandle.contains(x,y),
+                        x,y,firstHandle.centerX(),firstHandle.centerY(),
+                        lastHandle.centerX(),lastHandle.centerY());
+                if(picked!=0){handleDrag=picked;return true;}
             }
             if(state.phase==NativeCircleState.Phase.IMAGE_READY){
                 for(int i=0;i<imageHandles.length;i++){
