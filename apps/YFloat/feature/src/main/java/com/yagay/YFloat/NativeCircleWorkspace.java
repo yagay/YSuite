@@ -743,7 +743,7 @@ final class NativeCircleWorkspace extends View {
         for(int i=firstChar;i<=lastChar;i++){
             OcrDocument.CharUnit unit=all.get(i);
             if(unit.text().isBlank()||unit.bounds().isEmpty())continue;
-            if(selectedLine>=0 && unit.line()!=selectedLine)continue;
+            if(!CircleTextRangePolicy.sameLine(unit.line(),selectedLine))continue;
             OcrSelectionText.Span span=sourceSpans.get(unit);
             if(span!=null)mapped++;
             tokens.add(unit.text());
@@ -1038,7 +1038,7 @@ final class NativeCircleWorkspace extends View {
         PointF screen=frame.bitmapPointToScreen(bitmap.x,bitmap.y);
         int candidate=charIndex.nearest(screen.x,screen.y);
         if(candidate<0)return;
-        if(selectedLine>=0&&all.get(candidate).line()!=selectedLine){
+        if(!CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)){
             // Dragging over another row must not snap to its unrelated
             // caption. Clamp to the closest source glyph in the same line.
             float best=Float.POSITIVE_INFINITY;
