@@ -767,3 +767,39 @@ and snapping expressions directly in the live `NativeCircleWorkspace`.
 
 On-device verification is still needed: handle appearance should now match
 main, while TextGeometry V3 OCR region improvements remain.
+
+## Unrestricted screenshot text selection (2026-10-18)
+
+The user may deliberately drag either main-branch blue-circle selection handle
+past the initially highlighted OCR line and through any other recognized line
+within the **frozen** screenshot. There is no selection-range or drag-distance
+cap. The frozen screenshot bounds and recognizer coverage remain physical
+limits; it cannot OCR content that is not displayed on the screenshot.
+
+- Initial underline/tap stays local and responsive, preventing unrelated
+  icon captions from being auto-selected. Once a text handle is grabbed,
+  `selectedLine=-1` unlocks ALL existing OCR rows; `CircleTextExpansionPolicy`
+  supports both endpoints crossing and switching active roles.
+- Main's 96dp snap window still provides fine control when dragging close to
+  text. Past that distance the closest valid OCR character anywhere in the
+  document remains selectable; drag bounds no longer reject off-row points.
+- If the first OCR pass was a local ROI, handle-down starts one asynchronous
+  full-screen OCR on a safe bitmap copy. Existing blue highlight remains
+  visible and draggable while recognition runs; no OCR call is made per MOVE.
+- On completion, both original selected characters are matched by absolute
+  screen position plus text rather than the old ROI indexes. The most recent
+  dragged endpoint is applied to the whole screenshot, even if the finger
+  was released during recognition. If mapping fails, preserve the original
+  document/selected words; never replace the UI with an unrelated selection.
+- A new Circle gesture cancels an obsolete expansion request. Drag rendering
+  skips costly pixel segmentation per frame, rerunning the trusted full
+  TextGeometry V3 pixel check only once when the handle is released.
+- Full-screen region selection preserves genuine OCR source whitespace and
+  inserts line breaks between OCR rows. It also retains both original
+  screenshot-glyph pixels and the requested main-branch blue grip appearance.
+
+Regression tests cover an uncapped end index (9600), multi-line expansion,
+drag reversal, anchor remapping and off-text candidate distances. Static CI
+checks no original line-only/radius cap was accidentally restored. Real
+device testing is required to verify the full-screen OCR latency and
+interaction during long cross-line gestures.
