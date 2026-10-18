@@ -3,6 +3,11 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.widget.LinearLayout;
+import android.widget.TextView;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.materialswitch.MaterialSwitch;
+import com.yagay.yui.YViewSection;
+import java.util.ArrayList;
 import java.util.Locale;
 import com.yagay.yui.YViewLayout;
 
@@ -62,27 +67,92 @@ final class PaddleFlowSettingsUi {
             "Fix CJK spacing only, preserving English and mixed-script words")
     };
 
+    private static boolean current(SharedPreferences prefs,boolean circle,String option){
+        String key=PaddleFlowOptions.key(circle,option);
+        return prefs.getBoolean(key,
+            "spacing".equals(option)
+                ? prefs.getBoolean("paddle_v2_spacing",true)
+                : "rotation_fallback".equals(option)
+                    ? prefs.getBoolean("paddle_v2_auto_orientation",false)
+                    : PaddleFlowOptions.defaultValue(circle,option));
+    }
+
     static void add(Context context,FloatSettings fs,LinearLayout parent,boolean circle){
+        SettingsActivity activity=(SettingsActivity)context;
         boolean zh=Locale.getDefault().getLanguage().startsWith("zh");
         SharedPreferences prefs=context.getSharedPreferences(FloatSettings.PREF,Context.MODE_PRIVATE);
-        SettingsPageUi ui=new SettingsPageUi((SettingsActivity)context,fs);
         YViewLayout.addRow(parent,YViewLayout.rowSubtitle(context,
             circle
-                ? (zh?"圈画流程：默认快速文字识别，可按需启用完整文档能力":
-                      "Circle profile: fast text recognition by default; enable document stages as needed")
-                : (zh?"普通图片/PDF OCR 流程：默认完整分析，也可按需关闭额外步骤":
-                      "Image/PDF profile: full document stages by default; disable unused operations")));
+                ? (zh?"圈画默认只在划线/点按时做局部识别；全选自动扩展整屏":
+                      "Circle OCR is gesture-triggered; select-all extends to the full screenshot")
+                : (zh?"普通图片/PDF OCR 可运行完整分析；各扩展模型按需下载":
+                      "Image and PDF OCR can run full document stages; models download on demand")));
+        LinearLayout actions=YViewLayout.buttonRow(context);
+        addPresetButton(activity,actions,zh?"极速":"Fast",circle,"fast");
+        addPresetButton(activity,actions,zh?"均衡":"Balanced",circle,"balanced");
+        addPresetButton(activity,actions,zh?"高精度":"Accurate",circle,"accurate");
+        YViewLayout.addRow(parent,actions);
+        String preset=prefs.getString(PaddleFlowOptions.key(circle,"preset"),"custom");
+        YViewLayout.addRow(parent,YViewLayout.rowSubtitle(context,
+            (zh?"当前预设：":"Current preset: ")+preset+
+            (zh?"（手动调整任一开关即为自定义）":" (changing any stage makes it Custom)")));
+
+        ArrayList<MaterialSwitch> extendedSwitches=new ArrayList<>();
+        final MaterialSwitch[] master={null};
+        YViewSection advanced=YViewLayout.section(context,
+                zh?"高级识别步骤":"Advanced OCR stages",
+                zh?"关闭完整流程时，这些设置保留但不执行":
+                   "These choices are retained but inactive when the extended pipeline is off");
         for(Stage stage:STAGES){
-            String key=PaddleFlowOptions.key(circle,stage.key);
-            boolean current=prefs.getBoolean(key,
-                    ("spacing".equals(stage.key))
-                        ? prefs.getBoolean("paddle_v2_spacing",true)
-                        : ("rotation_fallback".equals(stage.key))
-                            ? prefs.getBoolean("paddle_v2_auto_orientation",false)
-                            : PaddleFlowOptions.defaultValue(circle,stage.key));
-            ui.check(parent,zh?stage.zh:stage.en,
-                    zh?stage.detailZh:stage.detailEn,key,current);
+            boolean isExtended="extended".equals(stage.key);
+            boolean isCore=isExtended||"fast_detection".equals(stage.key)||
+                    "spacing".equals(stage.key);
+            LinearLayout destination=isCore?parent:advanced.body;
+            MaterialSwitch toggle=YViewLayout.switchRow(context,
+                zh?stage.zh:stage.en,zh?stage.detailZh:stage.detailEn,
+                current(prefs,circle,stage.key),(button,checked)->{
+                    fs.setBoolean(PaddleFlowOptions.key(circle,stage.key),checked);
+                    fs.setString(PaddleFlowOptions.key(circle,"preset"),"custom");
+                    if(isExtended)
+                        for(MaterialSwitch dependent:extendedSwitches)
+                            dependent.setEnabled(checked);
+                });
+            YViewLayout.addRow(destination,YViewLayout.switchContainer(toggle));
+            if(isExtended)master[0]=toggle;
+            else if(!isCore)extendedSwitches.add(toggle);
         }
+        for(MaterialSwitch dependent:extendedSwitches)
+            dependent.setEnabled(master[0]!=null && master[0].isChecked());
+        YViewLayout.addSection(parent,advanced);
+    }
+
+    private static void addPresetButton(SettingsActivity activity,
+            LinearLayout actions,String label,boolean circle,String preset){
+        MaterialButton button=YViewLayout.compactButton(activity,label);
+        button.setOnClickListener(v->{
+            SharedPreferences.Editor editor=activity.getSharedPreferences(
+                    FloatSettings.PREF,Context.MODE_PRIVATE).edit();
+            boolean accurate="accurate".equals(preset);
+            boolean balanced="balanced".equals(preset);
+            for(Stage stage:STAGES){
+                String key=stage.key;
+                boolean value=switch(key){
+                    case "extended" -> accurate||balanced;
+                    case "fast_detection" -> !accurate;
+                    case "spacing" -> true;
+                    case "line_orientation","document_orientation" -> accurate;
+                    case "layout" -> accurate||balanced;
+                    case "tables","uvdoc","seals","formulas","charts" -> accurate;
+                    case "rotation_fallback" -> false;
+                    default -> false;
+                };
+                editor.putBoolean(PaddleFlowOptions.key(circle,key),value);
+            }
+            editor.putString(PaddleFlowOptions.key(circle,"preset"),preset);
+            editor.apply();
+            activity.recreate();
+        });
+        YViewLayout.addAction(actions,button);
     }
     private PaddleFlowSettingsUi(){}
 }
