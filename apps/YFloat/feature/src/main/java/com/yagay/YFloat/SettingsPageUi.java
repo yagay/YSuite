@@ -89,7 +89,7 @@ final class SettingsPageUi {
         // Keep retired persisted value 4 unused; Mobile=5 and Tiny=6.
         int selected = fs.ocrEngineMode();
         addPreferenceSpinner(parent, activity.getString(R.string.yfloat_ocr_engine), new String[]{
-                activity.getString(R.string.yfloat_ocr_auto),
+                activity.getString(R.string.yfloat_ocr_auto) + " (Paddle offline)",
                 activity.getString(R.string.yfloat_ocr_medium),
                 activity.getString(R.string.yfloat_ocr_small),
                 activity.getString(R.string.yfloat_ocr_mlkit),
