@@ -15,7 +15,7 @@ object PaddleChartTextV3 {
         val searchableText:String
             get()=buildList {
                 if(title.isNotBlank())add(title)
-                labels.map {it.text}.filter {it.isNotBlank()}.forEach(::add)
+                labels.map {it.text}.filter {it.isNotBlank()}.forEach { add(it) }
             }.joinToString("\n")
     }
     @JvmStatic fun extract(page:PaddlePageV2.Page):List<Chart> {

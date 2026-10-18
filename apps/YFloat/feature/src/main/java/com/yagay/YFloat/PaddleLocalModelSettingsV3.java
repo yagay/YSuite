@@ -30,6 +30,12 @@ final class PaddleLocalModelSettingsV3 {
         MaterialButton toggle=YViewLayout.compactButton(activity,zh?"启用":"Enable");
         MaterialButton remove=YViewLayout.compactButton(activity,zh?"删除":"Remove");
         box.addView(status);
+        if(id==PaddleLocalModelsV3.FORMULA_NET){
+            TextView note=YViewLayout.rowSubtitle(activity,
+                zh?"需要先安装并启用 PP-DocLayout-S 才能自动定位公式区域；模型约 334 MB。":
+                   "Requires enabled PP-DocLayout-S to locate formula regions; ~334 MB.");
+            box.addView(note);
+        }
         LinearLayout actions=YViewLayout.buttonRow(activity);
         YViewLayout.addAction(actions,download);
         YViewLayout.addAction(actions,toggle);
