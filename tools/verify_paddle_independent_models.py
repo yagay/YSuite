@@ -382,10 +382,9 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
         problems.append("Gesture line-local selection regressed: "+needle)
 for needle in ("selectedLine=all.get(first).line()",
                "CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)",
-               "canvas.clipRect(selected)", "screenToViewF(screenBand)",
-               "if(first==null)first=new RectF(outline)",
-               "NativeCircleVisualPolicy.textSelectionScreenBand(",
-               "selectedSet.containsKey(unit)", "wholeLine=true",
+               "TextGeometryV3.build(fullDocument,chosenChars,",
+               "canvas.clipPath(selection)", "quadToView(region.corners())",
+               "pathForQuad(corners,outside)", "rebuildSelectionGeometry();",
                "WindowInsets.Type.statusBars()", "float pillTop=safeToolbarTop();",
                "float top=safeToolbarTop();"):
     if needle not in native:
@@ -409,21 +408,20 @@ visual=(java / "NativeCircleVisualPolicy.java").read_text()
 style=(java / "YFloatOverlayStyle.java").read_text()
 for needle in ("selectionBorderPaint",
                "selectionBorderPaint.setStyle(Paint.Style.STROKE)",
-               "NativeCircleVisualPolicy.leadingHandleX(first.left,density)",
-               "NativeCircleVisualPolicy.trailingHandleX(last.right,density)",
-               "NativeCircleVisualPolicy.handleStemTop(first.bottom,density)",
-               "NativeCircleVisualPolicy.handleStemTop(last.bottom,density)",
+               "NativeCircleVisualPolicy.leadingHandleX(start.x-outside,density)",
+               "NativeCircleVisualPolicy.trailingHandleX(end.x+outside,density)",
+               "NativeCircleVisualPolicy.handleStemTop(sy,density)",
+               "NativeCircleVisualPolicy.handleStemTop(ey,density)",
                "YFloatOverlayStyle.selectionWithAlpha("):
     if needle not in native:
         problems.append("Native Circle font-preserving selection contrast regressed: "+needle)
 # Selecting OCR text must REVEAL the exact source bitmap pixels, not
 # blend a new color into the original typeface. The border is outside.
-for needle in ("canvas.clipRect(selected);",
+for needle in ("canvas.clipPath(selection)",
                "canvas.drawBitmap(frame.bitmap,null,",
-               "outline.inset(-NativeCircleVisualPolicy.textBorderOutsideGap(density)",
-               "NativeCircleVisualPolicy.textSelectionScreenBand(",
-               "glyphBounds.left,glyphBounds.top,glyphBounds.right,glyphBounds.bottom,",
-               "wholeLine)"):
+               "canvas.drawPath(pathForQuad(corners,outside),selectionBorderPaint)",
+               "TextGeometryPixelLocator.refine(frame,glyph,detector)",
+               "TextGeometryV3.build(fullDocument,chosenChars,"):
     if needle not in native:
         problems.append("OCR selection must restore source pixels with exterior outline: "+needle)
 if "selectionHighlightPaint" in native or "canvas.drawRoundRect(highlight," in native:
@@ -448,6 +446,37 @@ else:
             problems.append("Missing native icon selection regression test: "+test_case)
 if "textSelectionScreenBand(" not in visual or "sharedWidth>=" not in visual:
     problems.append("Native circle has no bounded glyph/line geometry policy")
+
+# TextGeometry V3 is the active selection source, not unused sidecar
+# metadata: verify preserved OCR quads, one-coordinate-owner mapping,
+# draw-time pixel invariants and lossless fallback in every selection path.
+ocr_doc=(java / "OcrDocument.java").read_text()
+mapper=(java / "CoordinateMapper.java").read_text()
+page=(java / "PaddlePageV2.kt").read_text()
+quad_engine=(java / "TextGeometryV3.java").read_text()
+pixels=(java / "TextGeometryPixelLocator.java").read_text()
+selection_model=(java / "CircleTextSelectionModel.java").read_text()
+pixel_test=(FEATURE / "feature/src/test/java/com/yagay/YFloat/TextGeometryPixelPolicyTest.java")
+for source,label,needles in (
+    (ocr_doc,"OCR model",("List<PointF> quad", "public List<PointF> quad()",
+                          "translatedCorners(")),
+    (mapper,"screen mapping",("mapQuad(c.quad())", "mapQuad(line.quad())")),
+    (page,"Paddle page",("symbol.bounds.points", "line.bounds.points")),
+    (selection_model,"secondary selection",("c.quad()")),
+    (quad_engine,"text geometry V3",("selected.containsKey(c)", "row.quad()",
+                          "c.quad()", "pixels.refine(", "new Region(quad,corrected)",
+                          "Math.abs(dy)<0.08f")),
+    (pixels,"bounded pixels",("bitmap.getPixels(src,", "TextGeometryPixelPolicy.refine(",
+                          "frame.bitmapRectToScreen(")),
+):
+    for needle in needles:
+        if needle not in source:
+            problems.append("TextGeometry V3 "+label+" incomplete: "+needle)
+if not pixel_test.is_file() or "toutiaoWhiteGlyphsOnUniformRedIconAreTightlyLocated" not in pixel_test.read_text():
+    problems.append("TextGeometry V3 lacks synthetic icon/unsafe-background regression")
+if "canvas.drawText(ch.text()" in native or "selectionHighlightPaint" in native:
+    problems.append("Native Circle selection must not recreate or recolor the screenshot glyphs")
+
 
 
 if problems:
