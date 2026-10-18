@@ -59,6 +59,7 @@ final class NativeCircleWorkspace extends View {
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint selectionHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint selectionBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path dragPath = new Path();
@@ -161,7 +162,12 @@ final class NativeCircleWorkspace extends View {
         // Blue selection is ONLY a background overlay on screenshot pixels.
         // It must never synthesize OCR glyphs or pretend to know app fonts.
         selectionHighlightPaint.setStyle(Paint.Style.FILL);
-        selectionHighlightPaint.setColor(YFloatOverlayStyle.accentWithAlpha(app,48));
+        selectionHighlightPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
+                app,NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA));
+        selectionBorderPaint.setStyle(Paint.Style.STROKE);
+        selectionBorderPaint.setStrokeWidth(1.6f*density);
+        selectionBorderPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
+                app,NativeCircleVisualPolicy.TEXT_HIGHLIGHT_BORDER_ALPHA));
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.CENTER);
         toolbarPaint.setColor(Color.argb(241, 31, 34, 42));
@@ -510,17 +516,25 @@ final class NativeCircleWorkspace extends View {
                     centerY+height/2f);
             RectF highlight=screenToViewF(screenBand);
             if(!highlight.isEmpty()){
-                canvas.drawRoundRect(highlight,2*density,2*density,selectionHighlightPaint);
+                canvas.drawRoundRect(highlight,3*density,3*density,selectionHighlightPaint);
+                canvas.drawRoundRect(highlight,3*density,3*density,selectionBorderPaint);
                 if(first==null)first=new RectF(highlight);
                 last=new RectF(highlight);
             }
         }
         if(first==null||last==null)return;
-        float radius=YFloatOverlayStyle.handleRadius(app);
-        float hx=first.left,hy=first.bottom+radius;
-        float tx=last.right,ty=last.bottom+radius;
-        canvas.drawLine(hx,first.top,hx,hy,outlinePaint);
-        canvas.drawLine(tx,last.top,tx,ty,outlinePaint);
+        // Never paint blue stems through the first/last glyph: the screenshot
+        // holds the actual app font, which must remain visibly unchanged.
+        float radius=Math.min(9f*density,Math.max(4f*density,
+                YFloatOverlayStyle.handleRadius(app)));
+        float hx=NativeCircleVisualPolicy.leadingHandleX(first.left,density);
+        float tx=NativeCircleVisualPolicy.trailingHandleX(last.right,density);
+        float hy=NativeCircleVisualPolicy.handleCenterY(first.bottom,density);
+        float ty=NativeCircleVisualPolicy.handleCenterY(last.bottom,density);
+        canvas.drawLine(hx,NativeCircleVisualPolicy.handleStemTop(first.bottom,density),
+                hx,hy,outlinePaint);
+        canvas.drawLine(tx,NativeCircleVisualPolicy.handleStemTop(last.bottom,density),
+                tx,ty,outlinePaint);
         canvas.drawCircle(hx,hy,radius/1.8f,outlinePaint);
         canvas.drawCircle(tx,ty,radius/1.8f,outlinePaint);
         firstHandle.set(hx-24*density,hy-24*density,
