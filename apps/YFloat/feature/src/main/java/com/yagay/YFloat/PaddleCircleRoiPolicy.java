@@ -3,25 +3,27 @@ package com.yagay.YFloat;
 import android.graphics.Rect;
 
 /**
- * Conservative bitmap-space OCR crop around a completed text gesture.
- * Never modifies selection coordinates: the caller maps local OCR quads
- * to the frozen screenshot with ScreenBitmapTransform.documentLocalToScreen.
+ * Bitmap-space text-gesture crop sizing, independent of OCR/model lifetime.
+ * A pure primitive core keeps edge/small-screen behavior unit-testable.
  */
 final class PaddleCircleRoiPolicy {
     static Rect forGesture(Rect bounds,int width,int height){
+        if(bounds==null)return new Rect(0,0,Math.max(1,width),Math.max(1,height));
+        int[] result=expand(bounds.left,bounds.top,bounds.right,bounds.bottom,width,height);
+        return new Rect(result[0],result[1],result[2],result[3]);
+    }
+
+    /** [left,top,right,bottom] inside the frozen screenshot. */
+    static int[] expand(int l,int t,int r,int b,int width,int height){
         width=Math.max(1,width);height=Math.max(1,height);
-        Rect input=bounds==null?new Rect():new Rect(bounds);
-        if(input.isEmpty())return new Rect(0,0,width,height);
-        if(!input.intersect(0,0,width,height))
-            return new Rect(0,0,width,height);
-        // Include the surrounding baseline/line and neighboring words. Do
-        // not crop a 15px horizontal underline down to a 15px OCR tensor.
+        l=Math.max(0,Math.min(width,l));r=Math.max(0,Math.min(width,r));
+        t=Math.max(0,Math.min(height,t));b=Math.max(0,Math.min(height,b));
+        if(r<=l||b<=t)return new int[]{0,0,width,height};
         int padX=Math.max(90,Math.min(240,width/9));
         int padY=Math.max(96,Math.min(240,height/14));
-        int left=Math.max(0,input.left-padX),right=Math.min(width,input.right+padX);
-        int top=Math.max(0,input.top-padY),bottom=Math.min(height,input.bottom+padY);
-        int minWidth=Math.min(width,480);
-        int minHeight=Math.min(height,240);
+        int left=Math.max(0,l-padX),right=Math.min(width,r+padX);
+        int top=Math.max(0,t-padY),bottom=Math.min(height,b+padY);
+        int minWidth=Math.min(width,480),minHeight=Math.min(height,240);
         if(right-left<minWidth){
             int target=(left+right)/2;
             left=Math.max(0,Math.min(width-minWidth,target-minWidth/2));
@@ -32,7 +34,7 @@ final class PaddleCircleRoiPolicy {
             top=Math.max(0,Math.min(height-minHeight,target-minHeight/2));
             bottom=top+minHeight;
         }
-        return new Rect(left,top,right,bottom);
+        return new int[]{left,top,right,bottom};
     }
     private PaddleCircleRoiPolicy(){}
 }
