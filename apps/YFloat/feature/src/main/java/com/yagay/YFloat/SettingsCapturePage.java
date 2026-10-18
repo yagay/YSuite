@@ -51,8 +51,8 @@ final class SettingsCapturePage {
                 java.util.Locale.getDefault().getLanguage().startsWith("zh")
                     ? "Paddle 智能空格修正" : "Paddle spacing correction",
                 java.util.Locale.getDefault().getLanguage().startsWith("zh")
-                    ? "Paddle 模型识别时修复中文连续文字中的异常空格，保留英文正常分词；选择 ML Kit 时不生效"
-                    : "Remove erroneous CJK spaces while preserving English words; requires a Paddle OCR engine",
+                    ? "Paddle 识别时清除异常的中文字符间空格，保留中英文间隔和正常英文单词空格"
+                    : "Remove spurious CJK spacing in local Paddle OCR while preserving mixed-script and English words",
                 "paddle_v2_spacing",
                 activity.getSharedPreferences(FloatSettings.PREF,android.content.Context.MODE_PRIVATE)
                     .getBoolean("paddle_v2_spacing",true));
@@ -123,11 +123,10 @@ final class SettingsCapturePage {
         YViewLayout.addRow(documents.body,documentActions);
         YViewLayout.addSection(root,documents);
 
-        YViewSection languages = YViewLayout.section(activity,
-                activity.getString(R.string.yfloat_recognition_languages_section),
-                activity.getString(R.string.yfloat_recognition_languages_desc));
-        ui.addOcrLanguageChecks(languages.body);
-        YViewLayout.addSection(root, languages);
+        // PP-OCR's recognition language support is determined by the
+        // installed model vocabulary. The old ML Kit language toggles did
+        // not configure Paddle and therefore must not be shown as controls.
+        // Language packs may be surfaced here when independently supported.
         return root;
     }
 
