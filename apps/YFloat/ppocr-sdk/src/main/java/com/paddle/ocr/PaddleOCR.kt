@@ -59,6 +59,7 @@ class PaddleOCR private constructor(
             detModelAssetPath: String,
             recModelAssetPath: String,
             recConfigAssetPath: String,
+            textLineOrientationModelPath: String? = null,
         ): PaddleOCR {
             val appContext = context.applicationContext
             return withContext(Dispatchers.IO) {
@@ -67,6 +68,7 @@ class PaddleOCR private constructor(
                     detModelAsset = detModelAssetPath,
                     recModelAsset = recModelAssetPath,
                     recConfigAsset = recConfigAssetPath,
+                    textLineOrientationModelPath = textLineOrientationModelPath,
                 )
                 PaddleOCR(engine)
             }
