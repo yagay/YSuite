@@ -17,30 +17,38 @@ object PaddleTableTextV3 {
     fun link(prediction:SLANetLocalV3.Result,lines:List<PaddlePageV2.Line>):Table{
         val cells=prediction.cells.map{cell->
             val bounds=cell.bounds
-            val hits=ArrayList<Pair<String,Rect>>()
-            for(line in lines){
-                for(word in line.words){
-                    for(symbol in word.symbols){
-                        if(symbol.text.isBlank())continue
-                        val rect=symbol.bounds.rect()
-                        if(rect.isEmpty)continue
-                        val cx=rect.centerX()
-                        val cy=rect.centerY()
-                        if(bounds.contains(cx,cy))hits.add(symbol.text to rect)
-                    }
+            val cellLines=ArrayList<String>()
+            for(line in lines) {
+                val lineBounds=line.bounds.rect()
+                if(lineBounds.isEmpty)continue
+                val overlap=Rect()
+                if(!overlap.setIntersect(lineBounds,bounds))continue
+                val area=lineBounds.width().toLong()*lineBounds.height()
+                val covered=overlap.width().toLong()*overlap.height()
+                // Preserve the corrected text verbatim (including meaningful
+                // spaces) when a single model cell contains the whole line.
+                if(area>0 && covered*100L>=area*80L) {
+                    line.text.trim().takeIf{it.isNotEmpty()}?.let(cellLines::add)
+                    continue
+                }
+                val fragments=ArrayList<String>()
+                for(word in line.words) {
+                    val r=word.bounds.rect()
+                    if(r.isEmpty||!bounds.contains(r.centerX(),r.centerY()))continue
+                    if(word.text.isNotBlank())fragments.add(word.text)
+                }
+                if(fragments.isNotEmpty()) {
+                    // Partial-line extraction has no trustworthy blank-glyph
+                    // offsets. Never fabricate English spacing in geometry.
+                    cellLines.add(fragments.joinToString(""))
+                } else if(covered*2L>=area) {
+                    // CTC may supply a line without glyph or word boxes.
+                    line.text.trim().takeIf{it.isNotEmpty()}?.let(cellLines::add)
                 }
             }
-            // Preserve original recognizer symbol order. Sorting individual
-            // glyphs by Y causes baseline jitter to scramble horizontal text.
-            val text=if(hits.isNotEmpty())hits.joinToString(""){it.first}
-                else lines.filter{line->
-                    val r=line.bounds.rect()
-                    val overlap=Rect()
-                    overlap.setIntersect(r,bounds)&&
-                        overlap.width().toLong()*overlap.height()>=
-                        r.width().toLong()*r.height()/2
-                }.joinToString(" "){it.text}
-            TextCell(Rect(bounds),text,cell.score)
+            // Separate distinct recognized lines instead of joining the end
+            // of one row to the beginning of the next word.
+            TextCell(Rect(bounds),cellLines.joinToString("\n"),cell.score)
         }
         val html=prediction.html(cells.map{it.text})
         // TSV is deliberately based on the model's HTML row tokens, not
