@@ -11,5 +11,14 @@ final class NativeCircleIntentRouter {
         // Taps and horizontal text highlights first try OCR.
         return Route.NEED_OCR;
     }
+    /**
+     * A horizontal text highlight must never silently become a rectangular
+     * screenshot, including when offline recognition is slow or returns no
+     * matching characters. Taps may still open a crop as the last resort.
+     */
+    static boolean permitsImageFallback(String kind) {
+        return !"HIGHLIGHT".equals(kind);
+    }
+
     private NativeCircleIntentRouter(){}
 }
