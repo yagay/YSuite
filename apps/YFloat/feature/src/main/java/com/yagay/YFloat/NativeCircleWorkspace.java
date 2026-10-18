@@ -72,6 +72,8 @@ final class NativeCircleWorkspace extends View {
     private OcrDocument fullDocument;
     private Rect recognizedRoi;
     private List<OcrDocument.CharUnit> cachedChars=List.of();
+    private final IdentityHashMap<OcrDocument.CharUnit,Integer> charOrdinals=
+            new IdentityHashMap<>();
     private CircleCharSpatialIndex charIndex;
     private PaddleRequestToken activeOcr;
     private int ocrSequence;
@@ -227,6 +229,19 @@ final class NativeCircleWorkspace extends View {
                         ocrBusy = false;
                         status = "";
                         FLCircleSelection.Selection pending = pendingGesture;
+                        if(fullDocument==null && pending!=null){
+                            if(!full && !NativeCircleIntentRouter.permitsImageFallback(
+                                    pending.kind.name())){
+                                DiagnosticLog.i(app,"PADDLE_SCHED",
+                                        "retry_full=1 reason=roi_coordinate_map");
+                                startOcr(null,false);
+                            }else if(!NativeCircleIntentRouter.permitsImageFallback(
+                                    pending.kind.name()))
+                                rejectTextGesture(pending,gestureRevision,"ocr_coordinates");
+                            else resolveImage(pending,gestureRevision);
+                            invalidate();
+                            return;
+                        }
                         if(selectAllAfterFullOcr && fullDocument!=null){
                             selectAllAfterFullOcr=false;
                             List<OcrDocument.CharUnit> allChars=fullDocument.chars();
@@ -245,9 +260,24 @@ final class NativeCircleWorkspace extends View {
                     MAIN.post(() -> {
                         if (closed || request!=activeOcr || sequence!=ocrSequence)return;
                         ocrBusy = false;
+                        if(selectAllAfterFullOcr){
+                            selectAllAfterFullOcr=false;
+                            status=t("全屏选字扩展失败，可继续使用当前选区",
+                                    "Full-screen OCR unavailable; current text remains");
+                            invalidate();
+                            return;
+                        }
+                        FLCircleSelection.Selection pending = pendingGesture;
+                        if(pending!=null && !full &&
+                                !NativeCircleIntentRouter.permitsImageFallback(
+                                    pending.kind.name())){
+                            DiagnosticLog.i(app,"PADDLE_SCHED",
+                                    "retry_full=1 reason=roi_inference_error");
+                            startOcr(null,false);
+                            return;
+                        }
                         status = t("无法识别文字，仍可圈选图片",
                                 "Text unavailable; circle an image instead");
-                        FLCircleSelection.Selection pending = pendingGesture;
                         if (pending != null) {
                             if (!NativeCircleIntentRouter.permitsImageFallback(pending.kind.name()))
                                 rejectTextGesture(pending,gestureRevision,"ocr_failure");
@@ -492,6 +522,8 @@ final class NativeCircleWorkspace extends View {
             // Image gestures never need OCR. Do not leave queued OCR work
             // occupying the serialized native inference lane.
             if(activeOcr!=null)activeOcr.cancel();
+            activeOcr=null;
+            ocrBusy=false;
             resolveImage(gesture, token);
             return;
         }
@@ -527,6 +559,7 @@ final class NativeCircleWorkspace extends View {
             return;
         }
         if(groups==null || groups.isEmpty()) {
+            if(retryWholeForHighlight(gesture,token,"no_roi_text"))return;
             if(!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name()))
                 rejectTextGesture(gesture,token,"no_text_at_stroke");
             else resolveImage(gesture,token);
@@ -535,19 +568,26 @@ final class NativeCircleWorkspace extends View {
         int first=Integer.MAX_VALUE,last=-1;
         for(CircleGestureTextSelector.GroupHit hit:groups){
             for(OcrDocument.CharUnit ch:hit.chars) {
-                for(int i=0;i<all.size();i++){
-                    OcrDocument.CharUnit doc=all.get(i);
-                    if(doc==ch || doc.line()==ch.line()
-                            && doc.order()==ch.order()
-                            && doc.bounds().equals(ch.bounds())){
-                        first=Math.min(first,i);
-                        last=Math.max(last,i);
-                        break;
+                Integer matched=charOrdinals.get(ch);
+                if(matched==null){
+                    // Some screen-transform adapters produce equivalent
+                    // CharUnits instead of the same object; validate geometry.
+                    for(int i=0;i<all.size();i++){
+                        OcrDocument.CharUnit doc=all.get(i);
+                        if(doc.line()==ch.line() && doc.order()==ch.order() &&
+                                doc.bounds().equals(ch.bounds())){
+                            matched=i;break;
+                        }
                     }
+                }
+                if(matched!=null){
+                    first=Math.min(first,matched);
+                    last=Math.max(last,matched);
                 }
             }
         }
         if(first>last){
+            if(retryWholeForHighlight(gesture,token,"no_roi_match"))return;
             if(!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name()))
                 rejectTextGesture(gesture,token,"no_character_match");
             else resolveImage(gesture,token);
@@ -565,10 +605,28 @@ final class NativeCircleWorkspace extends View {
         DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
     }
 
+    /** A failed highlight ROI gets at most one full-image retry. */
+    private boolean retryWholeForHighlight(FLCircleSelection.Selection gesture,
+            long token,String reason){
+        if(gesture.kind!=FLCircleSelection.Kind.HIGHLIGHT||
+                recognizedRoi==null||recognizedRoi.left!=0||recognizedRoi.top!=0||
+                recognizedRoi.width()==frame.bitmap.getWidth()&&
+                recognizedRoi.height()==frame.bitmap.getHeight())return false;
+        pendingGesture=gesture;
+        fullDocument=null;sourceSpans.clear();cachedChars=List.of();
+        charOrdinals.clear();charIndex=null;
+        DiagnosticLog.i(app,"PADDLE_SCHED","retry_full=1 reason="+reason);
+        startOcr(null,false);
+        return true;
+    }
+
     /** Build source-position maps once after Paddle returns a full document. */
     private void rebuildTextOffsets(){
         sourceSpans.clear();
         cachedChars=fullDocument==null?List.of():fullDocument.chars();
+        charOrdinals.clear();
+        for(int i=0;i<cachedChars.size();i++)
+            charOrdinals.put(cachedChars.get(i),i);
         charIndex=cachedChars.isEmpty()?null:new CircleCharSpatialIndex(cachedChars);
         if(fullDocument==null)return;
         int mapped=0,unmapped=0;
@@ -651,6 +709,7 @@ final class NativeCircleWorkspace extends View {
                 || state.phase!=NativeCircleState.Phase.RESOLVING
                 || state.revision!=token)return;
         pendingGesture=null;
+        if(activeOcr!=null){activeOcr.cancel();activeOcr=null;ocrBusy=false;}
         awaitingTextPath.reset();
         chosenChars.clear();
         firstChar=lastChar=-1;
@@ -715,6 +774,7 @@ final class NativeCircleWorkspace extends View {
                     DiagnosticLog.i(app,"CIRCLE_NATIVE",
                             "tap OCR timeout; falling back to image crop");
                     pendingGesture=null;
+                    if(activeOcr!=null){activeOcr.cancel();activeOcr=null;ocrBusy=false;}
                     resolveImage(gesture,token);
                 }
             }, highlight?25000L:4000L);
