@@ -148,7 +148,8 @@ public final class PaddleDocumentExport {
                         ? document.tableHtmls().get(i) : "";
                 // Markdown pipes cannot represent row/column spans. Embed
                 // the source SLANet HTML rather than silently flatten cells.
-                if (originalHtml.contains("rowspan") || originalHtml.contains("colspan"))
+                if (!originalHtml.isBlank() && (tsv.isBlank() ||
+                        originalHtml.contains("rowspan") || originalHtml.contains("colspan")))
                     result.append(originalHtml).append("\n\n");
                 else result.append(markdownTable(tsv)).append("\n");
             }
