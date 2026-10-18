@@ -82,6 +82,16 @@ class PaddleOCR private constructor(
         return recognizeResult { engine.run(bitmap) }
     }
 
+    /**
+     * Circle fast path shares the existing ONNX sessions; only detector
+     * resolution is capped. Recognition crops stay at source resolution and
+     * coordinates still describe the original bitmap.
+     */
+    suspend fun recognizeFast(bitmap:Bitmap,maxDetectionSide:Int=1920):OCRRunResult {
+        if(bitmap.width<=0||bitmap.height<=0)throw OCRError.InvalidImage()
+        return recognizeResult {engine.runFast(bitmap,maxDetectionSide)}
+    }
+
     /** Detection-only entry used when another recognizer owns text decoding. */
     suspend fun detect(bitmap: Bitmap): List<OCRBox> {
         if (bitmap.width == 0 || bitmap.height == 0) {
