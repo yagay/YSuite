@@ -23,9 +23,18 @@ public final class NativeCircleSelectionVisualTest {
 
     @Test public void highContrastOutlineDoesNotRequireOpaqueGlyphOverlay(){
         assertTrue(NativeCircleVisualPolicy.TEXT_HIGHLIGHT_BORDER_ALPHA>=190);
-        assertTrue(NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA<80);
+        assertEquals("Selection must never recolor app glyph pixels",0,
+                NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA);
         assertTrue(NativeCircleVisualPolicy.TEXT_HIGHLIGHT_BORDER_ALPHA>
                 NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA);
+    }
+
+    @Test public void outlineHasGuaranteedOutwardPixelGap(){
+        float deviceDensity=3f;
+        float gap=NativeCircleVisualPolicy.textBorderOutsideGap(deviceDensity);
+        assertTrue("Border is outside source glyph pixel area",gap>=7f);
+        assertTrue(gap>0f);
+        assertTrue(NativeCircleVisualPolicy.TEXT_HIGHLIGHT_BORDER_ALPHA>200);
     }
 
     @Test public void handleSizesStayValidAtLowAndHighDensities(){
