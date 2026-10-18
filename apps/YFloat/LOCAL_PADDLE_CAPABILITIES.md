@@ -705,3 +705,39 @@ grips from the selected text, especially short Chinese app-icon labels.
 - Text recognition, glyph quads, pixel refinement, and OCR offsets are not
   changed. JUnit now covers straight, tilted, degenerate and density-scaled
   edge attachment, circle tangency and overlapping touch targets.
+
+## Native-style text handle rewrite — 2026-10-18
+
+The previous visual attempts (exterior box, detached stems, tangent circles)
+could not match Android text editing because they conflated OCR region corners,
+cursor anchor, touch target and finger position. TextGeometry V3 and Paddle
+recognition remain unchanged; **only the handle subsystem has been replaced**.
+
+- `NativeCircleWorkspace` is a drawing-enabled `FrameLayout` with an
+  independent transparent `NativeSelectionHandlesView` child. Frozen
+  screenshot, scrim and filled selection remain painted by the parent.
+  Touches outside the two grips fall through to the native Circle gesture.
+- `TextCaretGeometry` computes two explicit caret hotspots from first/last
+  V3 selection quads and retains baseline rotation. The visible leading and
+  trailing grips are asymmetric waterdrop paths with tips at the hotspots.
+- Grips are visual-only; touch regions are independently 48dp. Short adjacent
+  Chinese glyphs choose whichever grip is closer to the finger. The graphics
+  do not create artificial empty space around blue highlighting.
+- At gesture start the handle View stores the finger-minus-caret hotspot
+  offset, so dragging does not jump when the user's finger lands on the bulb.
+  Parent maps the resulting caret location to SCREEN using its existing
+  authoritative transform; no second OCR transform is introduced.
+- `SelectionDragController` preserves ordered ranges and switches the active
+  endpoint on crossing. Source-line restrictions remain in the parent.
+  OCR spaces, source text selection offsets and action menu positioning are
+  deliberately untouched.
+- Removed old `NativeCircleVisualPolicy.attachedTextHandle` and all Canvas
+  text circle/stem hit boxes; screenshot-region corner grips remain separate.
+- New pure JUnit tests validate Chinese word hotspots, tilted and multi-line
+  caret positions, malformed geometry and both cursor-crossing directions.
+  Static CI asserts that the View, reducer and V3 highlight are connected.
+
+Android Editor/SelectionHandleView is used as a *behavioural reference*, not
+as a hidden SDK dependency. Exact OEM handle artwork may still differ from
+system text editing controls. Physical screenshot and drag acceptance remain
+necessary after the ARM64 Debug build.
