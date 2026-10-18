@@ -299,6 +299,41 @@ native_test=(FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleInten
 if not native_test.is_file():
     problems.append("Highlight-only no-image-fallback policy has no regression test")
 
+# Fast Circle and document OCR must run one shared Paddle/ORT detector and
+# recognizer, with per-profile switches wired to REAL executable stages.
+flow_options=(java / "PaddleFlowOptions.java").read_text()
+flow_ui=(java / "PaddleFlowSettingsUi.java").read_text()
+capture=(java / "SettingsCapturePage.java").read_text()
+runtime=(java / "PaddleRecognitionRuntime.java").read_text()
+circle=(java / "CircleStableOcr.java").read_text()
+pipeline=(java / "PaddlePipelineV2.kt").read_text()
+paddle=(FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/PaddleOCR.kt").read_text()
+engine=(FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/engine/OCREngine.kt").read_text()
+detector=(FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/engine/DetectionEngine.kt").read_text()
+for key in ("extended","fast_detection","line_orientation","document_orientation",
+            "rotation_fallback","layout","tables","uvdoc","seals","formulas",
+            "charts","spacing"):
+    if ('"'+key+'"') not in flow_ui or ('"'+key+'"') not in flow_options:
+        problems.append("Missing individual Paddle execution switch: "+key)
+if "PaddleFlowSettingsUi.add(activity,fs,circleOcr.body,true)" not in capture or (
+        "PaddleFlowSettingsUi.add(activity,fs,result.body,false)" not in capture):
+    problems.append("Circle and normal-document OCR settings profiles are not surfaced")
+if "PaddleFlowOptions.read(app,circle)" not in runtime or (
+        "PaddleRecognitionRuntime.recognize(app,bitmap,model,true" not in circle):
+    problems.append("Circle OCR is not routed to its own stage policy")
+for x in ("releaseDisabled(options)", "options.lineOrientation", "options.documentOrientation",
+          "options.rotationFallback", "options.layout", "options.tables",
+          "options.uvdoc", "options.seals", "options.formulas", "options.charts",
+          "options.spacing", "options.fastDetection", "ocr.recognizeFast("):
+    if x not in pipeline:
+        problems.append("Paddle stages do not respect their switches: "+x)
+if "engine.runFast(bitmap,maxDetectionSide)" not in paddle or (
+        "detectionEngine.detect(srcMat,maxDetectionSide)" not in engine) or (
+        "maxSideOverride" not in detector):
+    problems.append("Fast detector must use original bitmap text crops and coordinates")
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/PaddleFlowOptionsTest.java").is_file():
+    problems.append("Missing per-profile settings unit tests")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
