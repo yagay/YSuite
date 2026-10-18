@@ -4,12 +4,21 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 
 /** Pure screen-space text selection state used by FLCircleInlineOverlay. */
 final class CircleTextSelectionModel {
     private final ScreenBitmapTransform transform;
     private List<OcrDocument.CharUnit> chars = List.of();
+    /**
+     * -1: source OCR text cannot be aligned to this selection unit.
+     *  0: OCR source explicitly has NO space before this unit.
+     *  1: OCR source explicitly contains whitespace before this unit.
+     *
+     * Group ids identify selectable regions, NOT necessarily word boundaries.
+     */
+    private List<Byte> sourceSpaceBefore = List.of();
     private int startIndex = -1;
     private int endIndex = -1;
     /** Non-contiguous planner selection before a handle is dragged. May be character precise. */
@@ -26,7 +35,33 @@ final class CircleTextSelectionModel {
         if (document != null && !document.isScreenSpace()) {
             throw new IllegalArgumentException("Circle selection requires screen-space text");
         }
-        chars = normalize(document == null ? List.of() : document.chars());
+        IdentityHashMap<OcrDocument.CharUnit,Byte> sourceSpacing =
+                new IdentityHashMap<>();
+        if(document!=null){
+            // Build spacing from the original recognized line, before the
+            // screen sorting/normalization reassigns group ids.
+            for(OcrDocument.Line line:document.lines()){
+                String text=line.text();
+                int cursor=0;
+                for(OcrDocument.CharUnit unit:line.chars()){
+                    String glyph=unit.text();
+                    if(glyph.isBlank())continue;
+                    int next=text.indexOf(glyph,cursor);
+                    if(next<0)continue;
+                    boolean hasSpace=false;
+                    for(int i=cursor;i<next;i++){
+                        if(Character.isWhitespace(text.charAt(i))||
+                                Character.isSpaceChar(text.charAt(i))){
+                            hasSpace=true;
+                            break;
+                        }
+                    }
+                    sourceSpacing.put(unit,hasSpace?(byte)1:(byte)0);
+                    cursor=next+glyph.length();
+                }
+            }
+        }
+        chars = normalize(document == null ? List.of() : document.chars(),sourceSpacing);
         clear();
     }
 
@@ -254,7 +289,13 @@ final class CircleTextSelectionModel {
             if (value.isBlank()) continue;
             if (out.length() > 0) {
                 if (c.line() != previousLine) out.append('\n');
-                else if (c.group() != previousGroup && !noSpaceBetween(previous, value)) out.append(' ');
+                else {
+                    byte originalSpacing=index<sourceSpaceBefore.size()?
+                            sourceSpaceBefore.get(index):(byte)-1;
+                    if(originalSpacing==1)out.append(' ');
+                    else if(originalSpacing<0 && c.group()!=previousGroup &&
+                            !noSpaceBetween(previous,value))out.append(' ');
+                }
             }
             out.append(value);
             previousLine = c.line();
@@ -317,16 +358,25 @@ final class CircleTextSelectionModel {
 
     private boolean validIndex(int index) { return index >= 0 && index < chars.size(); }
 
-    private List<OcrDocument.CharUnit> normalize(List<OcrDocument.CharUnit> input) {
-        if (input == null || input.isEmpty()) return List.of();
+    private List<OcrDocument.CharUnit> normalize(List<OcrDocument.CharUnit> input,
+            IdentityHashMap<OcrDocument.CharUnit,Byte> sourceSpacing) {
+        if (input == null || input.isEmpty()){
+            sourceSpaceBefore=List.of();
+            return List.of();
+        }
         Rect workspace = transform.screenFrame();
         ArrayList<OcrDocument.CharUnit> sorted = new ArrayList<>();
+        IdentityHashMap<OcrDocument.CharUnit,Byte> sortedSpacing =
+                new IdentityHashMap<>();
         for (OcrDocument.CharUnit c : input) {
             if (c == null || c.text().isBlank() || c.bounds().isEmpty()) continue;
             Rect clipped = c.bounds();
             if (!workspace.isEmpty() && (!clipped.intersect(workspace) || clipped.isEmpty())) continue;
-            sorted.add(new OcrDocument.CharUnit(c.text(), clipped, c.confidence(),
-                    c.line(), c.group(), c.order()));
+            OcrDocument.CharUnit clippedUnit=new OcrDocument.CharUnit(
+                    c.text(),clipped,c.confidence(),c.line(),c.group(),c.order());
+            sorted.add(clippedUnit);
+            sortedSpacing.put(clippedUnit,
+                    sourceSpacing.getOrDefault(c,(byte)-1));
         }
         sorted.sort((a, b) -> {
             Rect ar = a.bounds(), br = b.bounds();
@@ -338,6 +388,7 @@ final class CircleTextSelectionModel {
         });
 
         ArrayList<OcrDocument.CharUnit> out = new ArrayList<>();
+        ArrayList<Byte> normalizedSpacing = new ArrayList<>(sorted.size());
         int line = -1, group = -1, order = 0;
         Rect previous = null;
         int lineCenter = Integer.MIN_VALUE;
@@ -360,10 +411,12 @@ final class CircleTextSelectionModel {
                 lineCenter = (lineCenter + r.centerY()) / 2;
             }
             out.add(new OcrDocument.CharUnit(c.text(), r, c.confidence(), line, group, order++));
+            normalizedSpacing.add(sortedSpacing.getOrDefault(c,(byte)-1));
             previous = r;
             previousSourceLine = c.line();
             previousSourceGroup = c.group();
         }
+        sourceSpaceBefore=List.copyOf(normalizedSpacing);
         return List.copyOf(out);
     }
 
