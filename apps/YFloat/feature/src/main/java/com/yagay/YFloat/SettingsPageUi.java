@@ -106,7 +106,8 @@ final class SettingsPageUi {
                 activity.getString(R.string.yfloat_ocr_tiny),
                 activity.getString(R.string.yfloat_ocr_small),
                 activity.getString(R.string.yfloat_ocr_medium),
-                "PP-OCRv5 Mobile"
+                "PP-OCRv5 Mobile",
+                activity.getString(R.string.yfloat_ocr_auto) + " (Paddle)"
         }, fs.circleFullOcrEngine(), FloatSettings.K_CIRCLE_FULL_OCR_ENGINE, true);
     }
 
