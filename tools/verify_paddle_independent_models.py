@@ -410,11 +410,12 @@ for needle in ("selectionFillPaint",
                "selectionFillPaint.setStyle(Paint.Style.FILL)",
                "selectionFillPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(",
                "NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA",
-               "NativeCircleVisualPolicy.textHandleOutsideGap(density)",
-               "NativeCircleVisualPolicy.leadingHandleX(start.x-outside,density)",
-               "NativeCircleVisualPolicy.trailingHandleX(end.x+outside,density)",
-               "NativeCircleVisualPolicy.handleStemTop(sy,density)",
-               "NativeCircleVisualPolicy.handleStemTop(ey,density)"):
+               "NativeCircleVisualPolicy.attachedTextHandle(",
+               "first.get(0).x,first.get(0).y,first.get(3).x,first.get(3).y,density",
+               "last.get(1).x,last.get(1).y,last.get(2).x,last.get(2).y,density",
+               "canvas.drawLine(leading[0],leading[1],leading[2],leading[3],outlinePaint)",
+               "canvas.drawLine(trailing[0],trailing[1],trailing[2],trailing[3],outlinePaint)",
+               "selectionHandlePaint.setStyle(Paint.Style.FILL)"):
     if needle not in native:
         problems.append("Native Circle translucent-selection drawing regressed: "+needle)
 for needle in ("canvas.clipPath(selection)",
@@ -430,12 +431,14 @@ if "selectionHighlightPaint" in native or "canvas.drawRoundRect(highlight," in n
     problems.append("Old rectangle-based OCR selection rendering resurfaced")
 if "canvas.drawLine(hx,first.top,hx,hy,outlinePaint)" in native:
     problems.append("OCR selection handle still paints through original glyph")
-for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "textHandleOutsideGap",
-               "leadingHandleX", "trailingHandleX", "handleStemTop"):
+for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "attachedTextHandle"):
     if needle not in visual:
         problems.append("Native Circle selection rendering policy missing: "+needle)
 if "TEXT_HIGHLIGHT_BORDER_ALPHA" in visual:
     problems.append("Obsolete blue text selection border opacity remains")
+if ("textHandleOutsideGap" in native or "leadingHandleX(" in native
+        or "trailingHandleX(" in native):
+    problems.append("Text selection handles still use obsolete detached edge offsets")
 if "static int selectionWithAlpha(" not in style:
     problems.append("Native Circle highlight ignores user's custom selection color")
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").is_file():
@@ -443,7 +446,10 @@ if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionV
 else:
     selection_tests=(FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").read_text()
     for test_case in ("nativeTextSelectionHasVisibleTranslucentBlueWash",
-                      "dragHandlesHaveGuaranteedGapOutsideSelectionFill",
+                      "connectedHandlesBeginExactlyAtTheBlueSelectionCorners",
+                      "rotatedTextHandlesConnectAlongTheOriginalQuadSides",
+                      "handlesConnectAtEveryDensityWithoutOldOutsideGap",
+                      "degenerateSideEdgeStillAttachesAndDoesNotCrash",
                       "entireIconWordUsesDetectorWidthAndTightVerticalOverlap",
                       "draggingOneCharacterNeverExpandsToWholeIconWord",
                       "detectorCrossingUnrelatedIconIsRejected",
