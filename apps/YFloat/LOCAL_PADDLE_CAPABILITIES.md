@@ -101,3 +101,40 @@ changes, native ONNX model output contracts on a real OnePlus device,
 OCR accuracy/latency on real screenshots, and module memory pressure.
 Chart2Table still has no local Android inference backend and remains
 unsupported rather than presenting a nonfunctional download.
+
+## One-batch local OCR feature pass (2026-10-18)
+
+**Source implemented on `experiment/yfloat-paddle-mobile`, pending CI and device checks:**
+
+- Added pinned **PP-LCNet_x1_0_textline_ori ONNX** as an independent user download.
+  The SDK classifier runs on real detected line crops before CTC, with documented
+  RGB ImageNet normalization at 160x80 and confident 180-degree correction.
+  Aligned symbol boxes are transformed back into the source detector quad.
+- When CTC cannot align a word or line, the selector falls back to the **real
+  detected region**, never uniformly fabricates individual glyph rectangles.
+  True per-glyph precision still depends on available CTC alignment.
+- Strengthened conservative multi-column ordering using actual whitespace
+  gutters, rather than assuming every screen has exactly two halves.
+  This is geometry-driven, not model-learned reading order.
+- Immutable `OcrDocument` retains the **original SLANet table HTML** alongside
+  TSV, including predicted colspan/rowspan tokens. Markdown can embed that
+  source HTML where pipe tables would flatten merged cells.
+- Implemented on-device JSON / Markdown / HTML / CSV exporters with block,
+  line, word, glyph, coordinates and coordinate provenance. JSON exports
+  real selection fallback units separately from model-predicted glyphs.
+- Added **PDF to Markdown / JSON / HTML / CSV** in OCR settings using Android
+  `PdfRenderer`, one bitmap/page, local Paddle inference and Android's SAF
+  file picker. PDF pages are processed sequentially, maximum 500 pages per
+  batch; no PDF contents leave the phone.
+- Added adaptive CPU thread and recognition-batch policy for low-memory
+  conditions; this does not claim an unsupported NNAPI/QNN backend.
+- Retained `[skip ci]` on intermediate code commits and extended static
+  source integration checks.
+
+**Still not guaranteed/implemented:** full PP-TableMagic table classification
+and independently learned cell detection; the PP-Chart2Table 1.43 GB
+generative graph; exact inverse UVDoc nonrigid coordinate deformation;
+learned semantic reading order; automatic linguistic post-correction.
+Those capabilities are not silently replaced by heuristic outputs.
+Existing SLANet, FormulaNet, UVDoc and seal native operators are present
+but require a real Android model/shape/accuracy test before release.
