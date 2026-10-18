@@ -46,22 +46,26 @@ object PaddlePageV2 {
                     for(symbol in word.symbols){
                         val box=symbol.bounds.rect()
                         if(!box.isEmpty && symbol.text.isNotBlank())chars.add(OcrDocument.CharUnit(
-                            symbol.text,box,symbol.confidence,linesOut.size,wordGroup,index++))
+                            symbol.text,box,symbol.confidence,linesOut.size,wordGroup,index++,
+                            symbol.bounds.points))
                     }
                     // If recognizer glyph alignment is absent, preserve only
                     // a real word-derived quad. Do not synthesize character boxes.
                     if(chars.size==before && word.text.isNotBlank()){
                         val realWord=word.bounds.rect()
                         if(!realWord.isEmpty)chars.add(OcrDocument.CharUnit(
-                            word.text,realWord,line.confidence,linesOut.size,wordGroup,index++))
+                            word.text,realWord,line.confidence,linesOut.size,wordGroup,index++,
+                            word.bounds.points))
                     }
                 }
                 if(chars.isEmpty()&&line.text.isNotBlank()){
                     val detectorBox=line.bounds.rect()
                     if(!detectorBox.isEmpty)chars.add(OcrDocument.CharUnit(
-                        line.text,detectorBox,line.confidence,linesOut.size,group++,index++))
+                        line.text,detectorBox,line.confidence,linesOut.size,group++,index++,
+                        line.bounds.points))
                 }
-                linesOut.add(OcrDocument.Line(line.text,line.bounds.rect(),line.confidence,chars))
+                linesOut.add(OcrDocument.Line(line.text,line.bounds.rect(),line.confidence,chars,
+                    line.bounds.points))
             }
             val text=linesOut.joinToString("\n") {it.text()}
             val summary=blocks.mapNotNull { block ->
