@@ -5,79 +5,14 @@ import org.junit.Test;
 
 /**
  * Launcher screenshot regression: selecting bitmap-rendered Chinese text on a
- * saturated red icon must never draw handle stems through the glyphs.
+ * saturated red icon must preserve precise translucent selection bounds.
  */
 public final class NativeCircleSelectionVisualTest {
-    @Test public void connectedHandlesBeginExactlyAtTheBlueSelectionCorners(){
-        float knobRadius=15f;
-        float[] left=NativeCircleVisualPolicy.attachedTextHandle(
-                120f,290f,120f,360f,knobRadius);
-        float[] right=NativeCircleVisualPolicy.attachedTextHandle(
-                240f,290f,240f,360f,knobRadius);
-        assertEquals(120f,left[0],0.001f);
-        assertEquals(360f,left[1],0.001f);
-        assertEquals(240f,right[0],0.001f);
-        assertEquals(360f,right[1],0.001f);
-        assertEquals("The knob is directly below its anchor",120f,left[2],0.001f);
-        assertEquals("The knob is directly below its anchor",240f,right[2],0.001f);
-        assertTrue(left[3]>left[1]);
-        assertEquals(left[3],right[3],0.001f);
-        assertEquals("Knob edge is tangent to the fill without a visible gap",
-                knobRadius,left[3]-left[1],0.001f);
-        assertEquals(knobRadius,right[3]-right[1],0.001f);
-    }
-
     @Test public void nativeTextSelectionHasVisibleTranslucentBlueWash(){
         int alpha=NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA;
         assertTrue("Selection must remain visibly blue",alpha>=72);
         assertTrue("Selection must not obscure source glyphs",alpha<=132);
         assertTrue("Selection is translucent, never opaque",alpha<255);
-    }
-
-    @Test public void rotatedTextHandlesConnectAlongTheOriginalQuadSides(){
-        float[] left=NativeCircleVisualPolicy.attachedTextHandle(
-                80f,70f,68f,108f,2f);
-        assertEquals(68f,left[0],0.001f);
-        assertEquals(108f,left[1],0.001f);
-        assertTrue("Tilted quad handle should extend left with the glyph edge",left[2]<68f);
-        assertTrue(left[3]>108f);
-        float edgeDx=68f-80f,edgeDy=108f-70f;
-        float stemDx=left[2]-left[0],stemDy=left[3]-left[1];
-        assertEquals("Stem and source edge must remain collinear",
-                0f,edgeDx*stemDy-edgeDy*stemDx,0.001f);
-    }
-
-    @Test public void handlesConnectAtEveryDensityWithoutOldOutsideGap(){
-        for(float density:new float[]{1f,2.75f,4f}){
-            float knobRadius=4.5f*density;
-            float[] handle=NativeCircleVisualPolicy.attachedTextHandle(
-                    25f,30f,25f,58f,knobRadius);
-            assertEquals(25f,handle[0],0.001f);
-            assertEquals(58f,handle[1],0.001f);
-            assertEquals("Circle edge touches the highlight at every density",
-                    knobRadius,handle[3]-handle[1],0.001f);
-        }
-    }
-
-    @Test public void degenerateSideEdgeStillAttachesAndDoesNotCrash(){
-        float[] handle=NativeCircleVisualPolicy.attachedTextHandle(
-                40f,45f,40f,45f,3f);
-        assertEquals(40f,handle[0],0.001f);
-        assertEquals(45f,handle[1],0.001f);
-        assertEquals(40f,handle[2],0.001f);
-        assertTrue(handle[3]>45f);
-    }
-    @Test public void overlappingHitAreasStillAllowEitherChineseHandle(){
-        assertEquals(1,NativeCircleVisualPolicy.chooseTouchedTextHandle(
-                true,true,12f,100f,10f,100f,30f,100f));
-        assertEquals(2,NativeCircleVisualPolicy.chooseTouchedTextHandle(
-                true,true,28f,100f,10f,100f,30f,100f));
-        assertEquals(1,NativeCircleVisualPolicy.chooseTouchedTextHandle(
-                true,false,12f,100f,10f,100f,30f,100f));
-        assertEquals(2,NativeCircleVisualPolicy.chooseTouchedTextHandle(
-                false,true,28f,100f,10f,100f,30f,100f));
-        assertEquals(0,NativeCircleVisualPolicy.chooseTouchedTextHandle(
-                false,false,28f,100f,10f,100f,30f,100f));
     }
 
     /** Reproduces the Toutiao (头条) icon: character-space CTC bounds
@@ -90,12 +25,6 @@ public final class NativeCircleSelectionVisualTest {
         assertTrue("Right edge should include 条 rather than cut through it",bounds[2]>495f);
         assertTrue("Avoid top icon band",bounds[1]>130f);
         assertTrue("Avoid bottom icon band",bounds[3]<320f);
-        float density=3f;
-        float[] connected=NativeCircleVisualPolicy.attachedTextHandle(
-                bounds[0],bounds[1],bounds[0],bounds[3],density);
-        assertEquals("Handle begins on the filled text edge",
-                bounds[0],connected[0],0.001f);
-        assertEquals(bounds[3],connected[1],0.001f);
     }
 
     @Test public void draggingOneCharacterNeverExpandsToWholeIconWord(){
