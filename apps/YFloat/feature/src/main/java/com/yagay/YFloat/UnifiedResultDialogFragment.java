@@ -183,9 +183,9 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
         panel.setOcrRunning(true);
         Bitmap image = session.image();
         Rect sourceBounds = session.sourceBounds();
-        OcrResultDispatcher.register(image, (text, blocks) -> {
+        OcrResultDispatcher.register(image, (text, blocks, document) -> {
             if (panel == null) return;
-            panel.root().post(() -> applyInlineOcr(gen, text, blocks));
+            panel.root().post(() -> applyInlineOcr(gen, text, blocks, document));
         });
 
         panel.root().postDelayed(() -> {
@@ -204,10 +204,11 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
         OcrEngine.recognize(requireContext().getApplicationContext(), image, sourceBounds);
     }
 
-    private void applyInlineOcr(long gen, String text, List<String> blocks) {
+    private void applyInlineOcr(long gen, String text, List<String> blocks,
+                                OcrDocument document) {
         if (!isAdded() || session == null || panel == null || gen != ocrGeneration) return;
         ocrRunning = false;
-        session.applyOcr(text, blocks);
+        session.applyOcr(text, blocks,document);
         workflowFinished = false;
         panel.render(session);
         panel.setOcrRunning(false);
