@@ -8,10 +8,14 @@ package com.yagay.YFloat;
 final class NativeCircleVisualPolicy {
     static final int SELECTION_OUTSIDE_ALPHA = 112;
 
-    // Use a thin, high-contrast border instead of an opaque text-colored
-    // rectangle; the original captured glyph pixels remain unchanged.
-    static final int TEXT_HIGHLIGHT_FILL_ALPHA = 48;
+    // Never paint translucent blue over OCR text: selected pixels are
+    // restored verbatim from the frozen screenshot after the outside scrim.
+    // The visible outline stays *outside* the selected pixel band.
+    static final int TEXT_HIGHLIGHT_FILL_ALPHA = 0;
     static final int TEXT_HIGHLIGHT_BORDER_ALPHA = 214;
+    static float textBorderOutsideGap(float density){
+        return Math.max(1f,2.5f*density);
+    }
 
     /** Handle stems are fully outside the text glyph band. */
     static float leadingHandleX(float bandLeft,float density){
