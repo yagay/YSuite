@@ -26,18 +26,23 @@ object PaddleSpacingV2 {
             countCandidateSpaces(safeFallback)
         if (characters.isEmpty())
             return Correction(safeFallback, emptyList(), fallbackRemoved.coerceAtLeast(0))
-        // The CTC geometry can be incomplete even when recognition succeeds.
-        // Do not replace the decoder's complete text with only aligned glyphs.
+        // Synchronize script-only space removal in BOTH recognized text
+        // and CTC tokens. Previously the text was cleaned while its geometry
+        // still contained whitespace characters that split selection groups.
         val aligned=characters.joinToString("") { it.text }
+        val cjkCleaned=stripCjkWhitespaceTokens(characters)
+        // The CTC geometry can be incomplete even when recognition succeeds.
+        // Never reconstruct the complete recognized string from a partial
+        // glyph list. But keep its CJK-safe tokens consistent with the text.
         if(fallbackText.isNotBlank() && aligned!=fallbackText)
-            return Correction(safeFallback,characters,fallbackRemoved.coerceAtLeast(0))
-        val kept = ArrayList<OCRCharacter>(characters.size)
+            return Correction(safeFallback,cjkCleaned,fallbackRemoved.coerceAtLeast(0))
+        val kept = ArrayList<OCRCharacter>(cjkCleaned.size)
         var removed = 0
-        for (i in characters.indices) {
-            val current = characters[i]
+        for (i in cjkCleaned.indices) {
+            val current = cjkCleaned[i]
             if (current.text.isBlank() && current.text.any { it.isWhitespace() }) {
-                val prev = characters.subList(0, i).lastOrNull { it.text.isNotBlank() }
-                val next = characters.subList(i + 1, characters.size)
+                val prev = cjkCleaned.subList(0, i).lastOrNull { it.text.isNotBlank() }
+                val next = cjkCleaned.subList(i + 1, cjkCleaned.size)
                     .firstOrNull { it.text.isNotBlank() }
                 if (prev != null && next != null && spurious(prev, current, next)) {
                     removed++
@@ -53,6 +58,31 @@ object PaddleSpacingV2 {
         val additional=(countCandidateSpaces(source)-countCandidateSpaces(normalized))
             .coerceAtLeast(0)
         return Correction(normalized,kept,removed+additional)
+    }
+
+    /**
+     * Remove only CJK-internal explicit blank tokens, never Latin separators.
+     * Keep all remaining OCRCharacter instances and their original quads;
+     * no guessed bounding boxes are introduced.
+     */
+    private fun stripCjkWhitespaceTokens(tokens:List<OCRCharacter>):List<OCRCharacter>{
+        if(tokens.isEmpty())return tokens
+        val out=ArrayList<OCRCharacter>(tokens.size)
+        for(i in tokens.indices){
+            val token=tokens[i].text
+            val blank=token.isNotEmpty() &&
+                token.codePoints().toArray().all { isCandidateSpace(it) }
+            if(blank){
+                val left=tokens.subList(0,i).lastOrNull{it.text.isNotBlank()}?.text
+                val right=tokens.subList(i+1,tokens.size)
+                    .firstOrNull{it.text.isNotBlank()}?.text
+                if(!left.isNullOrEmpty()&&!right.isNullOrEmpty()&&
+                    joinAroundCjk(left.codePointBefore(left.length),
+                        right.codePointAt(0)))continue
+            }
+            out.add(tokens[i])
+        }
+        return out
     }
 
     /**
