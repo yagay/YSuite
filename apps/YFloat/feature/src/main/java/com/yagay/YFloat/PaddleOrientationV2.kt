@@ -56,7 +56,7 @@ object PaddleOrientationV2 {
         return if(characters==0)0.0 else weighted/characters*sqrt(characters.toDouble())
     }
 
-    private fun backToImage(source:OCRResult,degrees:Int,width:Int,height:Int):OCRResult {
+    fun backToImage(source:OCRResult,degrees:Int,width:Int,height:Int):OCRResult {
         fun point(p:PointF):PointF {
             val x=p.x
             val y=p.y

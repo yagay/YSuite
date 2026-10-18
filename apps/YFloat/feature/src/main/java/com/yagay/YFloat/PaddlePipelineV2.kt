@@ -6,6 +6,9 @@ import com.paddle.ocr.EngineConfig
 import com.paddle.ocr.PaddleOCR
 import com.paddle.ocr.PaddleOCRConfig
 import com.paddle.ocr.structure.PPDocLayoutV2
+import com.paddle.ocr.structure.PPDocOrientationV3
+import com.paddle.ocr.structure.SLANetLocalV3
+import android.graphics.Matrix
 import com.paddle.ocr.util.OpenCVUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +34,12 @@ object PaddlePipelineV2 {
         check(OcrModelManager.isReady(app,model)){"PP-OCRv6 model not downloaded"}
         return files.joinToString(":") { "${it.length()}-${it.lastModified()}" }
     }
+    private var orientationEngine:PPDocOrientationV3?=null
+    private var orientationSignature:String?=null
+    private var tableEngine:SLANetLocalV3?=null
+    private var tableSignature:String?=null
+    @Volatile private var lastTables:List<PaddleTableTextV3.Table> = emptyList()
+    @JvmStatic fun latestTables():List<PaddleTableTextV3.Table> = lastTables
     private var layoutEngine:PPDocLayoutV2?=null
     private var layoutSignature:String?=null
     @Volatile private var latestPage:PaddlePageV2.Page?=null
@@ -57,6 +66,35 @@ object PaddlePipelineV2 {
             layoutSignature=signature
         }
     }
+    private fun orientation(app:Context):PPDocOrientationV3? {
+        if(!PaddleLocalModelsV3.enabled(app,PaddleLocalModelsV3.DOC_ORIENTATION)){
+            orientationEngine?.close();orientationEngine=null;orientationSignature=null
+            return null
+        }
+        val file=PaddleLocalModelsV3.model(app,PaddleLocalModelsV3.DOC_ORIENTATION)
+        val id="${file.length()}:${file.lastModified()}"
+        if(orientationEngine!=null&&orientationSignature==id)return orientationEngine
+        orientationEngine?.close();orientationEngine=null;orientationSignature=null
+        check(PaddleLocalModelsV3.verify(app,PaddleLocalModelsV3.DOC_ORIENTATION)){
+            "Document orientation model integrity failed"
+        }
+        return PPDocOrientationV3(file).also{orientationEngine=it;orientationSignature=id}
+    }
+    private fun table(app:Context):SLANetLocalV3? {
+        if(!PaddleLocalModelsV3.enabled(app,PaddleLocalModelsV3.TABLE_STRUCTURE)){
+            tableEngine?.close();tableEngine=null;tableSignature=null
+            return null
+        }
+        val file=PaddleLocalModelsV3.model(app,PaddleLocalModelsV3.TABLE_STRUCTURE)
+        val dict=PaddleLocalModelsV3.vocabulary(app)
+        val id="${file.length()}:${file.lastModified()}:${dict.length()}:${dict.lastModified()}"
+        if(tableEngine!=null&&tableSignature==id)return tableEngine
+        tableEngine?.close();tableEngine=null;tableSignature=null
+        check(PaddleLocalModelsV3.verify(app,PaddleLocalModelsV3.TABLE_STRUCTURE)){
+            "SLANet local model integrity failed"
+        }
+        return SLANetLocalV3(file,dict).also{tableEngine=it;tableSignature=id}
+    }
     @JvmStatic fun lastPage():PaddlePageV2.Page?=latestPage
 
     @JvmStatic fun recognize(context:Context,image:Bitmap,model:Int,callback:Callback){
@@ -65,7 +103,7 @@ object PaddlePipelineV2 {
             try {
                 require(!image.isRecycled && image.width>0 && image.height>0)
                 val started=System.currentTimeMillis()
-                val page=lock.withLock {
+                val (page,linkedTables)=lock.withLock {
                     val revision=signature(app,model)
                     if(models.containsKey(model) && modelSignatures[model]!=revision){
                         models.remove(model)?.release()
@@ -88,7 +126,25 @@ object PaddlePipelineV2 {
                     }
                     val verifyOrientation=app.getSharedPreferences(FloatSettings.PREF,
                         Context.MODE_PRIVATE).getBoolean("paddle_v2_auto_orientation",false)
-                    val chosen=PaddleOrientationV2.recognize(ocr,image,verifyOrientation)
+                    val classifier=try{orientation(app)}catch(error:Throwable){
+                        DiagnosticLog.i(app,"PADDLE_V3","orientation_error="+error.javaClass.simpleName)
+                        null
+                    }
+                    val prediction=classifier?.classify(image)
+                    val chosen=if(prediction!=null && prediction.confidence>=.85f
+                        && prediction.degrees!=0){
+                        val degrees=prediction.degrees
+                        val matrix=Matrix().apply{postRotate(degrees.toFloat())}
+                        val rotated=Bitmap.createBitmap(image,0,0,image.width,image.height,matrix,true)
+                        try{
+                            val results=ocr.recognize(rotated).results.map{
+                                PaddleOrientationV2.backToImage(it,degrees,image.width,image.height)
+                            }
+                            PaddleOrientationV2.Choice(results,degrees,prediction.confidence.toDouble())
+                        }finally{if(rotated!==image)rotated.recycle()}
+                    }else{
+                        PaddleOrientationV2.recognize(ocr,image,verifyOrientation&&classifier==null)
+                    }
                     val structure=try {
                         layout(app)?.detect(image) ?: emptyList()
                     }catch(t:Throwable){
@@ -97,6 +153,30 @@ object PaddlePipelineV2 {
                             " detail="+(t.message ?: "unknown"))
                         emptyList()
                     }
+                    val localTable=try{table(app)}catch(error:Throwable){
+                        DiagnosticLog.i(app,"PADDLE_V3","table_model_error="+error.javaClass.simpleName)
+                        null
+                    }
+                    val tables=ArrayList<SLANetLocalV3.Result>()
+                    if(localTable!=null)for(region in structure.filter{it.label=="table"}){
+                        val rect=region.bounds
+                        if(rect.width()<16||rect.height()<16)continue
+                        val crop=Bitmap.createBitmap(image,rect.left,rect.top,rect.width(),rect.height())
+                        try{
+                            val predicted=localTable.detect(crop)
+                            // Cell boxes are crop-local; shift them to original bitmap space.
+                            val translated=predicted.copy(cells=predicted.cells.map {cell->
+                                val box=android.graphics.Rect(cell.bounds)
+                                box.offset(rect.left,rect.top)
+                                cell.copy(bounds=box)
+                            })
+                            tables.add(translated)
+                        }catch(error:Throwable){
+                            DiagnosticLog.i(app,"PADDLE_V3","table_region_error="+error.javaClass.simpleName)
+                        }finally{if(crop!==image)crop.recycle()}
+                    }
+                    DiagnosticLog.i(app,"PADDLE_V3","table_regions="+tables.size+
+                        " table_cells="+tables.sumOf{it.cells.size})
                     DiagnosticLog.i(app,"PADDLE_V2",
                         "ocr_lines="+chosen.results.size+" orientation="+chosen.degrees+
                         " orientationCheck="+verifyOrientation+" layout_regions="+structure.size+
@@ -105,13 +185,16 @@ object PaddlePipelineV2 {
                         Context.MODE_PRIVATE).getBoolean("paddle_v2_spacing",true)
                     val page=PaddlePageV2.fromOcr(chosen.results,image.width,image.height,
                         structure,spacing)
+                    val linked=tables.map{PaddleTableTextV3.link(it,page.lines)}
                     val fixes=page.lines.count {it.rawText!=it.text}
                     DiagnosticLog.i(app,"PADDLE_V2",
                         "spacing_enabled="+spacing+" corrected_lines="+fixes)
-                    page
+                    page to linked
                 }
                 latestPage=page
+                lastTables=linkedTables
                 val compat=page.asLegacy("ppocr-v2-"+model)
+                    .withTableTexts(linkedTables.map{it.tabSeparated}.filter{it.isNotBlank()})
                 withContext(Dispatchers.Main){
                     callback.onSuccess(compat,System.currentTimeMillis()-started,
                         compat.lines().size)
@@ -132,6 +215,9 @@ object PaddlePipelineV2 {
                 layoutEngine?.close()
                 layoutEngine=null
                 layoutSignature=null
+                orientationEngine?.close();orientationEngine=null;orientationSignature=null
+                tableEngine?.close();tableEngine=null;tableSignature=null
+                lastTables=emptyList()
             }
         }
     }

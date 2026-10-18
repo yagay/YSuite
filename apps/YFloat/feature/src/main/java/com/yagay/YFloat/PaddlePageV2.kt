@@ -146,8 +146,7 @@ object PaddlePageV2 {
                 Origin.FALLBACK,paragraph,
                 paragraph.map{it.confidence}.average().toFloat()))
         }
-        return Page(width,height,blocks.sortedWith(compareBy({it.bounds.rect().top},
-            {it.bounds.rect().left})))
+        return Page(width,height,PaddleReadingOrderV3.order(blocks,width))
     }
 
     private fun sameParagraph(a:Line,b:Line):Boolean {

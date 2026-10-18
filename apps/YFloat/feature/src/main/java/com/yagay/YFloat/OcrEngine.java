@@ -620,7 +620,9 @@ public final class OcrEngine {
             }
             if (!deliverUi) return;
             if (service != null) service.onOcrResults(Math.max(1, document.chars().size()));
-            OcrResultDispatcher.deliver(app, document.fullText(), document.blocks(), source, anchor);
+            java.util.ArrayList<String> displayBlocks=new java.util.ArrayList<>(document.blocks());
+            displayBlocks.addAll(document.tableTexts());
+            OcrResultDispatcher.deliver(app, document.fullText(), displayBlocks, source, anchor);
             DiagnosticLog.i(app, "OCR_DISPATCH", "engine=" + document.engine()
                     + " chars=" + document.chars().size() + " lines=" + document.lines().size());
         });
