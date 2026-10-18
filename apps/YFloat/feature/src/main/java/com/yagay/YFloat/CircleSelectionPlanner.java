@@ -105,6 +105,14 @@ final class CircleSelectionPlanner {
         }
         Rect correctionRoi = correctionRoi(context, frame, gesture, selectionBounds);
 
+        // Non-content diagnostic: identify whether selected OCR introduces
+        // blanks not present in the recognized full-screen document.
+        String chosenText=selection==null?"":selection.fullText();
+        DiagnosticLog.i(context,"PADDLE_SPACE_TRACE",
+                "stage=gesture mode="+mode+
+                        " sourceSpaces="+countSpaces(document.fullText())+
+                        " selectedSpaces="+countSpaces(chosenText)+
+                        " selectedCodepoints="+chosenText.codePointCount(0,chosenText.length()));
         DiagnosticLog.i(context, "FL_CIRCLE_SELECTION_PLAN",
                 "kind=" + gesture.kind
                         + " mode=" + mode
@@ -367,6 +375,16 @@ final class CircleSelectionPlanner {
     private static boolean usable(OcrDocument document) {
         return document != null && document.isScreenSpace()
                 && !document.lines().isEmpty() && !document.chars().isEmpty();
+    }
+
+    private static int countSpaces(String text){
+        if(text==null||text.isEmpty())return 0;
+        int count=0;
+        for(int i=0;i<text.length();i++){
+            char c=text.charAt(i);
+            if(c==' '||c=='\u00a0'||c=='\u3000'||c=='\u202f')count++;
+        }
+        return count;
     }
 
     private CircleSelectionPlanner() {}
