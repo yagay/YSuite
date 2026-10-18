@@ -12,7 +12,16 @@ import com.yagay.yui.YViewLayout;
  * Model download/availability is managed independently by the existing model UI.
  */
 final class PaddleFlowSettingsUi {
-    private record Stage(String key,String zh,String en,String detailZh,String detailEn) {}
+    private static final class Stage {
+        final String key,zh,en,detailZh,detailEn;
+        Stage(String key,String zh,String en,String detailZh,String detailEn){
+            this.key=key;
+            this.zh=zh;
+            this.en=en;
+            this.detailZh=detailZh;
+            this.detailEn=detailEn;
+        }
+    }
 
     private static final Stage[] STAGES = {
         new Stage("extended","启用完整识别扩展","Enable extended OCR pipeline",
