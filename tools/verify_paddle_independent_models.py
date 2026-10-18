@@ -31,7 +31,7 @@ if "PaddleLocalModelSettingsV3.add(" not in capture:
 if "PaddleStructureSettingsV2.add(" not in capture:
     problems.append("Layout model control not in OCR settings")
 for needle in ("OcrModelManager.TINY", "OcrModelManager.SMALL",
-               "OcrModelManager.MEDIUM"):
+               "OcrModelManager.MEDIUM", "OcrModelManager.MOBILE"):
     if needle not in capture:
         problems.append("Missing independent base OCR model row: " + needle)
 for needle in ("void download(", "void delete("):
@@ -50,6 +50,18 @@ if "withFormulaTexts(" not in document or "withChartTexts(" not in document:
     problems.append("Structured formula/chart OCR metadata missing")
 if "OnnxTensor.createTensor(" not in formula or "decodeByteLevel(" not in formula:
     problems.append("Formula inference or LaTeX tokenizer decoder missing")
+manager = (java / "OcrModelManager.java").read_text()
+ocr_engine = (java / "OcrEngine.java").read_text()
+selector = (java / "SettingsPageUi.java").read_text()
+circle = (java / "CircleStableOcr.java").read_text()
+if "PP-OCRv5_mobile_det_onnx" not in manager or "PP-OCRv5_mobile_rec_onnx" not in manager:
+    problems.append("PP-OCRv5 Mobile ONNX download sources missing")
+if "case MOBILE" not in manager or '"ppocrv5_mobile"' not in manager:
+    problems.append("Mobile model must have a distinct private model directory")
+if "OcrModelManager.MOBILE" not in ocr_engine or "OcrModelManager.MOBILE" not in circle:
+    problems.append("Mobile model not connected to normal/circle OCR")
+if "PP-OCRv5 Mobile" not in selector:
+    problems.append("Mobile model not selectable from YFloat OCR settings")
 if "PaddleStructureFullV3" in capture or (java / "PaddleStructureFullV3.java").exists():
     problems.append("Remote PP-Structure recognition unexpectedly restored")
 if problems:

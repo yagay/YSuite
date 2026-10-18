@@ -85,12 +85,18 @@ final class SettingsPageUi {
     }
 
     void ocrEngineSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_ocr_engine), new String[]{
+        // Legacy persisted value 4 belonged to remote PP-StructureV3.
+        // Show five choices while writing new Mobile selection as value 5.
+        int selected = fs.ocrEngineMode();
+        addPreferenceSpinner(parent, activity.getString(R.string.yfloat_ocr_engine), new String[]{
                 activity.getString(R.string.yfloat_ocr_auto),
                 activity.getString(R.string.yfloat_ocr_medium),
                 activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_mlkit)
-        }, fs.ocrEngineMode(), FloatSettings.K_OCR_ENGINE, true);
+                activity.getString(R.string.yfloat_ocr_mlkit),
+                "PP-OCRv5 Mobile"
+        }, selected == 5 ? 4 : selected, true,
+                position -> fs.setInt(FloatSettings.K_OCR_ENGINE,
+                        position == 4 ? 5 : position));
     }
 
     void circleFullOcrEngineSpinner(LinearLayout parent) {
@@ -98,7 +104,8 @@ final class SettingsPageUi {
                 activity.getString(R.string.yfloat_ocr_mlkit),
                 activity.getString(R.string.yfloat_ocr_tiny),
                 activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_medium)
+                activity.getString(R.string.yfloat_ocr_medium),
+                "PP-OCRv5 Mobile"
         }, fs.circleFullOcrEngine(), FloatSettings.K_CIRCLE_FULL_OCR_ENGINE, true);
     }
 
@@ -107,7 +114,8 @@ final class SettingsPageUi {
                 activity.getString(R.string.yfloat_correction_off),
                 activity.getString(R.string.yfloat_ocr_tiny),
                 activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_medium)
+                activity.getString(R.string.yfloat_ocr_medium),
+                "PP-OCRv5 Mobile"
         }, fs.circleCorrectionEngine(), FloatSettings.K_CIRCLE_CORRECTION_ENGINE, true);
     }
 

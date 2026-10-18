@@ -179,14 +179,14 @@ public final class FloatSettings {
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 3);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 3); } catch (Throwable ignored) {} }
+        if (raw instanceof Number n) return clamp(n.intValue(), 0, 4);
+        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 4); } catch (Throwable ignored) {} }
         return 0;
     }
     public int circleCorrectionEngine() {
         Object raw = p.getAll().get(K_CIRCLE_CORRECTION_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 3);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 3); } catch (Throwable ignored) {} }
+        if (raw instanceof Number n) return clamp(n.intValue(), 0, 4);
+        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 4); } catch (Throwable ignored) {} }
         return p.getBoolean(K_CIRCLE_HYBRID_OCR, true) ? 2 : 0;
     }
     public boolean rootScreenshot() { return p.getBoolean(K_ROOT_SCREENSHOT, false); }
@@ -294,7 +294,8 @@ public final class FloatSettings {
         else if (raw instanceof String v) {
             try { mode = Integer.parseInt(v.trim()); } catch (NumberFormatException ignored) {}
         }
-        return mode == 4 ? 0 : clamp(mode, 0, 3);
+        // 4 remains retired HTTPS mode; 5 explicitly means PP-OCRv5 Mobile.
+        return mode == 4 ? 0 : clamp(mode, 0, 5);
     }
     public String customIconUri() { return p.getString(K_CUSTOM_ICON, ""); }
     public String slidePics() { return p.getString(K_SLIDE_PICS, ""); }

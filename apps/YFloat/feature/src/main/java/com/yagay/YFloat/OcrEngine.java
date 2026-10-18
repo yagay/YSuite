@@ -132,9 +132,11 @@ public final class OcrEngine {
         int mode = readOcrEngineModeSafely(app);
         boolean smallReady = OcrModelManager.isReady(app, OcrModelManager.SMALL);
         boolean mediumReady = OcrModelManager.isReady(app, OcrModelManager.MEDIUM);
+        boolean mobileReady = OcrModelManager.isReady(app, OcrModelManager.MOBILE);
         DiagnosticLog.i(app, "OCR_ENGINE", "request=" + request.requestId + " mode=" + mode
                 + " lane=" + request.lane()
-                + " small=" + smallReady + " medium=" + mediumReady);
+                + " small=" + smallReady + " medium=" + mediumReady
+                + " mobile=" + mobileReady);
 
         if (mode == 3) {
             startMlKitPipeline(app, service, source, anchor, callback, deliverUi,
@@ -145,12 +147,18 @@ public final class OcrEngine {
         } else if (mode == 2) {
             runPaddle(app, service, source, anchor, callback, deliverUi,
                     OcrModelManager.SMALL, false, null, request);
+        } else if (mode == 5) {
+            runPaddle(app, service, source, anchor, callback, deliverUi,
+                    OcrModelManager.MOBILE, false, null, request);
         } else if (smallReady) {
             runPaddle(app, service, source, anchor, callback, deliverUi,
                     OcrModelManager.SMALL, true, null, request);
         } else if (mediumReady) {
             runPaddle(app, service, source, anchor, callback, deliverUi,
                     OcrModelManager.MEDIUM, true, null, request);
+        } else if (mobileReady) {
+            runPaddle(app, service, source, anchor, callback, deliverUi,
+                    OcrModelManager.MOBILE, true, null, request);
         } else {
             if (deliverUi) {
                 Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6bfcd46cd7df),

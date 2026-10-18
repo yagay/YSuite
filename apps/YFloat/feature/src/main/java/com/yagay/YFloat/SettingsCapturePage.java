@@ -93,6 +93,7 @@ final class SettingsCapturePage {
             ui.addOcrModelRow(models.body, OcrModelManager.TINY);
             ui.addOcrModelRow(models.body, OcrModelManager.SMALL);
             ui.addOcrModelRow(models.body, OcrModelManager.MEDIUM);
+            ui.addOcrModelRow(models.body, OcrModelManager.MOBILE);
             PaddleStructureSettingsV2.add(activity,models.body);
             PaddleLocalModelSettingsV3.add(activity,models.body);
         } catch (Throwable t) {

@@ -36,7 +36,7 @@ object PaddlePipelineV2 {
     private fun signature(app:Context,model:Int):String {
         val files=listOf(OcrModelManager.detFile(app,model),
             OcrModelManager.recFile(app,model),OcrModelManager.ymlFile(app,model))
-        check(OcrModelManager.isReady(app,model)){"PP-OCRv6 model not downloaded"}
+        check(OcrModelManager.isReady(app,model)){"PaddleOCR model not downloaded"}
         return files.joinToString(":") { "${it.length()}-${it.lastModified()}" }
     }
     private var orientationEngine:PPDocOrientationV3?=null
@@ -178,7 +178,7 @@ object PaddlePipelineV2 {
                         DiagnosticLog.i(app,"PADDLE_V2","model_replaced="+model)
                     }
                     val ocr=models[model] ?: run {
-                        check(OcrModelManager.verifyIntegrity(app,model)){"PP-OCRv6 model integrity failed"}
+                        check(OcrModelManager.verifyIntegrity(app,model)){"PaddleOCR model integrity failed"}
                         check(OpenCVUtils.init(app)){"OpenCV initialization failed"}
                         val cfg=PaddleOCRConfig(
                             detThresh=.20f,detBoxThresh=.45f,detUnclipRatio=1.4f,

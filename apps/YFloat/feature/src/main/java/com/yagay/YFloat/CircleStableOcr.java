@@ -156,6 +156,7 @@ final class CircleStableOcr {
             case 1 -> OcrModelManager.TINY;
             case 2 -> OcrModelManager.SMALL;
             case 3 -> OcrModelManager.MEDIUM;
+            case 4 -> OcrModelManager.MOBILE;
             default -> throw new IllegalArgumentException("not a PP Circle mode=" + mode);
         };
     }
@@ -174,6 +175,7 @@ final class CircleStableOcr {
             case 1 -> "ppocr_tiny";
             case 2 -> "ppocr_small";
             case 3 -> "ppocr_medium";
+            case 4 -> "ppocrv5_mobile";
             default -> "mlkit";
         };
     }

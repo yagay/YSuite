@@ -6,6 +6,7 @@ heuristics, and modules not implemented. Do not mark an untested model as comple
 | Capability | Source | Implementation | Validation |
 |---|---|---|---|
 | Text detection and recognition | PP-OCRv6 Tiny / Small / Medium | ONNX + OpenCV, existing runtime | Previously built, phone accuracy unverified |
+| Mobile OCR (additional choice) | PP-OCRv5_mobile_det_onnx + PP-OCRv5_mobile_rec_onnx | Independently downloaded model pair and inference.yml; reused existing local ONNX + CTC engine | Source changes staged; not yet compiled or phone tested |
 | CTC glyph quads and word grouping | Paddle SDK | CTC alignment + grouping | Previously built, geometry estimated |
 | Spacing refinement | PaddleSpacingV2 | CTC-confidence/geometry heuristics | Previously built, requires real-image validation |
 | Layout areas | PP-DocLayout-S | ONNX; 23 layout categories | Previously built, real-image validation pending |
@@ -39,6 +40,7 @@ commits must have `[skip ci]` in the commit message.
 
 - **No OCR/Structure/UVDoc/SLANet/seal weights are embedded in the APK.**
 - PP-OCRv6 Tiny, Small and Medium each have separate download/delete controls.
+- **PP-OCRv5 Mobile** is a fourth independent OCR model. It does not overwrite or change the current default or existing downloaded models.
 - PP-DocLayout-S downloads and enables separately from OCR.
 - PP-LCNet document orientation, SLANet table structure, UVDoc and seal ONNX
   have independent download/enable/delete controls. The table's dictionary is
@@ -52,3 +54,16 @@ commits must have `[skip ci]` in the commit message.
   They must be made independent optional downloads *after* the inference
   implementation and its resource checks work.
 - This development batch uses [skip ci]; no partial GitHub CI builds.
+
+## Paddle Mobile addition
+
+Original PaddleOCR models and optional layout/table/formula/OCR extensions remain
+present in this branch. Mobile is an additional selectable model; full-screen,
+circle and text correction use the same local Paddle OCR pipeline and geometry.
+
+Official model sources (runtime files downloaded only when the user taps Download):
+- https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx
+- https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx
+
+The older RapidOCR migration lives on a separate untouched branch. No weights are
+committed to this repository. The next CI run is deliberately deferred.

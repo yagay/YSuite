@@ -22,6 +22,7 @@ public final class OcrModelManager {
     public static final int SMALL = 1;
     public static final int MEDIUM = 2;
     public static final int TINY = 3;
+    public static final int MOBILE = 4;
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final ExecutorService IO = Executors.newSingleThreadExecutor(r -> {
@@ -74,6 +75,12 @@ public final class OcrModelManager {
                 "https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx/resolve/main/inference.onnx?download=true",
                 "https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx/resolve/main/inference.yml?download=true",
                 60_000_000L, 74_000_000L, 139_000_000L);
+        if (model == MOBILE) return new Spec(
+                "PP-OCRv5 Mobile",
+                "https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx/resolve/main/inference.onnx?download=true",
+                "https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/main/inference.onnx?download=true",
+                "https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/main/inference.yml?download=true",
+                4_000_000L, 14_000_000L, 24_000_000L);
         if (model == SMALL) return new Spec(
                 "PP-OCRv6 Small",
                 "https://huggingface.co/PaddlePaddle/PP-OCRv6_small_det_onnx/resolve/main/inference.onnx?download=true",
@@ -88,6 +95,7 @@ public final class OcrModelManager {
             case TINY -> "ppocrv6_tiny";
             case MEDIUM -> "ppocrv6_medium";
             case SMALL -> "ppocrv6_small";
+            case MOBILE -> "ppocrv5_mobile";
             default -> throw new IllegalArgumentException("unknown OCR model=" + model);
         };
         return new File(c.getApplicationContext().getFilesDir(), "ocr_models/" + name);
@@ -224,7 +232,7 @@ public final class OcrModelManager {
         conn.setInstanceFollowRedirects(true);
         conn.setConnectTimeout(30_000);
         conn.setReadTimeout(180_000);
-        conn.setRequestProperty("User-Agent", "YFloat/PP-OCRv6");
+        conn.setRequestProperty("User-Agent", "YFloat/PaddleOCR-ONNX");
         if (existing > 0) conn.setRequestProperty("Range", "bytes=" + existing + "-");
         int code = conn.getResponseCode();
         boolean append = existing > 0 && code == HttpURLConnection.HTTP_PARTIAL;
