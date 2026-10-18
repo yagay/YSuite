@@ -224,3 +224,5 @@ storage page-by-page and copied to SAF with bounded buffers, while OCR page
 objects are no longer retained for the entire document.
 
 **CI gate:** One consolidated ARM64 Debug compilation is required after this source batch; intermediate commits intentionally skipped Actions.
+
+**Final validation:** The first consolidated build found two outdated static-contract strings only; both were corrected to match the refactored code. Full ARM64 Debug compilation is requested again with the final source snapshot.
