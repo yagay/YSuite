@@ -94,6 +94,40 @@ if "mode == 5" not in circle or "selected=paddle_auto" not in circle:
 if 'return 5;' not in (java / "FloatSettings.java").read_text():
     problems.append("New Circle installations must default to Paddle Auto")
 
+# Comprehensive local OCR batch: the runtime modules must be actually wired,
+# not merely advertised in settings. Compiling and running ONNX is separately required.
+exporter = (java / "PaddleDocumentExport.java").read_text()
+pdf = (java / "PaddlePdfImportActivity.java").read_text()
+policy = (java / "PaddleRuntimePolicy.java").read_text()
+orientation = (FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/structure/PPTextLineOrientationV3.kt").read_text()
+sdk = (FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/engine/OCREngine.kt").read_text()
+reader = (java / "PaddleReadingOrderV3.kt").read_text()
+manifest = (FEATURE / "feature/src/main/AndroidManifest.xml").read_text()
+for needle in ("jsonPages(", "markdownPages(", "csvTables(", "html(",
+               "coordinateSpace", "selectionUnits", "elements"):
+    if needle not in exporter:
+        problems.append("Paddle structured exporter missing: " + needle)
+for needle in ("PdfRenderer", "PaddlePipelineV2.recognize(", "CreateDocument(",
+               "OpenDocument()", "image.recycle()", "closePdf()"):
+    if needle not in pdf:
+        problems.append("Local PDF import/export contract missing: " + needle)
+if "PaddlePdfImportActivity" not in manifest or "PaddlePdfImportActivity" not in capture:
+    problems.append("PDF OCR activity not exposed from settings/manifest")
+if "PaddleLocalModelsV3.TEXTLINE_ORIENTATION" not in local_ui:
+    problems.append("Independent textline model download row missing")
+if "PP-LCNet_x1_0_textline_ori_onnx" not in registry or "38aa97cd4be591" not in registry:
+    problems.append("Textline orientation weights must be pinned to a verified ONNX SHA")
+if "PPTextLineOrientationV3" not in sdk or "rotatedFlags" not in sdk:
+    problems.append("Textline classifier not attached before CTC recognizer")
+if "lineModel).also" not in pipeline or "PaddleLocalModelsV3.TEXTLINE_ORIENTATION" not in pipeline:
+    problems.append("Paddle pipeline does not reload verified textline classifier")
+if "PaddleRuntimePolicy.forModel" not in pipeline or "lowMemory" not in policy:
+    problems.append("Paddle runtime memory policy not connected")
+if "val options=(1..9).mapNotNull" not in reader:
+    problems.append("Validated multi-column geometric reading order missing")
+if "word.text,realWord" not in page or "line.text,detectorBox" not in page:
+    problems.append("Selection fallback must use provenance-aware real word/line bounds")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
