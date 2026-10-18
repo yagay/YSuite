@@ -411,8 +411,9 @@ for needle in ("selectionFillPaint",
                "selectionFillPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(",
                "NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA",
                "NativeCircleVisualPolicy.attachedTextHandle(",
-               "first.get(0).x,first.get(0).y,first.get(3).x,first.get(3).y,density",
-               "last.get(1).x,last.get(1).y,last.get(2).x,last.get(2).y,density",
+               "first.get(0).x,first.get(0).y,first.get(3).x,first.get(3).y,radius/1.8f",
+               "last.get(1).x,last.get(1).y,last.get(2).x,last.get(2).y,radius/1.8f",
+               "NativeCircleVisualPolicy.chooseTouchedTextHandle(",
                "canvas.drawLine(leading[0],leading[1],leading[2],leading[3],outlinePaint)",
                "canvas.drawLine(trailing[0],trailing[1],trailing[2],trailing[3],outlinePaint)",
                "selectionHandlePaint.setStyle(Paint.Style.FILL)"):
@@ -431,7 +432,8 @@ if "selectionHighlightPaint" in native or "canvas.drawRoundRect(highlight," in n
     problems.append("Old rectangle-based OCR selection rendering resurfaced")
 if "canvas.drawLine(hx,first.top,hx,hy,outlinePaint)" in native:
     problems.append("OCR selection handle still paints through original glyph")
-for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "attachedTextHandle"):
+for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "attachedTextHandle",
+               "chooseTouchedTextHandle", "knobRadius"):
     if needle not in visual:
         problems.append("Native Circle selection rendering policy missing: "+needle)
 if "TEXT_HIGHLIGHT_BORDER_ALPHA" in visual:
@@ -450,6 +452,7 @@ else:
                       "rotatedTextHandlesConnectAlongTheOriginalQuadSides",
                       "handlesConnectAtEveryDensityWithoutOldOutsideGap",
                       "degenerateSideEdgeStillAttachesAndDoesNotCrash",
+                      "overlappingHitAreasStillAllowEitherChineseHandle",
                       "entireIconWordUsesDetectorWidthAndTightVerticalOverlap",
                       "draggingOneCharacterNeverExpandsToWholeIconWord",
                       "detectorCrossingUnrelatedIconIsRejected",
