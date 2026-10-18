@@ -212,7 +212,6 @@ public final class PaddleLocalModelsV3 {
                     if(count>limit)throw new IllegalStateException("Model exceeds size limit");
                     md.update(buf,0,n);out.write(buf,0,n);
                     if(callback!=null&&sha!=null){
-                        long limit=upperBound>0?upperBound:upperBound< -1?-upperBound:20000000L;
                         int progress=(int)(100*count/limit);
                         if(progress!=lastProgress && progress%5==0){
                             lastProgress=progress;final int v=progress;
