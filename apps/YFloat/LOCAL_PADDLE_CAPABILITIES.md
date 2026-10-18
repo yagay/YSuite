@@ -410,3 +410,5 @@ with the bounding rectangle during `RESOLVING`. Both problems are fixed:
 **Still to validate on a device:** path continuity while OCR runs; proper
 glyph highlights after OCR; no rectangular crop if OCR fails. The source
 and CI tests cannot emulate user touch rendering in a live Android overlay.
+
+**Final ARM64 Debug gate:** Validate the complete highlight gesture and OCR timeout routing batch with unit tests and ABI checks after all intermediate `[skip ci]` commits.
