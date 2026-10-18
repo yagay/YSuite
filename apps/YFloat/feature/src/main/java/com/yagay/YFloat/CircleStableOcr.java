@@ -39,7 +39,7 @@ final class CircleStableOcr {
         DiagnosticLog.i(app,"FL_CIRCLE_PADDLE",
                 "role="+role+" requestedModel="+model+" size="+
                 bitmap.getWidth()+"x"+bitmap.getHeight());
-        PaddleRecognitionRuntime.recognize(app,bitmap,model,
+        PaddleRecognitionRuntime.recognize(app,bitmap,model,true,
                 new PaddleRecognitionRuntime.Callback(){
                     @Override public void onSuccess(OcrDocument document,
                             int usedModel,long elapsedMs){
