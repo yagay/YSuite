@@ -238,7 +238,9 @@ final class NativeCircleWorkspace extends View {
         }
         final int localWidth=input.getWidth(),localHeight=input.getHeight();
         ocrBusy = true;
-        status = t("正在识别屏幕文字", "Recognizing screen text");
+        status = expandForHandle
+                ?t("正在扩展全屏可选文字…","Expanding selectable text to full screen…")
+                :t("正在识别屏幕文字","Recognizing screen text");
         try {
             DiagnosticLog.i(app,"PADDLE_SCHED",
                     "circle_roi="+roi.toShortString()+" full="+full+
@@ -1097,6 +1099,13 @@ final class NativeCircleWorkspace extends View {
                         return true;
                     }
                 }
+            }
+            // A newer Circle gesture supersedes any pending handle-only
+            // full-screen scan. Do not let its callback overwrite new text.
+            if(ocrBusy && expansionDragCursorValid){
+                if(activeOcr!=null)activeOcr.cancel();
+                activeOcr=null;ocrSequence++;ocrBusy=false;
+                expansionDragCursorValid=false;
             }
             PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
             state.begin(bitmap.x,bitmap.y);
