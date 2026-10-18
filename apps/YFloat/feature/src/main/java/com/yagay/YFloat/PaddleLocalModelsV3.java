@@ -122,6 +122,9 @@ public final class PaddleLocalModelsV3 {
     }
     public static boolean installed(Context context,int id) {
         File file=model(context,id);
+        if(!busy(id)&&!file.exists()){
+            try{recoverBackup(file);}catch(Exception ignored){}
+        }
         Spec s=spec(id);
         // Seal export has a pinned SHA-256 but its exact byte length is not
         // exposed by our upstream source. Never mark it executable on size alone.
@@ -157,6 +160,28 @@ public final class PaddleLocalModelsV3 {
      * visible model files. Failures must not destroy a previously working
      * offline model, its vocabulary, or its enabled preference.
      */
+    /** On-demand SHA-256 verification, off the UI thread. Never downloads data. */
+    public static void check(Context context,int id,Callback callback){
+        Context app=context.getApplicationContext();
+        synchronized(ACTIVE){
+            if(!ACTIVE.add(id)){
+                if(callback!=null)MAIN.post(()->callback.onFailure("Model is busy"));
+                return;
+            }
+        }
+        WORKER.execute(()->{
+            try{
+                boolean valid=verify(app,id);
+                if(callback!=null)MAIN.post(()->{
+                    if(valid)callback.onSuccess();
+                    else callback.onFailure("Model integrity check failed; download to repair");
+                });
+            }finally{
+                synchronized(ACTIVE){ACTIVE.remove(id);}
+            }
+        });
+    }
+
     public static void install(Context context,int id,Callback callback){
         Context app=context.getApplicationContext();
         synchronized(ACTIVE){
