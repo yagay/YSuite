@@ -20,6 +20,15 @@ public final class OcrSelectionTextTest {
         assertEquals(chinese,pick(chinese,units,List.of(0,1,2,3,4,5,6)));
     }
 
+    @Test public void nativeCircleThreeGroupsNeverCreateAnExtraSpace() {
+        // A recognition line can have three selectable units spanning five
+        // actual characters. Group boundaries must not imply word breaks.
+        assertEquals("hello",pick("hello",
+                List.of("he","l","lo"),List.of(0,1,2)));
+        assertEquals("AB CD",pick("AB CD",
+                List.of("A","B","CD"),List.of(0,1,2)));
+    }
+
     @Test public void preservesExactEnglishSpacingFromSource() {
         assertEquals("Hello  world",pick("Hello  world",
                 List.of("Hello","world"),List.of(0,1)));
