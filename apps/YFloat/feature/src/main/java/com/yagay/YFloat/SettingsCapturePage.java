@@ -51,8 +51,8 @@ final class SettingsCapturePage {
                 java.util.Locale.getDefault().getLanguage().startsWith("zh")
                     ? "Paddle 智能空格修正" : "Paddle spacing correction",
                 java.util.Locale.getDefault().getLanguage().startsWith("zh")
-                    ? "根据 CTC 字符置信度和边界框修复有依据的错误空格；保留英文正常分词"
-                    : "Fix evidence-backed CTC spacing errors without losing word geometry",
+                    ? "Paddle 模型识别时修复中文连续文字中的异常空格，保留英文正常分词；选择 ML Kit 时不生效"
+                    : "Remove erroneous CJK spaces while preserving English words; requires a Paddle OCR engine",
                 "paddle_v2_spacing",
                 activity.getSharedPreferences(FloatSettings.PREF,android.content.Context.MODE_PRIVATE)
                     .getBoolean("paddle_v2_spacing",true));
