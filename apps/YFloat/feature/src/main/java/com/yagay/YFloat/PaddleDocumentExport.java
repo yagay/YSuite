@@ -174,6 +174,34 @@ public final class PaddleDocumentExport {
         return out.toString();
     }
 
+    public static String htmlPages(List<OcrDocument> pages) {
+        if(pages==null)throw new IllegalArgumentException("pages");
+        StringBuilder out=new StringBuilder("<!DOCTYPE html><html><head>")
+                .append("<meta charset=\"UTF-8\"><title>YFloat OCR</title></head><body>");
+        for(int i=0;i<pages.size();i++){
+            OcrDocument page=pages.get(i);
+            if(page==null)continue;
+            String full=html(page);
+            int start=full.indexOf("<body>")+6;
+            int end=full.lastIndexOf("</body>");
+            if(start<6||end<start)continue;
+            out.append("<section data-page=\"").append(i+1).append("\">")
+                    .append(full,start,end).append("</section>");
+        }
+        return out.append("</body></html>").toString();
+    }
+
+    public static String csvPages(List<OcrDocument> pages) {
+        if(pages==null)throw new IllegalArgumentException("pages");
+        StringBuilder out=new StringBuilder();
+        for(OcrDocument page:pages) {
+            if(page==null||page.tableTexts().isEmpty())continue;
+            if(out.length()>0)out.append("\r\n");
+            out.append(csvTables(page));
+        }
+        return out.toString();
+    }
+
     public static String html(OcrDocument document) {
         if (document == null) throw new IllegalArgumentException("document");
         StringBuilder out = new StringBuilder("<!DOCTYPE html><html><head>")
