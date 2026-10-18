@@ -13,12 +13,7 @@ final class PaddleLocalModelSettingsV3 {
         addRow(activity,container,PaddleLocalModelsV3.TABLE_STRUCTURE);
         addRow(activity,container,PaddleLocalModelsV3.UV_DOC);
         addRow(activity,container,PaddleLocalModelsV3.SEAL_DETECTION);
-        addUnavailableRow(activity,container,
-            "PP-FormulaNet-S — " + (java.util.Locale.getDefault().getLanguage().startsWith("zh")
-                ? "公式识别（暂不可下载）" : "Formula OCR (not downloadable yet)"),
-            java.util.Locale.getDefault().getLanguage().startsWith("zh")
-                ? "尚无经过验证的 Android 公式解码器；不提供下载无用权重的按钮。"
-                : "Needs a verified Android formula decoder; weights alone cannot perform OCR.");
+        addRow(activity,container,PaddleLocalModelsV3.FORMULA_NET);
         addUnavailableRow(activity,container,
             "PP-Chart2Table — " + (java.util.Locale.getDefault().getLanguage().startsWith("zh")
                 ? "图表识别（暂不可下载）" : "Chart parsing (not downloadable yet)"),

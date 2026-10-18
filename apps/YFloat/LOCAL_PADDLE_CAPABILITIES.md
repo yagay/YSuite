@@ -13,7 +13,7 @@ heuristics, and modules not implemented. Do not mark an untested model as comple
 | Table structure | SLANet-1M ONNX | 488x488 ONNX, vocabulary decoding, cells + OCR association | **Staged; not compiled or phone-tested** |
 | Multicolumn reading order | Local geometrical grouping | Conservative two-column heuristic | **Staged; not model-based** |
 | UVDoc dewarping | UVDoc ONNX | **Staged:** offline BGR image-to-image inference and second OCR pass | Corrected image text kept separate to avoid incorrect source-screen coordinates; not compiled or phone-tested |
-| Formula to LaTeX | PP-FormulaNet-S | **Not implemented** | Requires model export and autoregressive decoder |
+| Formula to LaTeX | PP-FormulaNet_plus-S converted ONNX | **In development:** independent ONNX+tokenizer download and offline region recognition | Single-output generation graph; requires on-device model validation and memory profiling |
 | Chart-to-table | PP-Chart2Table | **Not implemented** | Multimodal generative model with large RAM/storage cost |
 | Seal text detection | PP-OCRv4_mobile_seal_det converted ONNX | **Staged:** offline DB detector in PP-DocLayout-S seal regions; separate crop OCR | Curved text remains challenging; not compiled or phone-tested |
 
@@ -44,7 +44,9 @@ commits must have `[skip ci]` in the commit message.
   downloaded only with SLANet and removed with it.
 - Inference uses only local files. It does not download automatically or call
   Google App, Lens or an HTTP processing service.
-- FormulaNet and Chart2Table are listed as unsupported; downloading their
+- FormulaNet_plus-S (converted ONNX) downloads independently together with a
+  version-pinned UniMERNet tokenizer. It is a large optional model, never bundled.
+- Chart2Table remains unsupported; downloading its
   heavyweight raw weights without an Android runtime would be misleading.
   They must be made independent optional downloads *after* the inference
   implementation and its resource checks work.

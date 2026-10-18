@@ -25,10 +25,12 @@ public final class PaddleLocalModelsV3 {
     public static final int TABLE_STRUCTURE=2;
     public static final int UV_DOC=3;
     public static final int SEAL_DETECTION=4;
+    public static final int FORMULA_NET=5;
     public static final String ORIENTATION_PREF="paddle_v3_classifier_enabled";
     public static final String TABLE_PREF="paddle_v3_table_enabled";
     public static final String UV_DOC_PREF="paddle_v3_uvdoc_enabled";
     public static final String SEAL_PREF="paddle_v3_seal_enabled";
+    public static final String FORMULA_PREF="paddle_v3_formula_enabled";
     private record Spec(String name,String url,long size,String sha,String yamlUrl) {}
     private static Spec spec(int id) {
         return switch(id) {
@@ -47,6 +49,10 @@ public final class PaddleLocalModelsV3 {
             case SEAL_DETECTION -> new Spec("PP-OCRv4 mobile seal detector",
                 "https://huggingface.co/x3zvawq/paddleocr-js-onnx/resolve/main/ppocr_v4_mobile_seal_det/PP-OCRv4_mobile_seal_det_infer.onnx",
                 -1L,"1d559581c8e8ef19a7f6d3b82f267ff51da31d863dd44ebb2bd02dd5f1a99d12",null);
+            case FORMULA_NET -> new Spec("PP-FormulaNet_plus-S (LaTeX)",
+                "https://huggingface.co/x3zvawq/paddleocr-js-onnx/resolve/main/PP_FormulaNet_plus_S/PP-FormulaNet_plus-S_infer.onnx",
+                -400000000L,"713d472d8299abbf936e0c7ac74de9c63cc62f9bcf2a01be5fa376bc1d30fb76",
+                "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/dab3fe35379033fdcb2d0e9572fac0b36c9a9ebf/ppocr/utils/dict/unimernet_tokenizer/tokenizer.json");
             default -> throw new IllegalArgumentException("unknown local Paddle model "+id);
         };
     }
@@ -66,12 +72,12 @@ public final class PaddleLocalModelsV3 {
     public static long downloadBytes(int id){return Math.max(0L,spec(id).size);}
     public static boolean isDownloadable(int id){
         return id==DOC_ORIENTATION||id==TABLE_STRUCTURE||
-               id==UV_DOC||id==SEAL_DETECTION;
+               id==UV_DOC||id==SEAL_DETECTION||id==FORMULA_NET;
     }
     public static String displaySize(int id){
         long size=downloadBytes(id);
         return size>0?String.format(Locale.ROOT,"%.1f MB",size/1048576d):
-                "约 4.8 MB";
+                id==FORMULA_NET?"约 334 MB":id==SEAL_DETECTION?"约 4.8 MB":"未知大小";
     }
     public static String preference(int id){
         return switch(id) {
@@ -79,6 +85,7 @@ public final class PaddleLocalModelsV3 {
             case TABLE_STRUCTURE -> TABLE_PREF;
             case UV_DOC -> UV_DOC_PREF;
             case SEAL_DETECTION -> SEAL_PREF;
+            case FORMULA_NET -> FORMULA_PREF;
             default -> throw new IllegalArgumentException("unknown preference "+id);
         };
     }
@@ -89,8 +96,13 @@ public final class PaddleLocalModelsV3 {
             case TABLE_STRUCTURE -> "table_slanet.onnx";
             case UV_DOC -> "uvdoc.onnx";
             case SEAL_DETECTION -> "seal_detector.onnx";
+            case FORMULA_NET -> "formula_plus_s.onnx";
             default -> throw new IllegalArgumentException("unknown local model "+id);
         });
+    }
+    public static File formulaTokenizer(Context context){
+        return new File(new File(context.getApplicationContext().getFilesDir(),
+                "ocr_models/paddle_local_v3"),"formula_tokenizer.json");
     }
     public static File vocabulary(Context context){
         return new File(new File(context.getApplicationContext().getFilesDir(),
@@ -102,7 +114,8 @@ public final class PaddleLocalModelsV3 {
         // Seal export has a pinned SHA-256 but its exact byte length is not
         // exposed by our upstream source. Never mark it executable on size alone.
         return file.isFile()&&(s.size>0?file.length()==s.size:file.length()>1000000L)
-                &&(id!=TABLE_STRUCTURE||validVocabulary(vocabulary(context)));
+                &&(id!=TABLE_STRUCTURE||validVocabulary(vocabulary(context)))
+                &&(id!=FORMULA_NET||validFormulaTokenizer(formulaTokenizer(context)));
     }
     public static boolean enabled(Context context,int id) {
         return context.getSharedPreferences(FloatSettings.PREF,Context.MODE_PRIVATE)
@@ -143,7 +156,7 @@ public final class PaddleLocalModelsV3 {
                     throw new IllegalStateException("Cannot create local model directory");
                 // Each model is optional and independently installed. Never
                 // prefetch other models or update them as a side effect.
-                long required=s.size>0?s.size:20000000L;
+                long required=s.size>0?s.size:s.size< -1?-s.size:20000000L;
                 if(dir.getUsableSpace()<required+64L*1024L*1024L)
                     throw new IllegalStateException("Insufficient storage for "
                         +s.name+" (leave 64 MB free)");
@@ -153,6 +166,12 @@ public final class PaddleLocalModelsV3 {
                     saveUrl(s.yamlUrl,vocab,32768L,null,null);
                     if(!validVocabulary(vocab))
                         throw new IllegalStateException("Table token dictionary is invalid");
+                }
+                if(id==FORMULA_NET){
+                    File vocab=formulaTokenizer(app);
+                    saveUrl(s.yamlUrl,vocab,5000000L,null,null);
+                    if(!validFormulaTokenizer(vocab))
+                        throw new IllegalStateException("Formula tokenizer validation failed");
                 }
                 if(!verify(app,id))throw new IllegalStateException("ONNX model integrity failed");
                 if(callback!=null)MAIN.post(callback::onSuccess);
@@ -179,11 +198,12 @@ public final class PaddleLocalModelsV3 {
                 byte[] buf=new byte[65536];int n;
                 while((n=in.read(buf))!=-1){
                     count+=n;
-                    long limit=upperBound>0?upperBound:20000000L;
+                    long limit=upperBound>0?upperBound:upperBound< -1?-upperBound:20000000L;
                     if(count>limit)throw new IllegalStateException("Model exceeds size limit");
                     md.update(buf,0,n);out.write(buf,0,n);
                     if(callback!=null&&sha!=null){
-                        int progress=(int)(100*count/(upperBound>0?upperBound:20000000L));
+                        long limit=upperBound>0?upperBound:upperBound< -1?-upperBound:20000000L;
+                        int progress=(int)(100*count/limit);
                         if(progress!=lastProgress && progress%5==0){
                             lastProgress=progress;final int v=progress;
                             MAIN.post(()->callback.onProgress(v));
@@ -214,6 +234,9 @@ public final class PaddleLocalModelsV3 {
         if(id==TABLE_STRUCTURE){
             File v=vocabulary(c);if(v.exists())v.delete();
         }
+        if(id==FORMULA_NET){
+            File v=formulaTokenizer(c);if(v.exists())v.delete();
+        }
     }
     private static boolean validVocabulary(File file) {
         if(!file.isFile()||file.length()<100||file.length()>32768)return false;
@@ -227,6 +250,20 @@ public final class PaddleLocalModelsV3 {
                 else if(entries>0&&!line.isBlank())break;
             }
             return entries==28;
+        }catch(Exception error){return false;}
+    }
+    private static boolean validFormulaTokenizer(File file){
+        if(!file.isFile()||file.length()<500000L||file.length()>5000000L)return false;
+        try(FileInputStream input=new FileInputStream(file)){
+            // SHA-1 Git blob, pinned to PaddleOCR revision, NOT a plain file hash.
+            MessageDigest sha=MessageDigest.getInstance("SHA-1");
+            sha.update(("blob "+file.length()+"\\0").getBytes(
+                java.nio.charset.StandardCharsets.UTF_8));
+            byte[] data=new byte[65536];int n;
+            while((n=input.read(data))!=-1)sha.update(data,0,n);
+            StringBuilder out=new StringBuilder();
+            for(byte v:sha.digest())out.append(String.format(Locale.ROOT,"%02x",v&255));
+            return "55a77607295cd64d9f57365ad5b72d8c837af978".equals(out.toString());
         }catch(Exception error){return false;}
     }
     private PaddleLocalModelsV3(){}
