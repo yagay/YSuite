@@ -15,6 +15,7 @@
         <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent>
     </queries>
     <application>
+        <activity android:name="com.yagay.YFloat.PaddlePdfImportActivity" android:theme="@style/Theme.YFloat" android:exported="false" />
         <activity android:name="com.yagay.YFloat.ResultActivity" android:theme="@style/Theme.YFloat.ResultText" android:exported="false" android:excludeFromRecents="true" android:launchMode="singleTop" android:taskAffinity="" />
         <activity android:name="com.yagay.YFloat.ShadeDismissActivity" android:theme="@style/Theme.YFloat.ShadeDismiss" android:exported="false" android:excludeFromRecents="true" android:noHistory="true" android:taskAffinity="" />
         <activity android:name="com.yagay.YFloat.SecureCaptureProbeActivity" android:exported="false" android:excludeFromRecents="true" android:taskAffinity="" />
