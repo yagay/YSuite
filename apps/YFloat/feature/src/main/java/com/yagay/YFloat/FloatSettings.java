@@ -179,9 +179,11 @@ public final class FloatSettings {
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 4);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 4); } catch (Throwable ignored) {} }
-        return 0;
+        if (raw instanceof Number n) return clamp(n.intValue(), 0, 5);
+        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 5); } catch (Throwable ignored) {} }
+        // New installations prefer installed offline Paddle. An explicitly
+        // persisted ML Kit (0) or other engine is never silently rewritten.
+        return 5;
     }
     public int circleCorrectionEngine() {
         Object raw = p.getAll().get(K_CIRCLE_CORRECTION_ENGINE);
