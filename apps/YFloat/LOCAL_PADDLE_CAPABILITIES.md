@@ -286,3 +286,32 @@ contiguous selection, repeated characters and incomplete source mappings.
 incorrect Latin space, source-preserving selection cannot infer the right
 word without additional reliable visual or linguistic context. That is
 a separate recognition-confidence problem, not a selection join issue.
+
+## Paddle-native OCR full core refactor (2026-10-18)
+
+- Normal screenshot OCR and Circle OCR now share `PaddleRecognitionRuntime`
+  for automatic/offline model selection, retry and confidence escalation.
+- `OcrEngine` has been reduced to request token state and UI dispatch; the
+  old multi-pass ML Kit Chinese/Latin fusion parser was removed.
+- `CircleStableOcr` calls the same runtime with no ML Kit branch; old
+  persisted ML Kit picker values migrate to installed Paddle Auto.
+- `PaddlePipelineV2` is the only ONNX/OpenCV session owner. The older
+  `PaddleOcrBridge` is now a stateless forwarding shim; the old
+  ML-styled `OcrCanonicalGeometry` and `MlKitTextCore` sources were deleted.
+- Removed ML Kit recognition dependencies from YFloat and inactive
+  language-family controls. Paddle recognition vocabulary is defined by
+  the actually installed model, not an inert UI switch.
+- `PaddlePageV2.Page.toDocument()` retains true block/line/word/symbol
+  output; Circle copies exact original UTF-16 text spans through
+  `OcrSelectionText` instead of inserting spaces from geometry group ids.
+- Explicit modes Tiny/Small/Medium/Mobile remain supported. The old ML Kit
+  and retired cloud modes map to Paddle Auto; Circle correction Off remains
+  Off.
+- Added real `PaddleRecognitionRuntimeTest` coverage; the Debug workflow
+  executes both feature and Paddle SDK tests before merging an ARM64 APK.
+
+See `PADDLE_NATIVE_ARCHITECTURE.md` for the maintained ownership contract.
+
+**Validation:** one consolidated final ARM64 Debug workflow after all of
+these intermediate `[skip ci]` commits. Native ONNX accuracy and end-to-end
+Circle gestures still require a physical device.
