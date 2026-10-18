@@ -47,12 +47,24 @@ final class CircleTextExpansionPolicy {
             float dx=b.exactCenterX()-a.exactCenterX();
             float dy=b.exactCenterY()-a.exactCenterY();
             float scale=Math.max(4f,Math.min(a.height(),b.height()));
-            float score=(dx*dx+dy*dy)/(scale*scale);
-            if(!to.text().equals(from.text()))score+=2f;
+            float score=remapScore(dx,dy,scale,
+                    to.text().equals(from.text()));
             if(score<best){best=score;index=i;}
         }
         // Reject unrelated text when full OCR misses the original symbol.
         return best<=14f?index:-1;
+    }
+
+    static float remapScore(float dx,float dy,float scale,
+                            boolean sameText) {
+        float divisor=Math.max(4f,scale);
+        return (dx*dx+dy*dy)/(divisor*divisor)+(sameText?0f:2f);
+    }
+    static float boxDistance(float x,float y,
+                             float left,float top,float right,float bottom) {
+        float dx=x<left?left-x:x>right?x-right:0f;
+        float dy=y<top?top-y:y>bottom?y-bottom:0f;
+        return dx*dx+dy*dy*1.5f;
     }
 
     /** A free drag must find the nearest text even beyond the 96dp main UI snap. */
@@ -63,9 +75,7 @@ final class CircleTextExpansionPolicy {
         for(int i=0;i<chars.size();i++){
             Rect b=chars.get(i).bounds();
             if(b.isEmpty()||chars.get(i).text().isBlank())continue;
-            float dx=x<b.left?b.left-x:x>b.right?x-b.right:0f;
-            float dy=y<b.top?b.top-y:y>b.bottom?y-b.bottom:0f;
-            float value=dx*dx+dy*dy*1.5f;
+            float value=boxDistance(x,y,b.left,b.top,b.right,b.bottom);
             if(value<distance){distance=value;best=i;}
         }
         return best;
