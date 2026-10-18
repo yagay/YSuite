@@ -17,6 +17,7 @@ final class ResultSession implements AutoCloseable {
     private final Rect sourceBounds;
     private String text;
     private List<String> blocks;
+    private OcrDocument ocrDocument;
     private final String meta;
     private boolean closed;
 
@@ -44,13 +45,25 @@ final class ResultSession implements AutoCloseable {
     }
 
     static ResultSession ocr(String text, List<String> blocks, Bitmap image, Rect sourceBounds) {
-        return new ResultSession(Mode.OCR, image, sourceBounds, text, blocks, "");
+        return ocr(text,blocks,image,sourceBounds,null);
+    }
+
+    static ResultSession ocr(String text, List<String> blocks, Bitmap image,
+                             Rect sourceBounds, OcrDocument document) {
+        ResultSession result=new ResultSession(Mode.OCR,image,sourceBounds,text,blocks,"");
+        result.ocrDocument=document;
+        return result;
     }
 
     void applyOcr(String text, List<String> blocks) {
+        applyOcr(text,blocks,null);
+    }
+
+    void applyOcr(String text, List<String> blocks,OcrDocument document) {
         mode = Mode.OCR;
         this.text = safe(text).trim();
         this.blocks = safeBlocks(blocks);
+        this.ocrDocument = document;
     }
 
     Mode originMode() { return originMode; }
@@ -59,6 +72,7 @@ final class ResultSession implements AutoCloseable {
     Rect sourceBounds() { return sourceBounds == null ? null : new Rect(sourceBounds); }
     String text() { return text; }
     List<String> blocks() { return new ArrayList<>(blocks); }
+    OcrDocument ocrDocument() { return ocrDocument; }
     String meta() { return meta; }
 
     boolean hasImage() { return image != null && !image.isRecycled(); }
@@ -74,7 +88,7 @@ final class ResultSession implements AutoCloseable {
 
     boolean hasText() { return !displayText().isBlank(); }
     boolean canOcr() { return hasImage(); }
-    boolean canSave() { return hasImage(); }
+    boolean canSave() { return hasImage() || ocrDocument!=null; }
     /** Copy means text when text exists, otherwise the current bitmap. */
     boolean canCopy() { return hasText() || hasImage(); }
 
@@ -117,6 +131,8 @@ final class ResultSession implements AutoCloseable {
         closed = true;
         image = null;
         blocks.clear();
+        ocrDocument=null;
+        ocrDocument=null;
     }
 
     /**
