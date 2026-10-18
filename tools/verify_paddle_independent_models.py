@@ -368,6 +368,37 @@ for name in ("PaddleRequestPerformanceTest.java","CircleCharSpatialIndexTest.jav
     if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():
         problems.append("Missing OCR performance regression case: "+name)
 
+# Screenshot regression: native Circle selection must not bridge unrelated
+# launcher icon glyphs and app captions, and highlight must not re-render OCR
+# letters with an invented app font.
+native=(java / "NativeCircleWorkspace.java").read_text()
+selector=(java / "CircleGestureTextSelector.java").read_text()
+transform=(java / "ScreenBitmapTransform.java").read_text()
+line_policy=(java / "CircleTextRangePolicy.java").read_text()
+for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
+               "CircleTextRangePolicy.lineScore(",
+               "CircleTextRangePolicy.splitsLabel("):
+    if needle not in selector:
+        problems.append("Gesture line-local selection regressed: "+needle)
+for needle in ("selectedLine=all.get(first).line()",
+               "CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)",
+               "selectionHighlightPaint", "screenToViewF(screenBand)",
+               "if(first==null)first=new RectF(highlight)",
+               "WindowInsets.Type.statusBars()", "float pillTop=safeToolbarTop();",
+               "float top=safeToolbarTop();"):
+    if needle not in native:
+        problems.append("Native Circle text highlight/status-bar fix regressed: "+needle)
+if "canvas.drawText(ch.text()" in native or "canvas.drawRoundRect(r,2*density,2*density,fillPaint)" in native:
+    problems.append("Text highlight draws OCR glyphs or old raw per-character fill")
+if "RectF screenToView(RectF screenRect" not in transform:
+    problems.append("Selection highlighter lost fractional coordinate precision")
+for needle in ("static float lineScore(", "static boolean splitsLabel(",
+               "static boolean sameLine("):
+    if needle not in line_policy:
+        problems.append("Missing line-boundary selection policy: "+needle)
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleTextRangePolicyTest.java").is_file():
+    problems.append("Missing icon-caption same-line selection regression tests")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
