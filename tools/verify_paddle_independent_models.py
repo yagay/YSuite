@@ -384,6 +384,8 @@ for needle in ("selectedLine=all.get(first).line()",
                "CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)",
                "canvas.clipRect(selected)", "screenToViewF(screenBand)",
                "if(first==null)first=new RectF(outline)",
+               "NativeCircleVisualPolicy.textSelectionScreenBand(",
+               "selectedSet.containsKey(unit)", "wholeLine=true",
                "WindowInsets.Type.statusBars()", "float pillTop=safeToolbarTop();",
                "float top=safeToolbarTop();"):
     if needle not in native:
@@ -419,8 +421,9 @@ for needle in ("selectionBorderPaint",
 for needle in ("canvas.clipRect(selected);",
                "canvas.drawBitmap(frame.bitmap,null,",
                "outline.inset(-NativeCircleVisualPolicy.textBorderOutsideGap(density)",
-               "Math.min(rowBounds.top,glyphBounds.top)",
-               "Math.max(rowBounds.bottom,glyphBounds.bottom)"):
+               "NativeCircleVisualPolicy.textSelectionScreenBand(",
+               "glyphBounds.left,glyphBounds.top,glyphBounds.right,glyphBounds.bottom,",
+               "wholeLine)"):
     if needle not in native:
         problems.append("OCR selection must restore source pixels with exterior outline: "+needle)
 if "selectionHighlightPaint" in native or "canvas.drawRoundRect(highlight," in native:
@@ -435,6 +438,16 @@ if "static int selectionWithAlpha(" not in style:
     problems.append("Native Circle highlight ignores user's custom selection color")
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").is_file():
     problems.append("Native Circle launcher-font visual policy regression test missing")
+else:
+    selection_tests=(FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").read_text()
+    for test_case in ("entireIconWordUsesDetectorWidthAndTightVerticalOverlap",
+                      "draggingOneCharacterNeverExpandsToWholeIconWord",
+                      "detectorCrossingUnrelatedIconIsRejected",
+                      "nonOverlappingDetectorFallsBackToSelectedCharacters"):
+        if test_case not in selection_tests:
+            problems.append("Missing native icon selection regression test: "+test_case)
+if "textSelectionScreenBand(" not in visual or "sharedWidth>=" not in visual:
+    problems.append("Native circle has no bounded glyph/line geometry policy")
 
 
 if problems:
