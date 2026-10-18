@@ -478,37 +478,48 @@ final class NativeCircleWorkspace extends View {
     }
 
     private void drawTextSelection(Canvas canvas) {
+        firstHandle.setEmpty();
+        lastHandle.setEmpty();
         if(chosenChars.isEmpty()||fullDocument==null)return;
         RectF first=null,last=null;
-        // CTC character boxes locate selection, but are not exact typeface
-        // contours. Use the complete original OCR row's VERTICAL extent:
-        // the earlier 78%-height band clipped tall Chinese glyph pixels.
+        // CTC character rectangles are hit targets, not reliable visual
+        // bounds on large launcher glyphs. Use the detector's original line
+        // width only when ALL drawable characters in that line are selected.
+        // For a dragged / partial selection preserve character-precise width.
         LinkedHashMap<Integer,Rect> glyphsByLine=new LinkedHashMap<>();
+        IdentityHashMap<OcrDocument.CharUnit,Boolean> selectedSet=
+                new IdentityHashMap<>();
         for(OcrDocument.CharUnit glyph:chosenChars){
             Rect b=glyph.bounds();
             if(b.isEmpty())continue;
+            selectedSet.put(glyph,Boolean.TRUE);
             Rect union=glyphsByLine.get(glyph.line());
             if(union==null)glyphsByLine.put(glyph.line(),new Rect(b));
             else union.union(b);
-            // Handle anchors come from final highlighted line bands below,
-            // not from raw CTC glyph rectangles of varying inferred heights.
         }
         for(var entry:glyphsByLine.entrySet()){
             Rect glyphBounds=entry.getValue();
-            Rect rowBounds=null;
+            Rect rowBounds=glyphBounds;
+            boolean wholeLine=false;
             for(OcrDocument.Line row:fullDocument.lines()){
-                if(!row.chars().isEmpty()&&row.chars().get(0).line()==entry.getKey()){
-                    rowBounds=row.bounds();break;
+                if(row.chars().isEmpty()||row.chars().get(0).line()!=entry.getKey())
+                    continue;
+                rowBounds=row.bounds();
+                wholeLine=true;
+                for(OcrDocument.CharUnit unit:row.chars()){
+                    if(unit.text().isBlank()||unit.bounds().isEmpty())continue;
+                    if(!selectedSet.containsKey(unit)){
+                        wholeLine=false;
+                        break;
+                    }
                 }
+                break;
             }
-            if(rowBounds==null||rowBounds.isEmpty())rowBounds=glyphBounds;
-            // Horizontal boundaries follow only the selected glyphs;
-            // vertical bounds include their full original OCR source row.
-            RectF screenBand=new RectF(
-                    glyphBounds.left-1f,
-                    Math.min(rowBounds.top,glyphBounds.top)-1f,
-                    glyphBounds.right+1f,
-                    Math.max(rowBounds.bottom,glyphBounds.bottom)+1f);
+            float[] band=NativeCircleVisualPolicy.textSelectionScreenBand(
+                    glyphBounds.left,glyphBounds.top,glyphBounds.right,glyphBounds.bottom,
+                    rowBounds.left,rowBounds.top,rowBounds.right,rowBounds.bottom,
+                    wholeLine);
+            RectF screenBand=new RectF(band[0],band[1],band[2],band[3]);
             RectF selected=screenToViewF(screenBand);
             if(!selected.isEmpty()){
                 // Scrim was painted before the selection. Reveal the actual
