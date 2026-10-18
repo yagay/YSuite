@@ -627,3 +627,35 @@ single-character drag, oversized detector and nonoverlapping detector. The
 static CI contract checks the actual native Circle path. This change needs a
 physical replay with the same launcher screenshot: source-only unit tests
 cannot prove a particular Paddle model returned accurate detector geometry.
+
+## TextGeometry V3 — Paddle selection reconstruction (2026-10-18)
+
+The active native Circle text selection now uses a geometry pipeline
+independent of OCR recognition/whitespace:
+
+1. `PaddlePageV2` retains the original detector line and CTC symbol
+   quadrilaterals when constructing `OcrDocument` (not just Rect bounds).
+2. `CoordinateMapper` maps every point once from local recognition
+   bitmap coordinates to absolute SCREEN coordinates, including ROI offsets.
+   `OcrDocument.translated` and the secondary Circle selection normalizer
+   also retain these quads.
+3. `TextGeometryV3` derives a single oriented selection per source OCR
+   line from chosen symbol quads. It never changes selected characters.
+4. Only for full-line, near-horizontal selections,
+   `TextGeometryPixelLocator` samples a small piece of the ORIGINAL frozen
+   screenshot. `TextGeometryPixelPolicy` accepts a correction only when the
+   colour mask is stable and the resulting box overlaps the selected glyphs.
+   There is no model download and no global OCR re-run.
+5. `NativeCircleWorkspace` restores original screenshot pixels inside the
+   selection quad via `Canvas.clipPath`, draws an OUTSIDE-only highlight,
+   and places draggable handles and action menu against exactly the same
+   geometry. Geometry is rebuilt on text selection, never during onDraw.
+6. Failures return to the source symbol quad; a bounded detector alignment
+   remains a legacy safety fallback for horizontal whole-line cases.
+
+Tests include uniform red icon / Chinese text pixel regression, a noisy
+background rejection case, and existing partial-character detector tests.
+Debug diagnostics report `TEXT_GEOMETRY_V3 selected_lines / pixel_corrected /
+fallback` without leaking the recognized text. Physical on-device validation
+is still needed for rotated perspective quads, complex backgrounds and
+other app icon fonts; OCR time alignment does not prove glyph contour accuracy.
