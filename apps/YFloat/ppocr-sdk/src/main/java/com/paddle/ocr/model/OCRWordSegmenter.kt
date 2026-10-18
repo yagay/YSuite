@@ -28,9 +28,9 @@ object OCRWordSegmenter {
             val isolated=script==Character.UnicodeScript.HAN
                     ||script==Character.UnicodeScript.HIRAGANA
                     ||script==Character.UnicodeScript.KATAKANA
-                    ||Character.getType(cp)==Character.OTHER_PUNCTUATION
-                    ||Character.getType(cp)==Character.START_PUNCTUATION
-                    ||Character.getType(cp)==Character.END_PUNCTUATION
+                    ||Character.getType(cp)==Character.OTHER_PUNCTUATION.toInt()
+                    ||Character.getType(cp)==Character.START_PUNCTUATION.toInt()
+                    ||Character.getType(cp)==Character.END_PUNCTUATION.toInt()
             if(isolated)flush()
             current.add(character)
             if(isolated)flush()
