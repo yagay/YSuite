@@ -592,9 +592,14 @@ Pixel-faithful fix:
   selected OCR row is clipped, and those pixels are **redrawn verbatim**
   from the very same frozen screenshot, with the same full-view bitmap
   destination. The selected text never gets tinted or re-typeset.
-- The geometry includes the original OCR line's full vertical extent and
-  the selected characters' horizontal extent. It does not truncate tall
-  Chinese glyphs to a 78% baseline guess.
+- The screenshot's actual glyph pixels remain the sole visual source.
+  Text geometry is now corrected in `NativeCircleVisualPolicy`: when every
+  drawable character in an OCR line is selected (e.g. the large 头条 icon),
+  take the detector's horizontal line edges where its overlap/size is
+  plausible, and use the tighter intersection of character and detector
+  vertical extents. This avoids the CTC box cutting off the final glyph
+  and the previous over-large top/bottom rectangle. A single-character
+  drag retains character-only geometry.
 - A thin custom-YUI selection border is inset *outward* by 2.5dp,
   leaving a visible gap from the source pixel band so even its stroke
   does not touch the selected text. Draggable handle stems remain
@@ -613,3 +618,12 @@ test for exact appearance; Debug CI cannot compare device-rendered frames.
 **Final pixel-faithful selection CI gate:** Validate untouched original glyph pixels, exterior handles and border, Paddle and YFloat unit tests and ARM64 Debug artifact. All earlier source changes used `[skip ci]`.
 
 **CI contract correction:** Source gate now anchors text handles to the new exterior selection outline instead of the obsolete blue fill. Rerun ARM64 Debug and both OCR unit-test suites.
+
+**2026-10-18 头条 text-outline fix:** Compare full-line detector bounds with
+CTC character bounds before drawing the source-pixel reveal, exterior outline
+and draggable handles. Reject wildly broad/nonoverlapping detector boxes.
+New visual-policy JUnit coverage tests a clipped second Chinese glyph, partial
+single-character drag, oversized detector and nonoverlapping detector. The
+static CI contract checks the actual native Circle path. This change needs a
+physical replay with the same launcher screenshot: source-only unit tests
+cannot prove a particular Paddle model returned accurate detector geometry.
