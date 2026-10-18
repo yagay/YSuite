@@ -441,6 +441,43 @@ if "static int selectionWithAlpha(" not in style:
 selection_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java"
 if not selection_test.is_file() or "nativeTextSelectionHasVisibleTranslucentBlueWash" not in selection_test.read_text():
     problems.append("TextGeometry V3 CJK text highlight regression missing")
+# Free text-handle expansion is NOT constrained by the initial ROI or row.
+# Initial highlighting is still row-local; a deliberate handle drag unlocks
+# all available lines and expands OCR asynchronously to the full screenshot.
+expansion=(java / "CircleTextExpansionPolicy.java").read_text()
+for needle in ("startOcr(null,false,true)",
+               "selectedLine=-1; // The initial-line lock is not a drag limit.",
+               "CircleTextExpansionPolicy.remap(",
+               "CircleTextExpansionPolicy.move(",
+               "CircleTextExpansionPolicy.unrestrictedNearest(",
+               "expansionDragCursorValid", "recognizedRoi=oldRoi",
+               "if(expandForHandle)", "oldDocument=fullDocument",
+               "TextGeometryV3.PixelRefiner refiner=handleDrag>=1&&handleDrag<=2"):
+    if needle not in native:
+        problems.append("Unrestricted screenshot OCR selection path missing: "+needle)
+for needle in ("new Range(last,target,END)",
+               "new Range(target,first,START)", "remapScore(",
+               "boxDistance(", "best<=14f?index:-1"):
+    if needle not in expansion:
+        problems.append("Unrestricted selection/remapping policy missing: "+needle)
+for prohibited in ("if(!CircleTextRangePolicy.sameLine(unit.line(),selectedLine))continue;\n            RectF rect",
+                   "if(handleDrag==1)firstChar=Math.min(candidate,lastChar)",
+                   "return best<0 || bestScore>maxDistance*maxDistance?-1:best;"):
+    if prohibited in native:
+        problems.append("Old OCR line/radius/endpoint limiter still active")
+free_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleTextExpansionPolicyTest.java"
+if not free_test.is_file():
+    problems.append("Unrestricted selection regression test missing")
+else:
+    free_cases=free_test.read_text()
+    for case in ("startHandleCanExpandBeyondFirstOcrLine",
+                 "endHandleCanExpandAcrossManyLinesWithoutCap",
+                 "bothHandlesCrossAndSwapTheirActiveRole",
+                 "remapPrefersScreenPositionOverStringDuplicates",
+                 "no96DpLimitOnDistanceFallback"):
+        if case not in free_cases:
+            problems.append("Unrestricted selection regression missing "+case)
+
 if "textSelectionScreenBand(" not in visual or "sharedWidth>=" not in visual:
     problems.append("Native circle has no bounded glyph/line geometry policy")
 
