@@ -19,7 +19,7 @@ import java.util.Map;
  */
 final class OcrResultDispatcher {
     interface Sink {
-        void onResult(String text, List<String> blocks);
+        void onResult(String text, List<String> blocks, OcrDocument document);
     }
 
     private static final Object LOCK = new Object();
@@ -40,6 +40,11 @@ final class OcrResultDispatcher {
     }
 
     static boolean deliver(Context c, String text, List<String> blocks, Bitmap image, Rect anchor) {
+        return deliver(c,text,blocks,image,anchor,null);
+    }
+
+    static boolean deliver(Context c, String text, List<String> blocks, Bitmap image,
+                           Rect anchor, OcrDocument document) {
         if (c == null) return false;
         Context app = c.getApplicationContext();
         String value = text == null ? "" : text;
@@ -50,19 +55,19 @@ final class OcrResultDispatcher {
         if (sink != null) {
             MAIN.post(() -> {
                 try {
-                    sink.onResult(value, safeBlocks);
+                    sink.onResult(value, safeBlocks, document);
                     DiagnosticLog.i(app, "OCR_DISPATCH", "inline chars=" + value.length()
                             + " blocks=" + safeBlocks.size());
                 } catch (Throwable t) {
                     DiagnosticLog.i(app, "OCR_DISPATCH", "inline failed=" + t);
-                    ResultSurfaceRouter.showOcr(app, value, safeBlocks, image, anchor);
+                    ResultSurfaceRouter.showOcr(app, value, safeBlocks, image, anchor, document);
                 }
             });
             return true;
         }
 
         MAIN.post(() -> {
-            boolean shown = ResultSurfaceRouter.showOcr(app, value, safeBlocks, image, anchor);
+            boolean shown = ResultSurfaceRouter.showOcr(app, value, safeBlocks, image, anchor, document);
             DiagnosticLog.i(app, "OCR_DISPATCH", "default chars=" + value.length()
                     + " blocks=" + safeBlocks.size() + " shown=" + shown);
         });
