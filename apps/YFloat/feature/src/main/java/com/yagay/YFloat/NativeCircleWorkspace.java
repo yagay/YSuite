@@ -23,7 +23,6 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.Toast;
-import android.widget.FrameLayout;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +42,7 @@ import java.util.Locale;
  * remain local screenshot regions. Paddle V2 is the preferred on-device
  * experiment from the circle image menu, never an automatic text redirect.
  */
-final class NativeCircleWorkspace extends FrameLayout {
+final class NativeCircleWorkspace extends View {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static NativeCircleWorkspace active;
 
@@ -60,12 +59,17 @@ final class NativeCircleWorkspace extends FrameLayout {
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint selectionFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    // Exact main branch FLCircleInlineOverlay handle artwork: 7dp stem and 7dp dot.
+    private final Paint textHandlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final float TEXT_HANDLE_HIT_DP = 28f;
+    private static final float TEXT_HANDLE_SNAP_DP = 96f;
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path dragPath = new Path();
     private final Path awaitingTextPath = new Path();
     private final ArrayList<PointF> stroke = new ArrayList<>();
     private final RectF closeHit = new RectF();
+    private PointF firstTextGrip,lastTextGrip;
     private final RectF[] imageHandles = {
             new RectF(), new RectF(), new RectF(), new RectF()
     };
@@ -88,8 +92,6 @@ final class NativeCircleWorkspace extends FrameLayout {
     // Built only when the text selection changes; onDraw never runs pixel
     // segmentation, OCR, or another coordinate conversion.
     private List<TextGeometryV3.Region> textGeometry=List.of();
-    // Dedicated handle overlay; never moves the frozen screenshot pixels.
-    private final NativeSelectionHandlesView selectionHandles;
     private int firstChar = -1, lastChar = -1;
     /** -1 means explicit Select all; otherwise hands stay on initial OCR line. */
     private int selectedLine=-1;
@@ -168,30 +170,14 @@ final class NativeCircleWorkspace extends FrameLayout {
         selectionFillPaint.setStyle(Paint.Style.FILL);
         selectionFillPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
                 app,NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA));
+        // Ported from main/FLCircleInlineOverlay.java; the same blue dot/stem.
+        textHandlePaint.setColor(0xFF4285F4);
+        textHandlePaint.setStyle(Paint.Style.FILL);
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.CENTER);
         toolbarPaint.setColor(Color.argb(241, 31, 34, 42));
         setFocusable(true);
         setClickable(true);
-        setWillNotDraw(false);
-        selectionHandles=new NativeSelectionHandlesView(context,
-                new NativeSelectionHandlesView.DragListener(){
-            @Override public void onBegin(int active){
-                FloatActionMenu.dismiss();
-                handleDrag=active;
-            }
-            @Override public int onMove(int active,float x,float y){
-                int next=adjustTextHandle(active,x,y);
-                handleDrag=next;
-                return next;
-            }
-            @Override public void onEnd(){
-                handleDrag=0;
-                syncPopup();
-            }
-        });
-        addView(selectionHandles,new FrameLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
     }
 
     private String t(String zh,String en) {
@@ -500,10 +486,12 @@ final class NativeCircleWorkspace extends FrameLayout {
         }
     }
 
-    /** Original screenshot and translucent glyph selection remain V3-owned.
-     * Handles are rendered by a sibling View, never within this Canvas.
+    /** Main branch FLCircleInlineOverlay-style stem + circle text handles.
+     * TextGeometry V3 continues to supply the improved blue selection quads.
      */
     private void drawTextSelection(Canvas canvas) {
+        firstTextGrip=null;
+        lastTextGrip=null;
         if(chosenChars.isEmpty() || textGeometry.isEmpty())return;
         for(TextGeometryV3.Region region:textGeometry){
             List<PointF> corners=quadToView(region.corners());
@@ -516,36 +504,27 @@ final class NativeCircleWorkspace extends FrameLayout {
             canvas.restore();
             canvas.drawPath(selection,selectionFillPaint);
         }
+        drawTextHandles(canvas);
     }
 
-    private static float[] asCorners(List<PointF> points){
-        if(points==null||points.size()!=4)return new float[0];
-        float[] out=new float[8];
-        for(int i=0;i<4;i++){
-            out[i*2]=points.get(i).x;
-            out[i*2+1]=points.get(i).y;
-        }
-        return out;
-    }
-
-    /** Render handles from the same V3 highlight regions, but with separate
-     * caret hotspots and independent View touch targets.
+    /** Exact main-branch grip dimensions/attachment based on first/last
+     * selected word rectangles. Only the rectangle source is updated to V3.
      */
-    private void updateSelectionHandles() {
-        if(closed||state.phase!=NativeCircleState.Phase.TEXT_READY
-                ||textGeometry.isEmpty()||getWidth()<=0||getHeight()<=0){
-            selectionHandles.clear();
-            return;
-        }
-        List<PointF> first=quadToView(textGeometry.get(0).corners());
-        List<PointF> last=quadToView(textGeometry.get(textGeometry.size()-1).corners());
-        selectionHandles.show(TextCaretGeometry.forQuads(
-                asCorners(first),asCorners(last)));
-    }
-
-    @Override protected void onSizeChanged(int w,int h,int oldW,int oldH) {
-        super.onSizeChanged(w,h,oldW,oldH);
-        updateSelectionHandles();
+    private void drawTextHandles(Canvas canvas) {
+        if(textGeometry.isEmpty())return;
+        RectF first=screenToViewF(textGeometry.get(0).bounds());
+        RectF last=screenToViewF(textGeometry.get(textGeometry.size()-1).bounds());
+        if(first.isEmpty()||last.isEmpty())return;
+        float stem=7f*density;
+        float radius=7f*density;
+        canvas.drawLine(first.left,first.bottom,
+                first.left,first.bottom+stem,textHandlePaint);
+        canvas.drawCircle(first.left,first.bottom+stem,radius,textHandlePaint);
+        canvas.drawLine(last.right,last.bottom,
+                last.right,last.bottom+stem,textHandlePaint);
+        canvas.drawCircle(last.right,last.bottom+stem,radius,textHandlePaint);
+        firstTextGrip=new PointF(first.left,first.bottom+stem);
+        lastTextGrip=new PointF(last.right,last.bottom+stem);
     }
 
     private List<PointF> quadToView(List<PointF> screen){
@@ -582,7 +561,6 @@ final class NativeCircleWorkspace extends FrameLayout {
         int corrected=0;
         for(TextGeometryV3.Region part:textGeometry)
             if(part.pixelCorrected)corrected++;
-        updateSelectionHandles();
         DiagnosticLog.i(app,"TEXT_GEOMETRY_V3",
                 "selected_lines="+textGeometry.size()+" pixel_corrected="+corrected+
                         " fallback="+(textGeometry.size()-corrected));
@@ -1001,7 +979,7 @@ final class NativeCircleWorkspace extends FrameLayout {
         FloatActionMenu.dismiss();
         state.clear();chosenChars.clear();
         textGeometry=List.of();
-        selectionHandles.clear();
+        firstTextGrip=lastTextGrip=null;
         firstChar=lastChar=-1;selectedLine=-1;pendingGesture=null;status="";
         awaitingTextPath.reset();
         invalidate();
@@ -1016,6 +994,10 @@ final class NativeCircleWorkspace extends FrameLayout {
             // The menu owns its own touchable popup window. Any touch in the
             // canvas begins a handle adjustment or fresh selection instead.
             FloatActionMenu.dismiss();
+            if(state.phase==NativeCircleState.Phase.TEXT_READY){
+                int textHandle=hitTextHandle(x,y);
+                if(textHandle!=0){handleDrag=textHandle;return true;}
+            }
             if(state.phase==NativeCircleState.Phase.IMAGE_READY){
                 for(int i=0;i<imageHandles.length;i++){
                     if(imageHandles[i].contains(x,y)){
@@ -1036,13 +1018,13 @@ final class NativeCircleWorkspace extends FrameLayout {
             awaitingTextPath.reset();
             chosenChars.clear();firstChar=lastChar=-1;
             textGeometry=List.of();
-            selectionHandles.clear();
-            pendingGesture=null;status="";
+            firstTextGrip=lastTextGrip=null;            pendingGesture=null;status="";
             invalidate();return true;
         }
         if(handleDrag!=0){
             if(action==MotionEvent.ACTION_MOVE||action==MotionEvent.ACTION_UP){
-                adjustImageHandle(x,y);
+                if(handleDrag<=2)adjustTextHandle(x,y);
+                else adjustImageHandle(x,y);
                 if(action==MotionEvent.ACTION_UP) {
                     handleDrag=0;
                     syncPopup();
@@ -1101,42 +1083,49 @@ final class NativeCircleWorkspace extends FrameLayout {
         state.bounds(l,t,r,b);
     }
 
-    /**
-     * AOSP-style cursor tracking: finger offset belongs to the handle View;
-     * only the normalized cursor hotspot is mapped to OCR screen space.
-     * Crossing an endpoint swaps roles instead of freezing the selection.
+    /** Main FLCircleInlineOverlay semantics: 28dp hit target around a
+     * 7dp stem + 7dp blue circle, retaining only the nearest OCR character
+     * within the 96dp selection snap window.
      */
-    private int adjustTextHandle(int active,float x,float y){
-        if(fullDocument==null||charIndex==null)return active;
-        List<OcrDocument.CharUnit> all=cachedChars;
-        if(all.isEmpty())return active;
-        PointF screen=frame.transform.viewToScreen(x,y,getWidth(),getHeight());
-        int candidate=charIndex.nearest(screen.x,screen.y);
-        if(candidate<0)return active;
-        if(!CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)){
-            // Normal short selections remain on the initial OCR row; explicit
-            // Select all (-1) may traverse lines.
-            float best=Float.POSITIVE_INFINITY;
-            candidate=-1;
-            for(int i=0;i<all.size();i++){
-                if(!CircleTextRangePolicy.sameLine(all.get(i).line(),selectedLine))
-                    continue;
-                Rect b=all.get(i).bounds();
-                float dx=b.exactCenterX()-screen.x;
-                float dy=b.exactCenterY()-screen.y;
-                float distance=dx*dx+dy*dy;
-                if(distance<best){best=distance;candidate=i;}
-            }
-            if(candidate<0)return active;
+    private int hitTextHandle(float x,float y){
+        if(firstTextGrip==null || lastTextGrip==null)return 0;
+        float max=TEXT_HANDLE_HIT_DP*density;
+        if(Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)<=max)return 1;
+        if(Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)<=max)return 2;
+        return 0;
+    }
+
+    private void adjustTextHandle(float x,float y){
+        if(fullDocument==null || cachedChars.isEmpty())return;
+        // Main's findSelectionWord: exact box hit first; otherwise choose
+        // nearest eligible source character using weighted row distance.
+        int candidate=findMainStyleSelectionChar(x,y);
+        if(candidate<0)return;
+        if(handleDrag==1)firstChar=Math.min(candidate,lastChar);
+        else lastChar=Math.max(candidate,firstChar);
+        applyTextIndices(state.revision,false);
+    }
+
+    private int findMainStyleSelectionChar(float x,float y){
+        float maxDistance=TEXT_HANDLE_SNAP_DP*density;
+        float bestScore=Float.MAX_VALUE;
+        int best=-1;
+        for(int i=0;i<cachedChars.size();i++){
+            OcrDocument.CharUnit unit=cachedChars.get(i);
+            if(!CircleTextRangePolicy.sameLine(unit.line(),selectedLine))continue;
+            RectF rect=screenToViewF(new RectF(unit.bounds()));
+            if(rect.isEmpty())continue;
+            // Direct hit is always preferred, just like main.
+            if(rect.contains(x,y))return i;
+            float dx=x<rect.left?rect.left-x:x>rect.right?x-rect.right:0f;
+            float dy=y<rect.top?rect.top-y:y>rect.bottom?y-rect.bottom:0f;
+            float rowGate=Math.max(rect.height()*1.35f,
+                    Math.min(maxDistance*0.48f,rect.height()*2.15f));
+            if(dy>rowGate)continue;
+            float score=dx*dx+dy*dy*3.25f;
+            if(score<bestScore){bestScore=score;best=i;}
         }
-        SelectionDragController.Range moved=SelectionDragController.move(
-                firstChar,lastChar,active,candidate);
-        if(moved.first!=firstChar||moved.last!=lastChar){
-            firstChar=moved.first;
-            lastChar=moved.last;
-            applyTextIndices(state.revision,false);
-        }
-        return moved.active;
+        return best<0 || bestScore>maxDistance*maxDistance?-1:best;
     }
 
     @Override public boolean onKeyDown(int code,KeyEvent event){
@@ -1152,7 +1141,7 @@ final class NativeCircleWorkspace extends FrameLayout {
         if(activeOcr!=null)activeOcr.cancel();
         cachedChars=List.of();charIndex=null;
         textGeometry=List.of();
-        selectionHandles.clear();
+        firstTextGrip=lastTextGrip=null;
         charOrdinals.clear();
         awaitingTextPath.reset();
         sourceSpans.clear();
