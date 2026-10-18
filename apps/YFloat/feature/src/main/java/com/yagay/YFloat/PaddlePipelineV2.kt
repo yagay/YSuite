@@ -366,6 +366,7 @@ object PaddlePipelineV2 {
                     lastTables=linked
                     page.asLegacy("ppocr-v2-"+model)
                         .withTableTexts(linked.map{it.tabSeparated}.filter{it.isNotBlank()})
+                        .withTableHtmls(linked.map{it.html}.filter{it.isNotBlank()})
                         .withSealTexts(seals.map{it.recognizedText}.filter{it.isNotBlank()})
                         .withUnwarpedText(latestUnwarpedDocument?.fullText().orEmpty())
                         .withFormulaTexts(formulas.map{it.latex})
