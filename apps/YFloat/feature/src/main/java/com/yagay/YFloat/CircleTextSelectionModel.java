@@ -344,7 +344,8 @@ final class CircleTextSelectionModel {
             Rect clipped = c.bounds();
             if (!workspace.isEmpty() && (!clipped.intersect(workspace) || clipped.isEmpty())) continue;
             OcrDocument.CharUnit clippedUnit=new OcrDocument.CharUnit(
-                    c.text(),clipped,c.confidence(),c.line(),c.group(),c.order());
+                    c.text(),clipped,c.confidence(),c.line(),c.group(),c.order(),
+                    c.quad());
             sorted.add(clippedUnit);
             if(sourceRanges.containsKey(c))
                 sortedRanges.put(clippedUnit,sourceRanges.get(c));
@@ -381,7 +382,8 @@ final class CircleTextSelectionModel {
                 if (semanticBreak) group++;
                 lineCenter = (lineCenter + r.centerY()) / 2;
             }
-            out.add(new OcrDocument.CharUnit(c.text(), r, c.confidence(), line, group, order++));
+            out.add(new OcrDocument.CharUnit(c.text(), r, c.confidence(), line, group, order++,
+                    c.quad()));
             normalizedRanges.add(sortedRanges.get(c));
             previous = r;
             previousSourceLine = c.line();
