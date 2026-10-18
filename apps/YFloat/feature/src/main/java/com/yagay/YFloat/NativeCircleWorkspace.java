@@ -630,8 +630,12 @@ final class NativeCircleWorkspace extends View {
     }
 
     private void rebuildSelectionGeometry() {
-        textGeometry=TextGeometryV3.build(fullDocument,chosenChars,
-                (glyph,detector)->TextGeometryPixelLocator.refine(frame,glyph,detector));
+        // Geometry updates on every drag move. Delay expensive screenshot
+        // pixel segmentation until release, keeping cross-line drag smooth.
+        TextGeometryV3.PixelRefiner refiner=handleDrag>=1&&handleDrag<=2
+                ?null:(glyph,detector)->TextGeometryPixelLocator.refine(
+                        frame,glyph,detector);
+        textGeometry=TextGeometryV3.build(fullDocument,chosenChars,refiner);
         int corrected=0;
         for(TextGeometryV3.Region part:textGeometry)
             if(part.pixelCorrected)corrected++;
@@ -1119,11 +1123,15 @@ final class NativeCircleWorkspace extends View {
                     expansionDragEndpoint=handleDrag;
                 }else adjustImageHandle(x,y);
                 if(action==MotionEvent.ACTION_UP) {
+                    boolean wasText=handleDrag<=2;
                     handleDrag=0;
+                    if(wasText)rebuildSelectionGeometry();
                     syncPopup();
                 }
             }else if(action==MotionEvent.ACTION_CANCEL){
+                boolean wasText=handleDrag<=2;
                 handleDrag=0;
+                if(wasText)rebuildSelectionGeometry();
                 syncPopup();
             }
             invalidate();
@@ -1183,8 +1191,10 @@ final class NativeCircleWorkspace extends View {
     private int hitTextHandle(float x,float y){
         if(firstTextGrip==null || lastTextGrip==null)return 0;
         float max=TEXT_HANDLE_HIT_DP*density;
-        if(Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)<=max)return 1;
-        if(Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)<=max)return 2;
+        float startDistance=(float)Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y);
+        float endDistance=(float)Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y);
+        if(startDistance<=max && startDistance<=endDistance)return 1;
+        if(endDistance<=max)return 2;
         return 0;
     }
 
