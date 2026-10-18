@@ -209,7 +209,7 @@ final class NativeCircleWorkspace extends View {
                                 "Text unavailable; circle an image instead");
                         FLCircleSelection.Selection pending = pendingGesture;
                         if (pending != null) {
-                            if (pending.kind==FLCircleSelection.Kind.HIGHLIGHT)
+                            if (!NativeCircleIntentRouter.permitsImageFallback(pending.kind.name()))
                                 rejectTextGesture(pending,gestureRevision,"ocr_failure");
                             else resolveImage(pending,gestureRevision);
                         }
@@ -446,7 +446,7 @@ final class NativeCircleWorkspace extends View {
         }
         if(fullDocument==null){
             if(ocrBusy) { pendingGesture=gesture;status=t("正在识别…","Recognizing…"); }
-            else if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+            else if(!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name()))
                 rejectTextGesture(gesture,token,"ocr_unavailable");
             else resolveImage(gesture,token);
             invalidate();
@@ -460,13 +460,13 @@ final class NativeCircleWorkspace extends View {
         } catch (Throwable error) {
             DiagnosticLog.i(app, "CIRCLE_NATIVE",
                     "ocr hit matching failed=" + ScreenCaptureBackend.safeMessage(error));
-            if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+            if(!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name()))
                 rejectTextGesture(gesture,token,"matching_error");
             else resolveImage(gesture,token);
             return;
         }
         if(groups==null || groups.isEmpty()) {
-            if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+            if(!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name()))
                 rejectTextGesture(gesture,token,"no_text_at_stroke");
             else resolveImage(gesture,token);
             return;
@@ -487,7 +487,7 @@ final class NativeCircleWorkspace extends View {
             }
         }
         if(first>last){
-            if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+            if(!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name()))
                 rejectTextGesture(gesture,token,"no_character_match");
             else resolveImage(gesture,token);
             return;
@@ -496,7 +496,7 @@ final class NativeCircleWorkspace extends View {
         applyTextIndices(token,true);
         if (state.phase != NativeCircleState.Phase.TEXT_READY) {
             // Empty/invalid OCR text must not leave the workspace stuck in RESOLVING.
-            if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+            if(!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name()))
                 rejectTextGesture(gesture,token,"invalid_text");
             else resolveImage(gesture,token);
             return;
@@ -642,7 +642,7 @@ final class NativeCircleWorkspace extends View {
             long token = gestureRevision;
             // Local OCR often needs 9-12 seconds. A highlight must not turn
             // into an image crop solely because its recognition is slow.
-            boolean highlight=gesture.kind==FLCircleSelection.Kind.HIGHLIGHT;
+            boolean highlight=!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name());
             MAIN.postDelayed(() -> {
                 if (closed || state.phase != NativeCircleState.Phase.RESOLVING
                         || state.revision != token || pendingGesture != gesture) return;
