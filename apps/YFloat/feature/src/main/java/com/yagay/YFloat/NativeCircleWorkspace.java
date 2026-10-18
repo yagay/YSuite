@@ -565,6 +565,17 @@ final class NativeCircleWorkspace extends View {
                         " fallback="+(textGeometry.size()-corrected));
     }
 
+    /** Keep the popup on the same visible V3 geometry as the blue outline. */
+    private RectF selectedTextViewBox() {
+        RectF box=new RectF();
+        for(TextGeometryV3.Region region:textGeometry){
+            List<PointF> view=quadToView(region.corners());
+            if(view.size()!=4)continue;
+            for(PointF p:view)box.union(p.x,p.y);
+        }
+        return box.isEmpty()?selectedViewBox():box;
+    }
+
     /** One menu host for both OCR text and selected image rectangles. */
     private void syncPopup() {
         if (closed || touching || handleDrag != 0) return;
@@ -574,7 +585,7 @@ final class NativeCircleWorkspace extends View {
             FloatActionMenu.dismiss();
             return;
         }
-        RectF selection = selectedViewBox();
+        RectF selection = text ? selectedTextViewBox() : selectedViewBox();
         if (selection.isEmpty()) {
             FloatActionMenu.dismiss();
             return;
