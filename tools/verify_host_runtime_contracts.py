@@ -36,8 +36,6 @@ def check_host_identity() -> None:
          "apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/GuardConfig.java"),
         ("apps/YNotify/feature/build.gradle.kts",
          "apps/YNotify/feature/src/main/java/com/yagay/YNotify/xposed/YNotifyModule.java"),
-        ("apps/YFloat/feature/build.gradle",
-         "apps/YFloat/feature/src/main/java/com/yagay/YFloat/hook/GoogleBridgeSender.java"),
     )
     for build, implementation in checks:
         require(build, "embeddedInSuite", "HOST_PACKAGE", "com.yagay.YSuite")
@@ -47,15 +45,16 @@ def check_host_identity() -> None:
 
     require("apps/YMiniGuard/feature/src/main/java/com/yagay/YMiniGuard/EngineBridge.java",
             "GuardConfig.hostPackage()", "updateContext(", "installed APK path")
-    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/hook/GoogleBridgeSender.java",
-            "receiverClass(host,", "hostPackage() + \".googlebridge\"")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatHostIdentity.java",
+            "XposedHostBridge.attachListener(", "LsposedRuntimeConfig.K_HOST_PACKAGE")
+    require("apps/YFloat/feature/build.gradle", "embeddedInSuite", "HOST_PACKAGE")
     require("apps/YNotify/feature/src/main/java/com/yagay/YNotify/xposed/YNotifyModule.java",
             "YSUITE_BRIDGE_RECEIVER", "hostPackage()")
 
     manifest = require("suite/YSuite/src/main/AndroidManifest.xml",
-                       "SuiteMiniGuardStatusProvider", "SuiteGoogleBridgeProvider",
+                       "SuiteMiniGuardStatusProvider",
                        "SuiteNfcConfigProvider", "SuiteBridgeReceiver",
-                       "${applicationId}.engine_status", "${applicationId}.googlebridge",
+                       "${applicationId}.engine_status",
                        "${applicationId}.ynfc.config")
     if "android:exported=\"true\"" not in manifest:
         raise AssertionError("YSuite IPC providers must remain registered")

@@ -22,43 +22,14 @@ def require(path: str, *tokens: str) -> str:
 
 
 def check() -> None:
-    store_path = "libs/yui/src/main/java/com/yagay/yui/YAppearanceStore.kt"
-    registry_path = "libs/yui/src/main/java/com/yagay/yui/YUiControlRegistry.kt"
-    screen_path = "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt"
-    store = source(store_path)
-    registry = source(registry_path)
-    screen = source(screen_path)
-    bridge = source("apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatVisualSettings.java")
-    floats = source("apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatSettings.java")
-    keys = (
-        ("GOOGLE_FRAME_RADIUS", "K_GOOGLE_FRAME_RADIUS_DP", "googleFrameRadiusDp"),
-        ("GOOGLE_FRAME_OUTLINE", "K_GOOGLE_FRAME_OUTLINE_DP", "googleFrameOutlineDp"),
-        ("GOOGLE_FRAME_GLOW_WIDTH", "K_GOOGLE_FRAME_GLOW_WIDTH_DP", "googleFrameGlowWidthDp"),
-        ("GOOGLE_FRAME_GLOW_BLUR", "K_GOOGLE_FRAME_GLOW_BLUR_DP", "googleFrameGlowBlurDp"),
-        ("GOOGLE_FRAME_GLOW_ALPHA", "K_GOOGLE_FRAME_GLOW_ALPHA", "googleFrameGlowAlpha"),
-        ("GOOGLE_FRAME_SCRIM_ALPHA", "K_GOOGLE_FRAME_SCRIM_ALPHA", "googleFrameScrimAlpha"),
-        ("GOOGLE_FRAME_TRAIL_WIDTH", "K_GOOGLE_FRAME_TRAIL_WIDTH_DP", "googleFrameTrailWidthDp"),
-    )
-    for key, legacy, getter in keys:
-        if (f"YSettingKey.{key}" not in registry or
-                f"YSettingKey.{key} ->" not in screen or
-                f"value(YSettingKey.{key}, moduleId)" not in store or
-                f"FloatSettings.{legacy} -> YSettingKey.{key}" not in bridge or
-                f"public int {getter}() {{ return YFloatVisualSettings.readInt(" not in floats):
-            raise AssertionError(f"YFloat Google visual not sourced from YUI: {key}")
-        if f"p.getInt({legacy}" in floats:
-            raise AssertionError(f"YFloat duplicate SharedPreferences visual: {legacy}")
-    require(store_path, 'GOOGLE_FRAME_YUI_COLOR("google_frame_use_yui_color", "true")')
-    require(registry_path, "YSettingKey.GOOGLE_FRAME_YUI_COLOR")
-    require(screen_path, "YSettingKey.GOOGLE_FRAME_YUI_COLOR ->")
-    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/GoogleOverlayAppearance.java",
-            "K_GOOGLE_FRAME_USE_YUI_COLOR, true")
-    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/LsposedRuntimeStore.java",
-            "YOverlayTokens.accent(", "settings.googleFrameRadiusDp()")
-    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/LsposedStatusManager.java",
-            'key.startsWith("global.")', 'key.startsWith("module.yfloat.")')
-    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatVisualSettings.java",
-            "migrateGoogleFrame(", "GOOGLE_MIGRATED")
+    # The retired Google CTS visual contract is replaced by the local
+    # Paddle V2 structure and shared YUI appearance checks.
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/PaddleStructureSettingsV2.java",
+            "YViewLayout.compactButton(", "YViewLayout.addRow(", "YViewLayout.baseRow(")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsCapturePage.java",
+            "PaddleStructureSettingsV2.add(activity,models.body)")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/PaddlePageV2.kt",
+            "OcrStructure.Block(", "OcrStructure.Word(", "OcrStructure.Symbol(")
 
     # MiniGuard heartbeat must survive early system context lookups and report
     # actual persistence failures; its status UI must update while visible.
@@ -110,8 +81,8 @@ def check() -> None:
             "FloatSettings.K_CIRCLE_BORDER_COLOR", "FloatSettings.K_CIRCLE_BORDER_WIDTH_DP",
             "YViewLayout.switchRow(", "YViewLayout.spinnerSetting(", "YViewLayout.sliderSetting(")
     require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsAdvancedSelectionPage.java",
-            "FloatSettings.K_GOOGLE_FRAME_RADIUS_DP",
-            "FloatSettings.K_GOOGLE_FRAME_GLOW_WIDTH_DP",
+            "FloatSettings.K_NODE_IMAGE_MIN_DP",
+            "FloatSettings.K_TEXT_HANDLE_SNAP_DP",
             "settings.resetAdvancedSelectionSettings(true)")
     require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppearanceSettingsActivity.java",
             "addThemeSpinner(theme.body)", "addMainItemCountSlider(textMenu.body)")
@@ -176,7 +147,7 @@ def check() -> None:
             "h.b.appName.setSingleLine(false)", "h.b.appName.setMaxLines(Integer.MAX_VALUE)")
     if 'app:strokeWidth="1dp"' in notify:
         raise AssertionError("YNotify XML hardcodes list-card outline; use the shared YUI renderer")
-    print("yui-independent-surfaces: PASS Google Hook snapshot, picker/menu, home row/pins, notify XML")
+    print("yui-independent-surfaces: PASS Paddle V2 YUI, picker/menu, home row/pins, notify XML")
 
 
 if __name__ == "__main__":

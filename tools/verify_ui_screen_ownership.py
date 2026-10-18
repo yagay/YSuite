@@ -49,8 +49,6 @@ SPECIALIZED_EXCEPTIONS: dict[str, str] = {
         "FLAG_SECURE probe intentionally renders a fixed marker color for screenshot verification",
     "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ShadeDismissActivity.java":
         "empty translucent 300 ms compatibility Activity used only to dismiss the notification shade",
-    "apps/YFloat/feature/src/main/java/com/yagay/YFloat/GoogleLensImageLaunchActivity.java":
-        "no-view translucent external Lens caller; startActivityForResult requires an Activity identity",
 }
 
 ACTIVITY_RE = re.compile(r"\bclass\s+\w*Activity\b|\bextends\s+(?:AppCompatActivity|ComponentActivity|Activity)\b")

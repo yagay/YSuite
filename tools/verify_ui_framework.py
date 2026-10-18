@@ -128,8 +128,8 @@ def verify_runtime_appearance() -> None:
     overlay = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YOverlayUi.kt")
     for marker in ("fun scopedContext(", "fun panelBackground(", "fun menuBackground(", "fun cornerRadiusPx(", "fun scaleScrimAlpha(", "fun YUiOverlayPanel("):
         require(overlay, marker, "central YUI overlay facade")
-    confirm = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/GoogleRegionConfirmOverlay.java")
-    require(confirm, "YOverlayUi.styleAction(", "YFloat selection confirmation overlay")
+    paddle_settings = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/PaddleStructureSettingsV2.java")
+    require(paddle_settings, "YViewLayout.compactButton(", "Paddle layout settings must use shared YUI widgets")
     initializer = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt")
     require(initializer, 'changedKey.startsWith("overlay_")', "overlay-only settings must avoid Activity recreation")
     settings = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt")
@@ -476,8 +476,8 @@ def main() -> None:
         (float_border, ('FloatSettings.K_CIRCLE_BORDER_COLOR',
                         'FloatSettings.K_CIRCLE_BORDER_WIDTH_DP',
                         'YViewLayout.sliderSetting('), "YFloat border controls"),
-        (float_advanced, ('FloatSettings.K_GOOGLE_FRAME_RADIUS_DP',
-                          'settings.resetAdvancedSelectionSettings(true)'), "YFloat Google frame appearance"),
+        (float_advanced, ('FloatSettings.K_NODE_IMAGE_MIN_DP',
+                          'settings.resetAdvancedSelectionSettings(true)'), "YFloat local selection controls"),
         (float_main, ('R.string.yfloat_interface_settings',), "YFloat appearance navigation"),
     ):
         for marker in markers:
@@ -486,7 +486,7 @@ def main() -> None:
         (float_icon, "icon"),
         (float_gesture, "trail"),
         (float_capture, "border"),
-        (float_advanced, "Google frame"),
+        (float_advanced, "local selection"),
     ):
         if 'if (!"com.yagay.YSuite".equals(activity.getPackageName()))' in source or 'if (!embeddedInSuite)' in source:
             fail(f"YFloat {label} appearance is hidden in integrated YSuite")
