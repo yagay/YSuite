@@ -84,6 +84,9 @@ final class NativeCircleWorkspace extends View {
     private PaddleRequestToken activeOcr;
     private int ocrSequence;
     private boolean selectAllAfterFullOcr;
+    private boolean expansionDragCursorValid;
+    private float expansionDragX,expansionDragY;
+    private int expansionDragEndpoint;
     // Character boxes are only a selection surface. Source text and its
     // original whitespace belong to the recognized OcrDocument.
     private final IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span>
@@ -185,6 +188,13 @@ final class NativeCircleWorkspace extends View {
     }
 
     private void startOcr(Rect sourceRegion,boolean expandForSelectAll) {
+        startOcr(sourceRegion,expandForSelectAll,false);
+    }
+
+    /** Keep a visible ROI selection while asynchronously expanding OCR to
+     * the entire frozen screenshot; old indexes are remapped by position. */
+    private void startOcr(Rect sourceRegion,boolean expandForSelectAll,
+                          boolean expandForHandle) {
         if(closed)return;
         if(activeOcr!=null)activeOcr.cancel();
         final PaddleRequestToken request=new PaddleRequestToken();
@@ -239,6 +249,10 @@ final class NativeCircleWorkspace extends View {
                     recycleOcrBitmap(input);
                     MAIN.post(() -> {
                         if (closed || request!=activeOcr || sequence!=ocrSequence)return;
+                        OcrDocument oldDocument=fullDocument;
+                        Rect oldRoi=recognizedRoi==null?null:new Rect(recognizedRoi);
+                        List<OcrDocument.CharUnit> oldChars=cachedChars;
+                        int oldFirst=firstChar,oldLast=lastChar;
                         try {
                             fullDocument = full
                                 ? frame.transform.documentBitmapToScreen(result)
@@ -270,6 +284,52 @@ final class NativeCircleWorkspace extends View {
                             invalidate();
                             return;
                         }
+                        if(expandForHandle){
+                            boolean remapped=false;
+                            if(state.phase==NativeCircleState.Phase.TEXT_READY &&
+                                    oldDocument!=null && fullDocument!=null &&
+                                    oldFirst>=0 && oldLast>=oldFirst &&
+                                    oldLast<oldChars.size()){
+                                List<OcrDocument.CharUnit> candidates=fullDocument.chars();
+                                int leading=CircleTextExpansionPolicy.remap(
+                                        candidates,oldChars.get(oldFirst));
+                                int trailing=CircleTextExpansionPolicy.remap(
+                                        candidates,oldChars.get(oldLast));
+                                if(leading>=0 && trailing>=0){
+                                    selectedLine=-1;
+                                    firstChar=Math.min(leading,trailing);
+                                    lastChar=Math.max(leading,trailing);
+                                    if(expansionDragCursorValid &&
+                                            expansionDragEndpoint>=1 &&
+                                            expansionDragEndpoint<=2){
+                                        int hit=findMainStyleSelectionChar(
+                                                expansionDragX,expansionDragY);
+                                        if(hit>=0){
+                                            CircleTextExpansionPolicy.Range moved=
+                                                    CircleTextExpansionPolicy.move(
+                                                            firstChar,lastChar,
+                                                            expansionDragEndpoint,hit);
+                                            firstChar=moved.first;
+                                            lastChar=moved.last;
+                                            if(handleDrag>=1&&handleDrag<=2)
+                                                handleDrag=moved.active;
+                                        }
+                                    }
+                                    applyTextIndices(state.revision,false);
+                                    remapped=true;
+                                }
+                            }
+                            if(!remapped){
+                                fullDocument=oldDocument;
+                                recognizedRoi=oldRoi;
+                                rebuildTextOffsets();
+                                status=t("全屏扩选识别不足，保留原选区",
+                                        "Full-screen OCR missed the selection; keeping it");
+                            }
+                            expansionDragCursorValid=false;
+                            invalidate();
+                            return;
+                        }
                         if(selectAllAfterFullOcr && fullDocument!=null){
                             selectAllAfterFullOcr=false;
                             List<OcrDocument.CharUnit> allChars=fullDocument.chars();
@@ -289,6 +349,15 @@ final class NativeCircleWorkspace extends View {
                     MAIN.post(() -> {
                         if (closed || request!=activeOcr || sequence!=ocrSequence)return;
                         ocrBusy = false;
+                        if(expandForHandle){
+                            expansionDragCursorValid=false;
+                            status=t("全屏扩选暂不可用，原选区仍可拖动",
+                                    "Full-screen expansion unavailable; current selection kept");
+                            DiagnosticLog.i(app,"PADDLE_SCHED",
+                                    "full_drag_ocr_failed="+ScreenCaptureBackend.safeMessage(failure));
+                            invalidate();
+                            return;
+                        }
                         if(selectAllAfterFullOcr){
                             selectAllAfterFullOcr=false;
                             status=t("全屏选字扩展失败，可继续使用当前选区",
@@ -983,6 +1052,7 @@ final class NativeCircleWorkspace extends View {
     private void resetSelection(){
         FloatActionMenu.dismiss();
         state.clear();chosenChars.clear();
+        expansionDragCursorValid=false;
         textGeometry=List.of();
         firstTextGrip=lastTextGrip=null;
         firstChar=lastChar=-1;selectedLine=-1;pendingGesture=null;status="";
@@ -1001,7 +1071,19 @@ final class NativeCircleWorkspace extends View {
             FloatActionMenu.dismiss();
             if(state.phase==NativeCircleState.Phase.TEXT_READY){
                 int textHandle=hitTextHandle(x,y);
-                if(textHandle!=0){handleDrag=textHandle;return true;}
+                if(textHandle!=0){
+                    handleDrag=textHandle;
+                    selectedLine=-1; // The initial-line lock is not a drag limit.
+                    expansionDragCursorValid=true;
+                    expansionDragX=x;expansionDragY=y;
+                    expansionDragEndpoint=handleDrag;
+                    if(!ocrBusy && recognizedRoi!=null &&
+                            (recognizedRoi.left!=0 || recognizedRoi.top!=0 ||
+                             recognizedRoi.right!=frame.bitmap.getWidth() ||
+                             recognizedRoi.bottom!=frame.bitmap.getHeight()))
+                        startOcr(null,false,true);
+                    return true;
+                }
             }
             if(state.phase==NativeCircleState.Phase.IMAGE_READY){
                 for(int i=0;i<imageHandles.length;i++){
@@ -1023,13 +1105,19 @@ final class NativeCircleWorkspace extends View {
             awaitingTextPath.reset();
             chosenChars.clear();firstChar=lastChar=-1;
             textGeometry=List.of();
-            firstTextGrip=lastTextGrip=null;            pendingGesture=null;status="";
+            firstTextGrip=lastTextGrip=null;
+            expansionDragCursorValid=false;
+            pendingGesture=null;status="";
             invalidate();return true;
         }
         if(handleDrag!=0){
             if(action==MotionEvent.ACTION_MOVE||action==MotionEvent.ACTION_UP){
-                if(handleDrag<=2)adjustTextHandle(x,y);
-                else adjustImageHandle(x,y);
+                if(handleDrag<=2){
+                    expansionDragCursorValid=true;
+                    expansionDragX=x;expansionDragY=y;
+                    adjustTextHandle(x,y);
+                    expansionDragEndpoint=handleDrag;
+                }else adjustImageHandle(x,y);
                 if(action==MotionEvent.ACTION_UP) {
                     handleDrag=0;
                     syncPopup();
@@ -1102,12 +1190,14 @@ final class NativeCircleWorkspace extends View {
 
     private void adjustTextHandle(float x,float y){
         if(fullDocument==null || cachedChars.isEmpty())return;
-        // Main's findSelectionWord: exact box hit first; otherwise choose
-        // nearest eligible source character using weighted row distance.
         int candidate=findMainStyleSelectionChar(x,y);
         if(candidate<0)return;
-        if(handleDrag==1)firstChar=Math.min(candidate,lastChar);
-        else lastChar=Math.max(candidate,firstChar);
+        CircleTextExpansionPolicy.Range moved=CircleTextExpansionPolicy.move(
+                firstChar,lastChar,handleDrag,candidate);
+        if(moved.first==firstChar && moved.last==lastChar)return;
+        firstChar=moved.first;
+        lastChar=moved.last;
+        handleDrag=moved.active;
         applyTextIndices(state.revision,false);
     }
 
@@ -1117,7 +1207,6 @@ final class NativeCircleWorkspace extends View {
         int best=-1;
         for(int i=0;i<cachedChars.size();i++){
             OcrDocument.CharUnit unit=cachedChars.get(i);
-            if(!CircleTextRangePolicy.sameLine(unit.line(),selectedLine))continue;
             RectF rect=screenToViewF(new RectF(unit.bounds()));
             if(rect.isEmpty())continue;
             // Direct hit is always preferred, just like main.
@@ -1130,7 +1219,12 @@ final class NativeCircleWorkspace extends View {
             float score=dx*dx+dy*dy*3.25f;
             if(score<bestScore){bestScore=score;best=i;}
         }
-        return best<0 || bestScore>maxDistance*maxDistance?-1:best;
+        if(best>=0 && bestScore<=maxDistance*maxDistance)return best;
+        // A deliberate drag may reach any OCR glyph, regardless of distance.
+        PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
+        PointF screen=frame.bitmapPointToScreen(bitmap.x,bitmap.y);
+        return CircleTextExpansionPolicy.unrestrictedNearest(
+                cachedChars,screen.x,screen.y);
     }
 
     @Override public boolean onKeyDown(int code,KeyEvent event){
@@ -1143,6 +1237,7 @@ final class NativeCircleWorkspace extends View {
     private void close(String reason) {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
+        expansionDragCursorValid=false;
         if(activeOcr!=null)activeOcr.cancel();
         cachedChars=List.of();charIndex=null;
         textGeometry=List.of();
