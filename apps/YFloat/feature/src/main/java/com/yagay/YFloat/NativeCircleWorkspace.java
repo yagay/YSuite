@@ -70,6 +70,10 @@ final class NativeCircleWorkspace extends View {
     private final RectF imageDragOrigin = new RectF();
 
     private OcrDocument fullDocument;
+    private Rect recognizedRoi;
+    private PaddleRequestToken activeOcr;
+    private int ocrSequence;
+    private boolean selectAllAfterFullOcr;
     // Character boxes are only a selection surface. Source text and its
     // original whitespace belong to the recognized OcrDocument.
     private final IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span>
@@ -109,7 +113,7 @@ final class NativeCircleWorkspace extends View {
         active = view;
         view.setFocusableInTouchMode(true);
         view.requestFocus();
-        view.startOcr();
+        // No full-screen OCR at open: image selection requires no recognizer.
         DiagnosticLog.i(app,"CIRCLE_NATIVE",
                 "ready intent-first image="+frame.bitmap.getWidth()+"x"
                         +frame.bitmap.getHeight()
@@ -156,14 +160,30 @@ final class NativeCircleWorkspace extends View {
         return Locale.getDefault().getLanguage().equals("zh") ? zh : en;
     }
 
-    private void startOcr() {
-        if (ocrBusy) return;
+    private void startOcr(Rect sourceRegion,boolean expandForSelectAll) {
+        if(closed)return;
+        if(activeOcr!=null)activeOcr.cancel();
+        final PaddleRequestToken request=new PaddleRequestToken();
+        activeOcr=request;
+        final int sequence=++ocrSequence;
+        final Rect roi=sourceRegion==null
+                ? new Rect(0,0,frame.bitmap.getWidth(),frame.bitmap.getHeight())
+                : new Rect(sourceRegion);
+        final boolean full=roi.left==0&&roi.top==0&&
+                roi.width()==frame.bitmap.getWidth()&&
+                roi.height()==frame.bitmap.getHeight();
+        selectAllAfterFullOcr=expandForSelectAll;
         // The frozen frame may be recycled as soon as the user finishes a crop.
         // OCR runs asynchronously and must own its bitmap until the recognizer
         // has reported completion. Never pass that soon-to-be-recycled frame.
         final Bitmap input;
         try {
-            input = frame.bitmap.copy(Bitmap.Config.ARGB_8888, false);
+            // Crop the frozen source first. Paddle detector then operates
+            // on local pixels while its returned geometry is mapped by the
+            // authoritative ScreenBitmapTransform.
+            input=full?frame.bitmap.copy(Bitmap.Config.ARGB_8888,false)
+                :Bitmap.createBitmap(frame.bitmap,roi.left,roi.top,
+                    roi.width(),roi.height());
             if (input == null) throw new IllegalStateException("OCR bitmap copy failed");
         } catch (Throwable error) {
             ocrBusy = false;
@@ -177,14 +197,21 @@ final class NativeCircleWorkspace extends View {
         ocrBusy = true;
         status = t("正在识别屏幕文字", "Recognizing screen text");
         try {
-            CircleStableOcr.recognizeFullScreenSelected(app, input,
+            DiagnosticLog.i(app,"PADDLE_SCHED",
+                    "circle_roi="+roi.toShortString()+" full="+full+
+                    " selectAll="+expandForSelectAll);
+            CircleStableOcr.recognizeFullScreenSelected(app, input,request,
                     new OcrEngine.DocumentCallback() {
                 @Override public void onSuccess(OcrDocument result) {
                     recycleOcrBitmap(input);
                     MAIN.post(() -> {
-                        if (closed) return;
+                        if (closed || request!=activeOcr || sequence!=ocrSequence)return;
                         try {
-                            fullDocument = frame.transform.documentBitmapToScreen(result);
+                            fullDocument = full
+                                ? frame.transform.documentBitmapToScreen(result)
+                                : frame.transform.documentLocalToScreen(result,roi,
+                                        input.getWidth(),input.getHeight(),"circle_roi:");
+                            recognizedRoi=new Rect(roi);
                             rebuildTextOffsets();
                         } catch (Throwable error) {
                             fullDocument = null;
@@ -196,14 +223,23 @@ final class NativeCircleWorkspace extends View {
                         ocrBusy = false;
                         status = "";
                         FLCircleSelection.Selection pending = pendingGesture;
-                        if (pending != null) routeResolvedGesture(pending, gestureRevision);
+                        if(selectAllAfterFullOcr && fullDocument!=null){
+                            selectAllAfterFullOcr=false;
+                            List<OcrDocument.CharUnit> allChars=fullDocument.chars();
+                            if(!allChars.isEmpty() &&
+                                state.phase==NativeCircleState.Phase.TEXT_READY){
+                                firstChar=0;lastChar=allChars.size()-1;
+                                applyTextIndices(state.revision,false);
+                            }
+                        }else if(pending!=null)
+                            routeResolvedGesture(pending,gestureRevision);
                         invalidate();
                     });
                 }
                 @Override public void onFailure(Throwable failure) {
                     recycleOcrBitmap(input);
                     MAIN.post(() -> {
-                        if (closed) return;
+                        if (closed || request!=activeOcr || sequence!=ocrSequence)return;
                         ocrBusy = false;
                         status = t("无法识别文字，仍可圈选图片",
                                 "Text unavailable; circle an image instead");
@@ -221,6 +257,7 @@ final class NativeCircleWorkspace extends View {
             });
         } catch (Throwable error) {
             recycleOcrBitmap(input);
+            if(activeOcr==request)activeOcr=null;
             ocrBusy = false;
             status = t("文字识别不可用，截图仍可使用",
                     "Text recognition unavailable; image crops still work");
@@ -427,6 +464,13 @@ final class NativeCircleWorkspace extends View {
         if (closed || fullDocument == null
                 || state.phase != NativeCircleState.Phase.TEXT_READY
                 || fullDocument.chars().isEmpty()) return;
+        if(recognizedRoi!=null && (recognizedRoi.width()!=frame.bitmap.getWidth() ||
+                recognizedRoi.height()!=frame.bitmap.getHeight())){
+            // Select-all must cover the entire original screen, not only the
+            // local text ROI that was required by the preceding highlight.
+            startOcr(null,true);
+            return;
+        }
         firstChar = 0;
         lastChar = fullDocument.chars().size() - 1;
         applyTextIndices(state.revision, false);
@@ -444,11 +488,20 @@ final class NativeCircleWorkspace extends View {
             resolveImage(gesture, token);
             return;
         }
-        if(fullDocument==null){
-            if(ocrBusy) { pendingGesture=gesture;status=t("正在识别…","Recognizing…"); }
-            else if(!NativeCircleIntentRouter.permitsImageFallback(gesture.kind.name()))
-                rejectTextGesture(gesture,token,"ocr_unavailable");
-            else resolveImage(gesture,token);
+        if(fullDocument==null ||
+                (recognizedRoi!=null &&
+                 !recognizedRoi.contains(FLCircleSelection.exactRectAndClamp(
+                     gesture.bounds,frame.bitmap.getWidth(),frame.bitmap.getHeight())))){
+            pendingGesture=gesture;
+            if(!ocrBusy || fullDocument!=null){
+                // Intent-first local OCR. Expand text stroke to include complete
+                // baseline, adjacent glyphs and tall mixed CJK/Latin shapes.
+                Rect roi=PaddleCircleRoiPolicy.forGesture(
+                    gesture.bounds,frame.bitmap.getWidth(),frame.bitmap.getHeight());
+                fullDocument=null;
+                sourceSpans.clear();
+                startOcr(roi,false);
+            } else status=t("正在识别…","Recognizing…");
             invalidate();
             return;
         }
@@ -860,6 +913,7 @@ final class NativeCircleWorkspace extends View {
     private void close(String reason) {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
+        if(activeOcr!=null)activeOcr.cancel();
         awaitingTextPath.reset();
         sourceSpans.clear();
         FloatActionMenu.dismiss();
