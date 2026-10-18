@@ -59,6 +59,7 @@ final class NativeCircleWorkspace extends View {
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint selectionFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint selectionHandlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path dragPath = new Path();
@@ -167,6 +168,8 @@ final class NativeCircleWorkspace extends View {
         selectionFillPaint.setStyle(Paint.Style.FILL);
         selectionFillPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
                 app,NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA));
+        selectionHandlePaint.setStyle(Paint.Style.FILL);
+        selectionHandlePaint.setColor(YFloatOverlayStyle.selectionColor(app));
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.CENTER);
         toolbarPaint.setColor(Color.argb(241, 31, 34, 42));
@@ -488,7 +491,6 @@ final class NativeCircleWorkspace extends View {
         lastHandle.setEmpty();
         if(chosenChars.isEmpty() || textGeometry.isEmpty())return;
         List<PointF> first=null,last=null;
-        float outside=NativeCircleVisualPolicy.textHandleOutsideGap(density);
         for(TextGeometryV3.Region region:textGeometry){
             List<PointF> corners=quadToView(region.corners());
             if(corners.size()!=4)continue;
@@ -507,24 +509,22 @@ final class NativeCircleWorkspace extends View {
         if(first==null || last==null)return;
         float radius=Math.min(9f*density,Math.max(4f*density,
                 YFloatOverlayStyle.handleRadius(app)));
-        // TL/TR/BR/BL are retained across Paddle -> document -> screen.
-        // Handles are outside the first and last selected original glyphs.
-        PointF start=first.get(3),end=last.get(2);
-        float hx=NativeCircleVisualPolicy.leadingHandleX(start.x-outside,density);
-        float tx=NativeCircleVisualPolicy.trailingHandleX(end.x+outside,density);
-        float sy=start.y+outside, ey=end.y+outside;
-        float hy=NativeCircleVisualPolicy.handleCenterY(sy,density);
-        float ty=NativeCircleVisualPolicy.handleCenterY(ey,density);
-        canvas.drawLine(hx,NativeCircleVisualPolicy.handleStemTop(sy,density),
-                hx,hy,outlinePaint);
-        canvas.drawLine(tx,NativeCircleVisualPolicy.handleStemTop(ey,density),
-                tx,ty,outlinePaint);
-        canvas.drawCircle(hx,hy,radius/1.8f,outlinePaint);
-        canvas.drawCircle(tx,ty,radius/1.8f,outlinePaint);
-        firstHandle.set(hx-24*density,hy-24*density,
-                hx+24*density,hy+24*density);
-        lastHandle.set(tx-24*density,ty-24*density,
-                tx+24*density,ty+24*density);
+        // TextGeometry V3 preserves TL/TR/BR/BL for every selected polygon.
+        // Both stems begin at the EXACT BOTTOM CORNERS of the blue fill.
+        // Extend along each side edge so even rotated words have no gap.
+        float[] leading=NativeCircleVisualPolicy.attachedTextHandle(
+                first.get(0).x,first.get(0).y,first.get(3).x,first.get(3).y,density);
+        float[] trailing=NativeCircleVisualPolicy.attachedTextHandle(
+                last.get(1).x,last.get(1).y,last.get(2).x,last.get(2).y,density);
+        canvas.drawLine(leading[0],leading[1],leading[2],leading[3],outlinePaint);
+        canvas.drawLine(trailing[0],trailing[1],trailing[2],trailing[3],outlinePaint);
+        canvas.drawCircle(leading[2],leading[3],radius/1.8f,selectionHandlePaint);
+        canvas.drawCircle(trailing[2],trailing[3],radius/1.8f,selectionHandlePaint);
+        // Keep a generous touch hit region independent from the rendered dot.
+        firstHandle.set(leading[2]-24*density,leading[3]-24*density,
+                leading[2]+24*density,leading[3]+24*density);
+        lastHandle.set(trailing[2]-24*density,trailing[3]-24*density,
+                trailing[2]+24*density,trailing[3]+24*density);
     }
 
     private List<PointF> quadToView(List<PointF> screen){
@@ -566,7 +566,7 @@ final class NativeCircleWorkspace extends View {
                         " fallback="+(textGeometry.size()-corrected));
     }
 
-    /** Keep the popup on the same visible V3 geometry as the blue outline. */
+    /** Keep the popup on the same visible V3 geometry as the blue fill. */
     private RectF selectedTextViewBox() {
         float left=Float.POSITIVE_INFINITY,top=Float.POSITIVE_INFINITY;
         float right=Float.NEGATIVE_INFINITY,bottom=Float.NEGATIVE_INFINITY;
