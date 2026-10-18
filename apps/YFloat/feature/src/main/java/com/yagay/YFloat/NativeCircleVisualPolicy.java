@@ -12,9 +12,23 @@ final class NativeCircleVisualPolicy {
     // exact TextGeometry V3 polygon. No border/stroke; the captured font
     // remains visible beneath the blue wash instead of being re-typeset.
     static final int TEXT_HIGHLIGHT_FILL_ALPHA = 104;
-    // Handles stay outside the glyph band although no outline is drawn.
-    static float textHandleOutsideGap(float density){
-        return Math.max(1f,2.5f*density);
+    /**
+     * A selection handle is ATTACHED to the actual filled polygon corner,
+     * never positioned using an external outline margin. Input is the top
+     * and bottom of its side edge in view coordinates (TL->BL or TR->BR).
+     * Returns [stemStartX,stemStartY,knobX,knobY].
+     *
+     * Using the side's direction preserves contact with rotated selections;
+     * the fallback is straight down for degenerate OCR boxes.
+     */
+    static float[] attachedTextHandle(float topX,float topY,
+            float bottomX,float bottomY,float density) {
+        float vx=bottomX-topX,vy=bottomY-topY;
+        float length=(float)Math.hypot(vx,vy);
+        if(length < 0.001f){vx=0f;vy=1f;}
+        else {vx/=length;vy/=length;}
+        float extension=8f*Math.max(0.5f,density);
+        return new float[]{bottomX,bottomY,bottomX+vx*extension,bottomY+vy*extension};
     }
 
     /**
@@ -61,20 +75,6 @@ final class NativeCircleVisualPolicy {
         // fill follows the selected polygon without an external stroke.
         float pad=Math.max(0.5f,Math.min(1.5f,(bottom-top)*0.015f));
         return new float[]{left-pad,top-pad,right+pad,bottom+pad};
-    }
-
-    /** Handle stems are fully outside the text glyph band. */
-    static float leadingHandleX(float bandLeft,float density){
-        return bandLeft-5f*density;
-    }
-    static float trailingHandleX(float bandRight,float density){
-        return bandRight+5f*density;
-    }
-    static float handleStemTop(float bandBottom,float density){
-        return bandBottom+1f*density;
-    }
-    static float handleCenterY(float bandBottom,float density){
-        return bandBottom+9f*density;
     }
 
     static int baseScrimAlpha(NativeCircleState.Phase phase) {
