@@ -12,7 +12,6 @@ import com.paddle.ocr.structure.UVDocLocalV3
 import com.paddle.ocr.structure.PPSealDetectorLocalV3
 import android.graphics.Rect
 import android.graphics.PointF
-import com.paddle.ocr.model.OCRBox
 import android.graphics.Matrix
 import com.paddle.ocr.util.OpenCVUtils
 import kotlinx.coroutines.CoroutineScope
@@ -47,7 +46,7 @@ object PaddlePipelineV2 {
     private var uvSignature:String?=null
     private var sealEngine:PPSealDetectorLocalV3?=null
     private var sealSignature:String?=null
-    data class SealResult(val bounds:Rect,val detections:List<OCRBox>,
+    data class SealResult(val bounds:Rect,val detections:List<PPSealDetectorLocalV3.Region>,
                           val recognizedText:String)
     @Volatile private var latestUnwarpedDocument:OcrDocument?=null
     @Volatile private var latestSealResults:List<SealResult> = emptyList()
@@ -257,8 +256,8 @@ object PaddlePipelineV2 {
                             if(r.width()<16||r.height()<16)continue
                             val crop=Bitmap.createBitmap(image,r.left,r.top,r.width(),r.height())
                             try{
-                                val polygons=detector.detect(crop).map {box->
-                                    OCRBox(box.points.map{point->
+                                val polygons=detector.detect(crop).map {region->
+                                    region.copy(polygon=region.polygon.map{point->
                                         PointF(point.x+r.left,point.y+r.top)
                                     })
                                 }
@@ -284,6 +283,9 @@ object PaddlePipelineV2 {
                 lastTables=linkedTables
                 val compat=page.asLegacy("ppocr-v2-"+model)
                     .withTableTexts(linkedTables.map{it.tabSeparated}.filter{it.isNotBlank()})
+                    .withSealTexts(latestSealResults.map{it.recognizedText}
+                        .filter{it.isNotBlank()})
+                    .withUnwarpedText(latestUnwarpedDocument?.fullText().orEmpty())
                 withContext(Dispatchers.Main){
                     callback.onSuccess(compat,System.currentTimeMillis()-started,
                         compat.lines().size)

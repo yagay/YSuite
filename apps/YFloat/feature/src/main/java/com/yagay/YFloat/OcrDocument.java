@@ -76,6 +76,8 @@ public final class OcrDocument {
     private final CoordinateSpace coordinateSpace;
     private final OcrStructure structure;
     private final List<String> tableTexts;
+    private final List<String> sealTexts;
+    private final String unwarpedText;
 
     public OcrDocument(String fullText, List<String> blocks, List<Line> lines,
                        String engine, float confidence, double score,
@@ -88,13 +90,14 @@ public final class OcrDocument {
                        String engine, float confidence, double score,
                        int imageWidth, int imageHeight, CoordinateSpace coordinateSpace) {
         this(fullText,blocks,lines,engine,confidence,score,
-                imageWidth,imageHeight,coordinateSpace,null,null);
+                imageWidth,imageHeight,coordinateSpace,null,null,null,"");
     }
 
     private OcrDocument(String fullText,List<String> blocks,List<Line> lines,
                         String engine,float confidence,double score,
                         int imageWidth,int imageHeight,CoordinateSpace coordinateSpace,
-                        OcrStructure structure,List<String> tableTexts) {
+                        OcrStructure structure,List<String> tableTexts,
+                        List<String> sealTexts,String unwarpedText) {
         this.fullText = fullText == null ? "" : fullText.trim();
         this.blocks = blocks == null ? List.of() : List.copyOf(blocks);
         this.lines = lines == null ? List.of() : List.copyOf(lines);
@@ -106,6 +109,8 @@ public final class OcrDocument {
         this.coordinateSpace = coordinateSpace == null ? CoordinateSpace.BITMAP : coordinateSpace;
         this.structure=structure;
         this.tableTexts=tableTexts==null?List.of():List.copyOf(tableTexts);
+        this.sealTexts=sealTexts==null?List.of():List.copyOf(sealTexts);
+        this.unwarpedText=unwarpedText==null?"":unwarpedText;
     }
 
     public static OcrDocument screenSpace(String fullText, List<String> blocks, List<Line> lines,
@@ -126,14 +131,26 @@ public final class OcrDocument {
     public CoordinateSpace coordinateSpace() { return coordinateSpace; }
     public OcrStructure structure(){return structure;}
     public List<String> tableTexts(){return tableTexts;}
+    /** Separate rectified-page text. It has no valid coordinates on the original screenshot. */
+    public String unwarpedText(){return unwarpedText;}
+    /** Optional seal region text. Detection polygons remain in PaddlePipelineV2. */
+    public List<String> sealTexts(){return sealTexts;}
+    public OcrDocument withSealTexts(List<String> values){
+        return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
+            imageWidth,imageHeight,coordinateSpace,structure,tableTexts,values,unwarpedText);
+    }
+    public OcrDocument withUnwarpedText(String value){
+        return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
+            imageWidth,imageHeight,coordinateSpace,structure,tableTexts,sealTexts,value);
+    }
     /** Table text is structured metadata, never synthetic glyph geometry. */
     public OcrDocument withTableTexts(List<String> tableText){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
-                imageWidth,imageHeight,coordinateSpace,structure,tableText);
+                imageWidth,imageHeight,coordinateSpace,structure,tableText,sealTexts,unwarpedText);
     }
     public OcrDocument withStructure(OcrStructure geometry){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
-                imageWidth,imageHeight,coordinateSpace,geometry,tableTexts);
+                imageWidth,imageHeight,coordinateSpace,geometry,tableTexts,sealTexts,unwarpedText);
     }
     public boolean isBitmapSpace() { return coordinateSpace == CoordinateSpace.BITMAP; }
     public boolean isScreenSpace() { return coordinateSpace == CoordinateSpace.SCREEN; }
@@ -164,6 +181,7 @@ public final class OcrDocument {
                 confidence, score,parentWidth,parentHeight,coordinateSpace);
         OcrDocument withStructure=structure==null?translated:translated.withStructure(
                 structure.mapped((x,y)->new android.graphics.PointF(x+dx,y+dy)));
-        return withStructure.withTableTexts(tableTexts);
+        return withStructure.withTableTexts(tableTexts)
+                .withSealTexts(sealTexts).withUnwarpedText(unwarpedText);
     }
 }
