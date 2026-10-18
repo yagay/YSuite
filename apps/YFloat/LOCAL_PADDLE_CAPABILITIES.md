@@ -140,3 +140,30 @@ Existing SLANet, FormulaNet, UVDoc and seal native operators are present
 but require a real Android model/shape/accuracy test before release.
 
 Final ARM64 Debug build is requested once after all staged code changes. CI outcome must be checked separately; the source pass alone does not prove native inference correctness.
+
+## Local OCR reliability and result export pass (2026-10-18)
+
+The same structured `OcrDocument` now flows through the normal screenshot OCR
+dispatcher, the single ResultSession, and inline results. Save in the shared
+result dialog supports image, Markdown, JSON (including geometry),
+HTML (including SLANet spans), and table CSV, all through Android's
+document picker without remote processing. Formats require an actual document;
+the existing screenshot save path remains available.
+
+All independently downloaded Paddle structure models now have a user-invoked
+local SHA-256 Verify action. Replacement downloads are staged and checked
+before a reversible on-disk swap. On failure, an existing model and its enabled
+preference are retained, including optional vocab/tokenizer files. Interrupted
+backups are recovered if the active model is missing. Download and check
+callbacks clear their busy states before UI refresh.
+
+Sequential local PDF OCR now has an explicit Cancel control and keeps
+rendering only one page bitmap at a time. Cancellation takes effect after the
+current on-device inference callback; it is not a native ONNX cancellation
+interrupt.
+
+**Validation boundary:** static source contract checks and ARM64 Debug
+compilation are planned. Accurate bounding boxes and optional ONNX output
+contracts still need real screenshots and on-device comparison. Large,
+unsupported generative document models are not bundled or advertised as
+working offline.
