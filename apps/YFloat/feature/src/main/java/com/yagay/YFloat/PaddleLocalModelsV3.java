@@ -62,6 +62,17 @@ public final class PaddleLocalModelsV3 {
         void onFailure(String reason);
     }
     public static String name(int id){return spec(id).name;}
+    /** All runtime models are downloaded on demand into private app files. */
+    public static long downloadBytes(int id){return Math.max(0L,spec(id).size);}
+    public static boolean isDownloadable(int id){
+        return id==DOC_ORIENTATION||id==TABLE_STRUCTURE||
+               id==UV_DOC||id==SEAL_DETECTION;
+    }
+    public static String displaySize(int id){
+        long size=downloadBytes(id);
+        return size>0?String.format(Locale.ROOT,"%.1f MB",size/1048576d):
+                "约 4.8 MB";
+    }
     public static String preference(int id){
         return switch(id) {
             case DOC_ORIENTATION -> ORIENTATION_PREF;
@@ -130,6 +141,12 @@ public final class PaddleLocalModelsV3 {
                 File dst=model(app,id),dir=dst.getParentFile();
                 if(dir==null||(!dir.isDirectory()&&!dir.mkdirs()))
                     throw new IllegalStateException("Cannot create local model directory");
+                // Each model is optional and independently installed. Never
+                // prefetch other models or update them as a side effect.
+                long required=s.size>0?s.size:20000000L;
+                if(dir.getUsableSpace()<required+64L*1024L*1024L)
+                    throw new IllegalStateException("Insufficient storage for "
+                        +s.name+" (leave 64 MB free)");
                 saveUrl(s.url,dst,s.size,s.sha,callback);
                 if(id==TABLE_STRUCTURE){
                     File vocab=vocabulary(app);

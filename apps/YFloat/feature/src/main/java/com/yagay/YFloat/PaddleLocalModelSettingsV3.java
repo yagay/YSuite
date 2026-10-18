@@ -13,6 +13,18 @@ final class PaddleLocalModelSettingsV3 {
         addRow(activity,container,PaddleLocalModelsV3.TABLE_STRUCTURE);
         addRow(activity,container,PaddleLocalModelsV3.UV_DOC);
         addRow(activity,container,PaddleLocalModelsV3.SEAL_DETECTION);
+        addUnavailableRow(activity,container,
+            "PP-FormulaNet-S — " + (java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                ? "公式识别（暂不可下载）" : "Formula OCR (not downloadable yet)"),
+            java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                ? "尚无经过验证的 Android 公式解码器；不提供下载无用权重的按钮。"
+                : "Needs a verified Android formula decoder; weights alone cannot perform OCR.");
+        addUnavailableRow(activity,container,
+            "PP-Chart2Table — " + (java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                ? "图表识别（暂不可下载）" : "Chart parsing (not downloadable yet)"),
+            java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                ? "原始模型约 1.43 GB，尚无可用的 Android 生成式推理运行时。"
+                : "Model is ~1.43 GB; no working Android generative runtime yet.");
     }
     private static void addRow(SettingsActivity activity,LinearLayout parent,int id){
         boolean zh=java.util.Locale.getDefault().getLanguage().startsWith("zh");
@@ -33,7 +45,8 @@ final class PaddleLocalModelSettingsV3 {
             boolean ready=PaddleLocalModelsV3.installed(activity,id);
             boolean active=PaddleLocalModelsV3.enabled(activity,id);
             boolean busy=PaddleLocalModelsV3.busy(id);
-            status.setText(PaddleLocalModelsV3.name(id)+" — "+
+            status.setText(PaddleLocalModelsV3.name(id)+" ("+
+                PaddleLocalModelsV3.displaySize(id)+") — "+
                 (ready?(active?(zh?"已启用":"Enabled"):(zh?"已安装":"Installed"))
                      :(zh?"未安装":"Not installed")));
             download.setEnabled(!busy);
@@ -67,6 +80,13 @@ final class PaddleLocalModelSettingsV3 {
             refresh.run();
         });
         refresh.run();
+    }
+    private static void addUnavailableRow(SettingsActivity activity,LinearLayout parent,
+                                          String name,String reason){
+        LinearLayout row=YViewLayout.settingBlock(activity);
+        row.addView(YViewLayout.text(activity,name));
+        row.addView(YViewLayout.rowSubtitle(activity,reason));
+        YViewLayout.addRow(parent,row);
     }
     private PaddleLocalModelSettingsV3(){}
 }

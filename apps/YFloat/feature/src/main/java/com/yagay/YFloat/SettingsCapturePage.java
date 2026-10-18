@@ -83,6 +83,12 @@ final class SettingsCapturePage {
         YViewSection models = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_local_models_section),
                 activity.getString(R.string.yfloat_local_models_desc));
+        // Model weights are NEVER packaged in the APK. The user downloads
+        // only the models they actually need, and can delete each separately.
+        YViewLayout.addRow(models.body,YViewLayout.rowSubtitle(activity,
+            java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                ? "所有 Paddle 模型均为按需独立下载；互不依赖，不会随 APK 安装。"
+                : "All Paddle model weights are optional downloads, not bundled in the APK."));
         try {
             ui.addOcrModelRow(models.body, OcrModelManager.TINY);
             ui.addOcrModelRow(models.body, OcrModelManager.SMALL);

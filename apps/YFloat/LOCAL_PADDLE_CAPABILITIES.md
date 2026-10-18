@@ -33,3 +33,19 @@ Do not run automatic CI for partial steps in this offline Paddle build-out.
 Use a deliberate final ARM64 debug validation after the missing supported
 runtime modules and integration tests have been completed. Any intermediate
 commits must have `[skip ci]` in the commit message.
+
+## Model distribution policy
+
+- **No OCR/Structure/UVDoc/SLANet/seal weights are embedded in the APK.**
+- PP-OCRv6 Tiny, Small and Medium each have separate download/delete controls.
+- PP-DocLayout-S downloads and enables separately from OCR.
+- PP-LCNet document orientation, SLANet table structure, UVDoc and seal ONNX
+  have independent download/enable/delete controls. The table's dictionary is
+  downloaded only with SLANet and removed with it.
+- Inference uses only local files. It does not download automatically or call
+  Google App, Lens or an HTTP processing service.
+- FormulaNet and Chart2Table are listed as unsupported; downloading their
+  heavyweight raw weights without an Android runtime would be misleading.
+  They must be made independent optional downloads *after* the inference
+  implementation and its resource checks work.
+- This development batch uses [skip ci]; no partial GitHub CI builds.
