@@ -22,7 +22,7 @@ object PaddleSpacingV2 {
         // The CTC geometry can be incomplete even when recognition succeeds.
         // Do not replace the decoder's complete text with only aligned glyphs.
         val aligned=characters.joinToString("") { it.text }
-        if(aligned!=fallbackText) return Correction(fallbackText,characters,0)
+        if(fallbackText.isNotBlank() && aligned!=fallbackText) return Correction(fallbackText,characters,0)
         val kept = ArrayList<OCRCharacter>(characters.size)
         var removed = 0
         for (i in characters.indices) {
