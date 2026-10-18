@@ -255,3 +255,5 @@ reproduction (Paddle mode selected, spacing toggle on). Latin OCR
 spaces genuinely emitted by the recognizer without reliable glyph
 alignment still require image-dependent evidence; do not strip them
 blindly.
+
+**Final CI gate:** Compile the consolidated Circle OCR whitespace fixes as ARM64 Debug; every preceding code commit in this batch used `[skip ci]`.
