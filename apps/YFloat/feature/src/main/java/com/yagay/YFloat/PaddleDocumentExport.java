@@ -133,8 +133,15 @@ public final class PaddleDocumentExport {
         }
         if (!document.tableTexts().isEmpty()) {
             result.append("## Tables\n\n");
-            for (String tsv : document.tableTexts()) {
-                result.append(markdownTable(tsv)).append("\n");
+            for (int i = 0; i < document.tableTexts().size(); i++) {
+                String tsv = document.tableTexts().get(i);
+                String originalHtml = i < document.tableHtmls().size()
+                        ? document.tableHtmls().get(i) : "";
+                // Markdown pipes cannot represent row/column spans. Embed
+                // the source SLANet HTML rather than silently flatten cells.
+                if (originalHtml.contains("rowspan") || originalHtml.contains("colspan"))
+                    result.append(originalHtml).append("\n\n");
+                else result.append(markdownTable(tsv)).append("\n");
             }
         }
         for (String formula : document.formulaTexts()) {
@@ -185,15 +192,19 @@ public final class PaddleDocumentExport {
                 out.append("</").append(tag).append('>');
             }
         } else out.append("<pre>").append(escape(document.fullText())).append("</pre>");
-        for (String t : document.tableTexts()) {
-            out.append("<table border=\"1\">");
-            for (String row : t.split("\\r?\\n", -1)) {
-                out.append("<tr>");
-                for (String cell : row.split("\\t", -1))
-                    out.append("<td>").append(escape(cell)).append("</td>");
-                out.append("</tr>");
+        if (!document.tableHtmls().isEmpty()) {
+            for (String original : document.tableHtmls()) out.append(original);
+        } else {
+            for (String t : document.tableTexts()) {
+                out.append("<table border=\"1\">");
+                for (String row : t.split("\\r?\\n", -1)) {
+                    out.append("<tr>");
+                    for (String cell : row.split("\\t", -1))
+                        out.append("<td>").append(escape(cell)).append("</td>");
+                    out.append("</tr>");
+                }
+                out.append("</table>");
             }
-            out.append("</table>");
         }
         for (String latex : document.formulaTexts())
             out.append("<pre class=\"latex\">").append(escape(latex)).append("</pre>");
