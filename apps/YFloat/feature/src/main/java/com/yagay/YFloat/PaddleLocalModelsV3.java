@@ -26,11 +26,13 @@ public final class PaddleLocalModelsV3 {
     public static final int UV_DOC=3;
     public static final int SEAL_DETECTION=4;
     public static final int FORMULA_NET=5;
+    public static final int TEXTLINE_ORIENTATION=6;
     public static final String ORIENTATION_PREF="paddle_v3_classifier_enabled";
     public static final String TABLE_PREF="paddle_v3_table_enabled";
     public static final String UV_DOC_PREF="paddle_v3_uvdoc_enabled";
     public static final String SEAL_PREF="paddle_v3_seal_enabled";
     public static final String FORMULA_PREF="paddle_v3_formula_enabled";
+    public static final String TEXTLINE_PREF="paddle_v3_textline_orientation_enabled";
     private record Spec(String name,String url,long size,String sha,String yamlUrl) {}
     private static Spec spec(int id) {
         return switch(id) {
@@ -49,6 +51,10 @@ public final class PaddleLocalModelsV3 {
             case SEAL_DETECTION -> new Spec("PP-OCRv4 mobile seal detector",
                 "https://huggingface.co/x3zvawq/paddleocr-js-onnx/resolve/main/ppocr_v4_mobile_seal_det/PP-OCRv4_mobile_seal_det_infer.onnx",
                 -1L,"1d559581c8e8ef19a7f6d3b82f267ff51da31d863dd44ebb2bd02dd5f1a99d12",null);
+            case TEXTLINE_ORIENTATION -> new Spec(
+                "PP-LCNet textline orientation (0 / 180)",
+                "https://huggingface.co/PaddlePaddle/PP-LCNet_x1_0_textline_ori_onnx/resolve/main/inference.onnx",
+                -1L,"38aa97cd4be591e0ad304e659f07ba30d946f27a63315433f6659c69c8778345",null);
             case FORMULA_NET -> new Spec("PP-FormulaNet_plus-S (LaTeX)",
                 "https://huggingface.co/x3zvawq/paddleocr-js-onnx/resolve/main/PP_FormulaNet_plus_S/PP-FormulaNet_plus-S_infer.onnx",
                 -400000000L,"713d472d8299abbf936e0c7ac74de9c63cc62f9bcf2a01be5fa376bc1d30fb76",
@@ -72,12 +78,14 @@ public final class PaddleLocalModelsV3 {
     public static long downloadBytes(int id){return Math.max(0L,spec(id).size);}
     public static boolean isDownloadable(int id){
         return id==DOC_ORIENTATION||id==TABLE_STRUCTURE||
-               id==UV_DOC||id==SEAL_DETECTION||id==FORMULA_NET;
+               id==UV_DOC||id==SEAL_DETECTION||id==FORMULA_NET||
+               id==TEXTLINE_ORIENTATION;
     }
     public static String displaySize(int id){
         long size=downloadBytes(id);
         return size>0?String.format(Locale.ROOT,"%.1f MB",size/1048576d):
-                id==FORMULA_NET?"约 334 MB":id==SEAL_DETECTION?"约 4.8 MB":"未知大小";
+                id==FORMULA_NET?"约 334 MB":id==SEAL_DETECTION?"约 4.8 MB":
+                id==TEXTLINE_ORIENTATION?"约 6.8 MB":"未知大小";
     }
     public static String preference(int id){
         return switch(id) {
@@ -86,6 +94,7 @@ public final class PaddleLocalModelsV3 {
             case UV_DOC -> UV_DOC_PREF;
             case SEAL_DETECTION -> SEAL_PREF;
             case FORMULA_NET -> FORMULA_PREF;
+            case TEXTLINE_ORIENTATION -> TEXTLINE_PREF;
             default -> throw new IllegalArgumentException("unknown preference "+id);
         };
     }
@@ -97,6 +106,7 @@ public final class PaddleLocalModelsV3 {
             case UV_DOC -> "uvdoc.onnx";
             case SEAL_DETECTION -> "seal_detector.onnx";
             case FORMULA_NET -> "formula_plus_s.onnx";
+            case TEXTLINE_ORIENTATION -> "textline_orientation.onnx";
             default -> throw new IllegalArgumentException("unknown local model "+id);
         });
     }
