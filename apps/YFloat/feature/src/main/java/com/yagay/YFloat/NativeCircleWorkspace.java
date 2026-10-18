@@ -58,7 +58,7 @@ final class NativeCircleWorkspace extends View {
     private final Paint activationBadgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint selectionBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint selectionFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path dragPath = new Path();
@@ -161,12 +161,12 @@ final class NativeCircleWorkspace extends View {
         outlinePaint.setStrokeWidth(2.4f * density);
         outlinePaint.setColor(YFloatOverlayStyle.selectionColor(app));
         fillPaint.setColor(YFloatOverlayStyle.accentWithAlpha(app,76));
-        // OCR only supplies hit geometry. Never paint a blue glyph layer:
-        // selected pixels are restored from the frozen screenshot verbatim.
-        selectionBorderPaint.setStyle(Paint.Style.STROKE);
-        selectionBorderPaint.setStrokeWidth(1.6f*density);
-        selectionBorderPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
-                app,NativeCircleVisualPolicy.TEXT_HIGHLIGHT_BORDER_ALPHA));
+        // TextGeometry V3 supplies the precise selection polygon.
+        // A semi-transparent blue selection wash replaces the old outline;
+        // the screenshot glyphs remain visible below the translucent wash.
+        selectionFillPaint.setStyle(Paint.Style.FILL);
+        selectionFillPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
+                app,NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA));
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.CENTER);
         toolbarPaint.setColor(Color.argb(241, 31, 34, 42));
@@ -480,8 +480,8 @@ final class NativeCircleWorkspace extends View {
         }
     }
 
-    /** Draw the corrected original screenshot beneath an exterior outline.
-     * No glyph redraw, font approximation, or re-OCR runs in this method.
+    /** Draw the original screenshot with native-style translucent selection.
+     * No glyph reconstruction, re-OCR, or opaque rectangle border.
      */
     private void drawTextSelection(Canvas canvas) {
         firstHandle.setEmpty();
@@ -498,8 +498,9 @@ final class NativeCircleWorkspace extends View {
             canvas.drawBitmap(frame.bitmap,null,
                     new Rect(0,0,getWidth(),getHeight()),screenshotPaint);
             canvas.restore();
-            // The outside-only stroke never tints underlying app text.
-            canvas.drawPath(pathForQuad(corners,outside),selectionBorderPaint);
+            // The selection wash is translucent, so original white/dark text
+            // stays legible. The polygon has NO blue border or extra padding.
+            canvas.drawPath(selection,selectionFillPaint);
             if(first==null)first=corners;
             last=corners;
         }
