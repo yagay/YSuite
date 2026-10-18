@@ -26,6 +26,9 @@ import com.paddle.ocr.model.OCRResult
 import com.paddle.ocr.postprocess.BoxSorter
 import com.paddle.ocr.postprocess.CTCDecoder
 import com.paddle.ocr.postprocess.QuadTextCrop
+import com.paddle.ocr.structure.PPTextLineOrientationV3
+import org.opencv.core.Core
+import java.io.File
 import com.paddle.ocr.util.BitmapUtils
 import kotlin.math.hypot
 import kotlin.math.max
@@ -38,10 +41,14 @@ class OCREngine(
     detModelAsset: String = "models/det/inference.onnx",
     recModelAsset: String = "models/rec/inference.onnx",
     recConfigAsset: String = "models/rec/inference.yml",
+    textLineOrientationModelPath: String? = null,
 ) {
     private val ortManager = ORTSessionManager(context, engineConfig)
     private val detectionEngine: DetectionEngine
     private val recognitionEngine: RecognitionEngine
+    private val lineOrientation= textLineOrientationModelPath?.let{
+        PPTextLineOrientationV3(File(it))
+    }
     val coldLoadTimeMs: Long get() = ortManager.coldLoadTimeMs
 
     init {
@@ -110,13 +117,23 @@ class OCREngine(
         while (i < sortedBoxes.size) {
             val batchCrops = mutableListOf<org.opencv.core.Mat>()
             val batchBoxIndices = mutableListOf<Int>()
+            val rotatedFlags = mutableListOf<Boolean>()
             var next = i
             while (next < sortedBoxes.size && batchCrops.size < batchSize) {
                 val crop = QuadTextCrop.crop(srcMat, sortedBoxes[next])
-                if (crop.rows() > 0 && crop.cols() > 0) {
-                    batchCrops.add(crop)
+                if(crop.rows()>0&&crop.cols()>0) {
+                    val inverted=try{lineOrientation?.shouldRotate180(crop) ?: false}
+                        catch(_:Throwable){false}
+                    val adjusted=if(inverted){
+                        val rotated=org.opencv.core.Mat()
+                        Core.rotate(crop,rotated,Core.ROTATE_180)
+                        crop.release()
+                        rotated
+                    }else crop
+                    batchCrops.add(adjusted)
                     batchBoxIndices.add(next)
-                } else crop.release()
+                    rotatedFlags.add(inverted)
+                }else crop.release()
                 next++
             }
 
@@ -135,7 +152,7 @@ class OCREngine(
                         val decoded = batchResult.texts[j]
                         if (decoded.confidence >= config.recScoreThresh) {
                             val lineBox = sortedBoxes[boxIdx]
-                            val characters = buildCharacters(lineBox, decoded)
+                            val characters = buildCharacters(lineBox, decoded, rotatedFlags[j])
                             allResults.add(
                                 OCRResult(
                                     box = lineBox,
@@ -187,7 +204,7 @@ class OCREngine(
      * only toward neighbouring character centres, and tightens both axes. CJK/full-width characters
      * are additionally constrained to a near-square cell, matching their visual glyph geometry.
      */
-    private fun buildCharacters(box: OCRBox, decoded: CTCDecoder.DecodedText): List<OCRCharacter> {
+    private fun buildCharacters(box: OCRBox, decoded: CTCDecoder.DecodedText, rotated180:Boolean=false): List<OCRCharacter> {
         val decodedChars = decoded.chars.filter { it.text.isNotEmpty() }
         if (decodedChars.isEmpty() || box.points.size != 4) return emptyList()
 
@@ -250,6 +267,13 @@ class OCREngine(
                 }
             }
 
+            // Rotate CTC time fractions back to the detector quad's original
+            // orientation. Text remains in recognized (upright) logical order.
+            if(rotated180){
+                val before=start
+                start=1f-end
+                end=1f-before
+            }
             val majorSpanPx = max(1f, majorLength * (end - start))
             val targetCrossPx = if (wideGlyph) {
                 min(crossLength * 0.86f, max(crossLength * 0.42f, majorSpanPx * 0.96f))
@@ -315,5 +339,7 @@ class OCREngine(
         return false
     }
 
-    fun release() { ortManager.release() }
+    fun release() {
+        try{lineOrientation?.close()}finally{ortManager.release()}
+    }
 }
