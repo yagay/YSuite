@@ -6,6 +6,8 @@ import android.os.Looper;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
@@ -150,6 +152,11 @@ public final class PaddleLocalModelsV3 {
             return spec(id).sha.equals(sha.toString());
         }catch(Exception error){return false;}
     }
+    /**
+     * Download every part into a staging file, verify it, and only then swap
+     * visible model files. Failures must not destroy a previously working
+     * offline model, its vocabulary, or its enabled preference.
+     */
     public static void install(Context context,int id,Callback callback){
         Context app=context.getApplicationContext();
         synchronized(ACTIVE){
@@ -159,38 +166,98 @@ public final class PaddleLocalModelsV3 {
             }
         }
         WORKER.execute(()->{
-            try {
-                Spec s=spec(id);
-                File dst=model(app,id),dir=dst.getParentFile();
-                if(dir==null||(!dir.isDirectory()&&!dir.mkdirs()))
+            File modelStage=null,secondaryStage=null;
+            File dst=null,auxiliary=null;
+            boolean attemptedCommit=false;
+            try{
+                Spec spec=spec(id);
+                dst=model(app,id);
+                File directory=dst.getParentFile();
+                if(directory==null||(!directory.isDirectory()&&!directory.mkdirs()))
                     throw new IllegalStateException("Cannot create local model directory");
-                // Each model is optional and independently installed. Never
-                // prefetch other models or update them as a side effect.
-                long required=s.size>0?s.size:s.size< -1?-s.size:20000000L;
-                if(dir.getUsableSpace()<required+64L*1024L*1024L)
-                    throw new IllegalStateException("Insufficient storage for "
-                        +s.name+" (leave 64 MB free)");
-                saveUrl(s.url,dst,s.size,s.sha,callback);
-                if(id==TABLE_STRUCTURE){
-                    File vocab=vocabulary(app);
-                    saveUrl(s.yamlUrl,vocab,32768L,null,null);
-                    if(!validVocabulary(vocab))
-                        throw new IllegalStateException("Table token dictionary is invalid");
+                auxiliary=id==TABLE_STRUCTURE?vocabulary(app):
+                        id==FORMULA_NET?formulaTokenizer(app):null;
+                // Recover interrupted swaps before touching a valid existing model.
+                recoverBackup(dst);
+                if(auxiliary!=null)recoverBackup(auxiliary);
+                long required=spec.size>0?spec.size:
+                        spec.size< -1?-spec.size:20_000_000L;
+                if(directory.getUsableSpace()<required+64L*1024L*1024L)
+                    throw new IllegalStateException("Insufficient storage for "+
+                            spec.name+" (leave 64 MB free)");
+                modelStage=stageFile(dst);
+                discard(modelStage);
+                saveUrl(spec.url,modelStage,spec.size,spec.sha,callback);
+                if(auxiliary!=null){
+                    secondaryStage=stageFile(auxiliary);
+                    discard(secondaryStage);
+                    saveUrl(spec.yamlUrl,secondaryStage,
+                            id==TABLE_STRUCTURE?32768L:5000000L,null,null);
+                    if(id==TABLE_STRUCTURE&&!validVocabulary(secondaryStage))
+                        throw new IllegalStateException("Table vocabulary is invalid");
+                    if(id==FORMULA_NET&&!validFormulaTokenizer(secondaryStage))
+                        throw new IllegalStateException("Formula tokenizer is invalid");
                 }
-                if(id==FORMULA_NET){
-                    File vocab=formulaTokenizer(app);
-                    saveUrl(s.yamlUrl,vocab,5000000L,null,null);
-                    if(!validFormulaTokenizer(vocab))
-                        throw new IllegalStateException("Formula tokenizer validation failed");
-                }
-                if(!verify(app,id))throw new IllegalStateException("ONNX model integrity failed");
+                attemptedCommit=true;
+                swapWithBackup(modelStage,dst);
+                if(auxiliary!=null)swapWithBackup(secondaryStage,auxiliary);
+                if(!verify(app,id))throw new IllegalStateException("ONNX integrity check failed");
+                discard(backupFile(dst));
+                if(auxiliary!=null)discard(backupFile(auxiliary));
                 if(callback!=null)MAIN.post(callback::onSuccess);
-            } catch(Throwable error){
-                delete(app,id);
-                if(callback!=null)MAIN.post(()->callback.onFailure(error.getMessage()==null
-                    ?error.getClass().getSimpleName():error.getMessage()));
-            } finally {synchronized(ACTIVE){ACTIVE.remove(id);}}
+            }catch(Throwable error){
+                if(attemptedCommit){
+                    rollbackBackup(dst);
+                    if(auxiliary!=null)rollbackBackup(auxiliary);
+                }
+                if(callback!=null){
+                    String reason=error.getMessage()==null?
+                            error.getClass().getSimpleName():error.getMessage();
+                    MAIN.post(()->callback.onFailure(reason));
+                }
+            }finally{
+                discard(modelStage);
+                discard(secondaryStage);
+                synchronized(ACTIVE){ACTIVE.remove(id);}
+            }
         });
+    }
+
+    private static File stageFile(File dest){
+        return new File(dest.getAbsolutePath()+".next");
+    }
+    private static File backupFile(File dest){
+        return new File(dest.getAbsolutePath()+".previous");
+    }
+    private static void discard(File file){
+        if(file!=null&&file.exists())file.delete();
+    }
+    private static void recoverBackup(File dest)throws Exception{
+        File backup=backupFile(dest);
+        if(!backup.isFile())return;
+        if(dest.exists())discard(backup);
+        else Files.move(backup.toPath(),dest.toPath(),StandardCopyOption.REPLACE_EXISTING);
+    }
+    private static void swapWithBackup(File source,File dest)throws Exception{
+        File backup=backupFile(dest);
+        if(backup.exists())throw new IllegalStateException("Incomplete previous model swap");
+        if(dest.exists()){
+            Files.move(dest.toPath(),backup.toPath(),StandardCopyOption.REPLACE_EXISTING);
+        }
+        Files.move(source.toPath(),dest.toPath(),StandardCopyOption.REPLACE_EXISTING);
+    }
+    private static void rollbackBackup(File dest){
+        if(dest==null)return;
+        File backup=backupFile(dest);
+        if(backup.exists()){
+            discard(dest);
+            try{
+                Files.move(backup.toPath(),dest.toPath(),StandardCopyOption.REPLACE_EXISTING);
+            }catch(Exception ignored){}
+        }else{
+            // This was a fresh installation, not a replacement.
+            discard(dest);
+        }
     }
     private static void saveUrl(String url,File dest,long upperBound,String sha,
                                 Callback callback)throws Exception{
@@ -237,6 +304,8 @@ public final class PaddleLocalModelsV3 {
         }
     }
     public static void delete(Context c,int id) {
+        // Never race a download's staged swap on the same model id.
+        if(busy(id))return;
         setEnabled(c,id,false);
         File f=model(c,id);
         if(f.exists())f.delete();
@@ -245,6 +314,16 @@ public final class PaddleLocalModelsV3 {
         }
         if(id==FORMULA_NET){
             File v=formulaTokenizer(c);if(v.exists())v.delete();
+        }
+        discard(stageFile(f));
+        discard(backupFile(f));
+        if(id==TABLE_STRUCTURE){
+            discard(stageFile(vocabulary(c)));
+            discard(backupFile(vocabulary(c)));
+        }
+        if(id==FORMULA_NET){
+            discard(stageFile(formulaTokenizer(c)));
+            discard(backupFile(formulaTokenizer(c)));
         }
     }
     private static boolean validVocabulary(File file) {
