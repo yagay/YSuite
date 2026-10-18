@@ -213,7 +213,12 @@ object PaddlePipelineV2 {
         recognize(context,image,model,PaddleFlowOptions.read(context,false),callback)
 
     @JvmStatic fun recognize(context:Context,image:Bitmap,model:Int,
-                             options:PaddleFlowOptions,callback:Callback){
+                             options:PaddleFlowOptions,callback:Callback) =
+        recognize(context,image,model,options,PaddleRequestToken(),callback)
+
+    @JvmStatic fun recognize(context:Context,image:Bitmap,model:Int,
+                             options:PaddleFlowOptions,request:PaddleRequestToken,
+                             callback:Callback){
         val app=context.applicationContext
         scope.launch {
             try {
@@ -222,6 +227,10 @@ object PaddlePipelineV2 {
                 // Build the entire document inside the inference lock, so a subsequent
                 // request cannot overwrite its auxiliary data before callback delivery.
                 val compat=lock.withLock {
+                    request.check()
+                    val waitMs=request.queueMs()
+                    DiagnosticLog.i(app,"PADDLE_SCHED",
+                        "phase=start waitMs="+waitMs+" circle="+options.circle)
                     releaseDisabled(options)
                     val revision=signature(app,model,options.lineOrientation)
                     if(models.containsKey(model) && modelSignatures[model]!=revision){
@@ -312,6 +321,7 @@ object PaddlePipelineV2 {
                             " lines="+result.results.size)
                         PaddleOrientationV2.Choice(result.results,0,0.0)
                     }
+                    request.check()
                     val structure=try {
                         if(options.layout) layout(app)?.detect(image) ?: emptyList()
                         else emptyList()
@@ -321,6 +331,7 @@ object PaddlePipelineV2 {
                             " detail="+(t.message ?: "unknown"))
                         emptyList()
                     }
+                    request.check()
                     val localTable=try{if(options.tables)table(app) else null}
                         catch(error:Throwable){
                         DiagnosticLog.i(app,"PADDLE_V3","table_model_error="+error.javaClass.simpleName)
@@ -382,6 +393,7 @@ object PaddlePipelineV2 {
                     val linked=tables.map{PaddleTableTextV3.link(it.first,page.lines,it.second)}
                     DiagnosticLog.i(app,"PADDLE_TABLE",
                         "sources="+linked.joinToString(","){it.source})
+                    request.check()
                     val charts=if(options.charts)PaddleChartTextV3.extract(page)
                         else emptyList()
                     lastCharts=charts
@@ -389,6 +401,7 @@ object PaddlePipelineV2 {
                     // refer to its rectified bitmap, not the source screenshot.
                     // Never send those quads to the screen selection overlay.
                     latestUnwarpedDocument=null
+                    request.check()
                     try {
                         val engine=if(options.uvdoc)uvdoc(app) else null
                         if(engine!=null){
@@ -405,6 +418,7 @@ object PaddlePipelineV2 {
                         DiagnosticLog.i(app,"PADDLE_UVDOC",
                             "unwarp_failed="+error.javaClass.simpleName)
                     }
+                    request.check()
                     val seals=ArrayList<SealResult>()
                     try{
                         val detector=if(options.seals &&
@@ -431,6 +445,7 @@ object PaddlePipelineV2 {
                     // PP-FormulaNet+S is a distinct optional local recognizer.
                     // Its LaTeX belongs to the model's layout bounding region;
                     // ordinary CTC glyph selection remains untouched.
+                    request.check()
                     val formulas=ArrayList<FormulaResult>()
                     try {
                         val parser=if(options.formulas &&
@@ -491,6 +506,7 @@ object PaddlePipelineV2 {
                         .withChartTexts(charts.map{it.searchableText}.filter{it.isNotBlank()})
                 }
                 withContext(Dispatchers.Main){
+                    request.check()
                     callback.onSuccess(compat,System.currentTimeMillis()-started,
                         compat.lines().size)
                 }
