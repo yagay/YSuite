@@ -164,13 +164,26 @@ object PaddlePipelineV2 {
     }
     @JvmStatic fun lastPage():PaddlePageV2.Page?=latestPage
 
+    /**
+     * Structure-model rectangles are not trusted to lie inside the original
+     * bitmap. Clamp all optional region crops before invoking native engines.
+     * The returned rectangle is also used for coordinate re-mapping.
+     */
+    private fun safeCropRect(bounds:Rect,image:Bitmap,minSide:Int):Rect? {
+        val clipped=Rect(bounds)
+        if(!clipped.intersect(0,0,image.width,image.height))return null
+        return clipped.takeIf{it.width()>=minSide&&it.height()>=minSide}
+    }
+
     @JvmStatic fun recognize(context:Context,image:Bitmap,model:Int,callback:Callback){
         val app=context.applicationContext
         scope.launch {
             try {
                 require(!image.isRecycled && image.width>0 && image.height>0)
                 val started=System.currentTimeMillis()
-                val (page,linkedTables)=lock.withLock {
+                // Build the entire document inside the inference lock, so a subsequent
+                // request cannot overwrite its auxiliary data before callback delivery.
+                val compat=lock.withLock {
                     val revision=signature(app,model)
                     if(models.containsKey(model) && modelSignatures[model]!=revision){
                         models.remove(model)?.release()
@@ -226,8 +239,7 @@ object PaddlePipelineV2 {
                     }
                     val tables=ArrayList<SLANetLocalV3.Result>()
                     if(localTable!=null)for(region in structure.filter{it.label=="table"}){
-                        val rect=region.bounds
-                        if(rect.width()<16||rect.height()<16)continue
+                        val rect=safeCropRect(region.bounds,image,16) ?: continue
                         val crop=Bitmap.createBitmap(image,rect.left,rect.top,rect.width(),rect.height())
                         try{
                             val predicted=localTable.detect(crop)
@@ -253,7 +265,8 @@ object PaddlePipelineV2 {
                     val page=PaddlePageV2.fromOcr(chosen.results,image.width,image.height,
                         structure,spacing)
                     val linked=tables.map{PaddleTableTextV3.link(it,page.lines)}
-                    lastCharts=PaddleChartTextV3.extract(page)
+                    val charts=PaddleChartTextV3.extract(page)
+                    lastCharts=charts
                     // UVDoc is a separate document-OCR result. Its coordinates
                     // refer to its rectified bitmap, not the source screenshot.
                     // Never send those quads to the screen selection overlay.
@@ -278,8 +291,7 @@ object PaddlePipelineV2 {
                     try{
                         val detector=seal(app)
                         if(detector!=null)for(region in structure.filter{it.label=="seal"}){
-                            val r=region.bounds
-                            if(r.width()<16||r.height()<16)continue
+                            val r=safeCropRect(region.bounds,image,16) ?: continue
                             val crop=Bitmap.createBitmap(image,r.left,r.top,r.width(),r.height())
                             try{
                                 val polygons=detector.detect(crop).map {region->
@@ -305,8 +317,7 @@ object PaddlePipelineV2 {
                         val parser=formula(app)
                         if(parser!=null) {
                             for(region in structure.filter{it.label=="formula"}.take(24)) {
-                                val box=region.bounds
-                                if(box.width()<8||box.height()<8)continue
+                                val box=safeCropRect(region.bounds,image,8) ?: continue
                                 val crop=Bitmap.createBitmap(image,box.left,box.top,
                                     box.width(),box.height())
                                 try {
@@ -332,17 +343,15 @@ object PaddlePipelineV2 {
                     val fixes=page.lines.count {it.rawText!=it.text}
                     DiagnosticLog.i(app,"PADDLE_V2",
                         "spacing_enabled="+spacing+" corrected_lines="+fixes)
-                    page to linked
+                    latestPage=page
+                    lastTables=linked
+                    page.asLegacy("ppocr-v2-"+model)
+                        .withTableTexts(linked.map{it.tabSeparated}.filter{it.isNotBlank()})
+                        .withSealTexts(seals.map{it.recognizedText}.filter{it.isNotBlank()})
+                        .withUnwarpedText(latestUnwarpedDocument?.fullText().orEmpty())
+                        .withFormulaTexts(formulas.map{it.latex})
+                        .withChartTexts(charts.map{it.searchableText}.filter{it.isNotBlank()})
                 }
-                latestPage=page
-                lastTables=linkedTables
-                val compat=page.asLegacy("ppocr-v2-"+model)
-                    .withTableTexts(linkedTables.map{it.tabSeparated}.filter{it.isNotBlank()})
-                    .withSealTexts(latestSealResults.map{it.recognizedText}
-                        .filter{it.isNotBlank()})
-                    .withUnwarpedText(latestUnwarpedDocument?.fullText().orEmpty())
-                    .withFormulaTexts(latestFormulaResults.map{it.latex})
-                    .withChartTexts(lastCharts.map{it.searchableText}.filter{it.isNotBlank()})
                 withContext(Dispatchers.Main){
                     callback.onSuccess(compat,System.currentTimeMillis()-started,
                         compat.lines().size)
@@ -373,6 +382,7 @@ object PaddlePipelineV2 {
                 latestUnwarpedDocument=null
                 latestSealResults=emptyList()
                 lastTables=emptyList()
+                latestPage=null
             }
         }
     }
