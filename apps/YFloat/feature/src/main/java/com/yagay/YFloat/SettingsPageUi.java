@@ -92,23 +92,25 @@ final class SettingsPageUi {
                 activity.getString(R.string.yfloat_ocr_auto) + " (Paddle offline)",
                 activity.getString(R.string.yfloat_ocr_medium),
                 activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_mlkit),
                 "PP-OCRv5 Mobile",
                 activity.getString(R.string.yfloat_ocr_tiny)
-        }, selected == 5 ? 4 : selected == 6 ? 5 : selected, true,
+        }, selected == 5 ? 3 : selected == 6 ? 4 : selected, true,
                 position -> fs.setInt(FloatSettings.K_OCR_ENGINE,
-                        position == 4 ? 5 : position == 5 ? 6 : position));
+                        position == 3 ? 5 : position == 4 ? 6 : position));
     }
 
     void circleFullOcrEngineSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_fullscreen_ocr_engine), new String[]{
-                activity.getString(R.string.yfloat_ocr_mlkit),
-                activity.getString(R.string.yfloat_ocr_tiny),
-                activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_medium),
-                "PP-OCRv5 Mobile",
-                activity.getString(R.string.yfloat_ocr_auto) + " (Paddle)"
-        }, fs.circleFullOcrEngine(), FloatSettings.K_CIRCLE_FULL_OCR_ENGINE, true);
+        int current=fs.circleFullOcrEngine();
+        addPreferenceSpinner(parent, activity.getString(R.string.yfloat_fullscreen_ocr_engine),
+                new String[]{
+                    activity.getString(R.string.yfloat_ocr_auto)+" (Paddle offline)",
+                    activity.getString(R.string.yfloat_ocr_tiny),
+                    activity.getString(R.string.yfloat_ocr_small),
+                    activity.getString(R.string.yfloat_ocr_medium),
+                    "PP-OCRv5 Mobile"
+                }, current==5?0:current,true,
+                choice -> fs.setInt(FloatSettings.K_CIRCLE_FULL_OCR_ENGINE,
+                        choice==0?5:choice));
     }
 
     void circleCorrectionEngineSpinner(LinearLayout parent) {
