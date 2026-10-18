@@ -160,6 +160,42 @@ if "PaddleLocalModelsV3.check(activity,id," not in model_ui:
 if "cancelButton.setOnClickListener" not in pdf:
     problems.append("Long offline PDF inference lacks cancellation")
 
+# Last-batch contracts: honest geometry provenance, conservative raster cell
+# detection, one-owner word-to-cell linking, and bounded PDF export memory.
+ruled=(java / "PaddleRuledGridV4.kt").read_text()
+ocr_doc=(java / "OcrDocument.java").read_text()
+page=(java / "PaddlePageV2.kt").read_text()
+for needle in ("PaddleRuledGridV4.detect(crop)", "grid.prediction to grid.source",
+               "PaddleTableTextV3.link(it.first,page.lines,it.second)"):
+    if needle not in pipeline:
+        problems.append("Real raster-grid table fallback not wired: " + needle)
+for needle in ("fun detect(bitmap:Bitmap)", "rowHits", "colHits",
+               "good<all*.92f", "pixel_ruled_grid"):
+    if needle not in ruled:
+        problems.append("Ruled-table fallback needs conservative physical-grid evidence: " + needle)
+for needle in ("winningCell(", "val buckets=Array(", "source:String="):
+    if needle not in table:
+        problems.append("Table OCR text must be assigned to unique cells: " + needle)
+if ".withTableOrigins(linked.map{it.source})" not in pipeline:
+    problems.append("Table model vs raster provenance lost in result document")
+if '"tableOrigins", strings(d.tableOrigins())' not in exporter:
+    problems.append("Structured export loses table provenance")
+if "RECTIFIED_BITMAP" not in ocr_doc or "withRectifiedDocument" not in ocr_doc:
+    problems.append("UVDoc corrected-page geometry is not isolated")
+if "asRectifiedBitmapSpace()" not in pipeline or "withRectifiedDocument(latestUnwarpedDocument)" not in pipeline:
+    problems.append("UVDoc document falsely exposes corrected geometry as source")
+if '"rectifiedCoordinateMapping","not_available"' not in exporter:
+    problems.append("UVDoc export must explicitly mark nonrigid inverse as unavailable")
+if "fun withinImage(q:Quad)" not in page or "lineQuad=withinImage(" not in page:
+    problems.append("Paddle text selection geometry may escape bitmap boundaries")
+for needle in ("File.createTempFile(", "appendPage(pageIndex,document)",
+               "exportWriter.flush()", "new FileInputStream(ready)",
+               "saveDraftButton.setOnClickListener", "image=renderPage(page)"):
+    if needle not in pdf:
+        problems.append("Offline PDF streaming/retry/bitmap lifecycle contract missing: "+needle)
+if "results.add(document)" in pdf or "ArrayList<OcrDocument> results" in pdf:
+    problems.append("PDF OCR must not retain unbounded page documents in RAM")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
