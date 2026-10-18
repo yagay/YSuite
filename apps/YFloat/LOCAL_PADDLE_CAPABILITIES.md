@@ -741,3 +741,29 @@ Android Editor/SelectionHandleView is used as a *behavioural reference*, not
 as a hidden SDK dependency. Exact OEM handle artwork may still differ from
 system text editing controls. Physical screenshot and drag acceptance remain
 necessary after the ARM64 Debug build.
+
+## Main branch text handles restored (2026-10-18)
+
+At user request, the previous *experiment-only* teardrop grips have been
+replaced with the exact visible circle-and-stem grip design from
+`main: apps/YFloat/feature/src/main/java/com/yagay/YFloat/FLCircleInlineOverlay.java`.
+
+Source comparison: main draws the selected text's leading and trailing grips
+at the **left/bottom** and **right/bottom** of the first/last text rectangles
+using a 7dp solid blue line extending down and a 7dp solid blue circle at
+the line's end. Handle colour is main's `0xFF4285F4`, and hit tolerance is
+28dp. Drag word/snapping policy uses main's 96dp maximum horizontal-distance
+score with a row-height gate and 3.25x vertical penalty. This is the real
+main-branch implementation; it is **not** a waterdrop view.
+
+The current experiment continues to use **TextGeometry V3** corrected word
+bounds and original screenshot blue fill instead of the previous branch's
+older word-rectangle selection. Only text handle drawing and editing were
+ported. The native Circle Canvas is again a single Android `View`,
+with no secondary full-screen child. Replaced `NativeSelectionHandlesView`,
+`TextCaretGeometry`, and `SelectionDragController` and their experimental
+tests were removed. Static CI now verifies the main-branch grip dimensions
+and snapping expressions directly in the live `NativeCircleWorkspace`.
+
+On-device verification is still needed: handle appearance should now match
+main, while TextGeometry V3 OCR region improvements remain.
