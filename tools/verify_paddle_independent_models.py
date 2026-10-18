@@ -400,45 +400,51 @@ for needle in ("static float lineScore(", "static boolean splitsLabel(",
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleTextRangePolicyTest.java").is_file():
     problems.append("Missing icon-caption same-line selection regression tests")
 
-# Saturated launcher-icon screenshot regression: keep OCR glyphs as
-# screenshot pixels, make selection visible via a thin outline and place
-# draggable stems BELOW/OUTSIDE the text to avoid blue glyph distortion.
+# Native Android-style text selection: the accurate TextGeometry V3 polygon
+# is filled translucently without a blue stroke/rectangle. The screenshot
+# remains the source of glyph pixels; the fill is a light, intentional tint.
 native=(java / "NativeCircleWorkspace.java").read_text()
 visual=(java / "NativeCircleVisualPolicy.java").read_text()
 style=(java / "YFloatOverlayStyle.java").read_text()
-for needle in ("selectionBorderPaint",
-               "selectionBorderPaint.setStyle(Paint.Style.STROKE)",
+for needle in ("selectionFillPaint",
+               "selectionFillPaint.setStyle(Paint.Style.FILL)",
+               "selectionFillPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(",
+               "NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA",
+               "NativeCircleVisualPolicy.textHandleOutsideGap(density)",
                "NativeCircleVisualPolicy.leadingHandleX(start.x-outside,density)",
                "NativeCircleVisualPolicy.trailingHandleX(end.x+outside,density)",
                "NativeCircleVisualPolicy.handleStemTop(sy,density)",
-               "NativeCircleVisualPolicy.handleStemTop(ey,density)",
-               "YFloatOverlayStyle.selectionWithAlpha("):
+               "NativeCircleVisualPolicy.handleStemTop(ey,density)"):
     if needle not in native:
-        problems.append("Native Circle font-preserving selection contrast regressed: "+needle)
-# Selecting OCR text must REVEAL the exact source bitmap pixels, not
-# blend a new color into the original typeface. The border is outside.
+        problems.append("Native Circle translucent-selection drawing regressed: "+needle)
 for needle in ("canvas.clipPath(selection)",
                "canvas.drawBitmap(frame.bitmap,null,",
-               "canvas.drawPath(pathForQuad(corners,outside),selectionBorderPaint)",
+               "canvas.drawPath(selection,selectionFillPaint)",
                "TextGeometryPixelLocator.refine(frame,glyph,detector)",
                "TextGeometryV3.build(fullDocument,chosenChars,"):
     if needle not in native:
-        problems.append("OCR selection must restore source pixels with exterior outline: "+needle)
+        problems.append("OCR selection lost V3 source pixels/blue fill: "+needle)
+if "selectionBorderPaint" in native or "canvas.drawPath(pathForQuad(corners,outside)" in native:
+    problems.append("Old blue outline is still painted over native text selection")
 if "selectionHighlightPaint" in native or "canvas.drawRoundRect(highlight," in native:
-    problems.append("Blue fill overlay still alters original app text glyph pixels")
+    problems.append("Old rectangle-based OCR selection rendering resurfaced")
 if "canvas.drawLine(hx,first.top,hx,hy,outlinePaint)" in native:
     problems.append("OCR selection handle still paints through original glyph")
-for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "TEXT_HIGHLIGHT_BORDER_ALPHA",
+for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "textHandleOutsideGap",
                "leadingHandleX", "trailingHandleX", "handleStemTop"):
     if needle not in visual:
         problems.append("Native Circle selection rendering policy missing: "+needle)
+if "TEXT_HIGHLIGHT_BORDER_ALPHA" in visual:
+    problems.append("Obsolete blue text selection border opacity remains")
 if "static int selectionWithAlpha(" not in style:
     problems.append("Native Circle highlight ignores user's custom selection color")
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").is_file():
     problems.append("Native Circle launcher-font visual policy regression test missing")
 else:
     selection_tests=(FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").read_text()
-    for test_case in ("entireIconWordUsesDetectorWidthAndTightVerticalOverlap",
+    for test_case in ("nativeTextSelectionHasVisibleTranslucentBlueWash",
+                      "dragHandlesHaveGuaranteedGapOutsideSelectionFill",
+                      "entireIconWordUsesDetectorWidthAndTightVerticalOverlap",
                       "draggingOneCharacterNeverExpandsToWholeIconWord",
                       "detectorCrossingUnrelatedIconIsRejected",
                       "nonOverlappingDetectorFallsBackToSelectedCharacters"):
@@ -475,7 +481,7 @@ for source,label,needles in (
 if not pixel_test.is_file() or "toutiaoWhiteGlyphsOnUniformRedIconAreTightlyLocated" not in pixel_test.read_text():
     problems.append("TextGeometry V3 lacks synthetic icon/unsafe-background regression")
 if "canvas.drawText(ch.text()" in native or "selectionHighlightPaint" in native:
-    problems.append("Native Circle selection must not recreate or recolor the screenshot glyphs")
+    problems.append("Native Circle selection must not recreate glyph fonts or use legacy overlays")
 
 
 
