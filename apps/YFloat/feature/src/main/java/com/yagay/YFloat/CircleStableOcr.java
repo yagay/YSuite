@@ -23,6 +23,24 @@ final class CircleStableOcr {
             recognizeFullScreenMlKit(app, bitmap, callback);
             return;
         }
+        if (mode == 5) {
+            // Same local Paddle engine as normal OCR; do not maintain an
+            // independent recognizer or model cache for Circle.
+            for (int candidate : new int[]{OcrModelManager.SMALL,
+                    OcrModelManager.MEDIUM, OcrModelManager.MOBILE,
+                    OcrModelManager.TINY}) {
+                if (OcrModelManager.isReady(app, candidate)) {
+                    DiagnosticLog.i(app, "FL_CIRCLE_FULL_ENGINE",
+                            "selected=paddle_auto model=" + candidate);
+                    recognizePaddle(app, bitmap, candidate, "full_screen_index", callback);
+                    return;
+                }
+            }
+            DiagnosticLog.i(app, "FL_CIRCLE_FULL_ENGINE",
+                    "selected=paddle_auto modelMissing=true fallback=mlkit");
+            recognizeFullScreenMlKit(app, bitmap, callback);
+            return;
+        }
         int model = modelForCircleMode(mode);
         if (!OcrModelManager.isReady(app, model)) {
             DiagnosticLog.i(app, "FL_CIRCLE_FULL_ENGINE",
