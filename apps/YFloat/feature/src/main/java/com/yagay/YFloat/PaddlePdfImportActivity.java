@@ -43,6 +43,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
     private ActivityResultLauncher<String> saveHtml;
     private ActivityResultLauncher<String> saveCsv;
     private TextView status;
+    private MaterialButton cancelButton;
     private PdfRenderer renderer;
     private ParcelFileDescriptor sourceFd;
     private final ArrayList<OcrDocument> results = new ArrayList<>();
@@ -73,7 +74,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
                 "Paddle OCR - Local PDF",
                 "Pages are processed offline in order. No PDF is uploaded.");
         YViewSection section = YViewLayout.section(this, "Document OCR",
-                "Export structured text as Markdown or JSON, with source-page geometry.");
+                "All PDF pages are recognized locally; export Markdown, JSON, HTML or table CSV.");
         status = YViewLayout.rowSubtitle(this, "Select a PDF. Install a Paddle OCR model first.");
         YViewLayout.addRow(section.body, status);
 
@@ -93,6 +94,18 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         YViewLayout.addAction(more,html);
         YViewLayout.addAction(more,csv);
         YViewLayout.addRow(section.body,more);
+        cancelButton=YViewLayout.compactButton(this,
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")?
+                    "取消识别":"Cancel recognition");
+        cancelButton.setEnabled(false);
+        cancelButton.setOnClickListener(v->{
+            cancelled.set(true);
+            cancelButton.setEnabled(false);
+            showProgress("Cancellation requested. Finishing current inference...");
+        });
+        LinearLayout stop=YViewLayout.buttonRow(this);
+        YViewLayout.addAction(stop,cancelButton);
+        YViewLayout.addRow(section.body,stop);
         YViewLayout.addSection(root, section);
         setContentView(YViewLayout.scrollPage(this, root));
     }
@@ -120,6 +133,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
     private void startDocument(Uri uri) {
         if(running||uri==null)return;
         running=true;
+        cancelButton.setEnabled(true);
         cancelled.set(false);
         results.clear();
         output=null;
@@ -139,7 +153,17 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
 
     /** Called only on the PDF worker. Only one Bitmap is alive per page. */
     private void readNext(int pageIndex) {
-        if(cancelled.get()) {closePdf();return;}
+        if(cancelled.get()) {
+            closePdf();
+            results.clear();
+            output=null;
+            running=false;
+            runOnUiThread(()->{
+                cancelButton.setEnabled(false);
+                status.setText("PDF recognition cancelled.");
+            });
+            return;
+        }
         try{
             int count=renderer.getPageCount();
             if(pageIndex>=count){
@@ -152,6 +176,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
                 };
                 running=false;
                 runOnUiThread(()->{
+                    cancelButton.setEnabled(false);
                     if(cancelled.get())return;
                     status.setText("Finished "+results.size()+" pages. Choose where to save.");
                     switch(format){
@@ -180,7 +205,12 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
             PaddlePipelineV2.recognize(getApplicationContext(),image,model,
                     new PaddlePipelineV2.Callback(){
                         @Override public void onSuccess(OcrDocument document,long ms,int lines){
-                            if(cancelled.get()){image.recycle();return;}
+                            if(cancelled.get()){
+                                image.recycle();
+                                try{io.execute(()->readNext(pageIndex+1));}
+                                catch(java.util.concurrent.RejectedExecutionException ignored){}
+                                return;
+                            }
                             try{
                                 io.execute(()->{
                                     image.recycle();
@@ -193,7 +223,12 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
                             }
                         }
                         @Override public void onFailure(String message){
-                            if(cancelled.get()){image.recycle();return;}
+                            if(cancelled.get()){
+                                image.recycle();
+                                try{io.execute(()->readNext(pageIndex+1));}
+                                catch(java.util.concurrent.RejectedExecutionException ignored){}
+                                return;
+                            }
                             try{
                                 io.execute(()->{
                                     image.recycle();
@@ -226,6 +261,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         results.clear();
         output=null;
         running=false;
+        runOnUiThread(()->cancelButton.setEnabled(false));
         showProgress("PDF OCR failed: "+safe(error));
     }
 
