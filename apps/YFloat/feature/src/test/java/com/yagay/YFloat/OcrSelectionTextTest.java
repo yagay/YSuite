@@ -60,6 +60,15 @@ public final class OcrSelectionTextTest {
                         List.of(0,1),List.of(0,1)));
     }
 
+    @Test public void neverBridgesDifferentStringsThatShareALineIndex() {
+        List<String> units=List.of("a","z");
+        List<OcrSelectionText.Span> spans=List.of(
+                new OcrSelectionText.Span("abc",0,0,0,1),
+                new OcrSelectionText.Span("xyz",0,1,2,3));
+        assertEquals("az",OcrSelectionText.selected(units,spans,
+                List.of(0,1),List.of(0,0)));
+    }
+
     @Test public void unmatchedRepeatedGlyphNeverBacktracks() {
         List<OcrSelectionText.Span> a=OcrSelectionText.align("人人人",
                 List.of("人","人","人","人"),0);
