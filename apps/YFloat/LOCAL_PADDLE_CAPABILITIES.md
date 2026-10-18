@@ -548,3 +548,5 @@ selection hit targets. This is a *visual highlight and range locality fix*,
 not a claim to recognize arbitrary original fonts or recover exact glyph
 outlines. Physical on-device validation remains needed for curved text,
 rotated labels and extreme screenshot transformations.
+
+**Final screenshot-selection CI:** Validate line-local text ranges, original-font background highlighting, status-inset layout, all OCR unit tests, and ARM64 Debug APK. Intermediate source commits intentionally used `[skip ci]`.
