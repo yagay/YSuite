@@ -381,3 +381,32 @@ recognizer confidence and actual cropped pixels must be compared rather
 than stripping valid language spaces blindly.
 
 **Native-circle final CI gate:** This consolidated source fix is ready for ARM64 Debug compilation and both OCR unit-test tasks; all intermediate edits used `[skip ci]`.
+
+## Highlight turning into rectangular crop — 2026-10-18
+
+Diagnostic: `YFloat-diagnostic-20261018-155752.txt` records the same
+intent mismatch twice. At 15:47:38 and 15:57:42,
+`CIRCLE_NATIVE text OCR timeout; falling back to image crop`
+fires while `kind=HIGHLIGHT`. The local PP-OCRv5 Mobile screen index
+actually finishes after about 10.9s and 8.6s respectively, well beyond
+the 4-second UI timeout. The image fallback switches to an editable
+rectangular crop with four handles, which explains the sudden change
+from a thin drawn line into a box.
+
+The native canvas also previously replaced a gesture's real `Path`
+with the bounding rectangle during `RESOLVING`. Both problems are fixed:
+
+- Keep a copy of the drawn highlight `Path` until Paddle inference finishes.
+  Draw this exact line, not the bounding box, during pending text inference.
+- Route text highlights only to text, even if the installed on-device
+  model is slow. Never automatically turn `HIGHLIGHT` into a screenshot.
+- Wait up to 25 seconds for the recognition callback. On timeout or
+  no usable text, reset to IDLE with an actionable message rather
+  than producing a cropped rectangle. Late callbacks cannot change
+  an abandoned state. Taps and actual image gestures retain image fallback.
+- `NativeCircleIntentRouter.permitsImageFallback()` centralizes this intent.
+  JUnit tests and static source contracts cover the invariant.
+
+**Still to validate on a device:** path continuity while OCR runs; proper
+glyph highlights after OCR; no rectangular crop if OCR fails. The source
+and CI tests cannot emulate user touch rendering in a live Android overlay.
