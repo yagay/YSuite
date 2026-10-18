@@ -507,3 +507,5 @@ image set; static JVM/Debug CI cannot prove those physical properties.
 **Final one-shot performance CI:** ARM64 Debug, OCR JVM tests, source-contract checks, ABI verification and artifact upload after all batch commits with `[skip ci]`.
 
 **CI correction:** The first all-at-once build reached Kotlin compilation and revealed a Java package-visibility mismatch in the newly public cancellation API; `PaddleRequestToken` is now public. Rebuild ARM64 Debug and re-run both OCR unit-test suites.
+
+**Final compile compatibility correction:** Kotlin API visibility and Java floating-point gesture ROI overload were both fixed after CI exposed the errors. Perform the final ARM64 Debug/JVM regression build without modifying model sources further.
