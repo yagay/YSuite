@@ -79,7 +79,7 @@ if "if(fallbackText.isNotBlank() && aligned!=fallbackText)" not in spacing:
     problems.append("CTC alignment cannot silently truncate full recognizer text")
 if "visuallyTight(prev,next" not in spacing:
     problems.append("Paddle spacing correction must use geometry evidence")
-if "cellLines.joinToString(\"\\n\")" not in table:
+if "buckets[i].joinToString(\"\\n\")" not in table:
     problems.append("Table cells must preserve distinct OCR line boundaries")
 if "val quality=confidence*1000.0" not in page or "confidence,quality,width,height" not in page:
     problems.append("OCR quality score is not persisted for automatic model escalation")
@@ -203,7 +203,7 @@ if '"ppocr_empty", request' in ocr_engine or '"ppocr_failure:" + message, reques
     problems.append("Paddle Auto failure must not silently switch engines")
 if '"selected=paddle_auto modelMissing=true fallback=mlkit"' in circle:
     problems.append("Circle Paddle Auto must not silently switch engines")
-if '"Paddle offline"' not in selector:
+if "(Paddle offline)" not in selector:
     problems.append("User-facing Paddle Auto label must identify its offline engine")
 
 if problems:
