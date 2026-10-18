@@ -3,57 +3,77 @@ package com.yagay.YFloat
 import android.graphics.Rect
 
 /**
- * Conservative local reading-order heuristic. Preserves original PP-DocLayout
- * block labels and quads; explicitly does NOT claim learned reading order.
- * Full-width headings divide sections; within each section, detect two
- * spatially disjoint text columns and read each top-to-bottom.
+ * Conservative, deterministic local reading order.
+ * Uses visual separators and validated non-overlapping column intervals.
+ * It preserves actual layout-model blocks without claiming learned semantics.
  */
 object PaddleReadingOrderV3 {
+    private val POSITION=compareBy<PaddlePageV2.Block>(
+        {it.bounds.rect().top},{it.bounds.rect().left})
+
     fun order(input:List<PaddlePageV2.Block>,width:Int):List<PaddlePageV2.Block> {
-        if(input.size<3||width<=0)return input.sortedWith(byPosition())
-        val wide=input.filter {it.bounds.rect().width()>=width*.73f}
-            .sortedWith(byPosition())
-        val narrow=input.filter {it !in wide}
-        if(narrow.isEmpty())return wide
-        val output=ArrayList<PaddlePageV2.Block>()
-        var previousBottom=Int.MIN_VALUE
-        for(heading in wide) {
-            val cutoff=heading.bounds.rect().top
-            val section=narrow.filter {
-                val r=it.bounds.rect()
-                r.top>=previousBottom && r.top<cutoff
-            }
-            output.addAll(orderWithinSection(section,width))
-            output.add(heading)
-            previousBottom=heading.bounds.rect().bottom
+        if(input.size<3 || width<=0)return input.sortedWith(POSITION)
+        val sorted=input.sortedWith(POSITION)
+        val separators=sorted.filter {
+            val box=it.bounds.rect()
+            box.width()>=width*.78f
         }
-        output.addAll(orderWithinSection(narrow.filter {
-            it.bounds.rect().top>=previousBottom
-        },width))
-        // A full-width page element can overlap smaller blocks; retain all
-        // blocks exactly once even when the conservative separator drops one.
-        for(block in input)if(block !in output)output.add(block)
-        return output
+        if(separators.isEmpty())return columns(sorted,width)
+        val output=ArrayList<PaddlePageV2.Block>(input.size)
+        val used=HashSet<Int>()
+        for(sep in separators) {
+            val cutoff=sep.bounds.rect().top
+            val before=sorted.filter{
+                val id=input.indexOfFirst{source->source===it}
+                id !in used && it !== sep && it.bounds.rect().centerY()<cutoff
+            }
+            output.addAll(columns(before,width))
+            for(block in before){
+                used.add(input.indexOfFirst{source->source===block})
+            }
+            val id=input.indexOfFirst{source->source===sep}
+            if(id !in used){output.add(sep);used.add(id)}
+        }
+        val remaining=sorted.filter{
+            val id=input.indexOfFirst{source->source===it}
+            id !in used
+        }
+        output.addAll(columns(remaining,width))
+        // The separator heuristic must never delete or duplicate a region.
+        return if(output.size==input.size)output else sorted
     }
 
-    private fun orderWithinSection(blocks:List<PaddlePageV2.Block>,
-                                   width:Int):List<PaddlePageV2.Block> {
-        if(blocks.size<4)return blocks.sortedWith(byPosition())
-        val mid=width/2f
-        val left=blocks.filter{it.bounds.rect().centerX()<mid}
-        val right=blocks.filter{it.bounds.rect().centerX()>=mid}
-        if(left.size<2||right.size<2)return blocks.sortedWith(byPosition())
-        val leftRight=left.maxOf{it.bounds.rect().right}
-        val rightLeft=right.minOf{it.bounds.rect().left}
-        if(rightLeft-leftRight<width*.035f)return blocks.sortedWith(byPosition())
-        val leftTop=left.minOf{it.bounds.rect().top}
-        val leftBottom=left.maxOf{it.bounds.rect().bottom}
-        val rightTop=right.minOf{it.bounds.rect().top}
-        val rightBottom=right.maxOf{it.bounds.rect().bottom}
-        if(minOf(leftBottom,rightBottom)-maxOf(leftTop,rightTop)<=0)
-            return blocks.sortedWith(byPosition())
-        return left.sortedWith(byPosition())+right.sortedWith(byPosition())
+    private fun columns(blocks:List<PaddlePageV2.Block>,width:Int):
+            List<PaddlePageV2.Block> {
+        if(blocks.size<4)return blocks.sortedWith(POSITION)
+        // Find the strongest actual whitespace gutter. Do not sort into
+        // "columns" unless both sides contain multiple elements.
+        val split=(1..9).map{width*it/10}.maxByOrNull{boundary->
+            val left=blocks.filter{it.bounds.rect().right<=boundary}
+            val right=blocks.filter{it.bounds.rect().left>=boundary}
+            if(left.size<2||right.size<2)Float.NEGATIVE_INFINITY
+            else {
+                val crossing=blocks.count{
+                    it.bounds.rect().left<boundary &&
+                        it.bounds.rect().right>boundary
+                }
+                val gutter=right.minOf{it.bounds.rect().left}-
+                    left.maxOf{it.bounds.rect().right}
+                if(crossing>0||gutter<width*.045f)Float.NEGATIVE_INFINITY
+                else gutter.toFloat()
+            }
+        } ?: return blocks.sortedWith(POSITION)
+        val left=blocks.filter{it.bounds.rect().right<=split}
+        val right=blocks.filter{it.bounds.rect().left>=split}
+        if(left.size<2||right.size<2||left.size+right.size!=blocks.size)
+            return blocks.sortedWith(POSITION)
+        val verticalOverlap=minOf(left.maxOf{it.bounds.rect().bottom},
+                right.maxOf{it.bounds.rect().bottom})-
+            maxOf(left.minOf{it.bounds.rect().top},
+                  right.minOf{it.bounds.rect().top})
+        if(verticalOverlap<=0)return blocks.sortedWith(POSITION)
+        // Recursion handles 3+ columns without requiring a hard-coded page
+        // midpoint; blocks inside each column keep top-to-bottom order.
+        return columns(left,width)+columns(right,width)
     }
-    private fun byPosition():Comparator<PaddlePageV2.Block> =
-        compareBy({it.bounds.rect().top},{it.bounds.rect().left})
 }
