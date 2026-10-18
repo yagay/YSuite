@@ -343,3 +343,5 @@ English word spacing, especially if CTC alignment is incomplete. The app
 must not silently guess what English phrase was intended. A screenshot and
 stage counters are needed to distinguish intrinsic recognition uncertainty
 from any remaining app-side text mutation.
+
+**Final consolidated CI:** Run ARM64 Debug and both OCR unit-test modules after this deep whitespace-path audit. Intermediate commits were skipped.
