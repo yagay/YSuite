@@ -206,6 +206,23 @@ if '"selected=paddle_auto modelMissing=true fallback=mlkit"' in circle:
 if "(Paddle offline)" not in selector:
     problems.append("User-facing Paddle Auto label must identify its offline engine")
 
+# OCR source text is authoritative for copied Circle spacing. Group ids are
+# selection geometry and must never be treated as invented word separators.
+circle_selection=(java / "CircleTextSelectionModel.java").read_text()
+for needle in ("sourceSpaceBefore", "sourceSpacing.put(unit",
+               "originalSpacing==1", "originalSpacing<0",
+               "sourceSpaceBefore=List.copyOf(normalizedSpacing)"):
+    if needle not in circle_selection:
+        problems.append("Circle copy may manufacture spaces at glyph-group boundaries: "+needle)
+for needle in ("normalizeCjkSpacing(fallbackText)",
+               "fun normalizeCjkSpacing(text:String)",
+               "joinAroundCjk(", "countCandidateSpaces("):
+    if needle not in spacing:
+        problems.append("Offline CJK spacing cannot repair incomplete CTC alignments: "+needle)
+spacing_test=(FEATURE / "ppocr-sdk/src/test/java/com/paddle/ocr/postprocess/PaddleSpacingV2Test.kt")
+if not spacing_test.is_file():
+    problems.append("CJK spacing regressions are not covered by local unit cases")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
