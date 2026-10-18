@@ -196,7 +196,6 @@ public final class OcrEngine {
         PaddlePipelineV2.recognize(app, source, model, new PaddlePipelineV2.Callback() {
             @Override public void onSuccess(OcrDocument raw, long totalMs, int lineCount) {
                 if (stale(app, request, "paddle_success")) return;
-                double score = paddleScore(raw.fullText(), raw.confidence(), raw.blocks().size());
                 OcrDocument now = raw; // Preserve V2 block grouping; no legacy reserialization.
                 DiagnosticLog.i(app, "PPOCRV6", "success request=" + request.requestId + " model=" + model
                         + " lane=" + request.lane()
@@ -258,11 +257,6 @@ public final class OcrEngine {
         if (a == null || a.fullText().isBlank()) return b;
         if (b == null || b.fullText().isBlank()) return a;
         return b.score() >= a.score() ? b : a;
-    }
-
-    private static double paddleScore(String text, float confidence, int blocks) {
-        int length = text == null ? 0 : text.codePointCount(0, text.length());
-        return confidence * 1000.0 + Math.min(300, length) + Math.min(12, blocks) * 5.0;
     }
 
     private static void startMlKitPipeline(Context app, FloatService service, Bitmap source, Rect anchor,
