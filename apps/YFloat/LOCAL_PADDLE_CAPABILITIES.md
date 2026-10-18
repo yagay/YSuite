@@ -67,3 +67,33 @@ Official model sources (runtime files downloaded only when the user taps Downloa
 
 The older RapidOCR migration lives on a separate untouched branch. No weights are
 committed to this repository. The next CI run is deliberately deferred.
+
+## 2026-10-18: Paddle continuity pass (source staged; CI deferred)
+
+- Kept **PaddleOCR** as the on-device recognition implementation on this branch;
+  the separate RapidOCR experiment was not merged.
+- All four downloaded base recognizers (v6 Tiny, Small, Medium, v5 Mobile)
+  are now reachable from primary OCR settings. In Auto, Tiny is a final local
+  option before ML Kit if larger Paddle models are absent.
+- A complete OCR document, its table cells, seals, FormulaNet output,
+  unwarped text, and chart labels are snapshotted in the same serialized
+  inference lane. Concurrent requests no longer assemble a document using
+  unrelated subsequent request metadata.
+- Optional table, seal and formula crops are intersected with original
+  bitmap bounds before native inference. Invalid/tiny regions are skipped.
+- Table-cell text preserves full recognizer line spacing where cell coverage
+  is strong and retains line boundaries where several recognized lines share
+  a cell. SLANet's HTML no longer duplicates explicit model table tags.
+- CTC spacing adjustment now retains decoder text when glyph geometry is
+  incomplete and requires orientation-aware gap evidence before suppressing
+  spaces. These are conservative heuristics, not a language-model grammar pass.
+- Paddle structured pages now persist a nonzero quality score so automatic
+  Small -> Medium escalation can retain the better recognized result.
+- A static source-contract guard was expanded; this is **not** a replacement
+  for real model/instrumentation tests.
+
+**Not yet validated:** ARM64 debug compilation after the recent staged
+changes, native ONNX model output contracts on a real OnePlus device,
+OCR accuracy/latency on real screenshots, and module memory pressure.
+Chart2Table still has no local Android inference backend and remains
+unsupported rather than presenting a nonfunctional download.
