@@ -57,6 +57,12 @@ object PaddlePageV2 {
                 block.lines.joinToString("\n"){it.text}.takeIf {it.isNotBlank()}
             }
             val confidence=lines.map {it.confidence}.average().let {if(it.isNaN())0f else it.toFloat()}
+            // Persist the quality score in the immutable document. Otherwise
+            // Auto Small -> Medium comparison silently sees 0 vs 0 and always
+            // accepts the later result, even when recognition is worse.
+            val quality=confidence*1000.0+
+                minOf(300,text.codePointCount(0,text.length))+
+                minOf(12,blocks.size)*5.0
             val typedBlocks=blocks.map { block ->
                 OcrStructure.Block(block.label,
                     OcrStructure.Quad(block.bounds.points,block.bounds.origin.name),
@@ -77,7 +83,7 @@ object PaddlePageV2 {
                             })
                     })
             }
-            return OcrDocument(text,summary,linesOut,engine,confidence,0.0,width,height)
+            return OcrDocument(text,summary,linesOut,engine,confidence,quality,width,height)
                 .withStructure(OcrStructure(typedBlocks))
         }
     }
