@@ -86,17 +86,18 @@ final class SettingsPageUi {
 
     void ocrEngineSpinner(LinearLayout parent) {
         // Legacy persisted value 4 belonged to remote PP-StructureV3.
-        // Show five choices while writing new Mobile selection as value 5.
+        // Keep retired persisted value 4 unused; Mobile=5 and Tiny=6.
         int selected = fs.ocrEngineMode();
         addPreferenceSpinner(parent, activity.getString(R.string.yfloat_ocr_engine), new String[]{
                 activity.getString(R.string.yfloat_ocr_auto),
                 activity.getString(R.string.yfloat_ocr_medium),
                 activity.getString(R.string.yfloat_ocr_small),
                 activity.getString(R.string.yfloat_ocr_mlkit),
-                "PP-OCRv5 Mobile"
-        }, selected == 5 ? 4 : selected, true,
+                "PP-OCRv5 Mobile",
+                activity.getString(R.string.yfloat_ocr_tiny)
+        }, selected == 5 ? 4 : selected == 6 ? 5 : selected, true,
                 position -> fs.setInt(FloatSettings.K_OCR_ENGINE,
-                        position == 4 ? 5 : position));
+                        position == 4 ? 5 : position == 5 ? 6 : position));
     }
 
     void circleFullOcrEngineSpinner(LinearLayout parent) {
