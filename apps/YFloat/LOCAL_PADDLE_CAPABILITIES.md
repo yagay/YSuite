@@ -345,3 +345,37 @@ stage counters are needed to distinguish intrinsic recognition uncertainty
 from any remaining app-side text mutation.
 
 **Final consolidated CI:** Run ARM64 Debug and both OCR unit-test modules after this deep whitespace-path audit. Intermediate commits were skipped.
+
+## NativeCircleWorkspace real-path spacing fix (2026-10-18)
+
+The diagnostic `YFloat-diagnostic-20261018-151758.txt` showed the
+**NativeCircleWorkspace** (not `FLCircleInlineOverlay`) was actually
+handling the user's latest text gesture. At 15:17:50 the 55 OCR lines
+contained six recognized spaces before and after normalizing
+(`rawSpaces=6 normalizedSpaces=6 correctedLines=0`). The gesture
+selected three OCR units and rendered five UTF-16 characters; lengths
+alone do not establish how many characters were whitespace.
+
+Deep audit found an independent, missed source in
+`NativeCircleWorkspace.applyTextIndices()`: it used
+`text.append(' ')` whenever the Paddle unit's line/group changed.
+This automatically fabricated spaces in Latin text even after the
+other Circle selection implementation had been repaired.
+
+The real workspace now caches `OcrSelectionText.Span` per original
+`OcrDocument.CharUnit` using source-recognized line text and uses
+`OcrSelectionText.selected()` for first/last selections and handle
+drags. It never manufactures spaces from a change of group. Mapping
+failures use the exact unit text without guessed separators. Logging
+records only counts and alignment coverage:
+`PADDLE_SPACE_TRACE stage=native_index` and
+`PADDLE_SPACE_TRACE stage=native_selection`.
+A regression contract and unit test prevent the old group concatenation
+from silently returning.
+
+The six OCR-decoded spaces on the source frame may be legitimate or
+mistaken Paddle predictions; the existing log alone cannot identify
+which was shown on the selected text. If the later native-selection
+trace shows a source-derived space still misplaced in an English word,
+recognizer confidence and actual cropped pixels must be compared rather
+than stripping valid language spaces blindly.
