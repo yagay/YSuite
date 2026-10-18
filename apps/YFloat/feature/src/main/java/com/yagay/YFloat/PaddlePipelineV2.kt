@@ -239,16 +239,23 @@ object PaddlePipelineV2 {
                         DiagnosticLog.i(app,"PADDLE_RUNTIME",
                             "model="+model+" threads="+plan.threads+
                             " batch="+plan.recognitionBatch+" lowMemory="+plan.lowMemory)
-                        val lineModel=if(options.lineOrientation &&
-                            PaddleLocalModelsV3.enabled(app,
-                            PaddleLocalModelsV3.TEXTLINE_ORIENTATION)){
-                            check(PaddleLocalModelsV3.verify(app,
+                        // Missing/broken optional line-orientation model must
+                        // not stop the core detector and recognizer.
+                        val lineModel=try{
+                            if(options.lineOrientation && PaddleLocalModelsV3.enabled(app,
                                 PaddleLocalModelsV3.TEXTLINE_ORIENTATION)){
-                                "Textline orientation ONNX integrity failed"
-                            }
-                            PaddleLocalModelsV3.model(app,
-                                PaddleLocalModelsV3.TEXTLINE_ORIENTATION).absolutePath
-                        }else null
+                                check(PaddleLocalModelsV3.verify(app,
+                                    PaddleLocalModelsV3.TEXTLINE_ORIENTATION)){
+                                    "Textline orientation ONNX integrity failed"
+                                }
+                                PaddleLocalModelsV3.model(app,
+                                    PaddleLocalModelsV3.TEXTLINE_ORIENTATION).absolutePath
+                            }else null
+                        }catch(t:Throwable){
+                            DiagnosticLog.i(app,"PADDLE_FLOW",
+                                "optional_line_orientation_failed="+t.javaClass.simpleName)
+                            null
+                        }
                         PaddleOCR.create(app,cfg,EngineConfig(numThreads=plan.threads),
                             OcrModelManager.detFile(app,model).absolutePath,
                             OcrModelManager.recFile(app,model).absolutePath,
