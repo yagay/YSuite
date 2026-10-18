@@ -170,15 +170,14 @@ public final class PaddleLocalModelsV3 {
             }
         }
         WORKER.execute(()->{
-            try{
-                boolean valid=verify(app,id);
-                if(callback!=null)MAIN.post(()->{
-                    if(valid)callback.onSuccess();
-                    else callback.onFailure("Model integrity check failed; download to repair");
-                });
-            }finally{
-                synchronized(ACTIVE){ACTIVE.remove(id);}
-            }
+            boolean valid=false;
+            try{valid=verify(app,id);}
+            finally{synchronized(ACTIVE){ACTIVE.remove(id);}}
+            final boolean result=valid;
+            if(callback!=null)MAIN.post(()->{
+                if(result)callback.onSuccess();
+                else callback.onFailure("Model integrity check failed; download to repair");
+            });
         });
     }
 
@@ -195,6 +194,8 @@ public final class PaddleLocalModelsV3 {
             File dst=null,auxiliary=null;
             boolean attemptedCommit=false;
             boolean hadPrimary=false,hadSecondary=false;
+            boolean succeeded=false;
+            String failureReason=null;
             try{
                 Spec spec=spec(id);
                 dst=model(app,id);
@@ -232,22 +233,25 @@ public final class PaddleLocalModelsV3 {
                 if(!verify(app,id))throw new IllegalStateException("ONNX integrity check failed");
                 discard(backupFile(dst));
                 if(auxiliary!=null)discard(backupFile(auxiliary));
-                if(callback!=null)MAIN.post(callback::onSuccess);
+                succeeded=true;
             }catch(Throwable error){
                 if(attemptedCommit){
                     rollbackBackup(dst,hadPrimary);
                     if(auxiliary!=null)rollbackBackup(auxiliary,hadSecondary);
                 }
-                if(callback!=null){
-                    String reason=error.getMessage()==null?
-                            error.getClass().getSimpleName():error.getMessage();
-                    MAIN.post(()->callback.onFailure(reason));
-                }
+                failureReason=error.getMessage()==null?
+                        error.getClass().getSimpleName():error.getMessage();
             }finally{
                 discard(modelStage);
                 discard(secondaryStage);
                 synchronized(ACTIVE){ACTIVE.remove(id);}
             }
+            final boolean done=succeeded;
+            final String reason=failureReason;
+            if(callback!=null)MAIN.post(()->{
+                if(done)callback.onSuccess();
+                else callback.onFailure(reason==null?"Model installation failed":reason);
+            });
         });
     }
 
