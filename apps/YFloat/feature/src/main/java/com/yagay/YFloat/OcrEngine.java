@@ -171,8 +171,9 @@ public final class OcrEngine {
                 Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_6bfcd46cd7df),
                         Toast.LENGTH_SHORT).show();
             }
-            startMlKitPipeline(app, service, source, anchor, callback, deliverUi,
-                    "no_local_model", request);
+            fail(app, service, callback, deliverUi, request, "paddle_model_not_installed",
+                    "Install a local PaddleOCR model in YFloat settings",
+                    new IllegalStateException("No PaddleOCR model installed"));
         }
     }
 
@@ -182,14 +183,9 @@ public final class OcrEngine {
                                   RequestToken request) {
         if (stale(app, request, "paddle_start")) return;
         if (!OcrModelManager.isReady(app, model)) {
-            if (auto) {
-                startMlKitPipeline(app, service, source, anchor, callback, deliverUi,
-                        "local_model_missing", request);
-            } else {
-                fail(app, service, callback, deliverUi, request, "ppocr_model_missing",
-                        com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fc273b894efa) + OcrModelManager.displayName(model),
-                        new IllegalStateException("PP-OCR model missing"));
-            }
+            fail(app, service, callback, deliverUi, request, "ppocr_model_missing",
+                    com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fc273b894efa) + OcrModelManager.displayName(model),
+                    new IllegalStateException("PP-OCR model missing"));
             return;
         }
 
@@ -205,9 +201,6 @@ public final class OcrEngine {
                 if (now.fullText().isBlank()) {
                     if (previous != null && !previous.fullText().isBlank()) {
                         deliver(app, service, source, anchor, callback, deliverUi, previous, request);
-                    } else if (auto) {
-                        startMlKitPipeline(app, service, source, anchor, callback, deliverUi,
-                                "ppocr_empty", request);
                     } else {
                         fail(app, service, callback, deliverUi, request, "ppocr_empty",
                                 com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_198d486cbbbb), new IllegalStateException("PP-OCR empty"));
@@ -230,9 +223,6 @@ public final class OcrEngine {
                 if (stale(app, request, "paddle_failure")) return;
                 if (previous != null && !previous.fullText().isBlank()) {
                     deliver(app, service, source, anchor, callback, deliverUi, previous, request);
-                } else if (auto) {
-                    startMlKitPipeline(app, service, source, anchor, callback, deliverUi,
-                            "ppocr_failure:" + message, request);
                 } else {
                     fail(app, service, callback, deliverUi, request, "ppocr_failure",
                             com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_fb90be9a6988) + message, new IllegalStateException(message));
