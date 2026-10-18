@@ -194,6 +194,7 @@ final class CircleStableOcr {
             case 2 -> "ppocr_small";
             case 3 -> "ppocr_medium";
             case 4 -> "ppocrv5_mobile";
+            case 5 -> "paddle_auto";
             default -> "mlkit";
         };
     }
