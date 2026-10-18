@@ -237,7 +237,8 @@ public final class OcrDocument {
         OcrDocument withStructure=structure==null?translated:translated.withStructure(
                 structure.mapped((x,y)->new android.graphics.PointF(x+dx,y+dy)));
         return withStructure.withTableTexts(tableTexts).withTableHtmls(tableHtmls)
-                .withSealTexts(sealTexts).withUnwarpedText(unwarpedText)
-                .withFormulaTexts(formulaTexts).withChartTexts(chartTexts);
+                .withTableOrigins(tableOrigins).withSealTexts(sealTexts)
+                .withUnwarpedText(unwarpedText).withFormulaTexts(formulaTexts)
+                .withChartTexts(chartTexts).withRectifiedDocument(rectifiedDocument);
     }
 }
