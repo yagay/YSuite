@@ -9,11 +9,11 @@ import org.junit.Test;
  */
 public final class NativeCircleSelectionVisualTest {
     @Test public void connectedHandlesBeginExactlyAtTheBlueSelectionCorners(){
-        float density=3f;
+        float knobRadius=15f;
         float[] left=NativeCircleVisualPolicy.attachedTextHandle(
-                120f,290f,120f,360f,density);
+                120f,290f,120f,360f,knobRadius);
         float[] right=NativeCircleVisualPolicy.attachedTextHandle(
-                240f,290f,240f,360f,density);
+                240f,290f,240f,360f,knobRadius);
         assertEquals(120f,left[0],0.001f);
         assertEquals(360f,left[1],0.001f);
         assertEquals(240f,right[0],0.001f);
@@ -22,6 +22,9 @@ public final class NativeCircleSelectionVisualTest {
         assertEquals("The knob is directly below its anchor",240f,right[2],0.001f);
         assertTrue(left[3]>left[1]);
         assertEquals(left[3],right[3],0.001f);
+        assertEquals("Knob edge is tangent to the fill without a visible gap",
+                knobRadius,left[3]-left[1],0.001f);
+        assertEquals(knobRadius,right[3]-right[1],0.001f);
     }
 
     @Test public void nativeTextSelectionHasVisibleTranslucentBlueWash(){
@@ -46,11 +49,13 @@ public final class NativeCircleSelectionVisualTest {
 
     @Test public void handlesConnectAtEveryDensityWithoutOldOutsideGap(){
         for(float density:new float[]{1f,2.75f,4f}){
+            float knobRadius=4.5f*density;
             float[] handle=NativeCircleVisualPolicy.attachedTextHandle(
-                    25f,30f,25f,58f,density);
+                    25f,30f,25f,58f,knobRadius);
             assertEquals(25f,handle[0],0.001f);
             assertEquals(58f,handle[1],0.001f);
-            assertEquals(8f*density,handle[3]-handle[1],0.001f);
+            assertEquals("Circle edge touches the highlight at every density",
+                    knobRadius,handle[3]-handle[1],0.001f);
         }
     }
 
