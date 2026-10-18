@@ -42,7 +42,10 @@ public final class PaddleFlowOptions {
             // Optional stages are independently configured and gated by
             // "extended". Enabling full Circle document OCR enables installed
             // features by default; the user may selectively turn them off.
-            case "line_orientation", "document_orientation", "rotation_fallback" -> false;
+            // Full profile tries each separately installed orientation model.
+            // Slow brute-force 4-way OCR remains opt-in even for document OCR.
+            case "line_orientation", "document_orientation" -> true;
+            case "rotation_fallback" -> false;
             case "layout", "tables", "uvdoc", "seals", "formulas", "charts" -> true;
             default -> false;
         };
