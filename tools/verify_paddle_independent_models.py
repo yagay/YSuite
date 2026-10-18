@@ -264,6 +264,21 @@ planner=(java / "CircleSelectionPlanner.java").read_text()
 if "PADDLE_SPACE_TRACE" not in planner or "selectedSpaces=" not in planner:
     problems.append("Circle selection text spacing stage lacks diagnostics")
 
+# The new native workspace is the path actually exercised by user Circle
+# gestures. It must never reintroduce spaces at group/line boundaries.
+native=(java / "NativeCircleWorkspace.java").read_text()
+for needle in ("rebuildTextOffsets();", "OcrSelectionText.align(",
+               "OcrSelectionText.selected(tokens,offsets,indices,lineNumbers)",
+               "stage=native_selection", "sourceSpans.clear();"):
+    if needle not in native:
+        problems.append("Active native Circle OCR text path lacks source offset handling: "+needle)
+if "text.append(' ')" in native or "previous.group()!=ch.group()" in native:
+    problems.append("Native Circle still fabricates whitespace from glyph groups")
+if "nativeCircleThreeGroupsNeverCreateAnExtraSpace" not in (
+    FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrSelectionTextTest.java"
+).read_text():
+    problems.append("Native Circle multi-glyph whitespace case is not tested")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
