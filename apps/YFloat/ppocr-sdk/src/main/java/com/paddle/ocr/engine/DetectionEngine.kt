@@ -47,13 +47,15 @@ class DetectionEngine(
         }
     }
 
-    fun detect(src: Mat): DetectionResult {
+    fun detect(src: Mat, maxSideOverride: Int? = null): DetectionResult {
+        // Fast Circle only shrinks the detection tensor. The original Mat is
+        // retained for all recognition crops and OCR-box coordinates.
         return detect {
             DetPreprocessor.preprocess(
                 src,
                 config.detLimitSideLen,
                 config.detLimitType,
-                config.detMaxSideLimit,
+                (maxSideOverride ?: config.detMaxSideLimit).coerceIn(256,4096),
                 config.detImgMode,
             )
         }
