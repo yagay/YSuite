@@ -379,3 +379,5 @@ which was shown on the selected text. If the later native-selection
 trace shows a source-derived space still misplaced in an English word,
 recognizer confidence and actual cropped pixels must be compared rather
 than stripping valid language spaces blindly.
+
+**Native-circle final CI gate:** This consolidated source fix is ready for ARM64 Debug compilation and both OCR unit-test tasks; all intermediate edits used `[skip ci]`.
