@@ -574,3 +574,5 @@ return to top-to-bottom handle strokes crossing glyphs.
 Physical validation is still required for exact text pixel contours and
 non-rectangular or rotated text. The model's CTC geometry remains an
 estimate and is only used as the selection hit surface.
+
+**Final screenshot-contrast CI:** Validate the real launcher icon case, transparent OCR selection with visible outline, non-obscuring handles, Java/Kotlin OCR unit tests, and ARM64 Debug APK in one final build. All earlier commits used `[skip ci]`.
