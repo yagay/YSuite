@@ -51,6 +51,12 @@ final class PaddleRecognitionRuntime {
     }
 
     static void recognize(Context context,Bitmap bitmap,int requestedModel,Callback cb){
+        recognize(context,bitmap,requestedModel,false,cb);
+    }
+
+    /** Circle and document use independently configured Paddle stage profiles. */
+    static void recognize(Context context,Bitmap bitmap,int requestedModel,
+                          boolean circle,Callback cb){
         if(cb==null)return;
         if(context==null||bitmap==null||bitmap.isRecycled()||
                 bitmap.getWidth()<=0||bitmap.getHeight()<=0){
@@ -69,11 +75,11 @@ final class PaddleRecognitionRuntime {
                     "Install or repair an offline PaddleOCR model in YFloat settings"));
             return;
         }
-        recognizeCandidate(app,bitmap,ready,0,null,cb);
+        recognizeCandidate(app,bitmap,ready,0,null,circle,cb);
     }
 
     private static void recognizeCandidate(Context app,Bitmap image,List<Integer> available,
-            int next,OcrDocument previous,Callback callback){
+            int next,OcrDocument previous,boolean circle,Callback callback){
         if(next>=available.size()){
             if(previous!=null&&!previous.fullText().isBlank()){
                 callback.onSuccess(previous,available.get(available.size()-1),0L);
@@ -82,10 +88,11 @@ final class PaddleRecognitionRuntime {
             return;
         }
         int model=available.get(next);
-        PaddlePipelineV2.recognize(app,image,model,new PaddlePipelineV2.Callback(){
+        PaddlePipelineV2.recognize(app,image,model,PaddleFlowOptions.read(app,circle),
+                new PaddlePipelineV2.Callback(){
             @Override public void onSuccess(OcrDocument document,long elapsed,int lineCount){
                 if(document==null||document.fullText().isBlank()){
-                    recognizeCandidate(app,image,available,next+1,previous,callback);
+                    recognizeCandidate(app,image,available,next+1,previous,circle,callback);
                     return;
                 }
                 OcrDocument winner=better(previous,document);
@@ -94,7 +101,7 @@ final class PaddleRecognitionRuntime {
                 // Only escalate the first auto model when recognition provides
                 // weak evidence. Avoid wasting RAM on all four sessions.
                 if(ambiguous && next==0 && available.size()>1){
-                    recognizeCandidate(app,image,available,next+1,winner,callback);
+                    recognizeCandidate(app,image,available,next+1,winner,circle,callback);
                     return;
                 }
                 callback.onSuccess(winner,model,elapsed);
@@ -102,7 +109,7 @@ final class PaddleRecognitionRuntime {
             @Override public void onFailure(String error){
                 DiagnosticLog.i(app,"PADDLE_RUNTIME","model="+model+" failure="+error);
                 if(next+1<available.size()){
-                    recognizeCandidate(app,image,available,next+1,previous,callback);
+                    recognizeCandidate(app,image,available,next+1,previous,circle,callback);
                 }else if(previous!=null&&!previous.fullText().isBlank()){
                     callback.onSuccess(previous,model,0L);
                 }else callback.onFailure(new IllegalStateException(
