@@ -16,7 +16,17 @@ final class CircleStableOcr {
         Context app=context.getApplicationContext();
         int mode=new FloatSettings(app).circleFullOcrEngine();
         recognizePaddle(app,bitmap,PaddleRecognitionRuntime.circleModel(mode),
-                "full_screen_index",callback);
+                "full_screen_index",new PaddleRequestToken(),callback);
+    }
+
+    /** The active frozen-screen owner may cancel before queued ONNX work. */
+    static void recognizeFullScreenSelected(Context context,Bitmap bitmap,
+            PaddleRequestToken request,OcrEngine.DocumentCallback callback){
+        if(!valid(context,bitmap,callback))return;
+        Context app=context.getApplicationContext();
+        int mode=new FloatSettings(app).circleFullOcrEngine();
+        recognizePaddle(app,bitmap,PaddleRecognitionRuntime.circleModel(mode),
+                "gesture_roi",request,callback);
     }
 
     static void recognizeCorrectionSelected(Context context,Bitmap bitmap,
@@ -30,16 +40,16 @@ final class CircleStableOcr {
             return;
         }
         recognizePaddle(app,bitmap,PaddleRecognitionRuntime.circleModel(mode),
-                "gesture_correction",callback);
+                "gesture_correction",new PaddleRequestToken(),callback);
     }
 
     private static void recognizePaddle(Context app,Bitmap bitmap,int model,
-            String role,OcrEngine.DocumentCallback callback){
+            String role,PaddleRequestToken request,OcrEngine.DocumentCallback callback){
         long started=android.os.SystemClock.uptimeMillis();
         DiagnosticLog.i(app,"FL_CIRCLE_PADDLE",
                 "role="+role+" requestedModel="+model+" size="+
                 bitmap.getWidth()+"x"+bitmap.getHeight());
-        PaddleRecognitionRuntime.recognize(app,bitmap,model,true,
+        PaddleRecognitionRuntime.recognize(app,bitmap,model,true,request,
                 new PaddleRecognitionRuntime.Callback(){
                     @Override public void onSuccess(OcrDocument document,
                             int usedModel,long elapsedMs){
