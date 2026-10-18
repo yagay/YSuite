@@ -71,6 +71,8 @@ final class NativeCircleWorkspace extends View {
 
     private OcrDocument fullDocument;
     private Rect recognizedRoi;
+    private List<OcrDocument.CharUnit> cachedChars=List.of();
+    private CircleCharSpatialIndex charIndex;
     private PaddleRequestToken activeOcr;
     private int ocrSequence;
     private boolean selectAllAfterFullOcr;
@@ -194,6 +196,7 @@ final class NativeCircleWorkspace extends View {
             invalidate();
             return;
         }
+        final int localWidth=input.getWidth(),localHeight=input.getHeight();
         ocrBusy = true;
         status = t("正在识别屏幕文字", "Recognizing screen text");
         try {
@@ -210,12 +213,13 @@ final class NativeCircleWorkspace extends View {
                             fullDocument = full
                                 ? frame.transform.documentBitmapToScreen(result)
                                 : frame.transform.documentLocalToScreen(result,roi,
-                                        input.getWidth(),input.getHeight(),"circle_roi:");
+                                        localWidth,localHeight,"circle_roi:");
                             recognizedRoi=new Rect(roi);
                             rebuildTextOffsets();
                         } catch (Throwable error) {
                             fullDocument = null;
                             sourceSpans.clear();
+                            cachedChars=List.of();charIndex=null;
                             DiagnosticLog.i(app, "CIRCLE_NATIVE",
                                     "ocr coordinates failed="
                                             + ScreenCaptureBackend.safeMessage(error));
@@ -485,6 +489,9 @@ final class NativeCircleWorkspace extends View {
         // Screenshot intent must never wait for OCR or be reclassified by text inside it.
         if (NativeCircleIntentRouter.classify(gesture.kind.name(),
                 fullDocument != null) == NativeCircleIntentRouter.Route.IMAGE) {
+            // Image gestures never need OCR. Do not leave queued OCR work
+            // occupying the serialized native inference lane.
+            if(activeOcr!=null)activeOcr.cancel();
             resolveImage(gesture, token);
             return;
         }
@@ -500,12 +507,13 @@ final class NativeCircleWorkspace extends View {
                     gesture.bounds,frame.bitmap.getWidth(),frame.bitmap.getHeight());
                 fullDocument=null;
                 sourceSpans.clear();
+                cachedChars=List.of();charIndex=null;
                 startOcr(roi,false);
             } else status=t("正在识别…","Recognizing…");
             invalidate();
             return;
         }
-        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        List<OcrDocument.CharUnit> all=cachedChars;
         List<CircleGestureTextSelector.GroupHit> groups;
         try {
             groups = CircleGestureTextSelector.hitGroups(
@@ -560,6 +568,8 @@ final class NativeCircleWorkspace extends View {
     /** Build source-position maps once after Paddle returns a full document. */
     private void rebuildTextOffsets(){
         sourceSpans.clear();
+        cachedChars=fullDocument==null?List.of():fullDocument.chars();
+        charIndex=cachedChars.isEmpty()?null:new CircleCharSpatialIndex(cachedChars);
         if(fullDocument==null)return;
         int mapped=0,unmapped=0;
         List<OcrDocument.Line> lines=fullDocument.lines();
@@ -885,18 +895,12 @@ final class NativeCircleWorkspace extends View {
     }
 
     private void adjustTextHandle(float x,float y){
-        if(fullDocument==null)return;
-        List<OcrDocument.CharUnit> all=fullDocument.chars();
+        if(fullDocument==null||charIndex==null)return;
+        List<OcrDocument.CharUnit> all=cachedChars;
         if(all.isEmpty())return;
         PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
         PointF screen=frame.bitmapPointToScreen(bitmap.x,bitmap.y);
-        float best=Float.MAX_VALUE;
-        int candidate=-1;
-        for(int i=0;i<all.size();i++){
-            Rect r=all.get(i).bounds();
-            float distance=(float)Math.hypot(screen.x-r.centerX(),screen.y-r.centerY());
-            if(distance<best){best=distance;candidate=i;}
-        }
+        int candidate=charIndex.nearest(screen.x,screen.y);
         if(candidate<0)return;
         if(handleDrag==1)firstChar=Math.min(candidate,lastChar);
         else lastChar=Math.max(candidate,firstChar);
@@ -914,6 +918,7 @@ final class NativeCircleWorkspace extends View {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
         if(activeOcr!=null)activeOcr.cancel();
+        cachedChars=List.of();charIndex=null;
         awaitingTextPath.reset();
         sourceSpans.clear();
         FloatActionMenu.dismiss();
