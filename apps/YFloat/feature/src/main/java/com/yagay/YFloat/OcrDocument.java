@@ -142,7 +142,7 @@ public final class OcrDocument {
     public OcrDocument withFormulaTexts(List<String> formulas){
         List<String> safe=formulas==null?List.of():List.copyOf(formulas);
         String text=fullText;
-        if(text.isBlank()&&!safe.isEmpty())text=String.join("\\n",safe);
+        if(text.isBlank()&&!safe.isEmpty())text=String.join("\n",safe);
         return new OcrDocument(text,blocks,lines,engine,confidence,score,
             imageWidth,imageHeight,coordinateSpace,structure,tableTexts,
             sealTexts,safe,unwarpedText);

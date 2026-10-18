@@ -257,8 +257,9 @@ public final class PaddleLocalModelsV3 {
         try(FileInputStream input=new FileInputStream(file)){
             // SHA-1 Git blob, pinned to PaddleOCR revision, NOT a plain file hash.
             MessageDigest sha=MessageDigest.getInstance("SHA-1");
-            sha.update(("blob "+file.length()+"\\0").getBytes(
+            sha.update(("blob "+file.length()).getBytes(
                 java.nio.charset.StandardCharsets.UTF_8));
+            sha.update((byte)0);
             byte[] data=new byte[65536];int n;
             while((n=input.read(data))!=-1)sha.update(data,0,n);
             StringBuilder out=new StringBuilder();
