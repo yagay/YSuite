@@ -5,12 +5,14 @@ import android.graphics.Rect
 import com.paddle.ocr.model.OCRBox
 import com.paddle.ocr.model.OCRCharacter
 import com.paddle.ocr.model.OCRResult
+import com.paddle.ocr.model.OCRWordSegmenter
+import com.paddle.ocr.postprocess.PaddleSpacingV2
 import com.paddle.ocr.structure.PPDocLayoutV2
 import kotlin.math.ceil
 import kotlin.math.floor
 
 /**
- * Independent, provenance-aware PP-OCRv6 + PP-StructureV3 result model.
+ * Independent, provenance-aware PP-OCRv6 + offline PP-DocLayout-S result model.
  * No ML Kit and no misleading legacy "blocks == lines" conversion.
  */
 object PaddlePageV2 {
@@ -27,7 +29,7 @@ object PaddlePageV2 {
     data class Symbol(val text:String,val bounds:Quad,val confidence:Float)
     data class Word(val text:String,val bounds:Quad,val symbols:List<Symbol>)
     data class Line(val text:String,val bounds:Quad,val confidence:Float,
-                    val words:List<Word>)
+                    val words:List<Word>,val rawText:String=text)
     data class Block(val label:String,val bounds:Quad,val origin:Origin,
                      val lines:List<Line>,val confidence:Float)
     data class Page(val width:Int,val height:Int,val blocks:List<Block>){
@@ -80,22 +82,29 @@ object PaddlePageV2 {
     }
 
     fun fromOcr(results:List<OCRResult>,width:Int,height:Int,
-                regions:List<PPDocLayoutV2.Region>):Page {
+                regions:List<PPDocLayoutV2.Region>,fixSpacing:Boolean=true):Page {
         val lines=results.mapNotNull { result ->
-            val text=result.text.trim()
+            val refined=if(fixSpacing)
+                PaddleSpacingV2.correct(result.characters,result.text)
+                else PaddleSpacingV2.Correction(result.text,result.characters,0)
+            val text=refined.text.trim()
             if(text.isBlank())return@mapNotNull null
             val quad=quad(result.box,Origin.DETECTOR)
-            val symbols=result.characters.map { c ->
+            val symbols=refined.characters.map { c ->
                 Symbol(c.text,quad(c.box,Origin.CTC_ALIGNED),c.confidence)
             }
-            val words=if(result.words.isNotEmpty())result.words.map { word ->
+            // Re-segment after removing spurious spaces. Never use stale word
+            // boundaries whose characters no longer match the corrected text.
+            val segments=if(fixSpacing)
+                OCRWordSegmenter.segment(refined.characters) else result.words
+            val words=if(segments.isNotEmpty())segments.map { word ->
                 Word(word.text,quad(word.box,Origin.WORD_GROUP),
                     word.characters.map { symbol ->
                         Symbol(symbol.text,quad(symbol.box,Origin.CTC_ALIGNED),
                             symbol.confidence)
                     })
             } else groupWords(symbols,text,quad)
-            Line(text,quad,result.confidence,words)
+            Line(text,quad,result.confidence,words,result.text)
         }.sortedWith(compareBy({it.bounds.rect().centerY()},{it.bounds.rect().left}))
         val grouped=mutableMapOf<Int,MutableList<Line>>()
         for(line in lines){
@@ -120,21 +129,39 @@ object PaddlePageV2 {
                 quadFromRect(region.bounds,Origin.LAYOUT_MODEL),
                 Origin.LAYOUT_MODEL,included,region.score))
         }
-        // Without a layout model no actual document-layout block exists.
-        // Keep visual lines in a distinctly marked fallback group.
-        for(line in grouped.remove(-1).orEmpty())
-            blocks.add(Block("unclassified",line.bounds,Origin.FALLBACK,
-                listOf(line),line.confidence))
+        // Lines without a layout-model region can still form adjacent paragraphs.
+        // Mark them FALLBACK, not as a model-predicted document block.
+        val fallback=grouped.remove(-1).orEmpty()
+        val paragraphs=ArrayList<MutableList<Line>>()
+        for(line in fallback){
+            val prev=paragraphs.lastOrNull()?.lastOrNull()
+            if(prev!=null && sameParagraph(prev,line))paragraphs.last().add(line)
+            else paragraphs.add(mutableListOf(line))
+        }
+        for(paragraph in paragraphs) {
+            val bounds=Rect(paragraph.first().bounds.rect())
+            paragraph.drop(1).forEach { bounds.union(it.bounds.rect()) }
+            blocks.add(Block("unclassified",quadFromRect(bounds,Origin.FALLBACK),
+                Origin.FALLBACK,paragraph,
+                paragraph.map{it.confidence}.average().toFloat()))
+        }
         return Page(width,height,blocks.sortedWith(compareBy({it.bounds.rect().top},
             {it.bounds.rect().left})))
     }
 
+    private fun sameParagraph(a:Line,b:Line):Boolean {
+        val above=a.bounds.rect()
+        val below=b.bounds.rect()
+        val height=maxOf(above.height(),below.height()).coerceAtLeast(1)
+        val gap=below.top-above.bottom
+        if(gap< -height/3 || gap>height*1.5f)return false
+        if(kotlin.math.abs(above.left-below.left)>height*1.25f)return false
+        val overlap=maxOf(0,minOf(above.right,below.right)-maxOf(above.left,below.left))
+        return overlap>minOf(above.width(),below.width())*0.35f
+    }
+
     fun groupWords(symbols:List<Symbol>,recognized:String,line:Quad):List<Word>{
-        if(symbols.isEmpty()){
-            // Legacy compatibility only. No fabricated symbol geometry.
-            return listOf(Word(recognized,line.copy(origin=Origin.FALLBACK),
-                listOf(Symbol(recognized,line.copy(origin=Origin.FALLBACK),0f))))
-        }
+        if(symbols.isEmpty()) return emptyList()
         val words=ArrayList<Word>()
         val current=ArrayList<Symbol>()
         fun flush(){

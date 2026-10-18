@@ -50,7 +50,7 @@ object PaddlePipelineV2 {
         layoutEngine=null
         layoutSignature=null
         check(PaddleStructureModelV2.verifyIntegrity(app)) {
-            "PP-StructureV3 layout model integrity failed"
+            "PP-DocLayout-S layout model integrity failed"
         }
         return PPDocLayoutV2(file).also {
             layoutEngine=it
@@ -98,7 +98,14 @@ object PaddlePipelineV2 {
                     DiagnosticLog.i(app,"PADDLE_V2",
                         "ocr_lines="+output.results.size+" layout_regions="+structure.size+
                         " layoutEnabled="+PaddleStructureModelV2.enabled(app))
-                    PaddlePageV2.fromOcr(output.results,image.width,image.height,structure)
+                    val spacing=app.getSharedPreferences(FloatSettings.PREF,
+                        Context.MODE_PRIVATE).getBoolean("paddle_v2_spacing",true)
+                    val page=PaddlePageV2.fromOcr(output.results,image.width,image.height,
+                        structure,spacing)
+                    val fixes=page.lines.count {it.rawText!=it.text}
+                    DiagnosticLog.i(app,"PADDLE_V2",
+                        "spacing_enabled="+spacing+" corrected_lines="+fixes)
+                    page
                 }
                 latestPage=page
                 val compat=page.asLegacy("ppocr-v2-"+model)

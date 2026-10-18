@@ -47,6 +47,15 @@ final class SettingsCapturePage {
                 activity.getString(R.string.yfloat_native_circle_ocr_section),
                 activity.getString(R.string.yfloat_native_circle_ocr_desc));
         ui.circleFullOcrEngineSpinner(circleOcr.body);
+        ui.check(circleOcr.body,
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                    ? "Paddle 智能空格修正" : "Paddle spacing correction",
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                    ? "根据 CTC 字符置信度和边界框修复有依据的错误空格；保留英文正常分词"
+                    : "Fix evidence-backed CTC spacing errors without losing word geometry",
+                "paddle_v2_spacing",
+                activity.getSharedPreferences(FloatSettings.PREF,android.content.Context.MODE_PRIVATE)
+                    .getBoolean("paddle_v2_spacing",true));
         ui.circleCorrectionEngineSpinner(circleOcr.body);
         YViewLayout.addSection(root, circleOcr);
 

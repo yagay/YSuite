@@ -59,12 +59,16 @@ object PaddleSpacingV2 {
         // occupies essentially no image gap between tightly adjoining glyphs.
         if (Character.isLetterOrDigit(left) && Character.isLetterOrDigit(right)
             && !isCjk(left) && !isCjk(right) && space.confidence < 0.45f) {
-            val a = prev.box.bounds()
-            val b = next.box.bounds()
-            val xGap = max(0, b.left - a.right)
-            val averageWidth = ((a.width() + b.width()) * 0.5f).coerceAtLeast(1f)
-            val yOverlap = max(0, minOf(a.bottom, b.bottom) - maxOf(a.top, b.top))
-            val minHeight = minOf(a.height(), b.height()).coerceAtLeast(1)
+            val a = prev.box.points
+            val b = next.box.points
+            val xGap = max(0f, b.minOf { it.x } - a.maxOf { it.x })
+            val aWidth = (a.maxOf { it.x } - a.minOf { it.x }).coerceAtLeast(1f)
+            val bWidth = (b.maxOf { it.x } - b.minOf { it.x }).coerceAtLeast(1f)
+            val averageWidth = (aWidth + bWidth) * 0.5f
+            val yOverlap = max(0f, minOf(a.maxOf { it.y }, b.maxOf { it.y }) -
+                maxOf(a.minOf { it.y }, b.minOf { it.y }))
+            val minHeight = minOf(a.maxOf { it.y } - a.minOf { it.y },
+                b.maxOf { it.y } - b.minOf { it.y }).coerceAtLeast(1f)
             return yOverlap >= minHeight * 0.45f && xGap <= averageWidth * 0.12f
         }
         return false
