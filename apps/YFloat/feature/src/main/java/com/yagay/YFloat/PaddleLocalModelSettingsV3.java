@@ -29,6 +29,7 @@ final class PaddleLocalModelSettingsV3 {
         TextView status=YViewLayout.rowSubtitle(activity,"");
         MaterialButton download=YViewLayout.compactButton(activity,zh?"下载模型":"Download model");
         MaterialButton toggle=YViewLayout.compactButton(activity,zh?"启用":"Enable");
+        MaterialButton verify=YViewLayout.compactButton(activity,zh?"校验":"Verify");
         MaterialButton remove=YViewLayout.compactButton(activity,zh?"删除":"Remove");
         box.addView(status);
         if(id==PaddleLocalModelsV3.FORMULA_NET){
@@ -40,6 +41,7 @@ final class PaddleLocalModelSettingsV3 {
         LinearLayout actions=YViewLayout.buttonRow(activity);
         YViewLayout.addAction(actions,download);
         YViewLayout.addAction(actions,toggle);
+        YViewLayout.addAction(actions,verify);
         YViewLayout.addAction(actions,remove);
         box.addView(actions);
         YViewLayout.addRow(parent,box);
@@ -53,6 +55,7 @@ final class PaddleLocalModelSettingsV3 {
                      :(zh?"未安装":"Not installed")));
             download.setEnabled(!busy);
             toggle.setEnabled(ready&&!busy);
+            verify.setEnabled(ready&&!busy);
             remove.setEnabled(ready&&!busy);
             toggle.setText(active?(zh?"停用":"Disable"):(zh?"启用":"Enable"));
         };
@@ -69,6 +72,24 @@ final class PaddleLocalModelSettingsV3 {
                 @Override public void onFailure(String why){
                     Toast.makeText(activity,why,Toast.LENGTH_LONG).show();
                     refresh.run();
+                }
+            });
+        });
+        verify.setOnClickListener(v->{
+            verify.setEnabled(false);
+            status.setText(zh?"正在离线校验 SHA-256...":"Verifying SHA-256 offline...");
+            PaddleLocalModelsV3.check(activity,id,new PaddleLocalModelsV3.Callback(){
+                @Override public void onProgress(int p){}
+                @Override public void onSuccess(){
+                    refresh.run();
+                    Toast.makeText(activity,zh?"模型校验通过":"Model integrity verified",
+                            Toast.LENGTH_SHORT).show();
+                }
+                @Override public void onFailure(String reason){
+                    refresh.run();
+                    status.setText(PaddleLocalModelsV3.name(id)+" — "+
+                        (zh?"完整性失败，请重新下载":"Integrity failed; download to repair"));
+                    Toast.makeText(activity,reason,Toast.LENGTH_LONG).show();
                 }
             });
         });
