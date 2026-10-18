@@ -57,6 +57,15 @@ final class SettingsCapturePage {
                 activity.getSharedPreferences(FloatSettings.PREF,android.content.Context.MODE_PRIVATE)
                     .getBoolean("paddle_v2_spacing",true));
         ui.circleCorrectionEngineSpinner(circleOcr.body);
+        ui.check(circleOcr.body,
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                    ? "Paddle 自动检测旋转方向（较慢）" : "Paddle auto-orientation (slower)",
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                    ? "离线对比原图和 90°、180°、270° 识别置信度，回映射原图坐标"
+                    : "Offline multi-pass OCR at 0/90/180/270 degrees, keeping source boxes",
+                "paddle_v2_auto_orientation",
+                activity.getSharedPreferences(FloatSettings.PREF,android.content.Context.MODE_PRIVATE)
+                    .getBoolean("paddle_v2_auto_orientation",false));
         YViewLayout.addSection(root, circleOcr);
 
         YViewSection result = YViewLayout.section(activity,

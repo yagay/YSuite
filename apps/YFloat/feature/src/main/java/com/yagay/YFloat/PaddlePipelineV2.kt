@@ -86,7 +86,9 @@ object PaddlePipelineV2 {
                                 modelSignatures[model]=revision
                             }
                     }
-                    val output=ocr.recognize(image)
+                    val verifyOrientation=app.getSharedPreferences(FloatSettings.PREF,
+                        Context.MODE_PRIVATE).getBoolean("paddle_v2_auto_orientation",false)
+                    val chosen=PaddleOrientationV2.recognize(ocr,image,verifyOrientation)
                     val structure=try {
                         layout(app)?.detect(image) ?: emptyList()
                     }catch(t:Throwable){
@@ -96,11 +98,12 @@ object PaddlePipelineV2 {
                         emptyList()
                     }
                     DiagnosticLog.i(app,"PADDLE_V2",
-                        "ocr_lines="+output.results.size+" layout_regions="+structure.size+
+                        "ocr_lines="+chosen.results.size+" orientation="+chosen.degrees+
+                        " orientationCheck="+verifyOrientation+" layout_regions="+structure.size+
                         " layoutEnabled="+PaddleStructureModelV2.enabled(app))
                     val spacing=app.getSharedPreferences(FloatSettings.PREF,
                         Context.MODE_PRIVATE).getBoolean("paddle_v2_spacing",true)
-                    val page=PaddlePageV2.fromOcr(output.results,image.width,image.height,
+                    val page=PaddlePageV2.fromOcr(chosen.results,image.width,image.height,
                         structure,spacing)
                     val fixes=page.lines.count {it.rawText!=it.text}
                     DiagnosticLog.i(app,"PADDLE_V2",
