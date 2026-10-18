@@ -2,7 +2,7 @@ name: Build YSuite Debug
 
 on:
   push:
-    branches: [main, rebuild/material3-full-ui, refactor/yfloat-google-v2, refactor/yfloat-circle-native, refactor/yfloat-cts-session, experiment/yfloat-google-lens-image-bridge]
+    branches: [main, rebuild/material3-full-ui, refactor/yfloat-google-v2, refactor/yfloat-circle-native, refactor/yfloat-cts-session, experiment/yfloat-google-lens-image-bridge, experiment/yfloat-paddle-mobile]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -42,6 +42,9 @@ jobs:
 
       - name: Verify shared feature infrastructure
         run: python3 tools/verify_shared_infrastructure.py
+
+      - name: Verify local Paddle OCR model and document contracts
+        run: python3 tools/verify_paddle_independent_models.py
 
       - name: Verify live YUI visual contracts
         run: python3 tools/verify_yui_visual_contracts.py
