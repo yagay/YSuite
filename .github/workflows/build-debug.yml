@@ -178,6 +178,11 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == "refactor/yfloat-cts-session" ]]; then
             tests+=( :yfloat-feature:testDebugUnitTest )
           fi
+          # Source-offset OCR text mapping and CTC whitespace need actual JUnit
+          # verification, not just static source markers.
+          if [[ "${GITHUB_REF_NAME}" == "experiment/yfloat-paddle-mobile" ]]; then
+            tests+=( :yfloat-feature:testDebugUnitTest :ppocr-sdk:testDebugUnitTest )
+          fi
           echo "Selected module tests: ${tests[*]:-(none)}"
           gradle --no-daemon --build-cache --parallel --max-workers=2 --stacktrace \
             "${tests[@]}" :suite:assembleDebug
