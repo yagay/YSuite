@@ -576,3 +576,36 @@ non-rectangular or rotated text. The model's CTC geometry remains an
 estimate and is only used as the selection hit surface.
 
 **Final screenshot-contrast CI:** Validate the real launcher icon case, transparent OCR selection with visible outline, non-obscuring handles, Java/Kotlin OCR unit tests, and ARM64 Debug APK in one final build. All earlier commits used `[skip ci]`.
+
+## Screenshot pixel-faithful native text selection — 2026-10-18 evening
+
+Follow-up screenshot at 19:47: the selected `头条` stays local to the
+red app icon and the floating activation UI is below the status bar,
+but its native white font still appeared blue-tinted/partly short.
+Unlike font recreation, the cause is a second, translucent blue rectangle
+**painted on top of captured screenshot text**, combined with the earlier
+selection band being only 78% of the actual OCR text-row height.
+
+Pixel-faithful fix:
+- Capture screenshot remains the **only source** of app glyph pixels.
+- On `TEXT_READY`, the global scrim is painted normally. Then each
+  selected OCR row is clipped, and those pixels are **redrawn verbatim**
+  from the very same frozen screenshot, with the same full-view bitmap
+  destination. The selected text never gets tinted or re-typeset.
+- The geometry includes the original OCR line's full vertical extent and
+  the selected characters' horizontal extent. It does not truncate tall
+  Chinese glyphs to a 78% baseline guess.
+- A thin custom-YUI selection border is inset *outward* by 2.5dp,
+  leaving a visible gap from the source pixel band so even its stroke
+  does not touch the selected text. Draggable handle stems remain
+  outside/below that border.
+- Partial and cross-line selections continue to preserve OCR source
+  text, hit boxes and model choices. This changes only Canvas rendering;
+  no model inference or heuristic word spacing changes.
+
+Static source contracts reject a tinted text rectangle and require the
+clip→bitmap redraw path; the pure visual regression tests assert the
+zero-alpha glyph overlay and safely exterior border gap.
+
+Physical screenshots on the OnePlus launcher remain the acceptance
+test for exact appearance; Debug CI cannot compare device-rendered frames.
