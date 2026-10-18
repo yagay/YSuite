@@ -391,6 +391,21 @@ object PaddlePipelineV2 {
                         "uvdoc_text="+(latestUnwarpedDocument?.fullText()?.length?:0)+
                         " seal_regions="+seals.size)
                     val fixes=page.lines.count {it.rawText!=it.text}
+                    // Counts only: never log the user's recognized text.
+                    // This separates a CTC-emitted space from an overlay-added
+                    // space and reveals when normalization did no work.
+                    fun blanks(value:String)=value.count{ c ->
+                        c==' ' || c=='\u00a0' || c=='\u3000' || c=='\u202f'
+                    }
+                    val beforeSpaces=page.lines.sumOf{blanks(it.rawText)}
+                    val afterSpaces=page.lines.sumOf{blanks(it.text)}
+                    DiagnosticLog.i(app,"PADDLE_SPACE_TRACE",
+                        "stage=ocr model="+model+
+                        " rawSpaces="+beforeSpaces+
+                        " normalizedSpaces="+afterSpaces+
+                        " delta="+(afterSpaces-beforeSpaces)+
+                        " correctedLines="+fixes+
+                        " lines="+page.lines.size)
                     DiagnosticLog.i(app,"PADDLE_V2",
                         "spacing_enabled="+spacing+" corrected_lines="+fixes)
                     latestPage=page
