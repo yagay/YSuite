@@ -59,6 +59,7 @@ final class NativeCircleWorkspace extends View {
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path dragPath = new Path();
+    private final Path awaitingTextPath = new Path();
     private final ArrayList<PointF> stroke = new ArrayList<>();
     private final RectF closeHit = new RectF();
     private final RectF firstHandle = new RectF();
@@ -207,7 +208,11 @@ final class NativeCircleWorkspace extends View {
                         status = t("无法识别文字，仍可圈选图片",
                                 "Text unavailable; circle an image instead");
                         FLCircleSelection.Selection pending = pendingGesture;
-                        if (pending != null) resolveImage(pending, gestureRevision);
+                        if (pending != null) {
+                            if (pending.kind==FLCircleSelection.Kind.HIGHLIGHT)
+                                rejectTextGesture(pending,gestureRevision,"ocr_failure");
+                            else resolveImage(pending,gestureRevision);
+                        }
                         invalidate();
                         DiagnosticLog.i(app, "CIRCLE_NATIVE",
                                 "ocr unavailable=" + ScreenCaptureBackend.safeMessage(failure));
@@ -246,10 +251,16 @@ final class NativeCircleWorkspace extends View {
         } else if (state.phase == NativeCircleState.Phase.TEXT_READY) {
             drawTextSelection(canvas);
         } else if (state.phase == NativeCircleState.Phase.RESOLVING) {
-            RectF box = selectedViewBox();
-            if (!box.isEmpty()) {
-                dimOutside(canvas, box, NativeCircleVisualPolicy.SELECTION_OUTSIDE_ALPHA);
-                canvas.drawRoundRect(box, 10*density,10*density,outlinePaint);
+            if (pendingGesture != null
+                    && pendingGesture.kind == FLCircleSelection.Kind.HIGHLIGHT) {
+                // Text highlights retain the real line, never a crop rectangle.
+                canvas.drawPath(awaitingTextPath, outlinePaint);
+            } else {
+                RectF box = selectedViewBox();
+                if (!box.isEmpty()) {
+                    dimOutside(canvas, box, NativeCircleVisualPolicy.SELECTION_OUTSIDE_ALPHA);
+                    canvas.drawRoundRect(box, 10*density,10*density,outlinePaint);
+                }
             }
         }
 
@@ -258,11 +269,13 @@ final class NativeCircleWorkspace extends View {
         // Commands are Android Views in FloatActionMenu, not text
         // painted onto the frozen screenshot. The overlay only draws the
         // selection, OCR highlights, handles and active-session indicator.
-        if (state.phase == NativeCircleState.Phase.IDLE) {
+        if (!status.isBlank()) {
+            drawHint(canvas,status);
+        } else if (state.phase == NativeCircleState.Phase.IDLE) {
             drawHint(canvas,t("圈画已开启 · 圈住图片或划选文字",
                     "Circle active · Draw around an image or text"));
-        } else if (state.phase == NativeCircleState.Phase.RESOLVING || !status.isBlank()) {
-            drawHint(canvas,status);
+        } else if (state.phase == NativeCircleState.Phase.RESOLVING) {
+            drawHint(canvas,t("正在识别划线文字…","Recognizing highlighted text…"));
         }
     }
 
@@ -433,6 +446,8 @@ final class NativeCircleWorkspace extends View {
         }
         if(fullDocument==null){
             if(ocrBusy) { pendingGesture=gesture;status=t("正在识别…","Recognizing…"); }
+            else if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+                rejectTextGesture(gesture,token,"ocr_unavailable");
             else resolveImage(gesture,token);
             invalidate();
             return;
@@ -445,11 +460,15 @@ final class NativeCircleWorkspace extends View {
         } catch (Throwable error) {
             DiagnosticLog.i(app, "CIRCLE_NATIVE",
                     "ocr hit matching failed=" + ScreenCaptureBackend.safeMessage(error));
-            resolveImage(gesture,token);
+            if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+                rejectTextGesture(gesture,token,"matching_error");
+            else resolveImage(gesture,token);
             return;
         }
         if(groups==null || groups.isEmpty()) {
-            resolveImage(gesture,token);
+            if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+                rejectTextGesture(gesture,token,"no_text_at_stroke");
+            else resolveImage(gesture,token);
             return;
         }
         int first=Integer.MAX_VALUE,last=-1;
@@ -467,12 +486,19 @@ final class NativeCircleWorkspace extends View {
                 }
             }
         }
-        if(first>last){resolveImage(gesture,token);return;}
+        if(first>last){
+            if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+                rejectTextGesture(gesture,token,"no_character_match");
+            else resolveImage(gesture,token);
+            return;
+        }
         firstChar=first;lastChar=last;
         applyTextIndices(token,true);
         if (state.phase != NativeCircleState.Phase.TEXT_READY) {
             // Empty/invalid OCR text must not leave the workspace stuck in RESOLVING.
-            resolveImage(gesture, token);
+            if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+                rejectTextGesture(gesture,token,"invalid_text");
+            else resolveImage(gesture,token);
             return;
         }
         DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
@@ -555,6 +581,24 @@ final class NativeCircleWorkspace extends View {
         syncPopup();
     }
 
+    private void rejectTextGesture(FLCircleSelection.Selection gesture,
+                                   long token,String reason) {
+        if (closed || gesture==null
+                || gesture.kind!=FLCircleSelection.Kind.HIGHLIGHT
+                || state.phase!=NativeCircleState.Phase.RESOLVING
+                || state.revision!=token)return;
+        pendingGesture=null;
+        awaitingTextPath.reset();
+        chosenChars.clear();
+        firstChar=lastChar=-1;
+        state.clear();
+        status=t("没有识别到划线文字，请重新划线",
+                 "No highlighted text found; try drawing the line again");
+        DiagnosticLog.i(app,"CIRCLE_NATIVE",
+                "highlight unresolved reason="+reason+" no_image_fallback=true");
+        invalidate();
+    }
+
     private void resolveImage(FLCircleSelection.Selection gesture,long token) {
         if(gesture==null||state.phase!=NativeCircleState.Phase.RESOLVING
                 ||state.revision!=token)return;
@@ -589,21 +633,28 @@ final class NativeCircleWorkspace extends View {
         if(!state.resolving())return;
         gestureRevision=state.revision;
         pendingGesture=gesture;
-        // The stroke is feedback only. The selected region is its bounding
-        // rectangle and can be previewed while OCR intent is still resolving.
+        awaitingTextPath.reset();
+        if(gesture.kind==FLCircleSelection.Kind.HIGHLIGHT)
+            awaitingTextPath.set(dragPath);
+        // Keep the real stroke visible until Paddle returns OCR units.
         routeResolvedGesture(gesture,gestureRevision);
         if (pendingGesture == gesture && ocrBusy) {
             long token = gestureRevision;
-            // OCR engines/models may stall. A text stroke still must resolve
-            // to an editable crop instead of leaving the canvas unresponsive.
+            // Local OCR often needs 9-12 seconds. A highlight must not turn
+            // into an image crop solely because its recognition is slow.
+            boolean highlight=gesture.kind==FLCircleSelection.Kind.HIGHLIGHT;
             MAIN.postDelayed(() -> {
                 if (closed || state.phase != NativeCircleState.Phase.RESOLVING
                         || state.revision != token || pendingGesture != gesture) return;
-                DiagnosticLog.i(app, "CIRCLE_NATIVE",
-                        "text OCR timeout; falling back to image crop");
-                pendingGesture = null;
-                resolveImage(gesture, token);
-            }, 4000L);
+                if (highlight) {
+                    rejectTextGesture(gesture,token,"ocr_timeout");
+                } else {
+                    DiagnosticLog.i(app,"CIRCLE_NATIVE",
+                            "tap OCR timeout; falling back to image crop");
+                    pendingGesture=null;
+                    resolveImage(gesture,token);
+                }
+            }, highlight?25000L:4000L);
         }
         invalidate();
     }
@@ -679,6 +730,7 @@ final class NativeCircleWorkspace extends View {
         FloatActionMenu.dismiss();
         state.clear();chosenChars.clear();
         firstChar=lastChar=-1;pendingGesture=null;status="";
+        awaitingTextPath.reset();
         invalidate();
     }
 
@@ -712,6 +764,7 @@ final class NativeCircleWorkspace extends View {
             handleDrag=0;
             stroke.clear();stroke.add(bitmap);
             dragPath.reset();dragPath.moveTo(x,y);
+            awaitingTextPath.reset();
             chosenChars.clear();firstChar=lastChar=-1;
             pendingGesture=null;status="";
             invalidate();return true;
@@ -807,6 +860,7 @@ final class NativeCircleWorkspace extends View {
     private void close(String reason) {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
+        awaitingTextPath.reset();
         sourceSpans.clear();
         FloatActionMenu.dismiss();
         host.remove(this,"native_circle_"+reason);
