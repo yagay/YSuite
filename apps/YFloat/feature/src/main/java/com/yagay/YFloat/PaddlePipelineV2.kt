@@ -169,6 +169,32 @@ object PaddlePipelineV2 {
             formulaEngine=it;formulaSignature=sig
         }
     }
+    /**
+     * Switching from document OCR to a text-only Circle release auxiliary
+     * inference sessions while holding the same Mutex as all ONNX inference.
+     * Disabled stages never keep old structure weights resident indefinitely.
+     */
+    private fun releaseDisabled(options:PaddleFlowOptions){
+        if(!options.documentOrientation){
+            orientationEngine?.close();orientationEngine=null;orientationSignature=null
+        }
+        if(!options.layout){
+            layoutEngine?.close();layoutEngine=null;layoutSignature=null
+        }
+        if(!options.tables){
+            tableEngine?.close();tableEngine=null;tableSignature=null
+        }
+        if(!options.uvdoc){
+            uvEngine?.close();uvEngine=null;uvSignature=null
+        }
+        if(!options.seals){
+            sealEngine?.close();sealEngine=null;sealSignature=null
+        }
+        if(!options.formulas){
+            formulaEngine?.close();formulaEngine=null;formulaSignature=null
+        }
+    }
+
     @JvmStatic fun lastPage():PaddlePageV2.Page?=latestPage
     @JvmStatic fun isLoaded(model:Int):Boolean=models.containsKey(model)
 
@@ -196,6 +222,7 @@ object PaddlePipelineV2 {
                 // Build the entire document inside the inference lock, so a subsequent
                 // request cannot overwrite its auxiliary data before callback delivery.
                 val compat=lock.withLock {
+                    releaseDisabled(options)
                     val revision=signature(app,model,options.lineOrientation)
                     if(models.containsKey(model) && modelSignatures[model]!=revision){
                         models.remove(model)?.release()
@@ -373,7 +400,8 @@ object PaddlePipelineV2 {
                     }
                     val seals=ArrayList<SealResult>()
                     try{
-                        val detector=if(options.seals)seal(app) else null
+                        val detector=if(options.seals &&
+                            structure.any{it.label=="seal"})seal(app) else null
                         if(detector!=null)for(region in structure.filter{it.label=="seal"}){
                             val r=safeCropRect(region.bounds,image,16) ?: continue
                             val crop=Bitmap.createBitmap(image,r.left,r.top,r.width(),r.height())
@@ -398,7 +426,8 @@ object PaddlePipelineV2 {
                     // ordinary CTC glyph selection remains untouched.
                     val formulas=ArrayList<FormulaResult>()
                     try {
-                        val parser=if(options.formulas)formula(app) else null
+                        val parser=if(options.formulas &&
+                            structure.any{it.label=="formula"})formula(app) else null
                         if(parser!=null) {
                             for(region in structure.filter{it.label=="formula"}.take(24)) {
                                 val box=safeCropRect(region.bounds,image,8) ?: continue
