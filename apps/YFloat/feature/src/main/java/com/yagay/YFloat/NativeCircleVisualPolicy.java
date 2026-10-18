@@ -22,12 +22,14 @@ final class NativeCircleVisualPolicy {
      * the fallback is straight down for degenerate OCR boxes.
      */
     static float[] attachedTextHandle(float topX,float topY,
-            float bottomX,float bottomY,float density) {
+            float bottomX,float bottomY,float knobRadius) {
         float vx=bottomX-topX,vy=bottomY-topY;
         float length=(float)Math.hypot(vx,vy);
         if(length < 0.001f){vx=0f;vy=1f;}
         else {vx/=length;vy/=length;}
-        float extension=8f*Math.max(0.5f,density);
+        // A filled circular knob is tangent to the selected edge: zero
+        // visible space between the blue polygon and the handle itself.
+        float extension=Math.max(0.5f,knobRadius);
         return new float[]{bottomX,bottomY,bottomX+vx*extension,bottomY+vy*extension};
     }
 
