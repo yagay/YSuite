@@ -456,3 +456,50 @@ recognition crops. Unit cases and static guards cover profile isolation
 and stage-to-inference wiring.
 
 **Configurable pipeline final CI gate:** Build ARM64 Debug and run both OCR unit-test suites, verifying per-profile switches, shared ONNX detector/recognizer and the optional stage skip/unload policy. All preceding feature commits skipped CI.
+
+## Native Circle performance/refactoring batch — 2026-10-18
+
+Compared with the previous immediate whole-screen OCR workflow, the active
+`FLCircleController -> NativeCircleWorkspace` now:
+- opens a frozen screenshot **without running Paddle at all**; an image
+  CIRCLE/SCRIBBLE resolves directly to image selection.
+- runs OCR after a text HIGHLIGHT/TAP on a conservative 480x240-minimum
+  local bitmap ROI, preserving original pixels and mapping every resulting
+  line/character through
+  `ScreenBitmapTransform.documentLocalToScreen`.
+- retries a missed HIGHLIGHT ROI at most once on the original full
+  screenshot; a TEXT highlight never silently becomes an image rectangle.
+- expands a local text selection to full-screen OCR only for Select all.
+- cancels superseded/closed requests via `PaddleRequestToken`, checked
+  before acquiring a neural-network session and between optional stages.
+  In-flight native inference is **not force-interrupted**; callbacks still
+  run to recycle their owned bitmap even when the UI request was canceled.
+- caches the text-index `OcrDocument.CharUnit` list and uses
+  `CircleCharSpatialIndex` for nearest-handle matching instead of
+  recreating every Rect and scanning all characters on each motion.
+- skips a second full-screen model solely due to short/low-confidence
+  Circle text in Auto mode, while preserving the document-mode quality
+  escalation and genuine empty/failure fallback.
+- retains one alternate OCR session when switching between local
+  text-line-orientation variants on normal-memory devices; low-memory
+  devices release the displaced variant. All inference and session release
+  remain serialized by the existing mutex.
+
+YFloat OCR settings include YUI-backed **Fast / Balanced / Accurate**
+per-profile presets; each profile still supports individual on/off stage
+choices, with extended-only controls disabled while the master extension
+switch is off. No fake GPU acceleration or extra model weights were added.
+The PDF streaming/export path and downloader integrity contracts are
+preserved. The legacy inline Circle classes remain as compatibility
+references pending a separate source-reference audit; they are not installed
+by the current native Circle controller.
+
+New JVM cases cover cancellation signals, clip/small-screen ROIs, and
+spatial character hit matching. The source validator rejects accidentally
+reintroducing eager full-screen Circle OCR and old group-based fake spaces.
+
+Limits: backend ONNX inference cannot be interrupted midway; a freshly
+canceled request already executing a recognition crop finishes its native
+call before releasing the lane. Live frame-time, battery and actual OCR
+accuracy changes require the user's rooted Android device and representative
+image set; static JVM/Debug CI cannot prove those physical properties.
