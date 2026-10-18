@@ -16,10 +16,22 @@ final class CircleCharSpatialIndex {
     CircleCharSpatialIndex(List<OcrDocument.CharUnit> chars){
         int n=chars==null?0:chars.size();
         xs=new float[n];ys=new float[n];
-        HashMap<Long,ArrayList<Integer>> temporary=new HashMap<>();
         for(int i=0;i<n;i++){
             Rect r=chars.get(i).bounds();
             xs[i]=r.exactCenterX();ys[i]=r.exactCenterY();
+        }
+        buildCells();
+    }
+    /** Geometry-only constructor for pure JVM regression tests. */
+    CircleCharSpatialIndex(float[] centersX,float[] centersY){
+        if(centersX==null||centersY==null||centersX.length!=centersY.length)
+            throw new IllegalArgumentException("Mismatched centers");
+        xs=centersX.clone();ys=centersY.clone();
+        buildCells();
+    }
+    private void buildCells(){
+        HashMap<Long,ArrayList<Integer>> temporary=new HashMap<>();
+        for(int i=0;i<xs.length;i++){
             long k=key((int)Math.floor(xs[i]/CELL),
                     (int)Math.floor(ys[i]/CELL));
             temporary.computeIfAbsent(k,ignored->new ArrayList<>()).add(i);
