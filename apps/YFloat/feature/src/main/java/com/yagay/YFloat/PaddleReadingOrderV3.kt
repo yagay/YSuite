@@ -48,21 +48,19 @@ object PaddleReadingOrderV3 {
         if(blocks.size<4)return blocks.sortedWith(POSITION)
         // Find the strongest actual whitespace gutter. Do not sort into
         // "columns" unless both sides contain multiple elements.
-        val split=(1..9).map{width*it/10}.maxByOrNull{boundary->
+        val options=(1..9).mapNotNull{step->
+            val boundary=width*step/10
             val left=blocks.filter{it.bounds.rect().right<=boundary}
             val right=blocks.filter{it.bounds.rect().left>=boundary}
-            if(left.size<2||right.size<2)Float.NEGATIVE_INFINITY
-            else {
-                val crossing=blocks.count{
-                    it.bounds.rect().left<boundary &&
-                        it.bounds.rect().right>boundary
-                }
-                val gutter=right.minOf{it.bounds.rect().left}-
-                    left.maxOf{it.bounds.rect().right}
-                if(crossing>0||gutter<width*.045f)Float.NEGATIVE_INFINITY
-                else gutter.toFloat()
-            }
-        } ?: return blocks.sortedWith(POSITION)
+            if(left.size<2||right.size<2) return@mapNotNull null
+            if(left.size+right.size!=blocks.size)return@mapNotNull null
+            val gutter=right.minOf{it.bounds.rect().left}-
+                left.maxOf{it.bounds.rect().right}
+            if(gutter<width*.045f) return@mapNotNull null
+            boundary to gutter
+        }
+        val split=options.maxByOrNull{it.second}?.first
+            ?:return blocks.sortedWith(POSITION)
         val left=blocks.filter{it.bounds.rect().right<=split}
         val right=blocks.filter{it.bounds.rect().left>=split}
         if(left.size<2||right.size<2||left.size+right.size!=blocks.size)
