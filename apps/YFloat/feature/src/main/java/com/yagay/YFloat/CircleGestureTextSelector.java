@@ -104,10 +104,13 @@ final class CircleGestureTextSelector {
         }
         if (touchedChars.isEmpty()) return List.of();
 
-        // A highlight/scribble expresses a text range, not a sparse set of pixels. The gesture path
-        // determines the first and last touched character; fill every OCR character between those
-        // endpoints in stable OCR reading order so a fast diagonal/curved stroke cannot leave holes.
-        List<GroupHit> continuous = continuousRangeHits(document, touchedChars);
+        // A highlight is a local text selection, NOT an entire-document range.
+        // Crossing two OCR lines (e.g. text inside an icon and the app title
+        // underneath) must never implicitly select all intervening glyphs.
+        PointF focus=frame.bitmapPointToScreen(gesture.focus.x,gesture.focus.y);
+        List<GroupHit> continuous=gesture.kind==FLCircleSelection.Kind.HIGHLIGHT
+                ? lineLocalRangeHits(document,touchedChars,focus)
+                : continuousRangeHits(document,touchedChars);
         DiagnosticLog.i(context, "FL_CIRCLE_GESTURE_RANGE",
                 "kind=" + gesture.kind
                         + " touchedChars=" + touchedChars.size()
@@ -339,6 +342,86 @@ final class CircleGestureTextSelector {
         if (finalHit != null) out.add(finalHit);
         out.sort((a, b) -> compareVisual(a.bounds, b.bounds));
         return List.copyOf(out);
+    }
+
+    /**
+     * Highlight text is confined to the closest actually touched OCR line.
+     * A horizontal underline crossing tall neighboring regions should never
+     * connect an app icon word to its separate caption below. Within one
+     * source line, keep the nearest continuous run: large visual gaps split
+     * unrelated labels in launcher grids.
+     */
+    private static List<GroupHit> lineLocalRangeHits(OcrDocument document,
+            List<OcrDocument.CharUnit> touched,PointF focus){
+        if(document==null||touched==null||touched.isEmpty())return List.of();
+        int chosen=-1;
+        float best=Float.NEGATIVE_INFINITY;
+        for(OcrDocument.Line line:document.lines()){
+            int count=0;
+            float nearest=Float.POSITIVE_INFINITY;
+            for(OcrDocument.CharUnit unit:line.chars()){
+                if(!touched.contains(unit))continue;
+                count++;
+                Rect rect=unit.bounds();
+                nearest=Math.min(nearest,Math.abs(rect.exactCenterY()-focus.y));
+            }
+            if(count==0)continue;
+            float height=Math.max(8f,line.bounds().height());
+            // Proximity is stronger than count: a stroke beside a large icon
+            // should prefer its text baseline, not an adjacent dense OCR line.
+            float score=count*0.8f-nearest/height*2.2f;
+            if(score>best){best=score;chosen=line.chars().get(0).line();}
+        }
+        if(chosen<0)return List.of();
+        ArrayList<OcrDocument.CharUnit> lineChars=new ArrayList<>();
+        for(OcrDocument.CharUnit unit:document.chars()){
+            if(unit.line()==chosen && !unit.text().isBlank()&&!unit.bounds().isEmpty())
+                lineChars.add(unit);
+        }
+        lineChars.sort((a,b)->Integer.compare(a.order(),b.order()));
+        int first=Integer.MAX_VALUE,last=-1;
+        for(int i=0;i<lineChars.size();i++){
+            if(touched.contains(lineChars.get(i))){
+                first=Math.min(first,i);last=Math.max(last,i);
+            }
+        }
+        if(last<first)return List.of();
+        // An unusually wide space divides separate launcher labels; choose
+        // the continuous region closest to the actual gesture focus.
+        int runStart=first,runEnd=last;
+        int bestStart=runStart,bestEnd=runEnd;
+        float bestRun=Float.NEGATIVE_INFINITY;
+        for(int i=first;i<=last;i++){
+            boolean boundary=i==last;
+            if(!boundary){
+                Rect a=lineChars.get(i).bounds();
+                Rect b=lineChars.get(i+1).bounds();
+                float h=Math.max(1f,Math.min(a.height(),b.height()));
+                boundary=b.left-a.right>Math.max(36f,2.2f*h);
+            }
+            if(boundary){
+                int stop=i;
+                Rect box=new Rect(lineChars.get(runStart).bounds());
+                for(int k=runStart+1;k<=stop;k++)box.union(lineChars.get(k).bounds());
+                float dx=Math.max(0f,Math.max(box.left-focus.x,focus.x-box.right));
+                float score=(stop-runStart+1)*0.1f-dx/Math.max(1f,box.height());
+                if(score>bestRun){bestRun=score;bestStart=runStart;bestEnd=stop;}
+                runStart=i+1;
+            }
+        }
+        ArrayList<GroupHit> result=new ArrayList<>();
+        ArrayList<OcrDocument.CharUnit> bucket=new ArrayList<>();
+        int group=Integer.MIN_VALUE;
+        for(int i=bestStart;i<=bestEnd;i++){
+            OcrDocument.CharUnit unit=lineChars.get(i);
+            if(!bucket.isEmpty()&&unit.group()!=group){
+                GroupHit hit=fromChars(bucket);if(hit!=null)result.add(hit);
+                bucket.clear();
+            }
+            group=unit.group();bucket.add(unit);
+        }
+        GroupHit hit=fromChars(bucket);if(hit!=null)result.add(hit);
+        return List.copyOf(result);
     }
 
     private static int countChars(List<GroupHit> hits) {
