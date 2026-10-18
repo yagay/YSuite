@@ -513,9 +513,9 @@ final class NativeCircleWorkspace extends View {
         // Both stems begin at the EXACT BOTTOM CORNERS of the blue fill.
         // Extend along each side edge so even rotated words have no gap.
         float[] leading=NativeCircleVisualPolicy.attachedTextHandle(
-                first.get(0).x,first.get(0).y,first.get(3).x,first.get(3).y,density);
+                first.get(0).x,first.get(0).y,first.get(3).x,first.get(3).y,radius/1.8f);
         float[] trailing=NativeCircleVisualPolicy.attachedTextHandle(
-                last.get(1).x,last.get(1).y,last.get(2).x,last.get(2).y,density);
+                last.get(1).x,last.get(1).y,last.get(2).x,last.get(2).y,radius/1.8f);
         canvas.drawLine(leading[0],leading[1],leading[2],leading[3],outlinePaint);
         canvas.drawLine(trailing[0],trailing[1],trailing[2],trailing[3],outlinePaint);
         canvas.drawCircle(leading[2],leading[3],radius/1.8f,selectionHandlePaint);
