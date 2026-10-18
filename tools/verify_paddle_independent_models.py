@@ -58,8 +58,9 @@ if "PP-OCRv5_mobile_det_onnx" not in manager or "PP-OCRv5_mobile_rec_onnx" not i
     problems.append("PP-OCRv5 Mobile ONNX download sources missing")
 if "case MOBILE" not in manager or '"ppocrv5_mobile"' not in manager:
     problems.append("Mobile model must have a distinct private model directory")
-if "OcrModelManager.MOBILE" not in ocr_engine or "OcrModelManager.MOBILE" not in circle:
-    problems.append("Mobile model not connected to normal/circle OCR")
+runtime=(java / "PaddleRecognitionRuntime.java").read_text()
+if "OcrModelManager.MOBILE" not in runtime or "OcrModelManager.TINY" not in runtime:
+    problems.append("All installed Paddle model sizes must be selectable")
 if "PP-OCRv5 Mobile" not in selector:
     problems.append("Mobile model not selectable from YFloat OCR settings")
 if "PaddleStructureFullV3" in capture or (java / "PaddleStructureFullV3.java").exists():
@@ -85,14 +86,16 @@ if "val quality=confidence*1000.0" not in page or "confidence,quality,width,heig
     problems.append("OCR quality score is not persisted for automatic model escalation")
 if "val hasOpen=tokens.any" not in slanet or "val hasClose=tokens.any" not in slanet:
     problems.append("SLANet HTML must not duplicate supplied table tags")
-if "OcrModelManager.TINY, true" not in ocr_engine or "mode == 6" not in ocr_engine:
-    problems.append("Tiny fallback / explicit selection missing from main OCR")
-if "selected == 6 ? 5" not in selector:
-    problems.append("Tiny model not reachable from primary OCR settings")
-if "mode == 5" not in circle or "selected=paddle_auto" not in circle:
-    problems.append("Circle full-screen OCR must expose shared offline Paddle Auto")
-if 'return 5;' not in (java / "FloatSettings.java").read_text():
-    problems.append("New Circle installations must default to Paddle Auto")
+if "PaddleRecognitionRuntime.normalModel" not in ocr_engine:
+    problems.append("Normal OCR is not delegated to the unified Paddle runtime")
+if "PaddleRecognitionRuntime.circleModel" not in circle:
+    problems.append("Circle OCR is not delegated to the unified Paddle runtime")
+if "selected == 5 ? 3 : selected == 6 ? 4" not in selector:
+    problems.append("Tiny and Mobile model picker indices must map to real Paddle ids")
+if "choice==0?5:choice" not in selector:
+    problems.append("Circle Paddle Auto picker mapping is missing")
+if "return stored<1||stored>5?5:stored;" not in (java / "FloatSettings.java").read_text():
+    problems.append("Legacy Circle ML Kit choice must migrate to Paddle Auto")
 
 # Comprehensive local OCR batch: the runtime modules must be actually wired,
 # not merely advertised in settings. Compiling and running ONNX is separately required.
@@ -195,14 +198,23 @@ for needle in ("File.createTempFile(", "appendPage(pageIndex,document)",
         problems.append("Offline PDF streaming/retry/bitmap lifecycle contract missing: "+needle)
 if "results.add(document)" in pdf or "ArrayList<OcrDocument> results" in pdf:
     problems.append("PDF OCR must not retain unbounded page documents in RAM")
-if 'mode == 3' not in ocr_engine:
-    problems.append("Legacy ML Kit mode must remain explicitly user-selectable")
-if '"no_local_model", request' in ocr_engine or '"local_model_missing", request' in ocr_engine:
-    problems.append("Paddle Auto must never silently select ML Kit")
-if '"ppocr_empty", request' in ocr_engine or '"ppocr_failure:" + message, request' in ocr_engine:
-    problems.append("Paddle Auto failure must not silently switch engines")
-if '"selected=paddle_auto modelMissing=true fallback=mlkit"' in circle:
-    problems.append("Circle Paddle Auto must not silently switch engines")
+# Paddle-native runtime must have no ML Kit execution, no old canonical glyph
+# splitting, and one shared inference/cache owner.
+bridge=(java / "PaddleOcrBridge.kt").read_text()
+gradle=(FEATURE / "feature/build.gradle").read_text()
+for source,name in ((ocr_engine,"OcrEngine"),(circle,"CircleStableOcr"),
+                    (bridge,"PaddleOcrBridge")):
+    if ("MlKit" in source or "TextRecognizer" in source or
+            "OcrCanonicalGeometry.normalize" in source):
+        problems.append(name+" retained a legacy ML Kit execution/geometry path")
+if (java / "MlKitTextCore.java").exists() or (java / "OcrCanonicalGeometry.java").exists():
+    problems.append("Unused ML Kit geometry/parsing sources still ship")
+if "libs.mlkit.text.recognition" in gradle:
+    problems.append("Feature still embeds ML Kit recognition dependency")
+if "PaddlePipelineV2.recognize(context,bitmap,model" not in bridge:
+    problems.append("Retired second Paddle bridge must only delegate to the primary pipeline")
+if "PaddleRecognitionRuntime.recognize" not in ocr_engine or "PaddleRecognitionRuntime.recognize" not in circle:
+    problems.append("Normal and Circle must use one model/runtime contract")
 if "(Paddle offline)" not in selector:
     problems.append("User-facing Paddle Auto label must identify its offline engine")
 
