@@ -279,6 +279,26 @@ if "nativeCircleThreeGroupsNeverCreateAnExtraSpace" not in (
 ).read_text():
     problems.append("Native Circle multi-glyph whitespace case is not tested")
 
+# Highlight strokes are text intents: never turn into rectangular crops just
+# because PP-OCRv5 Mobile needs longer than four seconds.
+router=(java / "NativeCircleIntentRouter.java").read_text()
+for needle in ("permitsImageFallback(String kind)",
+               'return !"HIGHLIGHT".equals(kind);'):
+    if needle not in router:
+        problems.append("Highlight image fallback policy is missing: "+needle)
+for needle in ("awaitingTextPath.set(dragPath)",
+               "canvas.drawPath(awaitingTextPath, outlinePaint)",
+               "rejectTextGesture(gesture,token",
+               "highlight?25000L:4000L",
+               "highlight unresolved reason="):
+    if needle not in native:
+        problems.append("Native Circle drawing/OCR must preserve highlight intent: "+needle)
+if 'text OCR timeout; falling back to image crop' in native:
+    problems.append("Old 4s unconditional highlight-to-rectangle fallback still active")
+native_test=(FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleIntentRouterTest.java")
+if not native_test.is_file():
+    problems.append("Highlight-only no-image-fallback policy has no regression test")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
