@@ -39,6 +39,14 @@ public final class PaddleDocumentExport {
                 page.put("confidence", d.confidence());
                 page.put("text", d.fullText());
                 page.put("unwarpedText", d.unwarpedText());
+                if(d.rectifiedDocument()!=null){
+                    // UVDoc is non-rigid: these coordinates must never be
+                    // interpreted as positions on the original screenshot.
+                    page.put("rectifiedCoordinateMapping","not_available");
+                    JSONObject sub=new JSONObject(json(d.rectifiedDocument()))
+                        .getJSONArray("pages").getJSONObject(0);
+                    page.put("rectifiedPage",sub);
+                }
                 page.put("tableTexts", strings(d.tableTexts()));
                 page.put("tableHtmls", strings(d.tableHtmls()));
                 page.put("formulaTexts", strings(d.formulaTexts()));
