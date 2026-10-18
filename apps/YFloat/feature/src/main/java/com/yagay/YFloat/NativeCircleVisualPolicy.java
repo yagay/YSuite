@@ -8,12 +8,12 @@ package com.yagay.YFloat;
 final class NativeCircleVisualPolicy {
     static final int SELECTION_OUTSIDE_ALPHA = 112;
 
-    // Never paint translucent blue over OCR text: selected pixels are
-    // restored verbatim from the frozen screenshot after the outside scrim.
-    // The visible outline stays *outside* the selected pixel band.
-    static final int TEXT_HIGHLIGHT_FILL_ALPHA = 0;
-    static final int TEXT_HIGHLIGHT_BORDER_ALPHA = 214;
-    static float textBorderOutsideGap(float density){
+    // Android-style text selection: a visible, translucent wash over the
+    // exact TextGeometry V3 polygon. No border/stroke; the captured font
+    // remains visible beneath the blue wash instead of being re-typeset.
+    static final int TEXT_HIGHLIGHT_FILL_ALPHA = 104;
+    // Handles stay outside the glyph band although no outline is drawn.
+    static float textHandleOutsideGap(float density){
         return Math.max(1f,2.5f*density);
     }
 
@@ -57,8 +57,8 @@ final class NativeCircleVisualPolicy {
                 }
             }
         }
-        // Minimal pixel allowance for OCR quantisation. The visible blue
-        // outline has its own OUTWARD-only gap, separate from these pixels.
+        // Minimal pixel allowance for OCR quantisation; the translucent
+        // fill follows the selected polygon without an external stroke.
         float pad=Math.max(0.5f,Math.min(1.5f,(bottom-top)*0.015f));
         return new float[]{left-pad,top-pad,right+pad,bottom+pad};
     }
