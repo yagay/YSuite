@@ -294,8 +294,8 @@ public final class FloatSettings {
         else if (raw instanceof String v) {
             try { mode = Integer.parseInt(v.trim()); } catch (NumberFormatException ignored) {}
         }
-        // 4 remains retired HTTPS mode; 5 explicitly means PP-OCRv5 Mobile.
-        return mode == 4 ? 0 : clamp(mode, 0, 5);
+        // 4 remains retired HTTPS; 5 is PP-OCRv5 Mobile, 6 is PP-OCRv6 Tiny.
+        return mode == 4 ? 0 : clamp(mode, 0, 6);
     }
     public String customIconUri() { return p.getString(K_CUSTOM_ICON, ""); }
     public String slidePics() { return p.getString(K_SLIDE_PICS, ""); }
