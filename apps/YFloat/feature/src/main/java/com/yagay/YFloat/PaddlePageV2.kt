@@ -101,29 +101,34 @@ object PaddlePageV2 {
 
     fun fromOcr(results:List<OCRResult>,width:Int,height:Int,
                 regions:List<PPDocLayoutV2.Region>,fixSpacing:Boolean=true):Page {
+        fun withinImage(q:Quad):Quad=Quad(q.points.map{point->
+            PointF(point.x.coerceIn(0f,width.toFloat()),
+                point.y.coerceIn(0f,height.toFloat()))
+        },q.origin)
         val lines=results.mapNotNull { result ->
             val refined=if(fixSpacing)
                 PaddleSpacingV2.correct(result.characters,result.text)
                 else PaddleSpacingV2.Correction(result.text,result.characters,0)
             val text=refined.text.trim()
             if(text.isBlank())return@mapNotNull null
-            val quad=quad(result.box,Origin.DETECTOR)
+            val lineQuad=withinImage(quad(result.box,Origin.DETECTOR))
             val symbols=refined.characters.map { c ->
-                Symbol(c.text,quad(c.box,Origin.CTC_ALIGNED),c.confidence)
+                Symbol(c.text,withinImage(quad(c.box,Origin.CTC_ALIGNED)),c.confidence)
             }
             // Re-segment after removing spurious spaces. Never use stale word
             // boundaries whose characters no longer match the corrected text.
             val segments=if(fixSpacing)
                 OCRWordSegmenter.segment(refined.characters) else result.words
             val words=if(segments.isNotEmpty())segments.map { word ->
-                Word(word.text,quad(word.box,Origin.WORD_GROUP),
+                Word(word.text,withinImage(quad(word.box,Origin.WORD_GROUP)),
                     word.characters.map { symbol ->
-                        Symbol(symbol.text,quad(symbol.box,Origin.CTC_ALIGNED),
+                        Symbol(symbol.text,withinImage(quad(symbol.box,Origin.CTC_ALIGNED)),
                             symbol.confidence)
                     })
-            } else if(symbols.isNotEmpty())groupWords(symbols,text,quad)
-            else listOf(Word(text,Quad(quad.points,Origin.FALLBACK),emptyList()))
-            Line(text,quad,result.confidence,words,result.text)
+            } else if(symbols.isNotEmpty())groupWords(symbols,text,lineQuad)
+            else listOf(Word(text,Quad(lineQuad.points,Origin.FALLBACK),emptyList()))
+            Line(text,lineQuad,result.confidence,words,result.text)
+                .takeIf{!lineQuad.rect().isEmpty}
         }.sortedWith(compareBy({it.bounds.rect().centerY()},{it.bounds.rect().left}))
         val grouped=mutableMapOf<Int,MutableList<Line>>()
         for(line in lines){
