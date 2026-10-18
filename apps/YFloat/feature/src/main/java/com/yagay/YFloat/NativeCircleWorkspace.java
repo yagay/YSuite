@@ -488,9 +488,8 @@ final class NativeCircleWorkspace extends View {
             Rect union=glyphsByLine.get(glyph.line());
             if(union==null)glyphsByLine.put(glyph.line(),new Rect(b));
             else union.union(b);
-            RectF display=screenToView(b);
-            if(first==null)first=display;
-            last=display;
+            // Handle anchors come from final highlighted line bands below,
+            // not from raw CTC glyph rectangles of varying inferred heights.
         }
         for(var entry:glyphsByLine.entrySet()){
             Rect glyphBounds=entry.getValue();
@@ -510,8 +509,11 @@ final class NativeCircleWorkspace extends View {
                     Math.min(rowBounds.right,glyphBounds.right+1f),
                     centerY+height/2f);
             RectF highlight=screenToViewF(screenBand);
-            if(!highlight.isEmpty())
+            if(!highlight.isEmpty()){
                 canvas.drawRoundRect(highlight,2*density,2*density,selectionHighlightPaint);
+                if(first==null)first=new RectF(highlight);
+                last=new RectF(highlight);
+            }
         }
         if(first==null||last==null)return;
         float radius=YFloatOverlayStyle.handleRadius(app);
@@ -528,10 +530,7 @@ final class NativeCircleWorkspace extends View {
     }
 
     private RectF screenToViewF(RectF screen){
-        return frame.bitmapToView(new RectF(frame.screenRectToBitmap(
-                new Rect((int)Math.floor(screen.left),(int)Math.floor(screen.top),
-                         (int)Math.ceil(screen.right),(int)Math.ceil(screen.bottom)))),
-                getWidth(),getHeight());
+        return frame.transform.screenToView(screen,getWidth(),getHeight());
     }
 
     /** One menu host for both OCR text and selected image rectangles. */
