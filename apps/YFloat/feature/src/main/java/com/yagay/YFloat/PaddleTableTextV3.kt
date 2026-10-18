@@ -30,7 +30,8 @@ object PaddleTableTextV3 {
                     }
                 }
             }
-            hits.sortWith(compareBy({it.second.centerY()},{it.second.left}))
+            // Preserve original recognizer symbol order. Sorting individual
+            // glyphs by Y causes baseline jitter to scramble horizontal text.
             val text=if(hits.isNotEmpty())hits.joinToString(""){it.first}
                 else lines.filter{line->
                     val r=line.bounds.rect()

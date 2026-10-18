@@ -56,8 +56,17 @@ class PPDocOrientationV3(model:File):Closeable {
                 require(buffer.remaining()>=4){"Orientation model output must contain four classes"}
                 val values=FloatArray(4){buffer.get()}
                 val top=values.indices.maxByOrNull{values[it]}?:0
-                val probs=values.map { exp((it-values.maxOrNull()!!).toDouble()) }
-                val score=(probs[top]/probs.sum()).toFloat()
+                // The ONNX graph can already output softmax probabilities.
+                // Softmaxing probabilities again would lower a confident 0.99
+                // prediction to about 0.47, silently disabling rotation.
+                val sum=values.sum()
+                val normalized=values.all{it>=0f && it<=1f && it.isFinite()} &&
+                    kotlin.math.abs(sum-1f)<0.03f
+                val score=if(normalized)values[top] else{
+                    val peak=values[top].toDouble()
+                    val probs=values.map{exp(it.toDouble()-peak)}
+                    (probs[top]/probs.sum()).toFloat()
+                }
                 return Prediction(intArrayOf(0,90,180,270)[top],score)
             }
         }
