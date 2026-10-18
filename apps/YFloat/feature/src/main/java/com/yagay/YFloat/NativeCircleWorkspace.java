@@ -86,6 +86,9 @@ final class NativeCircleWorkspace extends View {
     private final IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span>
             sourceSpans=new IdentityHashMap<>();
     private ArrayList<OcrDocument.CharUnit> chosenChars = new ArrayList<>();
+    // Built only when the text selection changes; onDraw never runs pixel
+    // segmentation, OCR, or another coordinate conversion.
+    private List<TextGeometryV3.Region> textGeometry=List.of();
     private int firstChar = -1, lastChar = -1;
     /** -1 means explicit Select all; otherwise hands stay on initial OCR line. */
     private int selectedLine=-1;
@@ -477,81 +480,43 @@ final class NativeCircleWorkspace extends View {
         }
     }
 
+    /** Draw the corrected original screenshot beneath an exterior outline.
+     * No glyph redraw, font approximation, or re-OCR runs in this method.
+     */
     private void drawTextSelection(Canvas canvas) {
         firstHandle.setEmpty();
         lastHandle.setEmpty();
-        if(chosenChars.isEmpty()||fullDocument==null)return;
-        RectF first=null,last=null;
-        // CTC character rectangles are hit targets, not reliable visual
-        // bounds on large launcher glyphs. Use the detector's original line
-        // width only when ALL drawable characters in that line are selected.
-        // For a dragged / partial selection preserve character-precise width.
-        LinkedHashMap<Integer,Rect> glyphsByLine=new LinkedHashMap<>();
-        IdentityHashMap<OcrDocument.CharUnit,Boolean> selectedSet=
-                new IdentityHashMap<>();
-        for(OcrDocument.CharUnit glyph:chosenChars){
-            Rect b=glyph.bounds();
-            if(b.isEmpty())continue;
-            selectedSet.put(glyph,Boolean.TRUE);
-            Rect union=glyphsByLine.get(glyph.line());
-            if(union==null)glyphsByLine.put(glyph.line(),new Rect(b));
-            else union.union(b);
+        if(chosenChars.isEmpty() || textGeometry.isEmpty())return;
+        List<PointF> first=null,last=null;
+        float outside=NativeCircleVisualPolicy.textBorderOutsideGap(density);
+        for(TextGeometryV3.Region region:textGeometry){
+            List<PointF> corners=quadToView(region.corners());
+            if(corners.size()!=4)continue;
+            Path selection=pathForQuad(corners,0f);
+            canvas.save();
+            canvas.clipPath(selection);
+            canvas.drawBitmap(frame.bitmap,null,
+                    new Rect(0,0,getWidth(),getHeight()),screenshotPaint);
+            canvas.restore();
+            // The outside-only stroke never tints underlying app text.
+            canvas.drawPath(pathForQuad(corners,outside),selectionBorderPaint);
+            if(first==null)first=corners;
+            last=corners;
         }
-        for(var entry:glyphsByLine.entrySet()){
-            Rect glyphBounds=entry.getValue();
-            Rect rowBounds=glyphBounds;
-            boolean wholeLine=false;
-            for(OcrDocument.Line row:fullDocument.lines()){
-                if(row.chars().isEmpty()||row.chars().get(0).line()!=entry.getKey())
-                    continue;
-                rowBounds=row.bounds();
-                wholeLine=true;
-                for(OcrDocument.CharUnit unit:row.chars()){
-                    if(unit.text().isBlank()||unit.bounds().isEmpty())continue;
-                    if(!selectedSet.containsKey(unit)){
-                        wholeLine=false;
-                        break;
-                    }
-                }
-                break;
-            }
-            float[] band=NativeCircleVisualPolicy.textSelectionScreenBand(
-                    glyphBounds.left,glyphBounds.top,glyphBounds.right,glyphBounds.bottom,
-                    rowBounds.left,rowBounds.top,rowBounds.right,rowBounds.bottom,
-                    wholeLine);
-            RectF screenBand=new RectF(band[0],band[1],band[2],band[3]);
-            RectF selected=screenToViewF(screenBand);
-            if(!selected.isEmpty()){
-                // Scrim was painted before the selection. Reveal the actual
-                // untouched screenshot pixels inside the selected band.
-                canvas.save();
-                canvas.clipRect(selected);
-                canvas.drawBitmap(frame.bitmap,null,
-                        new Rect(0,0,getWidth(),getHeight()),screenshotPaint);
-                canvas.restore();
-
-                // The outline lives outside the revealed pixels. Its stroke
-                // must not color any Chinese or Latin glyph inside the band.
-                RectF outline=new RectF(selected);
-                outline.inset(-NativeCircleVisualPolicy.textBorderOutsideGap(density),
-                        -NativeCircleVisualPolicy.textBorderOutsideGap(density));
-                canvas.drawRoundRect(outline,3*density,3*density,selectionBorderPaint);
-                if(first==null)first=new RectF(outline);
-                last=new RectF(outline);
-            }
-        }
-        if(first==null||last==null)return;
-        // Never paint blue stems through the first/last glyph: the screenshot
-        // holds the actual app font, which must remain visibly unchanged.
+        if(first==null || last==null)return;
         float radius=Math.min(9f*density,Math.max(4f*density,
                 YFloatOverlayStyle.handleRadius(app)));
-        float hx=NativeCircleVisualPolicy.leadingHandleX(first.left,density);
-        float tx=NativeCircleVisualPolicy.trailingHandleX(last.right,density);
-        float hy=NativeCircleVisualPolicy.handleCenterY(first.bottom,density);
-        float ty=NativeCircleVisualPolicy.handleCenterY(last.bottom,density);
-        canvas.drawLine(hx,NativeCircleVisualPolicy.handleStemTop(first.bottom,density),
+        // TL/TR/BR/BL are retained across Paddle -> document -> screen.
+        // Handles are outside the first and last selected original glyphs.
+        PointF start=first.get(3),end=last.get(2);
+        float hx=NativeCircleVisualPolicy.leadingHandleX(start.x-outside,density);
+        float tx=NativeCircleVisualPolicy.trailingHandleX(end.x+outside,density);
+        float sy=start.y+outside, ey=end.y+outside;
+        float hy=NativeCircleVisualPolicy.handleCenterY(sy,density);
+        float ty=NativeCircleVisualPolicy.handleCenterY(ey,density);
+        canvas.drawLine(hx,NativeCircleVisualPolicy.handleStemTop(sy,density),
                 hx,hy,outlinePaint);
-        canvas.drawLine(tx,NativeCircleVisualPolicy.handleStemTop(last.bottom,density),
+        canvas.drawLine(tx,NativeCircleVisualPolicy.handleStemTop(ey,density),
                 tx,ty,outlinePaint);
         canvas.drawCircle(hx,hy,radius/1.8f,outlinePaint);
         canvas.drawCircle(tx,ty,radius/1.8f,outlinePaint);
@@ -561,8 +526,43 @@ final class NativeCircleWorkspace extends View {
                 tx+24*density,ty+24*density);
     }
 
-    private RectF screenToViewF(RectF screen){
-        return frame.transform.screenToView(screen,getWidth(),getHeight());
+    private List<PointF> quadToView(List<PointF> screen){
+        if(screen==null || screen.size()!=4)return List.of();
+        ArrayList<PointF> out=new ArrayList<>(4);
+        for(PointF p:screen){
+            out.add(frame.transform.screenToView(p.x,p.y,getWidth(),getHeight()));
+        }
+        return List.copyOf(out);
+    }
+
+    private static Path pathForQuad(List<PointF> corners,float outside) {
+        Path path=new Path();
+        if(corners==null || corners.size()!=4)return path;
+        float centerX=0f,centerY=0f;
+        for(PointF p:corners){centerX+=p.x;centerY+=p.y;}
+        centerX*=0.25f;centerY*=0.25f;
+        for(int i=0;i<4;i++){
+            PointF p=corners.get(i);
+            float dx=p.x-centerX,dy=p.y-centerY;
+            float radius=(float)Math.hypot(dx,dy);
+            float expansion=radius>0.01f?outside*1.41421356f/radius:0f;
+            float x=p.x+dx*expansion,y=p.y+dy*expansion;
+            if(i==0)path.moveTo(x,y);
+            else path.lineTo(x,y);
+        }
+        path.close();
+        return path;
+    }
+
+    private void rebuildSelectionGeometry() {
+        textGeometry=TextGeometryV3.build(fullDocument,chosenChars,
+                (glyph,detector)->TextGeometryPixelLocator.refine(frame,glyph,detector));
+        int corrected=0;
+        for(TextGeometryV3.Region part:textGeometry)
+            if(part.pixelCorrected)corrected++;
+        DiagnosticLog.i(app,"TEXT_GEOMETRY_V3",
+                "selected_lines="+textGeometry.size()+" pixel_corrected="+corrected+
+                        " fallback="+(textGeometry.size()-corrected));
     }
 
     /** One menu host for both OCR text and selected image rectangles. */
@@ -806,6 +806,7 @@ final class NativeCircleWorkspace extends View {
                     inBitmap.right,inBitmap.bottom);
         }
         status="";
+        rebuildSelectionGeometry();
         invalidate();
         syncPopup();
     }
