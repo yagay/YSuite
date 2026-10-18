@@ -684,3 +684,24 @@ semi-transparent blue overlay** over the precise selected region:
   now reject the obsolete stroked text selection and require live filled
   `TextGeometryV3` selections. Blue overlay intentionally adds a visual
   tint; it never reconstructs or replaces app glyphs.
+
+## Text handle-to-fill attachment (2026-10-18)
+
+After the outlined text selection was replaced with translucent blue fill,
+the old handle positioning retained a 2.5dp outside margin, additional
+5dp horizontal offset and downward stem offset. This visibly detached both
+grips from the selected text, especially short Chinese app-icon labels.
+
+- The TextGeometry V3 quad remains the sole source of selected blue pixels.
+  `NativeCircleWorkspace` now anchors both stems exactly at the filled
+  polygon's bottom-left and bottom-right corners. Rotated selections extend
+  each stem along the originating quad's side vector.
+- The handle's circle centre is exactly one *actual rendered knob radius*
+  beyond the selected corner, so its circumference touches the highlighted
+  blue area instead of leaving a gap. Both stems visually connect as well.
+- Touch targets remain 48dp wide, but if their regions overlap on short
+  two-character words the nearest displayed knob wins, allowing both
+  endpoints to be dragged.
+- Text recognition, glyph quads, pixel refinement, and OCR offsets are not
+  changed. JUnit now covers straight, tilted, degenerate and density-scaled
+  edge attachment, circle tangency and overlapping touch targets.
