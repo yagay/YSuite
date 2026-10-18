@@ -8,6 +8,11 @@ import com.paddle.ocr.PaddleOCRConfig
 import com.paddle.ocr.structure.PPDocLayoutV2
 import com.paddle.ocr.structure.PPDocOrientationV3
 import com.paddle.ocr.structure.SLANetLocalV3
+import com.paddle.ocr.structure.UVDocLocalV3
+import com.paddle.ocr.structure.PPSealDetectorLocalV3
+import android.graphics.Rect
+import android.graphics.PointF
+import com.paddle.ocr.model.OCRBox
 import android.graphics.Matrix
 import com.paddle.ocr.util.OpenCVUtils
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +43,16 @@ object PaddlePipelineV2 {
     private var orientationSignature:String?=null
     private var tableEngine:SLANetLocalV3?=null
     private var tableSignature:String?=null
+    private var uvEngine:UVDocLocalV3?=null
+    private var uvSignature:String?=null
+    private var sealEngine:PPSealDetectorLocalV3?=null
+    private var sealSignature:String?=null
+    data class SealResult(val bounds:Rect,val detections:List<OCRBox>,
+                          val recognizedText:String)
+    @Volatile private var latestUnwarpedDocument:OcrDocument?=null
+    @Volatile private var latestSealResults:List<SealResult> = emptyList()
+    @JvmStatic fun lastUnwarpedDocument():OcrDocument?=latestUnwarpedDocument
+    @JvmStatic fun lastSealResults():List<SealResult> = latestSealResults
     @Volatile private var lastTables:List<PaddleTableTextV3.Table> = emptyList()
     @JvmStatic fun latestTables():List<PaddleTableTextV3.Table> = lastTables
     private var layoutEngine:PPDocLayoutV2?=null
@@ -94,6 +109,34 @@ object PaddlePipelineV2 {
             "SLANet local model integrity failed"
         }
         return SLANetLocalV3(file,dict).also{tableEngine=it;tableSignature=id}
+    }
+    private fun uvdoc(app:Context):UVDocLocalV3? {
+        if(!PaddleLocalModelsV3.enabled(app,PaddleLocalModelsV3.UV_DOC)){
+            uvEngine?.close();uvEngine=null;uvSignature=null
+            return null
+        }
+        val file=PaddleLocalModelsV3.model(app,PaddleLocalModelsV3.UV_DOC)
+        val sig=file.length().toString()+":"+file.lastModified()
+        if(uvEngine!=null&&uvSignature==sig)return uvEngine
+        uvEngine?.close();uvEngine=null;uvSignature=null
+        check(PaddleLocalModelsV3.verify(app,PaddleLocalModelsV3.UV_DOC)){
+            "UVDoc checksum mismatch"
+        }
+        return UVDocLocalV3(file).also{uvEngine=it;uvSignature=sig}
+    }
+    private fun seal(app:Context):PPSealDetectorLocalV3? {
+        if(!PaddleLocalModelsV3.enabled(app,PaddleLocalModelsV3.SEAL_DETECTION)){
+            sealEngine?.close();sealEngine=null;sealSignature=null
+            return null
+        }
+        val file=PaddleLocalModelsV3.model(app,PaddleLocalModelsV3.SEAL_DETECTION)
+        val sig=file.length().toString()+":"+file.lastModified()
+        if(sealEngine!=null&&sealSignature==sig)return sealEngine
+        sealEngine?.close();sealEngine=null;sealSignature=null
+        check(PaddleLocalModelsV3.verify(app,PaddleLocalModelsV3.SEAL_DETECTION)){
+            "Seal detector checksum mismatch"
+        }
+        return PPSealDetectorLocalV3(file).also{sealEngine=it;sealSignature=sig}
     }
     @JvmStatic fun lastPage():PaddlePageV2.Page?=latestPage
 
@@ -186,6 +229,52 @@ object PaddlePipelineV2 {
                     val page=PaddlePageV2.fromOcr(chosen.results,image.width,image.height,
                         structure,spacing)
                     val linked=tables.map{PaddleTableTextV3.link(it,page.lines)}
+                    // UVDoc is a separate document-OCR result. Its coordinates
+                    // refer to its rectified bitmap, not the source screenshot.
+                    // Never send those quads to the screen selection overlay.
+                    latestUnwarpedDocument=null
+                    try {
+                        val engine=uvdoc(app)
+                        if(engine!=null){
+                            val corrected=engine.rectify(image)
+                            try{
+                                val textResults=ocr.recognize(corrected).results
+                                val correctedPage=PaddlePageV2.fromOcr(textResults,
+                                    corrected.width,corrected.height,emptyList(),spacing)
+                                latestUnwarpedDocument=correctedPage.asLegacy(
+                                    "ppocr-v2-uvdoc-"+model)
+                            }finally{corrected.recycle()}
+                        }
+                    }catch(error:Throwable){
+                        DiagnosticLog.i(app,"PADDLE_UVDOC",
+                            "unwarp_failed="+error.javaClass.simpleName)
+                    }
+                    val seals=ArrayList<SealResult>()
+                    try{
+                        val detector=seal(app)
+                        if(detector!=null)for(region in structure.filter{it.label=="seal"}){
+                            val r=region.bounds
+                            if(r.width()<16||r.height()<16)continue
+                            val crop=Bitmap.createBitmap(image,r.left,r.top,r.width(),r.height())
+                            try{
+                                val polygons=detector.detect(crop).map {box->
+                                    OCRBox(box.points.map{point->
+                                        PointF(point.x+r.left,point.y+r.top)
+                                    })
+                                }
+                                val text=ocr.recognize(crop).results
+                                    .joinToString(" "){it.text.trim()}.trim()
+                                seals.add(SealResult(Rect(r),polygons,text))
+                            }finally{crop.recycle()}
+                        }
+                    }catch(error:Throwable){
+                        DiagnosticLog.i(app,"PADDLE_SEAL",
+                            "seal_failed="+error.javaClass.simpleName)
+                    }
+                    latestSealResults=seals
+                    DiagnosticLog.i(app,"PADDLE_LOCAL",
+                        "uvdoc_text="+(latestUnwarpedDocument?.fullText()?.length?:0)+
+                        " seal_regions="+seals.size)
                     val fixes=page.lines.count {it.rawText!=it.text}
                     DiagnosticLog.i(app,"PADDLE_V2",
                         "spacing_enabled="+spacing+" corrected_lines="+fixes)
@@ -217,6 +306,10 @@ object PaddlePipelineV2 {
                 layoutSignature=null
                 orientationEngine?.close();orientationEngine=null;orientationSignature=null
                 tableEngine?.close();tableEngine=null;tableSignature=null
+                uvEngine?.close();uvEngine=null;uvSignature=null
+                sealEngine?.close();sealEngine=null;sealSignature=null
+                latestUnwarpedDocument=null
+                latestSealResults=emptyList()
                 lastTables=emptyList()
             }
         }

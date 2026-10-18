@@ -23,8 +23,12 @@ import java.util.concurrent.Executors;
 public final class PaddleLocalModelsV3 {
     public static final int DOC_ORIENTATION=1;
     public static final int TABLE_STRUCTURE=2;
+    public static final int UV_DOC=3;
+    public static final int SEAL_DETECTION=4;
     public static final String ORIENTATION_PREF="paddle_v3_classifier_enabled";
     public static final String TABLE_PREF="paddle_v3_table_enabled";
+    public static final String UV_DOC_PREF="paddle_v3_uvdoc_enabled";
+    public static final String SEAL_PREF="paddle_v3_seal_enabled";
     private record Spec(String name,String url,long size,String sha,String yamlUrl) {}
     private static Spec spec(int id) {
         return switch(id) {
@@ -37,6 +41,12 @@ public final class PaddleLocalModelsV3 {
                 "https://huggingface.co/bdatdo0601/slanet-1m-onnx/resolve/main/slanet_1m.onnx",
                 7671589L,"8a8aa31bf964c1c05039f02814e5f425a354a37552eaca8e6d5dc513048759f5",
                 "https://huggingface.co/bdatdo0601/slanet-1m-onnx/resolve/main/inference.yml");
+            case UV_DOC -> new Spec("UVDoc (document unwarping)",
+                "https://huggingface.co/marsena/paddleocr-onnx-models/resolve/main/UVDoc_infer.onnx",
+                31684150L,"1092557894d49644e7858b293df6cb9c873d53e51319b91a8614ca9c71686dc0",null);
+            case SEAL_DETECTION -> new Spec("PP-OCRv4 mobile seal detector",
+                "https://huggingface.co/x3zvawq/paddleocr-js-onnx/resolve/main/ppocr_v4_mobile_seal_det/PP-OCRv4_mobile_seal_det_infer.onnx",
+                -1L,"1d559581c8e8ef19a7f6d3b82f267ff51da31d863dd44ebb2bd02dd5f1a99d12",null);
             default -> throw new IllegalArgumentException("unknown local Paddle model "+id);
         };
     }
@@ -53,11 +63,23 @@ public final class PaddleLocalModelsV3 {
     }
     public static String name(int id){return spec(id).name;}
     public static String preference(int id){
-        return id==DOC_ORIENTATION?ORIENTATION_PREF:TABLE_PREF;
+        return switch(id) {
+            case DOC_ORIENTATION -> ORIENTATION_PREF;
+            case TABLE_STRUCTURE -> TABLE_PREF;
+            case UV_DOC -> UV_DOC_PREF;
+            case SEAL_DETECTION -> SEAL_PREF;
+            default -> throw new IllegalArgumentException("unknown preference "+id);
+        };
     }
     public static File model(Context context,int id){
         return new File(new File(context.getApplicationContext().getFilesDir(),
-                "ocr_models/paddle_local_v3"),id==DOC_ORIENTATION?"doc_orientation.onnx":"table_slanet.onnx");
+                "ocr_models/paddle_local_v3"),switch(id) {
+            case DOC_ORIENTATION -> "doc_orientation.onnx";
+            case TABLE_STRUCTURE -> "table_slanet.onnx";
+            case UV_DOC -> "uvdoc.onnx";
+            case SEAL_DETECTION -> "seal_detector.onnx";
+            default -> throw new IllegalArgumentException("unknown local model "+id);
+        });
     }
     public static File vocabulary(Context context){
         return new File(new File(context.getApplicationContext().getFilesDir(),
@@ -65,7 +87,10 @@ public final class PaddleLocalModelsV3 {
     }
     public static boolean installed(Context context,int id) {
         File file=model(context,id);
-        return file.isFile()&&file.length()==spec(id).size
+        Spec s=spec(id);
+        // Seal export has a pinned SHA-256 but its exact byte length is not
+        // exposed by our upstream source. Never mark it executable on size alone.
+        return file.isFile()&&(s.size>0?file.length()==s.size:file.length()>1000000L)
                 &&(id!=TABLE_STRUCTURE||validVocabulary(vocabulary(context)));
     }
     public static boolean enabled(Context context,int id) {
@@ -137,10 +162,11 @@ public final class PaddleLocalModelsV3 {
                 byte[] buf=new byte[65536];int n;
                 while((n=in.read(buf))!=-1){
                     count+=n;
-                    if(count>upperBound)throw new IllegalStateException("Model is larger than pinned version");
+                    long limit=upperBound>0?upperBound:20000000L;
+                    if(count>limit)throw new IllegalStateException("Model exceeds size limit");
                     md.update(buf,0,n);out.write(buf,0,n);
                     if(callback!=null&&sha!=null){
-                        int progress=(int)(100*count/upperBound);
+                        int progress=(int)(100*count/(upperBound>0?upperBound:20000000L));
                         if(progress!=lastProgress && progress%5==0){
                             lastProgress=progress;final int v=progress;
                             MAIN.post(()->callback.onProgress(v));
@@ -150,7 +176,8 @@ public final class PaddleLocalModelsV3 {
                 out.getFD().sync();
             }
             if(sha!=null){
-                if(count!=upperBound)throw new IllegalStateException("Model size mismatch");
+                if(upperBound>0&&count!=upperBound)
+                    throw new IllegalStateException("Model size mismatch");
                 StringBuilder hex=new StringBuilder(64);
                 for(byte b:md.digest())hex.append(String.format(Locale.ROOT,"%02x",b&255));
                 if(!sha.equals(hex.toString()))

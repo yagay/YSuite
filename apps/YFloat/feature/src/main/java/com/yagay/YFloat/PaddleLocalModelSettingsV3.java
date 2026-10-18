@@ -11,6 +11,8 @@ final class PaddleLocalModelSettingsV3 {
     static void add(SettingsActivity activity,LinearLayout container){
         addRow(activity,container,PaddleLocalModelsV3.DOC_ORIENTATION);
         addRow(activity,container,PaddleLocalModelsV3.TABLE_STRUCTURE);
+        addRow(activity,container,PaddleLocalModelsV3.UV_DOC);
+        addRow(activity,container,PaddleLocalModelsV3.SEAL_DETECTION);
     }
     private static void addRow(SettingsActivity activity,LinearLayout parent,int id){
         boolean zh=java.util.Locale.getDefault().getLanguage().startsWith("zh");
