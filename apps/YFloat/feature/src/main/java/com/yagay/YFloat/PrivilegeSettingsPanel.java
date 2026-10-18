@@ -28,7 +28,6 @@ public final class PrivilegeSettingsPanel {
 
         TextView modeStatus = YViewLayout.rowSubtitle(activity, "");
         TextView rootStatus = YViewLayout.rowSubtitle(activity, "");
-        TextView googleAppStatus = YViewLayout.rowSubtitle(activity, "");
 
         YViewSection master = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_priv_master_title),
@@ -39,7 +38,6 @@ public final class PrivilegeSettingsPanel {
                 FloatSettings.K_ENHANCED_MODE, fs.enhancedMode(),
                 () -> {
                     refresh(activity, fs, modeStatus, rootStatus);
-                    refreshGoogleApp(activity, fs, googleAppStatus);
                 });
         YViewLayout.addRow(master.body, YViewLayout.switchContainer(enhanced));
         YViewLayout.addRow(master.body, statusBlock(activity,
@@ -54,7 +52,6 @@ public final class PrivilegeSettingsPanel {
                 FloatSettings.K_ROOT_ENABLED, fs.rootEnabled(),
                 () -> {
                     refresh(activity, fs, modeStatus, rootStatus);
-                    refreshGoogleApp(activity, fs, googleAppStatus);
                 });
         YViewLayout.addRow(rootSection.body, YViewLayout.switchContainer(rootSwitch));
 
@@ -90,102 +87,6 @@ public final class PrivilegeSettingsPanel {
                 activity.getString(R.string.yfloat_priv_root_note)));
         YViewLayout.addSection(root, rootSection);
 
-        YViewSection googleAppSection = YViewLayout.section(activity,
-                activity.getString(R.string.yfloat_priv_google_title),
-                activity.getString(R.string.yfloat_priv_google_desc));
-        YViewLayout.addRow(googleAppSection.body, statusBlock(activity,
-                activity.getString(R.string.yfloat_priv_google_status), googleAppStatus));
-
-        LinearLayout googleStopRow = YViewLayout.buttonRow(activity);
-        MaterialButton stopGoogle = YViewLayout.primaryButton(activity,
-                activity.getString(R.string.yfloat_priv_google_stop));
-        stopGoogle.setOnClickListener(v -> {
-            if (!fs.canUseRoot()) {
-                Toast.makeText(activity, R.string.yfloat_priv_root_required,
-                        Toast.LENGTH_LONG).show();
-                refreshGoogleApp(activity, fs, googleAppStatus);
-                return;
-            }
-            stopGoogle.setEnabled(false);
-            googleAppStatus.setText(R.string.yfloat_priv_google_stopping);
-            GoogleAppController.stopAsync(activity, result -> {
-                stopGoogle.setEnabled(true);
-                applyGoogleResult(activity, googleAppStatus, result);
-                Toast.makeText(activity,
-                        result.success
-                                ? R.string.yfloat_priv_google_stopped
-                                : R.string.yfloat_priv_google_stop_failed,
-                        Toast.LENGTH_SHORT).show();
-                LsposedStatusManager.refreshAsync();
-            });
-        });
-        YViewLayout.addAction(googleStopRow, stopGoogle);
-
-        MaterialButton refreshGoogle = YViewLayout.secondaryButton(activity,
-                activity.getString(R.string.yfloat_priv_refresh_status));
-        refreshGoogle.setOnClickListener(v -> refreshGoogleApp(activity, fs, googleAppStatus));
-        YViewLayout.addAction(googleStopRow, refreshGoogle);
-        YViewLayout.addRow(googleAppSection.body, googleStopRow);
-
-        LinearLayout googleAdvancedRow = YViewLayout.buttonRow(activity);
-        MaterialButton freezeGoogle = YViewLayout.secondaryButton(activity,
-                activity.getString(R.string.yfloat_priv_google_freeze));
-        freezeGoogle.setOnClickListener(v -> {
-            if (!fs.canUseRoot()) {
-                Toast.makeText(activity, R.string.yfloat_priv_root_required,
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
-            new androidx.appcompat.app.AlertDialog.Builder(activity)
-                    .setTitle(R.string.yfloat_priv_google_freeze_confirm)
-                    .setMessage(R.string.yfloat_priv_google_freeze_message)
-                    .setNegativeButton(R.string.yfloat_priv_cancel, null)
-                    .setPositiveButton(R.string.yfloat_priv_freeze, (dialog, which) -> {
-                        freezeGoogle.setEnabled(false);
-                        googleAppStatus.setText(R.string.yfloat_priv_google_freezing);
-                        GoogleAppController.freezeAsync(activity, result -> {
-                            freezeGoogle.setEnabled(true);
-                            applyGoogleResult(activity, googleAppStatus, result);
-                            Toast.makeText(activity,
-                                    result.success
-                                            ? R.string.yfloat_priv_google_frozen
-                                            : R.string.yfloat_priv_google_freeze_failed,
-                                    Toast.LENGTH_SHORT).show();
-                            LsposedStatusManager.refreshAsync();
-                        });
-                    })
-                    .show();
-        });
-        YViewLayout.addAction(googleAdvancedRow, freezeGoogle);
-
-        MaterialButton restoreGoogle = YViewLayout.secondaryButton(activity,
-                activity.getString(R.string.yfloat_priv_google_restore));
-        restoreGoogle.setOnClickListener(v -> {
-            if (!fs.canUseRoot()) {
-                Toast.makeText(activity, R.string.yfloat_priv_root_required,
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
-            restoreGoogle.setEnabled(false);
-            googleAppStatus.setText(R.string.yfloat_priv_google_restoring);
-            GoogleAppController.restoreAsync(activity, result -> {
-                restoreGoogle.setEnabled(true);
-                applyGoogleResult(activity, googleAppStatus, result);
-                Toast.makeText(activity,
-                        result.success
-                                ? R.string.yfloat_priv_google_restored
-                                : R.string.yfloat_priv_google_restore_failed,
-                        Toast.LENGTH_SHORT).show();
-                LsposedStatusManager.refreshAsync();
-            });
-        });
-        YViewLayout.addAction(googleAdvancedRow, restoreGoogle);
-        YViewLayout.addRow(googleAppSection.body, googleAdvancedRow);
-
-        YViewLayout.addRow(googleAppSection.body, YViewLayout.sectionNote(activity,
-                activity.getString(R.string.yfloat_priv_google_note)));
-        YViewLayout.addSection(root, googleAppSection);
-
         TextView lsposedStatus = YViewLayout.rowSubtitle(activity, "");
         YViewSection lsposedSection = YViewLayout.section(activity, "LSPosed",
                 activity.getString(R.string.yfloat_priv_lsposed_desc));
@@ -199,100 +100,6 @@ public final class PrivilegeSettingsPanel {
                 });
         lsposedSwitch.setEnabled(PrivilegeManager.lsposedProviderAvailable());
         YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(lsposedSwitch));
-
-        MaterialSwitch googleCircleSwitch = YViewLayout.switchRow(activity,
-                activity.getString(R.string.yfloat_priv_google_circle),
-                activity.getString(R.string.yfloat_priv_google_circle_desc),
-                fs.circleEngine() == 1,
-                (button, checked) -> {
-                    fs.setInt(FloatSettings.K_CIRCLE_ENGINE, checked ? 1 : 0);
-                    DiagnosticLog.i(activity, "PRIVILEGE",
-                            "setting " + FloatSettings.K_CIRCLE_ENGINE + "=" + (checked ? 1 : 0));
-                    LsposedStatusManager.refreshAsync();
-                    refresh(activity, fs, modeStatus, rootStatus);
-                    refreshLsposed(activity, lsposedStatus);
-                });
-        YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(googleCircleSwitch));
-
-        MaterialSwitch oneShotScan = YViewLayout.switchRow(activity,
-                activity.getString(R.string.yfloat_google_manual_scan),
-                activity.getString(R.string.yfloat_google_manual_scan_desc),
-                false, (button, checked) -> {
-                    if (!checked) return;
-                    button.setEnabled(false);
-                    GoogleHookManualScan.start(activity, message -> {
-                        button.setChecked(false);
-                        button.setEnabled(true);
-                        refreshLsposed(activity, lsposedStatus);
-                        if (message != null && !message.isBlank())
-                            Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
-                    });
-                });
-        YViewLayout.addRow(lsposedSection.body, YViewLayout.switchContainer(oneShotScan));
-
-        // Display actual Google IPC progress, not an animated fake percentage.
-        LinearLayout scanBlock=YViewLayout.settingBlock(activity);
-        TextView scanLabel=YViewLayout.rowSubtitle(activity,"");
-        LinearProgressIndicator scanBar=new LinearProgressIndicator(activity);
-        scanBar.setMax(100);
-        scanBlock.addView(scanLabel);
-        scanBlock.addView(scanBar,new LinearLayout.LayoutParams(-1,-2));
-        YViewLayout.addRow(lsposedSection.body,scanBlock);
-        Handler scanHandler=new Handler(Looper.getMainLooper());
-        Runnable scanUpdater=new Runnable() {
-            @Override public void run() {
-                if(!scanBlock.isAttachedToWindow() || activity.isFinishing())return;
-                GoogleHookProfileCache.ScanSnapshot snapshot=
-                        GoogleHookProfileCache.scanSnapshot(activity);
-                boolean visible= !snapshot.phase.isBlank();
-                scanBlock.setVisibility(visible?View.VISIBLE:View.GONE);
-                if(visible) {
-                    boolean determinate=snapshot.pending
-                            && "matching".equals(snapshot.phase) && snapshot.total>0;
-                    scanBar.setIndeterminate(!determinate && snapshot.pending);
-                    if(determinate) scanBar.setProgressCompat(
-                            Math.min(100,(int)(100L*snapshot.done/snapshot.total)),true);
-                    if(!snapshot.pending) {
-                        scanBar.setIndeterminate(false);
-                        scanBar.setProgressCompat("success".equals(snapshot.phase)?100:0,true);
-                    }
-                    String phaseLabel=switch(snapshot.phase) {
-                        case "reloading" -> activity.getString(R.string.yfloat_scan_phase_reload);
-                        case "launching" -> activity.getString(R.string.yfloat_scan_phase_launch);
-                        case "waiting" -> activity.getString(R.string.yfloat_scan_phase_wait);
-                        case "resolving" -> activity.getString(R.string.yfloat_scan_phase_resolve);
-                        case "indexing" -> activity.getString(R.string.yfloat_scan_phase_index);
-                        case "matching" -> activity.getString(R.string.yfloat_scan_phase_match);
-                        case "registering" -> activity.getString(R.string.yfloat_scan_phase_register);
-                        case "success" -> activity.getString(R.string.yfloat_scan_phase_success);
-                        case "failed" -> activity.getString(R.string.yfloat_scan_phase_failed);
-                        case "timeout" -> activity.getString(R.string.yfloat_scan_phase_timeout);
-                        default -> snapshot.phase;
-                    };
-                    String count=snapshot.total>0
-                            ? " " + snapshot.done + "/" + snapshot.total
-                                + " (" + Math.min(100,100L*snapshot.done/snapshot.total) + "%)"
-                            : snapshot.done>0 ? " " + snapshot.done : "";
-                    String elapsed=snapshot.pending?" · "+snapshot.elapsedMs/1000+"s":"";
-                    scanLabel.setText(phaseLabel+count+elapsed+
-                            (snapshot.pending || snapshot.detail.isBlank()
-                                    ? "" : "\n"+snapshot.detail));
-                }
-                scanHandler.postDelayed(this,750L);
-            }
-        };
-        scanBlock.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override public void onViewAttachedToWindow(View v) {
-                scanHandler.removeCallbacks(scanUpdater);
-                scanHandler.post(scanUpdater);
-            }
-            @Override public void onViewDetachedFromWindow(View v) {
-                scanHandler.removeCallbacks(scanUpdater);
-            }
-        });
-        GoogleHookProfileCache.ScanSnapshot initialScan=GoogleHookProfileCache.scanSnapshot(activity);
-        scanBlock.setVisibility(initialScan.phase.isBlank()?View.GONE:View.VISIBLE);
-        if(!initialScan.phase.isBlank())scanLabel.setText(initialScan.phase);
 
         MaterialSwitch secureScreenshotSwitch = preferenceSwitch(activity, fs,
                 activity.getString(R.string.yfloat_priv_secure_screenshot),
@@ -380,7 +187,6 @@ public final class PrivilegeSettingsPanel {
         YViewLayout.addSection(root, fallback);
 
         refresh(activity, fs, modeStatus, rootStatus);
-        refreshGoogleApp(activity, fs, googleAppStatus);
         refreshLsposed(activity, lsposedStatus);
         return root;
     }
@@ -402,39 +208,6 @@ public final class PrivilegeSettingsPanel {
         lp.topMargin = com.yagay.yui.YView.controlGap(activity) / 3;
         block.addView(status, lp);
         return block;
-    }
-
-    private static void refreshGoogleApp(AppCompatActivity activity, FloatSettings fs,
-                                         TextView status) {
-        if (status == null) return;
-        if (!fs.canUseRoot()) {
-            status.setText(R.string.yfloat_priv_root_management_disabled);
-            status.setTextColor(YViewLayout.textPrimary(activity));
-            return;
-        }
-        status.setText(R.string.yfloat_priv_google_reading);
-        status.setTextColor(YViewLayout.textPrimary(activity));
-        GoogleAppController.queryAsync(activity,
-                result -> applyGoogleResult(activity, status, result));
-    }
-
-    private static void applyGoogleResult(AppCompatActivity activity, TextView status,
-                                          GoogleAppController.Result result) {
-        if (status == null || result == null) return;
-        int noteRes = switch (result.state) {
-            case RUNNING -> R.string.yfloat_priv_google_running_note;
-            case STOPPED -> R.string.yfloat_priv_google_stopped_note;
-            case FROZEN -> R.string.yfloat_priv_google_frozen_note;
-            case UNKNOWN -> R.string.yfloat_priv_google_unknown_note;
-        };
-        String note = activity.getString(noteRes);
-        status.setText(note + (result.success || result.detail == null || result.detail.isBlank()
-                ? "" : "\n" + result.detail));
-        boolean positive = result.state == GoogleAppController.State.STOPPED
-                || result.state == GoogleAppController.State.FROZEN;
-        status.setTextColor(positive ? YViewLayout.success(activity)
-                : result.state == GoogleAppController.State.UNKNOWN
-                ? YViewLayout.warning(activity) : YViewLayout.textPrimary(activity));
     }
 
     private static void refresh(AppCompatActivity activity, FloatSettings fs,
@@ -485,10 +258,8 @@ public final class PrivilegeSettingsPanel {
 
         String framework = s.frameworkName.isBlank() ? "Xposed" : s.frameworkName;
         String version = s.frameworkVersion.isBlank() ? "" : " " + s.frameworkVersion;
-        String scopeLine = activity.getString(R.string.yfloat_priv_scope_line,
-                enabled(activity, s.systemScopeEnabled),
-                enabled(activity, s.systemUiScopeEnabled),
-                enabled(activity, s.googleScopeEnabled()));
+        String scopeLine = "system_server: "+enabled(activity,s.systemScopeEnabled)
+                +" | SystemUI: "+enabled(activity,s.systemUiScopeEnabled);
         String loadedLine = activity.getString(R.string.yfloat_priv_loaded_line,
                 loaded(activity, s.systemLoaded), loaded(activity, s.systemUiLoaded));
         String remoteLine = activity.getString(R.string.yfloat_priv_remote_line,
@@ -501,15 +272,6 @@ public final class PrivilegeSettingsPanel {
                 s.remoteSecureCaptureArmed()
                         ? activity.getString(R.string.yfloat_priv_active)
                         : activity.getString(R.string.yfloat_priv_idle));
-        boolean googleHookChanged = HookReloadManager.googleNeedsReload(activity, s);
-        String googleHook = googleHookChanged
-                ? activity.getString(R.string.yfloat_priv_google_hook_changed)
-                : s.googleTargetLoaded()
-                ? activity.getString(R.string.yfloat_priv_google_hook_loaded)
-                : activity.getString(R.string.yfloat_priv_google_hook_not_running);
-        String googleLine = activity.getString(R.string.yfloat_priv_google_line,
-                enabled(activity, new FloatSettings(activity).circleEngine() == 1), googleHook);
-        String scanStatus = GoogleHookProfileCache.scanStatus(activity);
         String updatedLine = s.remoteUpdatedAt <= 0L ? ""
                 : " " + DateFormat.format("HH:mm:ss", s.remoteUpdatedAt);
         String hookGenerationLine = HookReloadManager.statusSummary(activity, s);
@@ -522,8 +284,6 @@ public final class PrivilegeSettingsPanel {
                         framework, version, s.apiVersion)
                 + "\n" + remoteLine + updatedLine
                 + "\n" + secureLine
-                + "\n" + googleLine
-                + (scanStatus.isBlank() ? "" : "\n" + scanStatus)
                 + "\n" + hookGenerationLine
                 + "\n" + scopeLine
                 + "\n" + loadedLine

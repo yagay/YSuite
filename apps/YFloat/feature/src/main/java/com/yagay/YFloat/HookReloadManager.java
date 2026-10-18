@@ -2,7 +2,6 @@ package com.yagay.YFloat;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.List;
@@ -12,360 +11,169 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
- * Separates app updates from LSPosed hook updates.
- *
- * <p>BuildConfig carries three fingerprints generated only from hook runtime sources. Updating UI,
- * OCR, result dialogs, settings or other app-side code does not change these fingerprints and
- * therefore does not require any target-process restart.</p>
+ * Tracks only installed framework hooks. App-only OCR/UI updates never require
+ * a Google App restart, and Google App is not a YFloat injection target.
  */
 final class HookReloadManager {
-    private static final String PREF = "yfloat_hook_reload";
-    private static final String K_GOOGLE_APPLIED = "google_hook_fingerprint_applied_v2";
-    private static final String K_SYSTEMUI_APPLIED = "systemui_hook_fingerprint_applied_v2";
-    private static final String K_SYSTEM_SERVER_APPLIED = "system_server_hook_fingerprint_applied_v2";
-    private static final String K_BOOT_ID = "hook_fingerprint_boot_id_v2";
-
-    private static final String GOOGLE = GoogleCtsContract.GOOGLE_PACKAGE;
-    private static final String SYSTEM_UI = "com.android.systemui";
-
-    private static final ExecutorService IO = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "YFloat-hook-reload");
-        t.setDaemon(true);
-        return t;
+    private static final String PREF="yfloat_hook_reload";
+    private static final String K_SYSTEMUI="systemui_hook_fingerprint_applied_v2";
+    private static final String K_SYSTEM="system_server_hook_fingerprint_applied_v2";
+    private static final String K_BOOT="hook_fingerprint_boot_id_v2";
+    private static final ExecutorService IO=Executors.newSingleThreadExecutor(r->{
+        Thread t=new Thread(r,"YFloat-hook-reload");
+        t.setDaemon(true);return t;
     });
-    private static final AtomicBoolean GOOGLE_RELOAD_RUNNING = new AtomicBoolean(false);
-    private static final AtomicBoolean FULL_RELOAD_RUNNING = new AtomicBoolean(false);
-    private static final AtomicBoolean AUTO_RELOAD_RUNNING = new AtomicBoolean(false);
+    private static final AtomicBoolean BUSY=new AtomicBoolean();
+    private static final AtomicBoolean AUTO=new AtomicBoolean();
     private static volatile Context appContext;
 
     static final class Result {
         final boolean success;
-        final boolean googleReloaded;
         final boolean systemUiReloaded;
         final boolean systemServerNeedsReboot;
         final String detail;
-
-        Result(boolean success,
-               boolean googleReloaded,
-               boolean systemUiReloaded,
-               boolean systemServerNeedsReboot,
-               String detail) {
-            this.success = success;
-            this.googleReloaded = googleReloaded;
-            this.systemUiReloaded = systemUiReloaded;
-            this.systemServerNeedsReboot = systemServerNeedsReboot;
-            this.detail = detail == null ? "" : detail;
+        Result(boolean success,boolean systemUiReloaded,boolean systemServerNeedsReboot,
+               String detail){
+            this.success=success;this.systemUiReloaded=systemUiReloaded;
+            this.systemServerNeedsReboot=systemServerNeedsReboot;
+            this.detail=detail==null?"":detail;
         }
-
-        String userMessage(Context context) {
-            if (context == null) return detail;
-            if (!success) {
-                return detail.isBlank()
-                        ? context.getString(R.string.yfloat_hook_reload_failed)
-                        : detail;
-            }
-            StringBuilder out = new StringBuilder();
-            if (googleReloaded) out.append(context.getString(R.string.yfloat_hook_google_reloaded));
-            if (systemUiReloaded) {
-                if (out.length() > 0) out.append('\n');
-                out.append(context.getString(R.string.yfloat_hook_systemui_reloaded));
-            }
-            if (out.length() == 0) out.append(context.getString(R.string.yfloat_hook_no_changes));
-            if (systemServerNeedsReboot) {
-                out.append('\n').append(context.getString(R.string.yfloat_hook_system_reboot_required));
-            }
-            return out.toString();
+        String userMessage(Context c){
+            if(!success)return detail.isBlank()
+                    ?c.getString(R.string.yfloat_hook_reload_failed):detail;
+            StringBuilder msg=new StringBuilder(systemUiReloaded
+                    ?c.getString(R.string.yfloat_hook_systemui_reloaded)
+                    :c.getString(R.string.yfloat_hook_no_changes));
+            if(systemServerNeedsReboot)msg.append('\n')
+                    .append(c.getString(R.string.yfloat_hook_system_reboot_required));
+            return msg.toString();
         }
     }
+    private HookReloadManager(){}
 
-    private HookReloadManager() {}
-
-    static void initialize(Context context) {
-        if (context == null) return;
-        Context app = context.getApplicationContext();
-        appContext = app;
-
-        SharedPreferences p = preference(app);
-        String bootId = readBootId();
-        String oldBootId = p.getString(K_BOOT_ID, "");
-        boolean first = !p.contains(K_GOOGLE_APPLIED)
-                || !p.contains(K_SYSTEMUI_APPLIED)
-                || !p.contains(K_SYSTEM_SERVER_APPLIED);
-        boolean rebooted = !bootId.isBlank() && !oldBootId.isBlank() && !bootId.equals(oldBootId);
-
-        SharedPreferences.Editor edit = p.edit();
-        if (first || rebooted) {
-            edit.putString(K_GOOGLE_APPLIED, BuildConfig.GOOGLE_HOOK_FINGERPRINT)
-                    .putString(K_SYSTEMUI_APPLIED, BuildConfig.SYSTEMUI_HOOK_FINGERPRINT)
-                    .putString(K_SYSTEM_SERVER_APPLIED, BuildConfig.SYSTEM_SERVER_HOOK_FINGERPRINT);
-        }
-        if (!bootId.isBlank()) edit.putString(K_BOOT_ID, bootId);
+    static void initialize(Context context){
+        if(context==null)return;
+        Context app=context.getApplicationContext();
+        appContext=app;
+        SharedPreferences prefs=preferences(app);
+        String boot=readBootId();
+        String previous=prefs.getString(K_BOOT,"");
+        boolean first=!prefs.contains(K_SYSTEMUI)||!prefs.contains(K_SYSTEM);
+        boolean rebooted=!boot.isBlank()&&!previous.isBlank()&&!boot.equals(previous);
+        SharedPreferences.Editor edit=prefs.edit();
+        if(first||rebooted)edit.putString(K_SYSTEMUI,BuildConfig.SYSTEMUI_HOOK_FINGERPRINT)
+                .putString(K_SYSTEM,BuildConfig.SYSTEM_SERVER_HOOK_FINGERPRINT);
+        if(!boot.isBlank())edit.putString(K_BOOT,boot);
         edit.apply();
-
-        DiagnosticLog.i(app, "HOOK_RELOAD",
-                "init first=" + first
-                        + " rebooted=" + rebooted
-                        + " google=" + shortHash(BuildConfig.GOOGLE_HOOK_FINGERPRINT)
-                        + " systemui=" + shortHash(BuildConfig.SYSTEMUI_HOOK_FINGERPRINT)
-                        + " system=" + shortHash(BuildConfig.SYSTEM_SERVER_HOOK_FINGERPRINT));
+        DiagnosticLog.i(app,"HOOK_RELOAD","init first="+first+" rebooted="+rebooted+
+                " systemui="+shortHash(BuildConfig.SYSTEMUI_HOOK_FINGERPRINT)+
+                " system="+shortHash(BuildConfig.SYSTEM_SERVER_HOOK_FINGERPRINT));
     }
 
-    static void autoReloadChangedTargets(
-            Context context, LsposedStatusManager.Snapshot snapshot) {
-        if (context == null || snapshot == null || !snapshot.serviceConnected) return;
-        Context app = context.getApplicationContext();
-        FloatSettings settings = new FloatSettings(app);
-        if (!settings.enhancedMode() || !settings.lsposedEnabled() || !settings.canUseRoot()) return;
-
-        boolean google = googleNeedsReload(app, snapshot);
-        boolean systemUi = systemUiNeedsReload(app, snapshot);
-        if (!google && !systemUi) return;
-        if (!AUTO_RELOAD_RUNNING.compareAndSet(false, true)) return;
-
-        DiagnosticLog.i(app, "HOOK_RELOAD",
-                "auto begin google=" + google
-                        + " systemui=" + systemUi
-                        + " systemServerNeedsReboot=" + systemServerNeedsReboot(app));
-
-        boolean started = reloadChangedTargetsAsync(app, result -> {
-            AUTO_RELOAD_RUNNING.set(false);
-            DiagnosticLog.i(app, "HOOK_RELOAD",
-                    "auto end success=" + result.success
-                            + " google=" + result.googleReloaded
-                            + " systemui=" + result.systemUiReloaded
-                            + " systemServerNeedsReboot=" + result.systemServerNeedsReboot
-                            + " detail=" + result.detail);
+    static void autoReloadChangedTargets(Context context,LsposedStatusManager.Snapshot snapshot){
+        if(context==null||snapshot==null||!snapshot.serviceConnected)return;
+        FloatSettings s=new FloatSettings(context);
+        if(!s.enhancedMode()||!s.lsposedEnabled()||!s.canUseRoot()
+                ||!systemUiNeedsReload(context,snapshot)
+                ||!AUTO.compareAndSet(false,true))return;
+        boolean started=reloadChangedTargetsAsync(context,result->{
+            AUTO.set(false);
+            DiagnosticLog.i(context,"HOOK_RELOAD","auto systemui success="+result.success);
         });
-        if (!started) AUTO_RELOAD_RUNNING.set(false);
+        if(!started)AUTO.set(false);
     }
 
-    static boolean googleNeedsReload(Context context, LsposedStatusManager.Snapshot snapshot) {
-        if (context == null || snapshot == null) return false;
-        Context app = context.getApplicationContext();
-        // A Google App upgrade is distinct from a YFloat hook source change.
-        // Record its APK identity here; Android restarts Google on replacement,
-        // and PackageReady resolves the updated DEX when that process loads.
-        GoogleHookVersionTracker.observe(app);
-        String applied = preference(app).getString(K_GOOGLE_APPLIED, "");
-        boolean running = hasProcess(snapshot.runningProcesses, GOOGLE);
-        boolean changed = fingerprintNeedsReload(
-                BuildConfig.GOOGLE_HOOK_FINGERPRINT, applied, running);
-        if (!changed) return false;
-        if (!running) {
-            markGoogleCurrent(app);
-            return false;
-        }
+    static boolean fingerprintNeedsReload(String current,String applied,boolean running){
+        return current!=null&&!current.isBlank()&&!current.equals(applied)&&running;
+    }
+    static boolean systemUiNeedsReload(Context context,LsposedStatusManager.Snapshot snapshot){
+        if(context==null||snapshot==null||!snapshot.systemUiScopeEnabled)return false;
+        boolean running=hasProcess(snapshot.runningProcesses,"com.android.systemui");
+        if(!fingerprintNeedsReload(BuildConfig.SYSTEMUI_HOOK_FINGERPRINT,
+                preferences(context).getString(K_SYSTEMUI,""),running))return false;
         return true;
     }
-
-    static boolean systemUiNeedsReload(Context context, LsposedStatusManager.Snapshot snapshot) {
-        if (context == null || snapshot == null || !snapshot.systemUiScopeEnabled) return false;
-        Context app = context.getApplicationContext();
-        String applied = preference(app).getString(K_SYSTEMUI_APPLIED, "");
-        boolean running = hasProcess(snapshot.runningProcesses, SYSTEM_UI);
-        boolean changed = fingerprintNeedsReload(
-                BuildConfig.SYSTEMUI_HOOK_FINGERPRINT, applied, running);
-        if (!changed) return false;
-        if (!running) {
-            markSystemUiCurrent(app);
-            return false;
-        }
-        return true;
+    static boolean systemServerNeedsReboot(Context context){
+        return context!=null&&!BuildConfig.SYSTEM_SERVER_HOOK_FINGERPRINT.equals(
+                preferences(context).getString(K_SYSTEM,""));
     }
-
-    static boolean fingerprintNeedsReload(
-            String currentFingerprint, String appliedFingerprint, boolean targetRunning) {
-        if (currentFingerprint == null || currentFingerprint.isBlank()) return false;
-        if (currentFingerprint.equals(appliedFingerprint)) return false;
-        return targetRunning;
+    static boolean systemServerHookCurrent(){
+        return appContext!=null&&!systemServerNeedsReboot(appContext);
     }
-
-    static boolean systemServerNeedsReboot(Context context) {
-        if (context == null) return false;
-        Context app = context.getApplicationContext();
-        return !BuildConfig.SYSTEM_SERVER_HOOK_FINGERPRINT.equals(
-                preference(app).getString(K_SYSTEM_SERVER_APPLIED, ""));
+    static boolean systemUiHookCurrent(Context context){
+        return context!=null&&BuildConfig.SYSTEMUI_HOOK_FINGERPRINT.equals(
+                preferences(context).getString(K_SYSTEMUI,""));
     }
-
-    static boolean systemServerHookCurrent() {
-        Context app = appContext;
-        return app != null && !systemServerNeedsReboot(app);
-    }
-
-    static boolean googleHookCurrent(Context context) {
-        if (context == null) return false;
-        return BuildConfig.GOOGLE_HOOK_FINGERPRINT.equals(
-                preference(context).getString(K_GOOGLE_APPLIED, ""));
-    }
-
-    static boolean systemUiHookCurrent(Context context) {
-        if (context == null) return false;
-        return BuildConfig.SYSTEMUI_HOOK_FINGERPRINT.equals(
-                preference(context).getString(K_SYSTEMUI_APPLIED, ""));
-    }
-
-    static boolean reloadGoogleForCtsAsync(Context context, Consumer<Result> callback) {
-        if (context == null) return false;
-        Context app = context.getApplicationContext();
-        if (!GOOGLE_RELOAD_RUNNING.compareAndSet(false, true)) return false;
-
-        GoogleCtsSessionCoordinator.cancelCurrent(app,"hook_hot_reload");
-
-        IO.execute(() -> {
-            Result result;
-            FloatSettings fs = new FloatSettings(app);
-            if (!fs.canUseRoot()) {
-                result = new Result(false, false, false, systemServerNeedsReboot(app),
-                        app.getString(R.string.yfloat_hook_google_reload_requires_root));
-            } else {
-                RootCommandExecutor.Result command = RootCommandExecutor.runText(
-                        killGoogleScript(), 8L, 16 * 1024);
-                boolean ok = command.success();
-                if (ok) markGoogleCurrent(app);
-                String detail = command.text();
-                if (!ok && detail.isBlank()) {
-                    detail = command.failureMessage(
-                            app.getString(R.string.yfloat_hook_google_reload_timeout));
-                }
-                result = new Result(ok, ok, false, systemServerNeedsReboot(app), detail);
-            }
-
-            GOOGLE_RELOAD_RUNNING.set(false);
-            LsposedStatusManager.refreshAsync();
-            deliver(app, callback, result);
-        });
-        return true;
-    }
-
-    static boolean reloadChangedTargetsAsync(Context context, Consumer<Result> callback) {
-        if (context == null) return false;
-        Context app = context.getApplicationContext();
-        if (!FULL_RELOAD_RUNNING.compareAndSet(false, true)) return false;
-
-        LsposedStatusManager.Snapshot before = LsposedStatusManager.snapshot();
-        boolean google = googleNeedsReload(app, before);
-        boolean systemUi = systemUiNeedsReload(app, before);
-        boolean systemServer = systemServerNeedsReboot(app);
-
-        if (!google && !systemUi) {
-            FULL_RELOAD_RUNNING.set(false);
-            deliver(app, callback, new Result(true, false, false, systemServer, ""));
+    static boolean reloadChangedTargetsAsync(Context context,Consumer<Result> callback){
+        if(context==null||!BUSY.compareAndSet(false,true))return false;
+        Context app=context.getApplicationContext();
+        LsposedStatusManager.Snapshot current=LsposedStatusManager.snapshot();
+        boolean reload=systemUiNeedsReload(app,current);
+        boolean systemReboot=systemServerNeedsReboot(app);
+        if(!reload){
+            BUSY.set(false);
+            deliver(app,callback,new Result(true,false,systemReboot,""));
             return true;
         }
-
-        if (google) {
-            GoogleCtsSessionCoordinator.cancelCurrent(app,"manual_hook_reload");
-        }
-
-        IO.execute(() -> {
-            Result result;
-            FloatSettings fs = new FloatSettings(app);
-            if (!fs.canUseRoot()) {
-                result = new Result(false, false, false, systemServer,
-                        app.getString(R.string.yfloat_hook_reload_requires_root));
-            } else {
-                RootCommandExecutor.Result command = RootCommandExecutor.runText(
-                        buildReloadScript(google, systemUi), 10L, 24 * 1024);
-                boolean ok = command.success();
-                if (ok) {
-                    if (google) markGoogleCurrent(app);
-                    if (systemUi) markSystemUiCurrent(app);
+        IO.execute(()->{
+            Result outcome;
+            try{
+                if(!new FloatSettings(app).canUseRoot()){
+                    outcome=new Result(false,false,systemReboot,
+                            app.getString(R.string.yfloat_hook_reload_requires_root));
+                }else{
+                    RootCommandExecutor.Result cmd=RootCommandExecutor.runText(
+                            killSystemUiScript(),10L,24*1024);
+                    if(cmd.success())preferences(app).edit()
+                            .putString(K_SYSTEMUI,BuildConfig.SYSTEMUI_HOOK_FINGERPRINT).apply();
+                    outcome=new Result(cmd.success(),cmd.success(),systemReboot,
+                            cmd.success()?"":cmd.failureMessage(
+                                    app.getString(R.string.yfloat_hook_reload_timeout)));
                 }
-                String detail = command.text();
-                if (!ok && detail.isBlank()) {
-                    detail = command.failureMessage(
-                            app.getString(R.string.yfloat_hook_reload_timeout));
-                }
-                result = new Result(ok, ok && google, ok && systemUi, systemServer, detail);
-            }
-
-            FULL_RELOAD_RUNNING.set(false);
+            }catch(Throwable error){
+                outcome=new Result(false,false,systemReboot,error.toString());
+            }finally{BUSY.set(false);}
             LsposedStatusManager.refreshAsync();
-            deliver(app, callback, result);
+            deliver(app,callback,outcome);
         });
         return true;
     }
 
-    static String statusSummary(Context context, LsposedStatusManager.Snapshot snapshot) {
-        if (context == null) return "";
-        boolean google = googleNeedsReload(context, snapshot);
-        boolean systemUi = systemUiNeedsReload(context, snapshot);
-        boolean system = systemServerNeedsReboot(context);
-        return context.getString(R.string.yfloat_hook_generation_summary,
-                context.getString(google
-                        ? R.string.yfloat_hook_state_reload
-                        : R.string.yfloat_hook_state_current),
-                context.getString(systemUi
-                        ? R.string.yfloat_hook_state_reload
-                        : R.string.yfloat_hook_state_current),
-                context.getString(system
-                        ? R.string.yfloat_hook_state_reboot
-                        : R.string.yfloat_hook_state_current));
+    static String statusSummary(Context context,LsposedStatusManager.Snapshot snapshot){
+        if(context==null)return "";
+        boolean ui=systemUiNeedsReload(context,snapshot);
+        boolean system=systemServerNeedsReboot(context);
+        return "SystemUI: "+context.getString(ui
+                ?R.string.yfloat_hook_state_reload:R.string.yfloat_hook_state_current)
+                +"\nSystem server: "+context.getString(system
+                ?R.string.yfloat_hook_state_reboot:R.string.yfloat_hook_state_current);
     }
-
-    private static String buildReloadScript(boolean google, boolean systemUi) {
-        StringBuilder script = new StringBuilder("COUNT=0; ");
-        if (google) script.append(killPackageProcessesSnippet(GOOGLE, "GOOGLE"));
-        if (systemUi) script.append(killPackageProcessesSnippet(SYSTEM_UI, "SYSTEMUI"));
-        script.append("echo YFLOAT_HOOK_RELOAD_DONE count=$COUNT; ");
-        return script.toString();
+    private static String killSystemUiScript(){
+        return "COUNT=0; for PID in $(ps -A -o PID,NAME 2>/dev/null | "
+                +"awk '$2 ~ /^com[.]android[.]systemui(:|$)/ {print $1}'); "
+                +"do kill -9 \"$PID\" >/dev/null 2>&1 || true; COUNT=$((COUNT+1)); done; "
+                +"echo YFLOAT_SYSTEMUI_KILLED=$COUNT";
     }
-
-    private static String killGoogleScript() {
-        return "COUNT=0; "
-                + killPackageProcessesSnippet(GOOGLE, "GOOGLE")
-                + "echo YFLOAT_GOOGLE_HOOK_RELOAD count=$COUNT; ";
+    private static String readBootId(){
+        try(BufferedReader br=new BufferedReader(new FileReader(
+                "/proc/sys/kernel/random/boot_id"))){
+            String value=br.readLine();return value==null?"":value.trim();
+        }catch(Throwable ignored){return "";}
     }
-
-    private static String killPackageProcessesSnippet(String packageName, String label) {
-        String escaped = packageName.replace(".", "\\.");
-        return "for PID in $(ps -A -o PID,NAME 2>/dev/null "
-                + "| awk '$2 ~ /^" + escaped + "(:|$)/ {print $1}'); "
-                + "do kill -9 \"$PID\" >/dev/null 2>&1 || true; COUNT=$((COUNT+1)); done; "
-                + "sleep 0.12; echo \"YFLOAT_" + label + "_KILLED=$COUNT\"; ";
+    private static SharedPreferences preferences(Context ctx){
+        return ctx.getApplicationContext().getSharedPreferences(PREF,Context.MODE_PRIVATE);
     }
-
-    private static SharedPreferences preference(Context context) {
-        return context.getApplicationContext().getSharedPreferences(PREF, Context.MODE_PRIVATE);
-    }
-
-    private static void markGoogleCurrent(Context context) {
-        preference(context).edit()
-                .putString(K_GOOGLE_APPLIED, BuildConfig.GOOGLE_HOOK_FINGERPRINT).apply();
-    }
-
-    private static void markSystemUiCurrent(Context context) {
-        preference(context).edit()
-                .putString(K_SYSTEMUI_APPLIED, BuildConfig.SYSTEMUI_HOOK_FINGERPRINT).apply();
-    }
-
-    private static String readBootId() {
-        try (BufferedReader reader = new BufferedReader(
-                new FileReader("/proc/sys/kernel/random/boot_id"))) {
-            String value = reader.readLine();
-            return value == null ? "" : value.trim();
-        } catch (Throwable ignored) {
-            return "";
-        }
-    }
-
-    private static boolean hasProcess(List<String> processes, String packageName) {
-        if (processes == null || packageName == null) return false;
-        for (String process : processes) {
-            if (process == null) continue;
-            int state = process.indexOf('[');
-            String name = state > 0 ? process.substring(0, state) : process;
-            if (name.equals(packageName) || name.startsWith(packageName + ":")) return true;
-        }
+    private static boolean hasProcess(List<String> processes,String name){
+        if(processes==null)return false;
+        for(String process:processes)
+            if(process!=null&&(process.startsWith(name+"[")
+                    ||process.startsWith(name+":")||process.equals(name)))return true;
         return false;
     }
-
-    private static void deliver(Context app, Consumer<Result> callback, Result result) {
-        if (callback != null) app.getMainExecutor().execute(() -> callback.accept(result));
+    private static void deliver(Context app,Consumer<Result> callback,Result result){
+        if(callback!=null)app.getMainExecutor().execute(()->callback.accept(result));
     }
-
-    private static String shortHash(String value) {
-        if (value == null || value.isBlank()) return "none";
-        return value.substring(0, Math.min(10, value.length()));
+    private static String shortHash(String value){
+        return value==null||value.isBlank()?"none":value.substring(0,Math.min(10,value.length()));
     }
 }

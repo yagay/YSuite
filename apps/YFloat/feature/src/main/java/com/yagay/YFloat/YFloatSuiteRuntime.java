@@ -90,7 +90,6 @@ public final class YFloatSuiteRuntime implements ManagedFeatureRuntime {
         if (!enabled) return;
         enabled = false;
         LsposedStatusManager.removeListener(HOOK_LISTENER);
-        LsposedStatusManager.clearGoogleCtsSessionRemoteNow();
         LsposedStatusManager.disarmSecureCaptureAsync();
         FloatActionMenu.dismiss();
 
