@@ -49,6 +49,7 @@ public final class PaddleDocumentExport {
                 }
                 page.put("tableTexts", strings(d.tableTexts()));
                 page.put("tableHtmls", strings(d.tableHtmls()));
+                page.put("tableOrigins", strings(d.tableOrigins()));
                 page.put("formulaTexts", strings(d.formulaTexts()));
                 page.put("sealTexts", strings(d.sealTexts()));
                 page.put("chartTexts", strings(d.chartTexts()));
