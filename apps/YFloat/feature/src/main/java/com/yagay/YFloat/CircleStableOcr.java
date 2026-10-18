@@ -37,15 +37,18 @@ final class CircleStableOcr {
                 }
             }
             DiagnosticLog.i(app, "FL_CIRCLE_FULL_ENGINE",
-                    "selected=paddle_auto modelMissing=true fallback=mlkit");
-            recognizeFullScreenMlKit(app, bitmap, callback);
+                    "selected=paddle_auto modelMissing=true offline_only=true");
+            callback.onFailure(new IllegalStateException(
+                    "Install a local PaddleOCR model for Circle OCR"));
             return;
         }
         int model = modelForCircleMode(mode);
         if (!OcrModelManager.isReady(app, model)) {
             DiagnosticLog.i(app, "FL_CIRCLE_FULL_ENGINE",
-                    "selected=" + modeLabel(mode) + " modelMissing=true fallback=mlkit");
-            recognizeFullScreenMlKit(app, bitmap, callback);
+                    "selected=" + modeLabel(mode) + " modelMissing=true offline_only=true");
+            callback.onFailure(new IllegalStateException(
+                    app.getString(R.string.yfloat_ocr_model_missing,
+                            OcrModelManager.displayName(model))));
             return;
         }
         recognizePaddle(app, bitmap, model, "full_screen_index", callback);
