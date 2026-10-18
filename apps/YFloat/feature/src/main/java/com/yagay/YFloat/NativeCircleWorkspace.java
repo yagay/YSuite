@@ -190,11 +190,19 @@ final class NativeCircleWorkspace extends View {
                     roi.width(),roi.height());
             if (input == null) throw new IllegalStateException("OCR bitmap copy failed");
         } catch (Throwable error) {
-            ocrBusy = false;
-            status = t("文字识别不可用，截图仍可使用",
+            ocrBusy=false;
+            if(activeOcr==request)activeOcr=null;
+            selectAllAfterFullOcr=false;
+            status=t("文字识别不可用，截图仍可使用",
                     "Text recognition unavailable; image crops still work");
-            DiagnosticLog.i(app, "CIRCLE_NATIVE",
-                    "ocr snapshot failed=" + ScreenCaptureBackend.safeMessage(error));
+            DiagnosticLog.i(app,"CIRCLE_NATIVE",
+                    "ocr snapshot failed="+ScreenCaptureBackend.safeMessage(error));
+            FLCircleSelection.Selection pending=pendingGesture;
+            if(pending!=null && state.phase==NativeCircleState.Phase.RESOLVING){
+                if(!NativeCircleIntentRouter.permitsImageFallback(pending.kind.name()))
+                    rejectTextGesture(pending,gestureRevision,"snapshot_error");
+                else resolveImage(pending,gestureRevision);
+            }
             invalidate();
             return;
         }
@@ -292,11 +300,18 @@ final class NativeCircleWorkspace extends View {
         } catch (Throwable error) {
             recycleOcrBitmap(input);
             if(activeOcr==request)activeOcr=null;
-            ocrBusy = false;
-            status = t("文字识别不可用，截图仍可使用",
+            ocrBusy=false;
+            selectAllAfterFullOcr=false;
+            status=t("文字识别不可用，截图仍可使用",
                     "Text recognition unavailable; image crops still work");
-            DiagnosticLog.i(app, "CIRCLE_NATIVE",
-                    "ocr start failed=" + ScreenCaptureBackend.safeMessage(error));
+            DiagnosticLog.i(app,"CIRCLE_NATIVE",
+                    "ocr start failed="+ScreenCaptureBackend.safeMessage(error));
+            FLCircleSelection.Selection pending=pendingGesture;
+            if(pending!=null && state.phase==NativeCircleState.Phase.RESOLVING){
+                if(!NativeCircleIntentRouter.permitsImageFallback(pending.kind.name()))
+                    rejectTextGesture(pending,gestureRevision,"ocr_launch_error");
+                else resolveImage(pending,gestureRevision);
+            }
             invalidate();
         }
     }
@@ -979,6 +994,7 @@ final class NativeCircleWorkspace extends View {
         closed=true;state.close();pendingGesture=null;
         if(activeOcr!=null)activeOcr.cancel();
         cachedChars=List.of();charIndex=null;
+        charOrdinals.clear();
         awaitingTextPath.reset();
         sourceSpans.clear();
         FloatActionMenu.dismiss();
