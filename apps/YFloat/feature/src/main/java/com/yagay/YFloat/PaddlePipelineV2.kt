@@ -31,7 +31,9 @@ object PaddlePipelineV2 {
     }
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
     private val lock=Mutex()
-    private val models=mutableMapOf<Int,PaddleOCR>()
+    // Inference and release remain mutex-serialized. Concurrent maps make
+    // lightweight read-only loaded-status queries safe from UI threads.
+    private val models=java.util.concurrent.ConcurrentHashMap<Int,PaddleOCR>()
     private val modelSignatures=mutableMapOf<Int,String>()
     private fun signature(app:Context,model:Int):String {
         val files=listOf(OcrModelManager.detFile(app,model),
@@ -168,6 +170,7 @@ object PaddlePipelineV2 {
         }
     }
     @JvmStatic fun lastPage():PaddlePageV2.Page?=latestPage
+    @JvmStatic fun isLoaded(model:Int):Boolean=models.containsKey(model)
 
     /**
      * Structure-model rectangles are not trusted to lie inside the original
