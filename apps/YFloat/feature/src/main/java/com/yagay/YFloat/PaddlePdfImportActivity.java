@@ -180,18 +180,28 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
             PaddlePipelineV2.recognize(getApplicationContext(),image,model,
                     new PaddlePipelineV2.Callback(){
                         @Override public void onSuccess(OcrDocument document,long ms,int lines){
-                            io.execute(()->{
+                            if(cancelled.get()){image.recycle();return;}
+                            try{
+                                io.execute(()->{
+                                    image.recycle();
+                                    if(cancelled.get()){closePdf();return;}
+                                    results.add(document);
+                                    readNext(pageIndex+1);
+                                });
+                            }catch(java.util.concurrent.RejectedExecutionException ignored){
                                 image.recycle();
-                                if(cancelled.get()){closePdf();return;}
-                                results.add(document);
-                                readNext(pageIndex+1);
-                            });
+                            }
                         }
                         @Override public void onFailure(String message){
-                            io.execute(()->{
+                            if(cancelled.get()){image.recycle();return;}
+                            try{
+                                io.execute(()->{
+                                    image.recycle();
+                                    fail(new IllegalStateException("Page "+(pageIndex+1)+": "+message));
+                                });
+                            }catch(java.util.concurrent.RejectedExecutionException ignored){
                                 image.recycle();
-                                fail(new IllegalStateException("Page "+(pageIndex+1)+": "+message));
-                            });
+                            }
                         }
                     });
         }catch(Throwable error){fail(error);}
