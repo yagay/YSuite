@@ -34,6 +34,23 @@ final class NativeCircleVisualPolicy {
     }
 
     /**
+     * Text handles keep generous 48dp touch targets, which naturally overlap
+     * on short Chinese words. Resolve overlapping targets by the closest
+     * visible knob, rather than always choosing the leading handle.
+     */
+    static int chooseTouchedTextHandle(boolean firstHit,boolean lastHit,
+            float touchX,float touchY,float firstX,float firstY,
+            float lastX,float lastY) {
+        if(!firstHit)return lastHit?2:0;
+        if(!lastHit)return 1;
+        float d1=(touchX-firstX)*(touchX-firstX)
+                +(touchY-firstY)*(touchY-firstY);
+        float d2=(touchX-lastX)*(touchX-lastX)
+                +(touchY-lastY)*(touchY-lastY);
+        return d1<=d2?1:2;
+    }
+
+    /**
      * OCR detection gives a much better whole-line left/right edge than CTC
      * character spacing on large launcher icons (for example, 头条).
      * CTC glyph bounds, however, are generally tighter vertically. For a
