@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import android.graphics.Rect;
+import android.graphics.RectF;
 
 /**
  * Bitmap-space text-gesture crop sizing, independent of OCR/model lifetime.
@@ -10,6 +11,14 @@ final class PaddleCircleRoiPolicy {
     static Rect forGesture(Rect bounds,int width,int height){
         if(bounds==null)return new Rect(0,0,Math.max(1,width),Math.max(1,height));
         int[] result=expand(bounds.left,bounds.top,bounds.right,bounds.bottom,width,height);
+        return new Rect(result[0],result[1],result[2],result[3]);
+    }
+
+    static Rect forGesture(RectF bounds,int width,int height){
+        if(bounds==null)return new Rect(0,0,Math.max(1,width),Math.max(1,height));
+        // Preserve every touched boundary pixel before expanding text ROI.
+        int[] result=expand((int)Math.floor(bounds.left),(int)Math.floor(bounds.top),
+                (int)Math.ceil(bounds.right),(int)Math.ceil(bounds.bottom),width,height);
         return new Rect(result[0],result[1],result[2],result[3]);
     }
 
