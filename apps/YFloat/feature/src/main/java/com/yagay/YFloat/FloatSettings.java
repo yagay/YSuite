@@ -170,7 +170,8 @@ public final class FloatSettings {
     public boolean keepStatusBarInScreenshot() { return p.getBoolean(K_KEEP_STATUS_BAR, true); }
     public boolean keepNavigationBarInScreenshot() { return p.getBoolean(K_KEEP_NAVIGATION_BAR, false); }
     public boolean accessibilityScreenshot() { return p.getBoolean(K_ACCESSIBILITY_SCREENSHOT, true); }
-    public int circleEngine() { return clamp(p.getInt(K_CIRCLE_ENGINE, 0), 0, 1); }
+    /** Legacy Google mode (1) is migrated to the native circle. */
+    public int circleEngine() { return 0; }
     public boolean circleBorderEnabled() { return YFloatVisualSettings.readBoolean(context, K_CIRCLE_BORDER_ENABLED, true); }
     public int circleBorderColor() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_COLOR, DEFAULT_CIRCLE_BORDER_COLOR); }
     Context contextForAppearance() { return context; }
@@ -178,8 +179,8 @@ public final class FloatSettings {
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 4);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 4); } catch (Throwable ignored) {} }
+        if (raw instanceof Number n) return clamp(n.intValue(), 0, 3);
+        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 3); } catch (Throwable ignored) {} }
         return 0;
     }
     public int circleCorrectionEngine() {

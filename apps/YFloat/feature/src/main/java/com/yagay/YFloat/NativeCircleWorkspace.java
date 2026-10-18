@@ -36,7 +36,7 @@ import java.util.Locale;
  * coordinates. YFloat resolves taps and text highlights in place via its
  * stable full-screen OCR document, preserving draggable character handles,
  * live selection and the native text action menu. Closed circles and scribbles
- * remain local screenshot regions. Google Lens is an explicitly chosen
+ * remain local screenshot regions. Paddle V2 is the preferred on-device
  * experiment from the circle image menu, never an automatic text redirect.
  */
 final class NativeCircleWorkspace extends View {
@@ -103,12 +103,11 @@ final class NativeCircleWorkspace extends View {
         active = view;
         view.setFocusableInTouchMode(true);
         view.requestFocus();
-        boolean googleOcr=new FloatSettings(app).circleFullOcrEngine()==4;
-        if(!googleOcr)view.startOcr();
+        view.startOcr();
         DiagnosticLog.i(app,"CIRCLE_NATIVE",
                 "ready intent-first image="+frame.bitmap.getWidth()+"x"
                         +frame.bitmap.getHeight()
-                        +" ocrEngine="+(googleOcr?"google_lens":"local")
+                        +" ocrEngine=local"
                         +" screenshots=local_only");
         return true;
     }
@@ -425,10 +424,6 @@ final class NativeCircleWorkspace extends View {
             resolveImage(gesture, token);
             return;
         }
-        if(new FloatSettings(app).circleFullOcrEngine()==4){
-            submitGoogleTextGesture(gesture,token);
-            return;
-        }
         if(fullDocument==null){
             if(ocrBusy) { pendingGesture=gesture;status=t("正在识别…","Recognizing…"); }
             else resolveImage(gesture,token);
@@ -474,34 +469,6 @@ final class NativeCircleWorkspace extends View {
             return;
         }
         DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
-    }
-
-    /** Text-intent gestures use the selected Google OCR engine, never screenshots. */
-    private void submitGoogleTextGesture(FLCircleSelection.Selection gesture,long token) {
-        int[] box=NativeCircleGoogleRecognitionCrop.forGesture(
-                gesture.kind.name(),gesture.bounds.left,gesture.bounds.top,
-                gesture.bounds.right,gesture.bounds.bottom,
-                gesture.focus.x,gesture.focus.y,
-                frame.bitmap.getWidth(),frame.bitmap.getHeight(),density);
-        if(box==null){resolveImage(gesture,token);return;}
-        Bitmap input;
-        try {
-            input=Bitmap.createBitmap(frame.bitmap,
-                    box[0],box[1],box[2]-box[0],box[3]-box[1]);
-            if(input==frame.bitmap)
-                input=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
-            if(input==null)throw new IllegalStateException("crop returned null");
-        }catch(Throwable failure){
-            traceError("google_ocr_crop",failure);
-            resolveImage(gesture,token);
-            return;
-        }
-        DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
-                "selected_from=native_text_ocr_engine gesture="+gesture.kind
-                +" crop="+input.getWidth()+"x"+input.getHeight()
-                +" screenshotRoute=local_only resultTarget=yfloat_ocr");
-        dismissActive("google_ocr_engine");
-        GoogleLensImageInputProbe.launchForOcr(app,input);
     }
 
     private void applyTextIndices(long token,boolean initial) {
@@ -597,14 +564,6 @@ final class NativeCircleWorkspace extends View {
         }
         Bitmap image=selectedImage();
         if(image==null)return;
-        if(ImageMenuSettings.GOOGLE_OCR.equals(action)){
-            DiagnosticLog.i(app,"LENS_IMAGE_INPUT",
-                    "selected_from=explicit_native_circle_image_menu"
-                    +" screenshots=local_only");
-            dismissActive("google_ocr_probe");
-            GoogleLensImageInputProbe.launch(app,image);
-            return;
-        }
         if(ImageMenuSettings.DONE.equals(action)){
             Rect source=frame.bitmapRectToScreen(selectedBitmapRect());
             dismissActive("image_result");

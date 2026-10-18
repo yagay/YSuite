@@ -30,17 +30,6 @@ public final class ActionExecutor {
             }
             case ActionId.AI_SCREEN -> {
                 OcrEngine.invalidatePending(c, "circle_start");
-                FloatSettings settings = new FloatSettings(c);
-                if (settings.circleEngine() == 1) {
-                    GoogleHookVersionTracker.observe(c);
-                    DiagnosticLog.i(c, "AI_SCREEN", "engine=google_cts_v2");
-                    // Explicit Google mode is strict: never silently switch
-                    // to another Circle implementation when its Hook is unavailable.
-                    if (!GoogleCtsTrigger.trigger(c))
-                        DiagnosticLog.i(c, "AI_SCREEN",
-                                "google_start_failed strict_google_only=true");
-                    break;
-                }
                 FLCircleController.show(c);
             }
             case ActionId.MOVE_ICON -> {
