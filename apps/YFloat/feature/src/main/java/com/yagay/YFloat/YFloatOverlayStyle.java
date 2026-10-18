@@ -37,6 +37,13 @@ final class YFloatOverlayStyle {
         return new FloatSettings(c).circleBorderColor();
     }
 
+    /** Honor the user's Circle selection color, including custom themes. */
+    static int selectionWithAlpha(Context c,int opacity){
+        int color=selectionColor(c);
+        return Color.argb(Math.max(0,Math.min(255,opacity)),
+                Color.red(color),Color.green(color),Color.blue(color));
+    }
+
     static int accent(Context c) {
         return YOverlayTokens.accent(moduleContext(c));
     }
