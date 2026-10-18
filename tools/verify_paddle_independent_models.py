@@ -64,6 +64,32 @@ if "PP-OCRv5 Mobile" not in selector:
     problems.append("Mobile model not selectable from YFloat OCR settings")
 if "PaddleStructureFullV3" in capture or (java / "PaddleStructureFullV3.java").exists():
     problems.append("Remote PP-Structure recognition unexpectedly restored")
+# OCR correctness and model-selection contracts. These static checks complement
+# (but never replace) Android instrumentation and image-based inference tests.
+spacing = (FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/postprocess/PaddleSpacingV2.kt").read_text()
+table = (java / "PaddleTableTextV3.kt").read_text()
+page = (java / "PaddlePageV2.kt").read_text()
+slanet = (FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/structure/SLANetLocalV3.kt").read_text()
+for needle in ("safeCropRect(region.bounds,image,16)", "safeCropRect(region.bounds,image,8)"):
+    if needle not in pipeline:
+        problems.append("Optional Paddle crop is not source-bitmap bounded: " + needle)
+if "val compat=lock.withLock" not in pipeline or "withContext(Dispatchers.Main)" not in pipeline:
+    problems.append("Paddle result snapshot must be constructed inside serialized inference")
+if "if(fallbackText.isNotBlank() && aligned!=fallbackText)" not in spacing:
+    problems.append("CTC alignment cannot silently truncate full recognizer text")
+if "visuallyTight(prev,next" not in spacing:
+    problems.append("Paddle spacing correction must use geometry evidence")
+if "cellLines.joinToString(\"\\n\")" not in table:
+    problems.append("Table cells must preserve distinct OCR line boundaries")
+if "val quality=confidence*1000.0" not in page or "confidence,quality,width,height" not in page:
+    problems.append("OCR quality score is not persisted for automatic model escalation")
+if "val hasOpen=tokens.any" not in slanet or "val hasClose=tokens.any" not in slanet:
+    problems.append("SLANet HTML must not duplicate supplied table tags")
+if "OcrModelManager.TINY, true" not in ocr_engine or "mode == 6" not in ocr_engine:
+    problems.append("Tiny fallback / explicit selection missing from main OCR")
+if "selected == 6 ? 5" not in selector:
+    problems.append("Tiny model not reachable from primary OCR settings")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
