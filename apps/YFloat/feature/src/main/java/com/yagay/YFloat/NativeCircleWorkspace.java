@@ -567,13 +567,18 @@ final class NativeCircleWorkspace extends View {
 
     /** Keep the popup on the same visible V3 geometry as the blue outline. */
     private RectF selectedTextViewBox() {
-        RectF box=new RectF();
+        float left=Float.POSITIVE_INFINITY,top=Float.POSITIVE_INFINITY;
+        float right=Float.NEGATIVE_INFINITY,bottom=Float.NEGATIVE_INFINITY;
         for(TextGeometryV3.Region region:textGeometry){
             List<PointF> view=quadToView(region.corners());
             if(view.size()!=4)continue;
-            for(PointF p:view)box.union(p.x,p.y);
+            for(PointF p:view){
+                left=Math.min(left,p.x);top=Math.min(top,p.y);
+                right=Math.max(right,p.x);bottom=Math.max(bottom,p.y);
+            }
         }
-        return box.isEmpty()?selectedViewBox():box;
+        return left<right&&top<bottom
+                ?new RectF(left,top,right,bottom):selectedViewBox();
     }
 
     /** One menu host for both OCR text and selected image rectangles. */
