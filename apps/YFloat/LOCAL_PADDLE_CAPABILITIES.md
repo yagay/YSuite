@@ -315,3 +315,31 @@ See `PADDLE_NATIVE_ARCHITECTURE.md` for the maintained ownership contract.
 **Validation:** one consolidated final ARM64 Debug workflow after all of
 these intermediate `[skip ci]` commits. Native ONNX accuracy and end-to-end
 Circle gestures still require a physical device.
+
+## Full Circle whitespace-path audit — 2026-10-18
+
+Root causes observed in the legacy diagnostic and current source:
+- `PaddleSpacingV2.correct()` previously normalized the displayed CJK
+  text but could retain CTC blank tokens in the corresponding glyph list.
+  These mismatched structures generated wrong selection groups even when the
+  source text itself was correct. CJK separators are now removed from the
+  glyph stream in lockstep with the normalized text, without fabricating boxes.
+- `CircleGestureTextSelector.documentFromGroups()` previously inferred
+  whitespace from visual group distances via `shouldInsertSpace`. That path
+  is removed; it now reads character ranges in the original recognized
+  source line and preserves only source whitespace.
+- `OcrSelectionText.selected()` additionally requires source-string
+  identity by content when joining adjacent UTF-16 ranges. Two different
+  source lines can never accidentally bridge positions with the same index.
+
+Stage counters in `PADDLE_SPACE_TRACE` expose CTC raw/normalized blank
+counts and gesture-derived selected blank counts **without recording OCR
+content**. The contract tests reject old group-based whitespace insertion
+and mismatched CTC text/glyph corrections. User-created intentional spaces
+in Latin strings remain unchanged without strong visual evidence.
+
+Limits: the official on-device recognizer can still misrecognize genuine
+English word spacing, especially if CTC alignment is incomplete. The app
+must not silently guess what English phrase was intended. A screenshot and
+stage counters are needed to distinguish intrinsic recognition uncertainty
+from any remaining app-side text mutation.
