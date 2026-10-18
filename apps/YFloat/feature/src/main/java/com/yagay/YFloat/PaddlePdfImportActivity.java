@@ -49,6 +49,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
     private ActivityResultLauncher<String> saveCsv;
     private TextView status;
     private MaterialButton cancelButton;
+    private MaterialButton saveDraftButton;
     private PdfRenderer renderer;
     private ParcelFileDescriptor sourceFd;
     private File stagedExport;
@@ -118,11 +119,21 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
             if(running)return;
             io.execute(()->{
                 discardExport();
+                runOnUiThread(()->saveDraftButton.setEnabled(false));
                 showProgress("Temporary OCR result discarded.");
             });
         });
         YViewLayout.addAction(stop,discard);
         YViewLayout.addRow(section.body,stop);
+        saveDraftButton=YViewLayout.compactButton(this,"Save recognized PDF");
+        saveDraftButton.setEnabled(false);
+        saveDraftButton.setOnClickListener(v->{
+            if(running || stagedExport==null)return;
+            launchSavePicker();
+        });
+        LinearLayout reuse=YViewLayout.buttonRow(this);
+        YViewLayout.addAction(reuse,saveDraftButton);
+        YViewLayout.addRow(section.body,reuse);
         YViewLayout.addSection(root, section);
         setContentView(YViewLayout.scrollPage(this, root));
     }
@@ -152,6 +163,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         if(running||uri==null)return;
         running=true;
         cancelButton.setEnabled(true);
+        saveDraftButton.setEnabled(false);
         cancelled.set(false);
         completedPages=0;
         totalPages=0;
@@ -184,6 +196,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
             runOnUiThread(()->{
                 cancelButton.setEnabled(false);
                 status.setText("PDF recognition cancelled.");
+                saveDraftButton.setEnabled(false);
             });
             return;
         }
@@ -197,29 +210,19 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
                     cancelButton.setEnabled(false);
                     if(cancelled.get())return;
                     status.setText("Finished "+completedPages+" pages. Save the offline result.");
-                    switch(format){
-                        case MARKDOWN -> saveMarkdown.launch("yfloat-ocr.md");
-                        case JSON -> saveJson.launch("yfloat-ocr.json");
-                        case HTML -> saveHtml.launch("yfloat-ocr.html");
-                        case CSV -> {
-                            if(!hasTables){
-                                status.setText("No tables detected in PDF.");
-                                io.execute(this::discardExport);
-                            }else saveCsv.launch("yfloat-ocr-tables.csv");
-                        }
+                    if(format==Format.CSV&&!hasTables){
+                        status.setText("No tables detected in PDF.");
+                        io.execute(this::discardExport);
+                    }else{
+                        saveDraftButton.setEnabled(true);
+                        launchSavePicker();
                     }
                 });
                 return;
             }
             Bitmap image;
             try(PdfRenderer.Page page=renderer.openPage(pageIndex)) {
-                int sourceWidth=page.getWidth(),sourceHeight=page.getHeight();
-                float scale=Math.min(1.5f,2048f/Math.max(sourceWidth,sourceHeight));
-                int width=Math.max(1,Math.round(sourceWidth*scale));
-                int height=Math.max(1,Math.round(sourceHeight*scale));
-                image=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
-                new Canvas(image).drawColor(Color.WHITE);
-                page.render(image,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+                image=renderPage(page);
             }
             showProgress("Recognizing page "+(pageIndex+1)+" / "+count);
             PaddlePipelineV2.recognize(getApplicationContext(),image,model,
@@ -262,6 +265,32 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
                         }
                     });
         }catch(Throwable error){fail(error);}
+    }
+
+    private static Bitmap renderPage(PdfRenderer.Page page){
+        int sourceWidth=page.getWidth(),sourceHeight=page.getHeight();
+        float scale=Math.min(1.5f,2048f/Math.max(sourceWidth,sourceHeight));
+        int width=Math.max(1,Math.round(sourceWidth*scale));
+        int height=Math.max(1,Math.round(sourceHeight*scale));
+        Bitmap image=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+        try{
+            new Canvas(image).drawColor(Color.WHITE);
+            page.render(image,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+            return image;
+        }catch(Throwable problem){
+            image.recycle();
+            throw problem;
+        }
+    }
+
+    private void launchSavePicker(){
+        if(stagedExport==null || running)return;
+        switch(format){
+            case MARKDOWN -> saveMarkdown.launch("yfloat-ocr.md");
+            case JSON -> saveJson.launch("yfloat-ocr.json");
+            case HTML -> saveHtml.launch("yfloat-ocr.html");
+            case CSV -> saveCsv.launch("yfloat-ocr-tables.csv");
+        }
     }
 
     private void beginExport()throws Exception{
@@ -339,6 +368,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
                 while((n=input.read(bytes))!=-1)out.write(bytes,0,n);
                 out.flush();
                 discardExport();
+                runOnUiThread(()->saveDraftButton.setEnabled(false));
                 showProgress("Saved "+completedPages+" pages.");
             }catch(Throwable error){
                 showProgress("Save failed: "+safe(error));
@@ -361,7 +391,10 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         closePdf();
         discardExport();
         running=false;
-        runOnUiThread(()->cancelButton.setEnabled(false));
+        runOnUiThread(()->{
+            cancelButton.setEnabled(false);
+            saveDraftButton.setEnabled(false);
+        });
         showProgress("PDF OCR failed: "+safe(error));
     }
 
