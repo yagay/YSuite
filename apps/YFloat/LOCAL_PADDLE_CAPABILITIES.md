@@ -222,3 +222,5 @@ with empty OCR text. Source labels distinguish native SLANet output from
 strict pixel-grid fallback. PDF output is serialized to app-private temporary
 storage page-by-page and copied to SAF with bounded buffers, while OCR page
 objects are no longer retained for the entire document.
+
+**CI gate:** One consolidated ARM64 Debug compilation is required after this source batch; intermediate commits intentionally skipped Actions.
