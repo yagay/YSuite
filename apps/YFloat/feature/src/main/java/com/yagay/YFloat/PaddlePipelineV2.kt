@@ -327,7 +327,7 @@ object PaddlePipelineV2 {
                                 val correctedPage=PaddlePageV2.fromOcr(textResults,
                                     corrected.width,corrected.height,emptyList(),spacing)
                                 latestUnwarpedDocument=correctedPage.asLegacy(
-                                    "ppocr-v2-uvdoc-"+model)
+                                    "ppocr-v2-uvdoc-"+model).asRectifiedBitmapSpace()
                             }finally{corrected.recycle()}
                         }
                     }catch(error:Throwable){
@@ -397,6 +397,7 @@ object PaddlePipelineV2 {
                         .withTableHtmls(linked.map{it.html}.filter{it.isNotBlank()})
                         .withSealTexts(seals.map{it.recognizedText}.filter{it.isNotBlank()})
                         .withUnwarpedText(latestUnwarpedDocument?.fullText().orEmpty())
+                        .withRectifiedDocument(latestUnwarpedDocument)
                         .withFormulaTexts(formulas.map{it.latex})
                         .withChartTexts(charts.map{it.searchableText}.filter{it.isNotBlank()})
                 }
