@@ -78,6 +78,7 @@ final class OcrSelectionText {
             if(current!=null) {
                 boolean canBridge=previous!=null&&previousIndex+1==index&&
                         current.line==previous.line &&
+                        current.source.equals(previous.source) &&
                         current.ordinal==previous.ordinal+1 &&
                         current.start>=previous.end;
                 if(canBridge){
