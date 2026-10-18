@@ -209,11 +209,21 @@ if "(Paddle offline)" not in selector:
 # OCR source text is authoritative for copied Circle spacing. Group ids are
 # selection geometry and must never be treated as invented word separators.
 circle_selection=(java / "CircleTextSelectionModel.java").read_text()
-for needle in ("sourceSpaceBefore", "sourceSpacing.put(unit",
-               "originalSpacing==1", "originalSpacing<0",
-               "sourceSpaceBefore=List.copyOf(normalizedSpacing)"):
+for needle in ("OcrSelectionText.align(source.text(),glyphs,li)",
+               "sourceRanges.put(units.get(i),ranges.get(i))",
+               "OcrSelectionText.selected(text,sourceSpans,indexes,lines)",
+               "sourceSpans=Collections.unmodifiableList(normalizedRanges)"):
     if needle not in circle_selection:
-        problems.append("Circle copy may manufacture spaces at glyph-group boundaries: "+needle)
+        problems.append("Circle copy must use exact OCR source text spans: "+needle)
+selection_helper=(java / "OcrSelectionText.java").read_text()
+for needle in ("static List<Span> align(", "static String selected(",
+               "current.source,previous.end,current.end", "current.ordinal==previous.ordinal+1"):
+    if needle not in selection_helper:
+        problems.append("Original OCR UTF-16 text-offset selection missing: "+needle)
+if "sourceSpaceBefore" in circle_selection or "originalSpacing==1" in circle_selection:
+    problems.append("Old group-based whitespace reconstruction still active")
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrSelectionTextTest.java").is_file():
+    problems.append("Missing OCR source span selection regression test")
 for needle in ("normalizeCjkSpacing(fallbackText)",
                "fun normalizeCjkSpacing(text:String)",
                "joinAroundCjk(", "countCandidateSpaces("):
