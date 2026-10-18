@@ -12,45 +12,59 @@ import com.paddle.ocr.structure.SLANetLocalV3
 object PaddleTableTextV3 {
     data class TextCell(val bounds:Rect,val text:String,val confidence:Float)
     data class Table(val cells:List<TextCell>,val html:String,
-                     val tabSeparated:String,val score:Float)
+                     val tabSeparated:String,val score:Float,val source:String="slanet_model")
 
-    fun link(prediction:SLANetLocalV3.Result,lines:List<PaddlePageV2.Line>):Table{
-        val cells=prediction.cells.map{cell->
-            val bounds=cell.bounds
-            val cellLines=ArrayList<String>()
-            for(line in lines) {
-                val lineBounds=line.bounds.rect()
-                if(lineBounds.isEmpty)continue
-                val overlap=Rect()
-                if(!overlap.setIntersect(lineBounds,bounds))continue
-                val area=lineBounds.width().toLong()*lineBounds.height()
-                val covered=overlap.width().toLong()*overlap.height()
-                // Preserve the corrected text verbatim (including meaningful
-                // spaces) when a single model cell contains the whole line.
-                if(area>0 && covered*100L>=area*80L) {
-                    line.text.trim().takeIf{it.isNotEmpty()}?.let(cellLines::add)
-                    continue
-                }
-                val fragments=ArrayList<String>()
-                for(word in line.words) {
-                    val r=word.bounds.rect()
-                    if(r.isEmpty||!bounds.contains(r.centerX(),r.centerY()))continue
-                    if(word.text.isNotBlank())fragments.add(word.text)
-                }
-                if(fragments.isNotEmpty()) {
-                    // Partial-line extraction has no trustworthy blank-glyph
-                    // offsets. Never fabricate English spacing in geometry.
-                    cellLines.add(fragments.joinToString(""))
-                } else if(covered*2L>=area) {
-                    // CTC may supply a line without glyph or word boxes.
-                    line.text.trim().takeIf{it.isNotEmpty()}?.let(cellLines::add)
+    fun link(prediction:SLANetLocalV3.Result,lines:List<PaddlePageV2.Line>,
+             source:String="slanet_model"):Table {
+        val buckets=Array(prediction.cells.size){ArrayList<String>()}
+        val cells=prediction.cells
+        // Each OCR line/word has exactly one winning destination. The old
+        // independent per-cell intersection loop duplicated words crossing
+        // adjacent cell borders and lost line-wise ordering.
+        fun winningCell(bounds:Rect,minCoverage:Double):Int{
+            if(bounds.isEmpty)return -1
+            val area=bounds.width().toLong()*bounds.height()
+            if(area<=0L)return -1
+            var best=-1
+            var maxOverlap=0L
+            for(i in cells.indices){
+                val clipped=Rect()
+                if(!clipped.setIntersect(bounds,cells[i].bounds))continue
+                val overlap=clipped.width().toLong()*clipped.height()
+                if(overlap>maxOverlap){maxOverlap=overlap;best=i}
+            }
+            return if(maxOverlap>=area*minCoverage)best else -1
+        }
+        val ordered=lines.sortedWith(compareBy({it.bounds.rect().top},{it.bounds.rect().left}))
+        for(line in ordered){
+            if(line.text.isBlank())continue
+            val whole=winningCell(line.bounds.rect(),.80)
+            if(whole>=0){
+                buckets[whole].add(line.text.trim())
+                continue
+            }
+            val portions=linkedMapOf<Int,StringBuilder>()
+            for(word in line.words){
+                if(word.text.isBlank())continue
+                val area=word.bounds.rect()
+                var target=winningCell(area,.42)
+                if(target<0 && !area.isEmpty)
+                    target=cells.indexOfFirst{it.bounds.contains(area.centerX(),area.centerY())}
+                if(target>=0){
+                    portions.getOrPut(target){StringBuilder()}.append(word.text)
                 }
             }
-            // Separate distinct recognized lines instead of joining the end
-            // of one row to the beginning of the next word.
-            TextCell(Rect(bounds),cellLines.joinToString("\n"),cell.score)
+            if(portions.isEmpty()){
+                val index=winningCell(line.bounds.rect(),.50)
+                if(index>=0)buckets[index].add(line.text.trim())
+            }else for((index,fragment) in portions){
+                if(fragment.isNotEmpty())buckets[index].add(fragment.toString())
+            }
         }
-        val html=prediction.html(cells.map{it.text})
+        val textCells=cells.mapIndexed {i,cell->
+            TextCell(Rect(cell.bounds),buckets[i].joinToString("\n"),cell.score)
+        }
+        val html=prediction.html(textCells.map{it.text})
         // TSV is deliberately based on the model's HTML row tokens, not
         // on guessed x-coordinates (spanning cells are preserved in HTML).
         val tsv=StringBuilder()
@@ -62,12 +76,12 @@ object PaddleTableTextV3 {
                 rowStart=true
             }else if(token=="<td></td>" || token=="<td" || token=="<td>"){
                 if(!rowStart)tsv.append('\t')
-                tsv.append(cells.getOrNull(cellIndex++)?.text.orEmpty())
+                tsv.append(textCells.getOrNull(cellIndex++)?.text.orEmpty())
                 rowStart=false
             }else if(token=="</tr>"){
                 if(tsv.isNotEmpty() && tsv.last()!='\n')tsv.append('\n')
             }
         }
-        return Table(cells,html,tsv.toString().trim(),prediction.score)
+        return Table(textCells,html,tsv.toString().trim(),prediction.score,source)
     }
 }
