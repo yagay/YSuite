@@ -6,7 +6,6 @@
 
     <!-- Android 11+ package visibility for standalone feature APK management. -->
     <queries>
-        <package android:name="com.google.android.googlequicksearchbox" />
         <package android:name="com.yagay.YEntryCleaner" />
         <package android:name="com.yagay.ydiag" />
         <package android:name="com.yagay.YNotify" />
@@ -57,9 +56,6 @@
         <receiver android:name="com.yagay.ypower.root.BootReceiver" tools:node="remove" />
         <receiver android:name="com.yagay.YFloat.FloatServiceBootReceiver" tools:node="remove" />
         <receiver android:name="com.yagay.YNotify.collector.XposedEventReceiver" tools:node="remove" />
-        <receiver android:name="com.yagay.YFloat.GoogleCtsBridgeReceiver" tools:node="remove" />
-        <receiver android:name="com.yagay.YFloat.GoogleCtsTraceReceiver" tools:node="remove" />
-        <provider android:name="com.yagay.YFloat.GoogleCtsBridgeProvider" tools:node="remove" />
         <provider android:name="com.yagay.YMiniGuard.EngineStatusProvider" tools:node="remove" />
         <provider android:name="com.yagay.YNFC.ConfigProvider" tools:node="remove" />
 
@@ -98,12 +94,6 @@
         <receiver
             android:name=".ipc.SuiteBridgeReceiver"
             android:exported="true" />
-
-        <provider
-            android:name=".ipc.SuiteGoogleBridgeProvider"
-            android:authorities="${applicationId}.googlebridge"
-            android:exported="true"
-            android:grantUriPermissions="false" />
 
         <provider
             android:name=".ipc.SuiteMiniGuardStatusProvider"

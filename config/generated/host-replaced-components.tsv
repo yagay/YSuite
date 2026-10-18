@@ -9,6 +9,3 @@ yminiguard	provider	com.yagay.YMiniGuard.EngineStatusProvider
 ynfc	provider	com.yagay.YNFC.ConfigProvider
 yfloat	service	com.yagay.YFloat.LensAccessibilityService
 yfloat	receiver	com.yagay.YFloat.FloatServiceBootReceiver
-yfloat	receiver	com.yagay.YFloat.GoogleCtsBridgeReceiver
-yfloat	receiver	com.yagay.YFloat.GoogleCtsTraceReceiver
-yfloat	provider	com.yagay.YFloat.GoogleCtsBridgeProvider

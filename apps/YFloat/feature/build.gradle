@@ -27,10 +27,6 @@ def hookCommonFiles = [
         new File(xposedRoot, 'module.prop'),
         new File(xposedRoot, 'scope.list')
 ]
-def googleHookFiles = new ArrayList<File>(hookCommonFiles)
-googleHookFiles.addAll(fileTree(hookRoot) { include 'Google*.java' }.files)
-googleHookFiles.add(file('src/main/java/com/yagay/YFloat/GoogleCtsContract.java'))
-googleHookFiles.add(file('src/main/java/com/yagay/YFloat/CanonicalFramePolicy.java'))
 def systemUiHookFiles = new ArrayList<File>(hookCommonFiles)
 def systemServerHookFiles = new ArrayList<File>(hookCommonFiles)
 systemServerHookFiles.add(file('src/main/java/com/yagay/YFloat/hook/SecureScreenshotHook.java'))
@@ -50,7 +46,6 @@ android {
         buildConfigField 'int', 'VERSION_CODE', runtimeVersionCode
         buildConfigField 'String', 'HOST_PACKAGE', '"' + hostPackage + '"'
         buildConfigField 'String', 'VERSION_NAME', '"3.1.39"'
-        buildConfigField 'String', 'GOOGLE_HOOK_FINGERPRINT', '"' + yFloatHashFiles(googleHookFiles) + '"'
         buildConfigField 'String', 'SYSTEMUI_HOOK_FINGERPRINT', '"' + yFloatHashFiles(systemUiHookFiles) + '"'
         buildConfigField 'String', 'SYSTEM_SERVER_HOOK_FINGERPRINT', '"' + yFloatHashFiles(systemServerHookFiles) + '"'
         ndk { abiFilters 'arm64-v8a' }

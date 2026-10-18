@@ -194,16 +194,9 @@ standalone_uses_cleartext_traffic = false
 capabilities = ["ROOT", "LSPOSED", "ACCESSIBILITY", "OVERLAY", "NOTIFICATIONS", "FILE_SHARE"]
 lifecycle = "managed"
 boot_receiver = "com.yagay.YFloat.FloatServiceBootReceiver"
-ipc_routes = [
-  { action = "com.yagay.YFloat.action.GOOGLE_CTS_BRIDGE", receiver = "com.yagay.YFloat.GoogleCtsBridgeReceiver" },
-  { action = "com.yagay.YFloat.action.GOOGLE_CTS_TRACE", receiver = "com.yagay.YFloat.GoogleCtsTraceReceiver" },
-]
 replaced_components = [
   { type = "service", class = "com.yagay.YFloat.LensAccessibilityService" },
   { type = "receiver", class = "com.yagay.YFloat.FloatServiceBootReceiver" },
-  { type = "receiver", class = "com.yagay.YFloat.GoogleCtsBridgeReceiver" },
-  { type = "receiver", class = "com.yagay.YFloat.GoogleCtsTraceReceiver" },
-  { type = "provider", class = "com.yagay.YFloat.GoogleCtsBridgeProvider" },
 ]
 hooks = [{ id = "yfloat/main", class = "com.yagay.YFloat.hook.YFloatModule" }]
 
