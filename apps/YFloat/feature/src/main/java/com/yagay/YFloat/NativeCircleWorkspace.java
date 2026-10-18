@@ -58,7 +58,6 @@ final class NativeCircleWorkspace extends View {
     private final Paint activationBadgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint selectionHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint selectionBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint toolbarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -159,11 +158,8 @@ final class NativeCircleWorkspace extends View {
         outlinePaint.setStrokeWidth(2.4f * density);
         outlinePaint.setColor(YFloatOverlayStyle.selectionColor(app));
         fillPaint.setColor(YFloatOverlayStyle.accentWithAlpha(app,76));
-        // Blue selection is ONLY a background overlay on screenshot pixels.
-        // It must never synthesize OCR glyphs or pretend to know app fonts.
-        selectionHighlightPaint.setStyle(Paint.Style.FILL);
-        selectionHighlightPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
-                app,NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA));
+        // OCR only supplies hit geometry. Never paint a blue glyph layer:
+        // selected pixels are restored from the frozen screenshot verbatim.
         selectionBorderPaint.setStyle(Paint.Style.STROKE);
         selectionBorderPaint.setStrokeWidth(1.6f*density);
         selectionBorderPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
@@ -484,9 +480,9 @@ final class NativeCircleWorkspace extends View {
     private void drawTextSelection(Canvas canvas) {
         if(chosenChars.isEmpty()||fullDocument==null)return;
         RectF first=null,last=null;
-        // OCR CTC character boxes are approximate hit targets, not rendered
-        // glyph contours. Merge them into their ORIGINAL OCR text line and
-        // use that line's baseline band to draw one consistent highlight.
+        // CTC character boxes locate selection, but are not exact typeface
+        // contours. Use the complete original OCR row's VERTICAL extent:
+        // the earlier 78%-height band clipped tall Chinese glyph pixels.
         LinkedHashMap<Integer,Rect> glyphsByLine=new LinkedHashMap<>();
         for(OcrDocument.CharUnit glyph:chosenChars){
             Rect b=glyph.bounds();
@@ -506,20 +502,31 @@ final class NativeCircleWorkspace extends View {
                 }
             }
             if(rowBounds==null||rowBounds.isEmpty())rowBounds=glyphBounds;
-            float centerY=rowBounds.exactCenterY();
-            float height=Math.max(1f,Math.min(rowBounds.height()*0.78f,
-                    Math.max(glyphBounds.height(),rowBounds.height()*0.64f)));
+            // Horizontal boundaries follow only the selected glyphs;
+            // vertical bounds include their full original OCR source row.
             RectF screenBand=new RectF(
-                    Math.max(rowBounds.left,glyphBounds.left-1f),
-                    centerY-height/2f,
-                    Math.min(rowBounds.right,glyphBounds.right+1f),
-                    centerY+height/2f);
-            RectF highlight=screenToViewF(screenBand);
-            if(!highlight.isEmpty()){
-                canvas.drawRoundRect(highlight,3*density,3*density,selectionHighlightPaint);
-                canvas.drawRoundRect(highlight,3*density,3*density,selectionBorderPaint);
-                if(first==null)first=new RectF(highlight);
-                last=new RectF(highlight);
+                    glyphBounds.left-1f,
+                    Math.min(rowBounds.top,glyphBounds.top)-1f,
+                    glyphBounds.right+1f,
+                    Math.max(rowBounds.bottom,glyphBounds.bottom)+1f);
+            RectF selected=screenToViewF(screenBand);
+            if(!selected.isEmpty()){
+                // Scrim was painted before the selection. Reveal the actual
+                // untouched screenshot pixels inside the selected band.
+                canvas.save();
+                canvas.clipRect(selected);
+                canvas.drawBitmap(frame.bitmap,null,
+                        new Rect(0,0,getWidth(),getHeight()),screenshotPaint);
+                canvas.restore();
+
+                // The outline lives outside the revealed pixels. Its stroke
+                // must not color any Chinese or Latin glyph inside the band.
+                RectF outline=new RectF(selected);
+                outline.inset(-NativeCircleVisualPolicy.textBorderOutsideGap(density),
+                        -NativeCircleVisualPolicy.textBorderOutsideGap(density));
+                canvas.drawRoundRect(outline,3*density,3*density,selectionBorderPaint);
+                if(first==null)first=new RectF(outline);
+                last=new RectF(outline);
             }
         }
         if(first==null||last==null)return;
