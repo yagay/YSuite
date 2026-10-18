@@ -49,7 +49,8 @@ public final class ResultActivity extends AppCompatActivity implements YUiWindow
     }
 
     public static void captureNextForImage(Bitmap image, InlineResultSink sink) {
-        OcrResultDispatcher.register(image, sink == null ? null : sink::onResult);
+        OcrResultDispatcher.register(image, sink == null ? null :
+                (text,blocks,document)->sink.onResult(text,blocks));
     }
 
     public static void clearInlineForImage(Bitmap image) {
