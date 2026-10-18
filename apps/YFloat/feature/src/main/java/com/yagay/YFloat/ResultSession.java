@@ -132,7 +132,6 @@ final class ResultSession implements AutoCloseable {
         image = null;
         blocks.clear();
         ocrDocument=null;
-        ocrDocument=null;
     }
 
     /**
@@ -149,6 +148,7 @@ final class ResultSession implements AutoCloseable {
             try { owned.recycle(); } catch (Throwable ignored) {}
         }
         blocks.clear();
+        ocrDocument=null;
     }
 
     private static String buildViewMeta(ViewNodeCandidate view) {
