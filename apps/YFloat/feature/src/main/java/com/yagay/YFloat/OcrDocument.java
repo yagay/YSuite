@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import android.graphics.Rect;
+import android.graphics.PointF;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,14 +19,21 @@ public final class OcrDocument {
     public static final class CharUnit {
         private final String text;
         private final Rect bounds;
+        private final List<PointF> quad;
         private final float confidence;
         private final int line;
         private final int group;
         private final int order;
 
         public CharUnit(String text, Rect bounds, float confidence, int line, int group, int order) {
+            this(text,bounds,confidence,line,group,order,null);
+        }
+
+        public CharUnit(String text, Rect bounds, float confidence, int line, int group,
+                        int order, List<PointF> corners) {
             this.text = text == null ? "" : text;
             this.bounds = bounds == null ? new Rect() : new Rect(bounds);
+            this.quad = copyCorners(corners);
             this.confidence = confidence;
             this.line = line;
             this.group = group;
@@ -34,6 +42,8 @@ public final class OcrDocument {
 
         public String text() { return text; }
         public Rect bounds() { return new Rect(bounds); }
+        /** Unmodified source quadrilateral, ordered TL/TR/BR/BL; empty for old engines. */
+        public List<PointF> quad() { return copyCorners(quad); }
         public float confidence() { return confidence; }
         public int line() { return line; }
         public int group() { return group; }
@@ -42,19 +52,27 @@ public final class OcrDocument {
         CharUnit translated(int dx, int dy, int newLine, int newOrder) {
             Rect r = new Rect(bounds);
             r.offset(dx, dy);
-            return new CharUnit(text, r, confidence, newLine, group, newOrder);
+            return new CharUnit(text, r, confidence, newLine, group, newOrder,
+                    translatedCorners(quad,dx,dy));
         }
     }
 
     public static final class Line {
         private final String text;
         private final Rect bounds;
+        private final List<PointF> quad;
         private final float confidence;
         private final List<CharUnit> chars;
 
         public Line(String text, Rect bounds, float confidence, List<CharUnit> chars) {
+            this(text,bounds,confidence,chars,null);
+        }
+
+        public Line(String text, Rect bounds, float confidence, List<CharUnit> chars,
+                    List<PointF> corners) {
             this.text = text == null ? "" : text;
             this.bounds = bounds == null ? new Rect() : new Rect(bounds);
+            this.quad = copyCorners(corners);
             this.confidence = confidence;
             this.chars = chars == null ? List.of() : List.copyOf(chars);
         }
@@ -63,6 +81,25 @@ public final class OcrDocument {
         public Rect bounds() { return new Rect(bounds); }
         public float confidence() { return confidence; }
         public List<CharUnit> chars() { return chars; }
+        public List<PointF> quad() { return copyCorners(quad); }
+    }
+
+    private static List<PointF> copyCorners(List<PointF> input) {
+        if(input==null || input.size()!=4)return List.of();
+        ArrayList<PointF> out=new ArrayList<>(4);
+        for(PointF p:input) {
+            if(p==null || !Float.isFinite(p.x) || !Float.isFinite(p.y))
+                return List.of();
+            out.add(new PointF(p.x,p.y));
+        }
+        return List.copyOf(out);
+    }
+
+    private static List<PointF> translatedCorners(List<PointF> input,int dx,int dy) {
+        if(input==null || input.size()!=4)return List.of();
+        ArrayList<PointF> out=new ArrayList<>(4);
+        for(PointF p:input)out.add(new PointF(p.x+dx,p.y+dy));
+        return List.copyOf(out);
     }
 
     private final String fullText;
@@ -230,7 +267,8 @@ public final class OcrDocument {
             for (CharUnit c : line.chars()) {
                 outChars.add(c.translated(dx, dy, li, order++));
             }
-            outLines.add(new Line(line.text(), lineBounds, line.confidence(), outChars));
+            outLines.add(new Line(line.text(), lineBounds, line.confidence(), outChars,
+                    translatedCorners(line.quad(),dx,dy)));
         }
         OcrDocument translated=new OcrDocument(fullText, blocks, outLines, engine,
                 confidence, score,parentWidth,parentHeight,coordinateSpace);
