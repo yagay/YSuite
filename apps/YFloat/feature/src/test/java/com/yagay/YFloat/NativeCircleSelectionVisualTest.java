@@ -21,20 +21,18 @@ public final class NativeCircleSelectionVisualTest {
         assertTrue(center>start);
     }
 
-    @Test public void highContrastOutlineDoesNotRequireOpaqueGlyphOverlay(){
-        assertTrue(NativeCircleVisualPolicy.TEXT_HIGHLIGHT_BORDER_ALPHA>=190);
-        assertEquals("Selection must never recolor app glyph pixels",0,
-                NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA);
-        assertTrue(NativeCircleVisualPolicy.TEXT_HIGHLIGHT_BORDER_ALPHA>
-                NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA);
+    @Test public void nativeTextSelectionHasVisibleTranslucentBlueWash(){
+        int alpha=NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA;
+        assertTrue("Selection must remain visibly blue",alpha>=72);
+        assertTrue("Selection must not obscure source glyphs",alpha<=132);
+        assertTrue("Selection is translucent, never opaque",alpha<255);
     }
 
-    @Test public void outlineHasGuaranteedOutwardPixelGap(){
+    @Test public void dragHandlesHaveGuaranteedGapOutsideSelectionFill(){
         float deviceDensity=3f;
-        float gap=NativeCircleVisualPolicy.textBorderOutsideGap(deviceDensity);
-        assertTrue("Border is outside source glyph pixel area",gap>=7f);
+        float gap=NativeCircleVisualPolicy.textHandleOutsideGap(deviceDensity);
+        assertTrue("Handles stay outside filled glyph band",gap>=7f);
         assertTrue(gap>0f);
-        assertTrue(NativeCircleVisualPolicy.TEXT_HIGHLIGHT_BORDER_ALPHA>200);
     }
 
     @Test public void handleSizesStayValidAtLowAndHighDensities(){
