@@ -329,7 +329,7 @@ object PaddlePipelineV2 {
                                 val textResults=ocr.recognize(corrected).results
                                 val correctedPage=PaddlePageV2.fromOcr(textResults,
                                     corrected.width,corrected.height,emptyList(),spacing)
-                                latestUnwarpedDocument=correctedPage.asLegacy(
+                                latestUnwarpedDocument=correctedPage.toDocument(
                                     "ppocr-v2-uvdoc-"+model).asRectifiedBitmapSpace()
                             }finally{corrected.recycle()}
                         }
@@ -395,7 +395,7 @@ object PaddlePipelineV2 {
                         "spacing_enabled="+spacing+" corrected_lines="+fixes)
                     latestPage=page
                     lastTables=linked
-                    page.asLegacy("ppocr-v2-"+model)
+                    page.toDocument("ppocr-v2-"+model)
                         .withTableTexts(linked.map{it.tabSeparated})
                         .withTableHtmls(linked.map{it.html})
                         .withTableOrigins(linked.map{it.source})
