@@ -128,6 +128,38 @@ if "val options=(1..9).mapNotNull" not in reader:
 if "word.text,realWord" not in page or "line.text,detectorBox" not in page:
     problems.append("Selection fallback must use provenance-aware real word/line bounds")
 
+# Fully local OCR result ownership and non-destructive downloads.
+dispatcher=(java / "OcrResultDispatcher.java").read_text()
+router=(java / "ResultSurfaceRouter.java").read_text()
+session=(java / "ResultSession.java").read_text()
+dialog=(java / "UnifiedResultDialogFragment.java").read_text()
+result_host=(java / "ResultActivity.java").read_text()
+model_ui=(java / "PaddleLocalModelSettingsV3.java").read_text()
+for needle in ("OcrDocument document", "sink.onResult(value, safeBlocks, document)",
+               "image, anchor, document"):
+    if needle not in dispatcher:
+        problems.append("OCR document is lost on result dispatch: " + needle)
+if "ResultSession.ocr(text, blocks, image, sourceBounds,document)" not in router:
+    problems.append("Result router loses Paddle document metadata")
+if "applyOcr(String text, List<String> blocks,OcrDocument document)" not in session:
+    problems.append("Inline result session loses structured OCR metadata")
+if "applyInlineOcr(gen, text, blocks, document)" not in dialog:
+    problems.append("Inline OCR result must preserve its structured document")
+for needle in ("PaddleDocumentExport.markdown(selected)",
+               "PaddleDocumentExport.json(selected)",
+               "PaddleDocumentExport.html(selected)",
+               "PaddleDocumentExport.csvTables(selected)"):
+    if needle not in result_host:
+        problems.append("Offline Save dialog lacks document output: " + needle)
+for needle in ("modelStage=stageFile(dst)", "swapWithBackup(modelStage,dst)",
+               "rollbackBackup(dst,hadPrimary)", "recoverBackup(dst)"):
+    if needle not in registry:
+        problems.append("Independent model replacement must preserve existing files: " + needle)
+if "PaddleLocalModelsV3.check(activity,id," not in model_ui:
+    problems.append("Model integrity verification not exposed in UI")
+if "cancelButton.setOnClickListener" not in pdf:
+    problems.append("Long offline PDF inference lacks cancellation")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
