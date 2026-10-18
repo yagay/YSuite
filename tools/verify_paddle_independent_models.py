@@ -245,6 +245,25 @@ spacing_test=(FEATURE / "ppocr-sdk/src/test/java/com/paddle/ocr/postprocess/Padd
 if not spacing_test.is_file():
     problems.append("CJK spacing regressions are not covered by local unit cases")
 
+# Deep Circle/Paddle whitespace regression: no geometry-made lexical
+# separators and no stale CTC whitespace geometry after normalization.
+gesture_selector=(java / "CircleGestureTextSelector.java").read_text()
+if "shouldInsertSpace(" in gesture_selector or "lineText.append(' ')" in gesture_selector:
+    problems.append("Circle gesture path still invents spaces from group positions")
+for needle in ("IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span>",
+               "OcrSelectionText.align(", "OcrSelectionText.selected("):
+    if needle not in gesture_selector:
+        problems.append("Circle gesture has no source-offset text mapping: "+needle)
+if "current.source.equals(previous.source)" not in selection_helper:
+    problems.append("OCR selections may bridge source offsets across different lines")
+if "stripCjkWhitespaceTokens(characters)" not in spacing or "for (i in cjkCleaned.indices)" not in spacing:
+    problems.append("CTC output text and selectable glyphs can keep contradictory spaces")
+if "PADDLE_SPACE_TRACE" not in pipeline or "rawSpaces=" not in pipeline:
+    problems.append("CTC pre/post spacing stage lacks privacy-safe diagnostics")
+planner=(java / "CircleSelectionPlanner.java").read_text()
+if "PADDLE_SPACE_TRACE" not in planner or "selectedSpaces=" not in planner:
+    problems.append("Circle selection text spacing stage lacks diagnostics")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
