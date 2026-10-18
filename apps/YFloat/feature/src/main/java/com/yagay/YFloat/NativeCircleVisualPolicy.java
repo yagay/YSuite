@@ -8,6 +8,25 @@ package com.yagay.YFloat;
 final class NativeCircleVisualPolicy {
     static final int SELECTION_OUTSIDE_ALPHA = 112;
 
+    // Use a thin, high-contrast border instead of an opaque text-colored
+    // rectangle; the original captured glyph pixels remain unchanged.
+    static final int TEXT_HIGHLIGHT_FILL_ALPHA = 48;
+    static final int TEXT_HIGHLIGHT_BORDER_ALPHA = 214;
+
+    /** Handle stems are fully outside the text glyph band. */
+    static float leadingHandleX(float bandLeft,float density){
+        return bandLeft-5f*density;
+    }
+    static float trailingHandleX(float bandRight,float density){
+        return bandRight+5f*density;
+    }
+    static float handleStemTop(float bandBottom,float density){
+        return bandBottom+1f*density;
+    }
+    static float handleCenterY(float bandBottom,float density){
+        return bandBottom+9f*density;
+    }
+
     static int baseScrimAlpha(NativeCircleState.Phase phase) {
         if (phase == null) return 0;
         return switch (phase) {
