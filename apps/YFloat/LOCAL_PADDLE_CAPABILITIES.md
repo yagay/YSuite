@@ -454,3 +454,5 @@ across the screen. The large speed gain comes from skipping optional
 document stages and reducing detector tensor size without shrinking
 recognition crops. Unit cases and static guards cover profile isolation
 and stage-to-inference wiring.
+
+**Configurable pipeline final CI gate:** Build ARM64 Debug and run both OCR unit-test suites, verifying per-profile switches, shared ONNX detector/recognizer and the optional stage skip/unload policy. All preceding feature commits skipped CI.
