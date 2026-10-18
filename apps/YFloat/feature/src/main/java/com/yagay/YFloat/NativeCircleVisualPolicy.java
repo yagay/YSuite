@@ -13,44 +13,6 @@ final class NativeCircleVisualPolicy {
     // remains visible beneath the blue wash instead of being re-typeset.
     static final int TEXT_HIGHLIGHT_FILL_ALPHA = 104;
     /**
-     * A selection handle is ATTACHED to the actual filled polygon corner,
-     * never positioned using an external outline margin. Input is the top
-     * and bottom of its side edge in view coordinates (TL->BL or TR->BR).
-     * Returns [stemStartX,stemStartY,knobX,knobY].
-     *
-     * Using the side's direction preserves contact with rotated selections;
-     * the fallback is straight down for degenerate OCR boxes.
-     */
-    static float[] attachedTextHandle(float topX,float topY,
-            float bottomX,float bottomY,float knobRadius) {
-        float vx=bottomX-topX,vy=bottomY-topY;
-        float length=(float)Math.hypot(vx,vy);
-        if(length < 0.001f){vx=0f;vy=1f;}
-        else {vx/=length;vy/=length;}
-        // A filled circular knob is tangent to the selected edge: zero
-        // visible space between the blue polygon and the handle itself.
-        float extension=Math.max(0.5f,knobRadius);
-        return new float[]{bottomX,bottomY,bottomX+vx*extension,bottomY+vy*extension};
-    }
-
-    /**
-     * Text handles keep generous 48dp touch targets, which naturally overlap
-     * on short Chinese words. Resolve overlapping targets by the closest
-     * visible knob, rather than always choosing the leading handle.
-     */
-    static int chooseTouchedTextHandle(boolean firstHit,boolean lastHit,
-            float touchX,float touchY,float firstX,float firstY,
-            float lastX,float lastY) {
-        if(!firstHit)return lastHit?2:0;
-        if(!lastHit)return 1;
-        float d1=(touchX-firstX)*(touchX-firstX)
-                +(touchY-firstY)*(touchY-firstY);
-        float d2=(touchX-lastX)*(touchX-lastX)
-                +(touchY-lastY)*(touchY-lastY);
-        return d1<=d2?1:2;
-    }
-
-    /**
      * OCR detection gives a much better whole-line left/right edge than CTC
      * character spacing on large launcher icons (for example, 头条).
      * CTC glyph bounds, however, are generally tighter vertically. For a
