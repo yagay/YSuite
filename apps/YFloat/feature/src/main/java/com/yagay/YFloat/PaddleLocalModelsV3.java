@@ -169,6 +169,7 @@ public final class PaddleLocalModelsV3 {
             File modelStage=null,secondaryStage=null;
             File dst=null,auxiliary=null;
             boolean attemptedCommit=false;
+            boolean hadPrimary=false,hadSecondary=false;
             try{
                 Spec spec=spec(id);
                 dst=model(app,id);
@@ -180,6 +181,8 @@ public final class PaddleLocalModelsV3 {
                 // Recover interrupted swaps before touching a valid existing model.
                 recoverBackup(dst);
                 if(auxiliary!=null)recoverBackup(auxiliary);
+                hadPrimary=dst.exists();
+                hadSecondary=auxiliary!=null&&auxiliary.exists();
                 long required=spec.size>0?spec.size:
                         spec.size< -1?-spec.size:20_000_000L;
                 if(directory.getUsableSpace()<required+64L*1024L*1024L)
@@ -207,8 +210,8 @@ public final class PaddleLocalModelsV3 {
                 if(callback!=null)MAIN.post(callback::onSuccess);
             }catch(Throwable error){
                 if(attemptedCommit){
-                    rollbackBackup(dst);
-                    if(auxiliary!=null)rollbackBackup(auxiliary);
+                    rollbackBackup(dst,hadPrimary);
+                    if(auxiliary!=null)rollbackBackup(auxiliary,hadSecondary);
                 }
                 if(callback!=null){
                     String reason=error.getMessage()==null?
@@ -246,16 +249,16 @@ public final class PaddleLocalModelsV3 {
         }
         Files.move(source.toPath(),dest.toPath(),StandardCopyOption.REPLACE_EXISTING);
     }
-    private static void rollbackBackup(File dest){
+    private static void rollbackBackup(File dest,boolean previouslyInstalled){
         if(dest==null)return;
         File backup=backupFile(dest);
         if(backup.exists()){
-            discard(dest);
             try{
                 Files.move(backup.toPath(),dest.toPath(),StandardCopyOption.REPLACE_EXISTING);
             }catch(Exception ignored){}
-        }else{
-            // This was a fresh installation, not a replacement.
+        }else if(!previouslyInstalled){
+            // Only clean an unbacked fresh installation, never an existing model
+            // whose attempted transaction failed before its backup was made.
             discard(dest);
         }
     }
