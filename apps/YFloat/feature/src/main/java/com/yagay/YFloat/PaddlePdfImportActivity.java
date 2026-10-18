@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * and never holds a full PDF worth of rendered Bitmaps in RAM.
  */
 public final class PaddlePdfImportActivity extends AppCompatActivity {
-    private enum Format { MARKDOWN, JSON }
+    private enum Format { MARKDOWN, JSON, HTML, CSV }
     private final ExecutorService io = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "YFloat-Paddle-PDF");
         t.setPriority(Thread.NORM_PRIORITY - 1);
@@ -40,6 +40,8 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
     private ActivityResultLauncher<String[]> openPicker;
     private ActivityResultLauncher<String> saveMarkdown;
     private ActivityResultLauncher<String> saveJson;
+    private ActivityResultLauncher<String> saveHtml;
+    private ActivityResultLauncher<String> saveCsv;
     private TextView status;
     private PdfRenderer renderer;
     private ParcelFileDescriptor sourceFd;
@@ -60,6 +62,12 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         saveJson = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("application/json"),
                 uri -> saveResult(uri));
+        saveHtml = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("text/html"),
+                uri -> saveResult(uri));
+        saveCsv = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("text/csv"),
+                uri -> saveResult(uri));
 
         LinearLayout root = YViewLayout.pageRoot(this,
                 "Paddle OCR - Local PDF",
@@ -77,6 +85,14 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         YViewLayout.addAction(actions, md);
         YViewLayout.addAction(actions, json);
         YViewLayout.addRow(section.body, actions);
+        LinearLayout more=YViewLayout.buttonRow(this);
+        MaterialButton html=YViewLayout.compactButton(this,"PDF to HTML");
+        MaterialButton csv=YViewLayout.compactButton(this,"PDF tables to CSV");
+        html.setOnClickListener(v->choose(Format.HTML));
+        csv.setOnClickListener(v->choose(Format.CSV));
+        YViewLayout.addAction(more,html);
+        YViewLayout.addAction(more,csv);
+        YViewLayout.addRow(section.body,more);
         YViewLayout.addSection(root, section);
         setContentView(YViewLayout.scrollPage(this, root));
     }
@@ -128,15 +144,25 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
             int count=renderer.getPageCount();
             if(pageIndex>=count){
                 closePdf();
-                output=format==Format.MARKDOWN
-                        ?PaddleDocumentExport.markdownPages(results)
-                        :PaddleDocumentExport.jsonPages(results);
+                output=switch(format){
+                    case MARKDOWN -> PaddleDocumentExport.markdownPages(results);
+                    case JSON -> PaddleDocumentExport.jsonPages(results);
+                    case HTML -> PaddleDocumentExport.htmlPages(results);
+                    case CSV -> PaddleDocumentExport.csvPages(results);
+                };
                 running=false;
                 runOnUiThread(()->{
                     if(cancelled.get())return;
                     status.setText("Finished "+results.size()+" pages. Choose where to save.");
-                    if(format==Format.MARKDOWN)saveMarkdown.launch("yfloat-ocr.md");
-                    else saveJson.launch("yfloat-ocr.json");
+                    switch(format){
+                        case MARKDOWN -> saveMarkdown.launch("yfloat-ocr.md");
+                        case JSON -> saveJson.launch("yfloat-ocr.json");
+                        case HTML -> saveHtml.launch("yfloat-ocr.html");
+                        case CSV -> {
+                            if(output.isBlank())status.setText("No tables detected in PDF.");
+                            else saveCsv.launch("yfloat-ocr-tables.csv");
+                        }
+                    }
                 });
                 return;
             }
