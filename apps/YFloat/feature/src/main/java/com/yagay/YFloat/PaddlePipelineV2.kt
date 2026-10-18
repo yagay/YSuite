@@ -395,6 +395,7 @@ object PaddlePipelineV2 {
                     page.asLegacy("ppocr-v2-"+model)
                         .withTableTexts(linked.map{it.tabSeparated}.filter{it.isNotBlank()})
                         .withTableHtmls(linked.map{it.html}.filter{it.isNotBlank()})
+                        .withTableOrigins(linked.map{it.source})
                         .withSealTexts(seals.map{it.recognizedText}.filter{it.isNotBlank()})
                         .withUnwarpedText(latestUnwarpedDocument?.fullText().orEmpty())
                         .withRectifiedDocument(latestUnwarpedDocument)
