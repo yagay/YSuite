@@ -47,25 +47,8 @@ final class SettingsCapturePage {
                 activity.getString(R.string.yfloat_native_circle_ocr_section),
                 activity.getString(R.string.yfloat_native_circle_ocr_desc));
         ui.circleFullOcrEngineSpinner(circleOcr.body);
-        ui.check(circleOcr.body,
-                java.util.Locale.getDefault().getLanguage().startsWith("zh")
-                    ? "Paddle 智能空格修正" : "Paddle spacing correction",
-                java.util.Locale.getDefault().getLanguage().startsWith("zh")
-                    ? "Paddle 识别时清除异常的中文字符间空格，保留中英文间隔和正常英文单词空格"
-                    : "Remove spurious CJK spacing in local Paddle OCR while preserving mixed-script and English words",
-                "paddle_v2_spacing",
-                activity.getSharedPreferences(FloatSettings.PREF,android.content.Context.MODE_PRIVATE)
-                    .getBoolean("paddle_v2_spacing",true));
         ui.circleCorrectionEngineSpinner(circleOcr.body);
-        ui.check(circleOcr.body,
-                java.util.Locale.getDefault().getLanguage().startsWith("zh")
-                    ? "Paddle 自动检测旋转方向（较慢）" : "Paddle auto-orientation (slower)",
-                java.util.Locale.getDefault().getLanguage().startsWith("zh")
-                    ? "离线对比原图和 90°、180°、270° 识别置信度，回映射原图坐标"
-                    : "Offline multi-pass OCR at 0/90/180/270 degrees, keeping source boxes",
-                "paddle_v2_auto_orientation",
-                activity.getSharedPreferences(FloatSettings.PREF,android.content.Context.MODE_PRIVATE)
-                    .getBoolean("paddle_v2_auto_orientation",false));
+        PaddleFlowSettingsUi.add(activity,fs,circleOcr.body,true);
         YViewLayout.addSection(root, circleOcr);
 
         YViewSection result = YViewLayout.section(activity,
@@ -78,6 +61,7 @@ final class SettingsCapturePage {
         ui.check(result.body, activity.getString(R.string.yfloat_collapse_results), null,
                 FloatSettings.K_OCR_COLLAPSE, fs.ocrCollapse());
         ui.ocrEngineSpinner(result.body);
+        PaddleFlowSettingsUi.add(activity,fs,result.body,false);
         YViewLayout.addSection(root, result);
 
         YViewSection models = YViewLayout.section(activity,
