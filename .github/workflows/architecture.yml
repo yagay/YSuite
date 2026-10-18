@@ -111,6 +111,9 @@ jobs:
           --json build/reports/yui-source-audit.json
           --markdown build/reports/yui-source-audit.md
 
+      - name: Ensure Paddle model weights stay optional per model
+        run: python3 tools/verify_paddle_independent_models.py
+
       - name: Verify YSuite host ownership
         run: python3 tools/verify_host_ownership.py
 
