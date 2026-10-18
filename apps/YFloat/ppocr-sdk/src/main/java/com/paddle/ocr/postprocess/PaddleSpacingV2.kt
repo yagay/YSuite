@@ -18,11 +18,19 @@ object PaddleSpacingV2 {
     )
 
     @JvmStatic fun correct(characters: List<OCRCharacter>, fallbackText: String): Correction {
-        if (characters.isEmpty()) return Correction(fallbackText, emptyList(), 0)
+        // Normalize only CJK-internal spacing independent of glyph geometry.
+        // Paddle can emit an explicit high-confidence space between Han
+        // characters; that is a segmentation artefact, not a visual gap.
+        val safeFallback=normalizeCjkSpacing(fallbackText)
+        val fallbackRemoved=countCandidateSpaces(fallbackText)-
+            countCandidateSpaces(safeFallback)
+        if (characters.isEmpty())
+            return Correction(safeFallback, emptyList(), fallbackRemoved.coerceAtLeast(0))
         // The CTC geometry can be incomplete even when recognition succeeds.
         // Do not replace the decoder's complete text with only aligned glyphs.
         val aligned=characters.joinToString("") { it.text }
-        if(fallbackText.isNotBlank() && aligned!=fallbackText) return Correction(fallbackText,characters,0)
+        if(fallbackText.isNotBlank() && aligned!=fallbackText)
+            return Correction(safeFallback,characters,fallbackRemoved.coerceAtLeast(0))
         val kept = ArrayList<OCRCharacter>(characters.size)
         var removed = 0
         for (i in characters.indices) {
@@ -40,8 +48,49 @@ object PaddleSpacingV2 {
         }
         // Do not lose decoder text if the SDK can't align a token to geometry.
         val corrected = kept.joinToString("") { it.text }
-        return Correction(corrected.ifEmpty { fallbackText }, kept, removed)
+        val source=corrected.ifEmpty { fallbackText }
+        val normalized=normalizeCjkSpacing(source)
+        val additional=(countCandidateSpaces(source)-countCandidateSpaces(normalized))
+            .coerceAtLeast(0)
+        return Correction(normalized,kept,removed+additional)
     }
+
+    /**
+     * Safe even if CTC glyph-box alignment is incomplete. Only remove spaces
+     * separating two CJK scripts or adjacent to CJK punctuation. Never strip
+     * normal Latin word separators, CJK/Latin separators, or line breaks.
+     * Repeating this normalization does not change the result.
+     */
+    @JvmStatic fun normalizeCjkSpacing(text:String):String {
+        if(text.isEmpty())return text
+        val cps=text.codePoints().toArray()
+        val out=StringBuilder(text.length)
+        for(i in cps.indices){
+            val current=cps[i]
+            if(isCandidateSpace(current)){
+                var a=i-1
+                while(a>=0&&isCandidateSpace(cps[a]))a--
+                var b=i+1
+                while(b<cps.size&&isCandidateSpace(cps[b]))b++
+                if(a>=0&&b<cps.size&&joinAroundCjk(cps[a],cps[b]))continue
+            }
+            out.appendCodePoint(current)
+        }
+        return out.toString()
+    }
+
+    private fun isCandidateSpace(cp:Int):Boolean =
+        cp==32 || cp==0x00a0 || cp==0x3000 || cp==0x202f
+
+    private fun countCandidateSpaces(text:String):Int =
+        text.codePoints().filter{isCandidateSpace(it)}.count().toInt()
+
+    private fun joinAroundCjk(left:Int,right:Int):Boolean =
+        (isCjk(left)&&isCjk(right)) ||
+        (isCjk(left)&&isCjkClosing(right)) ||
+        (isCjkOpening(left)&&isCjk(right)) ||
+        (isCjkClosing(left)&&isCjk(right)) ||
+        (isCjk(left)&&isCjkOpening(right))
 
     private fun spurious(prev: OCRCharacter, space: OCRCharacter, next: OCRCharacter): Boolean {
         if(prev.text.isEmpty()||next.text.isEmpty())return false
