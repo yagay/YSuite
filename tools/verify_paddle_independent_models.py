@@ -382,7 +382,7 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
         problems.append("Gesture line-local selection regressed: "+needle)
 for needle in ("selectedLine=all.get(first).line()",
                "CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)",
-               "selectionHighlightPaint", "screenToViewF(screenBand)",
+               "canvas.clipRect(selected)", "screenToViewF(screenBand)",
                "if(first==null)first=new RectF(highlight)",
                "WindowInsets.Type.statusBars()", "float pillTop=safeToolbarTop();",
                "float top=safeToolbarTop();"):
@@ -414,6 +414,17 @@ for needle in ("selectionBorderPaint",
                "YFloatOverlayStyle.selectionWithAlpha("):
     if needle not in native:
         problems.append("Native Circle font-preserving selection contrast regressed: "+needle)
+# Selecting OCR text must REVEAL the exact source bitmap pixels, not
+# blend a new color into the original typeface. The border is outside.
+for needle in ("canvas.clipRect(selected);",
+               "canvas.drawBitmap(frame.bitmap,null,",
+               "outline.inset(-NativeCircleVisualPolicy.textBorderOutsideGap(density)",
+               "Math.min(rowBounds.top,glyphBounds.top)",
+               "Math.max(rowBounds.bottom,glyphBounds.bottom)"):
+    if needle not in native:
+        problems.append("OCR selection must restore source pixels with exterior outline: "+needle)
+if "selectionHighlightPaint" in native or "canvas.drawRoundRect(highlight," in native:
+    problems.append("Blue fill overlay still alters original app text glyph pixels")
 if "canvas.drawLine(hx,first.top,hx,hy,outlinePaint)" in native:
     problems.append("OCR selection handle still paints through original glyph")
 for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "TEXT_HIGHLIGHT_BORDER_ALPHA",
