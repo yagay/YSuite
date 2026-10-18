@@ -3,222 +3,95 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.graphics.Bitmap;
 
-import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.text.TextRecognizer;
-
 /**
- * Circle OCR adapter with independently selectable recognition engines.
- *
- * <p>Normal Circle mode is deliberately OCR-only: it never traverses Accessibility Views for
- * text, never merges View text, and never masks View bounds. Root/LSPosed View extraction can be
- * added later as a separate enhanced path without affecting this stable normal-mode pipeline.</p>
+ * Paddle-only adapter for Circle's frozen frame and planned correction ROI.
+ * Recognizes directly via the same PaddleRecognitionRuntime as normal OCR.
+ * It does not own alternative text parsers, language-fusion passes,
+ * fake character boxes or a separate native-model cache.
  */
 final class CircleStableOcr {
-    static void recognizeFullScreenSelected(Context context, Bitmap bitmap,
-                                            OcrEngine.DocumentCallback callback) {
-        if (!valid(context, bitmap, callback)) return;
-        Context app = context.getApplicationContext();
-        int mode = new FloatSettings(app).circleFullOcrEngine();
-        if (mode == 0) {
-            recognizeFullScreenMlKit(app, bitmap, callback);
-            return;
-        }
-        if (mode == 5) {
-            // Same local Paddle engine as normal OCR; do not maintain an
-            // independent recognizer or model cache for Circle.
-            for (int candidate : new int[]{OcrModelManager.SMALL,
-                    OcrModelManager.MEDIUM, OcrModelManager.MOBILE,
-                    OcrModelManager.TINY}) {
-                if (OcrModelManager.isReady(app, candidate)) {
-                    DiagnosticLog.i(app, "FL_CIRCLE_FULL_ENGINE",
-                            "selected=paddle_auto model=" + candidate);
-                    recognizePaddle(app, bitmap, candidate, "full_screen_index", callback);
-                    return;
-                }
-            }
-            DiagnosticLog.i(app, "FL_CIRCLE_FULL_ENGINE",
-                    "selected=paddle_auto modelMissing=true offline_only=true");
-            callback.onFailure(new IllegalStateException(
-                    "Install a local PaddleOCR model for Circle OCR"));
-            return;
-        }
-        int model = modelForCircleMode(mode);
-        if (!OcrModelManager.isReady(app, model)) {
-            DiagnosticLog.i(app, "FL_CIRCLE_FULL_ENGINE",
-                    "selected=" + modeLabel(mode) + " modelMissing=true offline_only=true");
-            callback.onFailure(new IllegalStateException(
-                    app.getString(R.string.yfloat_ocr_model_missing,
-                            OcrModelManager.displayName(model))));
-            return;
-        }
-        recognizePaddle(app, bitmap, model, "full_screen_index", callback);
+    static void recognizeFullScreenSelected(Context context,Bitmap bitmap,
+            OcrEngine.DocumentCallback callback){
+        if(!valid(context,bitmap,callback))return;
+        Context app=context.getApplicationContext();
+        int mode=new FloatSettings(app).circleFullOcrEngine();
+        recognizePaddle(app,bitmap,PaddleRecognitionRuntime.circleModel(mode),
+                "full_screen_index",callback);
     }
 
-    static void recognizeCorrectionSelected(Context context, Bitmap bitmap,
-                                            OcrEngine.DocumentCallback callback) {
-        if (!valid(context, bitmap, callback)) return;
-        Context app = context.getApplicationContext();
-        int mode = new FloatSettings(app).circleCorrectionEngine();
-        if (mode == 0) {
-            callback.onFailure(new IllegalStateException(app.getString(R.string.yfloat_circle_correction_disabled)));
-            return;
-        }
-        int model = modelForCircleMode(mode);
-        if (!OcrModelManager.isReady(app, model)) {
+    static void recognizeCorrectionSelected(Context context,Bitmap bitmap,
+            OcrEngine.DocumentCallback callback){
+        if(!valid(context,bitmap,callback))return;
+        Context app=context.getApplicationContext();
+        int mode=new FloatSettings(app).circleCorrectionEngine();
+        if(mode==0){
             callback.onFailure(new IllegalStateException(
-                    app.getString(R.string.yfloat_ocr_model_missing, OcrModelManager.displayName(model))));
+                    app.getString(R.string.yfloat_circle_correction_disabled)));
             return;
         }
-        recognizePaddle(app, bitmap, model, "gesture_correction", callback);
+        recognizePaddle(app,bitmap,PaddleRecognitionRuntime.circleModel(mode),
+                "gesture_correction",callback);
     }
 
-    /** Normal mode: complete screenshot -> ML Kit only. No Accessibility/View text path. */
-    static void recognizeFullScreenMlKit(Context context, Bitmap bitmap,
-                                         OcrEngine.DocumentCallback callback) {
-        if (!valid(context, bitmap, callback)) return;
-        Context app = context.getApplicationContext();
-        long started = android.os.SystemClock.uptimeMillis();
-
-        TextRecognizer recognizer;
-        try {
-            recognizer = MlKitTextCore.createPreferredRecognizer(app);
-        } catch (Throwable t) {
-            callback.onFailure(t);
-            return;
-        }
-
-        String engine = MlKitTextCore.preferredEngine("mlkit-circle-full", app);
-        DiagnosticLog.i(app, "FL_CIRCLE_ML_INDEX",
-                "start engine=" + engine
-                        + " bitmap=" + bitmap.getWidth() + "x" + bitmap.getHeight()
-                        + " role=full_screen_index"
-                        + " mode=normal_ocr_only"
-                        + " viewText=false");
-        try {
-            recognizer.process(InputImage.fromBitmap(bitmap, 0))
-                    .addOnSuccessListener(text -> {
-                        try {
-                            OcrDocument document = MlKitTextCore.toDocument(text, engine,
-                                    bitmap.getWidth(), bitmap.getHeight(), 0f, null);
-                            if (document == null || document.fullText().isBlank()
-                                    || document.chars().isEmpty()) {
-                                callback.onFailure(new IllegalStateException(app.getString(R.string.yfloat_mlkit_ocr_empty)));
-                                return;
-                            }
-                            DiagnosticLog.i(app, "FL_CIRCLE_ML_INDEX",
-                                    "success engine=" + document.engine()
-                                            + " chars=" + document.chars().size()
-                                            + " lines=" + document.lines().size()
-                                            + " mode=normal_ocr_only"
-                                            + " viewText=false"
-                                            + " elapsedMs="
-                                            + (android.os.SystemClock.uptimeMillis() - started));
-                            callback.onSuccess(document);
-                        } catch (Throwable t) {
-                            callback.onFailure(t);
-                        } finally {
-                            try { recognizer.close(); } catch (Throwable ignored) {}
+    private static void recognizePaddle(Context app,Bitmap bitmap,int model,
+            String role,OcrEngine.DocumentCallback callback){
+        long started=android.os.SystemClock.uptimeMillis();
+        DiagnosticLog.i(app,"FL_CIRCLE_PADDLE",
+                "role="+role+" requestedModel="+model+" size="+
+                bitmap.getWidth()+"x"+bitmap.getHeight());
+        PaddleRecognitionRuntime.recognize(app,bitmap,model,
+                new PaddleRecognitionRuntime.Callback(){
+                    @Override public void onSuccess(OcrDocument document,
+                            int usedModel,long elapsedMs){
+                        if(document==null||document.fullText().isBlank()||
+                                document.chars().isEmpty()){
+                            callback.onFailure(new IllegalStateException(
+                                    app.getString(R.string.yfloat_ppocr_empty)));
+                            return;
                         }
-                    })
-                    .addOnFailureListener(error -> {
-                        try { recognizer.close(); } catch (Throwable ignored) {}
-                        DiagnosticLog.i(app, "FL_CIRCLE_ML_INDEX",
-                                "failed error=" + safe(error)
-                                        + " mode=normal_ocr_only"
-                                        + " viewText=false"
-                                        + " elapsedMs="
-                                        + (android.os.SystemClock.uptimeMillis() - started));
-                        callback.onFailure(error);
-                    });
-        } catch (Throwable t) {
-            try { recognizer.close(); } catch (Throwable ignored) {}
-            callback.onFailure(t);
-        }
+                        DiagnosticLog.i(app,"FL_CIRCLE_PADDLE",
+                                "role="+role+" model="+usedModel+
+                                " lines="+document.lines().size()+
+                                " units="+document.chars().size()+
+                                " elapsedMs="+(android.os.SystemClock.uptimeMillis()-started));
+                        callback.onSuccess(document);
+                    }
+                    @Override public void onFailure(Throwable error){
+                        callback.onFailure(error==null?
+                                new IllegalStateException("PaddleOCR failed"):error);
+                    }
+                });
     }
 
-    private static void recognizePaddle(Context app, Bitmap bitmap, int model, String role,
-                                        OcrEngine.DocumentCallback callback) {
-        long started = android.os.SystemClock.uptimeMillis();
-        DiagnosticLog.i(app, role.equals("gesture_correction")
-                        ? "FL_CIRCLE_PP_REGION" : "FL_CIRCLE_PP_INDEX",
-                "start model=" + model
-                        + " modelName=" + OcrModelManager.displayName(model)
-                        + " bitmap=" + bitmap.getWidth() + "x" + bitmap.getHeight()
-                        + " role=" + role
-                        + " postLogic=ml_semantics_no_ml_runtime");
-        PaddlePipelineV2.recognize(app, bitmap, model, new PaddlePipelineV2.Callback() {
-            @Override public void onSuccess(OcrDocument raw, long totalMs, int lineCount) {
-                if (raw == null || raw.fullText().isBlank() || raw.chars().isEmpty()) {
-                    callback.onFailure(new IllegalStateException(app.getString(R.string.yfloat_ppocr_empty)));
-                    return;
-                }
-                // PaddlePipelineV2 owns normalized OCR/layout output without the old adapter.
-                DiagnosticLog.i(app, role.equals("gesture_correction")
-                                ? "FL_CIRCLE_PP_REGION" : "FL_CIRCLE_PP_INDEX",
-                        "success model=" + model
-                                + " engine=" + raw.engine()
-                                + " chars=" + raw.chars().size()
-                                + " lines=" + lineCount
-                                + " elapsedMs="
-                                + (android.os.SystemClock.uptimeMillis() - started)
-                                + " semantics=ml_line_element_symbol");
-                callback.onSuccess(raw);
-            }
-
-            @Override public void onFailure(String message) {
-                callback.onFailure(new IllegalStateException(
-                        message == null || message.isBlank() ? app.getString(R.string.yfloat_ppocr_failed) : message));
-            }
-        });
+    static String fullModeLabel(Context context){
+        return modeLabel(new FloatSettings(context.getApplicationContext())
+                .circleFullOcrEngine());
     }
 
-    private static int modelForCircleMode(int mode) {
-        return switch (mode) {
-            case 1 -> OcrModelManager.TINY;
-            case 2 -> OcrModelManager.SMALL;
-            case 3 -> OcrModelManager.MEDIUM;
-            case 4 -> OcrModelManager.MOBILE;
-            default -> throw new IllegalArgumentException("not a PP Circle mode=" + mode);
+    static String correctionModeLabel(Context context){
+        int mode=new FloatSettings(context.getApplicationContext()).circleCorrectionEngine();
+        return mode==0?context.getString(R.string.yfloat_ocr_off):modeLabel(mode);
+    }
+
+    private static String modeLabel(int mode){
+        return switch(mode){
+            case 1 -> "paddle_tiny";
+            case 2 -> "paddle_small";
+            case 3 -> "paddle_medium";
+            case 4 -> "paddle_mobile";
+            default -> "paddle_auto";
         };
     }
 
-    static String fullModeLabel(Context context) {
-        return modeLabel(new FloatSettings(context.getApplicationContext()).circleFullOcrEngine());
-    }
-
-    static String correctionModeLabel(Context context) {
-        int mode = new FloatSettings(context.getApplicationContext()).circleCorrectionEngine();
-        return mode == 0 ? context.getString(R.string.yfloat_ocr_off) : modeLabel(mode);
-    }
-
-    private static String modeLabel(int mode) {
-        return switch (mode) {
-            case 1 -> "ppocr_tiny";
-            case 2 -> "ppocr_small";
-            case 3 -> "ppocr_medium";
-            case 4 -> "ppocrv5_mobile";
-            case 5 -> "paddle_auto";
-            default -> "mlkit";
-        };
-    }
-
-    private static boolean valid(Context context, Bitmap bitmap,
-                                 OcrEngine.DocumentCallback callback) {
-        if (callback == null) return false;
-        if (context == null || bitmap == null || bitmap.isRecycled()
-                || bitmap.getWidth() <= 0 || bitmap.getHeight() <= 0) {
-            callback.onFailure(new IllegalArgumentException(context.getString(R.string.yfloat_invalid_ocr_bitmap)));
+    private static boolean valid(Context context,Bitmap bitmap,
+            OcrEngine.DocumentCallback callback){
+        if(callback==null)return false;
+        if(context==null||bitmap==null||bitmap.isRecycled()||
+                bitmap.getWidth()<1||bitmap.getHeight()<1){
+            callback.onFailure(new IllegalArgumentException("Invalid Circle OCR frame"));
             return false;
         }
         return true;
     }
-
-    private static String safe(Throwable error) {
-        if (error == null) return "unknown";
-        String message = error.getMessage();
-        return message == null || message.isBlank()
-                ? error.getClass().getSimpleName() : message;
-    }
-
-    private CircleStableOcr() {}
+    private CircleStableOcr(){}
 }
