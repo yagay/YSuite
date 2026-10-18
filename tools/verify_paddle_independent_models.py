@@ -195,6 +195,16 @@ for needle in ("File.createTempFile(", "appendPage(pageIndex,document)",
         problems.append("Offline PDF streaming/retry/bitmap lifecycle contract missing: "+needle)
 if "results.add(document)" in pdf or "ArrayList<OcrDocument> results" in pdf:
     problems.append("PDF OCR must not retain unbounded page documents in RAM")
+if 'mode == 3' not in ocr_engine:
+    problems.append("Legacy ML Kit mode must remain explicitly user-selectable")
+if '"no_local_model", request' in ocr_engine or '"local_model_missing", request' in ocr_engine:
+    problems.append("Paddle Auto must never silently select ML Kit")
+if '"ppocr_empty", request' in ocr_engine or '"ppocr_failure:" + message, request' in ocr_engine:
+    problems.append("Paddle Auto failure must not silently switch engines")
+if '"selected=paddle_auto modelMissing=true fallback=mlkit"' in circle:
+    problems.append("Circle Paddle Auto must not silently switch engines")
+if '"Paddle offline"' not in selector:
+    problems.append("User-facing Paddle Auto label must identify its offline engine")
 
 if problems:
     print("FAIL: Independent Paddle model policy")
