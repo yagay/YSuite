@@ -509,3 +509,42 @@ image set; static JVM/Debug CI cannot prove those physical properties.
 **CI correction:** The first all-at-once build reached Kotlin compilation and revealed a Java package-visibility mismatch in the newly public cancellation API; `PaddleRequestToken` is now public. Rebuild ARM64 Debug and re-run both OCR unit-test suites.
 
 **Final compile compatibility correction:** Kotlin API visibility and Java floating-point gesture ROI overload were both fixed after CI exposed the errors. Perform the final ARM64 Debug/JVM regression build without modifying model sources further.
+
+## Original-font Circle highlight and launcher line locality (2026-10-18)
+
+Source screenshot: launcher icons and app labels of different original font
+sizes. The native Circle previous selection accidentally picked the first
+and last OCR indices across two unrelated lines (e.g. text inside a rednote
+icon and its independent launcher label). `CircleGestureTextSelector` used
+to fill *every* character between those indices in the entire document.
+
+Repair:
+- For a **HIGHLIGHT** gesture, calculate hits from its actual screen path,
+  prioritize the closest touched OCR line, then select only the contiguous
+  run of glyphs from that source line. Large horizontal gaps between distinct
+  launcher labels break runs. TAP word selection remains unchanged.
+- `NativeCircleWorkspace` locks the initial selection and draggable handles
+  to its source OCR line; explicit Select all intentionally removes that lock
+  and can cover every line.
+- The native Canvas always displays the captured screenshot pixels. Selected
+  text is **never re-typeset**; instead a translucent YUI-colored horizontal
+  band is generated from OCR text-line geometry, while tap/hit testing still
+  uses CTC glyph boxes. The text selection handles share the band's final
+  coordinates, not differently estimated glyph heights.
+- Subpixel rectangles remain `RectF` through the screen→view mapping.
+  A lighter selection alpha minimizes visual color changes to original
+  letter shapes. Exact source font family and size are intentionally never
+  guessed from OCR.
+- Status/close controls respect Android status-bar insets, with a safe
+  fallback for full-screen overlay windows whose inset may report zero.
+
+The separate pure `CircleTextRangePolicy` and its JVM tests protect line
+selection, gap boundaries and Select-all behavior. A static contract in
+`verify_paddle_independent_models.py` also checks that the native
+workspace never reintroduces glyph re-rendering or status-bar overlap.
+
+Caveat: CTC glyph detection boxes remain estimated and are used only for
+selection hit targets. This is a *visual highlight and range locality fix*,
+not a claim to recognize arbitrary original fonts or recover exact glyph
+outlines. Physical on-device validation remains needed for curved text,
+rotated labels and extreme screenshot transformations.
