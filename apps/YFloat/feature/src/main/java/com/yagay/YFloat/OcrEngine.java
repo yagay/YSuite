@@ -623,6 +623,9 @@ public final class OcrEngine {
             java.util.ArrayList<String> displayBlocks=new java.util.ArrayList<>(document.blocks());
             displayBlocks.addAll(document.tableTexts());
             displayBlocks.addAll(document.sealTexts());
+            for(String chart:document.chartTexts()){
+                if(chart!=null&&!chart.isBlank())displayBlocks.add("Chart labels: "+chart);
+            }
             for(String formula:document.formulaTexts()){
                 if(formula!=null&&!formula.isBlank())displayBlocks.add("LaTeX: "+formula);
             }

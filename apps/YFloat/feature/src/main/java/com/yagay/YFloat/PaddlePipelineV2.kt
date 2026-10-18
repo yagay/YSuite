@@ -58,6 +58,8 @@ object PaddlePipelineV2 {
     @Volatile private var latestSealResults:List<SealResult> = emptyList()
     @JvmStatic fun lastUnwarpedDocument():OcrDocument?=latestUnwarpedDocument
     @JvmStatic fun lastSealResults():List<SealResult> = latestSealResults
+    @Volatile private var lastCharts:List<PaddleChartTextV3.Chart> = emptyList()
+    @JvmStatic fun latestCharts():List<PaddleChartTextV3.Chart> = lastCharts
     @Volatile private var lastTables:List<PaddleTableTextV3.Table> = emptyList()
     @JvmStatic fun latestTables():List<PaddleTableTextV3.Table> = lastTables
     private var layoutEngine:PPDocLayoutV2?=null
@@ -251,6 +253,7 @@ object PaddlePipelineV2 {
                     val page=PaddlePageV2.fromOcr(chosen.results,image.width,image.height,
                         structure,spacing)
                     val linked=tables.map{PaddleTableTextV3.link(it,page.lines)}
+                    lastCharts=PaddleChartTextV3.extract(page)
                     // UVDoc is a separate document-OCR result. Its coordinates
                     // refer to its rectified bitmap, not the source screenshot.
                     // Never send those quads to the screen selection overlay.
@@ -339,6 +342,7 @@ object PaddlePipelineV2 {
                         .filter{it.isNotBlank()})
                     .withUnwarpedText(latestUnwarpedDocument?.fullText().orEmpty())
                     .withFormulaTexts(latestFormulaResults.map{it.latex})
+                    .withChartTexts(lastCharts.map{it.searchableText}.filter{it.isNotBlank()})
                 withContext(Dispatchers.Main){
                     callback.onSuccess(compat,System.currentTimeMillis()-started,
                         compat.lines().size)
@@ -365,6 +369,7 @@ object PaddlePipelineV2 {
                 sealEngine?.close();sealEngine=null;sealSignature=null
                 formulaEngine?.close();formulaEngine=null;formulaSignature=null
                 latestFormulaResults=emptyList()
+                lastCharts=emptyList()
                 latestUnwarpedDocument=null
                 latestSealResults=emptyList()
                 lastTables=emptyList()
