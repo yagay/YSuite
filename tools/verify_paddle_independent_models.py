@@ -89,6 +89,10 @@ if "OcrModelManager.TINY, true" not in ocr_engine or "mode == 6" not in ocr_engi
     problems.append("Tiny fallback / explicit selection missing from main OCR")
 if "selected == 6 ? 5" not in selector:
     problems.append("Tiny model not reachable from primary OCR settings")
+if "mode == 5" not in circle or "selected=paddle_auto" not in circle:
+    problems.append("Circle full-screen OCR must expose shared offline Paddle Auto")
+if 'return 5;' not in (java / "FloatSettings.java").read_text():
+    problems.append("New Circle installations must default to Paddle Auto")
 
 if problems:
     print("FAIL: Independent Paddle model policy")
