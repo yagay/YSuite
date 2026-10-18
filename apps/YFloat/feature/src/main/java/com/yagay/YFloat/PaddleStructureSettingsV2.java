@@ -6,7 +6,7 @@ import android.widget.Toast;
 import com.google.android.material.button.MaterialButton;
 import com.yagay.yui.YViewLayout;
 
-/** YUI-only controls for the separately installed PP-StructureV3 layout model. */
+/** YUI-only controls for the separately installed on-device PP-DocLayout-S layout model. */
 final class PaddleStructureSettingsV2 {
     static void add(SettingsActivity activity,LinearLayout parent){
         boolean zh=java.util.Locale.getDefault().getLanguage().startsWith("zh");
@@ -30,7 +30,7 @@ final class PaddleStructureSettingsV2 {
         Runnable refresh=()->{
             boolean ready=PaddleStructureModelV2.isReady(activity);
             boolean active=PaddleStructureModelV2.enabled(activity);
-            status.setText("PP-StructureV3 / PP-DocLayout-S (23 layouts) — "+
+            status.setText("本地 PP-DocLayout-S / Offline layout (23 types) — "+
                     (ready?(active?(zh?"已启用":"Enabled"):(zh?"已安装":"Installed"))
                         :(zh?"未安装":"Not installed")));
             install.setEnabled(!PaddleStructureModelV2.isDownloading());

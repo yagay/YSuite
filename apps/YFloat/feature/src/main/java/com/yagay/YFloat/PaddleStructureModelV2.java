@@ -14,9 +14,9 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Independent verified model owner for PP-StructureV3's PP-DocLayout-S stage. */
+/** Independent verified model owner for PP-DocLayout-S offline layout stage. */
 public final class PaddleStructureModelV2 {
-    public static final String NAME="PP-StructureV3 / PP-DocLayout-S";
+    public static final String NAME="PP-DocLayout-S (on-device layout)";
     public static final String URL="https://huggingface.co/stefanj0/PP-DocLayout-S-ONNX/resolve/main/pp_doclayout_s.onnx?download=true";
     public static final long BYTES=4917852L;
     public static final String SHA256="33688dbee1c23e34b81777e97cb428eb40f24b242c02b5f623484959e830aec8";

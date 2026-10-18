@@ -136,22 +136,7 @@ public final class OcrEngine {
                 + " lane=" + request.lane()
                 + " small=" + smallReady + " medium=" + mediumReady);
 
-        if (mode == 4) {
-            // Full PP-StructureV3 runs all modules on the explicitly selected
-            // HTTPS service; local OCR and Circle never upload images.
-            PaddleStructureFullV3.recognize(app, source, new PaddleStructureFullV3.Callback() {
-                @Override public void onSuccess(OcrDocument document) {
-                    if (stale(app, request, "structure_full_success")) return;
-                    deliver(app, service, source, anchor, callback, deliverUi, document, request);
-                }
-                @Override public void onFailure(Throwable error) {
-                    if (stale(app, request, "structure_full_failure")) return;
-                    fail(app, service, callback, deliverUi, request,
-                            "pp_structure_full_v3_failed",
-                            "PP-StructureV3: " + safe(error), error);
-                }
-            });
-        } else if (mode == 3) {
+        if (mode == 3) {
             startMlKitPipeline(app, service, source, anchor, callback, deliverUi,
                     "manual_mlkit", request);
         } else if (mode == 1) {

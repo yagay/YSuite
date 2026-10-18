@@ -287,10 +287,14 @@ public final class FloatSettings {
     public boolean ocrCollapse() { return p.getBoolean(K_OCR_COLLAPSE, false); }
     public int ocrType() { return clamp(p.getInt(K_OCR_TYPE, 0), 0, 1); }
     public int ocrEngineMode() {
+        // 4 was the retired network PP-StructureV3 entry. Migrate it to offline auto.
         Object raw = p.getAll().get(K_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 4);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 4); } catch (Throwable ignored) {} }
-        return 0;
+        int mode = 0;
+        if (raw instanceof Number n) mode = n.intValue();
+        else if (raw instanceof String v) {
+            try { mode = Integer.parseInt(v.trim()); } catch (NumberFormatException ignored) {}
+        }
+        return mode == 4 ? 0 : clamp(mode, 0, 3);
     }
     public String customIconUri() { return p.getString(K_CUSTOM_ICON, ""); }
     public String slidePics() { return p.getString(K_SLIDE_PICS, ""); }
