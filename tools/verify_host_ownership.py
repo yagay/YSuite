@@ -54,7 +54,6 @@ def main() -> int:
         ".notification.SuiteNotificationListenerService",
         ".system.SuiteBootReceiver",
         ".ipc.SuiteBridgeReceiver",
-        ".ipc.SuiteGoogleBridgeProvider",
         ".ipc.SuiteMiniGuardStatusProvider",
         ".ipc.SuiteNfcConfigProvider",
     )
@@ -70,9 +69,6 @@ def main() -> int:
         "com.yagay.ypower.root.BootReceiver",
         "com.yagay.YFloat.FloatServiceBootReceiver",
         "com.yagay.YNotify.collector.XposedEventReceiver",
-        "com.yagay.YFloat.GoogleCtsBridgeReceiver",
-        "com.yagay.YFloat.GoogleCtsTraceReceiver",
-        "com.yagay.YFloat.GoogleCtsBridgeProvider",
         "com.yagay.YMiniGuard.EngineStatusProvider",
         "com.yagay.YNFC.ConfigProvider",
     )
