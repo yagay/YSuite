@@ -41,7 +41,7 @@ final class NativeCircleVisualPolicy {
             float sharedHeight=Math.max(0f,Math.min(glyphBottom,rowBottom)
                     -Math.max(glyphTop,rowTop));
             boolean related=rw>=gw*0.65f && rw<=gw*1.8f
-                    && rh>=gh*0.65f && rh<=gh*1.8f
+                    && rh>=gh*0.55f && rh<=gh*1.8f
                     && sharedWidth>=Math.min(gw,rw)*0.55f
                     && sharedHeight>=Math.min(gh,rh)*0.55f;
             if(related){
