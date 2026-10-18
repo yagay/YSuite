@@ -107,6 +107,22 @@ final class SettingsCapturePage {
         }
         YViewLayout.addSection(root, models);
 
+        YViewSection documents = YViewLayout.section(activity,
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                        ? "离线文档 OCR" : "Offline document OCR",
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                        ? "PDF 按页识别并导出 Markdown / JSON，所有处理均在本机完成。"
+                        : "Recognize PDF pages locally and export Markdown or JSON.");
+        MaterialButton importPdf=YViewLayout.compactButton(activity,
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                        ? "打开 PDF 文档" : "Open PDF document");
+        importPdf.setOnClickListener(v->activity.startActivity(
+                new android.content.Intent(activity,PaddlePdfImportActivity.class)));
+        LinearLayout documentActions=YViewLayout.buttonRow(activity);
+        YViewLayout.addAction(documentActions,importPdf);
+        YViewLayout.addRow(documents.body,documentActions);
+        YViewLayout.addSection(root,documents);
+
         YViewSection languages = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_recognition_languages_section),
                 activity.getString(R.string.yfloat_recognition_languages_desc));
