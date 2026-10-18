@@ -381,7 +381,7 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
     if needle not in selector:
         problems.append("Gesture line-local selection regressed: "+needle)
 for needle in ("selectedLine=all.get(first).line()",
-               "CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)",
+               "CircleTextRangePolicy.sameLine(unit.line(),selectedLine)",
                "TextGeometryV3.build(fullDocument,chosenChars,",
                "canvas.clipPath(selection)", "quadToView(region.corners())",
                "pathForQuad(corners,0f)", "rebuildSelectionGeometry();",
@@ -400,56 +400,47 @@ for needle in ("static float lineScore(", "static boolean splitsLabel(",
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleTextRangePolicyTest.java").is_file():
     problems.append("Missing icon-caption same-line selection regression tests")
 
-# TextGeometry V3 still owns the translucent selection fill. The two
-# asymmetric grips and their gesture lifecycle are independent Android Views,
-# not the old parent Canvas's manually positioned circles.
+# Import the ACTUAL handle implementation from main/FLCircleInlineOverlay
+# while retaining Paddle/TextGeometry V3's precise selection path.
 native=(java / "NativeCircleWorkspace.java").read_text()
 visual=(java / "NativeCircleVisualPolicy.java").read_text()
 style=(java / "YFloatOverlayStyle.java").read_text()
-grips=(java / "NativeSelectionHandlesView.java").read_text()
-caret=(java / "TextCaretGeometry.java").read_text()
-drag=(java / "SelectionDragController.java").read_text()
-for needle in ("extends FrameLayout", "setWillNotDraw(false)",
-               "new NativeSelectionHandlesView(context,",
-               "addView(selectionHandles,new FrameLayout.LayoutParams(",
-               "TextCaretGeometry.forQuads(", "SelectionDragController.move(",
-               "selectionHandles.clear();", "updateSelectionHandles();",
-               "canvas.clipPath(selection)", "canvas.drawBitmap(frame.bitmap,null,",
+main_handle_signature=(
+    "extends View", "TEXT_HANDLE_HIT_DP = 28f",
+    "TEXT_HANDLE_SNAP_DP = 96f",
+    "textHandlePaint.setColor(0xFF4285F4)",
+    "float stem=7f*density", "float radius=7f*density",
+    "canvas.drawLine(first.left,first.bottom,",
+    "canvas.drawCircle(first.left,first.bottom+stem,radius,textHandlePaint)",
+    "canvas.drawLine(last.right,last.bottom,",
+    "canvas.drawCircle(last.right,last.bottom+stem,radius,textHandlePaint)",
+    "Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)<=max",
+    "Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)<=max",
+    "float maxDistance=TEXT_HANDLE_SNAP_DP*density",
+    "Math.min(maxDistance*0.48f,rect.height()*2.15f)",
+    "float score=dx*dx+dy*dy*3.25f")
+for needle in main_handle_signature:
+    if needle not in native:
+        problems.append("Main FLCircleInlineOverlay handle not fully ported: "+needle)
+for needle in ("canvas.clipPath(selection)",
+               "canvas.drawBitmap(frame.bitmap,null,",
                "canvas.drawPath(selection,selectionFillPaint)",
                "TextGeometryPixelLocator.refine(frame,glyph,detector)",
                "TextGeometryV3.build(fullDocument,chosenChars,"):
     if needle not in native:
-        problems.append("Native text handle/view and V3 selection contract missing: "+needle)
-for source,label,needles in (
-    (grips,"independent handles",("extends View","drawGrip(canvas,caret.start,true)",
-               "drawGrip(canvas,caret.end,false)", "listener.onBegin(active)",
-               "listener.onMove(active,", "onTouchEvent(MotionEvent event)",
-               "fingerOffsetX=event.getX()-c.x", "setFocusable(false)")),
-    (caret,"caret hotspots",("static Pair forQuads(", "first[6],first[7]",
-               "last[4],last[5]", "angleDegrees")),
-    (drag,"crossing",("candidate<=last", "candidate>=first",
-               "new Range(last,candidate,END)", "new Range(candidate,first,START)"))):
-    for needle in needles:
-        if needle not in source:
-            problems.append("Native text "+label+" regressed: "+needle)
-for banned in ("selectionBorderPaint", "selectionHandlePaint",
-               "firstHandle.contains(", "lastHandle.contains(",
-               "attachedTextHandle(", "chooseTouchedTextHandle(",
-               "canvas.drawLine(leading[", "canvas.drawCircle(leading["):
+        problems.append("Paddle TextGeometry V3 selection regressed: "+needle)
+for banned in ("NativeSelectionHandlesView", "TextCaretGeometry",
+               "SelectionDragController", "selectionHandlePaint",
+               "attachedTextHandle(", "chooseTouchedTextHandle("):
     if banned in native:
-        problems.append("Obsolete round/stem Canvas text handles still active: "+banned)
+        problems.append("Unused experimental teardrop handle code still active: "+banned)
 if "TEXT_HIGHLIGHT_FILL_ALPHA" not in visual:
     problems.append("Native translucent OCR highlight policy missing")
 if "static int selectionWithAlpha(" not in style:
-    problems.append("Native Circle highlight ignores user's custom selection color")
+    problems.append("Native Circle highlight ignores configured selection colour")
 selection_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java"
 if not selection_test.is_file() or "nativeTextSelectionHasVisibleTranslucentBlueWash" not in selection_test.read_text():
-    problems.append("TextGeometry V3 filled CJK selection regression missing")
-for testname,method in (("TextCaretGeometryTest.java","toutiaoHotspotsAttachToStartAndEndOfFilledWord"),
-                        ("SelectionDragControllerTest.java","leadingCaretCrossesTrailingCaretAndSwitchesRole")):
-    testpath=FEATURE / "feature/src/test/java/com/yagay/YFloat" / testname
-    if not testpath.is_file() or method not in testpath.read_text():
-        problems.append("Missing independent native text handle regression "+testname)
+    problems.append("TextGeometry V3 CJK text highlight regression missing")
 if "textSelectionScreenBand(" not in visual or "sharedWidth>=" not in visual:
     problems.append("Native circle has no bounded glyph/line geometry policy")
 
