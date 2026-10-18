@@ -334,6 +334,40 @@ if "engine.runFast(bitmap,maxDetectionSide)" not in paddle or (
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/PaddleFlowOptionsTest.java").is_file():
     problems.append("Missing per-profile settings unit tests")
 
+# Current native Circle must defer OCR until a text gesture, then use the
+# correct original-screen coordinate mapping for ROI and select-all.
+native=(java / "NativeCircleWorkspace.java").read_text()
+runtime=(java / "PaddleRecognitionRuntime.java").read_text()
+pipeline=(java / "PaddlePipelineV2.kt").read_text()
+stable_circle=(java / "CircleStableOcr.java").read_text()
+for needle in ("startOcr(roi,false);", "startOcr(null,true);",
+               "frame.transform.documentLocalToScreen(result,roi,",
+               "new CircleCharSpatialIndex(cachedChars)",
+               "PaddleCircleRoiPolicy.forGesture(",
+               "retryWholeForHighlight(", "activeOcr.cancel()"):
+    if needle not in native:
+        problems.append("Active native Circle fast ROI/selection contract missing: "+needle)
+if "view.startOcr();" in native or "text.append(' ')" in native:
+    problems.append("Native Circle still does eager OCR or manufactures spaces")
+for needle in ("new PaddleRequestToken()", "boolean circle,PaddleRequestToken request",
+               "request.cancelled()", "boolean ambiguous=!circle"):
+    if needle not in runtime:
+        problems.append("Circle runtime lacks safe cancel or single-pass behavior: "+needle)
+for needle in ("PaddleRequestToken", "request.check()", "phase=start waitMs=",
+               "alternateModels.remove(model)", "session=variant_reused"):
+    if needle not in pipeline:
+        problems.append("Paddle inference cancellation/cache contract missing: "+needle)
+if "PaddleRecognitionRuntime.recognize(app,bitmap,model,true,request," not in stable_circle:
+    problems.append("Circle input bitmap is not protected by a cancellable OCR request")
+ui=(java / "PaddleFlowSettingsUi.java").read_text()
+for needle in ("addPresetButton(", '"fast"', '"balanced"', '"accurate"',
+               "YViewLayout.switchRow(", "dependent.setEnabled(checked)"):
+    if needle not in ui:
+        problems.append("Missing YUI quick OCR presets or advanced setting dependencies: "+needle)
+for name in ("PaddleRequestPerformanceTest.java","CircleCharSpatialIndexTest.java"):
+    if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():
+        problems.append("Missing OCR performance regression case: "+name)
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
