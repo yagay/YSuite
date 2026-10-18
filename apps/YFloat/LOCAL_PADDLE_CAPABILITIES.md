@@ -412,3 +412,45 @@ glyph highlights after OCR; no rectangular crop if OCR fails. The source
 and CI tests cannot emulate user touch rendering in a live Android overlay.
 
 **Final ARM64 Debug gate:** Validate the complete highlight gesture and OCR timeout routing batch with unit tests and ABI checks after all intermediate `[skip ci]` commits.
+
+## User-configurable Paddle execution flow — 2026-10-18
+
+OCR preferences now expose **two independent profiles**, on the standard
+YFloat Capture/OCR settings page:
+
+- **Circle** defaults to fast detection + recognition + CJK spacing.
+  It skips document layout, tables, document orientation, UVDoc, seals,
+  formulas and chart metadata. Regular OCR does not inherit these settings.
+- **Document / images / PDF** defaults to the existing complete local
+  pipeline. The user may disable individual expensive stages or enable
+  the fast detector here too.
+- Each profile has an **Extended pipeline** master control that gates
+  optional steps without discarding per-stage preferences. The following
+  steps have separate controls: fast detection, text-line orientation,
+  document orientation, fallback four-way orientation OCR, layout,
+  table structure, UVDoc rectification, seal analysis, formula OCR,
+  chart visible labels, and spacing refinement.
+- Text detection and recognition are mandatory core stages of OCR;
+  disabling both would not be an OCR request. All optional weights must
+  still be downloaded individually. A switch cannot replace a missing
+  model. Closing an auxiliary stage skips loading/inference and releases
+  previously cached auxiliary session under the serialized inference
+  mutex. Other profile preferences are not overwritten.
+
+The fast detector caps the *detection tensor* at 1920 on Circle; the
+recognizer still sees full-resolution text crops with the detector
+coordinates mapped to the original bitmap by DBPostProcessor. Empty fast
+scans retry at 2560. Model sessions are shared with the full pipeline,
+so the app never creates another ONNX model instance just for fast OCR.
+Regular document OCR defaults to the original detector configuration.
+Diagnostics now include `PADDLE_FLOW` profile choices and
+`PADDLE_FAST` detector/recognizer timing. Neither logs OCR text.
+
+This version does not claim GPU acceleration: Android ONNX Runtime's
+provider support and hardware speed need device-specific verification.
+It also does not claim local gesture ROI-only inference: native Circle
+still builds a full-screen OCR index so users can select all or drag
+across the screen. The large speed gain comes from skipping optional
+document stages and reducing detector tensor size without shrinking
+recognition crops. Unit cases and static guards cover profile isolation
+and stage-to-inference wiring.
