@@ -75,6 +75,10 @@ committed to this repository. The next CI run is deliberately deferred.
 - All four downloaded base recognizers (v6 Tiny, Small, Medium, v5 Mobile)
   are now reachable from primary OCR settings. In Auto, Tiny is a final local
   option before ML Kit if larger Paddle models are absent.
+- New Circle full-screen installations default to an explicit offline Paddle
+  Auto mode, with the same installed model files and runtime as normal OCR.
+  Existing saved engine preferences remain unchanged; ML Kit remains an
+  explicitly selectable alternative and an unavailable-model fallback.
 - A complete OCR document, its table cells, seals, FormulaNet output,
   unwarped text, and chart labels are snapshotted in the same serialized
   inference lane. Concurrent requests no longer assemble a document using
