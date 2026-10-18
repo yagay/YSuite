@@ -19,6 +19,10 @@ object PaddleSpacingV2 {
 
     @JvmStatic fun correct(characters: List<OCRCharacter>, fallbackText: String): Correction {
         if (characters.isEmpty()) return Correction(fallbackText, emptyList(), 0)
+        // The CTC geometry can be incomplete even when recognition succeeds.
+        // Do not replace the decoder's complete text with only aligned glyphs.
+        val aligned=characters.joinToString("") { it.text }
+        if(aligned!=fallbackText) return Correction(fallbackText,characters,0)
         val kept = ArrayList<OCRCharacter>(characters.size)
         var removed = 0
         for (i in characters.indices) {
@@ -40,38 +44,59 @@ object PaddleSpacingV2 {
     }
 
     private fun spurious(prev: OCRCharacter, space: OCRCharacter, next: OCRCharacter): Boolean {
-        val left = prev.text.codePointBefore(prev.text.length)
-        val right = next.text.codePointAt(0)
-        // Unspaced CJK scripts and adjacent full-width punctuation.
-        if (isCjk(left) && isCjk(right)) return true
-        if (isCjk(left) && isCjkClosing(right)) return true
-        if (isCjkOpening(left) && isCjk(right)) return true
-        if (isCjkClosing(left) && isCjk(right)) return true
-        if (isCjk(left) && isCjkOpening(right)) return true
-
-        // Split decimals, IP addresses, version numbers and digit separators.
-        if (Character.isDigit(left) && right in intArrayOf(
-                '.'.code, ','.code, ':'.code, '/'.code, '%'.code)) return true
-        if (left in intArrayOf('.'.code, ','.code, ':'.code, '/'.code) &&
-            Character.isDigit(right)) return true
-
-        // Latin words retain spaces unless a low-confidence CTC whitespace
-        // occupies essentially no image gap between tightly adjoining glyphs.
-        if (Character.isLetterOrDigit(left) && Character.isLetterOrDigit(right)
-            && !isCjk(left) && !isCjk(right) && space.confidence < 0.45f) {
-            val a = prev.box.points
-            val b = next.box.points
-            val xGap = max(0f, b.minOf { it.x } - a.maxOf { it.x })
-            val aWidth = (a.maxOf { it.x } - a.minOf { it.x }).coerceAtLeast(1f)
-            val bWidth = (b.maxOf { it.x } - b.minOf { it.x }).coerceAtLeast(1f)
-            val averageWidth = (aWidth + bWidth) * 0.5f
-            val yOverlap = max(0f, minOf(a.maxOf { it.y }, b.maxOf { it.y }) -
-                maxOf(a.minOf { it.y }, b.minOf { it.y }))
-            val minHeight = minOf(a.maxOf { it.y } - a.minOf { it.y },
-                b.maxOf { it.y } - b.minOf { it.y }).coerceAtLeast(1f)
-            return yOverlap >= minHeight * 0.45f && xGap <= averageWidth * 0.12f
+        if(prev.text.isEmpty()||next.text.isEmpty())return false
+        val left=prev.text.codePointBefore(prev.text.length)
+        val right=next.text.codePointAt(0)
+        val cjkPair=isCjk(left)&&isCjk(right)
+        val cjkPunctuation=(isCjk(left)&&isCjkClosing(right))||
+            (isCjkOpening(left)&&isCjk(right))||
+            (isCjkClosing(left)&&isCjk(right))||
+            (isCjk(left)&&isCjkOpening(right))
+        // A genuine OCR space has confidence and a measurable glyph gap.
+        // Do not erase CJK word spacing merely because both sides are Han.
+        if(cjkPair||cjkPunctuation) {
+            return space.confidence<.72f && visuallyTight(prev,next,.38f)
+        }
+        val numberSeparator=Character.isDigit(left)&&
+            (right=='.'.code||right==','.code||right==':'.code||
+             right=='/'.code||right=='%'.code)
+        val afterSeparator=(left=='.'.code||left==','.code||
+                            left==':'.code||left=='/'.code)&&Character.isDigit(right)
+        // "1, 2" can be a legitimate enumeration. Require stronger visual
+        // evidence than script alone before joining number punctuation.
+        if(numberSeparator||afterSeparator) {
+            return space.confidence<.35f && visuallyTight(prev,next,.22f)
+        }
+        if(Character.isLetterOrDigit(left)&&Character.isLetterOrDigit(right)&&
+            !isCjk(left)&&!isCjk(right)) {
+            return space.confidence<.45f && visuallyTight(prev,next,.12f)
         }
         return false
+    }
+
+    /** Measure gaps along the CTC text direction rather than screen X alone. */
+    private fun visuallyTight(a:OCRCharacter,b:OCRCharacter,maxGapRatio:Float):Boolean {
+        val pa=a.box.points
+        val pb=b.box.points
+        if(pa.size!=4||pb.size!=4)return false
+        val acx=pa.map{it.x}.average().toFloat()
+        val acy=pa.map{it.y}.average().toFloat()
+        val bcx=pb.map{it.x}.average().toFloat()
+        val bcy=pb.map{it.y}.average().toFloat()
+        val dx=bcx-acx
+        val dy=bcy-acy
+        val distance=kotlin.math.sqrt(dx*dx+dy*dy)
+        if(distance<.01f)return false
+        val ux=dx/distance
+        val uy=dy/distance
+        val aMin=pa.minOf{it.x*ux+it.y*uy}
+        val aMax=pa.maxOf{it.x*ux+it.y*uy}
+        val bMin=pb.minOf{it.x*ux+it.y*uy}
+        val bMax=pb.maxOf{it.x*ux+it.y*uy}
+        val advance=((aMax-aMin)+(bMax-bMin))*.5f
+        if(advance<=.01f)return false
+        val gap=max(0f,bMin-aMax)
+        return gap<=advance*maxGapRatio
     }
 
     private fun isCjk(cp: Int): Boolean {
