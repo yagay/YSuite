@@ -74,6 +74,7 @@ public final class OcrDocument {
     private final int imageWidth;
     private final int imageHeight;
     private final CoordinateSpace coordinateSpace;
+    private final OcrStructure structure;
 
     public OcrDocument(String fullText, List<String> blocks, List<Line> lines,
                        String engine, float confidence, double score,
@@ -85,6 +86,14 @@ public final class OcrDocument {
     public OcrDocument(String fullText, List<String> blocks, List<Line> lines,
                        String engine, float confidence, double score,
                        int imageWidth, int imageHeight, CoordinateSpace coordinateSpace) {
+        this(fullText,blocks,lines,engine,confidence,score,
+                imageWidth,imageHeight,coordinateSpace,null);
+    }
+
+    private OcrDocument(String fullText,List<String> blocks,List<Line> lines,
+                        String engine,float confidence,double score,
+                        int imageWidth,int imageHeight,CoordinateSpace coordinateSpace,
+                        OcrStructure structure) {
         this.fullText = fullText == null ? "" : fullText.trim();
         this.blocks = blocks == null ? List.of() : List.copyOf(blocks);
         this.lines = lines == null ? List.of() : List.copyOf(lines);
@@ -94,6 +103,7 @@ public final class OcrDocument {
         this.imageWidth = Math.max(1, imageWidth);
         this.imageHeight = Math.max(1, imageHeight);
         this.coordinateSpace = coordinateSpace == null ? CoordinateSpace.BITMAP : coordinateSpace;
+        this.structure=structure;
     }
 
     public static OcrDocument screenSpace(String fullText, List<String> blocks, List<Line> lines,
@@ -112,6 +122,11 @@ public final class OcrDocument {
     public int imageWidth() { return imageWidth; }
     public int imageHeight() { return imageHeight; }
     public CoordinateSpace coordinateSpace() { return coordinateSpace; }
+    public OcrStructure structure(){return structure;}
+    public OcrDocument withStructure(OcrStructure geometry){
+        return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
+                imageWidth,imageHeight,coordinateSpace,geometry);
+    }
     public boolean isBitmapSpace() { return coordinateSpace == CoordinateSpace.BITMAP; }
     public boolean isScreenSpace() { return coordinateSpace == CoordinateSpace.SCREEN; }
     public boolean isEmpty() { return fullText.isBlank() && chars().isEmpty(); }
@@ -137,7 +152,9 @@ public final class OcrDocument {
             }
             outLines.add(new Line(line.text(), lineBounds, line.confidence(), outChars));
         }
-        return new OcrDocument(fullText, blocks, outLines, engine, confidence, score,
-                parentWidth, parentHeight, coordinateSpace);
+        OcrDocument translated=new OcrDocument(fullText, blocks, outLines, engine,
+                confidence, score,parentWidth,parentHeight,coordinateSpace);
+        return structure==null?translated:translated.withStructure(
+                structure.mapped((x,y)->new android.graphics.PointF(x+dx,y+dy)));
     }
 }

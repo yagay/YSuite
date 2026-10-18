@@ -121,12 +121,15 @@ final class CoordinateMapper {
         String engine = (enginePrefix == null ? "" : enginePrefix) + document.engine();
         int width = Math.max(1, targetWidth);
         int height = Math.max(1, targetHeight);
-        if (targetIsScreenSpace) {
-            return OcrDocument.screenSpace(document.fullText(), document.blocks(), lines,
-                    engine, document.confidence(), document.score(), width, height);
-        }
-        return new OcrDocument(document.fullText(), document.blocks(), lines,
-                engine, document.confidence(), document.score(), width, height);
+        OcrDocument mapped=targetIsScreenSpace
+                ?OcrDocument.screenSpace(document.fullText(),document.blocks(),lines,
+                        engine,document.confidence(),document.score(),width,height)
+                :new OcrDocument(document.fullText(),document.blocks(),lines,
+                        engine,document.confidence(),document.score(),width,height);
+        if(document.structure()!=null)
+            mapped=mapped.withStructure(document.structure().mapped(
+                    (x,y)->mapPointClamped(x,y)));
+        return mapped;
     }
 
     private PointF mapPointInternal(Matrix matrix, RectF inputBounds,
