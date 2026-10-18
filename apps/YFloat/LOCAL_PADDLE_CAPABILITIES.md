@@ -226,3 +226,32 @@ objects are no longer retained for the entire document.
 **CI gate:** One consolidated ARM64 Debug compilation is required after this source batch; intermediate commits intentionally skipped Actions.
 
 **Final validation:** The first consolidated build found two outdated static-contract strings only; both were corrected to match the refactored code. Full ARM64 Debug compilation is requested again with the final source snapshot.
+
+## Circle OCR unwanted spaces — source-level fix (2026-10-18)
+
+Two independently confirmed causes were corrected together:
+
+1. `CircleTextSelectionModel.selectedText()` previously inserted spaces
+   whenever the selectable glyph `group` changed. These are selection
+   groups, not lexical word boundaries. It now reconstructs explicit
+   whitespace from the **original OCR line text** and carries per-unit
+   spacing hints through screen-coordinate ordering. Only if OCR text
+   cannot be mapped to a unit does it use the legacy grouping fallback.
+2. `PaddleSpacingV2.correct()` previously abandoned *all* spacing cleanup
+   when the CTC aligned glyphs differed from the recognized full text.
+   It now preserves complete text **and** applies script-aware CJK
+   normalization on the text-only fallback. It does not invent missing
+   glyph boxes, merge unrelated Latin words, or remove line breaks.
+
+The Paddle spacing toggle remains independently controllable and
+enabled by default. A previously persisted Circle OCR mode of 0 selects
+ML Kit explicitly; this Paddle-specific fix will not apply in that mode.
+New Circle installations default to installed Paddle Auto. Unit cases
+cover Chinese, punctuation, NBSP/full-width spaces, mixed script, Latin,
+newlines and incomplete CTC alignment.
+
+**Verification required:** Kotlin/Java ARM64 Debug compile plus device
+reproduction (Paddle mode selected, spacing toggle on). Latin OCR
+spaces genuinely emitted by the recognizer without reliable glyph
+alignment still require image-dependent evidence; do not strip them
+blindly.
