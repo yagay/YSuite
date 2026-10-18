@@ -550,3 +550,27 @@ outlines. Physical on-device validation remains needed for curved text,
 rotated labels and extreme screenshot transformations.
 
 **Final screenshot-selection CI:** Validate line-local text ranges, original-font background highlighting, status-inset layout, all OCR unit tests, and ARM64 Debug APK. Intermediate source commits intentionally used `[skip ci]`.
+
+## Real screenshot follow-up: selection contrast and non-obscuring handles
+
+The screenshot captured at 19:17 showed the corrected line selection
+around the Chinese `小红书` lettering on the red app icon, without
+incorrectly including the separate `rednote` caption. It also exposed
+a visual regression: the very low-alpha blue selection tint was almost
+invisible on saturated red, while the handle stems drew straight through
+the actual white letter strokes, creating a false impression of a
+different font size or typeface.
+
+The native Circle visual path now draws a lightweight tinted background
+plus a high-contrast, thin YUI-colored outline. The highlight follows
+the original OCR line rectangle, never retypesets OCR symbols and does
+not guess the launcher font. Handle stems begin **below** the selection
+band and sit outside its left/right edges, leaving original screenshot
+glyphs unobstructed. The user-selected Circle color drives both border
+and fill. A pure JVM regression test checks the geometry and the
+transparent/high-contrast policy; a source-contract gate rejects any
+return to top-to-bottom handle strokes crossing glyphs.
+
+Physical validation is still required for exact text pixel contours and
+non-rectangular or rotated text. The model's CTC geometry remains an
+estimate and is only used as the selection hit surface.
