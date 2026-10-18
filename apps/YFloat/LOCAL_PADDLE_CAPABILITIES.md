@@ -208,3 +208,17 @@ than simulated.
 **Pending validation:** one final ARM64 Debug build and phone-based
 recognition/memory tests. Model availability and native ONNX tensor contracts
 must still be tested on a real device.
+
+### Auto OCR behavior and export consistency
+
+Auto OCR now uses installed Paddle models **only**. An absent model,
+empty recognition, or native error shows an actionable failure; it does not
+silently run ML Kit. ML Kit remains a separate explicit user-selected mode,
+so existing intentional choices are preserved. Circle's Paddle Auto follows
+the same no-fallback rule.
+
+Table text, HTML and source arrays remain index-aligned, including tables
+with empty OCR text. Source labels distinguish native SLANet output from
+strict pixel-grid fallback. PDF output is serialized to app-private temporary
+storage page-by-page and copied to SAF with bounded buffers, while OCR page
+objects are no longer retained for the entire document.
