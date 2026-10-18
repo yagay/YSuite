@@ -35,11 +35,11 @@ object PaddlePipelineV2 {
     // lightweight read-only loaded-status queries safe from UI threads.
     private val models=java.util.concurrent.ConcurrentHashMap<Int,PaddleOCR>()
     private val modelSignatures=mutableMapOf<Int,String>()
-    private fun signature(app:Context,model:Int):String {
+    private fun signature(app:Context,model:Int,lineRequested:Boolean):String {
         val files=listOf(OcrModelManager.detFile(app,model),
             OcrModelManager.recFile(app,model),OcrModelManager.ymlFile(app,model))
         check(OcrModelManager.isReady(app,model)){"PaddleOCR model not downloaded"}
-        val lineEnabled=PaddleLocalModelsV3.enabled(app,
+        val lineEnabled=lineRequested && PaddleLocalModelsV3.enabled(app,
             PaddleLocalModelsV3.TEXTLINE_ORIENTATION)
         val line=if(lineEnabled)PaddleLocalModelsV3.model(app,
             PaddleLocalModelsV3.TEXTLINE_ORIENTATION) else null
@@ -183,7 +183,11 @@ object PaddlePipelineV2 {
         return clipped.takeIf{it.width()>=minSide&&it.height()>=minSide}
     }
 
-    @JvmStatic fun recognize(context:Context,image:Bitmap,model:Int,callback:Callback){
+    @JvmStatic fun recognize(context:Context,image:Bitmap,model:Int,callback:Callback) =
+        recognize(context,image,model,PaddleFlowOptions.read(context,false),callback)
+
+    @JvmStatic fun recognize(context:Context,image:Bitmap,model:Int,
+                             options:PaddleFlowOptions,callback:Callback){
         val app=context.applicationContext
         scope.launch {
             try {
@@ -192,7 +196,7 @@ object PaddlePipelineV2 {
                 // Build the entire document inside the inference lock, so a subsequent
                 // request cannot overwrite its auxiliary data before callback delivery.
                 val compat=lock.withLock {
-                    val revision=signature(app,model)
+                    val revision=signature(app,model,options.lineOrientation)
                     if(models.containsKey(model) && modelSignatures[model]!=revision){
                         models.remove(model)?.release()
                         modelSignatures.remove(model)
@@ -208,7 +212,8 @@ object PaddlePipelineV2 {
                         DiagnosticLog.i(app,"PADDLE_RUNTIME",
                             "model="+model+" threads="+plan.threads+
                             " batch="+plan.recognitionBatch+" lowMemory="+plan.lowMemory)
-                        val lineModel=if(PaddleLocalModelsV3.enabled(app,
+                        val lineModel=if(options.lineOrientation &&
+                            PaddleLocalModelsV3.enabled(app,
                             PaddleLocalModelsV3.TEXTLINE_ORIENTATION)){
                             check(PaddleLocalModelsV3.verify(app,
                                 PaddleLocalModelsV3.TEXTLINE_ORIENTATION)){
@@ -226,9 +231,10 @@ object PaddlePipelineV2 {
                                 modelSignatures[model]=revision
                             }
                     }
-                    val verifyOrientation=app.getSharedPreferences(FloatSettings.PREF,
-                        Context.MODE_PRIVATE).getBoolean("paddle_v2_auto_orientation",false)
-                    val classifier=try{orientation(app)}catch(error:Throwable){
+                    DiagnosticLog.i(app,"PADDLE_FLOW",options.summary())
+                    val verifyOrientation=options.rotationFallback
+                    val classifier=try{if(options.documentOrientation)orientation(app) else null}
+                        catch(error:Throwable){
                         DiagnosticLog.i(app,"PADDLE_V3","orientation_error="+error.javaClass.simpleName)
                         null
                     }
@@ -239,23 +245,50 @@ object PaddlePipelineV2 {
                         val matrix=Matrix().apply{postRotate(degrees.toFloat())}
                         val rotated=Bitmap.createBitmap(image,0,0,image.width,image.height,matrix,true)
                         try{
-                            val results=ocr.recognize(rotated).results.map{
+                            val results=(if(options.fastDetection)
+                                ocr.recognizeFast(rotated,options.detectionLimit)
+                                else ocr.recognize(rotated)).results.map{
                                 PaddleOrientationV2.backToImage(it,degrees,image.width,image.height)
                             }
                             PaddleOrientationV2.Choice(results,degrees,prediction.confidence.toDouble())
                         }finally{if(rotated!==image)rotated.recycle()}
+                    }else if(verifyOrientation&&classifier==null){
+                        PaddleOrientationV2.recognize(ocr,image,true)
                     }else{
-                        PaddleOrientationV2.recognize(ocr,image,verifyOrientation&&classifier==null)
+                        val startOcr=System.currentTimeMillis()
+                        var result=if(options.fastDetection)
+                            ocr.recognizeFast(image,options.detectionLimit)
+                            else ocr.recognize(image)
+                        // Restore detector resolution once when the fast scan
+                        // sees NO text (small glyphs may need extra pixels).
+                        if(options.fastDetection && result.results.isEmpty() &&
+                            maxOf(image.width,image.height)>options.detectionLimit){
+                            DiagnosticLog.i(app,"PADDLE_FAST","retry=empty_detection side=2560")
+                            result=ocr.recognizeFast(image,2560)
+                        }
+                        DiagnosticLog.i(app,"PADDLE_FAST",
+                            "profile="+(if(options.circle)"circle" else "document")+
+                            " detMs="+result.detectionTimeMs+
+                            " recMs="+result.recognitionTimeMs+
+                            " detPre="+result.detPreprocessMs+
+                            " detInfer="+result.detInferenceMs+
+                            " recInfer="+result.recInferenceMs+
+                            " totalMs="+(System.currentTimeMillis()-startOcr)+
+                            " input="+image.width+"x"+image.height+
+                            " lines="+result.results.size)
+                        PaddleOrientationV2.Choice(result.results,0,0.0)
                     }
                     val structure=try {
-                        layout(app)?.detect(image) ?: emptyList()
+                        if(options.layout) layout(app)?.detect(image) ?: emptyList()
+                        else emptyList()
                     }catch(t:Throwable){
                         DiagnosticLog.i(app,"PP_STRUCTURE_V2",
                             "layout_failed="+t.javaClass.simpleName+
                             " detail="+(t.message ?: "unknown"))
                         emptyList()
                     }
-                    val localTable=try{table(app)}catch(error:Throwable){
+                    val localTable=try{if(options.tables)table(app) else null}
+                        catch(error:Throwable){
                         DiagnosticLog.i(app,"PADDLE_V3","table_model_error="+error.javaClass.simpleName)
                         null
                     }
@@ -268,7 +301,8 @@ object PaddlePipelineV2 {
                     val candidates=if(regions.isNotEmpty())
                         regions.map{it.bounds to true}
                     else listOf(Rect(0,0,image.width,image.height) to false)
-                    for((box,hasLayout) in candidates.take(12)){
+                    for((box,hasLayout) in (if(options.tables)candidates.take(12)
+                        else emptyList())){
                         val rect=safeCropRect(box,image,32) ?: continue
                         val crop=if(rect.left==0&&rect.top==0&&
                             rect.width()==image.width&&rect.height()==image.height)image
@@ -308,21 +342,21 @@ object PaddlePipelineV2 {
                         "ocr_lines="+chosen.results.size+" orientation="+chosen.degrees+
                         " orientationCheck="+verifyOrientation+" layout_regions="+structure.size+
                         " layoutEnabled="+PaddleStructureModelV2.enabled(app))
-                    val spacing=app.getSharedPreferences(FloatSettings.PREF,
-                        Context.MODE_PRIVATE).getBoolean("paddle_v2_spacing",true)
+                    val spacing=options.spacing
                     val page=PaddlePageV2.fromOcr(chosen.results,image.width,image.height,
                         structure,spacing)
                     val linked=tables.map{PaddleTableTextV3.link(it.first,page.lines,it.second)}
                     DiagnosticLog.i(app,"PADDLE_TABLE",
                         "sources="+linked.joinToString(","){it.source})
-                    val charts=PaddleChartTextV3.extract(page)
+                    val charts=if(options.charts)PaddleChartTextV3.extract(page)
+                        else emptyList()
                     lastCharts=charts
                     // UVDoc is a separate document-OCR result. Its coordinates
                     // refer to its rectified bitmap, not the source screenshot.
                     // Never send those quads to the screen selection overlay.
                     latestUnwarpedDocument=null
                     try {
-                        val engine=uvdoc(app)
+                        val engine=if(options.uvdoc)uvdoc(app) else null
                         if(engine!=null){
                             val corrected=engine.rectify(image)
                             try{
@@ -339,7 +373,7 @@ object PaddlePipelineV2 {
                     }
                     val seals=ArrayList<SealResult>()
                     try{
-                        val detector=seal(app)
+                        val detector=if(options.seals)seal(app) else null
                         if(detector!=null)for(region in structure.filter{it.label=="seal"}){
                             val r=safeCropRect(region.bounds,image,16) ?: continue
                             val crop=Bitmap.createBitmap(image,r.left,r.top,r.width(),r.height())
@@ -364,7 +398,7 @@ object PaddlePipelineV2 {
                     // ordinary CTC glyph selection remains untouched.
                     val formulas=ArrayList<FormulaResult>()
                     try {
-                        val parser=formula(app)
+                        val parser=if(options.formulas)formula(app) else null
                         if(parser!=null) {
                             for(region in structure.filter{it.label=="formula"}.take(24)) {
                                 val box=safeCropRect(region.bounds,image,8) ?: continue
