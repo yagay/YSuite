@@ -68,6 +68,13 @@ class OCREngine(
         return runWithOwnedMat(srcMat)
     }
 
+    /** Fast frozen-screen OCR: small detector tensor, ORIGINAL image recognition crops. */
+    fun runFast(bitmap: android.graphics.Bitmap,maxDetectionSide:Int): OCREngineResult {
+        require(maxDetectionSide in 960..3072)
+        val source=BitmapUtils.bitmapToBGRMat(bitmap)
+        return runWithOwnedMat(source,maxDetectionSide)
+    }
+
     /** Run only the PP-OCR detector. Recognition is deliberately skipped. */
     fun detect(bitmap: android.graphics.Bitmap): DetectionEngine.DetectionResult {
         if (bitmap.width <= 0 || bitmap.height <= 0) throw OCRError.InvalidImage()
@@ -83,13 +90,15 @@ class OCREngine(
         return runWithOwnedMat(srcMat)
     }
 
-    private fun runWithOwnedMat(srcMat: org.opencv.core.Mat): OCREngineResult {
-        return try { run(srcMat) } finally { srcMat.release() }
+    private fun runWithOwnedMat(srcMat: org.opencv.core.Mat,
+                                maxDetectionSide:Int?=null): OCREngineResult {
+        return try { run(srcMat,maxDetectionSide) } finally { srcMat.release() }
     }
 
-    private fun run(srcMat: org.opencv.core.Mat): OCREngineResult {
+    private fun run(srcMat: org.opencv.core.Mat,
+                    maxDetectionSide:Int?=null): OCREngineResult {
         val totalStart = System.currentTimeMillis()
-        val detResult = detectionEngine.detect(srcMat)
+        val detResult = detectionEngine.detect(srcMat,maxDetectionSide)
         val boxes = detResult.boxes
 
         if (boxes.isEmpty()) {
