@@ -37,7 +37,12 @@ object PaddlePipelineV2 {
         val files=listOf(OcrModelManager.detFile(app,model),
             OcrModelManager.recFile(app,model),OcrModelManager.ymlFile(app,model))
         check(OcrModelManager.isReady(app,model)){"PaddleOCR model not downloaded"}
-        return files.joinToString(":") { "${it.length()}-${it.lastModified()}" }
+        val lineEnabled=PaddleLocalModelsV3.enabled(app,
+            PaddleLocalModelsV3.TEXTLINE_ORIENTATION)
+        val line=if(lineEnabled)PaddleLocalModelsV3.model(app,
+            PaddleLocalModelsV3.TEXTLINE_ORIENTATION) else null
+        return files.joinToString(":") { "${it.length()}-${it.lastModified()}" }+
+            ":line="+(line?.let{"${it.length()}-${it.lastModified()}"} ?: "off")
     }
     private var orientationEngine:PPDocOrientationV3?=null
     private var orientationSignature:String?=null
@@ -196,10 +201,20 @@ object PaddlePipelineV2 {
                         val cfg=PaddleOCRConfig(
                             detThresh=.20f,detBoxThresh=.45f,detUnclipRatio=1.4f,
                             recScoreThresh=0f,recBatchSize=if(model==OcrModelManager.MEDIUM)2 else 4)
+                        val lineModel=if(PaddleLocalModelsV3.enabled(app,
+                            PaddleLocalModelsV3.TEXTLINE_ORIENTATION)){
+                            check(PaddleLocalModelsV3.verify(app,
+                                PaddleLocalModelsV3.TEXTLINE_ORIENTATION)){
+                                "Textline orientation ONNX integrity failed"
+                            }
+                            PaddleLocalModelsV3.model(app,
+                                PaddleLocalModelsV3.TEXTLINE_ORIENTATION).absolutePath
+                        }else null
                         PaddleOCR.create(app,cfg,EngineConfig(numThreads=4),
                             OcrModelManager.detFile(app,model).absolutePath,
                             OcrModelManager.recFile(app,model).absolutePath,
-                            OcrModelManager.ymlFile(app,model).absolutePath).also{
+                            OcrModelManager.ymlFile(app,model).absolutePath,
+                            lineModel).also{
                                 models[model]=it
                                 modelSignatures[model]=revision
                             }
