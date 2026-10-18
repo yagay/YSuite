@@ -527,6 +527,11 @@ final class NativeCircleWorkspace extends View {
         lastTextGrip=new PointF(last.right,last.bottom+stem);
     }
 
+    /** One authoritative SCREEN -> View conversion for Paddle V3 regions. */
+    private RectF screenToViewF(RectF screen) {
+        return frame.transform.screenToView(screen,getWidth(),getHeight());
+    }
+
     private List<PointF> quadToView(List<PointF> screen){
         if(screen==null || screen.size()!=4)return List.of();
         ArrayList<PointF> out=new ArrayList<>(4);
