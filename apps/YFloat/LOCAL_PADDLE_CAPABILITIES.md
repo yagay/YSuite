@@ -503,3 +503,5 @@ canceled request already executing a recognition crop finishes its native
 call before releasing the lane. Live frame-time, battery and actual OCR
 accuracy changes require the user's rooted Android device and representative
 image set; static JVM/Debug CI cannot prove those physical properties.
+
+**Final one-shot performance CI:** ARM64 Debug, OCR JVM tests, source-contract checks, ABI verification and artifact upload after all batch commits with `[skip ci]`.
