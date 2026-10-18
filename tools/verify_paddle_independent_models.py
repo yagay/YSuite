@@ -399,6 +399,33 @@ for needle in ("static float lineScore(", "static boolean splitsLabel(",
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleTextRangePolicyTest.java").is_file():
     problems.append("Missing icon-caption same-line selection regression tests")
 
+# Saturated launcher-icon screenshot regression: keep OCR glyphs as
+# screenshot pixels, make selection visible via a thin outline and place
+# draggable stems BELOW/OUTSIDE the text to avoid blue glyph distortion.
+native=(java / "NativeCircleWorkspace.java").read_text()
+visual=(java / "NativeCircleVisualPolicy.java").read_text()
+style=(java / "YFloatOverlayStyle.java").read_text()
+for needle in ("selectionBorderPaint",
+               "selectionBorderPaint.setStyle(Paint.Style.STROKE)",
+               "NativeCircleVisualPolicy.leadingHandleX(first.left,density)",
+               "NativeCircleVisualPolicy.trailingHandleX(last.right,density)",
+               "NativeCircleVisualPolicy.handleStemTop(first.bottom,density)",
+               "NativeCircleVisualPolicy.handleStemTop(last.bottom,density)",
+               "YFloatOverlayStyle.selectionWithAlpha("):
+    if needle not in native:
+        problems.append("Native Circle font-preserving selection contrast regressed: "+needle)
+if "canvas.drawLine(hx,first.top,hx,hy,outlinePaint)" in native:
+    problems.append("OCR selection handle still paints through original glyph")
+for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "TEXT_HIGHLIGHT_BORDER_ALPHA",
+               "leadingHandleX", "trailingHandleX", "handleStemTop"):
+    if needle not in visual:
+        problems.append("Native Circle selection rendering policy missing: "+needle)
+if "static int selectionWithAlpha(" not in style:
+    problems.append("Native Circle highlight ignores user's custom selection color")
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").is_file():
+    problems.append("Native Circle launcher-font visual policy regression test missing")
+
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
