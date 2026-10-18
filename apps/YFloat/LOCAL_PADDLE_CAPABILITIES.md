@@ -167,3 +167,44 @@ compilation are planned. Accurate bounding boxes and optional ONNX output
 contracts still need real screenshots and on-device comparison. Large,
 unsupported generative document models are not bundled or advertised as
 working offline.
+
+## Consolidated offline capability pass (final source batch; 2026-10-18)
+
+This batch is staged with `[skip ci]` on every intermediate commit.
+Only the final source-acceptance commit should trigger the ARM64 Debug CI.
+
+**Implemented, source-level:**
+- Conservative pure-local `PaddleRuledGridV4`: detects real full-length
+  horizontal/vertical pixel rules and their intersections in strongly ruled
+  tables. SLANet ONNX output always takes precedence when it predicts cells.
+  The fallback does **not** pretend to be PP-TableMagic or infer merged cells.
+- The table linker now assigns each recognized line/word to a **single** cell,
+  avoiding duplicate text in adjacent cells. Each exported table carries its
+  actual source (`slanet_model` or `pixel_ruled_grid`) in structured JSON.
+- Text-selection word, line and CTC glyph geometry is clipped to the original
+  bitmap; missing CTC glyphs still use only real detector/word regions.
+- UVDoc rectified text has an explicit `RECTIFIED_BITMAP` coordinate space
+  and is embedded as a separate page in JSON. No fictional inverse non-rigid
+  coordinate mapping or original-screen selection geometry is produced.
+  Translation preserves table and UVDoc provenance.
+- The PDF importer writes page-by-page directly to a private temporary file,
+  not a retained 500-page list of OCR documents. Markdown, JSON, HTML and CSV
+  exports are streamed and copied with bounded buffers to the selected SAF URI.
+  Users may retry the save without rerunning OCR, discard the result, or cancel
+  recognition after the current native inference finishes. Failure rendering a
+  PDF page releases the bitmap.
+- Continues the existing per-model private downloads and atomic rollback
+  behavior. No model weights are embedded into the APK.
+
+**Not equivalent to the complete upstream model graph:** PP-TableMagic
+involves learned table classification and learned cell detection models; the
+pixel fallback is a small, honest wired-grid alternative. UVDoc's exported
+ONNX graph supplies a corrected image, not its pixelwise inverse warp. Without
+an actual invertible deformation map, rectified coordinates cannot safely
+drive original-screen text selection. PP-Chart2Table has no verified mobile
+generator runtime. These capabilities remain explicitly unsupported rather
+than simulated.
+
+**Pending validation:** one final ARM64 Debug build and phone-based
+recognition/memory tests. Model availability and native ONNX tensor contracts
+must still be tested on a real device.
