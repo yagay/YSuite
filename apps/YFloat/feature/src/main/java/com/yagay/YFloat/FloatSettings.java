@@ -179,11 +179,13 @@ public final class FloatSettings {
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 5);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 5); } catch (Throwable ignored) {} }
-        // New installations prefer installed offline Paddle. An explicitly
-        // persisted ML Kit (0) or other engine is never silently rewritten.
-        return 5;
+        int stored=5;
+        if(raw instanceof Number n)stored=n.intValue();
+        else if(raw instanceof String v){
+            try{stored=Integer.parseInt(v.trim());}catch(NumberFormatException ignored){}
+        }
+        // Old Circle mode 0 was ML Kit; migrate it to Paddle Auto.
+        return stored<1||stored>5?5:stored;
     }
     public int circleCorrectionEngine() {
         Object raw = p.getAll().get(K_CIRCLE_CORRECTION_ENGINE);
@@ -296,8 +298,8 @@ public final class FloatSettings {
         else if (raw instanceof String v) {
             try { mode = Integer.parseInt(v.trim()); } catch (NumberFormatException ignored) {}
         }
-        // 4 remains retired HTTPS; 5 is PP-OCRv5 Mobile, 6 is PP-OCRv6 Tiny.
-        return mode == 4 ? 0 : clamp(mode, 0, 6);
+        // Retired cloud (4) and ML Kit (3) both migrate to local Paddle Auto.
+        return mode==3||mode==4?0:clamp(mode,0,6);
     }
     public String customIconUri() { return p.getString(K_CUSTOM_ICON, ""); }
     public String slidePics() { return p.getString(K_SLIDE_PICS, ""); }
