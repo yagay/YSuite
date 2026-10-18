@@ -400,65 +400,56 @@ for needle in ("static float lineScore(", "static boolean splitsLabel(",
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleTextRangePolicyTest.java").is_file():
     problems.append("Missing icon-caption same-line selection regression tests")
 
-# Native Android-style text selection: the accurate TextGeometry V3 polygon
-# is filled translucently without a blue stroke/rectangle. The screenshot
-# remains the source of glyph pixels; the fill is a light, intentional tint.
+# TextGeometry V3 still owns the translucent selection fill. The two
+# asymmetric grips and their gesture lifecycle are independent Android Views,
+# not the old parent Canvas's manually positioned circles.
 native=(java / "NativeCircleWorkspace.java").read_text()
 visual=(java / "NativeCircleVisualPolicy.java").read_text()
 style=(java / "YFloatOverlayStyle.java").read_text()
-for needle in ("selectionFillPaint",
-               "selectionFillPaint.setStyle(Paint.Style.FILL)",
-               "selectionFillPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(",
-               "NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA",
-               "NativeCircleVisualPolicy.attachedTextHandle(",
-               "first.get(0).x,first.get(0).y,first.get(3).x,first.get(3).y,radius/1.8f",
-               "last.get(1).x,last.get(1).y,last.get(2).x,last.get(2).y,radius/1.8f",
-               "NativeCircleVisualPolicy.chooseTouchedTextHandle(",
-               "canvas.drawLine(leading[0],leading[1],leading[2],leading[3],outlinePaint)",
-               "canvas.drawLine(trailing[0],trailing[1],trailing[2],trailing[3],outlinePaint)",
-               "selectionHandlePaint.setStyle(Paint.Style.FILL)"):
-    if needle not in native:
-        problems.append("Native Circle translucent-selection drawing regressed: "+needle)
-for needle in ("canvas.clipPath(selection)",
-               "canvas.drawBitmap(frame.bitmap,null,",
+grips=(java / "NativeSelectionHandlesView.java").read_text()
+caret=(java / "TextCaretGeometry.java").read_text()
+drag=(java / "SelectionDragController.java").read_text()
+for needle in ("extends FrameLayout", "setWillNotDraw(false)",
+               "new NativeSelectionHandlesView(context,",
+               "addView(selectionHandles,new FrameLayout.LayoutParams(",
+               "TextCaretGeometry.forQuads(", "SelectionDragController.move(",
+               "selectionHandles.clear();", "updateSelectionHandles();",
+               "canvas.clipPath(selection)", "canvas.drawBitmap(frame.bitmap,null,",
                "canvas.drawPath(selection,selectionFillPaint)",
                "TextGeometryPixelLocator.refine(frame,glyph,detector)",
                "TextGeometryV3.build(fullDocument,chosenChars,"):
     if needle not in native:
-        problems.append("OCR selection lost V3 source pixels/blue fill: "+needle)
-if "selectionBorderPaint" in native or "canvas.drawPath(pathForQuad(corners,outside)" in native:
-    problems.append("Old blue outline is still painted over native text selection")
-if "selectionHighlightPaint" in native or "canvas.drawRoundRect(highlight," in native:
-    problems.append("Old rectangle-based OCR selection rendering resurfaced")
-if "canvas.drawLine(hx,first.top,hx,hy,outlinePaint)" in native:
-    problems.append("OCR selection handle still paints through original glyph")
-for needle in ("TEXT_HIGHLIGHT_FILL_ALPHA", "attachedTextHandle",
-               "chooseTouchedTextHandle", "knobRadius"):
-    if needle not in visual:
-        problems.append("Native Circle selection rendering policy missing: "+needle)
-if "TEXT_HIGHLIGHT_BORDER_ALPHA" in visual:
-    problems.append("Obsolete blue text selection border opacity remains")
-if ("textHandleOutsideGap" in native or "leadingHandleX(" in native
-        or "trailingHandleX(" in native):
-    problems.append("Text selection handles still use obsolete detached edge offsets")
+        problems.append("Native text handle/view and V3 selection contract missing: "+needle)
+for source,label,needles in (
+    (grips,"independent handles",("extends View","drawGrip(canvas,caret.start,true)",
+               "drawGrip(canvas,caret.end,false)", "listener.onBegin(active)",
+               "listener.onMove(active,", "onTouchEvent(MotionEvent event)",
+               "fingerOffsetX=event.getX()-c.x", "setFocusable(false)")),
+    (caret,"caret hotspots",("static Pair forQuads(", "first[6],first[7]",
+               "last[4],last[5]", "angleDegrees")),
+    (drag,"crossing",("candidate<=last", "candidate>=first",
+               "new Range(last,candidate,END)", "new Range(candidate,first,START)"))):
+    for needle in needles:
+        if needle not in source:
+            problems.append("Native text "+label+" regressed: "+needle)
+for banned in ("selectionBorderPaint", "selectionHandlePaint",
+               "firstHandle.contains(", "lastHandle.contains(",
+               "attachedTextHandle(", "chooseTouchedTextHandle(",
+               "canvas.drawLine(leading[", "canvas.drawCircle(leading["):
+    if banned in native:
+        problems.append("Obsolete round/stem Canvas text handles still active: "+banned)
+if "TEXT_HIGHLIGHT_FILL_ALPHA" not in visual:
+    problems.append("Native translucent OCR highlight policy missing")
 if "static int selectionWithAlpha(" not in style:
     problems.append("Native Circle highlight ignores user's custom selection color")
-if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").is_file():
-    problems.append("Native Circle launcher-font visual policy regression test missing")
-else:
-    selection_tests=(FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java").read_text()
-    for test_case in ("nativeTextSelectionHasVisibleTranslucentBlueWash",
-                      "connectedHandlesBeginExactlyAtTheBlueSelectionCorners",
-                      "rotatedTextHandlesConnectAlongTheOriginalQuadSides",
-                      "handlesConnectAtEveryDensityWithoutOldOutsideGap",
-                      "degenerateSideEdgeStillAttachesAndDoesNotCrash",
-                      "overlappingHitAreasStillAllowEitherChineseHandle",
-                      "entireIconWordUsesDetectorWidthAndTightVerticalOverlap",
-                      "draggingOneCharacterNeverExpandsToWholeIconWord",
-                      "detectorCrossingUnrelatedIconIsRejected",
-                      "nonOverlappingDetectorFallsBackToSelectedCharacters"):
-        if test_case not in selection_tests:
-            problems.append("Missing native icon selection regression test: "+test_case)
+selection_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java"
+if not selection_test.is_file() or "nativeTextSelectionHasVisibleTranslucentBlueWash" not in selection_test.read_text():
+    problems.append("TextGeometry V3 filled CJK selection regression missing")
+for testname,method in (("TextCaretGeometryTest.java","toutiaoHotspotsAttachToStartAndEndOfFilledWord"),
+                        ("SelectionDragControllerTest.java","leadingCaretCrossesTrailingCaretAndSwitchesRole")):
+    testpath=FEATURE / "feature/src/test/java/com/yagay/YFloat" / testname
+    if not testpath.is_file() or method not in testpath.read_text():
+        problems.append("Missing independent native text handle regression "+testname)
 if "textSelectionScreenBand(" not in visual or "sharedWidth>=" not in visual:
     problems.append("Native circle has no bounded glyph/line geometry policy")
 
