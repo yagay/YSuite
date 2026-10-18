@@ -138,3 +138,5 @@ learned semantic reading order; automatic linguistic post-correction.
 Those capabilities are not silently replaced by heuristic outputs.
 Existing SLANet, FormulaNet, UVDoc and seal native operators are present
 but require a real Android model/shape/accuracy test before release.
+
+Final ARM64 Debug build is requested once after all staged code changes. CI outcome must be checked separately; the source pass alone does not prove native inference correctness.
