@@ -17,6 +17,52 @@ final class NativeCircleVisualPolicy {
         return Math.max(1f,2.5f*density);
     }
 
+    /**
+     * OCR detection gives a much better whole-line left/right edge than CTC
+     * character spacing on large launcher icons (for example, 头条).
+     * CTC glyph bounds, however, are generally tighter vertically. For a
+     * complete OCR line prefer the detector's horizontal edges and the
+     * overlapping glyph/detector vertical band. Partial selections must
+     * continue to use only the selected glyphs.
+     *
+     * All inputs/outputs are physical SCREEN pixels; mapping to View happens
+     * exactly once at the caller. The detector is rejected if it appears to
+     * span unrelated regions or barely intersects the selected characters.
+     */
+    static float[] textSelectionScreenBand(float glyphLeft,float glyphTop,
+            float glyphRight,float glyphBottom,float rowLeft,float rowTop,
+            float rowRight,float rowBottom,boolean wholeLine) {
+        float left=glyphLeft,top=glyphTop,right=glyphRight,bottom=glyphBottom;
+        float gw=glyphRight-glyphLeft,gh=glyphBottom-glyphTop;
+        float rw=rowRight-rowLeft,rh=rowBottom-rowTop;
+        if(wholeLine && gw>0f && gh>0f && rw>0f && rh>0f){
+            float sharedWidth=Math.max(0f,Math.min(glyphRight,rowRight)
+                    -Math.max(glyphLeft,rowLeft));
+            float sharedHeight=Math.max(0f,Math.min(glyphBottom,rowBottom)
+                    -Math.max(glyphTop,rowTop));
+            boolean related=rw>=gw*0.65f && rw<=gw*1.8f
+                    && rh>=gh*0.65f && rh<=gh*1.8f
+                    && sharedWidth>=Math.min(gw,rw)*0.55f
+                    && sharedHeight>=Math.min(gh,rh)*0.55f;
+            if(related){
+                left=rowLeft;
+                right=rowRight;
+                // Never enlarge the band to include the icon's upper/lower
+                // solid-color strips just because OCR's line box has padding.
+                float croppedTop=Math.max(glyphTop,rowTop);
+                float croppedBottom=Math.min(glyphBottom,rowBottom);
+                if(croppedBottom-croppedTop>=gh*0.55f){
+                    top=croppedTop;
+                    bottom=croppedBottom;
+                }
+            }
+        }
+        // Minimal pixel allowance for OCR quantisation. The visible blue
+        // outline has its own OUTWARD-only gap, separate from these pixels.
+        float pad=Math.max(0.5f,Math.min(1.5f,(bottom-top)*0.015f));
+        return new float[]{left-pad,top-pad,right+pad,bottom+pad};
+    }
+
     /** Handle stems are fully outside the text glyph band. */
     static float leadingHandleX(float bandLeft,float density){
         return bandLeft-5f*density;
