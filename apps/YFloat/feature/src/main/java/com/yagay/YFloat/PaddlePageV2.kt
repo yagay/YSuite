@@ -42,14 +42,25 @@ object PaddlePageV2 {
                 val chars=ArrayList<OcrDocument.CharUnit>()
                 for(word in line.words){
                     val wordGroup=group++
+                    val before=chars.size
                     for(symbol in word.symbols){
                         val box=symbol.bounds.rect()
-                        if(!box.isEmpty)chars.add(OcrDocument.CharUnit(
+                        if(!box.isEmpty && symbol.text.isNotBlank())chars.add(OcrDocument.CharUnit(
                             symbol.text,box,symbol.confidence,linesOut.size,wordGroup,index++))
                     }
+                    // If recognizer glyph alignment is absent, preserve only
+                    // a real word-derived quad. Do not synthesize character boxes.
+                    if(chars.size==before && word.text.isNotBlank()){
+                        val realWord=word.bounds.rect()
+                        if(!realWord.isEmpty)chars.add(OcrDocument.CharUnit(
+                            word.text,realWord,line.confidence,linesOut.size,wordGroup,index++))
+                    }
                 }
-                // A recognizer can return text even if CTC glyph geometry
-                // is unavailable. Preserve readable text, never fake a glyph box.
+                if(chars.isEmpty()&&line.text.isNotBlank()){
+                    val detectorBox=line.bounds.rect()
+                    if(!detectorBox.isEmpty)chars.add(OcrDocument.CharUnit(
+                        line.text,detectorBox,line.confidence,linesOut.size,group++,index++))
+                }
                 linesOut.add(OcrDocument.Line(line.text,line.bounds.rect(),line.confidence,chars))
             }
             val text=linesOut.joinToString("\n") {it.text()}
@@ -110,7 +121,8 @@ object PaddlePageV2 {
                         Symbol(symbol.text,quad(symbol.box,Origin.CTC_ALIGNED),
                             symbol.confidence)
                     })
-            } else groupWords(symbols,text,quad)
+            } else if(symbols.isNotEmpty())groupWords(symbols,text,quad)
+            else listOf(Word(text,Quad(quad.points,Origin.FALLBACK),emptyList()))
             Line(text,quad,result.confidence,words,result.text)
         }.sortedWith(compareBy({it.bounds.rect().centerY()},{it.bounds.rect().left}))
         val grouped=mutableMapOf<Int,MutableList<Line>>()
