@@ -7,6 +7,7 @@ import android.graphics.RectF;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -159,6 +160,26 @@ final class CircleGestureTextSelector {
         }
         rows.sort((a, b) -> Float.compare(a.centerY, b.centerY));
 
+        // Source spans are derived once from Paddle's original recognized
+        // lines. Selection bounds remain spatial; selected text is lexical.
+        IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span> sourceSpans =
+                new IdentityHashMap<>();
+        int sourceLine=0;
+        for(OcrDocument.Line original : template.lines()){
+            ArrayList<OcrDocument.CharUnit> valid=new ArrayList<>();
+            ArrayList<String> values=new ArrayList<>();
+            for(OcrDocument.CharUnit unit:original.chars()){
+                if(unit==null||unit.text().isBlank())continue;
+                valid.add(unit);
+                values.add(unit.text());
+            }
+            List<OcrSelectionText.Span> spans=OcrSelectionText.align(
+                    original.text(),values,sourceLine++);
+            for(int i=0;i<valid.size();i++){
+                if(spans.get(i)!=null)sourceSpans.put(valid.get(i),spans.get(i));
+            }
+        }
+
         ArrayList<OcrDocument.Line> lines = new ArrayList<>();
         ArrayList<String> blocks = new ArrayList<>();
         StringBuilder full = new StringBuilder();
@@ -171,44 +192,35 @@ final class CircleGestureTextSelector {
         for (VisualRow row : rows) {
             row.groups.sort((a, b) -> Integer.compare(a.bounds.left, b.bounds.left));
             ArrayList<OcrDocument.CharUnit> chars = new ArrayList<>();
-            StringBuilder lineText = new StringBuilder();
+            ArrayList<String> lexicalUnits=new ArrayList<>();
+            ArrayList<OcrSelectionText.Span> lexicalSpans=new ArrayList<>();
+            ArrayList<Integer> lexicalLines=new ArrayList<>();
             Rect lineBounds = null;
-            GroupHit previousGroup = null;
             float lineConfidenceSum = 0f;
             int lineConfidenceCount = 0;
 
             for (GroupHit group : row.groups) {
-                String groupText = group.text == null ? "" : group.text.trim();
-                if (groupText.isEmpty()) {
-                    StringBuilder rebuilt = new StringBuilder();
-                    for (OcrDocument.CharUnit unit : group.chars) {
-                        if (unit != null && !unit.text().isBlank()) rebuilt.append(unit.text());
-                    }
-                    groupText = rebuilt.toString();
-                }
-                if (groupText.isEmpty()) continue;
-
-                if (previousGroup != null && shouldInsertSpace(previousGroup, group)) {
-                    lineText.append(' ');
-                }
-                lineText.append(groupText);
-
                 int outputGroup = groupId++;
                 for (OcrDocument.CharUnit source : group.chars) {
                     if (source == null || source.text().isBlank() || source.bounds().isEmpty()) continue;
                     Rect bounds = source.bounds();
                     chars.add(new OcrDocument.CharUnit(source.text(), bounds, source.confidence(),
                             lineId, outputGroup, order++));
+                    lexicalUnits.add(source.text());
+                    lexicalSpans.add(sourceSpans.get(source));
+                    lexicalLines.add(source.line());
                     if (lineBounds == null) lineBounds = new Rect(bounds); else lineBounds.union(bounds);
                     confidenceSum += source.confidence();
                     confidenceCount++;
                     lineConfidenceSum += source.confidence();
                     lineConfidenceCount++;
                 }
-                previousGroup = group;
             }
 
-            String value = lineText.toString().trim();
+            ArrayList<Integer> all=new ArrayList<>(lexicalUnits.size());
+            for(int i=0;i<lexicalUnits.size();i++)all.add(i);
+            String value=OcrSelectionText.selected(
+                    lexicalUnits,lexicalSpans,all,lexicalLines);
             if (chars.isEmpty() || lineBounds == null || lineBounds.isEmpty() || value.isEmpty()) continue;
             float lineConfidence = lineConfidenceCount == 0 ? 0f
                     : lineConfidenceSum / lineConfidenceCount;
@@ -380,22 +392,6 @@ final class CircleGestureTextSelector {
         }
         if (clean.isEmpty() || union == null || union.isEmpty()) return null;
         return new GroupHit(text.toString(), union, clean, confidence / clean.size());
-    }
-
-    private static boolean shouldInsertSpace(GroupHit previous, GroupHit current) {
-        if (previous == null || current == null) return false;
-        String a = previous.text == null ? "" : previous.text;
-        String b = current.text == null ? "" : current.text;
-        if (a.isEmpty() || b.isEmpty()) return false;
-        int last = a.codePointBefore(a.length());
-        int first = b.codePointAt(0);
-        if (isCjk(last) || isCjk(first)) return false;
-        if (isOpeningPunctuation(last) || isClosingPunctuation(first)) return false;
-
-        int gap = current.bounds.left - previous.bounds.right;
-        float refHeight = Math.max(1f,
-                Math.min(Math.max(1, previous.bounds.height()), Math.max(1, current.bounds.height())));
-        return gap >= -refHeight * 0.12f;
     }
 
     private static List<GroupHit> buildGroups(OcrDocument document) {
