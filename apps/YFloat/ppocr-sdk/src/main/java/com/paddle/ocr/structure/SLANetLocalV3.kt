@@ -20,7 +20,12 @@ class SLANetLocalV3(model:File,vocabulary:File):Closeable {
     data class Result(val tokens:List<String>,val cells:List<Cell>,val score:Float) {
         fun html(texts:List<String>):String {
             var cellIndex=0
-            val result=StringBuilder("<table>")
+            // Model tokens can contain the outer table tags themselves.
+            // Add a wrapper only for exports which omit those tokens.
+            val hasOpen=tokens.any{it=="<table>"}
+            val hasClose=tokens.any{it=="</table>"}
+            val result=StringBuilder()
+            if(!hasOpen)result.append("<table>")
             var pendingCell=false
             for(token in tokens){
                 when {
@@ -49,7 +54,8 @@ class SLANetLocalV3(model:File,vocabulary:File):Closeable {
                     }
                 }
             }
-            return result.append("</table>").toString()
+            if(!hasClose)result.append("</table>")
+            return result.toString()
         }
         private fun escape(value:String):String=value.replace("&","&amp;")
             .replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;")
