@@ -198,9 +198,13 @@ object PaddlePipelineV2 {
                     val ocr=models[model] ?: run {
                         check(OcrModelManager.verifyIntegrity(app,model)){"PaddleOCR model integrity failed"}
                         check(OpenCVUtils.init(app)){"OpenCV initialization failed"}
+                        val plan=PaddleRuntimePolicy.forModel(app,model)
                         val cfg=PaddleOCRConfig(
                             detThresh=.20f,detBoxThresh=.45f,detUnclipRatio=1.4f,
-                            recScoreThresh=0f,recBatchSize=if(model==OcrModelManager.MEDIUM)2 else 4)
+                            recScoreThresh=0f,recBatchSize=plan.recognitionBatch)
+                        DiagnosticLog.i(app,"PADDLE_RUNTIME",
+                            "model="+model+" threads="+plan.threads+
+                            " batch="+plan.recognitionBatch+" lowMemory="+plan.lowMemory)
                         val lineModel=if(PaddleLocalModelsV3.enabled(app,
                             PaddleLocalModelsV3.TEXTLINE_ORIENTATION)){
                             check(PaddleLocalModelsV3.verify(app,
@@ -210,7 +214,7 @@ object PaddlePipelineV2 {
                             PaddleLocalModelsV3.model(app,
                                 PaddleLocalModelsV3.TEXTLINE_ORIENTATION).absolutePath
                         }else null
-                        PaddleOCR.create(app,cfg,EngineConfig(numThreads=4),
+                        PaddleOCR.create(app,cfg,EngineConfig(numThreads=plan.threads),
                             OcrModelManager.detFile(app,model).absolutePath,
                             OcrModelManager.recFile(app,model).absolutePath,
                             OcrModelManager.ymlFile(app,model).absolutePath,
