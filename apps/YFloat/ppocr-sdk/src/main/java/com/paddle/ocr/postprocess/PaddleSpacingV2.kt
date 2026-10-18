@@ -31,6 +31,7 @@ object PaddleSpacingV2 {
         // still contained whitespace characters that split selection groups.
         val aligned=characters.joinToString("") { it.text }
         val cjkCleaned=stripCjkWhitespaceTokens(characters)
+        val removedCjkTokens=(characters.size-cjkCleaned.size).coerceAtLeast(0)
         // The CTC geometry can be incomplete even when recognition succeeds.
         // Never reconstruct the complete recognized string from a partial
         // glyph list. But keep its CJK-safe tokens consistent with the text.
@@ -57,7 +58,7 @@ object PaddleSpacingV2 {
         val normalized=normalizeCjkSpacing(source)
         val additional=(countCandidateSpaces(source)-countCandidateSpaces(normalized))
             .coerceAtLeast(0)
-        return Correction(normalized,kept,removed+additional)
+        return Correction(normalized,kept,removedCjkTokens+removed+additional)
     }
 
     /**
