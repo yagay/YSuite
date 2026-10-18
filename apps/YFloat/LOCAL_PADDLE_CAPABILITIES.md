@@ -659,3 +659,28 @@ Debug diagnostics report `TEXT_GEOMETRY_V3 selected_lines / pixel_corrected /
 fallback` without leaking the recognized text. Physical on-device validation
 is still needed for rotated perspective quads, complex backgrounds and
 other app icon fonts; OCR time alignment does not prove glyph contour accuracy.
+
+## Native translucent blue text selection (2026-10-18)
+
+Following physical verification that TextGeometry V3's glyph selection is
+much more accurate, the active Circle text visual was changed from an
+external stroked blue rectangular/quad frame into an Android-style **filled
+semi-transparent blue overlay** over the precise selected region:
+
+- `NativeCircleWorkspace.drawTextSelection()` restores captured pixels
+  inside the original OCR selection quad, then fills the **same quad** with
+  `selectionFillPaint`. There is no selection-border paint or outward
+  drawn rectangular frame.
+- `NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA = 104` keeps selected
+  text readable below the tint. `YFloatOverlayStyle.selectionWithAlpha`
+  continues to respect the user's configured circle selection colour.
+- Start/end drag handles remain outside the selected characters. Their gap
+  is now explicitly named `textHandleOutsideGap`, independent of any
+  visible blue border.
+- OCR, text offsets, quads, pixel refinement, rotation, and text action
+  menu positioning remain unchanged. Multiple OCR lines render their own
+  filled quads instead of a giant block.
+- JUnit visual-policy tests and `tools/verify_paddle_independent_models.py`
+  now reject the obsolete stroked text selection and require live filled
+  `TextGeometryV3` selections. Blue overlay intentionally adds a visual
+  tint; it never reconstructs or replaces app glyphs.
