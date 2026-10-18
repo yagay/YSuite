@@ -67,6 +67,19 @@ public final class NativeCircleSelectionVisualTest {
         assertEquals(40f,handle[2],0.001f);
         assertTrue(handle[3]>45f);
     }
+    @Test public void overlappingHitAreasStillAllowEitherChineseHandle(){
+        assertEquals(1,NativeCircleVisualPolicy.chooseTouchedTextHandle(
+                true,true,12f,100f,10f,100f,30f,100f));
+        assertEquals(2,NativeCircleVisualPolicy.chooseTouchedTextHandle(
+                true,true,28f,100f,10f,100f,30f,100f));
+        assertEquals(1,NativeCircleVisualPolicy.chooseTouchedTextHandle(
+                true,false,12f,100f,10f,100f,30f,100f));
+        assertEquals(2,NativeCircleVisualPolicy.chooseTouchedTextHandle(
+                false,true,28f,100f,10f,100f,30f,100f));
+        assertEquals(0,NativeCircleVisualPolicy.chooseTouchedTextHandle(
+                false,false,28f,100f,10f,100f,30f,100f));
+    }
+
     /** Reproduces the Toutiao (头条) icon: character-space CTC bounds
      * finish before the second Chinese glyph, while detector line bounds
      * correctly cover it. Vertical CTC padding must not enlarge the frame. */
