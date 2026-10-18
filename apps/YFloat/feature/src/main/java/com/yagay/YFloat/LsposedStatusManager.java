@@ -92,30 +92,11 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
                     && LsposedRuntimeConfig.isEnabled(remoteEnhancedMode, remoteLsposedEnabled);
         }
 
-        public boolean googleScopeEnabled() {
-            return scope.contains(GoogleCtsContract.GOOGLE_PACKAGE);
-        }
-
+    
         /** True when any running Google target still has an older YFloat module generation. */
-        public boolean googleTargetStale() {
-            String expected = "[UP_TO_DATE v" + BuildConfig.VERSION_CODE + "]";
-            for (String process : runningProcesses) {
-                if (process != null && process.startsWith(GoogleCtsContract.GOOGLE_PACKAGE)
-                        && !process.contains(expected)) return true;
-            }
-            return false;
-        }
-
+    
         /** True when at least one hooked Google target is currently running. */
-        public boolean googleTargetLoaded() {
-            for (String process : runningProcesses) {
-                if (process != null && process.startsWith(GoogleCtsContract.GOOGLE_PACKAGE)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
+    
         public boolean remoteSecureCaptureArmed() {
             return remoteConfigReady && LsposedRuntimeConfig.isSecureCaptureActive(
                     remoteEnhancedMode,
@@ -169,7 +150,7 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
                         || FloatSettings.K_LSPOSED_ENABLED.equals(key)
                         || FloatSettings.K_LSPOSED_SECURE_SCREENSHOT.equals(key)
                         || FloatSettings.K_DIAGNOSTIC.equals(key)
-                        || FloatSettings.isGoogleVisualKey(key)) {
+                        ) {
                     syncRuntimeConfigAsync();
                 }
             };
@@ -237,31 +218,6 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
 
     public static void syncRuntimeConfigAsync() {
         INSTANCE.syncRuntimeConfig();
-    }
-
-    /** Arms a very short Google CTS correlation lease in framework-backed preferences. */
-    public static boolean armGoogleCtsSessionRemote(String token,
-                                                    long triggerElapsed,
-                                                    long armedUntilElapsed) {
-        return INSTANCE.armGoogleCtsSession(token, triggerElapsed, armedUntilElapsed);
-    }
-
-    public static void clearGoogleCtsSessionRemote(String token) {
-        INSTANCE.clearGoogleCtsSession(token);
-    }
-
-    /** Sends one user-confirmed region commit request to the hooked Google process. */
-    public static void confirmGoogleCtsRegionRemoteAsync(
-            String token, Consumer<Boolean> callback) {
-        INSTANCE.confirmGoogleCtsRegion(token, callback);
-    }
-
-    /**
-     * Synchronous safety release used immediately before native Home/gesture navigation.
-     * This guarantees Google-process hooks lose ownership before the native CTS Activity starts.
-     */
-    public static boolean clearGoogleCtsSessionRemoteNow() {
-        return INSTANCE.clearGoogleCtsSessionNow(null);
     }
 
     /** Arms secure-layer capture for one short YFloat screenshot lease. Callback runs on main. */
@@ -336,49 +292,9 @@ public final class LsposedStatusManager implements XposedServiceHelper.OnService
         });
     }
 
-    private boolean armGoogleCtsSession(String token, long triggerElapsed, long armedUntilElapsed) {
-        XposedService current = service;
-        SharedPreferences local = localPreferences;
-        if (current == null || local == null || token == null || token.isBlank()) return false;
-        if (!snapshot.remoteProviderEnabled() || !snapshot.googleScopeEnabled()) return false;
-        return callIoBoolean(() -> LsposedRuntimeStore.armGoogle(
-                current, token, triggerElapsed, armedUntilElapsed));
-    }
 
-    private void confirmGoogleCtsRegion(String token, Consumer<Boolean> callback) {
-        XposedService current = service;
-        Snapshot currentSnapshot = snapshot;
-        if (current == null || token == null || token.isBlank()
-                || !currentSnapshot.remoteProviderEnabled()
-                || !currentSnapshot.googleScopeEnabled()) {
-            complete(callback, false);
-            return;
-        }
-        long confirmedAt = SystemClock.elapsedRealtime();
-        IO.execute(() -> {
-            boolean success = false;
-            try {
-                success = LsposedRuntimeStore.confirmGoogleRegion(
-                        current, token, confirmedAt);
-            } catch (Throwable ignored) { }
-            complete(callback, success);
-        });
-    }
 
-    private void clearGoogleCtsSession(String token) {
-        XposedService current = service;
-        if (current == null) return;
-        IO.execute(() -> {
-            try { LsposedRuntimeStore.clearGoogle(current, token); }
-            catch (Throwable ignored) { }
-        });
-    }
 
-    private boolean clearGoogleCtsSessionNow(String token) {
-        XposedService current = service;
-        if (current == null) return false;
-        return callIoBoolean(() -> LsposedRuntimeStore.clearGoogle(current, token));
-    }
 
     private void armSecureCapture(Consumer<Boolean> callback) {
         XposedService current = service;

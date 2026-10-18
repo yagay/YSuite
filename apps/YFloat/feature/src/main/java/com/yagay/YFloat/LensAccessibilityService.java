@@ -37,38 +37,15 @@ import java.util.function.Consumer;
 public class LensAccessibilityService extends AccessibilityService {
     private static volatile LensAccessibilityService s;
     private static final long ENV_INSPECT_MIN_MS = 180L;
-    /**
-     * Accessibility package transitions are not a reliable task-switch boundary. Some apps briefly
-     * become the reported package while Google's frozen CTS surface is still the active window.
-     * Re-check the active/focused window after this grace period before tearing the session down.
-     */
-    // The launcher remains reported as focused during some Google CTS start
-    // and teardown animations. A 320ms release can revoke a freshly armed
-    // token before LensientActivity has settled on screen.
-    private static final long GOOGLE_EXIT_GRACE_MS = 1100L;
-
     private volatile EnvironmentState env = new EnvironmentState("", false, 0, true, false, false);
     private final Set<String> homePackages = new HashSet<>();
     private final Handler main = new Handler(Looper.getMainLooper());
     private long lastEnvironmentInspectAt;
-    private Runnable pendingGoogleExit;
-    private int googleExitGeneration;
 
     /** Called as soon as a new authenticated Google CTS workflow is armed.
      * Cancels an old launcher's pending navigation-release callback so it
      * cannot revoke this NEW session's remote token.
      */
-    static void onNewGoogleCtsWorkflow(WorkflowSessionManager.Session workflow) {
-        LensAccessibilityService service=s;
-        if(service==null||workflow==null)return;
-        if(Looper.myLooper()==Looper.getMainLooper()) {
-            if(workflow.current())service.cancelPendingGoogleExit("new_cts_workflow");
-        } else {
-            service.main.post(()->{
-                if(workflow.current())service.cancelPendingGoogleExit("new_cts_workflow");
-            });
-        }
-    }
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
@@ -99,7 +76,6 @@ public class LensAccessibilityService extends AccessibilityService {
     }
 
     @Override public boolean onUnbind(Intent intent) {
-        cancelPendingGoogleExit("service_unbind");
         FloatService service = FloatService.get();
         if (service != null) service.onAccessibilityOverlayHostChanged(false);
         OverlayRegistry.onAccessibilityHostChanged(false);
@@ -110,7 +86,6 @@ public class LensAccessibilityService extends AccessibilityService {
     }
 
     @Override public void onDestroy() {
-        cancelPendingGoogleExit("service_destroy");
         FloatService service = FloatService.get();
         if (service != null) service.onAccessibilityOverlayHostChanged(false);
         OverlayRegistry.onAccessibilityHostChanged(false);
@@ -164,144 +139,26 @@ public class LensAccessibilityService extends AccessibilityService {
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         try {
-            String eventPkg = eventPackage(event);
-            String eventCls = eventClass(event);
-            if (GoogleCtsContract.GOOGLE_PACKAGE.equals(eventPkg)) {
-                cancelPendingGoogleExit("google_window_returned");
-                WorkflowSessionManager.Session currentGoogle=WorkflowSessionManager.current();
-                if(currentGoogle!=null
-                        &&currentGoogle.type()==WorkflowSessionManager.Type.GOOGLE_CTS)
-                    GoogleV2UiEngine.onNavigationReturn(
-                            this,currentGoogle.externalKey(),"google_window_returned");
+            String oldTop=env.topPackage();
+            String top=oldTop;
+            if(event!=null&&event.getPackageName()!=null){
+                String pkg=event.getPackageName().toString();
+                if(!pkg.equals(getPackageName())&&!pkg.equals("com.android.systemui"))top=pkg;
             }
-
-            // Only a live Google CTS workflow needs navigation release handling. Home/launcher
-            // window churn outside a CTS session must not repeatedly clear bridge state or logs.
-            if (WorkflowSessionManager.googleCtsInFlight() && isSystemNavigationEvent(event)) {
-                DiagnosticLog.i(this, "CIRCLE_SELECT",
-                        "navigation candidate pkg=" + eventPkg + " cls=" + eventCls);
-                scheduleGoogleCtsRelease("system_navigation", eventPkg, eventCls);
-            }
-
-            String oldTop = env.topPackage();
-            String top = oldTop;
-            if (event != null && event.getPackageName() != null) {
-                String pkg = event.getPackageName().toString();
-                if (!pkg.equals(getPackageName()) && !pkg.equals("com.android.systemui")) top = pkg;
-            }
-            boolean topChanged = !top.equals(oldTop);
-
-            if (topChanged
-                    && WorkflowSessionManager.googleCtsInFlight()
-                    && GoogleCtsContract.GOOGLE_PACKAGE.equals(oldTop)
-                    && !GoogleCtsContract.GOOGLE_PACKAGE.equals(top)
-                    && !getPackageName().equals(top)
-                    && !"com.android.systemui".equals(top)) {
-                scheduleGoogleCtsRelease("top_package_changed", top, eventCls);
-            }
-
-            long now = SystemClock.uptimeMillis();
-            if (!topChanged && now - lastEnvironmentInspectAt < ENV_INSPECT_MIN_MS) return;
-            lastEnvironmentInspectAt = now;
-            EnvironmentState next = inspect(top);
-            if (sameEnvironment(env, next)) return;
-            env = next;
+            boolean changed=!top.equals(oldTop);
+            long now=SystemClock.uptimeMillis();
+            if(!changed&&now-lastEnvironmentInspectAt<ENV_INSPECT_MIN_MS)return;
+            lastEnvironmentInspectAt=now;
+            EnvironmentState next=inspect(top);
+            if(sameEnvironment(env,next))return;
+            env=next;
             publishEnvironment();
-        } catch (Throwable t) {
-            DiagnosticLog.i(this, "ACCESSIBILITY", "event failed=" + t);
+        }catch(Throwable error){
+            DiagnosticLog.i(this,"ACCESSIBILITY","event failed="+error);
         }
     }
 
-    private void scheduleGoogleCtsRelease(String reason, String observedPkg, String observedCls) {
-        if (!WorkflowSessionManager.googleCtsInFlight()) return;
-        cancelPendingGoogleExit(null);
-        // Pin the callback to the exact workflow that produced the event.
-        // The previous implementation checked only whether *any* Google CTS
-        // workflow was active; an old launcher event could clear a new token.
-        final WorkflowSessionManager.Session scheduled=
-                WorkflowSessionManager.current();
-        if(scheduled==null||!scheduled.current()
-                ||scheduled.type()!=WorkflowSessionManager.Type.GOOGLE_CTS)return;
-        // Do not hold YFloat's separate text outline / screenshot Done button
-        // on top of the launcher for the 1.1s navigation settle timeout.
-        // Only visuals are suspended here; remote lease, Google recognition
-        // and session termination keep the original safeguards.
-        if(GoogleCtsSessionCoordinator.mayCancelOnNavigation(scheduled.externalKey()))
-            GoogleV2UiEngine.onNavigationExit(
-                    this,scheduled.externalKey(),"accessibility:"+reason);
-        final int generation = ++googleExitGeneration;
-        final Runnable[] holder = new Runnable[1];
-        holder[0] = () -> {
-            if (pendingGoogleExit != holder[0] || generation != googleExitGeneration) return;
-            pendingGoogleExit = null;
-            if (!scheduled.current()
-                    ||WorkflowSessionManager.current()!=scheduled
-                    ||!WorkflowSessionManager.googleCtsInFlight()) {
-                DiagnosticLog.i(this,"GOOGLE_CTS_RELEASE_GUARD",
-                        "stale navigation release skipped reason="+reason
-                                +" originId="+scheduled.id()
-                                +" currentId="+WorkflowSessionManager.currentId());
-                return;
-            }
 
-            String activePkg = activeWindowPackage();
-            String settledPkg = activePkg == null || activePkg.isBlank()
-                    ? env.topPackage() : activePkg;
-            if (GoogleCtsContract.GOOGLE_PACKAGE.equals(settledPkg)) {
-                DiagnosticLog.i(this, "GOOGLE_CTS_RELEASE_GUARD",
-                        "cancelled reason=" + reason
-                                + " observed=" + observedPkg
-                                + " active=" + settledPkg
-                                + " graceMs=" + GOOGLE_EXIT_GRACE_MS);
-                return;
-            }
-
-            // Screenshot handoff is not navigation cancellation. The V2
-            // coordinator owns its COMMITTED/HANDOFF state until delivery.
-            if (!GoogleCtsSessionCoordinator.mayCancelOnNavigation(
-                    scheduled.externalKey())) {
-                boolean imageInput=GoogleLensImageInputProbe.ownsPendingImage(
-                        scheduled.externalKey());
-                DiagnosticLog.i(this,"GOOGLE_CTS_RELEASE_GUARD",
-                        (imageInput
-                            ?"lens_image_input_navigation_held"
-                            :"screenshot_result_handoff_navigation_held")
-                        +" reason="+reason
-                        +" workflowId="+scheduled.id());
-                return;
-            }
-            if (GoogleCtsBridgeController.hasPendingGoogleScreenshotResult()) {
-                DiagnosticLog.i(this, "GOOGLE_CTS_RELEASE_GUARD",
-                        "pending Google screenshot; defer navigation release reason=" + reason);
-                return;
-            }
-
-            // All work runs on the main looper. Check the identity again
-            // immediately before revoking the shared remote session.
-            if(!scheduled.current()||WorkflowSessionManager.current()!=scheduled)return;
-            DiagnosticLog.i(this,"GOOGLE_CTS_NATIVE_RELEASE",
-                    "reason="+reason+" observed="+observedPkg
-                            +" cls="+observedCls+" settled="+settledPkg
-                            +" workflowId="+scheduled.id());
-            GoogleCtsSessionCoordinator.cancelCurrent(this,reason);
-            FLCircleInlineOverlay.dismissActive(reason);
-        };
-        pendingGoogleExit = holder[0];
-        main.postDelayed(holder[0], GOOGLE_EXIT_GRACE_MS);
-    }
-
-    private void cancelPendingGoogleExit(String reason) {
-        Runnable pending = pendingGoogleExit;
-        pendingGoogleExit = null;
-        googleExitGeneration++;
-        if (pending != null) {
-            main.removeCallbacks(pending);
-            if (reason != null && !reason.isBlank()) {
-                DiagnosticLog.i(this, "GOOGLE_CTS_RELEASE_GUARD",
-                        "pending release cancelled reason=" + reason);
-            }
-        }
-    }
 
     /** Return the package owning the currently active/focused application window, if available. */
     private String activeWindowPackage() {

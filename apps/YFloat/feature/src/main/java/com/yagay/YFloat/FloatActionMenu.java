@@ -123,7 +123,7 @@ public final class FloatActionMenu {
         if (c == null) return;
         String text = value == null ? "" : value.trim();
         if (text.isEmpty()) return;
-        // Replacing text actions must not remove Google's live selection
+        // Replacing text actions must not remove the live selection
         // outline; it is owned by the CTS session rather than this menu.
         if(mode==MODE_MAIN)dismissPreservingTextOutline();
         else dismiss();
@@ -152,7 +152,7 @@ public final class FloatActionMenu {
         root.setOnTouchListener((v, e) -> {
             if (e.getActionMasked() == MotionEvent.ACTION_OUTSIDE) {
                 // A selection-handle drag starts outside the toolbar. This is
-                // not Back/Cancel: never revoke the live Google CTS session.
+                // not Back/Cancel: never revoke the live selection session.
                 if (activeMode == MODE_MAIN) dismissPreservingTextOutline();
                 else dismiss();
                 return true;
@@ -652,7 +652,7 @@ public final class FloatActionMenu {
 
     /**
      * Position changes should move the existing WindowManager view. Destroying
-     * and recreating it for every Google handle drag caused flashing and lost
+     * and recreating it for every text handle drag caused flashing and lost
      * taps, and older builds never forwarded live bounds here at all.
      */
     public static synchronized void repositionTextAt(Context context, String text, Rect anchor) {
@@ -672,7 +672,7 @@ public final class FloatActionMenu {
                 && Math.abs(position[1] - activeParams.y) < 2) return;
         activeParams.x = position[0];
         activeParams.y = position[1];
-        if (activeHost.update(activeView, activeParams, "google_text_menu_follow")) {
+        if (activeHost.update(activeView, activeParams, "text_menu_follow")) {
             activeCenterX = activeParams.x + activeMenuWidth / 2;
             activeTopY = activeParams.y;
         }
@@ -697,8 +697,6 @@ public final class FloatActionMenu {
     }
 
     private static void dismissInternal(boolean removeSelectionOutline) {
-        GoogleTextResultFrameOverlay.dismiss();
-        if(removeSelectionOutline)GoogleV2TextOutline.dismiss();
         View v = activeView;
         FlOverlayWindowHost host = activeHost;
         activeView = null;
