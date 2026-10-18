@@ -77,6 +77,7 @@ public final class OcrDocument {
     private final OcrStructure structure;
     private final List<String> tableTexts;
     private final List<String> tableHtmls;
+    private final List<String> tableOrigins;
     private final List<String> sealTexts;
     private final List<String> formulaTexts;
     private final List<String> chartTexts;
@@ -94,7 +95,7 @@ public final class OcrDocument {
                        String engine, float confidence, double score,
                        int imageWidth, int imageHeight, CoordinateSpace coordinateSpace) {
         this(fullText,blocks,lines,engine,confidence,score,
-                imageWidth,imageHeight,coordinateSpace,null,null,null,null,null,null,"",null);
+                imageWidth,imageHeight,coordinateSpace,null,null,null,null,null,null,"",null,null);
     }
 
     private OcrDocument(String fullText,List<String> blocks,List<Line> lines,
@@ -102,7 +103,7 @@ public final class OcrDocument {
                         int imageWidth,int imageHeight,CoordinateSpace coordinateSpace,
                         OcrStructure structure,List<String> tableTexts,List<String> tableHtmls,
                         List<String> sealTexts,List<String> formulaTexts,List<String> chartTexts,
-                        String unwarpedText,OcrDocument rectifiedDocument) {
+                        String unwarpedText,List<String> tableOrigins,OcrDocument rectifiedDocument) {
         this.fullText = fullText == null ? "" : fullText.trim();
         this.blocks = blocks == null ? List.of() : List.copyOf(blocks);
         this.lines = lines == null ? List.of() : List.copyOf(lines);
@@ -115,6 +116,7 @@ public final class OcrDocument {
         this.structure=structure;
         this.tableTexts=tableTexts==null?List.of():List.copyOf(tableTexts);
         this.tableHtmls=tableHtmls==null?List.of():List.copyOf(tableHtmls);
+        this.tableOrigins=tableOrigins==null?List.of():List.copyOf(tableOrigins);
         this.sealTexts=sealTexts==null?List.of():List.copyOf(sealTexts);
         this.formulaTexts=formulaTexts==null?List.of():List.copyOf(formulaTexts);
         this.chartTexts=chartTexts==null?List.of():List.copyOf(chartTexts);
@@ -142,10 +144,16 @@ public final class OcrDocument {
     public List<String> tableTexts(){return tableTexts;}
     /** Model-derived SLANet HTML retains cell spans absent in TSV. */
     public List<String> tableHtmls(){return tableHtmls;}
+    public List<String> tableOrigins(){return tableOrigins;}
+    public OcrDocument withTableOrigins(List<String> origins){
+        return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
+            imageWidth,imageHeight,coordinateSpace,structure,tableTexts,tableHtmls,
+            sealTexts,formulaTexts,chartTexts,unwarpedText,origins,rectifiedDocument);
+    }
     public OcrDocument withTableHtmls(List<String> html){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
                 imageWidth,imageHeight,coordinateSpace,structure,tableTexts,html,
-                sealTexts,formulaTexts,chartTexts,unwarpedText,rectifiedDocument);
+                sealTexts,formulaTexts,chartTexts,unwarpedText,tableOrigins,rectifiedDocument);
     }
     /** Separate rectified-page text. It has no valid coordinates on the original screenshot. */
     public String unwarpedText(){return unwarpedText;}
@@ -156,12 +164,12 @@ public final class OcrDocument {
             throw new IllegalArgumentException("Corrected OCR has wrong coordinate system");
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
             imageWidth,imageHeight,coordinateSpace,structure,tableTexts,tableHtmls,
-            sealTexts,formulaTexts,chartTexts,unwarpedText,corrected);
+            sealTexts,formulaTexts,chartTexts,unwarpedText,tableOrigins,corrected);
     }
     public OcrDocument asRectifiedBitmapSpace(){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
             imageWidth,imageHeight,CoordinateSpace.RECTIFIED_BITMAP,structure,
-            tableTexts,tableHtmls,sealTexts,formulaTexts,chartTexts,unwarpedText,null);
+            tableTexts,tableHtmls,sealTexts,formulaTexts,chartTexts,unwarpedText,tableOrigins,null);
     }
     /** Optional seal region text. Detection polygons remain in PaddlePipelineV2. */
     public List<String> sealTexts(){return sealTexts;}
@@ -171,7 +179,7 @@ public final class OcrDocument {
     public OcrDocument withChartTexts(List<String> values){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
             imageWidth,imageHeight,coordinateSpace,structure,tableTexts,tableHtmls,
-            sealTexts,formulaTexts,values,unwarpedText,rectifiedDocument);
+            sealTexts,formulaTexts,values,unwarpedText,tableOrigins,rectifiedDocument);
     }
     /** Genuine LaTeX is model output; no character quads are synthesized. */
     public OcrDocument withFormulaTexts(List<String> formulas){
@@ -180,24 +188,24 @@ public final class OcrDocument {
         if(text.isBlank()&&!safe.isEmpty())text=String.join("\n",safe);
         return new OcrDocument(text,blocks,lines,engine,confidence,score,
             imageWidth,imageHeight,coordinateSpace,structure,tableTexts,tableHtmls,
-            sealTexts,safe,chartTexts,unwarpedText,rectifiedDocument);
+            sealTexts,safe,chartTexts,unwarpedText,tableOrigins,rectifiedDocument);
     }
     public OcrDocument withSealTexts(List<String> values){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
-            imageWidth,imageHeight,coordinateSpace,structure,tableTexts,tableHtmls,values,formulaTexts,chartTexts,unwarpedText,rectifiedDocument);
+            imageWidth,imageHeight,coordinateSpace,structure,tableTexts,tableHtmls,values,formulaTexts,chartTexts,unwarpedText,tableOrigins,rectifiedDocument);
     }
     public OcrDocument withUnwarpedText(String value){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
-            imageWidth,imageHeight,coordinateSpace,structure,tableTexts,tableHtmls,sealTexts,formulaTexts,chartTexts,value,rectifiedDocument);
+            imageWidth,imageHeight,coordinateSpace,structure,tableTexts,tableHtmls,sealTexts,formulaTexts,chartTexts,value,tableOrigins,rectifiedDocument);
     }
     /** Table text is structured metadata, never synthetic glyph geometry. */
     public OcrDocument withTableTexts(List<String> tableText){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
-                imageWidth,imageHeight,coordinateSpace,structure,tableText,tableHtmls,sealTexts,formulaTexts,chartTexts,unwarpedText,rectifiedDocument);
+                imageWidth,imageHeight,coordinateSpace,structure,tableText,tableHtmls,sealTexts,formulaTexts,chartTexts,unwarpedText,tableOrigins,rectifiedDocument);
     }
     public OcrDocument withStructure(OcrStructure geometry){
         return new OcrDocument(fullText,blocks,lines,engine,confidence,score,
-                imageWidth,imageHeight,coordinateSpace,geometry,tableTexts,tableHtmls,sealTexts,formulaTexts,chartTexts,unwarpedText,rectifiedDocument);
+                imageWidth,imageHeight,coordinateSpace,geometry,tableTexts,tableHtmls,sealTexts,formulaTexts,chartTexts,unwarpedText,tableOrigins,rectifiedDocument);
     }
     public boolean isBitmapSpace() { return coordinateSpace == CoordinateSpace.BITMAP; }
     public boolean isScreenSpace() { return coordinateSpace == CoordinateSpace.SCREEN; }
