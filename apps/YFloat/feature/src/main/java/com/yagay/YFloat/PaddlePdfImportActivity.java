@@ -17,6 +17,11 @@ import com.google.android.material.button.MaterialButton;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
 import java.io.OutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,9 +51,12 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
     private MaterialButton cancelButton;
     private PdfRenderer renderer;
     private ParcelFileDescriptor sourceFd;
-    private final ArrayList<OcrDocument> results = new ArrayList<>();
+    private File stagedExport;
+    private BufferedWriter exportWriter;
+    private int totalPages;
+    private int completedPages;
+    private boolean hasTables;
     private Format format = Format.MARKDOWN;
-    private String output;
     private int model;
     private boolean running;
 
@@ -105,14 +113,24 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         });
         LinearLayout stop=YViewLayout.buttonRow(this);
         YViewLayout.addAction(stop,cancelButton);
+        MaterialButton discard=YViewLayout.compactButton(this,"Discard saved OCR draft");
+        discard.setOnClickListener(v->{
+            if(running)return;
+            io.execute(()->{
+                discardExport();
+                showProgress("Temporary OCR result discarded.");
+            });
+        });
+        YViewLayout.addAction(stop,discard);
         YViewLayout.addRow(section.body,stop);
         YViewLayout.addSection(root, section);
         setContentView(YViewLayout.scrollPage(this, root));
     }
 
     private void choose(Format next) {
-        if (running) {
-            Toast.makeText(this, "PDF recognition is already running", Toast.LENGTH_SHORT).show();
+        if (running || stagedExport!=null) {
+            Toast.makeText(this, "Save or discard the previous PDF result first",
+                    Toast.LENGTH_LONG).show();
             return;
         }
         int[] preferred={OcrModelManager.SMALL,OcrModelManager.MEDIUM,
@@ -135,8 +153,9 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         running=true;
         cancelButton.setEnabled(true);
         cancelled.set(false);
-        results.clear();
-        output=null;
+        completedPages=0;
+        totalPages=0;
+        hasTables=false;
         showProgress("Opening local PDF...");
         io.execute(()->{
             try{
@@ -146,6 +165,11 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
                 int pageCount=renderer.getPageCount();
                 if(pageCount==0||pageCount>500)
                     throw new IllegalArgumentException("PDF page count must be between 1 and 500");
+                totalPages=pageCount;
+                stagedExport=File.createTempFile("yfloat-ocr-", ".partial",getCacheDir());
+                exportWriter=new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(stagedExport),StandardCharsets.UTF_8),32768);
+                beginExport();
                 readNext(0);
             }catch(Throwable error){fail(error);}
         });
@@ -155,8 +179,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
     private void readNext(int pageIndex) {
         if(cancelled.get()) {
             closePdf();
-            results.clear();
-            output=null;
+            discardExport();
             running=false;
             runOnUiThread(()->{
                 cancelButton.setEnabled(false);
@@ -168,24 +191,21 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
             int count=renderer.getPageCount();
             if(pageIndex>=count){
                 closePdf();
-                output=switch(format){
-                    case MARKDOWN -> PaddleDocumentExport.markdownPages(results);
-                    case JSON -> PaddleDocumentExport.jsonPages(results);
-                    case HTML -> PaddleDocumentExport.htmlPages(results);
-                    case CSV -> PaddleDocumentExport.csvPages(results);
-                };
+                finishExport();
                 running=false;
                 runOnUiThread(()->{
                     cancelButton.setEnabled(false);
                     if(cancelled.get())return;
-                    status.setText("Finished "+results.size()+" pages. Choose where to save.");
+                    status.setText("Finished "+completedPages+" pages. Save the offline result.");
                     switch(format){
                         case MARKDOWN -> saveMarkdown.launch("yfloat-ocr.md");
                         case JSON -> saveJson.launch("yfloat-ocr.json");
                         case HTML -> saveHtml.launch("yfloat-ocr.html");
                         case CSV -> {
-                            if(output.isBlank())status.setText("No tables detected in PDF.");
-                            else saveCsv.launch("yfloat-ocr-tables.csv");
+                            if(!hasTables){
+                                status.setText("No tables detected in PDF.");
+                                io.execute(this::discardExport);
+                            }else saveCsv.launch("yfloat-ocr-tables.csv");
                         }
                     }
                 });
@@ -214,9 +234,11 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
                             try{
                                 io.execute(()->{
                                     image.recycle();
-                                    if(cancelled.get()){closePdf();return;}
-                                    results.add(document);
-                                    readNext(pageIndex+1);
+                                    if(cancelled.get()){readNext(pageIndex+1);return;}
+                                    try{
+                                        appendPage(pageIndex,document);
+                                        readNext(pageIndex+1);
+                                    }catch(Throwable error){fail(error);}
                                 });
                             }catch(java.util.concurrent.RejectedExecutionException ignored){
                                 image.recycle();
@@ -242,24 +264,102 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
         }catch(Throwable error){fail(error);}
     }
 
+    private void beginExport()throws Exception{
+        if(exportWriter==null)throw new IllegalStateException("No output stream");
+        if(format==Format.JSON)
+            exportWriter.write("{\"schema\":\"yfloat.paddle.document.v1\",\"pageCount\":"+
+                    totalPages+",\"pages\":[");
+        if(format==Format.HTML)
+            exportWriter.write("<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"+
+                    "<title>YFloat OCR</title></head><body>");
+    }
+
+    /** Serialize one page then discard all its OCR objects before next page. */
+    private void appendPage(int index,OcrDocument page)throws Exception{
+        if(exportWriter==null)throw new IllegalStateException("PDF output was closed");
+        switch(format){
+            case MARKDOWN -> {
+                if(index!=0)exportWriter.write("\n---\n\n");
+                exportWriter.write("<!-- Page "+(index+1)+" -->\n\n");
+                exportWriter.write(PaddleDocumentExport.markdown(page));
+            }
+            case JSON -> {
+                if(index!=0)exportWriter.write(",");
+                org.json.JSONObject wrapper=
+                        new org.json.JSONObject(PaddleDocumentExport.json(page));
+                org.json.JSONObject entry=wrapper.getJSONArray("pages").getJSONObject(0);
+                entry.put("pageIndex",index);
+                exportWriter.write(entry.toString());
+            }
+            case HTML -> {
+                String html=PaddleDocumentExport.html(page);
+                int start=html.indexOf("<body>")+6;
+                int end=html.lastIndexOf("</body>");
+                if(start<6||end<start)throw new IllegalStateException("HTML body not found");
+                exportWriter.write("<section data-page=\""+(index+1)+"\">");
+                exportWriter.write(html.substring(start,end));
+                exportWriter.write("</section>");
+            }
+            case CSV -> {
+                String tables=PaddleDocumentExport.csvTables(page);
+                if(!tables.isBlank()){
+                    if(hasTables)exportWriter.write("\r\n");
+                    exportWriter.write(tables);
+                    hasTables=true;
+                }
+            }
+        }
+        completedPages++;
+        exportWriter.flush();
+    }
+
+    private void finishExport()throws Exception{
+        if(exportWriter==null)throw new IllegalStateException("Missing output writer");
+        if(format==Format.JSON)exportWriter.write("]}");
+        if(format==Format.HTML)exportWriter.write("</body></html>");
+        exportWriter.close();
+        exportWriter=null;
+    }
+
     private void saveResult(Uri dest) {
-        if(dest==null||output==null)return;
-        String text=output;
+        if(dest==null){
+            showProgress("Save cancelled. The offline result remains available.");
+            return;
+        }
         io.execute(()->{
-            try(OutputStream stream=getContentResolver().openOutputStream(dest,"wt")){
-                if(stream==null)throw new IllegalStateException("Cannot open selected output");
-                stream.write(text.getBytes(StandardCharsets.UTF_8));
-                stream.flush();
-                showProgress("Saved "+results.size()+" pages successfully.");
-                output=null;
-            }catch(Throwable error){showProgress("Save failed: "+safe(error));}
+            File ready=stagedExport;
+            if(ready==null||!ready.isFile()){
+                showProgress("No recognized PDF available to export.");
+                return;
+            }
+            try(FileInputStream input=new FileInputStream(ready);
+                OutputStream out=getContentResolver().openOutputStream(dest,"wt")){
+                if(out==null)throw new IllegalStateException("Document provider unavailable");
+                byte[] bytes=new byte[65536];int n;
+                while((n=input.read(bytes))!=-1)out.write(bytes,0,n);
+                out.flush();
+                discardExport();
+                showProgress("Saved "+completedPages+" pages.");
+            }catch(Throwable error){
+                showProgress("Save failed: "+safe(error));
+            }
         });
+    }
+
+    private void discardExport(){
+        if(exportWriter!=null){
+            try{exportWriter.close();}catch(Throwable ignored){}
+            exportWriter=null;
+        }
+        if(stagedExport!=null){
+            if(stagedExport.exists())stagedExport.delete();
+            stagedExport=null;
+        }
     }
 
     private void fail(Throwable error) {
         closePdf();
-        results.clear();
-        output=null;
+        discardExport();
         running=false;
         runOnUiThread(()->cancelButton.setEnabled(false));
         showProgress("PDF OCR failed: "+safe(error));
@@ -286,7 +386,7 @@ public final class PaddlePdfImportActivity extends AppCompatActivity {
 
     @Override public void onDestroy() {
         cancelled.set(true);
-        io.execute(this::closePdf);
+        io.execute(()->{closePdf();discardExport();});
         io.shutdown();
         super.onDestroy();
     }
