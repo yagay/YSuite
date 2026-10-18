@@ -198,7 +198,7 @@ public final class OcrModelManager {
                     throw new IllegalStateException(
                             app.getString(R.string.yfloat_ocr_model_hash_validation_failed));
                 }
-                PaddleOcrBridge.releaseModel(model);
+                PaddlePipelineV2.releaseModel(model);
                 DiagnosticLog.i(app, "OCR_MODEL", "download success model=" + model
                         + " bytes=" + installedBytes(app, model) + " integrity=sha256 runtimeReload=true");
                 if (cb != null) MAIN.post(cb::onSuccess);
@@ -343,7 +343,7 @@ public final class OcrModelManager {
     public static void delete(Context c, int model) {
         Context app = c.getApplicationContext();
         try {
-            PaddleOcrBridge.releaseModel(model);
+            PaddlePipelineV2.releaseModel(model);
             deleteRecursively(dir(app, model));
             DiagnosticLog.i(app, "OCR_MODEL", "deleted model=" + model + " runtimeRelease=true");
         } catch (Throwable t) {

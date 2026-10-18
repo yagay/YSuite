@@ -48,8 +48,9 @@ object PaddlePageV2 {
                             symbol.text,box,symbol.confidence,linesOut.size,wordGroup,index++))
                     }
                 }
-                if(chars.isNotEmpty())
-                    linesOut.add(OcrDocument.Line(line.text,line.bounds.rect(),line.confidence,chars))
+                // A recognizer can return text even if CTC glyph geometry
+                // is unavailable. Preserve readable text, never fake a glyph box.
+                linesOut.add(OcrDocument.Line(line.text,line.bounds.rect(),line.confidence,chars))
             }
             val text=linesOut.joinToString("\n") {it.text()}
             val summary=blocks.mapNotNull { block ->

@@ -48,7 +48,7 @@ object PaddleOrientationV2 {
         var characters=0
         for(result in results) {
             val value=result.text
-            val meaningful=value.codePoints().filter {Character.isLetterOrDigit(it)}.count()
+            val meaningful=value.codePoints().filter {Character.isLetterOrDigit(it)}.count().toInt()
             if(meaningful<=0)continue
             weighted+=meaningful*result.confidence.coerceIn(0f,1f)
             characters+=meaningful
