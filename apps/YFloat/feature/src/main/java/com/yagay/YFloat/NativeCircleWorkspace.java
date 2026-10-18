@@ -26,6 +26,7 @@ import android.widget.Toast;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -68,6 +69,10 @@ final class NativeCircleWorkspace extends View {
     private final RectF imageDragOrigin = new RectF();
 
     private OcrDocument fullDocument;
+    // Character boxes are only a selection surface. Source text and its
+    // original whitespace belong to the recognized OcrDocument.
+    private final IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span>
+            sourceSpans=new IdentityHashMap<>();
     private ArrayList<OcrDocument.CharUnit> chosenChars = new ArrayList<>();
     private int firstChar = -1, lastChar = -1;
     private boolean ocrBusy, closed, touching;
@@ -179,8 +184,10 @@ final class NativeCircleWorkspace extends View {
                         if (closed) return;
                         try {
                             fullDocument = frame.transform.documentBitmapToScreen(result);
+                            rebuildTextOffsets();
                         } catch (Throwable error) {
                             fullDocument = null;
+                            sourceSpans.clear();
                             DiagnosticLog.i(app, "CIRCLE_NATIVE",
                                     "ocr coordinates failed="
                                             + ScreenCaptureBackend.safeMessage(error));
@@ -471,31 +478,76 @@ final class NativeCircleWorkspace extends View {
         DiagnosticLog.i(app,"CIRCLE_NATIVE","auto route=text kind="+gesture.kind);
     }
 
+    /** Build source-position maps once after Paddle returns a full document. */
+    private void rebuildTextOffsets(){
+        sourceSpans.clear();
+        if(fullDocument==null)return;
+        int mapped=0,unmapped=0;
+        List<OcrDocument.Line> lines=fullDocument.lines();
+        for(int lineId=0;lineId<lines.size();lineId++){
+            OcrDocument.Line line=lines.get(lineId);
+            ArrayList<OcrDocument.CharUnit> units=new ArrayList<>();
+            ArrayList<String> tokens=new ArrayList<>();
+            for(OcrDocument.CharUnit unit:line.chars()){
+                if(unit.text().isBlank())continue;
+                units.add(unit);
+                tokens.add(unit.text());
+            }
+            List<OcrSelectionText.Span> aligned=OcrSelectionText.align(
+                    line.text(),tokens,lineId);
+            for(int i=0;i<units.size();i++){
+                OcrSelectionText.Span offset=aligned.get(i);
+                if(offset!=null){sourceSpans.put(units.get(i),offset);mapped++;}
+                else unmapped++;
+            }
+        }
+        DiagnosticLog.i(app,"PADDLE_SPACE_TRACE",
+                "stage=native_index mapped="+mapped+" unmapped="+unmapped+
+                " lines="+lines.size());
+    }
+
+    /** Text is copied from recognized line offsets, NEVER inferred from glyph spacing. */
     private void applyTextIndices(long token,boolean initial) {
         if(fullDocument==null||firstChar<0||lastChar<firstChar)return;
         List<OcrDocument.CharUnit> all=fullDocument.chars();
         if(lastChar>=all.size())return;
         chosenChars.clear();
-        StringBuilder text=new StringBuilder();
+        ArrayList<String> tokens=new ArrayList<>();
+        ArrayList<OcrSelectionText.Span> offsets=new ArrayList<>();
+        ArrayList<Integer> indices=new ArrayList<>();
+        ArrayList<Integer> lineNumbers=new ArrayList<>();
         Rect screen=new Rect();
-        OcrDocument.CharUnit previous=null;
+        int mapped=0;
         for(int i=firstChar;i<=lastChar;i++){
-            OcrDocument.CharUnit ch=all.get(i);
-            if(ch.text().isEmpty())continue;
-            if(previous!=null && (previous.line()!=ch.line()
-                    || previous.group()!=ch.group()))text.append(' ');
-            text.append(ch.text());
-            screen.union(ch.bounds());
-            chosenChars.add(ch);
-            previous=ch;
+            OcrDocument.CharUnit unit=all.get(i);
+            if(unit.text().isBlank()||unit.bounds().isEmpty())continue;
+            OcrSelectionText.Span span=sourceSpans.get(unit);
+            if(span!=null)mapped++;
+            tokens.add(unit.text());
+            offsets.add(span);
+            lineNumbers.add(unit.line());
+            indices.add(indices.size());
+            screen.union(unit.bounds());
+            chosenChars.add(unit);
         }
-        if(text.toString().isBlank())return;
+        String value=OcrSelectionText.selected(tokens,offsets,indices,lineNumbers);
+        if(value.isBlank()||screen.isEmpty())return;
+        int spaces=0;
+        for(int cp:value.codePoints().toArray()){
+            if(cp==32||cp==0x00a0||cp==0x3000||cp==0x202f)spaces++;
+        }
+        DiagnosticLog.i(app,"PADDLE_SPACE_TRACE",
+                "stage=native_selection spaces="+spaces+
+                " units="+tokens.size()+" mapped="+mapped+
+                " unmapped="+(tokens.size()-mapped)+
+                " codepoints="+value.codePointCount(0,value.length())+
+                " initial="+initial);
         Rect inBitmap=frame.screenRectToBitmap(screen);
         if(initial){
-            if(!state.resolveText(token,text.toString(),inBitmap.left,inBitmap.top,
+            if(!state.resolveText(token,value,inBitmap.left,inBitmap.top,
                     inBitmap.right,inBitmap.bottom))return;
         }else{
-            state.updateText(text.toString(),inBitmap.left,inBitmap.top,
+            state.updateText(value,inBitmap.left,inBitmap.top,
                     inBitmap.right,inBitmap.bottom);
         }
         status="";
@@ -755,6 +807,7 @@ final class NativeCircleWorkspace extends View {
     private void close(String reason) {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
+        sourceSpans.clear();
         FloatActionMenu.dismiss();
         host.remove(this,"native_circle_"+reason);
         if(closedCallback!=null)closedCallback.run();
