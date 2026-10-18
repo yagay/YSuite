@@ -611,3 +611,5 @@ Physical screenshots on the OnePlus launcher remain the acceptance
 test for exact appearance; Debug CI cannot compare device-rendered frames.
 
 **Final pixel-faithful selection CI gate:** Validate untouched original glyph pixels, exterior handles and border, Paddle and YFloat unit tests and ARM64 Debug artifact. All earlier source changes used `[skip ci]`.
+
+**CI contract correction:** Source gate now anchors text handles to the new exterior selection outline instead of the obsolete blue fill. Rerun ARM64 Debug and both OCR unit-test suites.
