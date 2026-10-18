@@ -35,6 +35,11 @@ object PaddlePipelineV2 {
     // lightweight read-only loaded-status queries safe from UI threads.
     private val models=java.util.concurrent.ConcurrentHashMap<Int,PaddleOCR>()
     private val modelSignatures=mutableMapOf<Int,String>()
+    // Keep one alternate line-orientation variant warm on normal-memory
+    // devices. Fast Circle and document OCR otherwise reload the very same
+    // detector/recognizer whenever their orientation switches differ.
+    // Both variants are owned exclusively by the serialized inference lane.
+    private val alternateModels=mutableMapOf<Int,Pair<String,PaddleOCR>>()
     private fun signature(app:Context,model:Int,lineRequested:Boolean):String {
         val files=listOf(OcrModelManager.detFile(app,model),
             OcrModelManager.recFile(app,model),OcrModelManager.ymlFile(app,model))
@@ -233,15 +238,38 @@ object PaddlePipelineV2 {
                         "phase=start waitMs="+waitMs+" circle="+options.circle)
                     releaseDisabled(options)
                     val revision=signature(app,model,options.lineOrientation)
+                    val runtimePlan=PaddleRuntimePolicy.forModel(app,model)
                     if(models.containsKey(model) && modelSignatures[model]!=revision){
-                        models.remove(model)?.release()
-                        modelSignatures.remove(model)
-                        DiagnosticLog.i(app,"PADDLE_V2","model_replaced="+model)
+                        val former=models.remove(model)
+                        val oldSignature=modelSignatures.remove(model)
+                        val alternate=alternateModels.remove(model)
+                        if(alternate!=null&&alternate.first==revision){
+                            models[model]=alternate.second
+                            modelSignatures[model]=revision
+                            if(former!=null){
+                                if(runtimePlan.lowMemory)former.release()
+                                else if(oldSignature!=null)
+                                    alternateModels[model]=oldSignature to former
+                                else former.release()
+                            }
+                            DiagnosticLog.i(app,"PADDLE_RUNTIME",
+                                "model="+model+" session=variant_reused")
+                        }else{
+                            alternate?.second?.release()
+                            if(former!=null){
+                                if(runtimePlan.lowMemory)former.release()
+                                else if(oldSignature!=null)
+                                    alternateModels[model]=oldSignature to former
+                                else former.release()
+                            }
+                            DiagnosticLog.i(app,"PADDLE_RUNTIME",
+                                "model="+model+" session=variant_prepare")
+                        }
                     }
                     val ocr=models[model] ?: run {
                         check(OcrModelManager.verifyIntegrity(app,model)){"PaddleOCR model integrity failed"}
                         check(OpenCVUtils.init(app)){"OpenCV initialization failed"}
-                        val plan=PaddleRuntimePolicy.forModel(app,model)
+                        val plan=runtimePlan
                         val cfg=PaddleOCRConfig(
                             detThresh=.20f,detBoxThresh=.45f,detUnclipRatio=1.4f,
                             recScoreThresh=0f,recBatchSize=plan.recognitionBatch)
@@ -522,6 +550,7 @@ object PaddlePipelineV2 {
             lock.withLock {
                 models.remove(model)?.release()
                 modelSignatures.remove(model)
+                alternateModels.remove(model)?.second?.release()
                 // Also drop layout session when model management invalidates OCR.
                 layoutEngine?.close()
                 layoutEngine=null
