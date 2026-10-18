@@ -257,3 +257,32 @@ alignment still require image-dependent evidence; do not strip them
 blindly.
 
 **Final CI gate:** Compile the consolidated Circle OCR whitespace fixes as ARM64 Debug; every preceding code commit in this batch used `[skip ci]`.
+
+## Source-offset OCR copy semantics (2026-10-18)
+
+Replaced the older Circle copy's group-based whitespace reconstruction
+with a pure-Java **UTF-16 source span aligner**:
+`OcrSelectionText.align(lineText,glyphs,lineId)` maps each OCR selection
+unit (glyph, word or detector fallback) onto the exact recognized line.
+`CircleTextSelectionModel` carries the original source spans through
+screen-space clipping and visual sorting. Selected text slices preserve
+the original OCR's whitespace and punctuation rather than reconstructing
+words from geometry. Consecutive selected source ranges are joined with
+their original intervening text; noncontiguous selections never silently
+include unselected glyphs.
+
+An unalignable box is explicitly marked unknown; its own literal text is
+used without inventing whitespace. This avoids the prior approach's
+guessed spaces and repeated inconsistent CJK/Latin special cases. Upstream
+Paddle CTC character decoding remains the source for recognizer text.
+
+The branch's ARM64 Debug workflow now executes both real Android unit-test
+modules (`:yfloat-feature:testDebugUnitTest`,
+`:yfloat-ppocr-sdk:testDebugUnitTest`). New tests cover Chinese,
+English multiple spaces, mixed script, Unicode punctuation, partial/non-
+contiguous selection, repeated characters and incomplete source mappings.
+
+**Remaining boundary:** if the recognition model itself predicts an
+incorrect Latin space, source-preserving selection cannot infer the right
+word without additional reliable visual or linguistic context. That is
+a separate recognition-confidence problem, not a selection join issue.
