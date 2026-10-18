@@ -54,7 +54,28 @@ object PaddlePageV2 {
                 block.lines.joinToString("\n"){it.text}.takeIf {it.isNotBlank()}
             }
             val confidence=lines.map {it.confidence}.average().let {if(it.isNaN())0f else it.toFloat()}
+            val typedBlocks=blocks.map { block ->
+                OcrStructure.Block(block.label,
+                    OcrStructure.Quad(block.bounds.points,block.bounds.origin.name),
+                    block.confidence,
+                    block.lines.map { line ->
+                        OcrStructure.Line(line.text,
+                            OcrStructure.Quad(line.bounds.points,line.bounds.origin.name),
+                            line.confidence,
+                            line.words.map { word ->
+                                OcrStructure.Word(word.text,
+                                    OcrStructure.Quad(word.bounds.points,word.bounds.origin.name),
+                                    word.symbols.map { symbol ->
+                                        OcrStructure.Symbol(symbol.text,
+                                            OcrStructure.Quad(symbol.bounds.points,
+                                                symbol.bounds.origin.name),
+                                            symbol.confidence)
+                                    })
+                            })
+                    })
+            }
             return OcrDocument(text,summary,linesOut,engine,confidence,0.0,width,height)
+                .withStructure(OcrStructure(typedBlocks))
         }
     }
 
@@ -67,7 +88,13 @@ object PaddlePageV2 {
             val symbols=result.characters.map { c ->
                 Symbol(c.text,quad(c.box,Origin.CTC_ALIGNED),c.confidence)
             }
-            val words=groupWords(symbols,text,quad)
+            val words=if(result.words.isNotEmpty())result.words.map { word ->
+                Word(word.text,quad(word.box,Origin.WORD_GROUP),
+                    word.characters.map { symbol ->
+                        Symbol(symbol.text,quad(symbol.box,Origin.CTC_ALIGNED),
+                            symbol.confidence)
+                    })
+            } else groupWords(symbols,text,quad)
             Line(text,quad,result.confidence,words)
         }.sortedWith(compareBy({it.bounds.rect().centerY()},{it.bounds.rect().left}))
         val grouped=mutableMapOf<Int,MutableList<Line>>()
