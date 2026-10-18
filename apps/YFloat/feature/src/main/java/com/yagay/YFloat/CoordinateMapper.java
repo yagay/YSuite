@@ -6,6 +6,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Device-independent mapping between two rectangular coordinate spaces.
@@ -90,6 +91,18 @@ final class CoordinateMapper {
         return roundOut(unmapRectF(rect), sourceBounds);
     }
 
+    /** Map genuine OCR corner coordinates once using the same screen mapper. */
+    List<PointF> mapQuad(List<PointF> corners) {
+        if(corners==null || corners.size()!=4 || !valid)return List.of();
+        ArrayList<PointF> mapped=new ArrayList<>(4);
+        for(PointF corner:corners){
+            if(corner==null || !Float.isFinite(corner.x) || !Float.isFinite(corner.y))
+                return List.of();
+            mapped.add(mapPointClamped(corner.x,corner.y));
+        }
+        return List.copyOf(mapped);
+    }
+
     /** Maps an OCR document from this mapper's source space into its target space. */
     OcrDocument mapDocument(OcrDocument document, boolean targetIsScreenSpace,
                             int targetWidth, int targetHeight, String enginePrefix) {
@@ -107,14 +120,15 @@ final class CoordinateMapper {
                 Rect mapped = mapRectOut(c.bounds());
                 if (mapped.isEmpty()) continue;
                 chars.add(new OcrDocument.CharUnit(c.text(), mapped, c.confidence(),
-                        lineId, c.group(), order++));
+                        lineId, c.group(), order++, mapQuad(c.quad())));
             }
             if (chars.isEmpty()) continue;
             if (mappedLine.isEmpty()) {
                 mappedLine = new Rect(chars.get(0).bounds());
                 for (int i = 1; i < chars.size(); i++) mappedLine.union(chars.get(i).bounds());
             }
-            lines.add(new OcrDocument.Line(line.text(), mappedLine, line.confidence(), chars));
+            lines.add(new OcrDocument.Line(line.text(), mappedLine, line.confidence(), chars,
+                    mapQuad(line.quad())));
             lineId++;
         }
 
