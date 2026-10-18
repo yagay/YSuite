@@ -384,7 +384,7 @@ for needle in ("selectedLine=all.get(first).line()",
                "CircleTextRangePolicy.sameLine(all.get(candidate).line(),selectedLine)",
                "TextGeometryV3.build(fullDocument,chosenChars,",
                "canvas.clipPath(selection)", "quadToView(region.corners())",
-               "pathForQuad(corners,outside)", "rebuildSelectionGeometry();",
+               "pathForQuad(corners,0f)", "rebuildSelectionGeometry();",
                "WindowInsets.Type.statusBars()", "float pillTop=safeToolbarTop();",
                "float top=safeToolbarTop();"):
     if needle not in native:
