@@ -622,6 +622,10 @@ public final class OcrEngine {
             if (service != null) service.onOcrResults(Math.max(1, document.chars().size()));
             java.util.ArrayList<String> displayBlocks=new java.util.ArrayList<>(document.blocks());
             displayBlocks.addAll(document.tableTexts());
+            displayBlocks.addAll(document.sealTexts());
+            for(String formula:document.formulaTexts()){
+                if(formula!=null&&!formula.isBlank())displayBlocks.add("LaTeX: "+formula);
+            }
             OcrResultDispatcher.deliver(app, document.fullText(), displayBlocks, source, anchor);
             DiagnosticLog.i(app, "OCR_DISPATCH", "engine=" + document.engine()
                     + " chars=" + document.chars().size() + " lines=" + document.lines().size());

@@ -9,6 +9,7 @@ import com.paddle.ocr.structure.PPDocLayoutV2
 import com.paddle.ocr.structure.PPDocOrientationV3
 import com.paddle.ocr.structure.SLANetLocalV3
 import com.paddle.ocr.structure.UVDocLocalV3
+import com.paddle.ocr.structure.PPFormulaNetLocalV3
 import com.paddle.ocr.structure.PPSealDetectorLocalV3
 import android.graphics.Rect
 import android.graphics.PointF
@@ -44,6 +45,11 @@ object PaddlePipelineV2 {
     private var tableSignature:String?=null
     private var uvEngine:UVDocLocalV3?=null
     private var uvSignature:String?=null
+    private var formulaEngine:PPFormulaNetLocalV3?=null
+    private var formulaSignature:String?=null
+    data class FormulaResult(val bounds:Rect,val latex:String,val tokenCount:Int)
+    @Volatile private var latestFormulaResults:List<FormulaResult> = emptyList()
+    @JvmStatic fun lastFormulaResults():List<FormulaResult> = latestFormulaResults
     private var sealEngine:PPSealDetectorLocalV3?=null
     private var sealSignature:String?=null
     data class SealResult(val bounds:Rect,val detections:List<PPSealDetectorLocalV3.Region>,
@@ -136,6 +142,23 @@ object PaddlePipelineV2 {
             "Seal detector checksum mismatch"
         }
         return PPSealDetectorLocalV3(file).also{sealEngine=it;sealSignature=sig}
+    }
+    private fun formula(app:Context):PPFormulaNetLocalV3? {
+        if(!PaddleLocalModelsV3.enabled(app,PaddleLocalModelsV3.FORMULA_NET)){
+            formulaEngine?.close();formulaEngine=null;formulaSignature=null
+            return null
+        }
+        val file=PaddleLocalModelsV3.model(app,PaddleLocalModelsV3.FORMULA_NET)
+        val dict=PaddleLocalModelsV3.formulaTokenizer(app)
+        val sig="${file.length()}:${file.lastModified()}:${dict.length()}:${dict.lastModified()}"
+        if(formulaEngine!=null&&formulaSignature==sig)return formulaEngine
+        formulaEngine?.close();formulaEngine=null;formulaSignature=null
+        check(PaddleLocalModelsV3.verify(app,PaddleLocalModelsV3.FORMULA_NET)){
+            "FormulaNet ONNX or tokenizer integrity failed"
+        }
+        return PPFormulaNetLocalV3(file,dict).also{
+            formulaEngine=it;formulaSignature=sig
+        }
     }
     @JvmStatic fun lastPage():PaddlePageV2.Page?=latestPage
 
@@ -271,6 +294,35 @@ object PaddlePipelineV2 {
                             "seal_failed="+error.javaClass.simpleName)
                     }
                     latestSealResults=seals
+                    // PP-FormulaNet+S is a distinct optional local recognizer.
+                    // Its LaTeX belongs to the model's layout bounding region;
+                    // ordinary CTC glyph selection remains untouched.
+                    val formulas=ArrayList<FormulaResult>()
+                    try {
+                        val parser=formula(app)
+                        if(parser!=null) {
+                            for(region in structure.filter{it.label=="formula"}.take(24)) {
+                                val box=region.bounds
+                                if(box.width()<8||box.height()<8)continue
+                                val crop=Bitmap.createBitmap(image,box.left,box.top,
+                                    box.width(),box.height())
+                                try {
+                                    val output=parser.recognize(crop)
+                                    formulas.add(FormulaResult(Rect(box),output.latex,
+                                        output.tokenCount))
+                                }catch(error:Throwable){
+                                    DiagnosticLog.i(app,"PADDLE_FORMULA",
+                                        "formula_region_failed="+error.javaClass.simpleName)
+                                }finally{crop.recycle()}
+                            }
+                        }
+                    }catch(error:Throwable){
+                        DiagnosticLog.i(app,"PADDLE_FORMULA",
+                            "formula_model_failed="+error.javaClass.simpleName)
+                    }
+                    latestFormulaResults=formulas
+                    DiagnosticLog.i(app,"PADDLE_LOCAL",
+                        "formula_regions="+formulas.size)
                     DiagnosticLog.i(app,"PADDLE_LOCAL",
                         "uvdoc_text="+(latestUnwarpedDocument?.fullText()?.length?:0)+
                         " seal_regions="+seals.size)
@@ -286,6 +338,7 @@ object PaddlePipelineV2 {
                     .withSealTexts(latestSealResults.map{it.recognizedText}
                         .filter{it.isNotBlank()})
                     .withUnwarpedText(latestUnwarpedDocument?.fullText().orEmpty())
+                    .withFormulaTexts(latestFormulaResults.map{it.latex})
                 withContext(Dispatchers.Main){
                     callback.onSuccess(compat,System.currentTimeMillis()-started,
                         compat.lines().size)
@@ -310,6 +363,8 @@ object PaddlePipelineV2 {
                 tableEngine?.close();tableEngine=null;tableSignature=null
                 uvEngine?.close();uvEngine=null;uvSignature=null
                 sealEngine?.close();sealEngine=null;sealSignature=null
+                formulaEngine?.close();formulaEngine=null;formulaSignature=null
+                latestFormulaResults=emptyList()
                 latestUnwarpedDocument=null
                 latestSealResults=emptyList()
                 lastTables=emptyList()

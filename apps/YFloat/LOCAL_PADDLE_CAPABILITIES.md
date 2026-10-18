@@ -13,7 +13,7 @@ heuristics, and modules not implemented. Do not mark an untested model as comple
 | Table structure | SLANet-1M ONNX | 488x488 ONNX, vocabulary decoding, cells + OCR association | **Staged; not compiled or phone-tested** |
 | Multicolumn reading order | Local geometrical grouping | Conservative two-column heuristic | **Staged; not model-based** |
 | UVDoc dewarping | UVDoc ONNX | **Staged:** offline BGR image-to-image inference and second OCR pass | Corrected image text kept separate to avoid incorrect source-screen coordinates; not compiled or phone-tested |
-| Formula to LaTeX | PP-FormulaNet_plus-S converted ONNX | **In development:** independent ONNX+tokenizer download and offline region recognition | Single-output generation graph; requires on-device model validation and memory profiling |
+| Formula to LaTeX | PP-FormulaNet_plus-S converted ONNX | **In development:** independent ONNX+tokenizer download and offline region recognition | ONNX/UniMERNet ByteLevel local decoder wired into formula layout areas; compile, phone validation and memory profiling pending |
 | Chart-to-table | PP-Chart2Table | **Not implemented** | Multimodal generative model with large RAM/storage cost |
 | Seal text detection | PP-OCRv4_mobile_seal_det converted ONNX | **Staged:** offline DB detector in PP-DocLayout-S seal regions; separate crop OCR | Curved text remains challenging; not compiled or phone-tested |
 
@@ -24,7 +24,7 @@ Model sources:
 - https://huggingface.co/bdatdo0601/slanet-1m-onnx
 - https://huggingface.co/marsena/paddleocr-onnx-models/blob/main/UVDoc_infer.onnx
 - https://huggingface.co/x3zvawq/paddleocr-js-onnx/blob/main/ppocr_v4_mobile_seal_det/PP-OCRv4_mobile_seal_det_infer.onnx
-- https://huggingface.co/PaddlePaddle/PP-FormulaNet-S
+- https://huggingface.co/x3zvawq/paddleocr-js-onnx/tree/main/PP_FormulaNet_plus_S
 - https://huggingface.co/PaddlePaddle/PP-Chart2Table
 
 ## CI policy
