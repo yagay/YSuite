@@ -414,8 +414,10 @@ main_handle_signature=(
     "canvas.drawCircle(first.left,first.bottom+stem,radius,textHandlePaint)",
     "canvas.drawLine(last.right,last.bottom,",
     "canvas.drawCircle(last.right,last.bottom+stem,radius,textHandlePaint)",
-    "Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)<=max",
-    "Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)<=max",
+    "startDistance=(float)Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)",
+    "endDistance=(float)Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)",
+    "if(startDistance<=max && startDistance<=endDistance)return 1",
+    "if(endDistance<=max)return 2",
     "float maxDistance=TEXT_HANDLE_SNAP_DP*density",
     "Math.min(maxDistance*0.48f,rect.height()*2.15f)",
     "float score=dx*dx+dy*dy*3.25f")
@@ -425,7 +427,8 @@ for needle in main_handle_signature:
 for needle in ("canvas.clipPath(selection)",
                "canvas.drawBitmap(frame.bitmap,null,",
                "canvas.drawPath(selection,selectionFillPaint)",
-               "TextGeometryPixelLocator.refine(frame,glyph,detector)",
+               "TextGeometryPixelLocator.refine(",
+    "TextGeometryV3.PixelRefiner refiner=handleDrag>=1&&handleDrag<=2",
                "TextGeometryV3.build(fullDocument,chosenChars,"):
     if needle not in native:
         problems.append("Paddle TextGeometry V3 selection regressed: "+needle)
