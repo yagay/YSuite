@@ -34,7 +34,7 @@ object PaddlePageV2 {
                      val lines:List<Line>,val confidence:Float)
     data class Page(val width:Int,val height:Int,val blocks:List<Block>){
         val lines:List<Line> get()=blocks.flatMap {it.lines}
-        fun asLegacy(engine:String): OcrDocument {
+        fun toDocument(engine:String): OcrDocument {
             var index=0
             var group=0
             val linesOut=ArrayList<OcrDocument.Line>()
