@@ -638,7 +638,7 @@ public final class OcrEngine {
             for(String formula:document.formulaTexts()){
                 if(formula!=null&&!formula.isBlank())displayBlocks.add("LaTeX: "+formula);
             }
-            OcrResultDispatcher.deliver(app, document.fullText(), displayBlocks, source, anchor);
+            OcrResultDispatcher.deliver(app, document.fullText(), displayBlocks, source, anchor,document);
             DiagnosticLog.i(app, "OCR_DISPATCH", "engine=" + document.engine()
                     + " chars=" + document.chars().size() + " lines=" + document.lines().size());
         });
