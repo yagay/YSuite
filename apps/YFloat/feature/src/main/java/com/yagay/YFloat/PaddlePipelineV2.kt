@@ -256,25 +256,51 @@ object PaddlePipelineV2 {
                         DiagnosticLog.i(app,"PADDLE_V3","table_model_error="+error.javaClass.simpleName)
                         null
                     }
-                    val tables=ArrayList<SLANetLocalV3.Result>()
-                    if(localTable!=null)for(region in structure.filter{it.label=="table"}){
-                        val rect=safeCropRect(region.bounds,image,16) ?: continue
-                        val crop=Bitmap.createBitmap(image,rect.left,rect.top,rect.width(),rect.height())
+                    // Native SLANet predictions are preferred. A conservative
+                    // image-grid detector covers high-confidence ruled tables
+                    // when SLANet is unavailable or produced no cells. It is
+                    // explicitly labelled pixel_ruled_grid, not PP-TableMagic.
+                    val tables=ArrayList<Pair<SLANetLocalV3.Result,String>>()
+                    val regions=structure.filter{it.label=="table"}
+                    val candidates=if(regions.isNotEmpty())
+                        regions.map{it.bounds to true}
+                    else listOf(Rect(0,0,image.width,image.height) to false)
+                    for((box,hasLayout) in candidates.take(12)){
+                        val rect=safeCropRect(box,image,32) ?: continue
+                        val crop=if(rect.left==0&&rect.top==0&&
+                            rect.width()==image.width&&rect.height()==image.height)image
+                            else Bitmap.createBitmap(image,rect.left,rect.top,
+                                rect.width(),rect.height())
                         try{
-                            val predicted=localTable.detect(crop)
-                            // Cell boxes are crop-local; shift them to original bitmap space.
-                            val translated=predicted.copy(cells=predicted.cells.map {cell->
-                                val box=android.graphics.Rect(cell.bounds)
-                                box.offset(rect.left,rect.top)
-                                cell.copy(bounds=box)
-                            })
-                            tables.add(translated)
+                            val grid=PaddleRuledGridV4.detect(crop)
+                            var learned:SLANetLocalV3.Result?=null
+                            if(localTable!=null && (hasLayout || grid!=null)){
+                                try{learned=localTable.detect(crop)}
+                                catch(error:Throwable){
+                                    DiagnosticLog.i(app,"PADDLE_TABLE",
+                                        "slanet_error="+error.javaClass.simpleName)
+                                }
+                            }
+                            val choice=when{
+                                learned!=null&&learned.cells.isNotEmpty() ->
+                                    learned to "slanet_model"
+                                grid!=null -> grid.prediction to grid.source
+                                else -> null
+                            } ?: continue
+                            val translated=choice.first.copy(
+                                cells=choice.first.cells.map{cell->
+                                    val shifted=Rect(cell.bounds)
+                                    shifted.offset(rect.left,rect.top)
+                                    cell.copy(bounds=shifted)
+                                })
+                            tables.add(translated to choice.second)
                         }catch(error:Throwable){
-                            DiagnosticLog.i(app,"PADDLE_V3","table_region_error="+error.javaClass.simpleName)
+                            DiagnosticLog.i(app,"PADDLE_TABLE",
+                                "grid_error="+error.javaClass.simpleName)
                         }finally{if(crop!==image)crop.recycle()}
                     }
                     DiagnosticLog.i(app,"PADDLE_V3","table_regions="+tables.size+
-                        " table_cells="+tables.sumOf{it.cells.size})
+                        " table_cells="+tables.sumOf{it.first.cells.size})
                     DiagnosticLog.i(app,"PADDLE_V2",
                         "ocr_lines="+chosen.results.size+" orientation="+chosen.degrees+
                         " orientationCheck="+verifyOrientation+" layout_regions="+structure.size+
@@ -283,7 +309,9 @@ object PaddlePipelineV2 {
                         Context.MODE_PRIVATE).getBoolean("paddle_v2_spacing",true)
                     val page=PaddlePageV2.fromOcr(chosen.results,image.width,image.height,
                         structure,spacing)
-                    val linked=tables.map{PaddleTableTextV3.link(it,page.lines)}
+                    val linked=tables.map{PaddleTableTextV3.link(it.first,page.lines,it.second)}
+                    DiagnosticLog.i(app,"PADDLE_TABLE",
+                        "sources="+linked.joinToString(","){it.source})
                     val charts=PaddleChartTextV3.extract(page)
                     lastCharts=charts
                     // UVDoc is a separate document-OCR result. Its coordinates
