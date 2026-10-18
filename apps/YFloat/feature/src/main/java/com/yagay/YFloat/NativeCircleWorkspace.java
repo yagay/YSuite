@@ -488,7 +488,7 @@ final class NativeCircleWorkspace extends View {
         lastHandle.setEmpty();
         if(chosenChars.isEmpty() || textGeometry.isEmpty())return;
         List<PointF> first=null,last=null;
-        float outside=NativeCircleVisualPolicy.textBorderOutsideGap(density);
+        float outside=NativeCircleVisualPolicy.textHandleOutsideGap(density);
         for(TextGeometryV3.Region region:textGeometry){
             List<PointF> corners=quadToView(region.corners());
             if(corners.size()!=4)continue;
