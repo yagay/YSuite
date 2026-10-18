@@ -116,11 +116,7 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
         }
         panel = new UnifiedResultPanel(requireContext(), session);
         panel.bindActions(this::beginInlineOcr,
-                () -> {
-                    if (session != null && session.canSave()) {
-                        ScreenshotController.save(requireContext(), session.image());
-                    }
-                }, this::closeResult);
+                this::saveCurrentResult, this::closeResult);
         panel.setOcrRunning(false);
         return panel.root();
     }
@@ -172,6 +168,36 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
                 "measured=" + panel.root().getWidth() + "x" + panel.root().getHeight()
                         + " width=" + panel.width() + " mode="
                         + (session == null ? "none" : session.mode())));
+    }
+
+    private void saveCurrentResult(){
+        ResultSession current=session;
+        if(current==null||!current.canSave()||!isAdded())return;
+        OcrDocument document=current.ocrDocument();
+        if(document==null){
+            if(current.hasImage())ScreenshotController.save(requireContext(),current.image());
+            return;
+        }
+        boolean image=current.hasImage();
+        boolean tables=!document.tableTexts().isEmpty();
+        java.util.ArrayList<String> labels=new java.util.ArrayList<>();
+        java.util.ArrayList<Integer> formats=new java.util.ArrayList<>();
+        if(image){labels.add("Save image");formats.add(0);}
+        labels.add("Markdown (.md)");formats.add(ResultActivity.EXPORT_MARKDOWN);
+        labels.add("JSON (coordinates)");formats.add(ResultActivity.EXPORT_JSON);
+        labels.add("HTML (.html)");formats.add(ResultActivity.EXPORT_HTML);
+        if(tables){labels.add("Table CSV (.csv)");formats.add(ResultActivity.EXPORT_CSV);}
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Save offline OCR result")
+            .setItems(labels.toArray(new String[0]),(dialog,which)->{
+                if(which<0||which>=formats.size())return;
+                int selected=formats.get(which);
+                if(selected==0){
+                    if(current.hasImage())ScreenshotController.save(requireContext(),current.image());
+                }else if(getActivity() instanceof ResultActivity host){
+                    host.exportOcrDocument(document,selected);
+                }
+            }).show();
     }
 
     private void beginInlineOcr() {
