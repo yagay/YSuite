@@ -369,7 +369,7 @@ final class CircleGestureTextSelector {
             float height=Math.max(8f,line.bounds().height());
             // Proximity is stronger than count: a stroke beside a large icon
             // should prefer its text baseline, not an adjacent dense OCR line.
-            float score=count*0.8f-nearest/height*2.2f;
+            float score=CircleTextRangePolicy.lineScore(count,nearest,height);
             if(score>best){best=score;chosen=line.chars().get(0).line();}
         }
         if(chosen<0)return List.of();
@@ -397,7 +397,7 @@ final class CircleGestureTextSelector {
                 Rect a=lineChars.get(i).bounds();
                 Rect b=lineChars.get(i+1).bounds();
                 float h=Math.max(1f,Math.min(a.height(),b.height()));
-                boundary=b.left-a.right>Math.max(36f,2.2f*h);
+                boundary=CircleTextRangePolicy.splitsLabel(b.left-a.right,h);
             }
             if(boundary){
                 int stop=i;
