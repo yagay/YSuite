@@ -4,6 +4,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 
@@ -11,14 +12,8 @@ import java.util.List;
 final class CircleTextSelectionModel {
     private final ScreenBitmapTransform transform;
     private List<OcrDocument.CharUnit> chars = List.of();
-    /**
-     * -1: source OCR text cannot be aligned to this selection unit.
-     *  0: OCR source explicitly has NO space before this unit.
-     *  1: OCR source explicitly contains whitespace before this unit.
-     *
-     * Group ids identify selectable regions, NOT necessarily word boundaries.
-     */
-    private List<Byte> sourceSpaceBefore = List.of();
+    /** Exact original UTF-16 text ranges, parallel to normalized screen glyphs. */
+    private List<OcrSelectionText.Span> sourceSpans = List.of();
     private int startIndex = -1;
     private int endIndex = -1;
     /** Non-contiguous planner selection before a handle is dragged. May be character precise. */
@@ -35,33 +30,27 @@ final class CircleTextSelectionModel {
         if (document != null && !document.isScreenSpace()) {
             throw new IllegalArgumentException("Circle selection requires screen-space text");
         }
-        IdentityHashMap<OcrDocument.CharUnit,Byte> sourceSpacing =
+        IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span> sourceRanges =
                 new IdentityHashMap<>();
         if(document!=null){
-            // Build spacing from the original recognized line, before the
-            // screen sorting/normalization reassigns group ids.
-            for(OcrDocument.Line line:document.lines()){
-                String text=line.text();
-                int cursor=0;
-                for(OcrDocument.CharUnit unit:line.chars()){
-                    String glyph=unit.text();
-                    if(glyph.isBlank())continue;
-                    int next=text.indexOf(glyph,cursor);
-                    if(next<0)continue;
-                    boolean hasSpace=false;
-                    for(int i=cursor;i<next;i++){
-                        if(Character.isWhitespace(text.charAt(i))||
-                                Character.isSpaceChar(text.charAt(i))){
-                            hasSpace=true;
-                            break;
-                        }
-                    }
-                    sourceSpacing.put(unit,hasSpace?(byte)1:(byte)0);
-                    cursor=next+glyph.length();
+            List<OcrDocument.Line> lines=document.lines();
+            for(int li=0;li<lines.size();li++){
+                OcrDocument.Line source=lines.get(li);
+                ArrayList<OcrDocument.CharUnit> units=new ArrayList<>();
+                ArrayList<String> glyphs=new ArrayList<>();
+                for(OcrDocument.CharUnit unit:source.chars()){
+                    if(unit.text().isBlank())continue;
+                    units.add(unit);
+                    glyphs.add(unit.text());
+                }
+                List<OcrSelectionText.Span> ranges=
+                        OcrSelectionText.align(source.text(),glyphs,li);
+                for(int i=0;i<units.size();i++){
+                    if(ranges.get(i)!=null)sourceRanges.put(units.get(i),ranges.get(i));
                 }
             }
         }
-        chars = normalize(document == null ? List.of() : document.chars(),sourceSpacing);
+        chars=normalize(document==null?List.of():document.chars(),sourceRanges);
         clear();
     }
 
@@ -276,33 +265,15 @@ final class CircleTextSelectionModel {
     }
 
     String selectedText() {
-        List<Integer> indexes = selectionIndices();
-        if (indexes.isEmpty()) return "";
-        StringBuilder out = new StringBuilder();
-        int previousLine = -1;
-        int previousGroup = -1;
-        String previous = "";
-        for (int index : indexes) {
-            if (!validIndex(index)) continue;
-            OcrDocument.CharUnit c = chars.get(index);
-            String value = c.text();
-            if (value.isBlank()) continue;
-            if (out.length() > 0) {
-                if (c.line() != previousLine) out.append('\n');
-                else {
-                    byte originalSpacing=index<sourceSpaceBefore.size()?
-                            sourceSpaceBefore.get(index):(byte)-1;
-                    if(originalSpacing==1)out.append(' ');
-                    else if(originalSpacing<0 && c.group()!=previousGroup &&
-                            !noSpaceBetween(previous,value))out.append(' ');
-                }
-            }
-            out.append(value);
-            previousLine = c.line();
-            previousGroup = c.group();
-            previous = value;
+        List<Integer> indexes=selectionIndices();
+        if(indexes.isEmpty())return "";
+        ArrayList<String> text=new ArrayList<>(chars.size());
+        ArrayList<Integer> lines=new ArrayList<>(chars.size());
+        for(OcrDocument.CharUnit unit:chars){
+            text.add(unit.text());
+            lines.add(unit.line());
         }
-        return out.toString().trim();
+        return OcrSelectionText.selected(text,sourceSpans,indexes,lines);
     }
 
     Rect selectionScreenBounds() {
@@ -359,14 +330,14 @@ final class CircleTextSelectionModel {
     private boolean validIndex(int index) { return index >= 0 && index < chars.size(); }
 
     private List<OcrDocument.CharUnit> normalize(List<OcrDocument.CharUnit> input,
-            IdentityHashMap<OcrDocument.CharUnit,Byte> sourceSpacing) {
+            IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span> sourceRanges) {
         if (input == null || input.isEmpty()){
-            sourceSpaceBefore=List.of();
+            sourceSpans=List.of();
             return List.of();
         }
         Rect workspace = transform.screenFrame();
         ArrayList<OcrDocument.CharUnit> sorted = new ArrayList<>();
-        IdentityHashMap<OcrDocument.CharUnit,Byte> sortedSpacing =
+        IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span> sortedRanges =
                 new IdentityHashMap<>();
         for (OcrDocument.CharUnit c : input) {
             if (c == null || c.text().isBlank() || c.bounds().isEmpty()) continue;
@@ -375,8 +346,8 @@ final class CircleTextSelectionModel {
             OcrDocument.CharUnit clippedUnit=new OcrDocument.CharUnit(
                     c.text(),clipped,c.confidence(),c.line(),c.group(),c.order());
             sorted.add(clippedUnit);
-            sortedSpacing.put(clippedUnit,
-                    sourceSpacing.getOrDefault(c,(byte)-1));
+            if(sourceRanges.containsKey(c))
+                sortedRanges.put(clippedUnit,sourceRanges.get(c));
         }
         sorted.sort((a, b) -> {
             Rect ar = a.bounds(), br = b.bounds();
@@ -388,7 +359,7 @@ final class CircleTextSelectionModel {
         });
 
         ArrayList<OcrDocument.CharUnit> out = new ArrayList<>();
-        ArrayList<Byte> normalizedSpacing = new ArrayList<>(sorted.size());
+        ArrayList<OcrSelectionText.Span> normalizedRanges = new ArrayList<>(sorted.size());
         int line = -1, group = -1, order = 0;
         Rect previous = null;
         int lineCenter = Integer.MIN_VALUE;
@@ -411,24 +382,15 @@ final class CircleTextSelectionModel {
                 lineCenter = (lineCenter + r.centerY()) / 2;
             }
             out.add(new OcrDocument.CharUnit(c.text(), r, c.confidence(), line, group, order++));
-            normalizedSpacing.add(sortedSpacing.getOrDefault(c,(byte)-1));
+            normalizedRanges.add(sortedRanges.get(c));
             previous = r;
             previousSourceLine = c.line();
             previousSourceGroup = c.group();
         }
-        sourceSpaceBefore=List.copyOf(normalizedSpacing);
+        // Null means no trustworthy mapping; keep it to avoid shifting
+        // indices or guessing offsets from an unrelated glyph.
+        sourceSpans=Collections.unmodifiableList(normalizedRanges);
         return List.copyOf(out);
     }
 
-    private static boolean noSpaceBetween(String a, String b) {
-        if (a == null || b == null || a.isEmpty() || b.isEmpty()) return false;
-        int ac = a.codePointBefore(a.length());
-        int bc = b.codePointAt(0);
-        return isCjk(ac) && isCjk(bc);
-    }
-
-    private static boolean isCjk(int cp) {
-        return (cp >= 0x3400 && cp <= 0x4DBF) || (cp >= 0x4E00 && cp <= 0x9FFF)
-                || (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x20000 && cp <= 0x2FA1F);
-    }
 }
