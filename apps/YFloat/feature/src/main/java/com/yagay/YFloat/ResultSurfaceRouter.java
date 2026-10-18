@@ -14,7 +14,12 @@ final class ResultSurfaceRouter {
 
     static boolean showOcr(Context c, String text, List<String> blocks,
                            Bitmap image, Rect sourceBounds) {
-        return show(c, ResultSession.ocr(text, blocks, image, sourceBounds), "ocr");
+        return showOcr(c,text,blocks,image,sourceBounds,null);
+    }
+
+    static boolean showOcr(Context c, String text, List<String> blocks,
+                           Bitmap image, Rect sourceBounds, OcrDocument document) {
+        return show(c, ResultSession.ocr(text, blocks, image, sourceBounds,document), "ocr");
     }
 
     static boolean showViewText(Context c, String text, Bitmap image, Rect sourceBounds) {
