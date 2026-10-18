@@ -50,6 +50,8 @@ public final class PaddleFlowOptionsTest {
         assertTrue(doc.formulas);
         assertTrue(doc.seals);
         assertTrue(doc.charts);
+        assertTrue(doc.lineOrientation);
+        assertTrue(doc.documentOrientation);
         assertFalse(doc.rotationFallback);
     }
 
@@ -85,7 +87,7 @@ public final class PaddleFlowOptionsTest {
         assertTrue(circle.lineOrientation);
         assertTrue(doc.tables);
         assertFalse(doc.uvdoc);
-        assertFalse(doc.lineOrientation);
+        assertTrue(doc.lineOrientation);
     }
 
     @Test public void legacySpacingChoiceIsMigratedButCanBeOverridden(){
