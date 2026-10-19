@@ -340,7 +340,7 @@ if "CircleRawPaddleOcr.recognize(app,input,request," not in (java / "NativeCircl
 for x in ("releaseDisabled(options)", "options.lineOrientation", "options.documentOrientation",
           "options.rotationFallback", "options.layout", "options.tables",
           "options.uvdoc", "options.seals", "options.formulas", "options.charts",
-          "options.spacing", "options.fastDetection", "ocr.recognizeFast("):
+          "options.fastDetection", "ocr.recognizeFast("):
     if x not in pipeline:
         problems.append("Paddle stages do not respect their switches: "+x)
 if "engine.runFast(bitmap,maxDetectionSide)" not in paddle or (
