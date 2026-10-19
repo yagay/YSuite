@@ -29,7 +29,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Locale;
 
 /**
@@ -100,6 +102,9 @@ final class NativeCircleWorkspace extends View {
     private final int circleGeometryMode;
     private List<CircleMlKitGeometry.Glyph> mlGlyphs=List.of();
     private CircleHybridSelectionGeometry.Alignment mlAlignment;
+    private CircleMlBlockSelection mlTextSelection;
+    /** Components traversed by the active handle, never inferred from OCR order. */
+    private final Set<Integer> visitedMlBlocks=new HashSet<>();
     private boolean mlGeometryRequested;
     private int mlGeometryGeneration;
     private int firstChar = -1, lastChar = -1;
@@ -313,6 +318,7 @@ final class NativeCircleWorkspace extends View {
                                 if(leading>=0 && trailing>=0){
                                     selectedLine=-1;
                                     explicitSelectAll=false;
+                                    visitedMlBlocks.clear();
                                     firstChar=Math.min(leading,trailing);
                                     lastChar=Math.max(leading,trailing);
                                     if(expansionDragCursorValid &&
@@ -321,6 +327,10 @@ final class NativeCircleWorkspace extends View {
                                         int hit=findMainStyleSelectionChar(
                                                 expansionDragX,expansionDragY);
                                         if(hit>=0){
+                                            if(mlTextSelection!=null){
+                                                int touched=mlTextSelection.blockOf(hit);
+                                                if(touched>=0)visitedMlBlocks.add(touched);
+                                            }
                                             CircleTextExpansionPolicy.Range moved=
                                                     CircleTextExpansionPolicy.move(
                                                             firstChar,lastChar,
@@ -352,7 +362,7 @@ final class NativeCircleWorkspace extends View {
                             if(!allChars.isEmpty() &&
                                 state.phase==NativeCircleState.Phase.TEXT_READY){
                                 selectedLine=-1;
-                                explicitSelectAll=true;
+                                explicitSelectAll=true;visitedMlBlocks.clear();
                                 firstChar=0;lastChar=allChars.size()-1;
                                 applyTextIndices(state.revision,false);
                             }
@@ -624,8 +634,7 @@ final class NativeCircleWorkspace extends View {
     }
 
     private void maybeStartMlGeometry() {
-        if(circleGeometryMode==CircleHybridSelectionGeometry.PADDLE ||
-                mlGeometryRequested||closed || fullDocument==null)return;
+        if(mlGeometryRequested||closed || fullDocument==null)return;
         mlGeometryRequested=true;
         final int generation=++mlGeometryGeneration;
         DiagnosticLog.i(app,"TEXT_GEOMETRY_HYBRID",
@@ -636,15 +645,16 @@ final class NativeCircleWorkspace extends View {
                     mlGlyphs=glyphs;
                     mlAlignment=CircleHybridSelectionGeometry.align(
                             fullDocument,mlGlyphs);
+                    mlTextSelection=CircleMlBlockSelection.build(
+                            fullDocument,mlAlignment);
+                    visitedMlBlocks.clear();
                     DiagnosticLog.i(app,"TEXT_GEOMETRY_HYBRID",
                             "mlkit_finished="+detail+
                             " paddle_symbols="+mlAlignment.total+
                             " matched="+mlAlignment.matched);
                     if(state.phase==NativeCircleState.Phase.TEXT_READY &&
                             !chosenChars.isEmpty()){
-                        rebuildSelectionGeometry();
-                        invalidate();
-                        syncPopup();
+                        applyTextIndices(state.revision,false);
                     }
                 }));
     }
@@ -699,7 +709,7 @@ final class NativeCircleWorkspace extends View {
             return;
         }
         selectedLine=-1;
-        explicitSelectAll=true;
+        explicitSelectAll=true;visitedMlBlocks.clear();
         firstChar = 0;
         lastChar = fullDocument.chars().size() - 1;
         applyTextIndices(state.revision, false);
@@ -790,6 +800,7 @@ final class NativeCircleWorkspace extends View {
         }
         selectedLine=all.get(first).line();
         explicitSelectAll=false;
+        visitedMlBlocks.clear();
         // Non-explicit initial selection cannot bridge unrelated icon words
         // and launcher captions merely due to document reading order.
         while(last>first && all.get(last).line()!=selectedLine)last--;
@@ -826,6 +837,8 @@ final class NativeCircleWorkspace extends View {
         cachedChars=fullDocument==null?List.of():fullDocument.chars();
         mlAlignment=mlGlyphs.isEmpty()?null:
                 CircleHybridSelectionGeometry.align(fullDocument,mlGlyphs);
+        mlTextSelection=CircleMlBlockSelection.build(fullDocument,mlAlignment);
+        visitedMlBlocks.clear();
         charOrdinals.clear();
         for(int i=0;i<cachedChars.size();i++)
             charOrdinals.put(cachedChars.get(i),i);
@@ -861,27 +874,19 @@ final class NativeCircleWorkspace extends View {
         List<OcrDocument.CharUnit> all=fullDocument.chars();
         if(lastChar>=all.size())return;
         chosenChars.clear();
-        // One physical membership mask drives copied text, blue pixels and
-        // the grips. OCR ordinal distance alone cannot select another column.
-        ArrayList<CircleSelectionViewportPolicy.Glyph> visualChars=
-                new ArrayList<>(all.size());
-        for(OcrDocument.CharUnit c:all){
-            Rect b=c.bounds();
-            visualChars.add(c.text().isBlank()
-                    ?new CircleSelectionViewportPolicy.Glyph(c.line(),0,0,0,0)
-                    :new CircleSelectionViewportPolicy.Glyph(
-                            c.line(),b.left,b.top,b.right,b.bottom));
-        }
-        CircleSelectionViewportPolicy.Mask visualMask=
-                CircleSelectionViewportPolicy.select(visualChars,
-                        firstChar,lastChar,selectedLine,explicitSelectAll);
+        // ML Kit's TextBlock/Line/Symbol topology governs hit/selection;
+        // Paddle remains the sole source of characters and copied text.
+        if(mlTextSelection==null)
+            mlTextSelection=CircleMlBlockSelection.build(fullDocument,mlAlignment);
+        CircleMlBlockSelection.Mask visualMask=mlTextSelection.select(
+                firstChar,lastChar,selectedLine,explicitSelectAll,visitedMlBlocks);
         ArrayList<String> tokens=new ArrayList<>();
         ArrayList<OcrSelectionText.Span> offsets=new ArrayList<>();
         ArrayList<Integer> indices=new ArrayList<>();
         ArrayList<Integer> lineNumbers=new ArrayList<>();
         Rect screen=new Rect();
         int mapped=0;
-        for(int i=firstChar;i<=lastChar;i++){
+        for(int i=0;i<all.size();i++){
             OcrDocument.CharUnit unit=all.get(i);
             if(unit.text().isBlank()||unit.bounds().isEmpty())continue;
             if(!visualMask.contains(i))continue;
@@ -902,7 +907,9 @@ final class NativeCircleWorkspace extends View {
         }
         DiagnosticLog.i(app,"TEXT_SELECTION_SCOPE",
                 "selected="+visualMask.selectedCount+
-                " excluded_outside="+visualMask.rejectedByGeometry+
+                " excluded_by_ml_block="+visualMask.rejectedByBlock+
+                " visited_ml_blocks="+visualMask.touchedBlocks+
+                " ml_matched="+mlTextSelection.mlMatchCount()+
                 " explicit_all="+explicitSelectAll+
                 " first="+firstChar+" last="+lastChar);
         DiagnosticLog.i(app,"PADDLE_SPACE_TRACE",
@@ -934,7 +941,7 @@ final class NativeCircleWorkspace extends View {
         pendingGesture=null;
         if(activeOcr!=null){activeOcr.cancel();activeOcr=null;ocrBusy=false;}
         awaitingTextPath.reset();
-        chosenChars.clear();
+        chosenChars.clear();visitedMlBlocks.clear();
         firstChar=lastChar=-1;selectedLine=-1;
         state.clear();
         status=t("没有识别到划线文字，请重新划线",
@@ -1080,7 +1087,7 @@ final class NativeCircleWorkspace extends View {
         paddleReference=CircleMlSelectionVisual.Layout.empty();
         firstTextGrip=lastTextGrip=null;
         firstChar=lastChar=-1;selectedLine=-1;pendingGesture=null;status="";
-        explicitSelectAll=false;
+        explicitSelectAll=false;visitedMlBlocks.clear();
         awaitingTextPath.reset();
         invalidate();
     }
@@ -1100,6 +1107,13 @@ final class NativeCircleWorkspace extends View {
                     handleDrag=textHandle;
                     selectedLine=-1; // The initial-line lock is not a drag limit.
                     explicitSelectAll=false;
+                    visitedMlBlocks.clear();
+                    if(mlTextSelection!=null){
+                        int head=mlTextSelection.blockOf(firstChar);
+                        int tail=mlTextSelection.blockOf(lastChar);
+                        if(head>=0)visitedMlBlocks.add(head);
+                        if(tail>=0)visitedMlBlocks.add(tail);
+                    }
                     expansionDragCursorValid=true;
                     expansionDragX=x;expansionDragY=y;
                     expansionDragEndpoint=handleDrag;
@@ -1137,7 +1151,7 @@ final class NativeCircleWorkspace extends View {
             dragPath.reset();dragPath.moveTo(x,y);
             awaitingTextPath.reset();
             chosenChars.clear();firstChar=lastChar=-1;
-            explicitSelectAll=false;
+            explicitSelectAll=false;visitedMlBlocks.clear();
             selectionVisual=CircleMlSelectionVisual.Layout.empty();
         paddleReference=CircleMlSelectionVisual.Layout.empty();
             firstTextGrip=lastTextGrip=null;
@@ -1233,6 +1247,10 @@ final class NativeCircleWorkspace extends View {
         if(fullDocument==null || cachedChars.isEmpty())return;
         int candidate=findMainStyleSelectionChar(x,y);
         if(candidate<0)return;
+        if(mlTextSelection!=null){
+            int touched=mlTextSelection.blockOf(candidate);
+            if(touched>=0)visitedMlBlocks.add(touched);
+        }
         CircleTextExpansionPolicy.Range moved=CircleTextExpansionPolicy.move(
                 firstChar,lastChar,handleDrag,candidate);
         if(moved.first==firstChar && moved.last==lastChar)return;
@@ -1242,30 +1260,12 @@ final class NativeCircleWorkspace extends View {
         applyTextIndices(state.revision,false);
     }
 
+    /** ML Kit symbol/word hit testing, no unrelated global nearest fallback. */
     private int findMainStyleSelectionChar(float x,float y){
-        float maxDistance=TEXT_HANDLE_SNAP_DP*density;
-        float bestScore=Float.MAX_VALUE;
-        int best=-1;
-        for(int i=0;i<cachedChars.size();i++){
-            OcrDocument.CharUnit unit=cachedChars.get(i);
-            RectF rect=screenToViewF(new RectF(unit.bounds()));
-            if(rect.isEmpty())continue;
-            // Direct hit is always preferred, just like main.
-            if(rect.contains(x,y))return i;
-            float dx=x<rect.left?rect.left-x:x>rect.right?x-rect.right:0f;
-            float dy=y<rect.top?rect.top-y:y>rect.bottom?y-rect.bottom:0f;
-            float rowGate=Math.max(rect.height()*1.35f,
-                    Math.min(maxDistance*0.48f,rect.height()*2.15f));
-            if(dy>rowGate)continue;
-            float score=dx*dx+dy*dy*3.25f;
-            if(score<bestScore){bestScore=score;best=i;}
-        }
-        if(best>=0 && bestScore<=maxDistance*maxDistance)return best;
-        // A deliberate drag may reach any OCR glyph, regardless of distance.
+        if(mlTextSelection==null)return -1;
         PointF bitmap=frame.viewToBitmap(x,y,getWidth(),getHeight());
         PointF screen=frame.bitmapPointToScreen(bitmap.x,bitmap.y);
-        return CircleTextExpansionPolicy.unrestrictedNearest(
-                cachedChars,screen.x,screen.y);
+        return mlTextSelection.hit(screen.x,screen.y,18f*density);
     }
 
     @Override public boolean onKeyDown(int code,KeyEvent event){
@@ -1279,7 +1279,8 @@ final class NativeCircleWorkspace extends View {
         if(closed)return;
         closed=true;state.close();pendingGesture=null;
         mlGeometryGeneration++;
-        mlGlyphs=List.of();mlAlignment=null;
+        mlGlyphs=List.of();mlAlignment=null;mlTextSelection=null;
+        visitedMlBlocks.clear();
         expansionDragCursorValid=false;
         if(activeOcr!=null)activeOcr.cancel();
         cachedChars=List.of();charIndex=null;
