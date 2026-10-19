@@ -434,7 +434,7 @@ for needle in ("canvas.clipPath(selection)",
                "mlAlignment=CircleHybridSelectionGeometry.align(",
                "maybeStartMlGeometry();",
                "CircleMlKitGeometry.recognize(",
-               "selected_groups="+textGeometry.size()):
+               '"selected_groups="+textGeometry.size()'):
     if needle not in native:
         problems.append("Paddle TextGeometry V3 selection regressed: "+needle)
 for banned in ("NativeSelectionHandlesView", "TextCaretGeometry",
