@@ -493,9 +493,9 @@ geometry_provider=(java / "CircleMlKitGeometry.java").read_text()
 prefs=(java / "FloatSettings.java").read_text()
 ui=(java / "SettingsPageUi.java").read_text()
 for source,area,needles in (
-    (hybrid,"alignment",("expected.equals(compact(candidate.text))",
+    (hybrid,"alignment",("byToken.get(expected)",
                         "matchScore(a,b)", "used[best]=true",
-                        "c.group()==", "static boolean groupBreak(",
+                        "c.group()", "static boolean groupBreak(",
                         "new TextGeometryV3.Region(")),
     (geometry_provider,"ML Kit geometry",(
                         "new ChineseTextRecognizerOptions.Builder()",
