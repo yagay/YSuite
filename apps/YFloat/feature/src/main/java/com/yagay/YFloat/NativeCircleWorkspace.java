@@ -306,7 +306,8 @@ final class NativeCircleWorkspace extends View {
                             boolean remapped=false;
                             if(state.phase==NativeCircleState.Phase.TEXT_READY &&
                                     oldDocument!=null && fullDocument!=null &&
-                                    oldFirst>=0 && oldLast>=oldFirst &&
+                                    oldFirst>=0 && oldLast>=0 &&
+                                    oldFirst<oldChars.size() &&
                                     oldLast<oldChars.size()){
                                 List<OcrDocument.CharUnit> candidates=fullDocument.chars();
                                 int leading=CircleTextExpansionPolicy.remap(
@@ -324,7 +325,7 @@ final class NativeCircleWorkspace extends View {
                                                 expansionDragX,expansionDragY);
                                         if(hit>=0){
                                             if(selection.movingHandle==0)
-                                                selection.beginDrag(expansionDragEndpoint);
+                                                selection.resumeDrag(expansionDragEndpoint);
                                             selection.moveTo(hit);
                                             if(handleDrag>=1&&handleDrag<=2)
                                                 handleDrag=selection.movingHandle;
@@ -637,6 +638,8 @@ final class NativeCircleWorkspace extends View {
                     mlTextSelection=CircleMlBlockSelection.build(
                             fullDocument,mlAlignment);
                     selection.bind(mlTextSelection);
+                    if(handleDrag>=1&&handleDrag<=2)
+                        handleDrag=selection.movingHandle;
                     DiagnosticLog.i(app,"TEXT_GEOMETRY_HYBRID",
                             "mlkit_finished="+detail+
                             " paddle_symbols="+mlAlignment.total+
@@ -902,17 +905,21 @@ final class NativeCircleWorkspace extends View {
         if(fullDocument==null||selection.first<0||selection.last<0)return;
         List<OcrDocument.CharUnit> all=fullDocument.chars();
         if(selection.first>=all.size()||selection.last>=all.size())return;
-        chosenChars.clear();
+        // Build a complete new selection before replacing current UI data.
+        // A failed read must never leave stale menu text with zero blue quads.
         // ML Kit's TextBlock/Line/Symbol topology governs hit/selection;
         // Paddle remains the sole source of characters and copied text.
-        if(mlTextSelection==null)
+        if(mlTextSelection==null){
             mlTextSelection=CircleMlBlockSelection.build(fullDocument,mlAlignment);
+            selection.bind(mlTextSelection);
+        }
         CircleMlBlockSelection.Mask visualMask=selection.mask();
         if(visualMask==null)return;
         ArrayList<String> tokens=new ArrayList<>();
         ArrayList<OcrSelectionText.Span> offsets=new ArrayList<>();
         ArrayList<Integer> indices=new ArrayList<>();
         ArrayList<Integer> lineNumbers=new ArrayList<>();
+        ArrayList<OcrDocument.CharUnit> pendingChars=new ArrayList<>();
         Rect screen=new Rect();
         int mapped=0;
         for(int i:visualMask.orderedIndices){
@@ -925,7 +932,7 @@ final class NativeCircleWorkspace extends View {
             lineNumbers.add(selection.selectAll?unit.line():mlTextSelection.copyLineId(i));
             indices.add(indices.size());
             screen.union(unit.bounds());
-            chosenChars.add(unit);
+            pendingChars.add(unit);
         }
         String value=OcrSelectionText.selected(tokens,offsets,indices,lineNumbers);
         if(value.isBlank()||screen.isEmpty())return;
@@ -954,6 +961,7 @@ final class NativeCircleWorkspace extends View {
             state.updateText(value,inBitmap.left,inBitmap.top,
                     inBitmap.right,inBitmap.bottom);
         }
+        chosenChars=pendingChars;
         status="";
         rebuildSelectionGeometry();
         invalidate();
@@ -1173,7 +1181,7 @@ final class NativeCircleWorkspace extends View {
             chosenChars.clear();selection.reset();
             mlInitialGesture=null;
             selectionVisual=CircleMlSelectionVisual.Layout.empty();
-        paddleReference=CircleMlSelectionVisual.Layout.empty();
+            paddleReference=CircleMlSelectionVisual.Layout.empty();
             firstTextGrip=lastTextGrip=null;
             expansionDragCursorValid=false;
             pendingGesture=null;status="";
