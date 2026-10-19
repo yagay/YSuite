@@ -26,7 +26,6 @@ public final class PaddleFlowOptionsTest {
         PaddleFlowOptions circle=new PaddleFlowOptions(prefs(Map.of()),true);
         assertTrue(circle.circle);
         assertTrue(circle.fastDetection);
-        assertTrue(circle.spacing);
         assertFalse(circle.extended);
         assertFalse(circle.layout);
         assertFalse(circle.tables);
@@ -60,17 +59,14 @@ public final class PaddleFlowOptionsTest {
         settings.put(PaddleFlowOptions.key(true,"extended"),false);
         settings.put(PaddleFlowOptions.key(true,"layout"),true);
         settings.put(PaddleFlowOptions.key(true,"tables"),true);
-        settings.put(PaddleFlowOptions.key(true,"spacing"),false);
         PaddleFlowOptions circle=new PaddleFlowOptions(prefs(settings),true);
         assertFalse(circle.extended);
         assertFalse(circle.layout);
         assertFalse(circle.tables);
-        assertFalse(circle.spacing);
         settings.put(PaddleFlowOptions.key(true,"extended"),true);
         circle=new PaddleFlowOptions(prefs(settings),true);
         assertTrue(circle.layout);
         assertTrue(circle.tables);
-        assertFalse(circle.spacing);
     }
 
     @Test public void profilesAreIsolatedAndOptionalStagesAreIndependent(){
@@ -90,13 +86,15 @@ public final class PaddleFlowOptionsTest {
         assertTrue(doc.lineOrientation);
     }
 
-    @Test public void legacySpacingChoiceIsMigratedButCanBeOverridden(){
-        Map<String,Boolean> values=new HashMap<>();
-        values.put("paddle_v2_spacing",false);
-        PaddleFlowOptions a=new PaddleFlowOptions(prefs(values),true);
-        assertFalse(a.spacing);
-        values.put(PaddleFlowOptions.key(true,"spacing"),true);
-        assertTrue(new PaddleFlowOptions(prefs(values),true).spacing);
+    @Test public void rawRecognitionHasNoWhitespaceRewriteToggle(){
+        PaddleFlowOptions a=new PaddleFlowOptions(prefs(Map.of()),true);
+        assertEquals("paddle_flow_circle_spacing",
+                PaddleFlowOptions.key(true,"spacing")); // legacy key is ignored
+        try{
+            PaddleFlowOptions.class.getDeclaredField("spacing");
+            fail("The obsolete OCR whitespace rewriter must not be configurable");
+        }catch(NoSuchFieldException expected){}
+        assertFalse(a.extended);
     }
 
     @Test public void preferenceKeysDoNotOverlap(){
