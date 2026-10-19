@@ -803,3 +803,44 @@ drag reversal, anchor remapping and off-text candidate distances. Static CI
 checks no original line-only/radius cap was accidentally restored. Real
 device testing is required to verify the full-screen OCR latency and
 interaction during long cross-line gestures.
+
+## Paddle text + ML Kit selection geometry (2026-10-19)
+
+Three separately selectable *selection-only* visual modes are under
+**Settings > Capture and OCR > Native Circle OCR**:
+
+- **Paddle only (0):** only Paddle-recognized text/char quads are used;
+  contiguous word groups become individual blue rounded highlights rather
+  than merging an entire row.
+- **Hybrid (1, default):** Paddle remains the ONLY OCR text, selection range,
+  clipboard, translation and search input source. On the first successful
+  Paddle OCR pass for each frozen screenshot, two bundled *on-device* ML Kit
+  recognition passes (Chinese + Latin) extract ONLY Symbol corner points.
+  Screenshot pixels remain local; no network OCR is called. The symbols are
+  normalized/indexed, and a Paddle character accepts an ML geometry quad
+  only when Unicode matches and center/size/line geometry pass conservative
+  thresholds. Ambiguous/missing symbols fall back individually to Paddle
+  without changing copied text.
+- **Compare (2):** same hybrid blue rounded group highlights, plus a thin
+  violet outline of Paddle-only grouped geometry to make discrepancies
+  visually identifiable. No second Paddle pass is run.
+
+Implementation: `CircleMlKitGeometry` owns bitmap copying, the two
+recognizer lifetimes and immutable SCREEN-space symbol corners.
+`CircleHybridSelectionGeometry` owns conservative one-to-one symbol
+alignment and contiguous per-group quadrilateral union. The active
+`NativeCircleWorkspace` receives ML results asynchronously; late
+results are ignored after close and stale data never alters recognized text.
+Full-screen Paddle re-OCR remaps its chars using existing anchor mapping,
+then realigns them against the cached frozen-frame ML glyphs.
+Selection drawing restores exact screenshot pixels, then applies translucent
+blue round-rect fills (or rotated polygons); the current main-branch blue
+circle+stem grips, native menu and unrestricted multi-line drag are retained.
+
+**Operational trade-offs:** Google ML Kit Chinese and Latin are bundled
+dependencies rather than user-downloaded Paddle weights, so the debug APK
+may grow and initial mixed-script geometry recognition adds CPU/memory and
+latency. Geometry stays Paddle-only until ML results arrive. If ML Kit
+initializes unsuccessfully or cannot match characters, selection still works
+in Paddle fallback mode. The mode is selected at Circle workspace creation.
+No direct Google App or Lens hook is used.
