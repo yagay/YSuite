@@ -487,6 +487,7 @@ else:
             problems.append("Unrestricted selection regression missing "+case)
 
 # Highlighter/copy/handles must share the same screen-space selection mask.
+hybrid=(java / "CircleHybridSelectionGeometry.java").read_text()
 viewport=(java / "CircleSelectionViewportPolicy.java").read_text()
 for marker in ("static Mask select(", "connectedBand(", "g.x()<left-margin",
                "g.y()<top-margin", "lockedLine>=0", "explicitAll"):
