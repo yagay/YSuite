@@ -853,3 +853,39 @@ completion, select-all/copy use only Paddle text, and no old overlay or
 stale callback appears after closing Circle. CI checks static ownership,
 symbol proximity/size rejection, group splitting and ARM64 Debug build;
 real-device UX precision remains a separate acceptance check.
+
+
+## Selection outside blue handles: geometry ownership repair (2026-10-19)
+
+Root cause predates the ML Kit geometry overlay: the Paddle TextGeometry V3
+selection could combine every selected OCR character in a source row into one
+large polygon, and blue fill could paint after the clip was restored. The
+result included unselected letters in gaps and placed handle tips on the
+whole word/row rectangle rather than the actual endpoint characters.
+
+Current active native Circle implementation now uses ONE membership list:
+`CircleSelectionViewportPolicy.select` filters OCR ordinal ranges against
+their physical SCREEN line, end characters, column/connected-line bands and
+vertical range. This rejects unrelated launcher labels and neighboring
+columns that Paddle's OCR ordering interleaves between the two handles. An
+explicit Select All bypasses the filter. Paddle's source offset/whitespace
+is still the sole source of selected/copy text, with no invented separators.
+
+`CircleHybridSelectionGeometry.grouped` now emits one selected-character
+quad per region instead of unioning an entire word/row; ML Kit is only an
+optional source of individual symbol quads, and unmatched characters fall
+back to Paddle. The blue translucent fill stays clipped to EACH such quad.
+The leading grip anchors to the first chosen quad's bottom-left and the
+trailing grip to the last quad's bottom-right. Thus copied text, blue fill
+and main-branch 7dp circle/stem grips have the same selection membership.
+
+Regression tests include interleaved icon-grid columns, separate words
+inside the same Paddle OCR row, multiline article selection, single-line
+restriction, invalid character boxes and explicit Select All. The CI
+contract rejects returning to group-union geometry or drawing the blue
+fill outside its selected polygon.
+
+A screenshot can contain OCR characters whose inferred order or geometry
+is incorrect. The geometric corridor deliberately prioritizes not coloring
+neighboring-column text; unusual curved or multicolumn layouts may still
+need live device diagnostics to refine reading-order handling.
