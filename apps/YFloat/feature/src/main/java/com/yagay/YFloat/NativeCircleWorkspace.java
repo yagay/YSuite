@@ -93,10 +93,10 @@ final class NativeCircleWorkspace extends View {
     private final IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span>
             sourceSpans=new IdentityHashMap<>();
     private ArrayList<OcrDocument.CharUnit> chosenChars = new ArrayList<>();
-    // Built only when the text selection changes; onDraw never runs pixel
-    // segmentation, OCR, or another coordinate conversion.
-    private List<TextGeometryV3.Region> textGeometry=List.of();
-    private List<TextGeometryV3.Region> paddleCompareGeometry=List.of();
+    // Single immutable ML-style layout: Paddle owns selected characters,
+    // optional ML Kit only refines their SCREEN geometry.
+    private CircleMlSelectionVisual.Layout selectionVisual=CircleMlSelectionVisual.Layout.empty();
+    private CircleMlSelectionVisual.Layout paddleReference=CircleMlSelectionVisual.Layout.empty();
     private final int circleGeometryMode;
     private List<CircleMlKitGeometry.Glyph> mlGlyphs=List.of();
     private CircleHybridSelectionGeometry.Alignment mlAlignment;
@@ -181,13 +181,13 @@ final class NativeCircleWorkspace extends View {
         // A semi-transparent blue selection wash replaces the old outline;
         // the screenshot glyphs remain visible below the translucent wash.
         selectionFillPaint.setStyle(Paint.Style.FILL);
-        selectionFillPaint.setColor(YFloatOverlayStyle.selectionWithAlpha(
-                app,NativeCircleVisualPolicy.TEXT_HIGHLIGHT_FILL_ALPHA));
+        // Original main/FLCircleInlineOverlay ML Kit selection color.
+        selectionFillPaint.setColor(CircleMlSelectionVisual.ML_BLUE_WASH);
         geometryComparePaint.setStyle(Paint.Style.STROKE);
         geometryComparePaint.setStrokeWidth(1.5f*density);
         geometryComparePaint.setColor(Color.argb(230,174,73,235));
         // Ported from main/FLCircleInlineOverlay.java; the same blue dot/stem.
-        textHandlePaint.setColor(0xFF4285F4);
+        textHandlePaint.setColor(CircleMlSelectionVisual.ML_BLUE_HANDLE);
         textHandlePaint.setStyle(Paint.Style.FILL);
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.CENTER);
@@ -576,70 +576,26 @@ final class NativeCircleWorkspace extends View {
     /** Main branch FLCircleInlineOverlay-style stem + circle text handles.
      * TextGeometry V3 continues to supply the improved blue selection quads.
      */
+    /**
+     * Restore the original ML Kit selected-text appearance. The screenshot
+     * has already been drawn ONCE by onDraw; no clipping or bitmap repaint.
+     * Paddle's chosenChars are the sole membership/text authority.
+     */
     private void drawTextSelection(Canvas canvas) {
-        firstTextGrip=null;
-        lastTextGrip=null;
-        if(chosenChars.isEmpty() || textGeometry.isEmpty())return;
-        for(TextGeometryV3.Region region:textGeometry){
-            List<PointF> corners=quadToView(region.corners());
-            if(corners.size()!=4)continue;
-            Path selection=pathForQuad(corners,0f);
-            canvas.save();
-            canvas.clipPath(selection);
-            canvas.drawBitmap(frame.bitmap,null,
-                    new Rect(0,0,getWidth(),getHeight()),screenshotPaint);
-            // Paint only within the selected glyph's quad; previous code
-            // restored the clip before painting, flooding unselected gaps.
-            if(nearHorizontal(corners))
-                canvas.drawRoundRect(screenToViewF(region.bounds()),2f*density,
-                        2f*density,selectionFillPaint);
-            else canvas.drawPath(selection,selectionFillPaint);
-            canvas.restore();
+        firstTextGrip=lastTextGrip=null;
+        if(chosenChars.isEmpty()||selectionVisual.isEmpty())return;
+        CircleMlSelectionVisual.Handles grips=CircleMlSelectionVisual.draw(
+                canvas,selectionVisual,frame.transform,getWidth(),getHeight(),
+                density,selectionFillPaint,textHandlePaint);
+        if(grips!=null){
+            firstTextGrip=grips.start;
+            lastTextGrip=grips.end;
         }
         if(circleGeometryMode==CircleHybridSelectionGeometry.COMPARE &&
-                !paddleCompareGeometry.isEmpty() &&
-                mlAlignment!=null && mlAlignment.matched>0){
-            for(TextGeometryV3.Region p:paddleCompareGeometry){
-                List<PointF> corners=quadToView(p.corners());
-                if(corners.size()!=4)continue;
-                RectF box=screenToViewF(p.bounds());
-                if(nearHorizontal(corners))
-                    canvas.drawRoundRect(box,2f*density,2f*density,geometryComparePaint);
-                else canvas.drawPath(pathForQuad(corners,0f),geometryComparePaint);
-            }
-        }
-        drawTextHandles(canvas);
-    }
-
-    private static boolean nearHorizontal(List<PointF> points){
-        if(points==null||points.size()!=4)return false;
-        return Math.abs(points.get(1).y-points.get(0).y) <=
-                Math.max(1.5f,(float)Math.abs(points.get(1).x-points.get(0).x)*0.04f);
-    }
-
-    /** Exact main-branch grip dimensions/attachment based on first/last
-     * selected word rectangles. Only the rectangle source is updated to V3.
-     */
-    private void drawTextHandles(Canvas canvas) {
-        if(textGeometry.isEmpty())return;
-        // Exact character quads are shared by the painted blue regions
-        // and the handle anchors; no merged word/row bounds are involved.
-        List<PointF> leading=quadToView(textGeometry.get(0).corners());
-        List<PointF> trailing=quadToView(
-                textGeometry.get(textGeometry.size()-1).corners());
-        if(leading.size()!=4||trailing.size()!=4)return;
-        PointF first=leading.get(3);
-        PointF last=trailing.get(2);
-        float stem=7f*density;
-        float radius=7f*density;
-        canvas.drawLine(first.x,first.y,
-                first.x,first.y+stem,textHandlePaint);
-        canvas.drawCircle(first.x,first.y+stem,radius,textHandlePaint);
-        canvas.drawLine(last.x,last.y,
-                last.x,last.y+stem,textHandlePaint);
-        canvas.drawCircle(last.x,last.y+stem,radius,textHandlePaint);
-        firstTextGrip=new PointF(first.x,first.y+stem);
-        lastTextGrip=new PointF(last.x,last.y+stem);
+                mlAlignment!=null&&mlAlignment.matched>0)
+            CircleMlSelectionVisual.drawCompare(canvas,paddleReference,
+                    frame.transform,getWidth(),getHeight(),density,
+                    geometryComparePaint);
     }
 
     /** One authoritative SCREEN -> View conversion for Paddle V3 regions. */
@@ -680,27 +636,26 @@ final class NativeCircleWorkspace extends View {
      * contribution is a geometrically verified set of replacement quads.
      * Group boundaries follow Paddle's text layout; no full-row blue blocks.
      */
+    /**
+     * One source of truth: Paddle's actually selected characters form the
+     * original ML-style rounded-word selection UI. ML Kit may contribute
+     * matched glyph coordinates but never recognized/copied words.
+     */
     private void rebuildSelectionGeometry() {
-        boolean hybrid=circleGeometryMode!=CircleHybridSelectionGeometry.PADDLE;
-        CircleHybridSelectionGeometry.Alignment alignment=hybrid?mlAlignment:null;
-        textGeometry=CircleHybridSelectionGeometry.grouped(
-                fullDocument,chosenChars,alignment,hybrid);
-        if(textGeometry.isEmpty()){
-            // Do not strand a valid Paddle selection on malformed model quads.
-            textGeometry=TextGeometryV3.build(fullDocument,chosenChars,null);
-        }
-        paddleCompareGeometry=circleGeometryMode==CircleHybridSelectionGeometry.COMPARE
-                ?CircleHybridSelectionGeometry.grouped(fullDocument,chosenChars,null,false)
-                :List.of();
-        int selectedMl=0;
-        if(hybrid && alignment!=null)
-            for(OcrDocument.CharUnit c:chosenChars)
-                if(alignment.quad(c).size()==4)selectedMl++;
+        boolean useMl=circleGeometryMode!=CircleHybridSelectionGeometry.PADDLE;
+        selectionVisual=CircleMlSelectionVisual.build(
+                chosenChars,useMl?mlAlignment:null,useMl);
+        paddleReference=circleGeometryMode==CircleHybridSelectionGeometry.COMPARE
+                ?CircleMlSelectionVisual.build(chosenChars,null,false)
+                :CircleMlSelectionVisual.Layout.empty();
         DiagnosticLog.i(app,"TEXT_GEOMETRY_HYBRID",
-                "mode="+circleGeometryMode+" selected_groups="+textGeometry.size()+
-                " selected_ml_symbols="+selectedMl+" selected_units="+chosenChars.size()+
+                "mode="+circleGeometryMode+
+                " selected_groups="+selectionVisual.segments.size()+
+                " selected_ml_symbols="+selectionVisual.mlMatched+
+                " selected_units="+selectionVisual.symbolCount+
                 " available_ml="+(mlAlignment==null?0:mlAlignment.matched)+
-                " fallback="+(chosenChars.size()-selectedMl));
+                " fallback="+(selectionVisual.symbolCount-selectionVisual.mlMatched)+
+                " renderer=ml_main_style_paddle_text");
     }
 
     private void maybeStartMlGeometry() {
@@ -731,18 +686,9 @@ final class NativeCircleWorkspace extends View {
 
     /** Keep the popup on the same visible V3 geometry as the blue fill. */
     private RectF selectedTextViewBox() {
-        float left=Float.POSITIVE_INFINITY,top=Float.POSITIVE_INFINITY;
-        float right=Float.NEGATIVE_INFINITY,bottom=Float.NEGATIVE_INFINITY;
-        for(TextGeometryV3.Region region:textGeometry){
-            List<PointF> view=quadToView(region.corners());
-            if(view.size()!=4)continue;
-            for(PointF p:view){
-                left=Math.min(left,p.x);top=Math.min(top,p.y);
-                right=Math.max(right,p.x);bottom=Math.max(bottom,p.y);
-            }
-        }
-        return left<right&&top<bottom
-                ?new RectF(left,top,right,bottom):selectedViewBox();
+        RectF view=CircleMlSelectionVisual.selectedViewBox(
+                selectionVisual,frame.transform,getWidth(),getHeight());
+        return view.isEmpty()?selectedViewBox():view;
     }
 
     /** One menu host for both OCR text and selected image rectangles. */
@@ -1165,7 +1111,8 @@ final class NativeCircleWorkspace extends View {
         FloatActionMenu.dismiss();
         state.clear();chosenChars.clear();
         expansionDragCursorValid=false;
-        textGeometry=List.of();
+        selectionVisual=CircleMlSelectionVisual.Layout.empty();
+        paddleReference=CircleMlSelectionVisual.Layout.empty();
         firstTextGrip=lastTextGrip=null;
         firstChar=lastChar=-1;selectedLine=-1;pendingGesture=null;status="";
         explicitSelectAll=false;
@@ -1226,7 +1173,8 @@ final class NativeCircleWorkspace extends View {
             awaitingTextPath.reset();
             chosenChars.clear();firstChar=lastChar=-1;
             explicitSelectAll=false;
-            textGeometry=List.of();
+            selectionVisual=CircleMlSelectionVisual.Layout.empty();
+        paddleReference=CircleMlSelectionVisual.Layout.empty();
             firstTextGrip=lastTextGrip=null;
             expansionDragCursorValid=false;
             pendingGesture=null;status="";
@@ -1370,7 +1318,8 @@ final class NativeCircleWorkspace extends View {
         expansionDragCursorValid=false;
         if(activeOcr!=null)activeOcr.cancel();
         cachedChars=List.of();charIndex=null;
-        textGeometry=List.of();
+        selectionVisual=CircleMlSelectionVisual.Layout.empty();
+        paddleReference=CircleMlSelectionVisual.Layout.empty();
         firstTextGrip=lastTextGrip=null;
         charOrdinals.clear();
         awaitingTextPath.reset();
