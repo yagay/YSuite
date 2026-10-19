@@ -39,9 +39,51 @@ internal object CircleRawPaddleOcr {
     private val lane=Mutex()
     private var loaded:Loaded?=null
 
+    /**
+     * Compatibility surface for the original inline Circle UI. Both UIs
+     * execute the SAME raw SDK pipeline, not a legacy OCR adapter.
+     */
+    @JvmStatic fun recognizeFullScreenSelected(
+        context:Context,source:Bitmap,callback:OcrEngine.DocumentCallback
+    ) = recognize(context,source,PaddleRequestToken(),callback)
+
+    @JvmStatic fun recognizeCorrectionSelected(
+        context:Context,source:Bitmap,callback:OcrEngine.DocumentCallback
+    ) {
+        val preference=FloatSettings(context.applicationContext).circleCorrectionEngine()
+        if(preference==0){
+            callback.onFailure(IllegalStateException(
+                context.getString(R.string.yfloat_circle_correction_disabled)))
+            return
+        }
+        recognize(context,source,PaddleRequestToken(),callback,preference)
+    }
+
+    @JvmStatic fun fullModeLabel(context:Context):String =
+        modeLabel(FloatSettings(context.applicationContext).circleFullOcrEngine())
+
+    @JvmStatic fun correctionModeLabel(context:Context):String {
+        val mode=FloatSettings(context.applicationContext).circleCorrectionEngine()
+        return if(mode==0)context.getString(R.string.yfloat_ocr_off) else modeLabel(mode)
+    }
+
+    private fun modeLabel(mode:Int):String=when(mode){
+        1 -> "paddle_tiny"
+        2 -> "paddle_small"
+        3 -> "paddle_medium"
+        4 -> "paddle_mobile"
+        else -> "paddle_auto"
+    }
+
     @JvmStatic fun recognize(context:Context,source:Bitmap,
                              request:PaddleRequestToken,
-                             callback:OcrEngine.DocumentCallback) {
+                             callback:OcrEngine.DocumentCallback) =
+        recognize(context,source,request,callback,
+            FloatSettings(context.applicationContext).circleFullOcrEngine())
+
+    private fun recognize(context:Context,source:Bitmap,
+                          request:PaddleRequestToken,
+                          callback:OcrEngine.DocumentCallback,selectedMode:Int) {
         val app=context.applicationContext
         worker.launch {
             try {
@@ -51,8 +93,7 @@ internal object CircleRawPaddleOcr {
                 }
                 val doc=lane.withLock {
                     request.check()
-                    val mode=FloatSettings(app).circleFullOcrEngine()
-                    val selected=when(mode){
+                    val selected=when(selectedMode){
                         1 -> OcrModelManager.TINY
                         2 -> OcrModelManager.SMALL
                         3 -> OcrModelManager.MEDIUM
