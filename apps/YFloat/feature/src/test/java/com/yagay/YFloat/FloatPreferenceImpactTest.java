@@ -83,6 +83,14 @@ public class FloatPreferenceImpactTest {
     }
 
     @Test
+    public void hybridSelectionModeDoesNotRebuildIconOrWindow() {
+        assertEquals(FloatPreferenceImpact.Impact.SERVICE_SETTINGS,
+                FloatPreferenceImpact.classify(FloatSettings.K_CIRCLE_TEXT_GEOMETRY_MODE));
+        assertTrue(FloatPreferenceImpact.isExplicitlyClassified(
+                FloatSettings.K_CIRCLE_TEXT_GEOMETRY_MODE));
+    }
+
+    @Test
     public void persistedPositionsDoNotTriggerRefreshLoop() {
         assertEquals(FloatPreferenceImpact.Impact.IGNORE,
                 FloatPreferenceImpact.classify(FloatSettings.K_POSITION_SIDE));
