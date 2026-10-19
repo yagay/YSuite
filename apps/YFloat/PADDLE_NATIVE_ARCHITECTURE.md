@@ -55,3 +55,24 @@ text boxes.
 The following require a separate verified Android inference path and are not
 promised as complete by this refactor: full learned PP-TableMagic graph,
 Chart2Table generative model, and UVDoc non-rigid inverse source coordinates.
+
+## Raw OCR cleanup acceptance (2026-10-19)
+
+- Native and inline Circle both enter `CircleRawPaddleOcr` directly.
+- Circle runs one `PaddleOCR.recognize(bitmap)` call on the installed
+  ONNX detector/recognizer, without optional document stages or a
+  secondary text-rewriting layer.
+- `OCRResult.text`, SDK CTC character quads and confidence are kept
+  unchanged; when a recognizer provides only a line quad, the line is
+  one selectable unit, never fabricated per-character boxes.
+- The document OCR adapter uses SDK-provided original text and words
+  without `PaddleSpacingV2`, manual script-based `groupWords` or
+  unconditional coordinate reordering.
+- The former Circle OCR adapter, spacing corrector, duplicate bridge
+  and obsolete visual-index selection viewport are deleted.
+- Downloadable models, existing independent extended-document features,
+  ML selection topology, original blue highlights and screenshot
+  coordinate mapping remain available.
+
+CI must run architecture checks, YFloat JVM tests and ARM64 Debug
+packaging. Passing CI does not prove OCR recognition accuracy on-device.
