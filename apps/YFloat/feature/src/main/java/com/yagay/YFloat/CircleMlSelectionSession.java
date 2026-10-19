@@ -94,6 +94,10 @@ final class CircleMlSelectionSession {
 
     void endDrag(){movingHandle=0;}
 
+    void clearVisited(){
+        trace.clear();visited.clear();
+    }
+
     Set<Integer> visitedBlocks(){return Set.copyOf(visited);}
 
     CircleMlBlockSelection.Mask mask(){
