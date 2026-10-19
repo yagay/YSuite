@@ -74,6 +74,9 @@ final class FloatPreferenceImpact {
                 FloatSettings.K_CIRCLE_HYBRID_OCR,
                 FloatSettings.K_CIRCLE_FULL_OCR_ENGINE,
                 FloatSettings.K_CIRCLE_CORRECTION_ENGINE,
+                // New geometry mode is sampled at Circle workspace creation.
+                // It must not rebuild floating icon windows on preference changes.
+                FloatSettings.K_CIRCLE_TEXT_GEOMETRY_MODE,
                 FloatSettings.K_CLICK_UNDER,
                 FloatSettings.K_LINE_ALPHA,
                 FloatSettings.K_LINE_WIDTH,
