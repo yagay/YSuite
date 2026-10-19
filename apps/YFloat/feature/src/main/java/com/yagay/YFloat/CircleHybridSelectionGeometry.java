@@ -74,21 +74,25 @@ final class CircleHybridSelectionGeometry {
     static float matchScore(Rect a,Rect b){
         if(a==null||b==null||a.isEmpty()||b.isEmpty())
             return Float.POSITIVE_INFINITY;
-        float scale=Math.max(5f,(float)Math.max(a.height(),b.height()));
-        float dx=b.exactCenterX()-a.exactCenterX();
-        float dy=b.exactCenterY()-a.exactCenterY();
-        float widthRatio=(float)b.width()/Math.max(1f,a.width());
-        float heightRatio=(float)b.height()/Math.max(1f,a.height());
+        return matchScore(a.exactCenterX(),a.exactCenterY(),a.width(),a.height(),
+                b.exactCenterX(),b.exactCenterY(),b.width(),b.height());
+    }
+
+    /** Pure-number twin for deterministic JVM regression tests. */
+    static float matchScore(float ax,float ay,float aw,float ah,
+                            float bx,float by,float bw,float bh){
+        if(aw<=0||ah<=0||bw<=0||bh<=0)return Float.POSITIVE_INFINITY;
+        float scale=Math.max(5f,Math.max(ah,bh));
+        float dx=bx-ax,dy=by-ay;
+        float widthRatio=bw/aw,heightRatio=bh/ah;
         if(widthRatio<0.24f||widthRatio>4.0f||
                 heightRatio<0.35f||heightRatio>2.9f)
             return Float.POSITIVE_INFINITY;
-        // Penalise a correct-looking duplicate in a different icon/line.
         if(Math.abs(dy)>scale*1.3f || Math.abs(dx)>scale*2.25f)
             return Float.POSITIVE_INFINITY;
-        float logWidth=(float)Math.abs(Math.log(widthRatio));
-        float logHeight=(float)Math.abs(Math.log(heightRatio));
         return (dx*dx+1.7f*dy*dy)/(scale*scale)
-                +0.65f*logWidth+0.8f*logHeight;
+                +0.65f*(float)Math.abs(Math.log(widthRatio))
+                +0.8f*(float)Math.abs(Math.log(heightRatio));
     }
 
     /**
@@ -106,9 +110,9 @@ final class CircleHybridSelectionGeometry {
         int line=Integer.MIN_VALUE,word=Integer.MIN_VALUE,lastOrder=-999;
         for(OcrDocument.CharUnit c:chosen){
             if(c==null||c.text().isBlank()||c.bounds().isEmpty())continue;
-            boolean same=c.line()==line&&c.group()==word
-                    &&c.order()==lastOrder+1;
-            if(!same && !group.isEmpty()){
+            boolean split=groupBreak(line,word,lastOrder,
+                    c.line(),c.group(),c.order());
+            if(split && !group.isEmpty()){
                 add(out,group,alignment,useMl);
                 group.clear();
             }
@@ -117,6 +121,11 @@ final class CircleHybridSelectionGeometry {
         }
         if(!group.isEmpty())add(out,group,alignment,useMl);
         return List.copyOf(out);
+    }
+
+    static boolean groupBreak(int lastLine,int lastGroup,int lastOrder,
+                              int nextLine,int nextGroup,int nextOrder){
+        return lastLine!=nextLine||lastGroup!=nextGroup||nextOrder!=lastOrder+1;
     }
 
     private static void add(List<TextGeometryV3.Region> out,
