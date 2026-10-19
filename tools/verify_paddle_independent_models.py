@@ -266,8 +266,17 @@ if "PaddleSpacingV2" in raw_page or "OCRWordSegmenter.segment(" in raw_page or (
     problems.append("Document OCR still applies deleted CTC rewriting or word regrouping")
 if "val text=result.text" not in raw_page or "val text=result.text" not in raw_circle:
     problems.append("Paddle CTC strings are not forwarded unmodified")
-if "options.spacing" in pipeline or "paddle_v2_spacing" in (java/"PaddleFlowOptions.java").read_text():
-    problems.append("Obsolete spacing correction is still active")
+if ("options.spacing" in pipeline or
+        "paddle_v2_spacing" in (java/"PaddleFlowOptions.java").read_text() or
+        'new Stage("spacing"' in (java/"PaddleFlowSettingsUi.java").read_text()):
+    problems.append("Obsolete OCR space correction or settings still active")
+if "}.sortedWith(compareBy(" in raw_page:
+    problems.append("Default OCR still reorders original SDK-recognized line sequence")
+raw_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrRawTextPreservationTest.java"
+if not raw_test.is_file() or "preserveOriginalLeadingTrailingAndCjkSpaces" not in raw_test.read_text():
+    problems.append("Raw OCR string preservation regression is missing")
+if (java / "CircleSelectionViewportPolicy.java").exists():
+    problems.append("Retired OCR-index viewport strategy still ships")
 if (FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/postprocess/PaddleSpacingV2.kt").exists():
     problems.append("Retired Paddle whitespace rewriter still ships")
 if (FEATURE / "ppocr-sdk/src/test/java/com/paddle/ocr/postprocess/PaddleSpacingV2Test.kt").exists():
