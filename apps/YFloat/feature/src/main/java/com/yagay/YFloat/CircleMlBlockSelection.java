@@ -75,13 +75,17 @@ final class CircleMlBlockSelection {
             }
         }
         mlSymbols=matched;
+        // Capture ALL roots before rewriting union-find parent pointers to
+        // public component IDs. Mixing those phases corrupts the forest.
+        int[] roots=new int[n];
+        for(int i=0;i<n;i++)
+            roots[i]=entries.get(i).valid()?root(i):-1;
         HashMap<Integer,Integer> ids=new HashMap<>();
         int next=0;
         for(int i=0;i<n;i++){
-            if(!entries.get(i).valid()){component[i]=-1;continue;}
-            int root=root(i);
-            Integer id=ids.get(root);
-            if(id==null){id=next++;ids.put(root,id);}
+            if(roots[i]<0){component[i]=-1;continue;}
+            Integer id=ids.get(roots[i]);
+            if(id==null){id=next++;ids.put(roots[i],id);}
             component[i]=id;
         }
         components=next;
@@ -94,12 +98,26 @@ final class CircleMlBlockSelection {
                 byComponent.computeIfAbsent(component[i],k->new ArrayList<>()).add(i);
         }
         for(ArrayList<Integer> indexes:byComponent.values()){
+            // Stable row grouping, unlike a tolerance-based comparator that
+            // can violate transitivity and throw from TimSort on large pages.
             indexes.sort(Comparator.comparingDouble((Integer i)->entries.get(i).y())
                     .thenComparingDouble(i->entries.get(i).x()));
-            // Reading rows are clustered geometrically; tiny glyph-box
-            // variations in height should not sort a word vertically.
-            indexes.sort((i,j)->compareVisual(entries.get(i),entries.get(j)));
-            for(int k=0;k<indexes.size();k++)visualRank[indexes.get(k)]=k;
+            ArrayList<ArrayList<Integer>> rows=new ArrayList<>();
+            float baseline=Float.NaN,rowHeight=0f;
+            for(int i:indexes){
+                Entry e=entries.get(i);
+                if(rows.isEmpty() || Math.abs(e.y()-baseline)>
+                        Math.min(rowHeight,e.height())*.48f){
+                    rows.add(new ArrayList<>());
+                    baseline=e.y();rowHeight=e.height();
+                }
+                rows.get(rows.size()-1).add(i);
+            }
+            int rank=0;
+            for(ArrayList<Integer> row:rows){
+                row.sort(Comparator.comparingDouble(i->entries.get(i).x()));
+                for(int i:row)visualRank[i]=rank++;
+            }
         }
     }
 
@@ -132,13 +150,6 @@ final class CircleMlBlockSelection {
     private void union(int a,int b){
         int ra=root(a),rb=root(b);
         if(ra!=rb)component[ra]=rb;
-    }
-
-    private static int compareVisual(Entry a,Entry b){
-        float rowHeight=Math.min(a.height(),b.height());
-        if(Math.abs(a.y()-b.y())<rowHeight*.6f)
-            return Float.compare(a.x(),b.x());
-        return Float.compare(a.y(),b.y());
     }
 
     static boolean connected(Entry a,Entry b){
