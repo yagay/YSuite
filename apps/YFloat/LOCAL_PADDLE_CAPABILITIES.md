@@ -965,3 +965,12 @@ controller. This local architecture reproduces its text block hierarchy
 and blue presentation while keeping Paddle's output content. CI validates
 structural contracts and unit tests; edge-case device interaction still
 requires real screenshot testing.
+
+### Completion gates
+
+The refactor's automated acceptance requires the canonical ML selection
+session, a spatially bucketed text-block graph, visually ordered (and
+non-contiguous) selected Paddle character indices, reversible grip routes,
+Paddle-exclusive extraction and exact original ML blue visual styling.
+The debug ARM64 workflow runs the regression suites and produces an APK
+only after the whole YFloat build/test stage completes.
