@@ -452,7 +452,7 @@ for needle in ("startOcr(null,false,true)",
                "selectedLine=-1; // The initial-line lock is not a drag limit.",
                "CircleTextExpansionPolicy.remap(",
                "CircleTextExpansionPolicy.move(",
-               "CircleTextExpansionPolicy.unrestrictedNearest(",
+               "mlTextSelection.hit(",
                "expansionDragCursorValid", "recognizedRoi=oldRoi",
                "if(expandForHandle)", "oldDocument=fullDocument",
                "paddleReference=circleGeometryMode==CircleHybridSelectionGeometry.COMPARE"):
