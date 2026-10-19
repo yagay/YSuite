@@ -116,6 +116,9 @@ final class NativeCircleWorkspace extends View {
     private int handleDrag;
     private long gestureRevision;
     private FLCircleSelection.Selection pendingGesture;
+    /** Initial Paddle selection may be upgraded to ML element/line hit once
+     * the asynchronous ML symbol structure is available. */
+    private FLCircleSelection.Selection mlInitialGesture;
     private float downX, downY, minX, minY, maxX, maxY;
     private String status = "";
 
@@ -654,7 +657,11 @@ final class NativeCircleWorkspace extends View {
                             " matched="+mlAlignment.matched);
                     if(state.phase==NativeCircleState.Phase.TEXT_READY &&
                             !chosenChars.isEmpty()){
-                        applyTextIndices(state.revision,false);
+                        FLCircleSelection.Selection pendingMl=mlInitialGesture;
+                        mlInitialGesture=null;
+                        if(handleDrag!=0 || pendingMl==null ||
+                                !resolveMlGesture(pendingMl,state.revision,false))
+                            applyTextIndices(state.revision,false);
                     }
                 }));
     }
@@ -710,11 +717,46 @@ final class NativeCircleWorkspace extends View {
         }
         selectedLine=-1;
         explicitSelectAll=true;visitedMlBlocks.clear();
+        mlInitialGesture=null;
         firstChar = 0;
         lastChar = fullDocument.chars().size() - 1;
         applyTextIndices(state.revision, false);
         // FloatActionMenu closes itself after Select all: republish next loop.
         MAIN.post(this::syncPopup);
+    }
+
+    /**
+     * ML Kit's actual TextBlock/Element/Symbol hierarchy chooses the visual
+     * selection. The returned indices still point to Paddle CharUnits and
+     * no ML recognition text is ever copied or displayed as replacement.
+     */
+    private boolean resolveMlGesture(FLCircleSelection.Selection gesture,
+                                     long token,boolean initial){
+        if(gesture==null||mlTextSelection==null||
+                mlTextSelection.mlMatchCount()==0||fullDocument==null ||
+                gesture.kind!=FLCircleSelection.Kind.TAP &&
+                gesture.kind!=FLCircleSelection.Kind.HIGHLIGHT)return false;
+        PointF focus=frame.bitmapPointToScreen(gesture.focus.x,gesture.focus.y);
+        ArrayList<float[]> path=new ArrayList<>();
+        for(PointF point:gesture.points){
+            PointF screen=frame.bitmapPointToScreen(point.x,point.y);
+            path.add(new float[]{screen.x,screen.y});
+        }
+        int[] range=mlTextSelection.initialRange(focus.x,focus.y,path,
+                gesture.kind==FLCircleSelection.Kind.TAP,12f*density);
+        if(range==null)return false;
+        selectedLine=fullDocument.chars().get(range[0]).line();
+        firstChar=range[0];lastChar=range[1];
+        explicitSelectAll=false;
+        visitedMlBlocks.clear();
+        applyTextIndices(token,initial);
+        if(state.phase==NativeCircleState.Phase.TEXT_READY){
+            DiagnosticLog.i(app,"ML_BLOCK_SELECTION",
+                    "kind="+gesture.kind+" first="+firstChar+" last="+lastChar+
+                    " blocks="+mlTextSelection.blockCount()+" source=Paddle");
+            return true;
+        }
+        return false;
     }
 
     private void routeResolvedGesture(FLCircleSelection.Selection gesture,long token) {
@@ -748,6 +790,12 @@ final class NativeCircleWorkspace extends View {
                 startOcr(roi,false);
             } else status=t("正在识别…","Recognizing…");
             invalidate();
+            return;
+        }
+        if(resolveMlGesture(gesture,token,true)){
+            mlInitialGesture=null;
+            DiagnosticLog.i(app,"CIRCLE_NATIVE",
+                    "auto route=text owner=ml_block kind="+gesture.kind);
             return;
         }
         List<OcrDocument.CharUnit> all=cachedChars;
@@ -800,6 +848,10 @@ final class NativeCircleWorkspace extends View {
         }
         selectedLine=all.get(first).line();
         explicitSelectAll=false;
+        // ML detection is async: upgrade this interim Paddle hit to the
+        // true ML word/line selection when block topology becomes available.
+        mlInitialGesture=mlTextSelection!=null &&
+                mlTextSelection.mlMatchCount()>0?null:gesture;
         visitedMlBlocks.clear();
         // Non-explicit initial selection cannot bridge unrelated icon words
         // and launcher captions merely due to document reading order.
@@ -1088,6 +1140,7 @@ final class NativeCircleWorkspace extends View {
         firstTextGrip=lastTextGrip=null;
         firstChar=lastChar=-1;selectedLine=-1;pendingGesture=null;status="";
         explicitSelectAll=false;visitedMlBlocks.clear();
+        mlInitialGesture=null;
         awaitingTextPath.reset();
         invalidate();
     }
@@ -1105,6 +1158,7 @@ final class NativeCircleWorkspace extends View {
                 int textHandle=hitTextHandle(x,y);
                 if(textHandle!=0){
                     handleDrag=textHandle;
+                    mlInitialGesture=null;
                     selectedLine=-1; // The initial-line lock is not a drag limit.
                     explicitSelectAll=false;
                     visitedMlBlocks.clear();
@@ -1151,6 +1205,7 @@ final class NativeCircleWorkspace extends View {
             dragPath.reset();dragPath.moveTo(x,y);
             awaitingTextPath.reset();
             chosenChars.clear();firstChar=lastChar=-1;
+            mlInitialGesture=null;
             explicitSelectAll=false;visitedMlBlocks.clear();
             selectionVisual=CircleMlSelectionVisual.Layout.empty();
         paddleReference=CircleMlSelectionVisual.Layout.empty();
@@ -1280,7 +1335,7 @@ final class NativeCircleWorkspace extends View {
         closed=true;state.close();pendingGesture=null;
         mlGeometryGeneration++;
         mlGlyphs=List.of();mlAlignment=null;mlTextSelection=null;
-        visitedMlBlocks.clear();
+        visitedMlBlocks.clear();mlInitialGesture=null;
         expansionDragCursorValid=false;
         if(activeOcr!=null)activeOcr.cancel();
         cachedChars=List.of();charIndex=null;
