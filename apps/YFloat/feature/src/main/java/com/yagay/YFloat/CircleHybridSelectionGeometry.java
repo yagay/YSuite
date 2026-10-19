@@ -17,21 +17,24 @@ final class CircleHybridSelectionGeometry {
     static final int PADDLE=0, HYBRID=1, COMPARE=2;
 
     static final class Alignment {
-        private final IdentityHashMap<OcrDocument.CharUnit,List<PointF>> mapped;
+        private final IdentityHashMap<OcrDocument.CharUnit,CircleMlKitGeometry.Glyph> mapped;
         final int matched,total;
-        Alignment(IdentityHashMap<OcrDocument.CharUnit,List<PointF>> map,
+        Alignment(IdentityHashMap<OcrDocument.CharUnit,CircleMlKitGeometry.Glyph> map,
                   int matched,int total){
             mapped=map;this.matched=matched;this.total=total;
         }
+        CircleMlKitGeometry.Glyph glyph(OcrDocument.CharUnit c){
+            return mapped.get(c);
+        }
         List<PointF> quad(OcrDocument.CharUnit c){
-            List<PointF> points=mapped.get(c);
-            return points==null?List.of():points;
+            CircleMlKitGeometry.Glyph g=mapped.get(c);
+            return g==null?List.of():g.corners;
         }
     }
     private CircleHybridSelectionGeometry(){}
 
     static Alignment align(OcrDocument paddle,List<CircleMlKitGeometry.Glyph> ml){
-        IdentityHashMap<OcrDocument.CharUnit,List<PointF>> out=new IdentityHashMap<>();
+        IdentityHashMap<OcrDocument.CharUnit,CircleMlKitGeometry.Glyph> out=new IdentityHashMap<>();
         if(paddle==null||ml==null||ml.isEmpty())
             return new Alignment(out,0,paddle==null?0:paddle.chars().size());
         boolean[] used=new boolean[ml.size()];
@@ -65,7 +68,7 @@ final class CircleHybridSelectionGeometry {
             }
             if(best>=0 && lowest<=5.2f){
                 used[best]=true;
-                out.put(c,ml.get(best).corners);
+                out.put(c,ml.get(best));
                 matched++;
             }
         }
