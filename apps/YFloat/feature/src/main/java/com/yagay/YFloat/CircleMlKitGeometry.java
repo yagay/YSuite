@@ -28,7 +28,15 @@ final class CircleMlKitGeometry {
         final String text;
         final Rect bounds; // absolute screen coordinates
         final List<PointF> corners; // TL/TR/BR/BL
+        final String blockId; // ML Kit's recognized TextBlock, source/pass scoped
+        final int lineId,wordId,symbolId; // ML hierarchy, not Paddle order
         Glyph(String text,Rect bounds,List<PointF> points){
+            this(text,bounds,points,"unassigned",-1,-1,-1);
+        }
+        Glyph(String text,Rect bounds,List<PointF> points,String blockId,
+              int lineId,int wordId,int symbolId){
+            this.blockId=blockId;
+            this.lineId=lineId;this.wordId=wordId;this.symbolId=symbolId;
             this.text=text==null?"":text;
             this.bounds=new Rect(bounds);
             ArrayList<PointF> copy=new ArrayList<>(4);
@@ -71,7 +79,7 @@ final class CircleMlKitGeometry {
             void finish(Text value,String script){
                 if(value!=null){
                     success++;
-                    collected.addAll(extract(value,transform));
+                    collected.addAll(extract(value,transform,script));
                 }
                 if(--remaining!=0)return;
                 try { zh.close(); }catch(Exception ignored){}
@@ -102,12 +110,20 @@ final class CircleMlKitGeometry {
         }catch(Throwable error){combined.finish(null,"latin");}
     }
 
-    private static List<Glyph> extract(Text text,ScreenBitmapTransform transform){
+    private static List<Glyph> extract(Text text,ScreenBitmapTransform transform,
+                                       String script){
         ArrayList<Glyph> out=new ArrayList<>();
         if(text==null)return out;
+        int blockIndex=0;
         for(Text.TextBlock block:text.getTextBlocks()){
+            String blockId=script+":block:"+blockIndex++;
+            int lineIndex=0;
             for(Text.Line line:block.getLines()){
+                int currentLine=lineIndex++;
+                int wordIndex=0;
                 for(Text.Element element:line.getElements()){
+                    int currentWord=wordIndex++;
+                    int symbolIndex=0;
                     List<Text.Symbol> symbols=element.getSymbols();
                     if(symbols==null)continue;
                     for(Text.Symbol symbol:symbols){
@@ -117,7 +133,9 @@ final class CircleMlKitGeometry {
                                 symbol.getBoundingBox(),transform);
                         if(corners.size()!=4)continue;
                         Rect r=rectOf(corners);
-                        if(!r.isEmpty())out.add(new Glyph(token,r,corners));
+                        if(!r.isEmpty())out.add(new Glyph(token,r,corners,
+                                blockId,currentLine,currentWord,symbolIndex));
+                        symbolIndex++;
                     }
                 }
             }
