@@ -195,10 +195,8 @@ if "results.add(document)" in pdf or "ArrayList<OcrDocument> results" in pdf:
     problems.append("PDF OCR must not retain unbounded page documents in RAM")
 # Paddle-native runtime must have no ML Kit execution, no old canonical glyph
 # splitting, and one shared inference/cache owner.
-bridge=(java / "PaddleOcrBridge.kt").read_text()
 gradle=(FEATURE / "feature/build.gradle").read_text()
-for source,name in ((ocr_engine,"OcrEngine"),(circle,"CircleRawPaddleOcr"),
-                    (bridge,"PaddleOcrBridge")):
+for source,name in ((ocr_engine,"OcrEngine"),(circle,"CircleRawPaddleOcr")):
     if ("MlKit" in source or "TextRecognizer" in source or
             "OcrCanonicalGeometry.normalize" in source):
         problems.append(name+" retained a legacy ML Kit execution/geometry path")
@@ -209,8 +207,8 @@ if (java / "MlKitTextCore.java").exists() or (java / "OcrCanonicalGeometry.java"
 if ("implementation(libs.mlkit.text.recognition)" not in gradle or
         "implementation(libs.mlkit.text.recognition.chinese)" not in gradle):
     problems.append("Hybrid geometry requires on-device Latin and Chinese symbol models")
-if "PaddlePipelineV2.recognize(context,bitmap,model" not in bridge:
-    problems.append("Retired second Paddle bridge must only delegate to the primary pipeline")
+if (java / "PaddleOcrBridge.kt").exists():
+    problems.append("Retired second Paddle adapter must not remain in clean OCR source")
 if "PaddleRecognitionRuntime.recognize" not in ocr_engine:
     problems.append("Document OCR runtime disconnected")
 if "PaddlePipelineV2.recognize" in circle or "PaddleRecognitionRuntime.recognize" in circle or "CircleStableOcr.recognize" in circle:
