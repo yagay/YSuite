@@ -37,6 +37,14 @@ final class CircleHybridSelectionGeometry {
         if(paddle==null||ml==null||ml.isEmpty())
             return new Alignment(out,0,paddle==null?0:paddle.chars().size());
         boolean[] used=new boolean[ml.size()];
+        // Avoid the O(Paddle * ML symbols) + repeated Unicode normalization
+        // cost on main thread, especially on dense full-screen documents.
+        java.util.HashMap<String,ArrayList<Integer>> byToken=new java.util.HashMap<>();
+        for(int j=0;j<ml.size();j++){
+            String token=compact(ml.get(j).text);
+            if(!token.isEmpty())
+                byToken.computeIfAbsent(token,ignored->new ArrayList<>()).add(j);
+        }
         int matched=0;
         List<OcrDocument.CharUnit> source=paddle.chars();
         for(OcrDocument.CharUnit c:source){
@@ -47,10 +55,11 @@ final class CircleHybridSelectionGeometry {
             if(a.isEmpty())continue;
             int best=-1;
             float lowest=Float.POSITIVE_INFINITY;
-            for(int j=0;j<ml.size();j++){
+            List<Integer> sameText=byToken.get(expected);
+            if(sameText==null)continue;
+            for(int j:sameText){
                 if(used[j])continue;
                 CircleMlKitGeometry.Glyph candidate=ml.get(j);
-                if(!expected.equals(compact(candidate.text)))continue;
                 Rect b=candidate.bounds;
                 if(b.isEmpty()||candidate.corners.size()!=4)continue;
                 float score=matchScore(a,b);
