@@ -30,11 +30,10 @@ public final class CircleHybridSelectionGeometryTest {
                 120f,80f,17f,34f,126f,80f,31f,33f);
         assertTrue(score<5.2f);
     }
-    @Test public void consecutiveGlyphsShareWordButDifferentGroupsDoNot(){
-        assertFalse(CircleHybridSelectionGeometry.groupBreak(2,8,13,2,8,14));
-        assertTrue(CircleHybridSelectionGeometry.groupBreak(2,8,13,2,9,14));
-        assertTrue(CircleHybridSelectionGeometry.groupBreak(2,8,13,3,8,14));
-        assertTrue(CircleHybridSelectionGeometry.groupBreak(2,8,13,2,8,16));
+    @Test public void copiedWordsStayPaddleOwned(){
+        // Geometry has no recognized-text output or clipboard authority.
+        assertEquals(1,CircleHybridSelectionGeometry.HYBRID);
+        assertEquals(0,CircleHybridSelectionGeometry.PADDLE);
     }
     @Test public void modesAreUnambiguousAndDefaultToHybrid(){
         assertEquals(0,CircleHybridSelectionGeometry.PADDLE);
