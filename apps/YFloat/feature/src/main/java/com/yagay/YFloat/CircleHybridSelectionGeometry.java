@@ -105,75 +105,51 @@ final class CircleHybridSelectionGeometry {
     }
 
     /**
-     * Unlike V3, do not union all selected symbols on a line. Return a separate
-     * blue quad for every contiguous Paddle group. Missing ML symbols fall
-     * back to Paddle's ORIGINAL quads and remain selectable/copyable.
+     * Exact visual projection of the selection: one region per selected
+     * Paddle character, optionally using a trustworthy ML Kit quad.
+     *
+     * Never union adjacent glyphs, even if OCR gave them the same line/group:
+     * a shared bounding rectangle paints UNSELECTED letters in gaps between
+     * characters and makes the stem handles appear inside blue text.
      */
     static List<TextGeometryV3.Region> grouped(OcrDocument document,
             List<OcrDocument.CharUnit> chosen,Alignment alignment,
             boolean useMl){
-        if(document==null || !document.isScreenSpace() ||
-                chosen==null || chosen.isEmpty())return List.of();
-        ArrayList<TextGeometryV3.Region> out=new ArrayList<>();
-        ArrayList<OcrDocument.CharUnit> group=new ArrayList<>();
-        int line=Integer.MIN_VALUE,word=Integer.MIN_VALUE,lastOrder=-999;
+        if(document==null||!document.isScreenSpace()||
+                chosen==null||chosen.isEmpty())return List.of();
+        ArrayList<TextGeometryV3.Region> regions=new ArrayList<>(chosen.size());
         for(OcrDocument.CharUnit c:chosen){
             if(c==null||c.text().isBlank()||c.bounds().isEmpty())continue;
-            boolean split=groupBreak(line,word,lastOrder,
-                    c.line(),c.group(),c.order());
-            if(split && !group.isEmpty()){
-                add(out,group,alignment,useMl);
-                group.clear();
-            }
-            line=c.line();word=c.group();lastOrder=c.order();
-            group.add(c);
-        }
-        if(!group.isEmpty())add(out,group,alignment,useMl);
-        return List.copyOf(out);
-    }
-
-    static boolean groupBreak(int lastLine,int lastGroup,int lastOrder,
-                              int nextLine,int nextGroup,int nextOrder){
-        return lastLine!=nextLine||lastGroup!=nextGroup||nextOrder!=lastOrder+1;
-    }
-
-    private static void add(List<TextGeometryV3.Region> out,
-            List<OcrDocument.CharUnit> group,Alignment alignment,boolean useMl){
-        ArrayList<PointF> points=new ArrayList<>();
-        for(OcrDocument.CharUnit c:group){
             List<PointF> quad=useMl&&alignment!=null?alignment.quad(c):List.of();
-            if(quad.size()!=4)quad=c.quad();
-            if(quad.size()!=4){
+            if(!validQuad(quad))quad=c.quad();
+            if(!validQuad(quad)){
                 Rect r=c.bounds();
                 quad=List.of(new PointF(r.left,r.top),
                         new PointF(r.right,r.top),
                         new PointF(r.right,r.bottom),
                         new PointF(r.left,r.bottom));
             }
-            points.addAll(quad);
+            regions.add(new TextGeometryV3.Region(quad,false));
         }
-        if(points.isEmpty())return;
-        // Preserve orientation of the actual first character, not a
-        // potentially oversized full-line detector box.
-        PointF a=points.get(0),b=points.get(1);
-        float ux=b.x-a.x,uy=b.y-a.y;
-        float mag=(float)Math.hypot(ux,uy);
-        if(mag<0.01f){ux=1f;uy=0f;}
-        else {ux/=mag;uy/=mag;}
-        float vx=-uy,vy=ux;
-        float l=Float.POSITIVE_INFINITY,t=Float.POSITIVE_INFINITY;
-        float r=Float.NEGATIVE_INFINITY,bottom=Float.NEGATIVE_INFINITY;
-        for(PointF p:points){
-            float u=p.x*ux+p.y*uy,v=p.x*vx+p.y*vy;
-            l=Math.min(l,u);r=Math.max(r,u);
-            t=Math.min(t,v);bottom=Math.max(bottom,v);
-        }
-        if(r-l<0.5f||bottom-t<0.5f)return;
-        // Old ML Kit-style fill is exact group geometry, no full-row pad.
-        out.add(new TextGeometryV3.Region(List.of(
-                new PointF(l*ux+t*vx,l*uy+t*vy),
-                new PointF(r*ux+t*vx,r*uy+t*vy),
-                new PointF(r*ux+bottom*vx,r*uy+bottom*vy),
-                new PointF(l*ux+bottom*vx,l*uy+bottom*vy)),false));
+        return List.copyOf(regions);
+    }
+
+    private static boolean validQuad(List<PointF> q){
+        if(q==null||q.size()!=4)return false;
+        for(PointF p:q)
+            if(p==null||!Float.isFinite(p.x)||!Float.isFinite(p.y))
+                return false;
+        float width=(float)Math.hypot(q.get(1).x-q.get(0).x,
+                q.get(1).y-q.get(0).y);
+        float height=(float)Math.hypot(q.get(3).x-q.get(0).x,
+                q.get(3).y-q.get(0).y);
+        return width>.4f&&height>.4f;
+    }
+
+    /** Retained as a pure source-boundary check for text-flow tests. */
+    static boolean groupBreak(int lastLine,int lastGroup,int lastOrder,
+                              int nextLine,int nextGroup,int nextOrder){
+        return lastLine!=nextLine||lastGroup!=nextGroup||
+                nextOrder!=lastOrder+1;
     }
 }
