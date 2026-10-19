@@ -917,3 +917,51 @@ and unusual layouts.
 The public ML Kit SDK supplies OCR structural data, not Google's private
 Circle-to-Search UI/selection algorithm. This implementation applies the
 public ML structure to an independent YFloat selection controller.
+
+## ML selection runtime ownership refactor (2026-10-19)
+
+The earlier ML Kit hierarchy integration still had these architectural
+problems: OCR ordinals ordered handle crossings; `visitedMlBlocks` never
+removed blocks on reverse drags; ML topology rebuilt by comparing all symbol
+pairs; late ROI-to-full-screen OCR rebuilt the component IDs without stable
+path ownership; and copying disconnected visual regions could concatenate
+same-Paddle-line launcher captions.
+
+The refactor separates the four responsibilities:
+
+1. `CircleMlKitGeometry` preserves ML TextBlock/Line/Element/Symbol
+   hierarchy and immutable screenshot-space glyph geometry.
+2. `CircleHybridSelectionGeometry` aligns ML geometry to Paddle CharUnits,
+   with **no** output text from ML.
+3. `CircleMlBlockSelection` creates immutable spatial components using
+   local grid buckets instead of all pairs, assigns stable visual ranks,
+   performs ML glyph/word hit tests, computes visually ordered selection
+   membership and distinct per-component source-line IDs.
+4. `CircleMlSelectionSession` owns text selection endpoints, source block
+   traversal, reversible visited routes, visual-order crossing and replay
+   of the physical drag path when ML geometry or Paddle ROI changes.
+   `NativeCircleWorkspace` now integrates these components, rather than
+   keeping its own parallel cursor/visited-block state.
+5. `CircleMlSelectionVisual` retains the exact preexisting ML blue rounded
+   highlight and blue stem/circle handle style, independent of text content.
+
+For a *partial* selection, `OcrSelectionText.selected` uses the selected
+Paddle source tokens/UTF-16 offsets in ML visual ordering, with newlines
+between separate visual components. Explicit Select All uses
+`OcrDocument.fullText()` so no ML/heuristic reading-order reconstruction can
+change or truncate the full Paddle recognition result; the grips and
+highlights still follow the ML visual layout.
+
+The selection model can contain noncontiguous Paddle indices. It no longer
+requires `first < last` in OCR/document order: endpoints normalize by ML
+visual position, and only the one selected-list snapshot feeds highlight,
+copy and menu anchors. A delayed full-screen OCR job restores its physical
+drag trace without resetting visited blocks. Regression tests validate
+reverse drag, visual-order handle crossing, route replay, select all and
+noncontiguous launcher labels.
+
+The ML Kit SDK does **not** expose Google's private Circle-to-Search selection
+controller. This local architecture reproduces its text block hierarchy
+and blue presentation while keeping Paddle's output content. CI validates
+structural contracts and unit tests; edge-case device interaction still
+requires real screenshot testing.
