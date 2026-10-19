@@ -330,9 +330,12 @@ for key in ("extended","fast_detection","line_orientation","document_orientation
             "charts"):
     if ('"'+key+'"') not in flow_ui or ('"'+key+'"') not in flow_options:
         problems.append("Missing individual Paddle execution switch: "+key)
-if "PaddleFlowSettingsUi.add(activity,fs,circleOcr.body,true)" not in capture or (
-        "PaddleFlowSettingsUi.add(activity,fs,result.body,false)" not in capture):
-    problems.append("Circle and normal-document OCR settings profiles are not surfaced")
+if "PaddleFlowSettingsUi.add(activity,fs,circleOcr.body,true)" in capture:
+    problems.append("Raw Circle UI must not show unexecuted legacy pipeline toggles")
+if "PaddleFlowSettingsUi.add(activity,fs,result.body,false)" not in capture:
+    problems.append("Independent document OCR extension settings are unavailable")
+if "原始检测与识别" not in capture:
+    problems.append("Raw Circle OCR behavior is not clearly described in settings")
 if "PaddleFlowOptions.read(app,circle)" not in runtime:
     problems.append("Normal OCR stage selection disconnected")
 if "CircleRawPaddleOcr.recognize(app,input,request," not in (java / "NativeCircleWorkspace.java").read_text():
