@@ -455,7 +455,7 @@ for needle in ("startOcr(null,false,true)",
                "CircleTextExpansionPolicy.unrestrictedNearest(",
                "expansionDragCursorValid", "recognizedRoi=oldRoi",
                "if(expandForHandle)", "oldDocument=fullDocument",
-               "paddleCompareGeometry=circleGeometryMode==CircleHybridSelectionGeometry.COMPARE"):
+               "paddleReference=circleGeometryMode==CircleHybridSelectionGeometry.COMPARE"):
     if needle not in native:
         problems.append("Unrestricted screenshot OCR selection path missing: "+needle)
 for needle in ("new Range(last,target,END)",
@@ -531,7 +531,7 @@ for source,area,needles in (
                         "circleGeometryMode=new FloatSettings(app).circleTextGeometryMode()",
                         "CircleMlKitGeometry.recognize(app,frame.bitmap,frame.transform,",
                         "if(circleGeometryMode==CircleHybridSelectionGeometry.COMPARE",
-                        "canvas.drawRoundRect(screenToViewF(region.bounds()),2f*density,",
+                        "CircleMlSelectionVisual.drawCompare(",
                         "mlGeometryGeneration++", "sourceSpans.get(unit)")),
     (prefs,"configuration",("K_CIRCLE_TEXT_GEOMETRY_MODE",
                         "public int circleTextGeometryMode()")),
