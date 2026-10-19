@@ -233,6 +233,18 @@ final class CircleMlBlockSelection {
     int mlMatchCount(){return mlSymbols;}
     int blockCount(){return components;}
     int size(){return entries.size();}
+    int firstVisualIndex(){
+        int first=-1;
+        for(int i=0;i<entries.size();i++)
+            if(component[i]>=0&&(first<0||compare(i,first)<0))first=i;
+        return first;
+    }
+    int lastVisualIndex(){
+        int last=-1;
+        for(int i=0;i<entries.size();i++)
+            if(component[i]>=0&&(last<0||compare(i,last)>0))last=i;
+        return last;
+    }
     int copyLineId(int index){
         return index>=0&&index<copyLineId.length?copyLineId[index]:-1;
     }
@@ -352,7 +364,11 @@ final class CircleMlBlockSelection {
                 if(!entries.get(i).valid())continue;
                 flags[i]=true;all.add(i);
             }
-            // Explicit all still follows Paddle document's original order.
+            // ML geometry governs visible first/last grips; actual Select All
+            // copy is the authoritative Paddle fullText, not these indices.
+            all.sort(Comparator
+                    .comparingInt((Integer i)->blockRank[component[i]])
+                    .thenComparingInt(i->visualRank[i]));
             return new Mask(flags,all,0,components);
         }
         // Normalize by visual order rather than Paddle index.
