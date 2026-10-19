@@ -1,3 +1,5 @@
+> **CURRENT (supersedes historical notes below):** Circle runs a new independent `CircleRawPaddleOcr` pipeline: one original Paddle SDK detector/recognizer pass with unchanged decoded text and true SDK glyph/line quads. The legacy `CircleStableOcr` adapter and `PaddleSpacingV2` whitespace corrector, preference toggles and correction tests have been removed. Document/PDF OCR also passes the original `OCRResult.text` and `OCRResult.words` through without re-segmentation or spacing normalization. ML Kit handles text selection structure and visual highlights, not recognized/copyable text. Historical sections discussing spacing correction are archival descriptions, **not current functionality**.
+
 # YFloat: offline Paddle capabilities (development batch)
 
 This record differentiates genuine local inference from optional models, geometry
