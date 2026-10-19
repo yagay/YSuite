@@ -37,7 +37,13 @@ final class CircleMlSelectionSession {
     void chooseAll(int count){
         reset();
         if(count<=0)return;
-        first=0;last=count-1;selectAll=true;
+        if(topology!=null&&topology.size()==count){
+            first=topology.firstVisualIndex();
+            last=topology.lastVisualIndex();
+        }else{
+            first=0;last=count-1;
+        }
+        selectAll=true;
     }
 
     void bind(CircleMlBlockSelection model){
