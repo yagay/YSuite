@@ -804,88 +804,49 @@ checks no original line-only/radius cap was accidentally restored. Real
 device testing is required to verify the full-screen OCR latency and
 interaction during long cross-line gestures.
 
-## Paddle text + ML Kit selection geometry (2026-10-19)
+## Original ML Kit selected-text UI backed by Paddle recognition (2026-10-19)
 
-Three separately selectable *selection-only* visual modes are under
-**Settings > Capture and OCR > Native Circle OCR**:
+**The user-visible selection style is the old main-branch ML Kit one in ALL
+modes**: translucent `0x884285F4` blue word-segment rounded rectangles
+(`2dp` corners), blue `0xFF4285F4` stem-and-circle text handles
+(`7dp` stem and `7dp` radius), and the existing Circle action menu.
+The original screenshot is drawn once by `NativeCircleWorkspace.onDraw`,
+then the selection wash is drawn on top. There is **no per-character bitmap
+repaint, repeated screenshot clipping or typeface reconstruction**.
 
-- **Paddle only (0):** only Paddle-recognized text/char quads are used;
-  contiguous word groups become individual blue rounded highlights rather
-  than merging an entire row.
-- **Hybrid (1, default):** Paddle remains the ONLY OCR text, selection range,
-  clipboard, translation and search input source. On the first successful
-  Paddle OCR pass for each frozen screenshot, two bundled *on-device* ML Kit
-  recognition passes (Chinese + Latin) extract ONLY Symbol corner points.
-  Screenshot pixels remain local; no network OCR is called. The symbols are
-  normalized/indexed, and a Paddle character accepts an ML geometry quad
-  only when Unicode matches and center/size/line geometry pass conservative
-  thresholds. Ambiguous/missing symbols fall back individually to Paddle
-  without changing copied text.
-- **Compare (2):** same hybrid blue rounded group highlights, plus a thin
-  violet outline of Paddle-only grouped geometry to make discrepancies
-  visually identifiable. No second Paddle pass is run.
+PaddleOCR is always the only source for actual selected characters,
+character indices, original spaces, copied text, search and translation.
+`CircleSelectionViewportPolicy` decides exactly which Paddle characters
+belong to the selection. `CircleMlSelectionVisual` maps those selected
+characters to grouped visual rectangles using the same word styling as
+`main/FLCircleInlineOverlay.java`. Unlike the old unbounded row union, it
+will not merge a group across an excluded character, discontinuous order,
+a separate text line or a large physical gap. The blue wash, grip anchors
+and menu bounds share one immutable ML-style visual `Layout`.
 
-Implementation: `CircleMlKitGeometry` owns bitmap copying, the two
-recognizer lifetimes and immutable SCREEN-space symbol corners.
-`CircleHybridSelectionGeometry` owns conservative one-to-one symbol
-alignment and contiguous per-group quadrilateral union. The active
-`NativeCircleWorkspace` receives ML results asynchronously; late
-results are ignored after close and stale data never alters recognized text.
-Full-screen Paddle re-OCR remaps its chars using existing anchor mapping,
-then realigns them against the cached frozen-frame ML glyphs.
-Selection drawing restores exact screenshot pixels, then applies translucent
-blue round-rect fills (or rotated polygons); the current main-branch blue
-circle+stem grips, native menu and unrestricted multi-line drag are retained.
+The three Circle OCR geometry settings change COORDINATE SOURCE only,
+not the appearance or recognized text:
 
-**Operational trade-offs:** Google ML Kit Chinese and Latin are bundled
-dependencies rather than user-downloaded Paddle weights, so the debug APK
-may grow and initial mixed-script geometry recognition adds CPU/memory and
-latency. Geometry stays Paddle-only until ML results arrive. If ML Kit
-initializes unsuccessfully or cannot match characters, selection still works
-in Paddle fallback mode. The mode is selected at Circle workspace creation.
-No direct Google App or Lens hook is used.
+- **Paddle only (0):** Paddle glyph rectangles with the ML-style blue UI.
+- **Hybrid (1, default):** run on-device Chinese and Latin ML Kit
+  recognition once for the frozen screenshot to get reliable symbol
+  boundary positions. Align by matching character, nearby position and
+  plausible geometry; choose ML coordinates where matched, otherwise
+  fall back to Paddle. Text/content always stays Paddle.
+- **Compare (2):** draw the same hybrid ML-style blue selection, plus
+  thin violet outlines from the Paddle-only visual layout.
 
-**Acceptance checklist:** Select Chinese app-icon text such as 头条,
-single glyphs, multiline Latin/CJK, punctuation and rotated text; compare
-the three geometry modes using identical frozen screens. Confirm both
-start/end handles follow the highlighted group boundaries after ML Kit
-completion, select-all/copy use only Paddle text, and no old overlay or
-stale callback appears after closing Circle. CI checks static ownership,
-symbol proximity/size rejection, group splitting and ARM64 Debug build;
-real-device UX precision remains a separate acceptance check.
+`CircleMlKitGeometry` owns the optional recognizers and bitmap lifetime;
+`CircleHybridSelectionGeometry` only aligns ML Kit symbol quads to the
+Paddle document and does not generate selection text or draw highlights.
+The old active `TextGeometryV3` blue-paint/handle path has been replaced
+with `CircleMlSelectionVisual`; other modules' standalone legacy geometry
+utilities do not participate in this Circle selection rendering flow.
 
-
-## Selection outside blue handles: geometry ownership repair (2026-10-19)
-
-Root cause predates the ML Kit geometry overlay: the Paddle TextGeometry V3
-selection could combine every selected OCR character in a source row into one
-large polygon, and blue fill could paint after the clip was restored. The
-result included unselected letters in gaps and placed handle tips on the
-whole word/row rectangle rather than the actual endpoint characters.
-
-Current active native Circle implementation now uses ONE membership list:
-`CircleSelectionViewportPolicy.select` filters OCR ordinal ranges against
-their physical SCREEN line, end characters, column/connected-line bands and
-vertical range. This rejects unrelated launcher labels and neighboring
-columns that Paddle's OCR ordering interleaves between the two handles. An
-explicit Select All bypasses the filter. Paddle's source offset/whitespace
-is still the sole source of selected/copy text, with no invented separators.
-
-`CircleHybridSelectionGeometry.grouped` now emits one selected-character
-quad per region instead of unioning an entire word/row; ML Kit is only an
-optional source of individual symbol quads, and unmatched characters fall
-back to Paddle. The blue translucent fill stays clipped to EACH such quad.
-The leading grip anchors to the first chosen quad's bottom-left and the
-trailing grip to the last quad's bottom-right. Thus copied text, blue fill
-and main-branch 7dp circle/stem grips have the same selection membership.
-
-Regression tests include interleaved icon-grid columns, separate words
-inside the same Paddle OCR row, multiline article selection, single-line
-restriction, invalid character boxes and explicit Select All. The CI
-contract rejects returning to group-union geometry or drawing the blue
-fill outside its selected polygon.
-
-A screenshot can contain OCR characters whose inferred order or geometry
-is incorrect. The geometric corridor deliberately prioritizes not coloring
-neighboring-column text; unusual curved or multicolumn layouts may still
-need live device diagnostics to refine reading-order handling.
+**Validation:** CI verifies paint constants, the isolated ML-style UI,
+Paddle source-offset authority, safe word grouping/geometry fallback,
+screen-space coordinate ownership and tests for adjacent icon labels,
+non-contiguous selection and cross-line expansion. Visual fidelity and
+accuracy on specific screenshots still require physical device testing.
+Bundled on-device ML Kit packages increase debug APK size but do not
+make Paddle model files non-optional.
