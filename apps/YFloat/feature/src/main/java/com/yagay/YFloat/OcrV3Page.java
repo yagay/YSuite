@@ -8,7 +8,7 @@ import java.util.List;
  * V3 recognition result. The original Paddle line text remains authoritative.
  * Character offsets are slices of that text, never synthesized whitespace.
  */
-final class OcrV3Page {
+public final class OcrV3Page {
     static final class Glyph {
         final String text;
         final Rect rect;
