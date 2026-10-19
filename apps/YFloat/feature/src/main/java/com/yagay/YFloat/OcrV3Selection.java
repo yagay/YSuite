@@ -77,11 +77,11 @@ final class OcrV3Selection {
         if(i<0){clear();return false;}
         anchor=extent=i;active=0;all=false;return true;
     }
-    boolean begin(float x,float y,float handleRadius){
+    boolean begin(float x,float y,float handleRadius,float bitmapStem){
         if(!selected()||all)return false;
         Rect first=words.get(anchor).box,last=words.get(extent).box;
-        float start=(float)Math.hypot(x-first.left,y-(first.bottom+7f));
-        float end=(float)Math.hypot(x-last.right,y-(last.bottom+7f));
+        float start=(float)Math.hypot(x-first.left,y-(first.bottom+bitmapStem));
+        float end=(float)Math.hypot(x-last.right,y-(last.bottom+bitmapStem));
         if(Math.min(start,end)>handleRadius)return false;
         active=start<=end?1:2;
         return true;
