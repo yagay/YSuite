@@ -260,7 +260,7 @@ final class NativeCircleWorkspace extends View {
             DiagnosticLog.i(app,"PADDLE_SCHED",
                     "circle_roi="+roi.toShortString()+" full="+full+
                     " selectAll="+expandForSelectAll);
-            CircleStableOcr.recognizeFullScreenSelected(app, input,request,
+            CircleRawPaddleOcr.recognize(app,input,request,
                     new OcrEngine.DocumentCallback() {
                 @Override public void onSuccess(OcrDocument result) {
                     recycleOcrBitmap(input);
