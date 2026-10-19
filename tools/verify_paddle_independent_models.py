@@ -384,7 +384,7 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
     if needle not in selector:
         problems.append("Gesture line-local selection regressed: "+needle)
 for needle in ("selectedLine=all.get(first).line()",
-               "CircleTextRangePolicy.sameLine(unit.line(),selectedLine)",
+               "CircleSelectionViewportPolicy.select(visualChars,", "visualMask.contains(i)",
                "CircleHybridSelectionGeometry.grouped(",
                "canvas.clipPath(selection)", "quadToView(region.corners())",
                "pathForQuad(corners,0f)", "rebuildSelectionGeometry();",
@@ -413,10 +413,10 @@ main_handle_signature=(
     "TEXT_HANDLE_SNAP_DP = 96f",
     "textHandlePaint.setColor(0xFF4285F4)",
     "float stem=7f*density", "float radius=7f*density",
-    "canvas.drawLine(first.left,first.bottom,",
-    "canvas.drawCircle(first.left,first.bottom+stem,radius,textHandlePaint)",
-    "canvas.drawLine(last.right,last.bottom,",
-    "canvas.drawCircle(last.right,last.bottom+stem,radius,textHandlePaint)",
+    "canvas.drawLine(first.x,first.y,",
+    "canvas.drawCircle(first.x,first.y+stem,radius,textHandlePaint)",
+    "canvas.drawLine(last.x,last.y,",
+    "canvas.drawCircle(last.x,last.y+stem,radius,textHandlePaint)",
     "startDistance=(float)Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)",
     "endDistance=(float)Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)",
     "if(startDistance<=max && startDistance<=endDistance)return 1",
@@ -486,6 +486,35 @@ else:
         if case not in free_cases:
             problems.append("Unrestricted selection regression missing "+case)
 
+# Highlighter/copy/handles must share the same screen-space selection mask.
+viewport=(java / "CircleSelectionViewportPolicy.java").read_text()
+for marker in ("static Mask select(", "connectedBand(", "g.x()<left-margin",
+               "g.y()<top-margin", "lockedLine>=0", "explicitAll"):
+    if marker not in viewport:
+        problems.append("Visual selection viewport missing: "+marker)
+for marker in ("visualMask.contains(i)", "CircleSelectionViewportPolicy.select(",
+               "explicitSelectAll=true", "explicitSelectAll=false",
+               "PointF first=leading.get(3)", "PointF last=trailing.get(2)"):
+    if marker not in native:
+        problems.append("Text/highlight/grip membership mismatch: "+marker)
+if 'canvas.restore();\n            // Paint only within' in native:
+    problems.append("Blue highlight escaped selected glyph clip")
+if "canvas.drawPath(selection,selectionFillPaint);\n            canvas.restore();" not in native:
+    problems.append("Blue fill not clipped to exact selected glyph")
+if "float loU=" in hybrid or "out.add(new TextGeometryV3.Region(" in hybrid:
+    problems.append("Old merged word/row blue fill is still active")
+scope_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleSelectionViewportPolicyTest.java"
+if not scope_test.is_file():
+    problems.append("Visual selection viewport regressions absent")
+else:
+    content=scope_test.read_text()
+    for marker in ("excludesInterleavedNeighboringLauncherIconLabels",
+                   "sameOcrLineCannotPaintASeparateFarWord",
+                   "fullWidthParagraphDoesNotLoseMiddleRowEndings",
+                   "explicitSelectAllIsNotRestrictedToOneColumn"):
+        if marker not in content:
+            problems.append("Visual selection regression missing: "+marker)
+
 # Real hybrid recognition is isolated: Paddle supplies selection text, ML Kit
 # supplies only nearby, text-matched character QUADS for the renderer.
 hybrid=(java / "CircleHybridSelectionGeometry.java").read_text()
@@ -495,8 +524,8 @@ ui=(java / "SettingsPageUi.java").read_text()
 for source,area,needles in (
     (hybrid,"alignment",("byToken.get(expected)",
                         "matchScore(a,b)", "used[best]=true",
-                        "c.group()", "static boolean groupBreak(",
-                        "new TextGeometryV3.Region(")),
+                        "for(OcrDocument.CharUnit c:chosen)", "static boolean groupBreak(",
+                        "regions.add(new TextGeometryV3.Region(quad,false))")),
     (geometry_provider,"ML Kit geometry",(
                         "new ChineseTextRecognizerOptions.Builder()",
                         "TextRecognizerOptions.DEFAULT_OPTIONS",
