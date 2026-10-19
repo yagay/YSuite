@@ -49,7 +49,10 @@ final class SettingsCapturePage {
         ui.circleFullOcrEngineSpinner(circleOcr.body);
         ui.circleCorrectionEngineSpinner(circleOcr.body);
         ui.circleTextGeometrySpinner(circleOcr.body);
-        PaddleFlowSettingsUi.add(activity,fs,circleOcr.body,true);
+        YViewLayout.addRow(circleOcr.body,YViewLayout.rowSubtitle(activity,
+                java.util.Locale.getDefault().getLanguage().startsWith("zh")
+                    ? "圈画只执行 Paddle 原始检测与识别；不包含空格修正、重复 OCR、版面或其他附加处理。"
+                    : "Circle uses original Paddle detection and recognition only: no spacing correction, retry OCR or document postprocessing."));
         YViewLayout.addSection(root, circleOcr);
 
         YViewSection result = YViewLayout.section(activity,
