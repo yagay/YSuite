@@ -33,7 +33,7 @@ import kotlin.math.floor
  * Installed ONNX weights and cancellation tokens are infrastructure, not
  * the legacy OCR engine. The model session is serialized and reused.
  */
-internal object CircleRawPaddleOcr {
+object CircleRawPaddleOcr {
     private data class Loaded(val model:Int,val signature:String,val engine:PaddleOCR)
     private val worker=CoroutineScope(SupervisorJob()+Dispatchers.Default)
     private val lane=Mutex()
