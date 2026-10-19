@@ -384,16 +384,17 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
     if needle not in selector:
         problems.append("Gesture line-local selection regressed: "+needle)
 for needle in ("selectedLine=all.get(first).line()",
-               "CircleSelectionViewportPolicy.select(visualChars,", "visualMask.contains(i)",
-               "CircleHybridSelectionGeometry.grouped(",
-               "canvas.clipPath(selection)", "quadToView(region.corners())",
-               "pathForQuad(corners,0f)", "rebuildSelectionGeometry();",
+               "CircleSelectionViewportPolicy.select(visualChars,",
+               "visualMask.contains(i)",
+               "CircleMlSelectionVisual.build(",
+               "CircleMlSelectionVisual.draw(",
+               "rebuildSelectionGeometry();",
                "WindowInsets.Type.statusBars()", "float pillTop=safeToolbarTop();",
                "float top=safeToolbarTop();"):
     if needle not in native:
-        problems.append("Native Circle text highlight/status-bar fix regressed: "+needle)
-if "canvas.drawText(ch.text()" in native or "canvas.drawRoundRect(r,2*density,2*density,fillPaint)" in native:
-    problems.append("Text highlight draws OCR glyphs or old raw per-character fill")
+        problems.append("Native Circle Paddle text / ML visual path missing: "+needle)
+if "canvas.drawText(ch.text()" in native:
+    problems.append("Native Circle must never re-typeset OCR text")
 if "RectF screenToView(RectF screenRect" not in transform:
     problems.append("Selection highlighter lost fractional coordinate precision")
 for needle in ("static float lineScore(", "static boolean splitsLabel(",
@@ -403,52 +404,46 @@ for needle in ("static float lineScore(", "static boolean splitsLabel(",
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleTextRangePolicyTest.java").is_file():
     problems.append("Missing icon-caption same-line selection regression tests")
 
-# Import the ACTUAL handle implementation from main/FLCircleInlineOverlay
-# while retaining Paddle/TextGeometry V3's precise selection path.
+# Original main/FLCircleInlineOverlay ML text style is now an independent
+# renderer; do not mutate the OCR engine or paint per-character clipped frames.
 native=(java / "NativeCircleWorkspace.java").read_text()
-visual=(java / "NativeCircleVisualPolicy.java").read_text()
-style=(java / "YFloatOverlayStyle.java").read_text()
-main_handle_signature=(
-    "extends View", "TEXT_HANDLE_HIT_DP = 28f",
-    "TEXT_HANDLE_SNAP_DP = 96f",
-    "textHandlePaint.setColor(0xFF4285F4)",
-    "float stem=7f*density", "float radius=7f*density",
-    "canvas.drawLine(first.x,first.y,",
-    "canvas.drawCircle(first.x,first.y+stem,radius,textHandlePaint)",
-    "canvas.drawLine(last.x,last.y,",
-    "canvas.drawCircle(last.x,last.y+stem,radius,textHandlePaint)",
-    "startDistance=(float)Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)",
-    "endDistance=(float)Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)",
-    "if(startDistance<=max && startDistance<=endDistance)return 1",
-    "if(endDistance<=max)return 2",
-    "float maxDistance=TEXT_HANDLE_SNAP_DP*density",
-    "Math.min(maxDistance*0.48f,rect.height()*2.15f)",
-    "float score=dx*dx+dy*dy*3.25f")
-for needle in main_handle_signature:
-    if needle not in native:
-        problems.append("Main FLCircleInlineOverlay handle not fully ported: "+needle)
-for needle in ("canvas.clipPath(selection)",
-               "canvas.drawBitmap(frame.bitmap,null,",
-               "canvas.drawRoundRect(screenToViewF(region.bounds()),2f*density,",
-               "CircleHybridSelectionGeometry.grouped(",
-               "mlAlignment=CircleHybridSelectionGeometry.align(",
+ml_visual=(java / "CircleMlSelectionVisual.java").read_text()
+for marker in ("ML_BLUE_WASH = 0x884285F4",
+               "ML_BLUE_HANDLE = 0xFF4285F4",
+               "CORNER_DP = 2f",
+               "HANDLE_STEM_DP = 7f",
+               "HANDLE_RADIUS_DP = 7f",
+               "canvas.drawRoundRect(view,corner,corner,selectedPaint)",
+               "canvas.drawCircle(start.left,start.bottom+stem,radius,gripPaint)",
+               "canvas.drawCircle(end.right,end.bottom+stem,radius,gripPaint)",
+               "static Layout build(", "static Handles draw(",
+               "static boolean mayMerge("):
+    if marker not in ml_visual:
+        problems.append("Main ML Kit visual style not preserved: "+marker)
+for marker in ("CircleMlSelectionVisual.draw(", "CircleMlSelectionVisual.build(",
+               "CircleMlSelectionVisual.selectedViewBox(",
+               "CircleMlSelectionVisual.ML_BLUE_WASH",
+               "CircleMlSelectionVisual.ML_BLUE_HANDLE",
+               "CircleHybridSelectionGeometry.align(",
                "maybeStartMlGeometry();",
                "CircleMlKitGeometry.recognize(",
-               'selected_groups="+textGeometry.size()'):
-    if needle not in native:
-        problems.append("Hybrid Circle text geometry integration regressed: "+needle)
-for banned in ("NativeSelectionHandlesView", "TextCaretGeometry",
-               "SelectionDragController", "selectionHandlePaint",
-               "attachedTextHandle(", "chooseTouchedTextHandle("):
-    if banned in native:
-        problems.append("Unused experimental teardrop handle code still active: "+banned)
-if "TEXT_HIGHLIGHT_FILL_ALPHA" not in visual:
-    problems.append("Native translucent OCR highlight policy missing")
-if "static int selectionWithAlpha(" not in style:
-    problems.append("Native Circle highlight ignores configured selection colour")
-selection_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/NativeCircleSelectionVisualTest.java"
-if not selection_test.is_file() or "nativeTextSelectionHasVisibleTranslucentBlueWash" not in selection_test.read_text():
-    problems.append("TextGeometry V3 CJK text highlight regression missing")
+               'selected_groups="+selectionVisual.segments.size()',
+               "startDistance=(float)Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)",
+               "endDistance=(float)Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)",
+               "float maxDistance=TEXT_HANDLE_SNAP_DP*density"):
+    if marker not in native:
+        problems.append("Main-ML UI/Paddle-OCR pipeline disconnected: "+marker)
+for retired in ("canvas.clipPath(selection)", "pathForQuad(",
+                "drawTextHandles(Canvas", "textGeometry=TextGeometryV3.build(",
+                "CircleHybridSelectionGeometry.grouped("):
+    if retired in native:
+        problems.append("Retired Circle selection renderer still active: "+retired)
+if "canvas.drawBitmap(frame.bitmap,null," in native:
+    problems.append("Selected text must not redraw the full screenshot")
+ml_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleMlSelectionVisualTest.java"
+if not ml_test.is_file() or (
+        "oldMlKitBlueWashColorIsRestored" not in ml_test.read_text()):
+    problems.append("Original ML visual style regression suite missing")
 # Free text-handle expansion is NOT constrained by the initial ROI or row.
 # Initial highlighting is still row-local; a deliberate handle drag unlocks
 # all available lines and expands OCR asynchronously to the full screenshot.
@@ -486,8 +481,8 @@ else:
         if case not in free_cases:
             problems.append("Unrestricted selection regression missing "+case)
 
-# Highlighter/copy/handles must share the same screen-space selection mask.
-hybrid=(java / "CircleHybridSelectionGeometry.java").read_text()
+# Paddle supplies exactly one membership mask; the ML-style display only
+# groups nearby selected symbols, never interleaved neighboring icon labels.
 viewport=(java / "CircleSelectionViewportPolicy.java").read_text()
 for marker in ("static Mask select(", "connectedBand(", "g.x()<left-margin",
                "g.y()<top-margin", "lockedLine>=0", "explicitAll"):
@@ -495,25 +490,24 @@ for marker in ("static Mask select(", "connectedBand(", "g.x()<left-margin",
         problems.append("Visual selection viewport missing: "+marker)
 for marker in ("visualMask.contains(i)", "CircleSelectionViewportPolicy.select(",
                "explicitSelectAll=true", "explicitSelectAll=false",
-               "PointF first=leading.get(3)", "PointF last=trailing.get(2)"):
+               "CircleMlSelectionVisual.build(", "CircleMlSelectionVisual.draw("):
     if marker not in native:
-        problems.append("Text/highlight/grip membership mismatch: "+marker)
-if 'canvas.restore();\n            // Paint only within' in native:
-    problems.append("Blue highlight escaped selected glyph clip")
-if "canvas.drawPath(selection,selectionFillPaint);\n            canvas.restore();" not in native:
-    problems.append("Blue fill not clipped to exact selected glyph")
-if "float loU=" in hybrid or "out.add(new TextGeometryV3.Region(" in hybrid:
-    problems.append("Old merged word/row blue fill is still active")
+        problems.append("Selected source/ML UI divergence: "+marker)
+for marker in ("!sameGroup||!consecutive", "verticalOverlap<smallerHeight*.55f",
+               "horizontalGap>Math.max(3f,smallerHeight*.45f)",
+               "new Layout(boxes,first,last,union,count,matched)"):
+    if marker not in ml_visual:
+        problems.append("ML UI visual-group bounding contract missing: "+marker)
 scope_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleSelectionViewportPolicyTest.java"
 if not scope_test.is_file():
     problems.append("Visual selection viewport regressions absent")
 else:
-    content=scope_test.read_text()
+    cases=scope_test.read_text()
     for marker in ("excludesInterleavedNeighboringLauncherIconLabels",
                    "sameOcrLineCannotPaintASeparateFarWord",
                    "fullWidthParagraphDoesNotLoseMiddleRowEndings",
                    "explicitSelectAllIsNotRestrictedToOneColumn"):
-        if marker not in content:
+        if marker not in cases:
             problems.append("Visual selection regression missing: "+marker)
 
 # Real hybrid recognition is isolated: Paddle supplies selection text, ML Kit
@@ -525,8 +519,7 @@ ui=(java / "SettingsPageUi.java").read_text()
 for source,area,needles in (
     (hybrid,"alignment",("byToken.get(expected)",
                         "matchScore(a,b)", "used[best]=true",
-                        "for(OcrDocument.CharUnit c:chosen)", "static boolean groupBreak(",
-                        "regions.add(new TextGeometryV3.Region(quad,false))")),
+                        "out.put(c,ml.get(best).corners)")),
     (geometry_provider,"ML Kit geometry",(
                         "new ChineseTextRecognizerOptions.Builder()",
                         "TextRecognizerOptions.DEFAULT_OPTIONS",
@@ -556,7 +549,7 @@ else:
     for needle in ("sameCharacterInAnotherIconCannotHijackHighlight",
                     "nextRowIsNeverPairedWithCurrentCharacter",
                     "ordinaryCTCWidthErrorCanBeCorrected",
-                    "consecutiveGlyphsShareWordButDifferentGroupsDoNot"):
+                    "copiedWordsStayPaddleOwned"):
         if needle not in text:
             problems.append("Hybrid geometry test missing: "+needle)
 if "MlKit" in circle or "com.google.mlkit" in circle or "com.google.mlkit" in ocr_engine:
