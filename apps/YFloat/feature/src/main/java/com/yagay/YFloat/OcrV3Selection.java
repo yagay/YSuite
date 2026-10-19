@@ -26,6 +26,7 @@ final class OcrV3Selection {
     private final OcrV3Page page;
     private final List<Word> words;
     private int anchor=-1, extent=-1, active=0; // 1=start, 2=end
+    private boolean all;
 
     OcrV3Selection(OcrV3Page page,List<OcrV3MlLayout.Word> ml){
         this.page=page;
@@ -57,10 +58,14 @@ final class OcrV3Selection {
     }
 
     int size(){return words.size();}
-    boolean selected(){return anchor>=0&&extent>=0;}
+    boolean selected(){return all||(anchor>=0&&extent>=0);}
     boolean handleActive(){return active!=0;}
 
-    void clear(){anchor=extent=-1;active=0;}
+    void clear(){anchor=extent=-1;active=0;all=false;}
+    void selectAll(){
+        clear();
+        if(!words.isEmpty()){anchor=0;extent=words.size()-1;all=true;}
+    }
     int hit(float x,float y){
         // ML Kit's original Element boxes are the only hit regions.
         for(int i=0;i<words.size();i++)
@@ -70,10 +75,10 @@ final class OcrV3Selection {
     boolean tap(float x,float y){
         int i=hit(x,y);
         if(i<0){clear();return false;}
-        anchor=extent=i;active=0;return true;
+        anchor=extent=i;active=0;all=false;return true;
     }
     boolean begin(float x,float y,float handleRadius){
-        if(!selected())return false;
+        if(!selected()||all)return false;
         Rect first=words.get(anchor).box,last=words.get(extent).box;
         float start=(float)Math.hypot(x-first.left,y-(first.bottom+7f));
         float end=(float)Math.hypot(x-last.right,y-(last.bottom+7f));
@@ -82,7 +87,7 @@ final class OcrV3Selection {
         return true;
     }
     boolean drag(float x,float y){
-        if(active==0||!selected())return false;
+        if(active==0||!selected()||all)return false;
         int i=hit(x,y);
         if(i<0)return false; // Wallpaper does not snap to remote text.
         if(!words.get(i).block.equals(words.get(anchor).block)){
@@ -106,6 +111,7 @@ final class OcrV3Selection {
     List<Rect> highlights(){
         if(!selected())return List.of();
         ArrayList<Rect> r=new ArrayList<>();
+        if(all){for(Word w:words)r.add(new Rect(w.box));return List.copyOf(r);}
         for(int i=anchor;i<=extent;i++)
             if(words.get(i).block.equals(words.get(anchor).block))
                 r.add(new Rect(words.get(i).box));
@@ -115,6 +121,7 @@ final class OcrV3Selection {
     Rect lastBox(){return selected()?new Rect(words.get(extent).box):new Rect();}
     String text(){
         if(!selected())return "";
+        if(all)return page.fullText;
         ArrayList<Integer> selected=new ArrayList<>();
         for(int i=anchor;i<=extent;i++)
             if(words.get(i).block.equals(words.get(anchor).block))
