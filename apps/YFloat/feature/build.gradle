@@ -81,6 +81,10 @@ dependencies {
     implementation(libs.libxposed.service)
     implementation(libs.hiddenapibypass)
     implementation project(ppocrProjectPath)
+    // On-device ML Kit is only a second-pass character geometry provider.
+    // PaddleOCR remains the sole authority for recognized/copied text.
+    implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkit.text.recognition.chinese)
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)
 }
