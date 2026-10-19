@@ -53,7 +53,7 @@ if "OnnxTensor.createTensor(" not in formula or "decodeByteLevel(" not in formul
 manager = (java / "OcrModelManager.java").read_text()
 ocr_engine = (java / "OcrEngine.java").read_text()
 selector = (java / "SettingsPageUi.java").read_text()
-circle = (java / "CircleStableOcr.java").read_text()
+circle = (java / "CircleRawPaddleOcr.kt").read_text()
 if "PP-OCRv5_mobile_det_onnx" not in manager or "PP-OCRv5_mobile_rec_onnx" not in manager:
     problems.append("PP-OCRv5 Mobile ONNX download sources missing")
 if "case MOBILE" not in manager or '"ppocrv5_mobile"' not in manager:
@@ -67,7 +67,6 @@ if "PaddleStructureFullV3" in capture or (java / "PaddleStructureFullV3.java").e
     problems.append("Remote PP-Structure recognition unexpectedly restored")
 # OCR correctness and model-selection contracts. These static checks complement
 # (but never replace) Android instrumentation and image-based inference tests.
-spacing = (FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/postprocess/PaddleSpacingV2.kt").read_text()
 table = (java / "PaddleTableTextV3.kt").read_text()
 page = (java / "PaddlePageV2.kt").read_text()
 slanet = (FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/structure/SLANetLocalV3.kt").read_text()
@@ -76,10 +75,6 @@ for needle in ("safeCropRect(region.bounds,image,16)", "safeCropRect(region.boun
         problems.append("Optional Paddle crop is not source-bitmap bounded: " + needle)
 if "val compat=lock.withLock" not in pipeline or "withContext(Dispatchers.Main)" not in pipeline:
     problems.append("Paddle result snapshot must be constructed inside serialized inference")
-if "if(fallbackText.isNotBlank() && aligned!=fallbackText)" not in spacing:
-    problems.append("CTC alignment cannot silently truncate full recognizer text")
-if "visuallyTight(prev,next" not in spacing:
-    problems.append("Paddle spacing correction must use geometry evidence")
 if "buckets[i].joinToString(\"\\n\")" not in table:
     problems.append("Table cells must preserve distinct OCR line boundaries")
 if "val quality=confidence*1000.0" not in page or "confidence,quality,width,height" not in page:
@@ -88,8 +83,8 @@ if "val hasOpen=tokens.any" not in slanet or "val hasClose=tokens.any" not in sl
     problems.append("SLANet HTML must not duplicate supplied table tags")
 if "PaddleRecognitionRuntime.normalModel" not in ocr_engine:
     problems.append("Normal OCR is not delegated to the unified Paddle runtime")
-if "PaddleRecognitionRuntime.circleModel" not in circle:
-    problems.append("Circle OCR is not delegated to the unified Paddle runtime")
+if "PaddleOCR.create(" not in circle or ".engine.recognize(source)" not in circle:
+    problems.append("Circle must perform original Paddle SDK recognition directly")
 if "selected == 5 ? 3 : selected == 6 ? 4" not in selector:
     problems.append("Tiny and Mobile model picker indices must map to real Paddle ids")
 if "choice==0?5:choice" not in selector:
@@ -216,8 +211,10 @@ if ("implementation(libs.mlkit.text.recognition)" not in gradle or
     problems.append("Hybrid geometry requires on-device Latin and Chinese symbol models")
 if "PaddlePipelineV2.recognize(context,bitmap,model" not in bridge:
     problems.append("Retired second Paddle bridge must only delegate to the primary pipeline")
-if "PaddleRecognitionRuntime.recognize" not in ocr_engine or "PaddleRecognitionRuntime.recognize" not in circle:
-    problems.append("Normal and Circle must use one model/runtime contract")
+if "PaddleRecognitionRuntime.recognize" not in ocr_engine:
+    problems.append("Document OCR runtime disconnected")
+if "PaddlePipelineV2" in circle or "PaddleRecognitionRuntime" in circle or "CircleStableOcr" in circle:
+    problems.append("New raw Circle OCR must not depend on legacy OCR adapters")
 if "(Paddle offline)" not in selector:
     problems.append("User-facing Paddle Auto label must identify its offline engine")
 
@@ -239,15 +236,6 @@ if "sourceSpaceBefore" in circle_selection or "originalSpacing==1" in circle_sel
     problems.append("Old group-based whitespace reconstruction still active")
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrSelectionTextTest.java").is_file():
     problems.append("Missing OCR source span selection regression test")
-for needle in ("normalizeCjkSpacing(fallbackText)",
-               "fun normalizeCjkSpacing(text:String)",
-               "joinAroundCjk(", "countCandidateSpaces("):
-    if needle not in spacing:
-        problems.append("Offline CJK spacing cannot repair incomplete CTC alignments: "+needle)
-spacing_test=(FEATURE / "ppocr-sdk/src/test/java/com/paddle/ocr/postprocess/PaddleSpacingV2Test.kt")
-if not spacing_test.is_file():
-    problems.append("CJK spacing regressions are not covered by local unit cases")
-
 # Deep Circle/Paddle whitespace regression: no geometry-made lexical
 # separators and no stale CTC whitespace geometry after normalization.
 gesture_selector=(java / "CircleGestureTextSelector.java").read_text()
@@ -259,13 +247,39 @@ for needle in ("IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span>",
         problems.append("Circle gesture has no source-offset text mapping: "+needle)
 if "current.source.equals(previous.source)" not in selection_helper:
     problems.append("OCR selections may bridge source offsets across different lines")
-if "stripCjkWhitespaceTokens(characters)" not in spacing or "for (i in cjkCleaned.indices)" not in spacing:
-    problems.append("CTC output text and selectable glyphs can keep contradictory spaces")
-if "PADDLE_SPACE_TRACE" not in pipeline or "rawSpaces=" not in pipeline:
-    problems.append("CTC pre/post spacing stage lacks privacy-safe diagnostics")
 planner=(java / "CircleSelectionPlanner.java").read_text()
 if "PADDLE_SPACE_TRACE" not in planner or "selectedSpaces=" not in planner:
     problems.append("Circle selection text spacing stage lacks diagnostics")
+
+# Original PP-OCR values must flow unedited through both Circle UIs.
+raw_circle=(java / "CircleRawPaddleOcr.kt").read_text()
+raw_page=(java / "PaddlePageV2.kt").read_text()
+raw_workspace=(java / "NativeCircleWorkspace.java").read_text()
+raw_resolver=(java / "FLCircleTextResolver.java").read_text()
+for key in ("PaddleOCR.create(", "engine.recognize(source)",
+            "val text=result.text", "for(glyph in result.characters)",
+            "result.confidence", "source.width,source.height", "request.check()"):
+    if key not in raw_circle:
+        problems.append("Fresh Circle engine has lost an SDK-original invariant: "+key)
+if "CircleRawPaddleOcr.recognize(app,input,request," not in raw_workspace:
+    problems.append("Native Circle does not use fresh raw engine")
+if "CircleRawPaddleOcr.recognizeFullScreenSelected(" not in raw_resolver:
+    problems.append("Legacy inline Circle is not migrated to fresh raw engine")
+if "PaddleSpacingV2" in raw_page or "OCRWordSegmenter.segment(" in raw_page or (
+        "groupWords(" in raw_page):
+    problems.append("Document OCR still applies deleted CTC rewriting or word regrouping")
+if "val text=result.text" not in raw_page or "val text=result.text" not in raw_circle:
+    problems.append("Paddle CTC strings are not forwarded unmodified")
+if "options.spacing" in pipeline or "paddle_v2_spacing" in (java/"PaddleFlowOptions.java").read_text():
+    problems.append("Obsolete spacing correction is still active")
+if (FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/postprocess/PaddleSpacingV2.kt").exists():
+    problems.append("Retired Paddle whitespace rewriter still ships")
+if (FEATURE / "ppocr-sdk/src/test/java/com/paddle/ocr/postprocess/PaddleSpacingV2Test.kt").exists():
+    problems.append("Retired spacing rewriter tests have not been pruned")
+if (java / "CircleStableOcr.java").exists():
+    problems.append("Old Circle OCR runtime adapter still ships")
+if "this.fullText = fullText == null ? \"\" : fullText.trim()" in document:
+    problems.append("OCR document still strips original leading/trailing whitespace")
 
 # The new native workspace is the path actually exercised by user Circle
 # gestures. It must never reintroduce spaces at group/line boundaries.
@@ -308,22 +322,23 @@ flow_options=(java / "PaddleFlowOptions.java").read_text()
 flow_ui=(java / "PaddleFlowSettingsUi.java").read_text()
 capture=(java / "SettingsCapturePage.java").read_text()
 runtime=(java / "PaddleRecognitionRuntime.java").read_text()
-circle=(java / "CircleStableOcr.java").read_text()
+circle=(java / "CircleRawPaddleOcr.kt").read_text()
 pipeline=(java / "PaddlePipelineV2.kt").read_text()
 paddle=(FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/PaddleOCR.kt").read_text()
 engine=(FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/engine/OCREngine.kt").read_text()
 detector=(FEATURE / "ppocr-sdk/src/main/java/com/paddle/ocr/engine/DetectionEngine.kt").read_text()
 for key in ("extended","fast_detection","line_orientation","document_orientation",
             "rotation_fallback","layout","tables","uvdoc","seals","formulas",
-            "charts","spacing"):
+            "charts"):
     if ('"'+key+'"') not in flow_ui or ('"'+key+'"') not in flow_options:
         problems.append("Missing individual Paddle execution switch: "+key)
 if "PaddleFlowSettingsUi.add(activity,fs,circleOcr.body,true)" not in capture or (
         "PaddleFlowSettingsUi.add(activity,fs,result.body,false)" not in capture):
     problems.append("Circle and normal-document OCR settings profiles are not surfaced")
-if "PaddleFlowOptions.read(app,circle)" not in runtime or (
-        "PaddleRecognitionRuntime.recognize(app,bitmap,model,true" not in circle):
-    problems.append("Circle OCR is not routed to its own stage policy")
+if "PaddleFlowOptions.read(app,circle)" not in runtime:
+    problems.append("Normal OCR stage selection disconnected")
+if "CircleRawPaddleOcr.recognize(app,input,request," not in (java / "NativeCircleWorkspace.java").read_text():
+    problems.append("Native Circle is not using new raw Paddle OCR")
 for x in ("releaseDisabled(options)", "options.lineOrientation", "options.documentOrientation",
           "options.rotationFallback", "options.layout", "options.tables",
           "options.uvdoc", "options.seals", "options.formulas", "options.charts",
@@ -342,7 +357,7 @@ if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/PaddleFlowOptionsTest.
 native=(java / "NativeCircleWorkspace.java").read_text()
 runtime=(java / "PaddleRecognitionRuntime.java").read_text()
 pipeline=(java / "PaddlePipelineV2.kt").read_text()
-stable_circle=(java / "CircleStableOcr.java").read_text()
+stable_circle=(java / "CircleRawPaddleOcr.kt").read_text()
 for needle in ("startOcr(roi,false);", "startOcr(null,true);",
                "frame.transform.documentLocalToScreen(result,roi,",
                "new CircleCharSpatialIndex(cachedChars)",
@@ -360,7 +375,7 @@ for needle in ("PaddleRequestToken", "request.check()", "phase=start waitMs=",
                "alternateModels.remove(model)", "session=variant_reused"):
     if needle not in pipeline:
         problems.append("Paddle inference cancellation/cache contract missing: "+needle)
-if "PaddleRecognitionRuntime.recognize(app,bitmap,model,true,request," not in stable_circle:
+if "PaddleOCR.create(" not in stable_circle or "engine.recognize(source)" not in stable_circle:
     problems.append("Circle input bitmap is not protected by a cancellable OCR request")
 ui=(java / "PaddleFlowSettingsUi.java").read_text()
 for needle in ("addPresetButton(", '"fast"', '"balanced"', '"accurate"',
