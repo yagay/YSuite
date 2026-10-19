@@ -719,6 +719,11 @@ if "value.append(original," not in v3_slices or (
     problems.append("V3 source text is no longer exact Paddle substrings")
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3TextSliceTest.java").is_file():
     problems.append("V3 raw text/whitespace tests missing")
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3HandleRangeTest.java").is_file():
+    problems.append("V3 ML handle selection tests missing")
+v3_handles=(java / "OcrV3HandleRange.java").read_text()
+if "OcrV3HandleRange.move(" not in v3_selection or "if(!sameMlBlock)" not in v3_handles:
+    problems.append("V3 cannot safely separate ML text blocks while expanding")
 if (java / "CircleSelectionViewportPolicy.java").exists():
     problems.append("V3 must not resurrect custom legacy viewport selection")
 
