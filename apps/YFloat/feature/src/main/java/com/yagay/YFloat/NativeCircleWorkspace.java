@@ -1003,7 +1003,7 @@ final class NativeCircleWorkspace extends View {
         }
         if(!state.resolveImage(token,selection.left,selection.top,
                 selection.right,selection.bottom))return;
-        chosenChars.clear();selection.reset();
+        chosenChars.clear();this.selection.reset();
         // Image intent always resolves to a rectangle with four resize handles.
         pendingGesture=null;
         status="";
