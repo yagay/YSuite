@@ -28,7 +28,6 @@ public final class PaddleFlowOptions {
     public final boolean seals;
     public final boolean formulas;
     public final boolean charts;
-    public final boolean spacing;
     public final int detectionLimit;
 
     public static String key(boolean circle,String setting) {
@@ -38,7 +37,6 @@ public final class PaddleFlowOptions {
         return switch(option) {
             case "extended" -> !circle;
             case "fast_detection" -> circle;
-            case "spacing" -> true;
             // Optional stages are independently configured and gated by
             // "extended". Enabling full Circle document OCR enables installed
             // features by default; the user may selectively turn them off.
@@ -60,8 +58,6 @@ public final class PaddleFlowOptions {
         this.circle=circle;
         extended=get(preferences,circle,"extended");
         fastDetection=get(preferences,circle,"fast_detection");
-        spacing=preferences.getBoolean(key(circle,"spacing"),
-                preferences.getBoolean("paddle_v2_spacing",true));
         lineOrientation=extended && get(preferences,circle,"line_orientation");
         documentOrientation=extended && get(preferences,circle,"document_orientation");
         rotationFallback=extended && preferences.getBoolean(key(circle,"rotation_fallback"),
@@ -86,6 +82,6 @@ public final class PaddleFlowOptions {
                 " docOrientation="+documentOrientation+
                 " rotation="+rotationFallback+" layout="+layout+
                 " tables="+tables+" uvdoc="+uvdoc+" seals="+seals+
-                " formula="+formulas+" charts="+charts+" spacing="+spacing;
+                " formula="+formulas+" charts="+charts;
     }
 }
