@@ -894,3 +894,26 @@ cross-block expansion, blank-area hit behavior, ML word taps, actual
 highlight stroke hits and whole-document Select All. Real-device
 verification remains necessary for particular manufacturer launchers
 and unusual layouts.
+
+### Runtime acceptance gates for ML selection
+
+1. A single desktop app label such as `rednote` can be tapped without
+   making the label of a nearby app blue.
+2. Drag an endpoint across empty wallpaper: it should not jump to a
+   remote OCR glyph. The selection only changes when the pointer
+   physically approaches recognized text.
+3. Drag from one app caption toward another: only blocks actually
+   visited by that drag are eligible. A third caption in another
+   column is not implicitly selected even if its Paddle index falls
+   between the endpoints.
+4. A multi-line paragraph in ONE ML text block can still be extended
+   across lines. Explicit Select All continues to include the whole
+   Paddle-recognized document.
+5. The selected menu's copied text is sourced exclusively from
+   `OcrSelectionText.selected(...)` using Paddle `CharUnit` source spans.
+6. Rendered blue selection remains the original ML-style 2dp rounded
+   rectangles and 7dp blue circular grips in all coordinate modes.
+
+The public ML Kit SDK supplies OCR structural data, not Google's private
+Circle-to-Search UI/selection algorithm. This implementation applies the
+public ML structure to an independent YFloat selection controller.
