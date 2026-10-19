@@ -209,8 +209,11 @@ for source,name in ((ocr_engine,"OcrEngine"),(circle,"CircleStableOcr"),
         problems.append(name+" retained a legacy ML Kit execution/geometry path")
 if (java / "MlKitTextCore.java").exists() or (java / "OcrCanonicalGeometry.java").exists():
     problems.append("Unused ML Kit geometry/parsing sources still ship")
-if "libs.mlkit.text.recognition" in gradle:
-    problems.append("Feature still embeds ML Kit recognition dependency")
+# ML Kit may run as an optional isolated visual geometry assistant.
+# Its recognition text must NEVER reach Paddle's OCR engine or clipboard.
+if ("implementation(libs.mlkit.text.recognition)" not in gradle or
+        "implementation(libs.mlkit.text.recognition.chinese)" not in gradle):
+    problems.append("Hybrid geometry requires on-device Latin and Chinese symbol models")
 if "PaddlePipelineV2.recognize(context,bitmap,model" not in bridge:
     problems.append("Retired second Paddle bridge must only delegate to the primary pipeline")
 if "PaddleRecognitionRuntime.recognize" not in ocr_engine or "PaddleRecognitionRuntime.recognize" not in circle:
@@ -382,7 +385,7 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
         problems.append("Gesture line-local selection regressed: "+needle)
 for needle in ("selectedLine=all.get(first).line()",
                "CircleTextRangePolicy.sameLine(unit.line(),selectedLine)",
-               "TextGeometryV3.build(fullDocument,chosenChars,",
+               "CircleHybridSelectionGeometry.grouped(",
                "canvas.clipPath(selection)", "quadToView(region.corners())",
                "pathForQuad(corners,0f)", "rebuildSelectionGeometry();",
                "WindowInsets.Type.statusBars()", "float pillTop=safeToolbarTop();",
@@ -426,10 +429,12 @@ for needle in main_handle_signature:
         problems.append("Main FLCircleInlineOverlay handle not fully ported: "+needle)
 for needle in ("canvas.clipPath(selection)",
                "canvas.drawBitmap(frame.bitmap,null,",
-               "canvas.drawPath(selection,selectionFillPaint)",
-               "TextGeometryPixelLocator.refine(",
-    "TextGeometryV3.PixelRefiner refiner=handleDrag>=1&&handleDrag<=2",
-               "TextGeometryV3.build(fullDocument,chosenChars,"):
+               "canvas.drawRoundRect(screenToViewF(region.bounds()),2f*density,",
+               "CircleHybridSelectionGeometry.grouped(",
+               "mlAlignment=CircleHybridSelectionGeometry.align(",
+               "maybeStartMlGeometry();",
+               "CircleMlKitGeometry.recognize(",
+               "selected_groups="+textGeometry.size()):
     if needle not in native:
         problems.append("Paddle TextGeometry V3 selection regressed: "+needle)
 for banned in ("NativeSelectionHandlesView", "TextCaretGeometry",
@@ -455,7 +460,7 @@ for needle in ("startOcr(null,false,true)",
                "CircleTextExpansionPolicy.unrestrictedNearest(",
                "expansionDragCursorValid", "recognizedRoi=oldRoi",
                "if(expandForHandle)", "oldDocument=fullDocument",
-               "TextGeometryV3.PixelRefiner refiner=handleDrag>=1&&handleDrag<=2"):
+               "paddleCompareGeometry=circleGeometryMode==CircleHybridSelectionGeometry.COMPARE"):
     if needle not in native:
         problems.append("Unrestricted screenshot OCR selection path missing: "+needle)
 for needle in ("new Range(last,target,END)",
@@ -481,6 +486,53 @@ else:
         if case not in free_cases:
             problems.append("Unrestricted selection regression missing "+case)
 
+# Real hybrid recognition is isolated: Paddle supplies selection text, ML Kit
+# supplies only nearby, text-matched character QUADS for the renderer.
+hybrid=(java / "CircleHybridSelectionGeometry.java").read_text()
+geometry_provider=(java / "CircleMlKitGeometry.java").read_text()
+prefs=(java / "FloatSettings.java").read_text()
+ui=(java / "SettingsPageUi.java").read_text()
+for source,area,needles in (
+    (hybrid,"alignment",("expected.equals(compact(candidate.text))",
+                        "matchScore(a,b)", "used[best]=true",
+                        "c.group()==", "static boolean groupBreak(",
+                        "new TextGeometryV3.Region(")),
+    (geometry_provider,"ML Kit geometry",(
+                        "new ChineseTextRecognizerOptions.Builder()",
+                        "TextRecognizerOptions.DEFAULT_OPTIONS",
+                        "symbol.getCornerPoints()",
+                        "symbol.getBoundingBox()",
+                        "transform.bitmapToScreen(",
+                        "input.recycle()", "zh.close()", "latin.close()")),
+    (native,"active hybrid selection",(
+                        "circleGeometryMode=new FloatSettings(app).circleTextGeometryMode()",
+                        "CircleMlKitGeometry.recognize(app,frame.bitmap,frame.transform,",
+                        "if(circleGeometryMode==CircleHybridSelectionGeometry.COMPARE",
+                        "canvas.drawRoundRect(screenToViewF(region.bounds()),2f*density,",
+                        "mlGeometryGeneration++", "sourceSpans.get(unit)")),
+    (prefs,"configuration",("K_CIRCLE_TEXT_GEOMETRY_MODE",
+                        "public int circleTextGeometryMode()")),
+    (ui,"YUI settings",("void circleTextGeometrySpinner(",)),
+    (capture,"Circle settings placement",("ui.circleTextGeometrySpinner(circleOcr.body);",)),
+):
+    for needle in needles:
+        if needle not in source:
+            problems.append("Paddle+ML Kit "+area+" missing: "+needle)
+hybrid_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleHybridSelectionGeometryTest.java"
+if not hybrid_test.is_file():
+    problems.append("Hybrid geometry missing Unicode/proximity/segmentation regressions")
+else:
+    text=hybrid_test.read_text()
+    for needle in ("sameCharacterInAnotherIconCannotHijackHighlight",
+                    "nextRowIsNeverPairedWithCurrentCharacter",
+                    "ordinaryCTCWidthErrorCanBeCorrected",
+                    "consecutiveGlyphsShareWordButDifferentGroupsDoNot"):
+        if needle not in text:
+            problems.append("Hybrid geometry test missing: "+needle)
+if "MlKit" in circle or "com.google.mlkit" in circle or "com.google.mlkit" in ocr_engine:
+    problems.append("ML Kit must not become a Paddle recognition/text authority")
+if "new OcrDocument(" in geometry_provider or "selectedText=" in geometry_provider:
+    problems.append("ML Kit geometry provider must not return user copyable text")
 if "textSelectionScreenBand(" not in visual or "sharedWidth>=" not in visual:
     problems.append("Native circle has no bounded glyph/line geometry policy")
 
