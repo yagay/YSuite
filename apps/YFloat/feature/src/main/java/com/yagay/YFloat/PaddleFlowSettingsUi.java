@@ -30,8 +30,8 @@ final class PaddleFlowSettingsUi {
 
     private static final Stage[] STAGES = {
         new Stage("extended","启用完整识别扩展","Enable extended OCR pipeline",
-            "总开关。关闭时只执行检测、文字识别和文字空格处理；下方扩展选项保留但不执行",
-            "Master switch. Off runs detection/recognition/spacing only; preserves saved choices"),
+            "总开关。关闭时只执行原始文字检测和识别；下方扩展选项保留但不执行",
+            "Master switch. Off runs only the original detection/recognition; preserves saved choices"),
         new Stage("fast_detection","快速文字检测","Fast text detection",
             "只缩小检测张量，文字仍使用原始分辨率裁剪识别；未检出时自动提高检测精度",
             "Limit detector tensor only; recognize crops at original resolution; retry empty scans"),
@@ -61,20 +61,15 @@ final class PaddleFlowSettingsUi {
             "Needs formula model; processes formula regions found in layout"),
         new Stage("charts","图表可搜索文字","Chart OCR text extraction",
             "根据 OCR 和版面区域提取可见图表标签，不会猜测数据",
-            "Extracts visible chart labels without inventing data series"),
-        new Stage("spacing","OCR 空格修正","OCR spacing refinement",
-            "修正明确的异常中文空格，保留英文分词和中英文间隔",
-            "Fix CJK spacing only, preserving English and mixed-script words")
+            "Extracts visible chart labels without inventing data series")
     };
 
     private static boolean current(SharedPreferences prefs,boolean circle,String option){
         String key=PaddleFlowOptions.key(circle,option);
         return prefs.getBoolean(key,
-            "spacing".equals(option)
-                ? prefs.getBoolean("paddle_v2_spacing",true)
-                : "rotation_fallback".equals(option)
-                    ? prefs.getBoolean("paddle_v2_auto_orientation",false)
-                    : PaddleFlowOptions.defaultValue(circle,option));
+            "rotation_fallback".equals(option)
+                ? prefs.getBoolean("paddle_v2_auto_orientation",false)
+                : PaddleFlowOptions.defaultValue(circle,option));
     }
 
     static void add(Context context,FloatSettings fs,LinearLayout parent,boolean circle){
@@ -105,8 +100,7 @@ final class PaddleFlowSettingsUi {
                    "These choices are retained but inactive when the extended pipeline is off");
         for(Stage stage:STAGES){
             boolean isExtended="extended".equals(stage.key);
-            boolean isCore=isExtended||"fast_detection".equals(stage.key)||
-                    "spacing".equals(stage.key);
+            boolean isCore=isExtended||"fast_detection".equals(stage.key);
             LinearLayout destination=isCore?parent:advanced.body;
             MaterialSwitch toggle=YViewLayout.switchRow(context,
                 zh?stage.zh:stage.en,zh?stage.detailZh:stage.detailEn,
@@ -139,7 +133,6 @@ final class PaddleFlowSettingsUi {
                 boolean value=switch(key){
                     case "extended" -> accurate||balanced;
                     case "fast_detection" -> !accurate;
-                    case "spacing" -> true;
                     case "line_orientation","document_orientation" -> accurate;
                     case "layout" -> accurate||balanced;
                     case "tables","uvdoc","seals","formulas","charts" -> accurate;
