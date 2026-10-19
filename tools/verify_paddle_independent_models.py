@@ -666,6 +666,62 @@ if "canvas.drawText(ch.text()" in native or "selectionHighlightPaint" in native:
 
 
 
+# OCR V3 has a NEW active runtime and must not dispatch through any legacy
+# Circle recognition, old text-geometry or homemade block-expansion pipeline.
+v3_controller=(java / "FLCircleController.java").read_text()
+v3_workspace=(java / "OcrV3Workspace.java").read_text()
+v3_paddle=(java / "OcrV3Paddle.kt").read_text()
+v3_page=(java / "OcrV3Page.java").read_text()
+v3_ml=(java / "OcrV3MlLayout.java").read_text()
+v3_selection=(java / "OcrV3Selection.java").read_text()
+v3_slices=(java / "OcrV3TextSlice.java").read_text()
+for needle in ("OcrV3Workspace.show(", "OcrV3Workspace.dismissActive(",
+               "OcrV3Workspace.promoteFocus("):
+    if needle not in v3_controller:
+        problems.append("V3 is not the active Circle workflow: "+needle)
+if "NativeCircleWorkspace." in v3_controller:
+    problems.append("Old NativeCircleWorkspace still reachable from Circle entry")
+for needle in ("OcrV3MlLayout.scan(", "OcrV3Paddle.recognize(",
+               "new OcrV3Selection(paddle,mlWords)", "selection.tap(",
+               "selection.begin(", "selection.drag(", "selection.highlights()",
+               "selection.text()", "ImageShareUtils.copyToClipboard(",
+               "ResultSurfaceRouter.showScreenshot("):
+    if needle not in v3_workspace:
+        problems.append("V3 independent screenshot and OCR UX missing: "+needle)
+for retired in ("NativeCircleWorkspace", "CircleRawPaddleOcr",
+                "CircleStableOcr", "PaddlePipelineV2",
+                "CircleMlBlockSelection", "CircleMlSelectionSession",
+                "CircleSelectionPlanner", "TextGeometryPixelLocator",
+                "CircleHybridSelectionGeometry", "CircleTextExpansionPolicy"):
+    if retired in v3_workspace or retired in v3_paddle or retired in v3_selection:
+        problems.append("V3 improperly depends on old OCR/selection code: "+retired)
+for marker in ("PaddleOCR.create(", ".sdk.recognize(source)",
+               "val raw=result.text", "for(c in result.characters)",
+               "OcrV3Page.Line(", "check(OcrModelManager.verifyIntegrity("):
+    if marker not in v3_paddle:
+        problems.append("V3 original Paddle OCR contract missing: "+marker)
+for marker in ("final String raw;", "final List<Glyph> glyphs;",
+               "OcrV3TextSlice.extract("):
+    if marker not in v3_page:
+        problems.append("V3 immutable Paddle text schema incomplete: "+marker)
+if "new Word(w.block,w.box,indices)" not in v3_selection or (
+        "return page.selectedText(unique)" not in v3_selection):
+    problems.append("ML-to-Paddle V3 text mapping is not safe")
+if "page.fullText" not in v3_selection:
+    problems.append("V3 explicit all no longer returns original Paddle string")
+for marker in ("TextRecognition.getClient(", "ChineseTextRecognizerOptions",
+               "TextRecognizerOptions.DEFAULT_OPTIONS", "getTextBlocks()",
+               "getLines()", "getElements()", "getSymbols()"):
+    if marker not in v3_ml:
+        problems.append("V3 ML Kit hierarchy reader missing: "+marker)
+if "value.append(original," not in v3_slices or (
+        "gap.codePoints().allMatch(Character::isWhitespace)" not in v3_slices):
+    problems.append("V3 source text is no longer exact Paddle substrings")
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3TextSliceTest.java").is_file():
+    problems.append("V3 raw text/whitespace tests missing")
+if (java / "CircleSelectionViewportPolicy.java").exists():
+    problems.append("V3 must not resurrect custom legacy viewport selection")
+
 if problems:
     print("FAIL: Independent Paddle model policy")
     for problem in problems:
