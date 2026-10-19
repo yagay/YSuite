@@ -430,7 +430,7 @@ for marker in ("CircleMlSelectionVisual.draw(", "CircleMlSelectionVisual.build("
                'selected_groups="+selectionVisual.segments.size()',
                "startDistance=(float)Math.hypot(x-firstTextGrip.x,y-firstTextGrip.y)",
                "endDistance=(float)Math.hypot(x-lastTextGrip.x,y-lastTextGrip.y)",
-               "float maxDistance=TEXT_HANDLE_SNAP_DP*density"):
+               "return mlTextSelection.hit(screen.x,screen.y,18f*density)"):
     if marker not in native:
         problems.append("Main-ML UI/Paddle-OCR pipeline disconnected: "+marker)
 for retired in ("canvas.clipPath(selection)", "pathForQuad(",
