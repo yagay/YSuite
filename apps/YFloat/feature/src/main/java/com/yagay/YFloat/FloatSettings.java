@@ -37,6 +37,8 @@ public final class FloatSettings {
     public static final String K_CIRCLE_FULL_OCR_ENGINE = "circle_full_ocr_engine_v1";
     /** 0=disabled, 1=PP Tiny, 2=PP Small, 3=PP Medium. */
     public static final String K_CIRCLE_CORRECTION_ENGINE = "circle_correction_engine_v1";
+    /** 0=Paddle geometry, 1=Paddle text+ML Kit geometry, 2=visual comparison. */
+    public static final String K_CIRCLE_TEXT_GEOMETRY_MODE = "circle_text_geometry_mode_v1";
     public static final int DEFAULT_CIRCLE_BORDER_COLOR = 0xFF4285F4;
     public static final String K_STYLE = "float_icon_style";
     public static final String K_GRAVITY = "float_gravity";
@@ -177,6 +179,11 @@ public final class FloatSettings {
     Context contextForAppearance() { return context; }
     public int circleBorderWidthDp() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_WIDTH_DP, 3); }
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
+    /** Paddle remains the only recognized text source in all three modes. */
+    public int circleTextGeometryMode() {
+        Object raw=p.getAll().get(K_CIRCLE_TEXT_GEOMETRY_MODE);
+        return raw instanceof Number n ? clamp(n.intValue(),0,2) : 1;
+    }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
         int stored=5;
