@@ -127,7 +127,7 @@ object PaddlePageV2 {
                 }))
             Line(text,lineQuad,result.confidence,words,result.text)
                 .takeIf{!lineQuad.rect().isEmpty}
-        }.sortedWith(compareBy({it.bounds.rect().centerY()},{it.bounds.rect().left}))
+        } // Preserve SDK result order; layout export can apply its own reading order.
         val grouped=mutableMapOf<Int,MutableList<Line>>()
         for(line in lines){
             val rect=line.bounds.rect()
