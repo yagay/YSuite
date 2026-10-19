@@ -48,6 +48,7 @@ final class SettingsCapturePage {
                 activity.getString(R.string.yfloat_native_circle_ocr_desc));
         ui.circleFullOcrEngineSpinner(circleOcr.body);
         ui.circleCorrectionEngineSpinner(circleOcr.body);
+        ui.circleTextGeometrySpinner(circleOcr.body);
         PaddleFlowSettingsUi.add(activity,fs,circleOcr.body,true);
         YViewLayout.addSection(root, circleOcr);
 
