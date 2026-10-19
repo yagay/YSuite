@@ -103,6 +103,8 @@ final class NativeCircleWorkspace extends View {
     private boolean mlGeometryRequested;
     private int mlGeometryGeneration;
     private int firstChar = -1, lastChar = -1;
+    /** Select All bypasses the visual-column guard; a handle drag does not. */
+    private boolean explicitSelectAll;
     /** -1 means explicit Select all; otherwise hands stay on initial OCR line. */
     private int selectedLine=-1;
     private boolean ocrBusy, closed, touching;
@@ -311,6 +313,7 @@ final class NativeCircleWorkspace extends View {
                                         candidates,oldChars.get(oldLast));
                                 if(leading>=0 && trailing>=0){
                                     selectedLine=-1;
+                                    explicitSelectAll=false;
                                     firstChar=Math.min(leading,trailing);
                                     lastChar=Math.max(leading,trailing);
                                     if(expansionDragCursorValid &&
@@ -350,6 +353,7 @@ final class NativeCircleWorkspace extends View {
                             if(!allChars.isEmpty() &&
                                 state.phase==NativeCircleState.Phase.TEXT_READY){
                                 selectedLine=-1;
+                                explicitSelectAll=true;
                                 firstChar=0;lastChar=allChars.size()-1;
                                 applyTextIndices(state.revision,false);
                             }
@@ -584,13 +588,13 @@ final class NativeCircleWorkspace extends View {
             canvas.clipPath(selection);
             canvas.drawBitmap(frame.bitmap,null,
                     new Rect(0,0,getWidth(),getHeight()),screenshotPaint);
-            canvas.restore();
-            // ML Kit's old visual style draws separate rounded word-group
-            // highlights instead of merging every character into one row.
+            // Paint only within the selected glyph's quad; previous code
+            // restored the clip before painting, flooding unselected gaps.
             if(nearHorizontal(corners))
                 canvas.drawRoundRect(screenToViewF(region.bounds()),2f*density,
                         2f*density,selectionFillPaint);
             else canvas.drawPath(selection,selectionFillPaint);
+            canvas.restore();
         }
         if(circleGeometryMode==CircleHybridSelectionGeometry.COMPARE &&
                 !paddleCompareGeometry.isEmpty() &&
@@ -618,19 +622,24 @@ final class NativeCircleWorkspace extends View {
      */
     private void drawTextHandles(Canvas canvas) {
         if(textGeometry.isEmpty())return;
-        RectF first=screenToViewF(textGeometry.get(0).bounds());
-        RectF last=screenToViewF(textGeometry.get(textGeometry.size()-1).bounds());
-        if(first.isEmpty()||last.isEmpty())return;
+        // Exact character quads are shared by the painted blue regions
+        // and the handle anchors; no merged word/row bounds are involved.
+        List<PointF> leading=quadToView(textGeometry.get(0).corners());
+        List<PointF> trailing=quadToView(
+                textGeometry.get(textGeometry.size()-1).corners());
+        if(leading.size()!=4||trailing.size()!=4)return;
+        PointF first=leading.get(3);
+        PointF last=trailing.get(2);
         float stem=7f*density;
         float radius=7f*density;
-        canvas.drawLine(first.left,first.bottom,
-                first.left,first.bottom+stem,textHandlePaint);
-        canvas.drawCircle(first.left,first.bottom+stem,radius,textHandlePaint);
-        canvas.drawLine(last.right,last.bottom,
-                last.right,last.bottom+stem,textHandlePaint);
-        canvas.drawCircle(last.right,last.bottom+stem,radius,textHandlePaint);
-        firstTextGrip=new PointF(first.left,first.bottom+stem);
-        lastTextGrip=new PointF(last.right,last.bottom+stem);
+        canvas.drawLine(first.x,first.y,
+                first.x,first.y+stem,textHandlePaint);
+        canvas.drawCircle(first.x,first.y+stem,radius,textHandlePaint);
+        canvas.drawLine(last.x,last.y,
+                last.x,last.y+stem,textHandlePaint);
+        canvas.drawCircle(last.x,last.y+stem,radius,textHandlePaint);
+        firstTextGrip=new PointF(first.x,first.y+stem);
+        lastTextGrip=new PointF(last.x,last.y+stem);
     }
 
     /** One authoritative SCREEN -> View conversion for Paddle V3 regions. */
@@ -779,6 +788,7 @@ final class NativeCircleWorkspace extends View {
             return;
         }
         selectedLine=-1;
+        explicitSelectAll=true;
         firstChar = 0;
         lastChar = fullDocument.chars().size() - 1;
         applyTextIndices(state.revision, false);
@@ -868,6 +878,7 @@ final class NativeCircleWorkspace extends View {
             return;
         }
         selectedLine=all.get(first).line();
+        explicitSelectAll=false;
         // Non-explicit initial selection cannot bridge unrelated icon words
         // and launcher captions merely due to document reading order.
         while(last>first && all.get(last).line()!=selectedLine)last--;
@@ -939,6 +950,20 @@ final class NativeCircleWorkspace extends View {
         List<OcrDocument.CharUnit> all=fullDocument.chars();
         if(lastChar>=all.size())return;
         chosenChars.clear();
+        // One physical membership mask drives copied text, blue pixels and
+        // the grips. OCR ordinal distance alone cannot select another column.
+        ArrayList<CircleSelectionViewportPolicy.Glyph> visualChars=
+                new ArrayList<>(all.size());
+        for(OcrDocument.CharUnit c:all){
+            Rect b=c.bounds();
+            visualChars.add(c.text().isBlank()
+                    ?new CircleSelectionViewportPolicy.Glyph(c.line(),0,0,0,0)
+                    :new CircleSelectionViewportPolicy.Glyph(
+                            c.line(),b.left,b.top,b.right,b.bottom));
+        }
+        CircleSelectionViewportPolicy.Mask visualMask=
+                CircleSelectionViewportPolicy.select(visualChars,
+                        firstChar,lastChar,selectedLine,explicitSelectAll);
         ArrayList<String> tokens=new ArrayList<>();
         ArrayList<OcrSelectionText.Span> offsets=new ArrayList<>();
         ArrayList<Integer> indices=new ArrayList<>();
@@ -948,7 +973,7 @@ final class NativeCircleWorkspace extends View {
         for(int i=firstChar;i<=lastChar;i++){
             OcrDocument.CharUnit unit=all.get(i);
             if(unit.text().isBlank()||unit.bounds().isEmpty())continue;
-            if(!CircleTextRangePolicy.sameLine(unit.line(),selectedLine))continue;
+            if(!visualMask.contains(i))continue;
             OcrSelectionText.Span span=sourceSpans.get(unit);
             if(span!=null)mapped++;
             tokens.add(unit.text());
@@ -964,6 +989,11 @@ final class NativeCircleWorkspace extends View {
         for(int cp:value.codePoints().toArray()){
             if(cp==32||cp==0x00a0||cp==0x3000||cp==0x202f)spaces++;
         }
+        DiagnosticLog.i(app,"TEXT_SELECTION_SCOPE",
+                "selected="+visualMask.selectedCount+
+                " excluded_outside="+visualMask.rejectedByGeometry+
+                " explicit_all="+explicitSelectAll+
+                " first="+firstChar+" last="+lastChar);
         DiagnosticLog.i(app,"PADDLE_SPACE_TRACE",
                 "stage=native_selection spaces="+spaces+
                 " units="+tokens.size()+" mapped="+mapped+
@@ -1138,6 +1168,7 @@ final class NativeCircleWorkspace extends View {
         textGeometry=List.of();
         firstTextGrip=lastTextGrip=null;
         firstChar=lastChar=-1;selectedLine=-1;pendingGesture=null;status="";
+        explicitSelectAll=false;
         awaitingTextPath.reset();
         invalidate();
     }
@@ -1156,6 +1187,7 @@ final class NativeCircleWorkspace extends View {
                 if(textHandle!=0){
                     handleDrag=textHandle;
                     selectedLine=-1; // The initial-line lock is not a drag limit.
+                    explicitSelectAll=false;
                     expansionDragCursorValid=true;
                     expansionDragX=x;expansionDragY=y;
                     expansionDragEndpoint=handleDrag;
@@ -1193,6 +1225,7 @@ final class NativeCircleWorkspace extends View {
             dragPath.reset();dragPath.moveTo(x,y);
             awaitingTextPath.reset();
             chosenChars.clear();firstChar=lastChar=-1;
+            explicitSelectAll=false;
             textGeometry=List.of();
             firstTextGrip=lastTextGrip=null;
             expansionDragCursorValid=false;
