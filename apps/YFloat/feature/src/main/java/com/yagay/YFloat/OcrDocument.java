@@ -141,7 +141,9 @@ public final class OcrDocument {
                         OcrStructure structure,List<String> tableTexts,List<String> tableHtmls,
                         List<String> sealTexts,List<String> formulaTexts,List<String> chartTexts,
                         String unwarpedText,List<String> tableOrigins,OcrDocument rectifiedDocument) {
-        this.fullText = fullText == null ? "" : fullText.trim();
+        // Preserve the recognizer's original leading/trailing whitespace.
+        // Presentational trimming belongs at a UI boundary, not in OCR data.
+        this.fullText = fullText == null ? "" : fullText;
         this.blocks = blocks == null ? List.of() : List.copyOf(blocks);
         this.lines = lines == null ? List.of() : List.copyOf(lines);
         this.engine = engine == null ? "unknown" : engine;
