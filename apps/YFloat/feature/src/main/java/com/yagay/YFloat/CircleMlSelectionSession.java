@@ -92,6 +92,11 @@ final class CircleMlSelectionSession {
         return changed||routeChanged;
     }
 
+    /** Resume a pending full-screen OCR expansion without erasing its path. */
+    void resumeDrag(int handle){
+        if(handle==1||handle==2)movingHandle=handle;
+    }
+
     void endDrag(){movingHandle=0;}
 
     void clearVisited(){
