@@ -2,13 +2,11 @@ package com.yagay.YFloat;
 
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.graphics.RectF;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * One OCR text owner (Paddle), two optional geometry providers. Never replace
@@ -104,52 +102,4 @@ final class CircleHybridSelectionGeometry {
                 +0.8f*(float)Math.abs(Math.log(heightRatio));
     }
 
-    /**
-     * Exact visual projection of the selection: one region per selected
-     * Paddle character, optionally using a trustworthy ML Kit quad.
-     *
-     * Never union adjacent glyphs, even if OCR gave them the same line/group:
-     * a shared bounding rectangle paints UNSELECTED letters in gaps between
-     * characters and makes the stem handles appear inside blue text.
-     */
-    static List<TextGeometryV3.Region> grouped(OcrDocument document,
-            List<OcrDocument.CharUnit> chosen,Alignment alignment,
-            boolean useMl){
-        if(document==null||!document.isScreenSpace()||
-                chosen==null||chosen.isEmpty())return List.of();
-        ArrayList<TextGeometryV3.Region> regions=new ArrayList<>(chosen.size());
-        for(OcrDocument.CharUnit c:chosen){
-            if(c==null||c.text().isBlank()||c.bounds().isEmpty())continue;
-            List<PointF> quad=useMl&&alignment!=null?alignment.quad(c):List.of();
-            if(!validQuad(quad))quad=c.quad();
-            if(!validQuad(quad)){
-                Rect r=c.bounds();
-                quad=List.of(new PointF(r.left,r.top),
-                        new PointF(r.right,r.top),
-                        new PointF(r.right,r.bottom),
-                        new PointF(r.left,r.bottom));
-            }
-            regions.add(new TextGeometryV3.Region(quad,false));
-        }
-        return List.copyOf(regions);
-    }
-
-    private static boolean validQuad(List<PointF> q){
-        if(q==null||q.size()!=4)return false;
-        for(PointF p:q)
-            if(p==null||!Float.isFinite(p.x)||!Float.isFinite(p.y))
-                return false;
-        float width=(float)Math.hypot(q.get(1).x-q.get(0).x,
-                q.get(1).y-q.get(0).y);
-        float height=(float)Math.hypot(q.get(3).x-q.get(0).x,
-                q.get(3).y-q.get(0).y);
-        return width>.4f&&height>.4f;
-    }
-
-    /** Retained as a pure source-boundary check for text-flow tests. */
-    static boolean groupBreak(int lastLine,int lastGroup,int lastOrder,
-                              int nextLine,int nextGroup,int nextOrder){
-        return lastLine!=nextLine||lastGroup!=nextGroup||
-                nextOrder!=lastOrder+1;
-    }
 }
