@@ -598,48 +598,14 @@ final class NativeCircleWorkspace extends View {
                     geometryComparePaint);
     }
 
-    /** One authoritative SCREEN -> View conversion for Paddle V3 regions. */
+    /** One authoritative SCREEN -> View conversion for handle hit testing. */
     private RectF screenToViewF(RectF screen) {
         return frame.transform.screenToView(screen,getWidth(),getHeight());
     }
 
-    private List<PointF> quadToView(List<PointF> screen){
-        if(screen==null || screen.size()!=4)return List.of();
-        ArrayList<PointF> out=new ArrayList<>(4);
-        for(PointF p:screen){
-            out.add(frame.transform.screenToView(p.x,p.y,getWidth(),getHeight()));
-        }
-        return List.copyOf(out);
-    }
-
-    private static Path pathForQuad(List<PointF> corners,float outside) {
-        Path path=new Path();
-        if(corners==null || corners.size()!=4)return path;
-        float centerX=0f,centerY=0f;
-        for(PointF p:corners){centerX+=p.x;centerY+=p.y;}
-        centerX*=0.25f;centerY*=0.25f;
-        for(int i=0;i<4;i++){
-            PointF p=corners.get(i);
-            float dx=p.x-centerX,dy=p.y-centerY;
-            float radius=(float)Math.hypot(dx,dy);
-            float expansion=radius>0.01f?outside*1.41421356f/radius:0f;
-            float x=p.x+dx*expansion,y=p.y+dy*expansion;
-            if(i==0)path.moveTo(x,y);
-            else path.lineTo(x,y);
-        }
-        path.close();
-        return path;
-    }
-
     /**
-     * Paddle is ALWAYS the sole owner of selection content. The only ML Kit
-     * contribution is a geometrically verified set of replacement quads.
-     * Group boundaries follow Paddle's text layout; no full-row blue blocks.
-     */
-    /**
-     * One source of truth: Paddle's actually selected characters form the
-     * original ML-style rounded-word selection UI. ML Kit may contribute
-     * matched glyph coordinates but never recognized/copied words.
+     * Paddle's selected-text membership is the only source for the
+     * ML Kit-era selection display and menu anchoring.
      */
     private void rebuildSelectionGeometry() {
         boolean useMl=circleGeometryMode!=CircleHybridSelectionGeometry.PADDLE;
