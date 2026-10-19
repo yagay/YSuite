@@ -844,3 +844,12 @@ latency. Geometry stays Paddle-only until ML results arrive. If ML Kit
 initializes unsuccessfully or cannot match characters, selection still works
 in Paddle fallback mode. The mode is selected at Circle workspace creation.
 No direct Google App or Lens hook is used.
+
+**Acceptance checklist:** Select Chinese app-icon text such as 头条,
+single glyphs, multiline Latin/CJK, punctuation and rotated text; compare
+the three geometry modes using identical frozen screens. Confirm both
+start/end handles follow the highlighted group boundaries after ML Kit
+completion, select-all/copy use only Paddle text, and no old overlay or
+stale callback appears after closing Circle. CI checks static ownership,
+symbol proximity/size rejection, group splitting and ARM64 Debug build;
+real-device UX precision remains a separate acceptance check.
