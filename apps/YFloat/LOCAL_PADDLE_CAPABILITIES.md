@@ -850,3 +850,47 @@ non-contiguous selection and cross-line expansion. Visual fidelity and
 accuracy on specific screenshots still require physical device testing.
 Bundled on-device ML Kit packages increase debug APK size but do not
 make Paddle model files non-optional.
+
+## ML Kit visual selection topology + Paddle-only extraction
+
+New Circle selection architecture:
+
+- `CircleMlKitGeometry` preserves real Google ML Kit `TextBlock`,
+  `Line`, `Element`, `Symbol` hierarchy and screen-space coordinates
+  for the frozen screenshot (Latin and Chinese recognition passes).
+- `CircleHybridSelectionGeometry` maps a matching ML symbol to each
+  corresponding **Paddle CharUnit** by Unicode and proximity. No ML
+  recognized text is copied or displayed as extracted text.
+- `CircleMlBlockSelection` builds stable spatial text components from
+  mapped ML hierarchy and local glyph connectivity. Even if a recognizer
+  mistakenly treats two distant launcher captions as the same TextBlock,
+  they are separate physical components. Gaps between independent apps
+  are not automatically added to a multi-word selection.
+- Initial TAP selects ML's actual word/element; HIGHLIGHT selects only
+  the ML block/line glyphs physically hit by the path. When Paddle
+  returns first, its initial result is upgraded once the ML symbol
+  hierarchy arrives.
+- Dragging a handle hits actual ML character bounds (with a small
+  finger tolerance) rather than using the nearest OCR character anywhere
+  on the screenshot. Cross-block dragging includes the endpoint block
+  and only additional blocks the finger actually visited, never all
+  intervening Paddle OCR indexes. Explicit Select All still includes the
+  entire recognized document.
+- `NativeCircleWorkspace.applyTextIndices` uses the resulting noncontiguous
+  ML membership mask to look up the **Paddle document text, source
+  whitespace, copied/search/translated strings and output menu**.
+  Original `CircleMlSelectionVisual` keeps the legacy Google-blue
+  rounded highlight/blue circle handles unchanged.
+
+ML Kit provides the PUBLIC recognition hierarchy, not Google's private
+Circle-to-Search text selection widget; the selection controller is
+implemented locally using that hierarchy. In recognition failure modes,
+the fallback uses Paddle geometry while preserving independent spatial
+blocks rather than blindly selecting all intermediate OCR indices.
+
+Tests cover independent adjacent launcher captions, ML TextBlocks with
+distant disconnected regions, multiline paragraphs, touched-only
+cross-block expansion, blank-area hit behavior, ML word taps, actual
+highlight stroke hits and whole-document Select All. Real-device
+verification remains necessary for particular manufacturer launchers
+and unusual layouts.
