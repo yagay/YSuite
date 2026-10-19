@@ -5,8 +5,6 @@ import android.graphics.Rect
 import com.paddle.ocr.model.OCRBox
 import com.paddle.ocr.model.OCRCharacter
 import com.paddle.ocr.model.OCRResult
-import com.paddle.ocr.model.OCRWordSegmenter
-import com.paddle.ocr.postprocess.PaddleSpacingV2
 import com.paddle.ocr.structure.PPDocLayoutV2
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -104,33 +102,29 @@ object PaddlePageV2 {
     }
 
     fun fromOcr(results:List<OCRResult>,width:Int,height:Int,
-                regions:List<PPDocLayoutV2.Region>,fixSpacing:Boolean=true):Page {
+                regions:List<PPDocLayoutV2.Region>):Page {
         fun withinImage(q:Quad):Quad=Quad(q.points.map{point->
             PointF(point.x.coerceIn(0f,width.toFloat()),
                 point.y.coerceIn(0f,height.toFloat()))
         },q.origin)
         val lines=results.mapNotNull { result ->
-            val refined=if(fixSpacing)
-                PaddleSpacingV2.correct(result.characters,result.text)
-                else PaddleSpacingV2.Correction(result.text,result.characters,0)
-            val text=refined.text.trim()
+            // Preserve the original CTC string and SDK glyph/word geometry.
+            // No spacing repair, resplitting, invented character boxes or
+            // application-specific script normalization.
+            val text=result.text
             if(text.isBlank())return@mapNotNull null
             val lineQuad=withinImage(quad(result.box,Origin.DETECTOR))
-            val symbols=refined.characters.map { c ->
-                Symbol(c.text,withinImage(quad(c.box,Origin.CTC_ALIGNED)),c.confidence)
-            }
-            // Re-segment after removing spurious spaces. Never use stale word
-            // boundaries whose characters no longer match the corrected text.
-            val segments=if(fixSpacing)
-                OCRWordSegmenter.segment(refined.characters) else result.words
-            val words=if(segments.isNotEmpty())segments.map { word ->
+            val words=if(result.words.isNotEmpty())result.words.map { word ->
                 Word(word.text,withinImage(quad(word.box,Origin.WORD_GROUP)),
                     word.characters.map { symbol ->
                         Symbol(symbol.text,withinImage(quad(symbol.box,Origin.CTC_ALIGNED)),
                             symbol.confidence)
                     })
-            } else if(symbols.isNotEmpty())groupWords(symbols,text,lineQuad)
-            else listOf(Word(text,Quad(lineQuad.points,Origin.FALLBACK),emptyList()))
+            } else listOf(Word(text,Quad(lineQuad.points,Origin.DETECTOR),
+                result.characters.map { symbol ->
+                    Symbol(symbol.text,withinImage(quad(symbol.box,Origin.CTC_ALIGNED)),
+                        symbol.confidence)
+                }))
             Line(text,lineQuad,result.confidence,words,result.text)
                 .takeIf{!lineQuad.rect().isEmpty}
         }.sortedWith(compareBy({it.bounds.rect().centerY()},{it.bounds.rect().left}))
@@ -187,40 +181,6 @@ object PaddlePageV2 {
         return overlap>minOf(above.width(),below.width())*0.35f
     }
 
-    fun groupWords(symbols:List<Symbol>,recognized:String,line:Quad):List<Word>{
-        if(symbols.isEmpty()) return emptyList()
-        val words=ArrayList<Word>()
-        val current=ArrayList<Symbol>()
-        fun flush(){
-            if(current.isEmpty())return
-            val box=Rect()
-            for(s in current){if(box.isEmpty)box.set(s.bounds.rect()) else box.union(s.bounds.rect())}
-            val first=current.first().bounds.points
-            val last=current.last().bounds.points
-            val grouped=if(first.size==4&&last.size==4)
-                Quad(listOf(PointF(first[0].x,first[0].y),
-                    PointF(last[1].x,last[1].y),
-                    PointF(last[2].x,last[2].y),
-                    PointF(first[3].x,first[3].y)),Origin.WORD_GROUP)
-                else quadFromRect(box,Origin.WORD_GROUP)
-            words.add(Word(current.joinToString(""){it.text},
-                grouped,current.toList()))
-            current.clear()
-        }
-        for(symbol in symbols){
-            if(symbol.text.isBlank()){flush();continue}
-            // CJK characters remain separately selectable; Latin/digits group
-            // until a Unicode space or script boundary is reached.
-            val cp=symbol.text.codePointAt(0)
-            val ideograph=Character.UnicodeScript.of(cp)==Character.UnicodeScript.HAN ||
-                Character.UnicodeScript.of(cp)==Character.UnicodeScript.HIRAGANA ||
-                Character.UnicodeScript.of(cp)==Character.UnicodeScript.KATAKANA
-            if(ideograph){flush();current.add(symbol);flush()}
-            else current.add(symbol)
-        }
-        flush()
-        return words
-    }
     fun quad(box:OCRBox,origin:Origin):Quad =
         Quad(box.points.map{PointF(it.x,it.y)},origin)
     fun quadFromRect(r:Rect,origin:Origin):Quad =
