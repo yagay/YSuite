@@ -255,8 +255,11 @@ final class OcrV3Workspace extends View {
     private boolean hitHandle(float x,float y){
         if(selection==null||!selection.selected())return false;
         PointF p=bitmapPoint(x,y);
-        return selection.begin(p.x,p.y,Math.max(18*density,
-                frame.transform.screenDistanceToBitmap(20*density)));
+        PointF top=bitmapPoint(0f,0f);
+        PointF stem=bitmapPoint(0f,7f*density);
+        float bitmapStem=(float)Math.hypot(stem.x-top.x,stem.y-top.y);
+        return selection.begin(p.x,p.y,Math.max(18f,
+                frame.transform.screenDistanceToBitmap(20f*density)),bitmapStem);
     }
 
     @Override public boolean onTouchEvent(MotionEvent e){
