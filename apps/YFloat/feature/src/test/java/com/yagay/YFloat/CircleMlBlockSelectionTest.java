@@ -102,6 +102,29 @@ public final class CircleMlBlockSelectionTest {
         assertEquals(1,engine.hit(320,20,18f));
     }
 
+    @Test public void mlTapFindsOnlyTheTouchedWordNotAdjacentLauncher(){
+        var engine=CircleMlBlockSelection.of(List.of(
+                g(0,"app:rednote",0,20,20,40,43),
+                g(1,"app:rednote",0,41,20,61,43),
+                g(2,"app:tools",0,230,20,250,43)));
+        int[] hit=engine.initialRange(29,30,List.of(),true,12f);
+        assertNotNull(hit);
+        assertEquals(0,hit[0]);
+        assertEquals(1,hit[1]);
+    }
+
+    @Test public void mlHighlightIgnoresOtherBlockEvenWhenStrokeTouchesIt(){
+        var engine=CircleMlBlockSelection.of(List.of(
+                g(0,"ml:one",0,10,10,30,30),
+                g(1,"ml:one",0,31,10,51,30),
+                g(2,"ml:other",0,230,10,250,30)));
+        int[] hit=engine.initialRange(12,17,
+                List.of(new float[]{12,17},new float[]{40,17},
+                        new float[]{240,18}),false,9f);
+        assertNotNull(hit);
+        assertEquals(0,hit[0]);assertEquals(1,hit[1]);
+    }
+
     @Test public void explicitSelectAllStillSelectsAllBlocks(){
         var engine=CircleMlBlockSelection.of(List.of(
                 g(0,"a",0,10,10,30,30),
