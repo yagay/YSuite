@@ -177,9 +177,8 @@ final class NativeCircleWorkspace extends View {
         outlinePaint.setStrokeWidth(2.4f * density);
         outlinePaint.setColor(YFloatOverlayStyle.selectionColor(app));
         fillPaint.setColor(YFloatOverlayStyle.accentWithAlpha(app,76));
-        // TextGeometry V3 supplies the precise selection polygon.
-        // A semi-transparent blue selection wash replaces the old outline;
-        // the screenshot glyphs remain visible below the translucent wash.
+        // The original ML Kit selection wash is rendered from Paddle's
+        // selected glyphs; the screenshot is never re-rendered per character.
         selectionFillPaint.setStyle(Paint.Style.FILL);
         // Original main/FLCircleInlineOverlay ML Kit selection color.
         selectionFillPaint.setColor(CircleMlSelectionVisual.ML_BLUE_WASH);
