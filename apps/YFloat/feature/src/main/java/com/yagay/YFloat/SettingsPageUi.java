@@ -113,6 +113,26 @@ final class SettingsPageUi {
                         choice==0?5:choice));
     }
 
+    void circleTextGeometrySpinner(LinearLayout parent) {
+        boolean zh=java.util.Locale.getDefault().getLanguage().startsWith("zh");
+        YViewLayout.addRow(parent,YViewLayout.rowSubtitle(activity,
+                zh?"选字高亮由 Paddle 文字结果驱动；ML Kit 仅优化坐标，不修改复制的文字。"
+                  :"Paddle owns copied text; ML Kit only refines highlight geometry."));
+        addIntPreferenceSpinner(parent,
+                zh?"圈画选字高亮模式":"Circle text selection geometry",
+                zh ? new String[]{
+                        "纯 Paddle · 分组高亮",
+                        "Paddle + ML Kit · 字符精准定位（默认）",
+                        "对比诊断 · 蓝色混合高亮 / 紫色 Paddle 轮廓"
+                } : new String[]{
+                        "Paddle only · grouped highlight",
+                        "Paddle + ML Kit · character geometry (default)",
+                        "Compare · hybrid blue / Paddle violet outlines"
+                },
+                fs.circleTextGeometryMode(),
+                FloatSettings.K_CIRCLE_TEXT_GEOMETRY_MODE,true);
+    }
+
     void circleCorrectionEngineSpinner(LinearLayout parent) {
         addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_correction_engine), new String[]{
                 activity.getString(R.string.yfloat_correction_off),
