@@ -383,9 +383,9 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
                "CircleTextRangePolicy.splitsLabel("):
     if needle not in selector:
         problems.append("Gesture line-local selection regressed: "+needle)
-for needle in ("selectedLine=all.get(first).line()",
+for needle in ("selection.initialize(first,last,initialLine)",
                "CircleMlBlockSelection.build(fullDocument,mlAlignment)",
-               "visualMask.contains(i)",
+               "for(int i:visualMask.orderedIndices)",
                "CircleMlSelectionVisual.build(",
                "CircleMlSelectionVisual.draw(",
                "rebuildSelectionGeometry();",
@@ -449,9 +449,9 @@ if not ml_test.is_file() or (
 # all available lines and expands OCR asynchronously to the full screenshot.
 expansion=(java / "CircleTextExpansionPolicy.java").read_text()
 for needle in ("startOcr(null,false,true)",
-               "selectedLine=-1; // The initial-line lock is not a drag limit.",
+               "selection.beginDrag(textHandle);",
                "CircleTextExpansionPolicy.remap(",
-               "CircleTextExpansionPolicy.move(",
+               "selection.moveTo(hit);",
                "mlTextSelection.hit(",
                "expansionDragCursorValid", "recognizedRoi=oldRoi",
                "if(expandForHandle)", "oldDocument=fullDocument",
@@ -491,21 +491,46 @@ for marker in ("static CircleMlBlockSelection build(",
                "Set<Integer> visited", "active.add(a);active.add(b);",
                "if(visited!=null)active.addAll(visited)",
                "visualRank[i]", "if(selectAll)",
-               "return new Mask(flags,count,rejected,active.size())"):
+               "return new Mask(flags,selected,rejected,active.size())",
+               "new Mask(flags,all,0,components)",
+               "nearby.computeIfAbsent(bucket(col,row)",
+               "int compare(int a,int b)", "Move move(",
+               "final List<Integer> orderedIndices"):
     if marker not in ml_blocks:
         problems.append("ML Kit block-selection contract missing: "+marker)
-for marker in ("CircleMlBlockSelection.build(", "mlTextSelection.select(",
+for marker in ("CircleMlBlockSelection.build(",
                "mlTextSelection.initialRange(", "mlTextSelection.hit(",
-               "mlTextSelection.blockOf(", "visitedMlBlocks.add(",
-               "visitedMlBlocks.clear()", "mlInitialGesture",
-               "resolveMlGesture(", "visualMask.contains(i)",
-               "explicitSelectAll=true", "explicitSelectAll=false",
+               "mlInitialGesture", "resolveMlGesture(",
+               "selection.initialize(", "selection.beginDrag(",
+               "selection.moveTo(", "selection.chooseAll(",
+               "selection.rebase(", "selection.bind(",
                "CircleMlSelectionVisual.build(", "CircleMlSelectionVisual.draw(",
+               "for(int i:visualMask.orderedIndices)",
+               "mlTextSelection.copyLineId(i)",
                "String value=OcrSelectionText.selected(tokens,offsets,indices,lineNumbers)"):
     if marker not in native:
         problems.append("ML Kit selection / Paddle text link missing: "+marker)
-if "CircleSelectionViewportPolicy.select(" in native:
-    problems.append("Retired Paddle viewport is still controlling Circle selection")
+if "CircleSelectionViewportPolicy.select(" in native or "CircleTextExpansionPolicy.move(" in native:
+    problems.append("Retired Paddle global-index movement still controls Circle selection")
+session=(java / "CircleMlSelectionSession.java").read_text()
+for marker in ("void initialize(", "void chooseAll(", "void beginDrag(",
+               "boolean moveTo(", "void rebase(", "void bind(",
+               "void resumeDrag(", "void clearVisited(", "void reset(",
+               "Mask mask(", "trace.subList(", "replayTrace()",
+               "topology.move(first,last,movingHandle,target)"):
+    if marker not in session:
+        problems.append("Canonical ML selection session contract missing: "+marker)
+session_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleMlSelectionSessionTest.java"
+if not session_test.is_file():
+    problems.append("Canonical ML selection session tests absent")
+else:
+    cases=session_test.read_text()
+    for marker in ("reverseDragRemovesNoLongerVisitedAppLabels",
+                   "invertedPaddleOrdinalsNormalizeByMlVisualOrder",
+                   "rebuildingMlBlocksReplaysThePhysicalDragPath",
+                   "immutableReturnedSelectionFollowsMlReadingOrder"):
+        if marker not in cases:
+            problems.append("ML selection session regression missing: "+marker)
 geometry_provider=(java / "CircleMlKitGeometry.java").read_text()
 for marker in ('String blockId=script+":block:"+blockIndex++',
                "int currentLine=lineIndex++", "int currentWord=wordIndex++",
