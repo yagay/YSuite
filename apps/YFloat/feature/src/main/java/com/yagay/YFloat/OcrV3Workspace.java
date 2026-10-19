@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * New V3 Circle UI. No NativeCircleWorkspace, OcrDocument, geometry V3,
- * old selection planner or Paddle postprocess methods participate.
+ * New V3 Circle UI. The earlier Circle OCR and selection runtime is
+ * completely outside this implementation.
  *
  * ML Kit owns text blocks/words/handles. Paddle owns ALL output text.
  * Image crop remains an independent screenshot operation.
