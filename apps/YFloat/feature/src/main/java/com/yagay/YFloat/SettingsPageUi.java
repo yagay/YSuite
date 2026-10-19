@@ -116,18 +116,18 @@ final class SettingsPageUi {
     void circleTextGeometrySpinner(LinearLayout parent) {
         boolean zh=java.util.Locale.getDefault().getLanguage().startsWith("zh");
         YViewLayout.addRow(parent,YViewLayout.rowSubtitle(activity,
-                zh?"选字高亮由 Paddle 文字结果驱动；ML Kit 仅优化坐标，不修改复制的文字。"
-                  :"Paddle owns copied text; ML Kit only refines highlight geometry."));
+                zh?"三种模式均为原版 ML 风格蓝色选字；文字提取和复制始终使用 PaddleOCR。"
+                  :"All modes use the original ML-style blue selection; extracted and copied text comes only from PaddleOCR."));
         addIntPreferenceSpinner(parent,
-                zh?"圈画选字高亮模式":"Circle text selection geometry",
+                zh?"圈画选字定位方式":"Circle selection coordinate source",
                 zh ? new String[]{
-                        "纯 Paddle · 分组高亮",
-                        "Paddle + ML Kit · 字符精准定位（默认）",
-                        "对比诊断 · 蓝色混合高亮 / 紫色 Paddle 轮廓"
+                        "ML 原版高亮 · Paddle 字符坐标",
+                        "ML 原版高亮 · ML Kit 字符坐标（默认）",
+                        "ML 原版高亮 · 对比 Paddle 轮廓"
                 } : new String[]{
-                        "Paddle only · grouped highlight",
-                        "Paddle + ML Kit · character geometry (default)",
-                        "Compare · hybrid blue / Paddle violet outlines"
+                        "Original ML highlight · Paddle coordinates",
+                        "Original ML highlight · ML Kit coordinates (default)",
+                        "Original ML highlight · compare Paddle outline"
                 },
                 fs.circleTextGeometryMode(),
                 FloatSettings.K_CIRCLE_TEXT_GEOMETRY_MODE,true);
