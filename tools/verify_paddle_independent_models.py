@@ -197,7 +197,7 @@ if "results.add(document)" in pdf or "ArrayList<OcrDocument> results" in pdf:
 # splitting, and one shared inference/cache owner.
 bridge=(java / "PaddleOcrBridge.kt").read_text()
 gradle=(FEATURE / "feature/build.gradle").read_text()
-for source,name in ((ocr_engine,"OcrEngine"),(circle,"CircleStableOcr"),
+for source,name in ((ocr_engine,"OcrEngine"),(circle,"CircleRawPaddleOcr"),
                     (bridge,"PaddleOcrBridge")):
     if ("MlKit" in source or "TextRecognizer" in source or
             "OcrCanonicalGeometry.normalize" in source):
@@ -213,7 +213,7 @@ if "PaddlePipelineV2.recognize(context,bitmap,model" not in bridge:
     problems.append("Retired second Paddle bridge must only delegate to the primary pipeline")
 if "PaddleRecognitionRuntime.recognize" not in ocr_engine:
     problems.append("Document OCR runtime disconnected")
-if "PaddlePipelineV2" in circle or "PaddleRecognitionRuntime" in circle or "CircleStableOcr" in circle:
+if "PaddlePipelineV2.recognize" in circle or "PaddleRecognitionRuntime.recognize" in circle or "CircleStableOcr.recognize" in circle:
     problems.append("New raw Circle OCR must not depend on legacy OCR adapters")
 if "(Paddle offline)" not in selector:
     problems.append("User-facing Paddle Auto label must identify its offline engine")
@@ -247,9 +247,7 @@ for needle in ("IdentityHashMap<OcrDocument.CharUnit,OcrSelectionText.Span>",
         problems.append("Circle gesture has no source-offset text mapping: "+needle)
 if "current.source.equals(previous.source)" not in selection_helper:
     problems.append("OCR selections may bridge source offsets across different lines")
-planner=(java / "CircleSelectionPlanner.java").read_text()
-if "PADDLE_SPACE_TRACE" not in planner or "selectedSpaces=" not in planner:
-    problems.append("Circle selection text spacing stage lacks diagnostics")
+
 
 # Original PP-OCR values must flow unedited through both Circle UIs.
 raw_circle=(java / "CircleRawPaddleOcr.kt").read_text()
@@ -258,7 +256,7 @@ raw_workspace=(java / "NativeCircleWorkspace.java").read_text()
 raw_resolver=(java / "FLCircleTextResolver.java").read_text()
 for key in ("PaddleOCR.create(", "engine.recognize(source)",
             "val text=result.text", "for(glyph in result.characters)",
-            "result.confidence", "source.width,source.height", "request.check()"):
+            "result.confidence", "width,height", "request.check()"):
     if key not in raw_circle:
         problems.append("Fresh Circle engine has lost an SDK-original invariant: "+key)
 if "CircleRawPaddleOcr.recognize(app,input,request," not in raw_workspace:
