@@ -47,35 +47,18 @@ final class OcrV3Page {
         fullText=String.join("\n",raw);
     }
 
-    /** Resolve the ORIGINAL Paddle substrings, including its own spaces. */
+    /** Only the original Paddle UTF-16 slices; no model text replacement. */
     String selectedText(List<Integer> selected) {
         if(selected==null||selected.isEmpty())return "";
-        int lastLine=-1,start=-1,end=-1;
-        StringBuilder out=new StringBuilder();
-        for(int idx:selected) {
-            if(idx<0||idx>=glyphs.size())continue;
-            Glyph g=glyphs.get(idx);
-            if(g.start<0||g.end<=g.start||g.line<0||g.line>=lines.size())continue;
-            if(g.line!=lastLine) {
-                if(lastLine>=0 && start>=0)appendRaw(out,lastLine,start,end);
-                if(lastLine>=0)out.append('\n');
-                lastLine=g.line;
-                start=g.start;end=g.end;
-            } else {
-                if(g.start>end) {
-                    // Padding is read from the actual Paddle string.
-                    end=g.end;
-                } else end=Math.max(end,g.end);
-                start=Math.min(start,g.start);
-            }
+        ArrayList<OcrV3TextSlice.Span> slices=new ArrayList<>();
+        ArrayList<String> original=new ArrayList<>(lines.size());
+        for(Line l:lines)original.add(l.raw);
+        for(int index:selected){
+            if(index<0||index>=glyphs.size())continue;
+            Glyph g=glyphs.get(index);
+            slices.add(new OcrV3TextSlice.Span(g.line,g.start,g.end));
         }
-        if(lastLine>=0&&start>=0)appendRaw(out,lastLine,start,end);
-        return out.toString();
+        return OcrV3TextSlice.extract(original,slices);
     }
-    private void appendRaw(StringBuilder sb,int line,int start,int end) {
-        String text=lines.get(line).raw;
-        int left=Math.max(0,Math.min(text.length(),start));
-        int right=Math.max(left,Math.min(text.length(),end));
-        sb.append(text,left,right);
-    }
+
 }
