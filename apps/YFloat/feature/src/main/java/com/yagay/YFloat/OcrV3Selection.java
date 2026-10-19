@@ -90,18 +90,10 @@ final class OcrV3Selection {
         if(active==0||!selected()||all)return false;
         int i=hit(x,y);
         if(i<0)return false; // Wallpaper does not snap to remote text.
-        if(!words.get(i).block.equals(words.get(anchor).block)){
-            // ML Kit treats distinct TextBlocks as separate selections;
-            // touching another icon starts that label, never a disjoint range.
-            anchor=extent=i;
-            return true;
-        }
-        if(active==1)anchor=i;
-        else extent=i;
-        if(anchor>extent){
-            int old=anchor;anchor=extent;extent=old;
-            active=active==1?2:1;
-        }
+        OcrV3HandleRange moved=OcrV3HandleRange.move(
+                anchor,extent,i,active,
+                words.get(i).block.equals(words.get(anchor).block));
+        anchor=moved.first;extent=moved.last;active=moved.moving;
         return true;
     }
     void release(){active=0;}
