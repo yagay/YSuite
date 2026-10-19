@@ -1,3 +1,5 @@
+> **Current Circle OCR architecture (raw Paddle SDK):** New `CircleRawPaddleOcr` calls `PaddleOCR.recognize(bitmap)` directly. No `CircleStableOcr`, `PaddleRecognitionRuntime`, `PaddlePipelineV2`, CJK spacing correction, manual word regrouping, orientation reruns, or document analysis are executed by the Circle engine. The on-demand model manager and the public OCR document output schema remain compatible. Optional document/PDF stages are separately managed.
+
 # YFloat Paddle-native OCR architecture
 
 All new recognition entrypoints run **fully offline PaddleOCR**. Model files
@@ -15,7 +17,7 @@ remain individually downloaded; no weights are built into the APK.
   Recognition text and real detector / CTC bounds are separate data, never
   rebuilt using ML Kit `Text.Element` semantics.
 - `OcrEngine` owns latest-wins screenshot requests, document epochs, and
-  UI result delivery. `CircleStableOcr` owns Circle's entrypoint and
+  UI result delivery. `CircleRawPaddleOcr` owns both Circle entrypoints and
   forwards to that same runtime. No ML Kit recognizers or cross-script fusion
   are instantiated.
 - `CircleTextSelectionModel` uses `OcrSelectionText` UTF-16 source spans.
