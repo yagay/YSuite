@@ -384,7 +384,7 @@ for needle in ("lineLocalRangeHits(document,touchedChars,focus)",
     if needle not in selector:
         problems.append("Gesture line-local selection regressed: "+needle)
 for needle in ("selectedLine=all.get(first).line()",
-               "CircleSelectionViewportPolicy.select(visualChars,",
+               "CircleMlBlockSelection.build(fullDocument,mlAlignment)",
                "visualMask.contains(i)",
                "CircleMlSelectionVisual.build(",
                "CircleMlSelectionVisual.draw(",
@@ -481,34 +481,60 @@ else:
         if case not in free_cases:
             problems.append("Unrestricted selection regression missing "+case)
 
-# Paddle supplies exactly one membership mask; the ML-style display only
-# groups nearby selected symbols, never interleaved neighboring icon labels.
-viewport=(java / "CircleSelectionViewportPolicy.java").read_text()
-for marker in ("static Mask select(", "connectedBand(", "g.x()<left-margin",
-               "g.y()<top-margin", "lockedLine>=0", "explicitAll"):
-    if marker not in viewport:
-        problems.append("Visual selection viewport missing: "+marker)
-for marker in ("visualMask.contains(i)", "CircleSelectionViewportPolicy.select(",
+# ML Kit block/line/word/symbol hierarchy now drives selection membership,
+# while only Paddle may supply text and source whitespace.
+ml_blocks=(java / "CircleMlBlockSelection.java").read_text()
+for marker in ("static CircleMlBlockSelection build(",
+               "CircleMlKitGeometry.Glyph g=alignment==null?null:alignment.glyph(c)",
+               "static boolean connected(", "int blockOf(",
+               "int[] initialRange(", "int hit(", "Mask select(",
+               "Set<Integer> visited", "active.add(a);active.add(b);",
+               "if(visited!=null)active.addAll(visited)",
+               "visualRank[i]", "if(selectAll)",
+               "return new Mask(flags,count,rejected,active.size())"):
+    if marker not in ml_blocks:
+        problems.append("ML Kit block-selection contract missing: "+marker)
+for marker in ("CircleMlBlockSelection.build(", "mlTextSelection.select(",
+               "mlTextSelection.initialRange(", "mlTextSelection.hit(",
+               "mlTextSelection.blockOf(", "visitedMlBlocks.add(",
+               "visitedMlBlocks.clear()", "mlInitialGesture",
+               "resolveMlGesture(", "visualMask.contains(i)",
                "explicitSelectAll=true", "explicitSelectAll=false",
-               "CircleMlSelectionVisual.build(", "CircleMlSelectionVisual.draw("):
+               "CircleMlSelectionVisual.build(", "CircleMlSelectionVisual.draw(",
+               "String value=OcrSelectionText.selected(tokens,offsets,indices,lineNumbers)"):
     if marker not in native:
-        problems.append("Selected source/ML UI divergence: "+marker)
+        problems.append("ML Kit selection / Paddle text link missing: "+marker)
+if "CircleSelectionViewportPolicy.select(" in native:
+    problems.append("Retired Paddle viewport is still controlling Circle selection")
+geometry_provider=(java / "CircleMlKitGeometry.java").read_text()
+for marker in ('String blockId=script+":block:"+blockIndex++',
+               "int currentLine=lineIndex++", "int currentWord=wordIndex++",
+               "symbol.getCornerPoints()"):
+    if marker not in geometry_provider:
+        problems.append("ML Kit text hierarchy not captured: "+marker)
+hybrid=(java / "CircleHybridSelectionGeometry.java").read_text()
+for marker in ("CircleMlKitGeometry.Glyph glyph(", "out.put(c,ml.get(best))"):
+    if marker not in hybrid:
+        problems.append("ML Kit symbol to Paddle character link missing: "+marker)
 for marker in ("!sameGroup||!consecutive", "verticalOverlap<smallerHeight*.55f",
                "horizontalGap>Math.max(3f,smallerHeight*.45f)",
                "new Layout(boxes,first,last,union,count,matched)"):
     if marker not in ml_visual:
-        problems.append("ML UI visual-group bounding contract missing: "+marker)
-scope_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleSelectionViewportPolicyTest.java"
-if not scope_test.is_file():
-    problems.append("Visual selection viewport regressions absent")
+        problems.append("ML visual-group contract missing: "+marker)
+block_test=FEATURE / "feature/src/test/java/com/yagay/YFloat/CircleMlBlockSelectionTest.java"
+if not block_test.is_file():
+    problems.append("ML Kit block selection regressions absent")
 else:
-    cases=scope_test.read_text()
-    for marker in ("excludesInterleavedNeighboringLauncherIconLabels",
-                   "sameOcrLineCannotPaintASeparateFarWord",
-                   "fullWidthParagraphDoesNotLoseMiddleRowEndings",
-                   "explicitSelectAllIsNotRestrictedToOneColumn"):
+    cases=block_test.read_text()
+    for marker in ("desktopLauncherCaptionInAnotherColumnNeverAutoSelects",
+                   "touchedAdditionalBlockCanJoinWithoutOthers",
+                   "erroneousMlTextBlockWithTwoDistantIconsIsSplit",
+                   "physicalTextLinesWithinSameMlBlockCanExtend",
+                   "emptyGapDoesNotSnapToFarAwayIcon",
+                   "mlTapFindsOnlyTheTouchedWordNotAdjacentLauncher",
+                   "mlHighlightIgnoresOtherBlockEvenWhenStrokeTouchesIt"):
         if marker not in cases:
-            problems.append("Visual selection regression missing: "+marker)
+            problems.append("ML Kit block selection regression missing: "+marker)
 
 # Real hybrid recognition is isolated: Paddle supplies selection text, ML Kit
 # supplies only nearby, text-matched character QUADS for the renderer.
@@ -519,7 +545,7 @@ ui=(java / "SettingsPageUi.java").read_text()
 for source,area,needles in (
     (hybrid,"alignment",("byToken.get(expected)",
                         "matchScore(a,b)", "used[best]=true",
-                        "out.put(c,ml.get(best).corners)")),
+                        "out.put(c,ml.get(best))")),
     (geometry_provider,"ML Kit geometry",(
                         "new ChineseTextRecognizerOptions.Builder()",
                         "TextRecognizerOptions.DEFAULT_OPTIONS",
