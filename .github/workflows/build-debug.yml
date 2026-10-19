@@ -2,7 +2,7 @@ name: Build YSuite Debug
 
 on:
   push:
-    branches: [main, rebuild/material3-full-ui, refactor/yfloat-google-v2, refactor/yfloat-circle-native, refactor/yfloat-cts-session, experiment/yfloat-google-lens-image-bridge, experiment/yfloat-paddle-mobile]
+    branches: [main, rebuild/material3-full-ui, refactor/yfloat-google-v2, refactor/yfloat-circle-native, refactor/yfloat-cts-session, experiment/yfloat-google-lens-image-bridge, experiment/yfloat-paddle-mobile, experiment/yfloat-ocr-v3]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -180,7 +180,7 @@ jobs:
           fi
           # Source-offset OCR text mapping and CTC whitespace need actual JUnit
           # verification, not just static source markers.
-          if [[ "${GITHUB_REF_NAME}" == "experiment/yfloat-paddle-mobile" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "experiment/yfloat-paddle-mobile" || "${GITHUB_REF_NAME}" == "experiment/yfloat-ocr-v3" ]]; then
             tests+=( :yfloat-feature:testDebugUnitTest :yfloat-ppocr-sdk:testDebugUnitTest )
           fi
           echo "Selected module tests: ${tests[*]:-(none)}"
