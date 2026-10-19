@@ -133,6 +133,29 @@ public final class CircleMlBlockSelectionTest {
         assertEquals(3,engine.select(0,2,-1,true,Set.of()).selectedCount);
     }
 
+    @Test public void separateLauncherCaptionsNeverSharePaddleCopyLineId(){
+        var engine=CircleMlBlockSelection.of(List.of(
+                g(0,"caption:a",5,10,25,29,48),
+                g(1,"caption:a",5,30,25,49,48),
+                g(2,"caption:b",5,225,25,245,48),
+                g(3,"caption:b",5,246,25,267,48)));
+        assertEquals(engine.copyLineId(0),engine.copyLineId(1));
+        assertEquals(engine.copyLineId(2),engine.copyLineId(3));
+        assertNotEquals(engine.copyLineId(0),engine.copyLineId(2));
+    }
+
+    @Test public void largeIconGridRemainsSeparatedBySpatialIndex(){
+        java.util.ArrayList<CircleMlBlockSelection.Entry> many=
+                new java.util.ArrayList<>();
+        for(int i=0;i<1600;i++){
+            int x=(i%40)*95,y=(i/40)*95;
+            many.add(g(i,"app:"+i,i,x,y,x+21,y+25));
+        }
+        var engine=CircleMlBlockSelection.of(many);
+        assertEquals(1600,engine.blockCount());
+        assertEquals(1600,engine.size());
+    }
+
     @Test public void fallbackWithoutMlTextStillUsesSpatialGrouping(){
         var engine=CircleMlBlockSelection.of(List.of(
                 g(0,"",0,10,10,30,33),g(1,"",0,32,10,52,33),
