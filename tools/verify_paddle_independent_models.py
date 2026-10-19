@@ -556,6 +556,7 @@ if "MlKit" in circle or "com.google.mlkit" in circle or "com.google.mlkit" in oc
     problems.append("ML Kit must not become a Paddle recognition/text authority")
 if "new OcrDocument(" in geometry_provider or "selectedText=" in geometry_provider:
     problems.append("ML Kit geometry provider must not return user copyable text")
+visual=(java / "NativeCircleVisualPolicy.java").read_text()
 if "textSelectionScreenBand(" not in visual or "sharedWidth>=" not in visual:
     problems.append("Native circle has no bounded glyph/line geometry policy")
 
