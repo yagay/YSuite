@@ -207,6 +207,56 @@ final class CircleMlBlockSelection {
     }
 
     /**
+     * Initial ML Kit Symbol hit test. TAP uses the actual ML Element (word);
+     * HIGHLIGHT uses only symbols physically touched by the stroke, limited
+     * to the touched TextBlock component rather than Paddle's OCR span.
+     * Positions are absolute SCREEN pixels, pairs [x,y].
+     */
+    int[] initialRange(float focusX,float focusY,List<float[]> stroke,
+                       boolean tap,float tolerance){
+        int pivot=hit(focusX,focusY,tolerance);
+        if(pivot<0 && stroke!=null){
+            for(float[] point:stroke){
+                if(point==null||point.length<2)continue;
+                pivot=hit(point[0],point[1],tolerance);
+                if(pivot>=0)break;
+            }
+        }
+        if(pivot<0)return null;
+        Entry focus=entries.get(pivot);
+        int block=component[pivot];
+        int lo=pivot,hi=pivot;
+        if(tap){
+            if(!focus.mlBlock.isEmpty()&&focus.mlLine>=0&&focus.mlWord>=0){
+                for(int i=0;i<entries.size();i++){
+                    Entry e=entries.get(i);
+                    if(component[i]==block && focus.mlBlock.equals(e.mlBlock)
+                            && e.mlLine==focus.mlLine&&e.mlWord==focus.mlWord){
+                        lo=Math.min(lo,i);hi=Math.max(hi,i);
+                    }
+                }
+            }
+        }else if(stroke!=null){
+            // Bound selection by the smallest/largest touched VISUAL rank
+            // of one ML component (not the global OCR order).
+            int lower=visualRank[pivot],upper=lower;
+            for(float[] point:stroke){
+                if(point==null||point.length<2)continue;
+                int i=hit(point[0],point[1],tolerance);
+                if(i<0||component[i]!=block)continue;
+                lower=Math.min(lower,visualRank[i]);
+                upper=Math.max(upper,visualRank[i]);
+            }
+            for(int i=0;i<entries.size();i++){
+                if(component[i]!=block)continue;
+                if(visualRank[i]==lower)lo=i;
+                if(visualRank[i]==upper)hi=i;
+            }
+        }
+        return new int[]{Math.min(lo,hi),Math.max(lo,hi)};
+    }
+
+    /**
      * Blocks are intentionally non-contiguous in Paddle's document. A finger
      * stroke can visit more blocks, but no "intermediate" OCR ordinal is
      * automatically visited. Both handles' actual endpoint blocks are always
