@@ -3,7 +3,6 @@ package com.yagay.YFloat;
 import android.graphics.Rect;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,10 +40,13 @@ final class CircleMlBlockSelection {
 
     static final class Mask {
         final boolean[] selected;
+        final List<Integer> orderedIndices;
         final int selectedCount,rejectedByBlock;
         final int touchedBlocks;
-        Mask(boolean[] selected,int count,int rejected,int blocks){
-            this.selected=selected;selectedCount=count;
+        Mask(boolean[] selected,List<Integer> orderedIndices,int rejected,int blocks){
+            this.selected=selected;
+            this.orderedIndices=List.copyOf(orderedIndices);
+            selectedCount=orderedIndices.size();
             rejectedByBlock=rejected;touchedBlocks=blocks;
         }
         boolean contains(int index){
@@ -55,24 +57,38 @@ final class CircleMlBlockSelection {
     private final List<Entry> entries;
     private final int[] component;
     private final int[] visualRank;
+    private final int[] blockRank;
+    private final int[] copyLineId;
     private final int components;
     private final int mlSymbols;
     private CircleMlBlockSelection(List<Entry> entries){
         this.entries=List.copyOf(entries);
         int n=entries.size();
-        component=new int[n];visualRank=new int[n];
+        component=new int[n];visualRank=new int[n];copyLineId=new int[n];
         for(int i=0;i<n;i++)component[i]=i;
         int matched=0;
-        // Spatial continuity is mandatory even when one ML TextBlock
-        // mistakenly contains independent icon captions in different columns.
+        // Spatial hash replaces the previous O(n²) all-pairs union.
+        // Only nearby glyphs can form a connected text component.
+        ArrayList<Float> heights=new ArrayList<>();
+        for(Entry e:entries)if(e.valid())heights.add(e.height());
+        heights.sort(Float::compare);
+        float median=heights.isEmpty()?24f:heights.get(heights.size()/2);
+        float cell=Math.max(24f,Math.min(160f,median*2f));
+        HashMap<Long,ArrayList<Integer>> nearby=new HashMap<>();
         for(int i=0;i<n;i++){
             Entry a=entries.get(i);
             if(!a.valid())continue;
             if(!a.mlBlock.isEmpty())matched++;
-            for(int j=0;j<i;j++){
-                Entry b=entries.get(j);
-                if(b.valid()&&connected(a,b))union(i,j);
-            }
+            int col=(int)Math.floor(a.x()/cell);
+            int row=(int)Math.floor(a.y()/cell);
+            for(int y=row-2;y<=row+2;y++)
+                for(int x=col-2;x<=col+2;x++){
+                    List<Integer> matches=nearby.get(bucket(x,y));
+                    if(matches==null)continue;
+                    for(int j:matches)
+                        if(connected(a,entries.get(j)))union(i,j);
+                }
+            nearby.computeIfAbsent(bucket(col,row),key->new ArrayList<>()).add(i);
         }
         mlSymbols=matched;
         // Capture ALL roots before rewriting union-find parent pointers to
@@ -89,6 +105,21 @@ final class CircleMlBlockSelection {
             component[i]=id;
         }
         components=next;
+        blockRank=new int[components];
+        float[] minTop=new float[components],minLeft=new float[components];
+        java.util.Arrays.fill(minTop,Float.POSITIVE_INFINITY);
+        java.util.Arrays.fill(minLeft,Float.POSITIVE_INFINITY);
+        for(int i=0;i<n;i++){
+            int b=component[i];
+            if(b<0)continue;
+            minTop[b]=Math.min(minTop[b],entries.get(i).top);
+            minLeft[b]=Math.min(minLeft[b],entries.get(i).left);
+        }
+        ArrayList<Integer> visualBlocks=new ArrayList<>();
+        for(int i=0;i<components;i++)visualBlocks.add(i);
+        visualBlocks.sort(Comparator.comparingDouble((Integer b)->minTop[b])
+                .thenComparingDouble(b->minLeft[b]));
+        for(int i=0;i<visualBlocks.size();i++)blockRank[visualBlocks.get(i)]=i;
         // ML kit's text position (screen line and symbol order) is now
         // authoritative for selection within a component, NOT Paddle's
         // global OCR index which interleaves launcher columns.
@@ -119,6 +150,18 @@ final class CircleMlBlockSelection {
                 for(int i:row)visualRank[i]=rank++;
             }
         }
+        // Distinct text components must not be concatenated without a
+        // separator even when Paddle assigns both to the same OCR line.
+        HashMap<Long,Integer> copyLines=new HashMap<>();
+        int copyId=0;
+        for(int i=0;i<n;i++){
+            if(component[i]<0)continue;
+            long key=((long)component[i]<<32) |
+                    (entries.get(i).paddleLine & 0xffffffffL);
+            Integer id=copyLines.get(key);
+            if(id==null){id=copyId++;copyLines.put(key,id);}
+            copyLineId[i]=id;
+        }
     }
 
     static CircleMlBlockSelection build(OcrDocument paddle,
@@ -141,6 +184,10 @@ final class CircleMlBlockSelection {
     /** Pure constructor for regression testing, no recognizer or Android IO. */
     static CircleMlBlockSelection of(List<Entry> entries){
         return new CircleMlBlockSelection(entries);
+    }
+
+    private static long bucket(int x,int y){
+        return ((long)x<<32)^(y&0xffffffffL);
     }
 
     private int root(int i){
@@ -186,6 +233,36 @@ final class CircleMlBlockSelection {
     int mlMatchCount(){return mlSymbols;}
     int blockCount(){return components;}
     int size(){return entries.size();}
+    int copyLineId(int index){
+        return index>=0&&index<copyLineId.length?copyLineId[index]:-1;
+    }
+    float centerX(int index){return entries.get(index).x();}
+    float centerY(int index){return entries.get(index).y();}
+    int compare(int a,int b){
+        int ca=blockOf(a),cb=blockOf(b);
+        if(ca<0||cb<0)return Integer.compare(a,b);
+        int groups=Integer.compare(blockRank[ca],blockRank[cb]);
+        return groups!=0?groups:Integer.compare(visualRank[a],visualRank[b]);
+    }
+    static final class Move {
+        final int first,last,active;
+        Move(int first,int last,int active){
+            this.first=first;this.last=last;this.active=active;
+        }
+    }
+    Move move(int first,int last,int moving,int target){
+        if(first<0||last<0||target<0||target>=entries.size()||
+                blockOf(target)<0)return new Move(first,last,moving);
+        if(moving==1){
+            return compare(target,last)<=0
+                    ?new Move(target,last,1):new Move(last,target,2);
+        }
+        if(moving==2){
+            return compare(target,first)>=0
+                    ?new Move(first,target,2):new Move(target,first,1);
+        }
+        return new Move(first,last,moving);
+    }
 
     /**
      * A true glyph hit, not a 96dp global nearest fallback that jumps to
@@ -253,7 +330,7 @@ final class CircleMlBlockSelection {
                 if(visualRank[i]==upper)hi=i;
             }
         }
-        return new int[]{Math.min(lo,hi),Math.max(lo,hi)};
+        return compare(lo,hi)<=0?new int[]{lo,hi}:new int[]{hi,lo};
     }
 
     /**
@@ -265,32 +342,38 @@ final class CircleMlBlockSelection {
     Mask select(int first,int last,int lockedLine,boolean selectAll,
                 Set<Integer> visited){
         boolean[] flags=new boolean[entries.size()];
-        if(entries.isEmpty()||first<0||last<first||last>=entries.size()||
+        if(entries.isEmpty()||first<0||last<0||
+                first>=entries.size()||last>=entries.size()||
                 blockOf(first)<0||blockOf(last)<0)
-            return new Mask(flags,0,0,0);
+            return new Mask(flags,List.of(),0,0);
         if(selectAll){
-            int n=0;
-            for(int i=0;i<entries.size();i++)
-                if(entries.get(i).valid()){flags[i]=true;n++;}
-            return new Mask(flags,n,0,components);
+            ArrayList<Integer> all=new ArrayList<>();
+            for(int i=0;i<entries.size();i++){
+                if(!entries.get(i).valid())continue;
+                flags[i]=true;all.add(i);
+            }
+            // Explicit all still follows Paddle document's original order.
+            return new Mask(flags,all,0,components);
         }
+        // Normalize by visual order rather than Paddle index.
+        if(compare(first,last)>0){int temp=first;first=last;last=temp;}
         int a=blockOf(first),b=blockOf(last);
         Set<Integer> active=new HashSet<>();
         active.add(a);active.add(b);
         if(visited!=null)active.addAll(visited);
-        // Initial taps/highlights cannot select a neighboring component
-        // merely because a detection/recognition row interleaves its index.
-        if(lockedLine>=0){
-            active.clear();active.add(a);
-        }
+        if(lockedLine>=0){active.clear();active.add(a);}
         int minRank=Math.min(visualRank[first],visualRank[last]);
         int maxRank=Math.max(visualRank[first],visualRank[last]);
-        int count=0,rejected=0;
+        ArrayList<Integer> selected=new ArrayList<>();
+        int rejected=0;
         for(int i=0;i<entries.size();i++){
             Entry e=entries.get(i);
             if(!e.valid())continue;
             int c=component[i];
-            if(!active.contains(c)){if(i>=first&&i<=last)rejected++;continue;}
+            if(!active.contains(c)){
+                if(i>=Math.min(first,last)&&i<=Math.max(first,last))rejected++;
+                continue;
+            }
             if(lockedLine>=0&&e.paddleLine!=lockedLine)continue;
             int rank=visualRank[i];
             boolean inRange;
@@ -300,11 +383,15 @@ final class CircleMlBlockSelection {
                 inRange=rank>=visualRank[first];
             }else if(c==b){
                 inRange=rank<=visualRank[last];
-            }else {
-                inRange=true; // only an actual visited component
+            }else{
+                inRange=true; // actually visited intermediate component
             }
-            if(inRange){flags[i]=true;count++;}
+            if(inRange){flags[i]=true;selected.add(i);}
         }
-        return new Mask(flags,count,rejected,active.size());
+        selected.sort(Comparator
+                .comparingInt((Integer i)->blockRank[component[i]])
+                .thenComparingInt(i->visualRank[i]));
+        return new Mask(flags,selected,rejected,active.size());
     }
+
 }
