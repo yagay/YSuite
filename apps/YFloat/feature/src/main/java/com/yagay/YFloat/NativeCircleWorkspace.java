@@ -935,6 +935,9 @@ final class NativeCircleWorkspace extends View {
             pendingChars.add(unit);
         }
         String value=OcrSelectionText.selected(tokens,offsets,indices,lineNumbers);
+        // Explicit all copies the complete Paddle result (including
+        // original paragraph order), although ML geometry orders grips.
+        if(selection.selectAll)value=fullDocument.fullText();
         if(value.isBlank()||screen.isEmpty())return;
         int spaces=0;
         for(int cp:value.codePoints().toArray()){
