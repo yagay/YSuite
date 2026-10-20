@@ -682,7 +682,7 @@ for needle in ("OcrV3Workspace.show(", "OcrV3Workspace.dismissActive(",
 if "NativeCircleWorkspace." in v3_controller:
     problems.append("Old NativeCircleWorkspace still reachable from Circle entry")
 for needle in ("OcrV3MlLayout.scan(", "OcrV3Paddle.recognize(",
-               "new OcrV3Selection(paddle,mlWords)", "selection.tap(",
+               "new OcrV3Selection(source,mlWords)", "selection.tap(",
                "selection.begin(", "selection.drag(", "selection.highlights()",
                "selection.text()", "ImageShareUtils.copyToClipboard(",
                "ResultSurfaceRouter.showScreenshot("):
