@@ -101,7 +101,7 @@ final class OcrV4Alignment {
             ends[id]=to.get(sourcePos);
         }
         boolean complete=true;
-        for(int i=0;i<starts.length;i++)if(starts[i]<0||ends[i]<starts[i])
+        for(int k=0;k<starts.length;k++)if(starts[k]<0||ends[k]<starts[k])
             complete=false;
         // Alignment confidence is a TEXTUAL agreement check (not merely
         // matching the number of symbols), with substitutions bounded.
