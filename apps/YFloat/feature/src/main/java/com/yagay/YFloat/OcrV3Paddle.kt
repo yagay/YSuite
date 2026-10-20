@@ -89,6 +89,11 @@ object OcrV3Paddle {
 
     private fun parse(results:List<OCRResult>):OcrV3Page {
         val lines=ArrayList<OcrV3Page.Line>()
+        var sdkCharacters=0
+        var matchedCharacters=0
+        var originalMisses=0
+        var invalidGeometry=0
+        var wholeLineFallbacks=0
         for(result in results){
             val raw=result.text  // NEVER trim, correct spaces, or rewrite.
             if(raw.isEmpty())continue
@@ -98,22 +103,32 @@ object OcrV3Paddle {
             val chars=ArrayList<OcrV3Page.Glyph>()
             var from=0
             for(c in result.characters){
-                if(c.text.isEmpty())continue
+                sdkCharacters++
+                if(c.text.isEmpty()){originalMisses++;continue}
                 val b=box(c.box)
-                if(b.isEmpty)continue
+                if(b.isEmpty){invalidGeometry++;continue}
                 val start=raw.indexOf(c.text,from)
-                if(start<0)continue // no synthetic replacement for unmatched CTC
+                if(start<0){
+                    // Never fabricate a character or silently change Paddle
+                    // text. Report exactly where source alignment failed.
+                    originalMisses++
+                    continue
+                }
                 val end=start+c.text.length
                 chars.add(OcrV3Page.Glyph(c.text,b,row,start,end))
+                matchedCharacters++
                 from=end
             }
             // If SDK has no CTC glyphs, keep its WHOLE line as one source
             // unit. Do not invent per-character geometry.
-            if(chars.isEmpty())
+            if(chars.isEmpty()){
+                wholeLineFallbacks++
                 chars.add(OcrV3Page.Glyph(raw,rect,row,0,raw.length))
+            }
             lines.add(OcrV3Page.Line(raw,rect,chars))
         }
-        return OcrV3Page(lines)
+        return OcrV3Page(lines,sdkCharacters,matchedCharacters,
+            originalMisses,invalidGeometry,wholeLineFallbacks)
     }
 
     private fun box(b:OCRBox):Rect {
