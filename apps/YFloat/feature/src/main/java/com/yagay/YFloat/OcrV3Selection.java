@@ -157,10 +157,19 @@ final class OcrV3Selection {
     private static boolean asciiAlphaNum(char c){
         return c>='A'&&c<='Z'||c>='a'&&c<='z'||c>='0'&&c<='9';
     }
+    /** One ML word remains the same selection after handle shrink/expand. */
+    private int singleVisualWord(){
+        if(all)return -1;
+        if(expanded&&expansion.hasRange()){
+            int word=expansion.unit(expansion.first()).wordId;
+            return word==expansion.unit(expansion.last()).wordId?word:-1;
+        }
+        return anchor>=0&&anchor==extent?anchor:-1;
+    }
+
     /** For a single selected real ML Element, detect missing source coverage. */
     int activeWordIndex(){
-        return !all&&!expanded&&anchor>=0&&anchor==extent
-                ?anchor:-1;
+        return singleVisualWord();
     }
 
     Rect wordBox(int index){
@@ -178,7 +187,7 @@ final class OcrV3Selection {
             return false;
         int mlChars=0;
         for(OcrV3MlLayout.Symbol symbol:words.get(index).symbols)
-            mlChars+=symbol.observed.length();
+            mlChars+=symbol.observed.codePointCount(0,symbol.observed.length());
         return OcrV3LocalTextDecision.needsRecognition(
                 mlChars,originalWordText(index));
     }
@@ -187,8 +196,11 @@ final class OcrV3Selection {
     boolean acceptLocal(int index,String recognized,float confidence){
         if(index<0||index>=words.size())return false;
         String source=originalWordText(index);
+        int symbolCount=0;
+        for(OcrV3MlLayout.Symbol symbol:words.get(index).symbols)
+            symbolCount+=symbol.observed.codePointCount(0,symbol.observed.length());
         String chosen=OcrV3LocalTextDecision.choose(
-                source,recognized,confidence);
+                source,recognized,confidence,symbolCount);
         if(chosen.equals(source))return false;
         localPaddle.put(index,chosen);
         return true;
@@ -336,20 +348,29 @@ final class OcrV3Selection {
         if(!selected())return "";
         if(all)return page.fullText;
         int selectedWord=activeWordIndex();
-        if(selectedWord>=0&&localPaddle.containsKey(selectedWord))
-            return localPaddle.get(selectedWord);
-        if(expanded&&expansion.hasRange()){
-            int startWord=expansion.unit(expansion.first()).wordId;
-            int endWord=expansion.unit(expansion.last()).wordId;
-            if(startWord==endWord&&localPaddle.containsKey(startWord)){
-                boolean complete=true;
-                for(int i=0;i<expansion.size();i++)
-                    if(expansion.unit(i).wordId==startWord &&
-                            (i<expansion.first()||i>expansion.last())){
-                        complete=false;break;
-                    }
-                if(complete)return localPaddle.get(startWord);
+        if(selectedWord>=0&&localPaddle.containsKey(selectedWord)){
+            String local=localPaddle.get(selectedWord);
+            if(!expanded)return local;
+            int minSymbol=Integer.MAX_VALUE,maxSymbol=-1;
+            for(int i=expansion.first();i<=expansion.last();i++){
+                OcrV3ExpansionController.Unit unit=expansion.unit(i);
+                if(unit.wordId!=selectedWord)continue;
+                minSymbol=Math.min(minSymbol,unit.offset);
+                maxSymbol=Math.max(maxSymbol,unit.offset);
             }
+            if(minSymbol!=Integer.MAX_VALUE &&
+                    maxSymbol<words.get(selectedWord).symbols.size()){
+                ArrayList<Integer> sizes=new ArrayList<>();
+                for(OcrV3MlLayout.Symbol symbol:words.get(selectedWord).symbols)
+                    sizes.add(symbol.observed.codePointCount(
+                            0,symbol.observed.length()));
+                String slice=OcrV3LocalSymbolSlice.extract(
+                        local,sizes,minSymbol,maxSymbol);
+                if(slice!=null)return slice;
+            }
+            // Do not return a random one-character Paddle mapping when
+            // the local-source character order cannot be established.
+            return "";
         }
         ArrayList<Integer> ids=new ArrayList<>();
         if(expanded&&expansion.hasRange()){

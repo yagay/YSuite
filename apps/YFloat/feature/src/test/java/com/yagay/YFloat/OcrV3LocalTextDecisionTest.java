@@ -30,6 +30,26 @@ public final class OcrV3LocalTextDecisionTest {
         assertEquals("Example",OcrV3LocalTextDecision.choose(
                 "","Example",.91f));
     }
+    @Test public void mismappedOneCharacterDoesNotVetoAccurateSevenSymbolLocalPaddle(){
+        assertEquals("program",OcrV3LocalTextDecision.choose(
+                "g","program",.957f,7));
+    }
+
+    @Test public void mismatchCandidateRejectedWhenDifferentFromMlGeometryLength(){
+        assertEquals("g",OcrV3LocalTextDecision.choose(
+                "g","program login",.99f,7));
+    }
+
+    @Test public void mismatchedLocalBelowConfidenceFloorDoesNotOverwritePaddle(){
+        assertEquals("g",OcrV3LocalTextDecision.choose(
+                "g","program",.75f,7));
+    }
+
+    @Test public void completePaddleNeverReplacedByCompletelyUnrelatedLocal(){
+        assertEquals("program",OcrV3LocalTextDecision.choose(
+                "program","abcdefg",.999f,7));
+    }
+
     @Test public void candidateCannotShrinkCompleteSource(){
         assertEquals("WhatsApp",OcrV3LocalTextDecision.choose(
                 "WhatsApp","atsApp",.98f));

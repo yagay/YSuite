@@ -784,6 +784,22 @@ for marker in ("Map<Integer,String> localPaddle", "int activeWordIndex()",
                "OcrV3LocalTextDecision.choose("):
     if marker not in v3_selection:
         problems.append("ML selection not independent from Paddle source: "+marker)
+# A trustworthy Paddle ROI transcription must be usable even when the
+# whole-screen Paddle glyph mapper returned only one wrong source glyph.
+v3_local_slice=(java / "OcrV3LocalSymbolSlice.java").read_text()
+for marker in ("int expectedSymbols", "confidence>=0.90f",
+               "candidateCount==expectedSymbols"):
+    if marker not in v3_local_decision:
+        problems.append("V3 valid direct Paddle recognition rejected for partial mapping: "+marker)
+for marker in ("singleVisualWord()", "OcrV3LocalSymbolSlice.extract(",
+               "symbol.observed.codePointCount(", "local,sizes,minSymbol,maxSymbol"):
+    if marker not in v3_selection:
+        problems.append("V3 ML handles still select incomplete original Paddle glyph IDs: "+marker)
+if "localPaddle.offsetByCodePoints(" not in v3_local_slice:
+    problems.append("V3 direct Paddle substring must slice by Unicode code points")
+for name in ("OcrV3LocalSymbolSliceTest.java", "OcrV3LocalTextDecisionTest.java"):
+    if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():
+        problems.append("V3 partial ML/Paddle selection regression tests absent: "+name)
 if "return page.selectedText(unique)" not in v3_selection:
     problems.append("V3 original Paddle text slicing removed")
 for name in ("OcrV3LocalRegionTest.java","OcrV3LocalTextDecisionTest.java",

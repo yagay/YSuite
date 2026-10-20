@@ -13,6 +13,9 @@ final class OcrV3LocalTextDecision {
         return source==0 || (mlSymbolCharacters>=3 && source<mlSymbolCharacters);
     }
     static String choose(String cached,String candidate,float confidence){
+        return choose(cached,candidate,confidence,-1);
+    }
+    static String choose(String cached,String candidate,float confidence,int expectedSymbols){
         String original=cached==null?"":cached;
         if(candidate==null||candidate.isBlank()||
                 !Float.isFinite(confidence)||confidence<0.45f)
@@ -26,6 +29,14 @@ final class OcrV3LocalTextDecision {
                 (!original.chars().noneMatch(Character::isWhitespace) ||
                         candidate.chars().noneMatch(Character::isWhitespace)))
             return candidate;
+        if(expectedSymbols>=3 && confidence>=0.90f) {
+            int sourceCount=original.codePointCount(0,original.length());
+            int candidateCount=candidate.codePointCount(0,candidate.length());
+            if(sourceCount<expectedSymbols && candidateCount==expectedSymbols &&
+                    candidate.codePoints().allMatch(c->
+                            !Character.isWhitespace(c)&&!Character.isISOControl(c)))
+                return candidate;
+        }
         if(candidate.equals(original))return original;
         return original;
     }

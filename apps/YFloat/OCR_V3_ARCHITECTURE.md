@@ -231,3 +231,39 @@ the original Paddle spans, with ML handles controlling geometry.
 This targeted pathway is an improvement for a detector-truncated word,
 not a guarantee against wrong model recognition. A screenshot-level
 device comparison is still needed to verify the real WhatsApp case.
+
+## 2026-10-20 18:46 device report — ML word selection vs Paddle ROI adoption
+
+A new device diagnostic found a real selected ML word with **7 ML Symbol
+characters** but only **1 original Paddle glyph** mapped to that Element.
+The detection-free Paddle ROI returned **7 characters at 0.9571
+confidence**, yet the old source-choice rule kept the mismapped one-character
+source (`replaced=false`). The following handle drag painted real ML Symbol
+boxes but still copied only one original Paddle glyph. This is a source
+*acceptance and selected-symbol slicing* problem, not a missing OCR pass.
+
+Changes:
+- The final decision accepts a direct local Paddle transcription for a
+  partially mapped word only if its Unicode code-point count matches the
+  independently measured ML symbol count, its confidence is >=0.90, and the
+  original Paddle source has fewer mapped code points. Actual text must still
+  come solely from Paddle, never from ML Kit strings or guessed app names.
+- `OcrV3Selection.activeWordIndex()` now continues to refer to the one
+  selected ML word when both dragged handles remain inside it, including
+  after moving a grip. This enables on-demand local recognition even after
+  initial handle movement.
+- `OcrV3LocalSymbolSlice` maps an ML selected-symbol ordinal span into the
+  original local Paddle **code-point** string, only when source code-point
+  count and real ML symbol cardinality match exactly. A partial selection
+  like three middle glyphs of seven is now derived from the recognized
+  seven-code-point Paddle source, rather than from a single mismapped
+  full-screen CTC glyph. For mismatches it fails closed instead of inventing
+  new characters. No PDF/text geometry or blue highlight visual is changed.
+- Pure Java tests enforce high-confidence partial mapper recovery, rejection
+  of unrelated-length ROI output, partial selection, case conservation,
+  UTF-16 supplementary characters, and invalid-index handling.
+
+The report records character counts, confidence and selection ranges, not
+actual OCR strings. Therefore its numbers establish the faulty source
+decision path, but do not prove the actual ROI transcription of the text was
+correct. On-device comparison is still required after building the change.
