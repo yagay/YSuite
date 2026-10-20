@@ -50,7 +50,7 @@ final class OcrV3Workspace extends View {
     private OcrV3Page paddle;
     private List<OcrV3MlLayout.Word> mlWords=List.of();
     private OcrV3Selection selection;
-    private boolean paddleFinished,mlFinished,closed,downOnHandle;
+    private boolean paddleFinished,mlFinished,closed,downOnHandle,textStroke;
     private int generation;
     private float downX,downY,lastX,lastY;
     private Rect imageSelection;
@@ -281,6 +281,15 @@ final class OcrV3Workspace extends View {
             if(menu)for(int i=0;i<actions.length;i++)
                 if(actions[i].contains(x,y)){performAction(i);return true;}
             downOnHandle=imageSelection==null&&hitHandle(x,y);
+            textStroke=false;
+            if(!downOnHandle&&imageSelection==null&&selection!=null){
+                PointF p=bitmapPoint(x,y);
+                textStroke=selection.tap(p.x,p.y);
+                if(textStroke){
+                    status="";
+                    invalidate();
+                }
+            }
             downX=lastX=x;downY=lastY=y;
             return true;
         }
@@ -290,6 +299,9 @@ final class OcrV3Workspace extends View {
                 PointF p=bitmapPoint(x,y);
                 selection.drag(p.x,p.y);
                 invalidate();
+            }else if(textStroke&&selection!=null){
+                PointF p=bitmapPoint(x,y);
+                if(selection.extendStroke(p.x,p.y))invalidate();
             }else if(Math.hypot(x-downX,y-downY)>18*density){
                 imageSelection=cropRect(downX,downY,x,y);
                 invalidate();
@@ -301,6 +313,18 @@ final class OcrV3Workspace extends View {
                 downOnHandle=false;
                 if(selection!=null)selection.release();
                 invalidate();return true;
+            }
+            if(textStroke){
+                if(action==MotionEvent.ACTION_UP&&selection!=null){
+                    PointF p=bitmapPoint(x,y);
+                    selection.extendStroke(p.x,p.y);
+                    DiagnosticLog.i(app,"OCR_V3_STROKE",
+                            "selected="+selection.selected()+
+                            " first="+selection.first()+" last="+selection.last());
+                }
+                textStroke=false;
+                invalidate();
+                return true;
             }
             if(action==MotionEvent.ACTION_CANCEL)return true;
             if(Math.hypot(x-downX,y-downY)<=18*density){
