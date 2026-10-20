@@ -24,7 +24,7 @@ final class OcrV3Selection {
     private final OcrV3Page page;
     private final List<Word> words;
     private int anchor=-1, extent=-1, active=0; // 1=start, 2=end
-    private int strokeOrigin=-1;
+    private final OcrV3StrokeRange strokeRange;
     private boolean all;
 
     private final OcrV3WordMapper.Result mapping;
@@ -33,6 +33,13 @@ final class OcrV3Selection {
         this.page=page;
         mapping=OcrV3WordMapper.map(page,ml);
         words=mapping.words;
+        ArrayList<OcrV3StrokeRange.Word> bounds=new ArrayList<>(words.size());
+        for(Word word:words){
+            Rect r=word.box;
+            bounds.add(new OcrV3StrokeRange.Word(
+                    word.block,r.left,r.top,r.right,r.bottom));
+        }
+        strokeRange=new OcrV3StrokeRange(bounds);
     }
 
     int matchedGlyphs(){return mapping.mappedGlyphs;}
@@ -43,7 +50,7 @@ final class OcrV3Selection {
     boolean selected(){return all||(anchor>=0&&extent>=0);}
     boolean handleActive(){return active!=0;}
 
-    void clear(){anchor=extent=-1;active=0;strokeOrigin=-1;all=false;}
+    void clear(){anchor=extent=-1;active=0;all=false;strokeRange.clear();}
     void selectAll(){
         clear();
         if(!words.isEmpty()){anchor=0;extent=words.size()-1;all=true;}
@@ -57,69 +64,20 @@ final class OcrV3Selection {
     boolean tap(float x,float y){
         int i=hit(x,y);
         if(i<0){clear();return false;}
-        anchor=extent=i;strokeOrigin=i;active=0;all=false;return true;
+        anchor=extent=i;strokeRange.start(i);active=0;all=false;return true;
     }
     /**
-     * A text stroke starts at a real ML Element; other TextBlocks do not get
-     * implicitly included in its range. Blank wallpaper never snaps.
-     */
-    boolean extendStroke(float x,float y){
-        if(strokeOrigin<0||all)return false;
-        int current=hit(x,y);
-        if(current<0 || !words.get(current).block.equals(
-                words.get(strokeOrigin).block))return false;
-        int first=Math.min(strokeOrigin,current);
-        int last=Math.max(strokeOrigin,current);
-        if(first==anchor&&last==extent)return false;
-        anchor=first;extent=last;
-        return true;
-    }
-
-    /**
-     * Follow every physical segment of a freehand underline, including a stroke
-     * which STARTS in blank space. Element hit boxes are ML Kit geometry;
-     * extracted text remains exclusively from the mapped Paddle glyphs.
+     * Android and JVM unit tests share this geometric gesture tracker.
+     * A stroke may begin outside the ML Kit text boxes.
      */
     boolean extendStrokeSegment(float x0,float y0,float x1,float y1,float padding){
-        float distance=(float)Math.hypot(x1-x0,y1-y0);
-        int steps=Math.min(128,Math.max(1,(int)Math.ceil(
-                distance/Math.max(3f,padding*0.5f))));
-        boolean changed=false;
-        for(int k=0;k<=steps;k++){
-            float fraction=(float)k/steps;
-            int i=hitNear(x0+(x1-x0)*fraction,
-                    y0+(y1-y0)*fraction,padding);
-            if(i<0)continue;
-            if(strokeOrigin<0){
-                strokeOrigin=i;anchor=extent=i;all=false;active=0;
-                changed=true;
-            }else if(words.get(i).block.equals(words.get(strokeOrigin).block)){
-                int first=Math.min(strokeOrigin,i),last=Math.max(strokeOrigin,i);
-                // Preserve the complete visited range even if the stroke
-                // doubles back or motion events are delivered out of order.
-                first=Math.min(first,anchor);
-                last=Math.max(last,extent);
-                if(first!=anchor||last!=extent){
-                    anchor=first;extent=last;changed=true;
-                }
-            }
+        if(all)return false;
+        boolean changed=strokeRange.extend(x0,y0,x1,y1,padding);
+        if(changed){
+            anchor=strokeRange.first();extent=strokeRange.last();
+            active=0;
         }
         return changed;
-    }
-
-    private int hitNear(float x,float y,float padding){
-        int hit=hit(x,y);
-        if(hit>=0)return hit;
-        int closest=-1;
-        float nearest=Float.POSITIVE_INFINITY;
-        for(int i=0;i<words.size();i++){
-            Rect r=words.get(i).box;
-            float dx=Math.max(r.left-x,Math.max(0f,x-r.right));
-            float dy=Math.max(r.top-y,Math.max(0f,y-r.bottom));
-            float d=dx*dx+dy*dy;
-            if(d<=padding*padding && d<nearest){nearest=d;closest=i;}
-        }
-        return closest;
     }
 
     boolean begin(float x,float y,float handleRadius,float bitmapStem){
