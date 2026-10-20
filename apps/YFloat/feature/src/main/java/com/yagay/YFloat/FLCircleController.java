@@ -18,11 +18,11 @@ final class FLCircleController {
     static synchronized void show(Context context) {
         if (context == null) return;
         Context app = context.getApplicationContext();
-        OcrV3Workspace.dismissActive("replaced");
+        OcrV4Workspace.dismissActive("replaced");
         cancelPrevious(app);
 
         WorkflowSessionManager.Session session=WorkflowSessionManager.begin(
-                app,WorkflowSessionManager.Type.CIRCLE,"ocr_v3_circle");
+                app,WorkflowSessionManager.Type.CIRCLE,"ocr_v4_circle");
         WorkflowSessionManager.transition(app,session,
                 WorkflowSessionManager.Phase.CAPTURING,"native_capture");
         CaptureTransaction tx=CaptureTransaction.begin(app,"native_circle")
@@ -39,7 +39,7 @@ final class FLCircleController {
                 tx.close();
                 return;
             }
-            boolean opened=OcrV3Workspace.show(app,frame,()->{
+            boolean opened=OcrV4Workspace.show(app,frame,()->{
                 frame.recycle();
                 complete(app,tx,session,"workspace_closed");
             });
@@ -54,7 +54,7 @@ final class FLCircleController {
             WorkflowSessionManager.transition(app,session,
                     WorkflowSessionManager.Phase.SELECTING,"native_canvas_visible");
             tx.overlayReady("native_circle_ready",
-                    collapsed->OcrV3Workspace.promoteFocus(
+                    collapsed->OcrV4Workspace.promoteFocus(
                             collapsed?"shade_closed":"shade_settled"));
         }),error->MAIN.post(()->{
             if(pending!=tx||!session.current()){

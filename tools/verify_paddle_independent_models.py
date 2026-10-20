@@ -666,178 +666,63 @@ if "canvas.drawText(ch.text()" in native or "selectionHighlightPaint" in native:
 
 
 
-# OCR V3 has a NEW active runtime and must not dispatch through any legacy
-# Circle recognition, old text-geometry or homemade block-expansion pipeline.
-v3_controller=(java / "FLCircleController.java").read_text()
-v3_workspace=(java / "OcrV3Workspace.java").read_text()
-v3_paddle=(java / "OcrV3Paddle.kt").read_text()
-v3_page=(java / "OcrV3Page.java").read_text()
-v3_ml=(java / "OcrV3MlLayout.java").read_text()
-v3_selection=(java / "OcrV3Selection.java").read_text()
-v3_slices=(java / "OcrV3TextSlice.java").read_text()
-for needle in ("OcrV3Workspace.show(", "OcrV3Workspace.dismissActive(",
-               "OcrV3Workspace.promoteFocus("):
-    if needle not in v3_controller:
-        problems.append("V3 is not the active Circle workflow: "+needle)
-if "NativeCircleWorkspace." in v3_controller:
-    problems.append("Old NativeCircleWorkspace still reachable from Circle entry")
-for needle in ("OcrV3MlLayout.scan(", "OcrV3Paddle.recognize(",
-               "new OcrV3Selection(source,mlWords)", "selection.tap(",
-               "selection.begin(", "selection.drag(", "selection.highlights()",
-               "selection.text()", "ImageShareUtils.copyToClipboard(",
+# OCR V4 is the ONLY active local Circle runtime on this branch.
+# Tests verify the implementation contract, not only class existence.
+v4_controller=(java / "FLCircleController.java").read_text()
+v4_workspace=(java / "OcrV4Workspace.java").read_text()
+v4_selection=(java / "OcrV4Selection.java").read_text()
+v4_document=(java / "OcrV4Document.java").read_text()
+v4_alignment=(java / "OcrV4Alignment.java").read_text()
+v4_region=(java / "OcrV4Region.java").read_text()
+v4_ml=(java / "OcrV3MlLayout.java").read_text()  # geometry-only ML Kit API
+v4_paddle=(java / "OcrV3Paddle.kt").read_text()    # local ONNX SDK service
+for name in ("OcrV4Workspace.show(","OcrV4Workspace.dismissActive(",
+             "OcrV4Workspace.promoteFocus("):
+    if name not in v4_controller:
+        problems.append("V4 controller not active: "+name)
+if "OcrV3Workspace." in v4_controller:
+    problems.append("Retired V3 workspace still reachable")
+for marker in ("OcrV3MlLayout.scan(", "new OcrV4Selection(words)",
+               "OcrV3Paddle.recognizeRegion(", "OcrV4Region.line(",
+               "selection.nextUnreadyLine()", "selection.acceptLine(",
+               "selection.text()", "selection.highlights()",
+               "ImageShareUtils.copyToClipboard(",
                "ResultSurfaceRouter.showScreenshot("):
-    if needle not in v3_workspace:
-        problems.append("V3 independent screenshot and OCR UX missing: "+needle)
-for retired in ("NativeCircleWorkspace", "CircleRawPaddleOcr",
-                "CircleStableOcr", "PaddlePipelineV2",
-                "CircleMlBlockSelection", "CircleMlSelectionSession",
-                "CircleSelectionPlanner", "TextGeometryPixelLocator",
-                "CircleHybridSelectionGeometry", "CircleTextExpansionPolicy"):
-    if retired in v3_workspace or retired in v3_paddle or retired in v3_selection:
-        problems.append("V3 improperly depends on old OCR/selection code: "+retired)
-for marker in ("PaddleOCR.create(", ".sdk.recognize(source)",
-               "val raw=result.text", "for(c in result.characters)",
-               "OcrV3Page.Line(", "check(OcrModelManager.verifyIntegrity("):
-    if marker not in v3_paddle:
-        problems.append("V3 original Paddle OCR contract missing: "+marker)
-for marker in ("final String raw;", "final List<Glyph> glyphs;",
-               "OcrV3TextSlice.extract("):
-    if marker not in v3_page:
-        problems.append("V3 immutable Paddle text schema incomplete: "+marker)
-v3_mapper=(java / "OcrV3WordMapper.java").read_text()
-v3_geometry=(java / "OcrV3GeometryMatch.java").read_text()
-if "OcrV3WordMapper.map(page,ml)" not in v3_selection or (
-        "return page.selectedText(unique)" not in v3_selection) or (
-        "new OcrV3Selection.Word(" not in v3_mapper):
-    problems.append("ML-to-Paddle V3 text mapping is not safe")
-if "OcrV3GeometryMatch.score(" not in v3_mapper or (
-        "if(covered<.35)" not in v3_geometry):
-    problems.append("V3 source alignment is not geometry-owned")
-if "ctc_source_misses=" not in v3_workspace or (
-        "mapped_paddle_glyphs=" not in v3_workspace):
-    problems.append("OCR V3 has no source-versus-alignment diagnostics")
-if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3GeometryMatchTest.java").is_file():
-    problems.append("V3 geometric OCR mismatch regressions are missing")
-if "page.fullText" not in v3_selection:
-    problems.append("V3 explicit all no longer returns original Paddle string")
-for marker in ("TextRecognition.getClient(", "ChineseTextRecognizerOptions",
-               "TextRecognizerOptions.DEFAULT_OPTIONS", "getTextBlocks()",
+    if marker not in v4_workspace:
+        problems.append("V4 workflow or OCR line-recognition disconnected: "+marker)
+for marker in ("OcrV4Document.build(source)", "document.selectedText(",
+               "document.lineIds(", "new OcrV3ExpansionController.Unit(-1",
+               "OcrV3MlSelectionVisual.expanded(", "stroke.extend("):
+    if marker not in v4_selection:
+        problems.append("V4 single-source ML symbol selection not wired: "+marker)
+for marker in ("OcrV3WordVisibility.select(candidates)", 
+               "OcrV4Alignment.align(", "String selectedText(",
+               "source.put(lineId,aligned)", "if(!aligned.reliable)return false"):
+    if marker not in v4_document:
+        problems.append("V4 document does not gate Paddle text on alignment: "+marker)
+for marker in ("matched>=Math.max(1,", "cp.size()!=symbols.size()",
+               "paddle.substring(starts[first],ends[last])"):
+    if marker not in v4_alignment:
+        problems.append("V4 alignment cannot reject false positional matches: "+marker)
+for marker in ("boolean retry", "retry?0.72f:0.32f"):
+    if marker not in v4_region:
+        problems.append("V4 bounded line retry input missing: "+marker)
+for marker in ("TextRecognition.getClient(", "getTextBlocks()",
                "getLines()", "getElements()", "getSymbols()"):
-    if marker not in v3_ml:
-        problems.append("V3 ML Kit hierarchy reader missing: "+marker)
-if "value.append(original," not in v3_slices or (
-        "gap.codePoints().allMatch(Character::isWhitespace)" not in v3_slices):
-    problems.append("V3 source text is no longer exact Paddle substrings")
-if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3TextSliceTest.java").is_file():
-    problems.append("V3 raw text/whitespace tests missing")
-# V3 expansion is intentionally a separate pure-Java controller, not the old
-# block-bounded two-index update. Assert production paths and tests together.
-v3_expansion=(java / "OcrV3ExpansionController.java").read_text()
-v3_stroke=(java / "OcrV3StrokeRange.java").read_text()
-for marker in ("new OcrV3ExpansionController(buildUnits(),words.size())",
-               "expansion.prepare(", "expansion.begin(", "expansion.drag(",
-               "expansion.unit(", "page.selectedText(unique)",
-               "word.symbols"):
-    if marker not in v3_selection:
-        problems.append("V3 glyph-level expansion path disconnected: "+marker)
-for marker in ("ordered.sort", "offsetX", "offsetY", "void release()",
-               "if(a>b)", "distanceSquared", "maxDistance*maxDistance"):
-    if marker not in v3_expansion:
-        problems.append("V3 expansion controller missing invariant: "+marker)
-# OCR V3 2026-10-20: native ML word eligibility is independent from
-# Paddle CTC character matching, and the old Latin-prefix recovery engine
-# must not be present in the current runtime.
-v3_visibility=(java / "OcrV3WordVisibility.java").read_text()
-for marker in ("OcrV3WordVisibility.select(candidates)",
-               "unmappedElements", "ml.block,ml.box,indices,ml.symbols"):
-    if marker not in v3_mapper:
-        problems.append("V3 ML text-element eligibility depends on Paddle: "+marker)
-for marker in ("static List<Integer> select(", "if(!dup)distinct.add(candidate)"):
-    if marker not in v3_visibility:
-        problems.append("V3 independent ML visibility policy missing: "+marker)
-if (java / "OcrV3LatinTokenRecovery.java").exists():
-    problems.append("Obsolete Latin-token prefix patch must be removed")
-if "unmapped_ml_elements=" not in v3_workspace:
-    problems.append("V3 has no independent ML visual-vs-Paddle mapping diagnostics")
-v3_local_region=(java / "OcrV3LocalRegion.java").read_text()
-v3_local_decision=(java / "OcrV3LocalTextDecision.java").read_text()
-v3_sdk=(ROOT / "apps/YFloat/ppocr-sdk/src/main/java/com/paddle/ocr/PaddleOCR.kt").read_text()
-v3_engine=(ROOT / "apps/YFloat/ppocr-sdk/src/main/java/com/paddle/ocr/engine/OCREngine.kt").read_text()
-for marker in ("recognizeRegion(context:Context", "requireSession(app)",
-               "requireSession(app).sdk.recognizeRegion(source,bounds)"):
-    if marker not in v3_paddle:
-        problems.append("V3 on-demand Paddle ROI recognition disconnected: "+marker)
-for marker in ("suspend fun recognizeRegion(bitmap: Bitmap, rect: Rect)",
-               "engine.recognizeRegion(bitmap,rect)"):
-    if marker not in v3_sdk:
-        problems.append("Paddle SDK direct region API missing: "+marker)
-for marker in ("fun recognizeRegion(bitmap: android.graphics.Bitmap, region: Rect)",
-               "recognitionEngine.recognize(listOf(crop))"):
-    if marker not in v3_engine:
-        problems.append("Paddle region must bypass second DB text detector: "+marker)
-for marker in ("OcrV3LocalRegion.plan(", "OcrV3Paddle.recognizeRegion(",
-               "selection.needsLocalRecognition(", "pendingLocalWords"):
-    if marker not in v3_workspace:
-        problems.append("V3 missing safe on-demand local recognition flow: "+marker)
-for marker in ("Map<Integer,String> localPaddle", "int activeWordIndex()",
-               "OcrV3LocalTextDecision.needsRecognition(",
-               "OcrV3LocalTextDecision.choose("):
-    if marker not in v3_selection:
-        problems.append("ML selection not independent from Paddle source: "+marker)
-# A trustworthy Paddle ROI transcription must be usable even when the
-# whole-screen Paddle glyph mapper returned only one wrong source glyph.
-v3_local_slice=(java / "OcrV3LocalSymbolSlice.java").read_text()
-for marker in ("int expectedSymbols", "confidence>=0.90f",
-               "candidateCount==expectedSymbols"):
-    if marker not in v3_local_decision:
-        problems.append("V3 valid direct Paddle recognition rejected for partial mapping: "+marker)
-for marker in ("singleVisualWord()", "OcrV3LocalSymbolSlice.extract(",
-               "symbol.observed.codePointCount(", "local,sizes,minSymbol,maxSymbol"):
-    if marker not in v3_selection:
-        problems.append("V3 ML handles still select incomplete original Paddle glyph IDs: "+marker)
-if "localPaddle.offsetByCodePoints(" not in v3_local_slice:
-    problems.append("V3 direct Paddle substring must slice by Unicode code points")
-for name in ("OcrV3LocalSymbolSliceTest.java", "OcrV3LocalTextDecisionTest.java"):
+    if marker not in v4_ml:
+        problems.append("ML Kit geometry hierarchy removed: "+marker)
+for marker in ("requireSession(app).sdk.recognizeRegion(source,bounds)",
+               "check(OcrModelManager.verifyIntegrity("):
+    if marker not in v4_paddle:
+        problems.append("Paddle SDK local model contract broken: "+marker)
+for name in ("OcrV4AlignmentTest.java","OcrV4DocumentTest.java",
+             "OcrV4RegionTest.java"):
     if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():
-        problems.append("V3 partial ML/Paddle selection regression tests absent: "+name)
-if "return page.selectedText(unique)" not in v3_selection:
-    problems.append("V3 original Paddle text slicing removed")
-for name in ("OcrV3LocalRegionTest.java","OcrV3LocalTextDecisionTest.java",
-             "OcrV3WordVisibilityTest.java"):
-    if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():
-        problems.append("V3 independent selection/region regression missing: "+name)
-if "OcrV3StrokeRange" not in v3_selection or "strokeRange.extend(" not in v3_selection:
-    problems.append("V3 proven freehand selection no longer isolated")
-# BLUE STYLE: Paddle supplies OCR source spans only. Rendering must be owned
-# solely by ML Elements/Symbols, for tap, stroke, handles and select-all.
-v3_ml_visual=(java / "OcrV3MlSelectionVisual.java").read_text()
-for marker in ("mlBoxes=List.copyOf(renderBoxes)",
-               "OcrV3MlSelectionVisual.expanded(mlBoxes,expansion)",
-               "Rect box=symbol.box",
-               "wordId,true"):
-    if marker not in v3_selection:
-        problems.append("V3 mixed ML/Paddle highlight render path: "+marker)
-for marker in ("final boolean mlSymbol;", "this.wordId=wordId;this.mlSymbol=mlSymbol;"):
-    if marker not in v3_expansion:
-        problems.append("V3 glyph geometry lost ML provenance: "+marker)
-for marker in ("if(b.selected<b.count)", "if(b.allSymbols&&b.left<b.right)",
-               "finalBox=mlElement", "selected.add(finalBox)",
-               "new Box(b.left,mlElement.top,"):
-    if marker not in v3_ml_visual:
-        problems.append("V3 ML-only style not shared by handle expansions: "+marker)
-if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3MlSelectionVisualTest.java").is_file():
-    problems.append("V3 unified ML highlight visual tests missing")
-if "geometry=glyph.rect" in v3_selection or "geometry=g.rect" in v3_selection:
-    problems.append("V3 must never display raw Paddle glyph rectangles")
-if "moveHandle(e)" not in v3_workspace or "phase=end" not in v3_workspace:
-    problems.append("V3 handle UP coordinate/diagnostics missing")
-for name in ("OcrV3ExpansionControllerTest.java", "OcrV3StrokeSelectionTest.java"):
-    if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():
-        problems.append("V3 handle/stroke regression suite missing: "+name)
-if (java / "OcrV3HandleRange.java").exists():
-    problems.append("Retired ML-block-only handle engine is still present")
-if (java / "CircleSelectionViewportPolicy.java").exists():
-    problems.append("V3 must not resurrect custom legacy viewport selection")
+        problems.append("V4 mandatory pure Java regression missing: "+name)
+for old in ("new OcrV3Selection(", "OcrV3WordMapper.map(",
+            "OcrV3LocalTextDecision.choose(", "OcrV3LocalSymbolSlice.extract("):
+    if old in v4_workspace or old in v4_selection or old in v4_document:
+        problems.append("V4 must not use legacy Paddle glyph mapper: "+old)
 
 if problems:
     print("FAIL: Independent Paddle model policy")
