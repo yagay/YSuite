@@ -149,8 +149,16 @@ final class OcrV3Workspace extends View {
     private void bindIfReady(){
         if(!paddleFinished||!mlFinished||paddle==null)return;
         selection=new OcrV3Selection(paddle,mlWords);
+        DiagnosticLog.i(app,"OCR_V3_ALIGNMENT",
+                "ml_elements="+mlWords.size()+
+                " paddle_glyphs="+paddle.glyphs.size()+
+                " aligned_elements="+selection.size()+
+                " mapped_paddle_glyphs="+selection.matchedGlyphs()+
+                " unmatched_paddle_glyphs="+selection.unmatchedGlyphs()+
+                " ml_elements_without_symbols="+selection.missingMlSymbols()+
+                " copy_source=paddle_only");
         status=selection.size()==0
-                ?tr("未找到可匹配的文字","No matched text found")
+                ?tr("文字位置未对应，查看 OCR 诊断","Text geometry not aligned; see OCR diagnostics")
                 :tr("点击文字选取，拖动手柄扩选","Tap text; drag handles to extend");
         if(deferredTap!=null){
             selection.tap(deferredTap.x,deferredTap.y);
@@ -298,8 +306,13 @@ final class OcrV3Workspace extends View {
             if(Math.hypot(x-downX,y-downY)<=18*density){
                 imageSelection=null;
                 PointF p=bitmapPoint(x,y);
-                if(selection!=null)selection.tap(p.x,p.y);
-                else deferredTap=p;
+                if(selection!=null){
+                    boolean found=selection.tap(p.x,p.y);
+                    DiagnosticLog.i(app,"OCR_V3_TAP",
+                            "matched="+found+" x="+(int)p.x+
+                            " y="+(int)p.y+" selectable_elements="+selection.size());
+                    if(!found)status=tr("此位置没有可选择的文字","No selectable text at this position");
+                }else deferredTap=p;
             }else{
                 imageSelection=cropRect(downX,downY,x,y);
                 if(selection!=null)selection.clear();
