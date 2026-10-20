@@ -28,19 +28,23 @@ for other existing YFloat entrypoints; V3 cannot call into them.
    recognition to obtain TextBlock, Line, Element and Symbol geometry.
    Its decoded text is used only to align each symbol to a Paddle
    glyph. It is **never** copied, translated or shown as the OCR result.
-4. **`OcrV3Selection`** maps matching ML Symbols to Paddle character
-   references by exact text and nearby bounding boxes. A single
-   ML Element (word) is the default tap selection. The two standard
-   blue handles extend within the corresponding ML TextBlock; touching
-   another TextBlock switches to it instead of implicitly selecting
-   intervening desktop-icon labels. Dragging over blank wallpaper does
-   not snap to distant words.
-5. **`OcrV3Workspace`** renders a frozen screenshot only once and
-   overlays original ML-style blue rounded word rectangles and blue
-   stem/circle handles, plus text actions (copy, search, translate,
-   explicit Select All). Paddle strings alone supply those actions.
-   Screenshot rectangle selection remains separate with Done, Copy
-   and Save actions.
+4. **`OcrV3Selection`** maintains two separate interaction modes:
+   taps and freehand strokes still select original ML Kit Elements; the
+   glyph-level expansion mode starts only after a blue handle moves.
+   `OcrV3StrokeRange` remains the independent stable freehand engine.
+5. **`OcrV3ExpansionController`** owns the only draggable selection range.
+   It sorts real Paddle glyph source spans in reading order, uses matched
+   real ML Symbol boxes when available, and falls back only to genuine
+   SDK geometry (Paddle glyph or ML Element). Touch-to-glyph offsets are
+   captured on DOWN; MOVE and UP use the same coordinate mapping.
+   The non-moving endpoint is preserved; crossing swaps grip roles,
+   cross-line/cross-block selection is continuous, and remote blank
+   wallpaper does not arbitrarily snap to text.
+6. **`OcrV3Workspace`** renders a frozen screenshot and ML-style blue
+   highlights/handles. The existing `FloatActionMenu` follows the final
+   selection, including across grip movement and finger release.
+   Screenshot crops use the same configurable image menu. Paddle is the
+   only source for copied/searched/shared text.
 
 ## Lifecycle
 
@@ -55,8 +59,9 @@ a closed or replaced overlay.
 
 - `OcrV3TextSliceTest`: original whitespace, missing/unselected
   middle labels, punctuation, overlapping character offsets.
-- `OcrV3HandleRangeTest`: text-handle selection expansion,
-  shrinking, crossing, and unrelated TextBlock isolation.
+- `OcrV3ExpansionControllerTest`: glyph-level expansion, shrinking,
+  crossing, reading order, finger offset and distant-blank isolation.
+- `OcrV3StrokeSelectionTest`: unchanged freehand stroke behavior.
 - `tools/verify_paddle_independent_models.py`: checks the V3
   entry point, standalone engines and tests, and prohibits V3 runtime
   references to old Circle/OCR correction classes.
@@ -103,3 +108,21 @@ post-CTC whitespace correction, fabricated glyph, or old V2 mapping
 dependency. A wrong Paddle transcription must be diagnosed
 separately with an actual screenshot/output comparison because
 aggregate log counts cannot reveal textual accuracy.
+
+## 2026-10-20 — glyph-level expansion refactor
+
+The previous `OcrV3HandleRange` rejected movement outside one ML TextBlock
+and relied on direct hit testing against full ML Elements. Its range reset
+when crossing blocks, and the terminal ACTION_UP point was not consumed.
+It has been retired, rather than supplemented with more special cases.
+
+The new `OcrV3ExpansionController` is platform-independent and is directly
+covered by plain JVM tests. Real character rectangles come from ML Symbol
+matches whenever possible. If absent, the renderer uses a real Paddle glyph
+rectangle, or the existing ML Element rectangle; character widths are not
+fabricated. The original Paddle UTF-16 spans remain authoritative. Existing
+tap/stroke word selection is unaffected until the user actively expands.
+
+Important: screen-layout reading order depends on Paddle's original line
+sequence. Highly complex multiple-column/icon layouts may still require
+device-level validation; geometry ordering alone cannot infer semantics.

@@ -81,7 +81,7 @@ final class OcrV3WordMapper {
             original.sort(Comparator.comparingInt((Integer id)->page.glyphs.get(id).line)
                     .thenComparingInt(id->page.glyphs.get(id).start));
             OcrV3MlLayout.Word ml=source.get(i);
-            result.add(new OcrV3Selection.Word(ml.block,ml.box,original));
+            result.add(new OcrV3Selection.Word(ml.block,ml.box,original,ml.symbols));
         }
         return new Result(result,mapped,page.glyphs.size()-mapped,withoutSymbols);
     }

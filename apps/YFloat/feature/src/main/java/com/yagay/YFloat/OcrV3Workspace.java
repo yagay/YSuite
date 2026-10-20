@@ -257,8 +257,32 @@ final class OcrV3Workspace extends View {
         PointF top=bitmapPoint(0f,0f);
         PointF stem=bitmapPoint(0f,7f*density);
         float bitmapStem=(float)Math.hypot(stem.x-top.x,stem.y-top.y);
-        return selection.begin(p.x,p.y,Math.max(18f,
+        boolean captured=selection.begin(p.x,p.y,Math.max(18f,
                 frame.transform.screenDistanceToBitmap(20f*density)),bitmapStem);
+        if(captured)DiagnosticLog.i(app,"OCR_V3_HANDLE",
+                "phase=begin side="+selection.movingHandle()+
+                " range="+selection.first()+".."+selection.last()+
+                " units="+selection.expansionUnits());
+        return captured;
+    }
+
+    private float handleSnapRadius(){
+        return Math.max(8f,frame.transform.screenDistanceToBitmap(28f*density));
+    }
+
+    private void moveHandle(MotionEvent e){
+        if(selection==null)return;
+        for(int i=0;i<e.getHistorySize();i++){
+            PointF p=bitmapPoint(e.getHistoricalX(i),e.getHistoricalY(i));
+            selection.drag(p.x,p.y,handleSnapRadius());
+        }
+        PointF p=bitmapPoint(e.getX(),e.getY());
+        if(selection.drag(p.x,p.y,handleSnapRadius()))
+            DiagnosticLog.i(app,"OCR_V3_HANDLE",
+                    "phase=move first="+selection.first()+
+                    " last="+selection.last()+
+                    " side="+selection.movingHandle()+
+                    " fine="+selection.expanded());
     }
 
     private float selectionPadding(){
@@ -363,8 +387,7 @@ final class OcrV3Workspace extends View {
         }
         if(action==MotionEvent.ACTION_MOVE){
             if(downOnHandle&&selection!=null){
-                PointF p=bitmapPoint(x,y);
-                selection.drag(p.x,p.y);
+                moveHandle(e);
             }else{
                 recordMovement(e);
                 if(!textStroke&&Math.hypot(x-downX,y-downY)>18*density)
@@ -376,8 +399,17 @@ final class OcrV3Workspace extends View {
         }
         if(action==MotionEvent.ACTION_UP){
             if(downOnHandle){
+                // ACTION_UP can contain the final movement; never discard it.
+                if(selection!=null){
+                    moveHandle(e);
+                    DiagnosticLog.i(app,"OCR_V3_HANDLE",
+                            "phase=end first="+selection.first()+
+                            " last="+selection.last()+
+                            " fine="+selection.expanded()+
+                            " chars="+selection.text().length());
+                    selection.release();
+                }
                 downOnHandle=false;
-                if(selection!=null)selection.release();
                 syncPopup();invalidate();return true;
             }
             recordMovement(e);

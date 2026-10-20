@@ -708,7 +708,7 @@ v3_mapper=(java / "OcrV3WordMapper.java").read_text()
 v3_geometry=(java / "OcrV3GeometryMatch.java").read_text()
 if "OcrV3WordMapper.map(page,ml)" not in v3_selection or (
         "return page.selectedText(unique)" not in v3_selection) or (
-        "new OcrV3Selection.Word(ml.block,ml.box,original)" not in v3_mapper):
+        "new OcrV3Selection.Word(ml.block,ml.box,original,ml.symbols)" not in v3_mapper):
     problems.append("ML-to-Paddle V3 text mapping is not safe")
 if "OcrV3GeometryMatch.score(" not in v3_mapper or (
         "if(covered<.35)" not in v3_geometry):
@@ -730,11 +730,29 @@ if "value.append(original," not in v3_slices or (
     problems.append("V3 source text is no longer exact Paddle substrings")
 if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3TextSliceTest.java").is_file():
     problems.append("V3 raw text/whitespace tests missing")
-if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3HandleRangeTest.java").is_file():
-    problems.append("V3 ML handle selection tests missing")
-v3_handles=(java / "OcrV3HandleRange.java").read_text()
-if "OcrV3HandleRange.move(" not in v3_selection or "if(!sameMlBlock)" not in v3_handles:
-    problems.append("V3 cannot safely separate ML text blocks while expanding")
+# V3 expansion is intentionally a separate pure-Java controller, not the old
+# block-bounded two-index update. Assert production paths and tests together.
+v3_expansion=(java / "OcrV3ExpansionController.java").read_text()
+v3_stroke=(java / "OcrV3StrokeRange.java").read_text()
+for marker in ("new OcrV3ExpansionController(buildUnits(),words.size())",
+               "expansion.prepare(", "expansion.begin(", "expansion.drag(",
+               "expansion.unit(", "page.selectedText(unique)",
+               "w.symbols"):
+    if marker not in v3_selection:
+        problems.append("V3 glyph-level expansion path disconnected: "+marker)
+for marker in ("ordered.sort", "offsetX", "offsetY", "void release()",
+               "if(a>b)", "distanceSquared", "maxDistance*maxDistance"):
+    if marker not in v3_expansion:
+        problems.append("V3 expansion controller missing invariant: "+marker)
+if "OcrV3StrokeRange" not in v3_selection or "strokeRange.extend(" not in v3_selection:
+    problems.append("V3 proven freehand selection no longer isolated")
+if "moveHandle(e)" not in v3_workspace or "phase=end" not in v3_workspace:
+    problems.append("V3 handle UP coordinate/diagnostics missing")
+for name in ("OcrV3ExpansionControllerTest.java", "OcrV3StrokeSelectionTest.java"):
+    if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():
+        problems.append("V3 handle/stroke regression suite missing: "+name)
+if (java / "OcrV3HandleRange.java").exists():
+    problems.append("Retired ML-block-only handle engine is still present")
 if (java / "CircleSelectionViewportPolicy.java").exists():
     problems.append("V3 must not resurrect custom legacy viewport selection")
 
