@@ -111,6 +111,49 @@ public final class YFilesModule extends XposedModule {
                 }
                 return chain.proceed();
             });
+            // SortDimension#getDefaultSortDirection is used by SortModel.sortOnDefault().
+            // Preserve the user's manual picker sorting: do not invoke sortByUser here.
+            // Unrecognised/OEM implementations simply retain their native behaviour.
+            try {
+                Class<?> sortDimension = Class.forName(
+                        "com.android.documentsui.sorting.SortDimension", false, classLoader);
+                Method getDirection = sortDimension.getDeclaredMethod("getDefaultSortDirection");
+                Method getId = sortDimension.getDeclaredMethod("getId");
+                int ascending = sortDimension.getField("SORT_DIRECTION_ASCENDING").getInt(null);
+                int descending = sortDimension.getField("SORT_DIRECTION_DESCENDING").getInt(null);
+                hook(getDirection).intercept(chain -> {
+                    try {
+                        SharedPreferences prefs = remotePreferencesOrNull();
+                        if (prefs == null || !hookBoolean(prefs, "enabled", "enabled", true)) {
+                            return chain.proceed();
+                        }
+                        String direction = hookString(
+                                prefs, "default_direction", "defaultDirection", "system");
+                        if (!"ascending".equals(direction) && !"descending".equals(direction)) {
+                            return chain.proceed();
+                        }
+                        String sort = hookString(prefs, "default_sort", "defaultSort", "system");
+                        int selectedId = switch (sort == null ? "system" : sort) {
+                            case "name" -> sortName;
+                            case "date" -> sortDate;
+                            case "size" -> sortSize;
+                            case "type" -> sortType;
+                            default -> 0;
+                        };
+                        Object instance = chain.getThisObject();
+                        if (selectedId == 0 || instance == null ||
+                                !Integer.valueOf(selectedId).equals(getId.invoke(instance))) {
+                            return chain.proceed();
+                        }
+                        return "ascending".equals(direction) ? ascending : descending;
+                    } catch (Throwable t) {
+                        log(Log.WARN, TAG, "DocumentsUI direction patch failed safely", t);
+                        return chain.proceed();
+                    }
+                });
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "DocumentsUI direction hook unavailable; keeping system default", t);
+            }
             log(Log.INFO, TAG, "DocumentsUI default-sort patch ready for " + packageName);
         } catch (Throwable t) {
             log(Log.WARN, TAG, "DocumentsUI sort patch unavailable for " + packageName, t);
@@ -163,7 +206,10 @@ public final class YFilesModule extends XposedModule {
         if ((openDocument || tree || create) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 && initialUri != null && !initialUri.isBlank()) {
             try {
-                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse(initialUri));
+                Uri uri = Uri.parse(initialUri);
+                if ("content".equalsIgnoreCase(uri.getScheme())) {
+                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri);
+                }
             } catch (Throwable t) {
                 log(Log.WARN, TAG, "Invalid initial URI; keeping system default", t);
             }

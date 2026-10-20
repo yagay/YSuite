@@ -745,6 +745,13 @@ class YFilesAdvancedViewModel(
             )
         }
 
+    fun cycleSystemPatchDirection() =
+        updateSystemPatch {
+            val values = YFilesSystemPatchSettings.validDirections
+            val index = values.indexOf(defaultDirection)
+            copy(defaultDirection = values[(index + 1) % values.size])
+        }
+
     fun systemPatchRecommendedScopeCount(): Int =
         systemPatch.recommendedTargets().size
 
