@@ -72,7 +72,7 @@ Paddle spaces between words. Every required line must be verified.
 
 **Limitations:** A high-confidence Paddle recognizer can still make
 recognition mistakes, and ML Kit can miss a line or misdetect Symbols.
-The V4 policy makes disagreements observable and never claims a
+The alignment uses bounded edit-distance sequence comparison, rejects any non-whitespace insertion/deletion and requires at least 80% matching source code points. The V4 policy makes disagreements observable and never claims a
 copy result it cannot align. On-device screenshot tests are still
 needed for actual small-screen fonts, layouts and localized text.
 

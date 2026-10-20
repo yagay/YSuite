@@ -684,7 +684,7 @@ if "OcrV3Workspace." in v4_controller:
     problems.append("Retired V3 workspace still reachable")
 for marker in ("OcrV3MlLayout.scan(", "new OcrV4Selection(words)",
                "OcrV3Paddle.recognizeRegion(", "OcrV4Region.line(",
-               "selection.nextUnreadyLine()", "selection.acceptLine(",
+               "selection.nextUnreadyLine()", "owner.acceptLine(",
                "selection.text()", "selection.highlights()",
                "ImageShareUtils.copyToClipboard(",
                "ResultSurfaceRouter.showScreenshot("):
