@@ -34,8 +34,17 @@ public final class OcrV3Page {
     final List<Line> lines;
     final List<Glyph> glyphs;
     final String fullText;
+    final int sdkCharacters, sourceAlignedCharacters, sourceUnmatchedCharacters;
+    final int invalidGeometryCharacters, wholeLineFallbacks;
 
-    OcrV3Page(List<Line> lines) {
+    OcrV3Page(List<Line> lines,int sdkCharacters,int sourceAlignedCharacters,
+              int sourceUnmatchedCharacters,int invalidGeometryCharacters,
+              int wholeLineFallbacks) {
+        this.sdkCharacters=sdkCharacters;
+        this.sourceAlignedCharacters=sourceAlignedCharacters;
+        this.sourceUnmatchedCharacters=sourceUnmatchedCharacters;
+        this.invalidGeometryCharacters=invalidGeometryCharacters;
+        this.wholeLineFallbacks=wholeLineFallbacks;
         this.lines=List.copyOf(lines);
         ArrayList<Glyph> all=new ArrayList<>();
         ArrayList<String> raw=new ArrayList<>();
