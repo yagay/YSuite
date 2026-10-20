@@ -133,7 +133,12 @@ final class OcrV3Workspace extends View {
                 paddle=page;paddleFinished=true;
                 DiagnosticLog.i(app,"OCR_V3",
                         "paddle_lines="+page.lines.size()+
-                        " paddle_glyphs="+page.glyphs.size());
+                        " paddle_glyphs="+page.glyphs.size()+
+                        " ctc_sdk_chars="+page.sdkCharacters+
+                        " ctc_source_aligned="+page.sourceAlignedCharacters+
+                        " ctc_source_misses="+page.sourceUnmatchedCharacters+
+                        " ctc_invalid_rects="+page.invalidGeometryCharacters+
+                        " whole_line_fallbacks="+page.wholeLineFallbacks);
                 bindIfReady();
             }
             @Override public void failure(Throwable error){
