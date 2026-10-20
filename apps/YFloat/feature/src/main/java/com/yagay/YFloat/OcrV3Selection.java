@@ -24,6 +24,7 @@ final class OcrV3Selection {
     private final OcrV3Page page;
     private final List<Word> words;
     private int anchor=-1, extent=-1, active=0; // 1=start, 2=end
+    private int strokeOrigin=-1;
     private boolean all;
 
     private final OcrV3WordMapper.Result mapping;
@@ -42,7 +43,7 @@ final class OcrV3Selection {
     boolean selected(){return all||(anchor>=0&&extent>=0);}
     boolean handleActive(){return active!=0;}
 
-    void clear(){anchor=extent=-1;active=0;all=false;}
+    void clear(){anchor=extent=-1;active=0;strokeOrigin=-1;all=false;}
     void selectAll(){
         clear();
         if(!words.isEmpty()){anchor=0;extent=words.size()-1;all=true;}
@@ -56,8 +57,24 @@ final class OcrV3Selection {
     boolean tap(float x,float y){
         int i=hit(x,y);
         if(i<0){clear();return false;}
-        anchor=extent=i;active=0;all=false;return true;
+        anchor=extent=i;strokeOrigin=i;active=0;all=false;return true;
     }
+    /**
+     * A text stroke starts at a real ML Element; other TextBlocks do not get
+     * implicitly included in its range. Blank wallpaper never snaps.
+     */
+    boolean extendStroke(float x,float y){
+        if(strokeOrigin<0||all)return false;
+        int current=hit(x,y);
+        if(current<0 || !words.get(current).block.equals(
+                words.get(strokeOrigin).block))return false;
+        int first=Math.min(strokeOrigin,current);
+        int last=Math.max(strokeOrigin,current);
+        if(first==anchor&&last==extent)return false;
+        anchor=first;extent=last;
+        return true;
+    }
+
     boolean begin(float x,float y,float handleRadius,float bitmapStem){
         if(!selected()||all)return false;
         Rect first=words.get(anchor).box,last=words.get(extent).box;
