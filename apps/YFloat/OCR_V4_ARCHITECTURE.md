@@ -83,3 +83,42 @@ reference while V4 undergoes real-device acceptance. Once V4
 passes user verification, remove the non-dispatched V3 workflow
 and old OCR heuristics in a separate cleanup without regressing
 the reusable Paddle SDK service.
+
+## 2026-10-20 V4 false mismatch warning — independent word-level recovery
+
+A verified failure mode in source is `OcrV4Alignment.align()`
+rejecting every ML/Paddle line that has unequal non-space character counts,
+or more than 20% substitutions. A second wider crop of the same ML Line
+does not repair an incorrect ML Line split/merge or differences between the
+two recognizers' transcriptions.
+
+V4 now uses a **multi-stage decision** on the selected source:
+
+1. Run Paddle direct CTC on the complete ML Line, once with moderate
+   padding and once with bounded wider padding; continue to validate all
+   partial text extraction with `OcrV4Alignment`.
+2. If the line remains unverified **and the selection is precisely one
+   complete ML Element**, run direct Paddle CTC on that Element's own
+   original-image rectangle. This is an independent input, not a wider
+   variant of the failed line. One high-confidence (>=0.85) Paddle word
+   may be copied intact even if ML's recognized spelling differs.
+3. Reject blank, control-character, whitespace-containing or clearly
+   oversized word crops; avoid copying accidental adjacent words.
+4. For partial character selection, rely on the word's validated textual
+   alignment. If ML/Paddle disagree, do not invent substring offsets.
+5. Preserve the existing screenshot crop menu and blue ML geometry
+   whether or not OCR can verify a text span.
+
+`OcrV4Document.WordSource` stores separate Paddle source for the selected
+word. It does NOT synthesize text from ML Kit. Whole-word fallback bypasses
+only ML **spelling agreement**, never Paddle model confidence and
+one-Element ROI containment checks. Multiword and partial-word selection
+remain strict because there is no trustworthy source for word boundaries
+without a validated line or a real character alignment.
+
+This avoids the old misleading generic "change selection" prompt for a
+complete word: the app now independently retries the word first. If that
+fails, the UI explains whether the failure is single-word confidence or
+an unverified partial/multiword selection. Tests cover mismatch spellings,
+separate word ROI, initial dropped prefix, cross-word containment,
+low-confidence rejection and strict partial-symbol extraction.

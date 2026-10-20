@@ -76,6 +76,16 @@ final class OcrV4Document {
     private final List<Unit> units;
     private final List<Line> lines;
     private final Map<Integer,OcrV4Alignment.Result> source=new HashMap<>();
+    /** Independently recognized Paddle source for a COMPLETE ML word.
+     *  Partial-character copy still requires validated symbol alignment. */
+    private final Map<Integer,WordSource> wordSource=new HashMap<>();
+    private static final class WordSource {
+        final String raw;
+        final OcrV4Alignment.Result aligned;
+        WordSource(String raw,OcrV4Alignment.Result aligned){
+            this.raw=raw;this.aligned=aligned;
+        }
+    }
     private final int rejectedDuplicates;
 
     private OcrV4Document(List<Word> words,List<Unit> units,
@@ -164,6 +174,39 @@ final class OcrV4Document {
     }
     boolean ready(int id){return source.containsKey(id);}
 
+    /**
+     * Independent Paddle ROI for ONE ML Element, not the same failed LINE
+     * crop. The original Paddle transcription owns all copied characters.
+     * ML's symbol count only constrains whether the crop probably absorbed
+     * unrelated neighbouring text; it never supplies source text.
+     */
+    boolean acceptWord(int wordId,String raw,float confidence){
+        if(wordId<0||wordId>=words.size()||raw==null||raw.isBlank()||
+                !Float.isFinite(confidence)||confidence<.85f)
+            return false;
+        Word word=words.get(wordId);
+        String candidate=raw;
+        if(candidate.codePoints().anyMatch(Character::isISOControl) ||
+                candidate.codePoints().anyMatch(Character::isWhitespace))
+            return false; // One ML Element must remain ONE Paddle token.
+        int actual=candidate.codePointCount(0,candidate.length());
+        if(actual<1||actual>128)return false;
+        List<String> symbols=lines.get(word.lineId).visualSymbols.subList(
+                units.get(word.firstUnit).lineOffset,
+                units.get(word.lastUnit).lineOffset+1);
+        int observed=0;
+        for(String symbol:symbols)observed+=
+                symbol.codePointCount(0,symbol.length());
+        if(observed>0 && actual>observed+Math.max(2,observed/3))
+            return false;
+        OcrV4Alignment.Result aligned=OcrV4Alignment.align(symbols,candidate);
+        wordSource.put(wordId,new WordSource(candidate,aligned));
+        return true;
+    }
+
+    boolean wordReady(int wordId){return wordSource.containsKey(wordId);}
+
+
     List<Integer> lineIds(int firstUnit,int lastUnit){
         if(firstUnit<0||lastUnit>=units.size()||lastUnit<firstUnit)
             return List.of();
@@ -180,6 +223,28 @@ final class OcrV4Document {
     String selectedText(int firstUnit,int lastUnit){
         List<Integer> selectedLines=lineIds(firstUnit,lastUnit);
         if(selectedLines.isEmpty())return "";
+        // For a complete single ML Element, Paddle's independent word ROI
+        // remains valid even when the two OCR engines disagree on spelling.
+        // Never apply this bypass to partial-symbol or multiword selection.
+        int firstWord=units.get(firstUnit).wordId;
+        int lastWord=units.get(lastUnit).wordId;
+        if(firstWord==lastWord){
+            Word w=words.get(firstWord);
+            WordSource local=wordSource.get(firstWord);
+            if(local!=null){
+                if(firstUnit==w.firstUnit&&lastUnit==w.lastUnit)
+                    return local.raw;
+                if(local.aligned.reliable){
+                    int a=units.get(firstUnit).lineOffset-
+                            units.get(w.firstUnit).lineOffset;
+                    int b=units.get(lastUnit).lineOffset-
+                            units.get(w.firstUnit).lineOffset;
+                    return local.aligned.slice(a,b);
+                }
+                // Do not infer character offsets from unequal OCR strings.
+                return "";
+            }
+        }
         StringBuilder output=new StringBuilder();
         for(int id:selectedLines){
             OcrV4Alignment.Result a=source.get(id);

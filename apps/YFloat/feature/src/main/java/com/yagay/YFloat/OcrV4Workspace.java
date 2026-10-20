@@ -50,6 +50,8 @@ final class OcrV4Workspace extends View {
     private final RectF closeHit=new RectF();
     private OcrV4Selection selection;
     private final java.util.Map<Integer,Integer> attempts=new java.util.HashMap<>();
+    private final Set<Integer> attemptedWords=new HashSet<>();
+    private final Set<Integer> pendingWords=new HashSet<>();
     private final Set<Integer> pendingLines=new HashSet<>();
     private boolean mlFinished,closed,downOnHandle,textStroke;
     private int generation;
@@ -365,6 +367,72 @@ final class OcrV4Workspace extends View {
         }
     }
 
+    /**
+     * Last-stage independent recognizer path: crop only the selected ML
+     * Element and run Paddle CTC without DB detection. Unlike line retry,
+     * this does not inherit ML Line split/merge errors.
+     */
+    private void requestWord(int wordId){
+        if(selection==null||closed||wordId<0)return;
+        Rect box=selection.wordBox(wordId);
+        OcrV4Region roi=OcrV4Region.word(
+                box.left,box.top,box.right,box.bottom,
+                frame.bitmap.getWidth(),frame.bitmap.getHeight());
+        if(roi==null){status=tr("单词区域无效","Invalid word region");invalidate();return;}
+        final int run=generation;
+        final OcrV4Selection owner=selection;
+        Bitmap crop=null;
+        try{
+            crop=Bitmap.createBitmap(frame.bitmap,roi.left,roi.top,
+                    roi.right-roi.left,roi.bottom-roi.top);
+            if(crop==frame.bitmap){
+                crop=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
+                if(crop==null)throw new IllegalStateException("Word ROI copy");
+            }
+            pendingWords.add(wordId);
+            status=tr("正在单独识别所选单词…","Recognizing selected word…");
+            DiagnosticLog.i(app,"OCR_V4_WORD",
+                    "stage=begin word="+wordId+
+                    " width="+crop.getWidth()+" height="+crop.getHeight()+
+                    " recognizer=paddle_direct_ctc");
+            Bitmap owned=crop;
+            OcrV3Paddle.recognizeRegion(app,owned,
+                    new Rect(0,0,owned.getWidth(),owned.getHeight()),
+                    new OcrV3Paddle.RegionCallback(){
+                @Override public void success(String raw,float confidence){
+                    if(closed||generation!=run||owner!=selection)return;
+                    pendingWords.remove(wordId);
+                    boolean ok=owner.acceptWord(wordId,raw,confidence);
+                    DiagnosticLog.i(app,"OCR_V4_WORD",
+                            "stage=end word="+wordId+
+                            " paddle_codepoints="+raw.codePointCount(0,raw.length())+
+                            " confidence="+confidence+" accepted="+ok);
+                    status=ok?"":tr("单词识别结果仍不可靠",
+                            "Selected word recognition uncertain");
+                    syncPopup();invalidate();
+                }
+                @Override public void failure(Throwable error){
+                    if(closed||generation!=run||owner!=selection)return;
+                    pendingWords.remove(wordId);
+                    DiagnosticLog.i(app,"OCR_V4_WORD",
+                            "stage=error word="+wordId+
+                            " reason="+ScreenCaptureBackend.safeMessage(error));
+                    status=tr("单词识别失败","Word recognition failed");
+                    syncPopup();invalidate();
+                }
+            });
+            crop=null;
+        }catch(Throwable error){
+            pendingWords.remove(wordId);
+            DiagnosticLog.i(app,"OCR_V4_WORD",
+                    "stage=roi_error word="+wordId+
+                    " reason="+ScreenCaptureBackend.safeMessage(error));
+            status=tr("无法截取单词区域","Unable to capture word crop");
+        }finally{
+            if(crop!=null&&crop!=frame.bitmap&&!crop.isRecycled())crop.recycle();
+        }
+    }
+
     /** Shared YFloat menu at the selected words' absolute screen bounds. */
     private void syncPopup(){
         if(closed||downOnHandle)return;
@@ -377,27 +445,40 @@ final class OcrV4Workspace extends View {
         if(selection==null||!selection.selected()){
             FloatActionMenu.dismiss();return;
         }
-        int unready=selection.nextUnreadyLine();
-        if(unready>=0){
-            FloatActionMenu.dismiss();
-            if(pendingLines.contains(unready))return;
-            int count=attempts.getOrDefault(unready,0);
-            if(count>=2){
-                status=tr("文字识别与选区不一致，请调整选区",
-                        "Text differs from selection; adjust selection");
-                invalidate();return;
-            }
-            attempts.put(unready,count+1);
-            requestLine(unready,count+1);
-            return;
-        }
+        // Cache-first: the chosen Element may already have a verified
+        // independent Paddle WORD source even if its ML line was rejected.
         String value=selection.text();
         if(value.isEmpty()){
+            int unready=selection.nextUnreadyLine();
+            if(unready>=0){
+                FloatActionMenu.dismiss();
+                if(pendingLines.contains(unready))return;
+                int count=attempts.getOrDefault(unready,0);
+                if(count<2){
+                    attempts.put(unready,count+1);
+                    requestLine(unready,count+1);
+                    return;
+                }
+            }
+            // IMPORTANT: a wider LINE retry cannot repair an erroneous
+            // ML line split or insertion. Instead, try the selected WORD.
+            int word=selection.completeSelectedWord();
+            if(word>=0){
+                FloatActionMenu.dismiss();
+                if(pendingWords.contains(word))return;
+                if(attemptedWords.add(word)){
+                    requestWord(word);
+                    return;
+                }
+                status=tr("单词识别不可靠，可重新截图或调整选区",
+                        "Word OCR uncertain; recapture or adjust selection");
+            }else{
+                status=tr("部分或多词选区未能可靠对齐，请先选完整单词",
+                        "Partial or multiword selection unverified; try one full word");
+            }
             FloatActionMenu.dismiss();
-            status=tr("未获得可靠的 Paddle 文字","No verified Paddle text");
             invalidate();return;
         }
-
         Rect bounds=new Rect();
         for(Rect part:selection.highlights())bounds.union(part);
         if(bounds.isEmpty()){FloatActionMenu.dismiss();return;}

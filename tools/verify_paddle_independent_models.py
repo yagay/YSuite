@@ -715,6 +715,24 @@ for marker in ("requireSession(app).sdk.recognizeRegion(source,bounds)",
                "check(OcrModelManager.verifyIntegrity("):
     if marker not in v4_paddle:
         problems.append("Paddle SDK local model contract broken: "+marker)
+# A whole ML Element may have a valid independent Paddle transcription
+# even when the entire ML line cannot be source-aligned. Partial character
+# selection MUST remain gated by verified Paddle/ML symbol correspondence.
+for marker in ("private final Map<Integer,WordSource> wordSource",
+               "boolean acceptWord(", "if(firstUnit==w.firstUnit&&lastUnit==w.lastUnit)",
+               "if(local.aligned.reliable)"):
+    if marker not in v4_document:
+        problems.append("V4 independent Paddle word fallback unsafe or missing: "+marker)
+for marker in ("int completeSelectedWord()", "boolean acceptWord("):
+    if marker not in v4_selection:
+        problems.append("V4 full-word fallback not connected to ML selection: "+marker)
+for marker in ("private void requestWord(", "OcrV4Region.word(",
+               "selection.completeSelectedWord()", "selection.text()",
+               "owner.acceptWord("):
+    if marker not in v4_workspace:
+        problems.append("V4 must try separate Paddle word ROI after failed LINE: "+marker)
+if "static OcrV4Region word(" not in v4_region:
+    problems.append("V4 word crop must not reuse failed ML LINE bounds")
 for name in ("OcrV4AlignmentTest.java","OcrV4DocumentTest.java",
              "OcrV4RegionTest.java"):
     if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():

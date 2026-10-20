@@ -27,6 +27,40 @@ public final class OcrV4DocumentTest {
         assertTrue(d.accept(0,"program",.96f));
         assertEquals("rog",d.selectedText(1,3));
     }
+    @Test public void fullWordCanUseIndependentHighConfidencePaddleEvenIfMlTextWrong(){
+        var d=OcrV4Document.build(List.of(word("latin:0",0,0,"ZZotsApp",10,20)));
+        assertFalse(d.accept(0,"WhatsApp",.98f)); // ML mismatch on line
+        assertTrue(d.acceptWord(0,"WhatsApp",.95f));
+        assertEquals("WhatsApp",d.selectedText(0,7));
+        // Middle letters still need verified correspondence:
+        assertEquals("",d.selectedText(1,3));
+    }
+    @Test public void singleWordFallbackWorksWhenAnotherWordBreaksWholeLine(){
+        var d=OcrV4Document.build(List.of(
+                word("latin:0",0,0,"program",10,20),
+                word("latin:0",0,1,"different",90,20)));
+        assertFalse(d.accept(0,"program other",.95f));
+        assertTrue(d.acceptWord(0,"program",.97f));
+        assertEquals("program",d.selectedText(0,6));
+        assertEquals("rog",d.selectedText(1,3));
+        assertEquals("",d.selectedText(0,15)); // Multi-word unverified
+    }
+    @Test public void neighboringWordInRoiMustNotBeSilentlyCopied(){
+        var d=OcrV4Document.build(List.of(word("latin:0",0,0,"hello",10,20)));
+        assertFalse(d.acceptWord(0,"hello world",.99f));
+        assertEquals("",d.selectedText(0,4));
+    }
+    @Test public void lowConfidenceWordIsNotAccepted(){
+        var d=OcrV4Document.build(List.of(word("latin:0",0,0,"program",10,20)));
+        assertFalse(d.acceptWord(0,"program",.40f));
+        assertEquals("",d.selectedText(0,6));
+    }
+    @Test public void sourceCanRecoverLettersMissingFromMlSymbolList(){
+        var d=OcrV4Document.build(List.of(word("latin:0",0,0,"atsApp",10,20)));
+        assertTrue(d.acceptWord(0,"WhatsApp",.97f));
+        assertEquals("WhatsApp",d.selectedText(0,5));
+        assertEquals("",d.selectedText(1,3));
+    }
     @Test public void missingPaddlePrefixBlocksWrongCopy(){
         var d=OcrV4Document.build(List.of(word("latin:0",0,0,"WhatsApp",10,20)));
         assertFalse(d.accept(0,"atsApp",.99f));

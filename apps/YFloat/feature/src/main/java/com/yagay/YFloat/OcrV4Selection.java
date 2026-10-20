@@ -141,6 +141,25 @@ final class OcrV4Selection {
         return new int[]{document.word(first).firstUnit,
                 document.word(last).lastUnit};
     }
+    /** A safe Paddle-only fallback applies to exactly one entire Element.
+     *  A partial word MUST use a verified Paddle-to-Symbol alignment. */
+    int completeSelectedWord(){
+        int[] range=selectedUnitRange();
+        if(range==null)return -1;
+        OcrV4Document.Unit a=document.unit(range[0]);
+        OcrV4Document.Unit b=document.unit(range[1]);
+        if(a.wordId!=b.wordId)return -1;
+        OcrV4Document.Word w=document.word(a.wordId);
+        return range[0]==w.firstUnit&&range[1]==w.lastUnit?w.id:-1;
+    }
+    Rect wordBox(int id){
+        return id<0||id>=document.wordCount()?new Rect():
+                rect(document.word(id).box);
+    }
+    boolean acceptWord(int id,String text,float confidence){
+        return document.acceptWord(id,text,confidence);
+    }
+
     List<Integer> requiredLines(){
         int[] r=selectedUnitRange();
         return r==null?List.of():document.lineIds(r[0],r[1]);
