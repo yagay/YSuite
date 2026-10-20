@@ -39,22 +39,11 @@ final class OcrV3WordMapper {
                 OcrV3MlLayout.Word w=source.get(j);
                 Rect box=w.box;
                 if(box.isEmpty())continue;
-                int left=Math.max(g.left,box.left),top=Math.max(g.top,box.top);
-                int right=Math.min(g.right,box.right),bottom=Math.min(g.bottom,box.bottom);
-                if(right<=left||bottom<=top)continue;
-                double intersection=(double)(right-left)*(bottom-top);
-                double glyphArea=Math.max(1.0,(double)g.width()*g.height());
-                double coverage=intersection/glyphArea;
-                // The original glyph MUST physically overlap the ML Element.
-                // Relative overlap works for narrow CTC glyphs inside words.
-                if(coverage<.35)continue;
-                boolean center=box.contains((int)g.exactCenterX(),
-                                            (int)g.exactCenterY());
-                // Prefer the most precise ML Element among overlapping passes,
-                // not simply whichever async recognizer completed first.
-                double wordArea=Math.max(1.0,(double)box.width()*box.height());
-                double score=coverage*3.0+(center?1.0:0.0)
-                        -.06*Math.log1p(wordArea/glyphArea);
+                // Match only real overlapping image pixels, not OCR text
+                // equality. ML Kit's output string cannot replace Paddle.
+                double score=OcrV3GeometryMatch.score(g.left,g.top,g.right,
+                        g.bottom,box.left,box.top,box.right,box.bottom);
+                if(!Double.isFinite(score))continue;
                 // CTC text can differ from ML symbol text; equality is only a
                 // tie breaker, NEVER a requirement or source of copied text.
                 for(OcrV3MlLayout.Symbol symbol:w.symbols)
