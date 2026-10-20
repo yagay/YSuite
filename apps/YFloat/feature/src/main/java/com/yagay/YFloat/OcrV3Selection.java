@@ -75,6 +75,53 @@ final class OcrV3Selection {
         return true;
     }
 
+    /**
+     * Follow every physical segment of a freehand underline, including a stroke
+     * which STARTS in blank space. Element hit boxes are ML Kit geometry;
+     * extracted text remains exclusively from the mapped Paddle glyphs.
+     */
+    boolean extendStrokeSegment(float x0,float y0,float x1,float y1,float padding){
+        float distance=(float)Math.hypot(x1-x0,y1-y0);
+        int steps=Math.min(128,Math.max(1,(int)Math.ceil(
+                distance/Math.max(3f,padding*0.5f))));
+        boolean changed=false;
+        for(int k=0;k<=steps;k++){
+            float fraction=(float)k/steps;
+            int i=hitNear(x0+(x1-x0)*fraction,
+                    y0+(y1-y0)*fraction,padding);
+            if(i<0)continue;
+            if(strokeOrigin<0){
+                strokeOrigin=i;anchor=extent=i;all=false;active=0;
+                changed=true;
+            }else if(words.get(i).block.equals(words.get(strokeOrigin).block)){
+                int first=Math.min(strokeOrigin,i),last=Math.max(strokeOrigin,i);
+                // Preserve the complete visited range even if the stroke
+                // doubles back or motion events are delivered out of order.
+                first=Math.min(first,anchor);
+                last=Math.max(last,extent);
+                if(first!=anchor||last!=extent){
+                    anchor=first;extent=last;changed=true;
+                }
+            }
+        }
+        return changed;
+    }
+
+    private int hitNear(float x,float y,float padding){
+        int hit=hit(x,y);
+        if(hit>=0)return hit;
+        int closest=-1;
+        float nearest=Float.POSITIVE_INFINITY;
+        for(int i=0;i<words.size();i++){
+            Rect r=words.get(i).box;
+            float dx=Math.max(r.left-x,Math.max(0f,x-r.right));
+            float dy=Math.max(r.top-y,Math.max(0f,y-r.bottom));
+            float d=dx*dx+dy*dy;
+            if(d<=padding*padding && d<nearest){nearest=d;closest=i;}
+        }
+        return closest;
+    }
+
     boolean begin(float x,float y,float handleRadius,float bitmapStem){
         if(!selected()||all)return false;
         Rect first=words.get(anchor).box,last=words.get(extent).box;

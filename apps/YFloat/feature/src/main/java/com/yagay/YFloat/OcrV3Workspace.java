@@ -46,7 +46,6 @@ final class OcrV3Workspace extends View {
     private final Paint border=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint label=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF closeHit=new RectF();
-    private final RectF[] actions={new RectF(),new RectF(),new RectF(),new RectF()};
     private OcrV3Page paddle;
     private List<OcrV3MlLayout.Word> mlWords=List.of();
     private OcrV3Selection selection;
@@ -54,7 +53,8 @@ final class OcrV3Workspace extends View {
     private int generation;
     private float downX,downY,lastX,lastY;
     private Rect imageSelection;
-    private PointF deferredTap;
+    private final ArrayList<PointF> strokePath=new ArrayList<>();
+    private List<PointF> pendingPath;
     private String status;
     private final float[] tempPoint=new float[2];
 
@@ -165,9 +165,19 @@ final class OcrV3Workspace extends View {
         status=selection.size()==0
                 ?tr("文字位置未对应，查看 OCR 诊断","Text geometry not aligned; see OCR diagnostics")
                 :tr("点击文字选取，拖动手柄扩选","Tap text; drag handles to extend");
-        if(deferredTap!=null){
-            selection.tap(deferredTap.x,deferredTap.y);
-            deferredTap=null;
+        if(pendingPath!=null){
+            List<PointF> path=pendingPath;
+            pendingPath=null;
+            if(!selectPath(path)){
+                if(path.size()==1){
+                    selection.tap(path.get(0).x,path.get(0).y);
+                }else{
+                    imageSelection=bitmapCrop(path.get(0),
+                            path.get(path.size()-1));
+                }
+            }
+            if(selection.selected())imageSelection=null;
+            syncPopup();
         }
         invalidate();
     }
@@ -216,6 +226,8 @@ final class OcrV3Workspace extends View {
         fill.setColor(WASH);
     }
 
+    /** The close affordance is local; selected text/image actions use the
+     * existing YUI FloatActionMenu positioned around the real selection. */
     private void drawToolbar(Canvas c){
         float top=toolbarY();
         closeHit.set(getWidth()-52*density,top,getWidth()-10*density,top+42*density);
@@ -223,32 +235,6 @@ final class OcrV3Workspace extends View {
         c.drawRoundRect(closeHit,20*density,20*density,fill);
         label.setColor(Color.WHITE);label.setTextSize(22*density);
         c.drawText("×",closeHit.centerX(),closeHit.centerY()+7*density,label);
-        label.setTextSize(12*density);
-        fill.setColor(WASH);
-        boolean textMode=selection!=null&&selection.selected()&&imageSelection==null;
-        if(!textMode && imageSelection==null){
-            for(RectF r:actions)r.setEmpty();
-            return;
-        }
-        String[] titles=textMode
-                ?new String[]{tr("复制","Copy"),tr("搜索","Search"),
-                        tr("翻译","Translate"),tr("全选","All")}
-                :new String[]{tr("完成","Done"),tr("复制","Copy"),
-                        tr("保存","Save"),tr("重选","Reset")};
-        int count=titles.length;
-        float available=Math.min(getWidth()-90*density,330*density);
-        float left=Math.max(8*density,(getWidth()-available)/2f);
-        float unit=available/count;
-        float rowY=top+51*density;
-        for(int i=0;i<count;i++){
-            actions[i].set(left+i*unit+2*density,rowY,
-                    left+(i+1)*unit-2*density,rowY+36*density);
-            fill.setColor(0xEC252D3C);
-            c.drawRoundRect(actions[i],17*density,17*density,fill);
-            label.setColor(Color.WHITE);
-            c.drawText(titles[i],actions[i].centerX(),
-                    actions[i].centerY()+4*density,label);
-        }
         fill.setColor(WASH);
     }
     private void drawHint(Canvas c){
@@ -275,78 +261,166 @@ final class OcrV3Workspace extends View {
                 frame.transform.screenDistanceToBitmap(20f*density)),bitmapStem);
     }
 
+    private float selectionPadding(){
+        return Math.max(4f,frame.transform.screenDistanceToBitmap(10*density));
+    }
+
+    /** Collect physical motion history: the first valid ML word may be
+     * crossed BETWEEN sparse MotionEvents, not at ACTION_DOWN or ACTION_UP. */
+    private void recordPoint(float x,float y){
+        PointF next=bitmapPoint(x,y);
+        if(!strokePath.isEmpty()){
+            PointF prior=strokePath.get(strokePath.size()-1);
+            if(selection!=null&&!downOnHandle&&
+                    selection.extendStrokeSegment(prior.x,prior.y,
+                            next.x,next.y,selectionPadding())){
+                textStroke=true;
+                imageSelection=null;
+            }
+        }
+        if(strokePath.size()<1000)strokePath.add(next);
+    }
+
+    private void recordMovement(MotionEvent e){
+        for(int i=0;i<e.getHistorySize();i++)
+            recordPoint(e.getHistoricalX(i),e.getHistoricalY(i));
+        recordPoint(e.getX(),e.getY());
+    }
+
+    private boolean selectPath(List<PointF> path){
+        if(selection==null||path==null||path.isEmpty())return false;
+        if(path.size()==1)return selection.tap(path.get(0).x,path.get(0).y);
+        for(int i=1;i<path.size();i++){
+            PointF a=path.get(i-1),b=path.get(i);
+            selection.extendStrokeSegment(a.x,a.y,b.x,b.y,selectionPadding());
+        }
+        return selection.selected();
+    }
+
+    private Rect bitmapCrop(PointF a,PointF b){
+        int w=frame.bitmap.getWidth(),h=frame.bitmap.getHeight();
+        int l=Math.max(0,Math.min(w-1,(int)Math.floor(Math.min(a.x,b.x))));
+        int t=Math.max(0,Math.min(h-1,(int)Math.floor(Math.min(a.y,b.y))));
+        int r=Math.max(l+1,Math.min(w,(int)Math.ceil(Math.max(a.x,b.x))));
+        int bot=Math.max(t+1,Math.min(h,(int)Math.ceil(Math.max(a.y,b.y))));
+        return new Rect(l,t,r,bot);
+    }
+
+    /** Shared YFloat menu at the selected words' absolute screen bounds. */
+    private void syncPopup(){
+        if(closed||downOnHandle)return;
+        if(imageSelection!=null&&!imageSelection.isEmpty()){
+            FloatActionMenu.showImageAt(app,
+                    frame.bitmapRectToScreen(imageSelection),
+                    true,this::handleImageAction);
+            return;
+        }
+        if(selection==null||!selection.selected()){
+            FloatActionMenu.dismiss();return;
+        }
+        String value=selection.text();
+        if(value.isEmpty()){FloatActionMenu.dismiss();return;}
+        Rect bounds=new Rect();
+        for(Rect part:selection.highlights())bounds.union(part);
+        if(bounds.isEmpty()){FloatActionMenu.dismiss();return;}
+        Rect anchor=frame.bitmapRectToScreen(bounds);
+        DiagnosticLog.i(app,"OCR_V3_MENU",
+                "type=text chars="+value.length()+" anchor="+anchor.toShortString());
+        FloatActionMenu.showTextAt(app,value,this::selectAllFromMenu,anchor);
+    }
+
+    private void selectAllFromMenu(){
+        if(selection==null)return;
+        selection.selectAll();
+        imageSelection=null;
+        invalidate();
+        // The menu's Select All listener dismisses after invoking the callback.
+        post(this::syncPopup);
+    }
+
     @Override public boolean onTouchEvent(MotionEvent e){
         if(closed)return false;
         float x=e.getX(),y=e.getY();
         int action=e.getActionMasked();
         if(action==MotionEvent.ACTION_DOWN){
             if(closeHit.contains(x,y)){dismissActive("close_button");return true;}
-            boolean menu=(selection!=null&&selection.selected())||
-                    imageSelection!=null;
-            if(menu)for(int i=0;i<actions.length;i++)
-                if(actions[i].contains(x,y)){performAction(i);return true;}
+            FloatActionMenu.dismiss();
             downOnHandle=imageSelection==null&&hitHandle(x,y);
+            strokePath.clear();
+            strokePath.add(bitmapPoint(x,y));
+            downX=lastX=x;downY=lastY=y;
             textStroke=false;
-            if(!downOnHandle&&imageSelection==null&&selection!=null){
-                PointF p=bitmapPoint(x,y);
-                textStroke=selection.tap(p.x,p.y);
-                if(textStroke){
-                    status="";
-                    invalidate();
+            if(!downOnHandle){
+                imageSelection=null;
+                if(selection!=null){
+                    PointF p=strokePath.get(0);
+                    textStroke=selection.tap(p.x,p.y);
+                    if(textStroke)status="";
                 }
             }
-            downX=lastX=x;downY=lastY=y;
+            invalidate();
             return true;
         }
         if(action==MotionEvent.ACTION_MOVE){
-            lastX=x;lastY=y;
             if(downOnHandle&&selection!=null){
                 PointF p=bitmapPoint(x,y);
                 selection.drag(p.x,p.y);
-                invalidate();
-            }else if(textStroke&&selection!=null){
-                PointF p=bitmapPoint(x,y);
-                if(selection.extendStroke(p.x,p.y))invalidate();
-            }else if(Math.hypot(x-downX,y-downY)>18*density){
-                imageSelection=cropRect(downX,downY,x,y);
-                invalidate();
+            }else{
+                recordMovement(e);
+                if(!textStroke&&Math.hypot(x-downX,y-downY)>18*density)
+                    imageSelection=cropRect(downX,downY,x,y);
             }
+            lastX=x;lastY=y;
+            invalidate();
             return true;
         }
-        if(action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL){
+        if(action==MotionEvent.ACTION_UP){
             if(downOnHandle){
                 downOnHandle=false;
                 if(selection!=null)selection.release();
+                syncPopup();invalidate();return true;
+            }
+            recordMovement(e);
+            float distance=(float)Math.hypot(x-downX,y-downY);
+            if(selection==null&&!paddleFinished&&!mlFinished){
+                // OCR is asynchronous; never discard a stroke drawn while
+                // the recognizers are still loading.
+                pendingPath=List.copyOf(strokePath);
+                imageSelection=null;
+                invalidate();return true;
+            }
+            if(selection==null&&(paddle==null||!mlFinished)){
+                pendingPath=List.copyOf(strokePath);
+                imageSelection=null;
                 invalidate();return true;
             }
             if(textStroke){
-                if(action==MotionEvent.ACTION_UP&&selection!=null){
-                    PointF p=bitmapPoint(x,y);
-                    selection.extendStroke(p.x,p.y);
-                    DiagnosticLog.i(app,"OCR_V3_STROKE",
-                            "selected="+selection.selected()+
-                            " first="+selection.first()+" last="+selection.last());
-                }
-                textStroke=false;
-                invalidate();
-                return true;
-            }
-            if(action==MotionEvent.ACTION_CANCEL)return true;
-            if(Math.hypot(x-downX,y-downY)<=18*density){
+                imageSelection=null;
+                if(selection!=null)DiagnosticLog.i(app,"OCR_V3_STROKE",
+                        "selected="+selection.selected()+
+                        " first="+selection.first()+" last="+selection.last()+
+                        " points="+strokePath.size());
+            }else if(distance<=18*density){
                 imageSelection=null;
                 PointF p=bitmapPoint(x,y);
-                if(selection!=null){
-                    boolean found=selection.tap(p.x,p.y);
-                    DiagnosticLog.i(app,"OCR_V3_TAP",
-                            "matched="+found+" x="+(int)p.x+
-                            " y="+(int)p.y+" selectable_elements="+selection.size());
-                    if(!found)status=tr("此位置没有可选择的文字","No selectable text at this position");
-                }else deferredTap=p;
+                boolean found=selection!=null&&selection.tap(p.x,p.y);
+                DiagnosticLog.i(app,"OCR_V3_TAP",
+                        "matched="+found+" x="+(int)p.x+
+                        " y="+(int)p.y+" selectable_elements="+
+                        (selection==null?0:selection.size()));
+                if(!found)status=tr("此位置没有可选择的文字",
+                        "No selectable text at this position");
             }else{
                 imageSelection=cropRect(downX,downY,x,y);
                 if(selection!=null)selection.clear();
             }
-            invalidate();return true;
+            syncPopup();invalidate();
+            return true;
+        }
+        if(action==MotionEvent.ACTION_CANCEL){
+            if(downOnHandle&&selection!=null)selection.release();
+            downOnHandle=false;textStroke=false;
+            syncPopup();invalidate();return true;
         }
         return true;
     }
@@ -364,53 +438,45 @@ final class OcrV3Workspace extends View {
         return new Rect(l,t,r,bot);
     }
 
-    private void performAction(int position){
-        if(imageSelection!=null){
-            if(position==3){imageSelection=null;invalidate();return;}
-            Bitmap clip=null;
-            try{
-                clip=Bitmap.createBitmap(frame.bitmap,
-                        imageSelection.left,imageSelection.top,
-                        imageSelection.width(),imageSelection.height());
-                if(clip==frame.bitmap)
-                    clip=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
-                if(clip==null)return;
-                if(position==0){
-                    Rect screen=frame.bitmapRectToScreen(imageSelection);
-                    dismissActive("image_done");
-                    if(!ResultSurfaceRouter.showScreenshot(app,clip,screen))
-                        clip.recycle();
-                    clip=null;return;
-                }
-                if(position==1)ImageShareUtils.copyToClipboard(app,clip);
-                if(position==2)ScreenshotController.save(app,clip);
-            }catch(Throwable t){
-                DiagnosticLog.i(app,"OCR_V3","image_action="+t);
-            }finally{
-                if(clip!=null&&!clip.isRecycled())clip.recycle();
-            }
-            return;
+    /** The same configurable image menu as the pre-V3 Circle workspace. */
+    private void handleImageAction(String action){
+        if(imageSelection==null||imageSelection.isEmpty())return;
+        if(ImageMenuSettings.RESET.equals(action)){
+            imageSelection=null;invalidate();return;
         }
-        if(selection==null||!selection.selected())return;
-        if(position==3){selection.selectAll();invalidate();return;}
-        String value=selection.text();
-        if(value.isEmpty())return;
-        if(position==0){
-            ClipboardManager cm=(ClipboardManager)app.getSystemService(Context.CLIPBOARD_SERVICE);
-            if(cm!=null)cm.setPrimaryClip(ClipData.newPlainText("Paddle OCR",value));
-            Toast.makeText(app,tr("已复制","Copied"),Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String encoded=URLEncoder.encode(value,StandardCharsets.UTF_8);
-        String url=position==1
-                ?"https://www.google.com/search?q="+encoded
-                :"https://translate.google.com/?sl=auto&tl=zh-CN&text="+encoded+"&op=translate";
+        Bitmap clip=null;
         try{
-            Intent web=new Intent(Intent.ACTION_VIEW,Uri.parse(url));
-            web.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            app.startActivity(web);
-        }catch(Throwable err){
-            DiagnosticLog.i(app,"OCR_V3","text_action="+err);
+            Rect chosen=new Rect(imageSelection);
+            clip=Bitmap.createBitmap(frame.bitmap,
+                    chosen.left,chosen.top,chosen.width(),chosen.height());
+            if(clip==frame.bitmap)
+                clip=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
+            if(clip==null)return;
+            if(ImageMenuSettings.DONE.equals(action)){
+                Rect screen=frame.bitmapRectToScreen(chosen);
+                dismissActive("image_done");
+                if(!ResultSurfaceRouter.showScreenshot(app,clip,screen))
+                    clip.recycle();
+                clip=null;return;
+            }
+            if(ImageMenuSettings.FIND.equals(action)||
+                    ImageMenuSettings.SHARE.equals(action)||
+                    ImageCustomMenuStore.isCustom(action))
+                dismissActive("image_external_action");
+            if(ImageMenuSettings.FIND.equals(action))
+                ImageShareUtils.openWith(app,clip);
+            else if(ImageMenuSettings.COPY.equals(action))
+                ImageShareUtils.copyToClipboard(app,clip);
+            else if(ImageMenuSettings.SHARE.equals(action))
+                ImageShareUtils.share(app,clip);
+            else if(ImageMenuSettings.SAVE.equals(action))
+                ScreenshotController.save(app,clip);
+            else if(ImageCustomMenuStore.isCustom(action))
+                ImageCustomMenuStore.launch(app,action,clip);
+        }catch(Throwable t){
+            DiagnosticLog.i(app,"OCR_V3","image_action="+t);
+        }finally{
+            if(clip!=null&&!clip.isRecycled())clip.recycle();
         }
     }
 
@@ -421,6 +487,7 @@ final class OcrV3Workspace extends View {
     private void close(String reason){
         if(closed)return;
         closed=true;generation++;
+        FloatActionMenu.dismiss();
         host.remove(this,"native_circle_workspace");
         try{onClosed.run();}catch(Throwable t){
             DiagnosticLog.i(app,"OCR_V3","close_callback="+t);
