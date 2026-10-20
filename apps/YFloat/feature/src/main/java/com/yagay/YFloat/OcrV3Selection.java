@@ -3,9 +3,7 @@ package com.yagay.YFloat;
 import android.graphics.Rect;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * V3 selection consists ONLY of ML Kit Elements whose symbols can be
@@ -28,34 +26,17 @@ final class OcrV3Selection {
     private int anchor=-1, extent=-1, active=0; // 1=start, 2=end
     private boolean all;
 
+    private final OcrV3WordMapper.Result mapping;
+
     OcrV3Selection(OcrV3Page page,List<OcrV3MlLayout.Word> ml){
         this.page=page;
-        ArrayList<Word> aligned=new ArrayList<>();
-        Set<Integer> assigned=new HashSet<>();
-        if(page!=null&&ml!=null)for(OcrV3MlLayout.Word w:ml){
-            ArrayList<Integer> indices=new ArrayList<>();
-            for(OcrV3MlLayout.Symbol s:w.symbols){
-                int found=-1;
-                float best=Float.POSITIVE_INFINITY;
-                for(int i=0;i<page.glyphs.size();i++){
-                    if(assigned.contains(i))continue;
-                    OcrV3Page.Glyph g=page.glyphs.get(i);
-                    if(!g.text.equals(s.observed))continue;
-                    float dx=g.rect.exactCenterX()-s.box.exactCenterX();
-                    float dy=g.rect.exactCenterY()-s.box.exactCenterY();
-                    float scale=Math.max(6f,Math.max(g.rect.height(),s.box.height()));
-                    float norm=(dx*dx+dy*dy)/(scale*scale);
-                    if(norm<.9f&&norm<best){best=norm;found=i;}
-                }
-                if(found>=0){indices.add(found);assigned.add(found);}
-            }
-            if(indices.isEmpty())continue; // Never use ML-decoded text as output.
-            indices.sort(Comparator.comparingInt((Integer i)->page.glyphs.get(i).line)
-                    .thenComparingInt(i->page.glyphs.get(i).start));
-            aligned.add(new Word(w.block,w.box,indices));
-        }
-        words=List.copyOf(aligned);
+        mapping=OcrV3WordMapper.map(page,ml);
+        words=mapping.words;
     }
+
+    int matchedGlyphs(){return mapping.mappedGlyphs;}
+    int unmatchedGlyphs(){return mapping.unmappedGlyphs;}
+    int missingMlSymbols(){return mapping.missingSymbols;}
 
     int size(){return words.size();}
     boolean selected(){return all||(anchor>=0&&extent>=0);}
