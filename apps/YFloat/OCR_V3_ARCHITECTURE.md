@@ -179,3 +179,55 @@ already short” from “Paddle source complete but mapping incomplete”
 on the user's next actual screenshot without exposing recognized text
 into app diagnostics. A truly missing Paddle character still requires
 recognizer/image-model accuracy work, not alignment heuristics.
+
+## 2026-10-20 — Independent ML selection + detection-free Paddle ROI pipeline
+
+This replaces the preceding **Latin-token prefix recovery patch**, which
+could only recover Paddle characters already found on the full-screen pass.
+The patch and its tests have been REMOVED from the active source tree.
+
+**Selection correctness and text recognition have independent owners:**
+
+1. `OcrV3MlWordVisibility.select` (implemented as
+   `OcrV3WordVisibility`) retains every geometrically valid ML Kit Element
+   regardless of Paddle mapping, and geometrically deduplicates duplicate
+   Chinese/Latin ML recognizer passes. This means even a Paddle detector
+   miss does not make a visible word untappable.
+2. `OcrV3Selection.buildUnits()` builds every text-handle unit from ML Kit
+   Symbols. A missing Paddle glyph uses a `glyphId=-1` reference rather
+   than eliminating a handle unit. The user can still extend and shrink
+   the blue ML-only selection; the source UI never paints Paddle glyphs.
+3. The normal full-image PaddleOCR scan remains fast and cached. A single
+   ML word with insufficient Paddle source coverage is flagged using ONLY
+   the count of ML Symbols, not their recognized contents. The existing
+   Paddle source text stays the first candidate.
+4. The selection-specific `OcrV3LocalRegion` expands the genuine ML word
+   bounds inside the ORIGINAL frozen screenshot, retaining leading/trailing
+   glyph pixels that the full-screen Paddle detector may have trimmed.
+   The workspace crops only this region, not another whole-screen bitmap.
+5. `PaddleOCR.recognizeRegion(bitmap, rect)` reaches
+   `OCREngine.recognizeRegion`, which uses `RecognitionEngine` on that
+   source crop directly. It does NOT run the DB text detector a second time,
+   and uses the same downloaded Paddle recognizer and ONNX session.
+6. `OcrV3LocalTextDecision` conservatively chooses between TWO original
+   Paddle transcriptions; it never copies ML text, adds a brand dictionary,
+   invents characters, modifies OCR spacing, or overrides a complete
+   original with a shorter result. Only actual source-prefix/suffix
+   recovery with sufficient confidence may replace a partial source.
+7. Selection-local OCR requests are asynchronous and cancelled logically
+   using workspace generation, selected word ID and captured selection
+   owner. UI menus never show a known incomplete source while its local
+   refinement is pending. When the region OCR fails, the original Paddle
+   result is retained. Cropped temporary bitmaps are always recycled.
+8. Unit tests exercise geometry independence, duplicate ML detections,
+   cropping bounds, missing prefixes and no invented text without
+   requiring Android graphics stubs.
+
+The raw-text boundary is **Paddle-only**. An ML word which both Paddle
+passes completely fail to recognize remains selectable as a blue UI
+target, but no text can be copied until Paddle provides actual source
+characters. Cross-block and partial-character output still follows
+the original Paddle spans, with ML handles controlling geometry.
+This targeted pathway is an improvement for a detector-truncated word,
+not a guarantee against wrong model recognition. A screenshot-level
+device comparison is still needed to verify the real WhatsApp case.

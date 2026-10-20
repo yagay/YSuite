@@ -16,6 +16,8 @@ package com.paddle.ocr.engine
 
 import android.content.Context
 import android.graphics.PointF
+import android.graphics.Rect
+import org.opencv.core.Rect as CvRect
 import com.paddle.ocr.EngineConfig
 import com.paddle.ocr.PaddleOCRConfig
 import com.paddle.ocr.model.ModelConfig
@@ -73,6 +75,39 @@ class OCREngine(
         require(maxDetectionSide in 960..3072)
         val source=BitmapUtils.bitmapToBGRMat(bitmap)
         return runWithOwnedMat(source,maxDetectionSide)
+    }
+
+    /**
+     * A direct CTC pass over the selected full-resolution source pixels.
+     * ML Kit provides only the rectangle, NOT recognition text.
+     * This avoids a second DB detection which may truncate leading glyphs.
+     * No text postprocessing or application-name dictionaries are involved.
+     */
+    fun recognizeRegion(bitmap: android.graphics.Bitmap, region: Rect): OCRResult? {
+        val left=region.left.coerceIn(0,bitmap.width)
+        val top=region.top.coerceIn(0,bitmap.height)
+        val right=region.right.coerceIn(left,bitmap.width)
+        val bottom=region.bottom.coerceIn(top,bitmap.height)
+        if(right-left<2||bottom-top<2)return null
+        val src=BitmapUtils.bitmapToBGRMat(bitmap)
+        try {
+            val crop=src.submat(CvRect(left,top,right-left,bottom-top))
+            try {
+                val decoded=recognitionEngine.recognize(listOf(crop)).texts.firstOrNull()
+                    ?:return null
+                if(decoded.text.isBlank()||decoded.confidence<config.recScoreThresh)return null
+                val box=OCRBox(listOf(
+                    PointF(left.toFloat(),top.toFloat()),
+                    PointF(right.toFloat(),top.toFloat()),
+                    PointF(right.toFloat(),bottom.toFloat()),
+                    PointF(left.toFloat(),bottom.toFloat())
+                ))
+                // Targeted text is treated as one original Paddle source line;
+                // we never fabricate per-character bounding boxes.
+                return OCRResult(box=box,text=decoded.text,
+                    confidence=decoded.confidence,characters=emptyList())
+            } finally { crop.release() }
+        } finally { src.release() }
     }
 
     /** Run only the PP-OCR detector. Recognition is deliberately skipped. */

@@ -3,8 +3,10 @@ package com.yagay.YFloat;
 import android.graphics.Rect;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -39,6 +41,7 @@ final class OcrV3Selection {
     private final OcrV3WordMapper.Result mapping;
     private final OcrV3StrokeRange strokeRange;
     private final OcrV3ExpansionController expansion;
+    private final Map<Integer,String> localPaddle=new HashMap<>();
     private final List<OcrV3MlSelectionVisual.Box> mlBoxes;
     private int anchor=-1,extent=-1; // current ML word selection
     private boolean all,expanded;
@@ -65,50 +68,43 @@ final class OcrV3Selection {
     }
 
     /**
-     * Convert each genuine Paddle source glyph into one ML-owned hit region.
-     * Paddle boxes are consulted ONLY to associate an ML Symbol; they are
-     * deliberately never forwarded to the highlight renderer or handles.
-     * If no ML Symbol matches, the real ML Element rectangle is used.
+     * Selection positions belong to ML Symbols, independently from Paddle
+     * characters. A missing Paddle glyph is represented as -1 rather than
+     * making the ML text or its handle unreachable.
      */
     private List<OcrV3ExpansionController.Unit> buildUnits(){
         ArrayList<OcrV3ExpansionController.Unit> out=new ArrayList<>();
-        Set<Integer> owned=new HashSet<>();
         for(int wordId=0;wordId<words.size();wordId++){
             Word word=words.get(wordId);
-            boolean[] used=new boolean[word.symbols.size()];
-            for(int glyphId:word.paddle){
-                if(glyphId<0||glyphId>=page.glyphs.size()||
-                        !owned.add(glyphId))continue;
-                OcrV3Page.Glyph glyph=page.glyphs.get(glyphId);
-                Rect source=glyph.rect; // alignment ONLY; never a UI box
-                int best=-1;
-                double bestScore=Double.NEGATIVE_INFINITY;
-                if(!source.isEmpty()){
-                    for(int i=0;i<word.symbols.size();i++){
-                        if(used[i])continue;
-                        OcrV3MlLayout.Symbol symbol=word.symbols.get(i);
-                        Rect candidate=symbol.box;
-                        if(candidate.isEmpty())continue;
-                        double score=OcrV3GeometryMatch.score(
-                                source.left,source.top,
-                                source.right,source.bottom,
-                                candidate.left,candidate.top,
-                                candidate.right,candidate.bottom);
-                        if(!Double.isFinite(score))continue;
-                        if(glyph.text.equals(symbol.observed))score+=.03d;
-                        if(score>bestScore){bestScore=score;best=i;}
-                    }
-                }
-                boolean symbolMatched=best>=0;
-                Rect mlBox=word.box; // fallback: genuine ML Kit Element
-                if(symbolMatched){
-                    used[best]=true;
-                    mlBox=word.symbols.get(best).box;
-                }
+            Set<Integer> used=new HashSet<>();
+            if(word.symbols.isEmpty()){
+                Rect box=word.box;
                 out.add(new OcrV3ExpansionController.Unit(
-                        glyphId,glyph.line,glyph.start,
-                        mlBox.left,mlBox.top,mlBox.right,mlBox.bottom,
-                        wordId,symbolMatched));
+                        -1,wordId,0,box.left,box.top,box.right,box.bottom,
+                        wordId,false));
+                continue;
+            }
+            for(int index=0;index<word.symbols.size();index++){
+                OcrV3MlLayout.Symbol symbol=word.symbols.get(index);
+                Rect box=symbol.box;
+                int best=-1;
+                double score=Double.NEGATIVE_INFINITY;
+                for(int glyphId:word.paddle){
+                    if(glyphId<0||glyphId>=page.glyphs.size()||
+                            used.contains(glyphId))continue;
+                    OcrV3Page.Glyph g=page.glyphs.get(glyphId);
+                    Rect rect=g.rect;
+                    double candidate=OcrV3GeometryMatch.score(
+                            rect.left,rect.top,rect.right,rect.bottom,
+                            box.left,box.top,box.right,box.bottom);
+                    if(!Double.isFinite(candidate))continue;
+                    if(g.text.equals(symbol.observed))candidate+=.03d;
+                    if(candidate>score){score=candidate;best=glyphId;}
+                }
+                if(best>=0)used.add(best);
+                out.add(new OcrV3ExpansionController.Unit(
+                        best,wordId,index,box.left,box.top,box.right,
+                        box.bottom,wordId,true));
             }
         }
         return List.copyOf(out);
@@ -116,7 +112,7 @@ final class OcrV3Selection {
 
     int matchedGlyphs(){return mapping.mappedGlyphs;}
     int unmatchedGlyphs(){return mapping.unmappedGlyphs;}
-    int recoveredSourceGlyphs(){return mapping.recoveredGlyphs;}
+    int unmappedMlElements(){return mapping.unmappedElements;}
 
     /**
      * No recognized words are written to diagnostics. Length-only source
@@ -155,12 +151,49 @@ final class OcrV3Selection {
         return " ml_symbol_chars="+mlChars+
                 " paddle_mapped_chars="+sourceChars+
                 " paddle_source_token_chars="+tokenChars+
-                " source_token_recovered_total="+mapping.recoveredGlyphs;
+                " ml_unmapped_elements="+mapping.unmappedElements;
     }
 
     private static boolean asciiAlphaNum(char c){
         return c>='A'&&c<='Z'||c>='a'&&c<='z'||c>='0'&&c<='9';
     }
+    /** For a single selected real ML Element, detect missing source coverage. */
+    int activeWordIndex(){
+        return !all&&!expanded&&anchor>=0&&anchor==extent
+                ?anchor:-1;
+    }
+
+    Rect wordBox(int index){
+        return index>=0&&index<words.size()
+                ?new Rect(words.get(index).box):new Rect();
+    }
+
+    private String originalWordText(int index){
+        if(index<0||index>=words.size())return "";
+        return page.selectedText(words.get(index).paddle);
+    }
+
+    boolean needsLocalRecognition(int index){
+        if(index!=activeWordIndex()||localPaddle.containsKey(index))
+            return false;
+        int mlChars=0;
+        for(OcrV3MlLayout.Symbol symbol:words.get(index).symbols)
+            mlChars+=symbol.observed.length();
+        return OcrV3LocalTextDecision.needsRecognition(
+                mlChars,originalWordText(index));
+    }
+
+    /** Local recognition may IMPROVE only the actual Paddle source text. */
+    boolean acceptLocal(int index,String recognized,float confidence){
+        if(index<0||index>=words.size())return false;
+        String source=originalWordText(index);
+        String chosen=OcrV3LocalTextDecision.choose(
+                source,recognized,confidence);
+        if(chosen.equals(source))return false;
+        localPaddle.put(index,chosen);
+        return true;
+    }
+
     int missingMlSymbols(){return mapping.missingSymbols;}
     int size(){return words.size();}
     int expansionUnits(){return expansion.size();}
@@ -302,10 +335,28 @@ final class OcrV3Selection {
     String text(){
         if(!selected())return "";
         if(all)return page.fullText;
+        int selectedWord=activeWordIndex();
+        if(selectedWord>=0&&localPaddle.containsKey(selectedWord))
+            return localPaddle.get(selectedWord);
+        if(expanded&&expansion.hasRange()){
+            int startWord=expansion.unit(expansion.first()).wordId;
+            int endWord=expansion.unit(expansion.last()).wordId;
+            if(startWord==endWord&&localPaddle.containsKey(startWord)){
+                boolean complete=true;
+                for(int i=0;i<expansion.size();i++)
+                    if(expansion.unit(i).wordId==startWord &&
+                            (i<expansion.first()||i>expansion.last())){
+                        complete=false;break;
+                    }
+                if(complete)return localPaddle.get(startWord);
+            }
+        }
         ArrayList<Integer> ids=new ArrayList<>();
         if(expanded&&expansion.hasRange()){
-            for(int i=expansion.first();i<=expansion.last();i++)
-                ids.add(expansion.unit(i).glyphId);
+            for(int i=expansion.first();i<=expansion.last();i++){
+                int id=expansion.unit(i).glyphId;
+                if(id>=0)ids.add(id);
+            }
         }else if(anchor>=0&&extent>=0){
             for(int i=Math.min(anchor,extent);i<=Math.max(anchor,extent);i++)
                 if(words.get(i).block.equals(words.get(anchor).block))

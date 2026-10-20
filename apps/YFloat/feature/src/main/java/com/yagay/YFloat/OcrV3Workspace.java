@@ -23,7 +23,9 @@ import android.widget.Toast;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Locale;
 
 /**
@@ -49,6 +51,8 @@ final class OcrV3Workspace extends View {
     private OcrV3Page paddle;
     private List<OcrV3MlLayout.Word> mlWords=List.of();
     private OcrV3Selection selection;
+    private final Set<Integer> attemptedLocalWords=new HashSet<>();
+    private final Set<Integer> pendingLocalWords=new HashSet<>();
     private boolean paddleFinished,mlFinished,closed,downOnHandle,textStroke;
     private int generation;
     private float downX,downY,lastX,lastY;
@@ -125,7 +129,7 @@ final class OcrV3Workspace extends View {
         if(ocrCopy==null){
             paddleFinished=true;
             status=tr("无法复制 OCR 截图","OCR image copy failed");
-            invalidate();return;
+            bindIfReady();invalidate();return;
         }
         OcrV3Paddle.recognize(app,ocrCopy,new OcrV3Paddle.Callback(){
             @Override public void success(OcrV3Page page){
@@ -147,24 +151,28 @@ final class OcrV3Workspace extends View {
                 status=tr("离线 OCR 不可用，请检查模型","Offline OCR unavailable; check model");
                 DiagnosticLog.i(app,"OCR_V3","paddle_failed="+
                         ScreenCaptureBackend.safeMessage(error));
-                invalidate();
+                bindIfReady();invalidate();
             }
         });
     }
     private void bindIfReady(){
-        if(!paddleFinished||!mlFinished||paddle==null)return;
-        selection=new OcrV3Selection(paddle,mlWords);
+        if(!paddleFinished||!mlFinished)return;
+        // ML words remain selectable even when the full-frame Paddle
+        // detector missed every glyph (or a model fails to load).
+        OcrV3Page source=paddle==null
+                ?new OcrV3Page(List.of(),0,0,0,0,0):paddle;
+        selection=new OcrV3Selection(source,mlWords);
         DiagnosticLog.i(app,"OCR_V3_ALIGNMENT",
                 "ml_elements="+mlWords.size()+
-                " paddle_glyphs="+paddle.glyphs.size()+
+                " paddle_glyphs="+source.glyphs.size()+
                 " aligned_elements="+selection.size()+
                 " mapped_paddle_glyphs="+selection.matchedGlyphs()+
                 " unmatched_paddle_glyphs="+selection.unmatchedGlyphs()+
-                " source_token_recovered="+selection.recoveredSourceGlyphs()+
+                " unmapped_ml_elements="+selection.unmappedMlElements()+
                 " ml_elements_without_symbols="+selection.missingMlSymbols()+
                 " copy_source=paddle_only");
         status=selection.size()==0
-                ?tr("文字位置未对应，查看 OCR 诊断","Text geometry not aligned; see OCR diagnostics")
+                ?tr("ML Kit 未检测到文字","ML Kit found no text")
                 :tr("点击文字选取，拖动手柄扩选","Tap text; drag handles to extend");
         if(pendingPath!=null){
             List<PointF> path=pendingPath;
@@ -331,6 +339,80 @@ final class OcrV3Workspace extends View {
         return new Rect(l,t,r,bot);
     }
 
+    /**
+     * One selected ML Element may be longer than its whole-frame Paddle
+     * source mapping. Crop ORIGINAL frozen pixels with a small margin and
+     * run CTC recognition directly (no second DB detector).
+     */
+    private void requestLocalPaddle(int wordIndex){
+        if(selection==null||closed||wordIndex<0)return;
+        Rect box=selection.wordBox(wordIndex);
+        OcrV3LocalRegion roi=OcrV3LocalRegion.plan(
+                box.left,box.top,box.right,box.bottom,
+                frame.bitmap.getWidth(),frame.bitmap.getHeight());
+        if(roi==null)return;
+        final int run=generation;
+        final OcrV3Selection owner=selection;
+        Bitmap crop=null;
+        try{
+            crop=Bitmap.createBitmap(frame.bitmap,roi.left,roi.top,
+                    roi.right-roi.left,roi.bottom-roi.top);
+            if(crop==frame.bitmap){
+                crop=frame.bitmap.copy(Bitmap.Config.ARGB_8888,false);
+                if(crop==null)throw new IllegalStateException("Region bitmap copy");
+            }
+            pendingLocalWords.add(wordIndex);
+            status=tr("正在精确识别选中文字…","Refining selected text…");
+            invalidate();
+            DiagnosticLog.i(app,"OCR_V3_REGION",
+                    "phase=start word="+wordIndex+
+                    " width="+crop.getWidth()+" height="+crop.getHeight()+
+                    " detector=skipped text=paddle_only");
+            Bitmap owned=crop;
+            OcrV3Paddle.recognizeRegion(app,owned,
+                    new Rect(0,0,owned.getWidth(),owned.getHeight()),
+                    new OcrV3Paddle.RegionCallback(){
+                @Override public void success(String raw,float confidence){
+                    if(closed||generation!=run)return;
+                    pendingLocalWords.remove(wordIndex);
+                    boolean changed=owner.acceptLocal(wordIndex,raw,confidence);
+                    DiagnosticLog.i(app,"OCR_V3_REGION",
+                            "phase=end word="+wordIndex+
+                            " source_chars="+owner.textCoverageDiagnostic()+
+                            " local_chars="+raw.length()+
+                            " confidence="+confidence+
+                            " replaced="+changed);
+                    status="";
+                    if(selection==owner&&
+                            selection.activeWordIndex()==wordIndex&&
+                            imageSelection==null)syncPopup();
+                    invalidate();
+                }
+                @Override public void failure(Throwable error){
+                    if(closed||generation!=run)return;
+                    pendingLocalWords.remove(wordIndex);
+                    status=tr("局部识别失败，使用原有结果",
+                            "Local recognition failed; using cached result");
+                    DiagnosticLog.i(app,"OCR_V3_REGION",
+                            "phase=error word="+wordIndex+
+                            " reason="+ScreenCaptureBackend.safeMessage(error));
+                    if(selection==owner&&
+                            selection.activeWordIndex()==wordIndex&&
+                            imageSelection==null)syncPopup();
+                    invalidate();
+                }
+            });
+            crop=null; // Ownership transferred; callback finally recycles it.
+        }catch(Throwable error){
+            pendingLocalWords.remove(wordIndex);
+            status=tr("无法识别此区域","Unable to recognize region");
+            DiagnosticLog.i(app,"OCR_V3_REGION",
+                    "phase=start_error "+ScreenCaptureBackend.safeMessage(error));
+        }finally{
+            if(crop!=null&&crop!=frame.bitmap&&!crop.isRecycled())crop.recycle();
+        }
+    }
+
     /** Shared YFloat menu at the selected words' absolute screen bounds. */
     private void syncPopup(){
         if(closed||downOnHandle)return;
@@ -343,8 +425,25 @@ final class OcrV3Workspace extends View {
         if(selection==null||!selection.selected()){
             FloatActionMenu.dismiss();return;
         }
+        int word=selection.activeWordIndex();
+        if(word>=0&&selection.needsLocalRecognition(word)){
+            if(pendingLocalWords.contains(word)){
+                FloatActionMenu.dismiss();return;
+            }
+            if(attemptedLocalWords.add(word)){
+                FloatActionMenu.dismiss();
+                requestLocalPaddle(word);
+                if(pendingLocalWords.contains(word))return;
+            }
+        }
         String value=selection.text();
-        if(value.isEmpty()){FloatActionMenu.dismiss();return;}
+        if(value.isEmpty()){
+            FloatActionMenu.dismiss();
+            status=tr("Paddle 未能识别所选文字",
+                    "Paddle could not recognize selected text");
+            invalidate();
+            return;
+        }
         Rect bounds=new Rect();
         for(Rect part:selection.highlights())bounds.union(part);
         if(bounds.isEmpty()){FloatActionMenu.dismiss();return;}

@@ -708,7 +708,7 @@ v3_mapper=(java / "OcrV3WordMapper.java").read_text()
 v3_geometry=(java / "OcrV3GeometryMatch.java").read_text()
 if "OcrV3WordMapper.map(page,ml)" not in v3_selection or (
         "return page.selectedText(unique)" not in v3_selection) or (
-        "new OcrV3Selection.Word(ml.block,ml.box,original,ml.symbols)" not in v3_mapper):
+        "new OcrV3Selection.Word(" not in v3_mapper):
     problems.append("ML-to-Paddle V3 text mapping is not safe")
 if "OcrV3GeometryMatch.score(" not in v3_mapper or (
         "if(covered<.35)" not in v3_geometry):
@@ -744,19 +744,52 @@ for marker in ("ordered.sort", "offsetX", "offsetY", "void release()",
                "if(a>b)", "distanceSquared", "maxDistance*maxDistance"):
     if marker not in v3_expansion:
         problems.append("V3 expansion controller missing invariant: "+marker)
-v3_source_recovery=(java / "OcrV3LatinTokenRecovery.java").read_text()
-for marker in ("OcrV3LatinTokenRecovery.recover(", "recovered.recovered",
-               "assignments.get(owner).add(id)"):
+# OCR V3 2026-10-20: native ML word eligibility is independent from
+# Paddle CTC character matching, and the old Latin-prefix recovery engine
+# must not be present in the current runtime.
+v3_visibility=(java / "OcrV3WordVisibility.java").read_text()
+for marker in ("OcrV3WordVisibility.select(candidates)",
+               "unmappedElements", "ml.block,ml.box,indices,ml.symbols"):
     if marker not in v3_mapper:
-        problems.append("V3 source-token ownership recovery not wired: "+marker)
-if "source_token_recovered=" not in v3_workspace or (
-        "paddle_source_token_chars=" not in v3_selection):
-    problems.append("V3 cannot distinguish Paddle source omissions from ML mapping misses")
-if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3LatinTokenRecoveryTest.java").is_file():
-    problems.append("V3 source-token prefix regression test missing")
-if "glyphs.size()!=initialOwners.length" not in v3_source_recovery or (
-        "group.ambiguous" not in v3_source_recovery):
-    problems.append("V3 source-token recovery must not invent or reassign source text")
+        problems.append("V3 ML text-element eligibility depends on Paddle: "+marker)
+for marker in ("static List<Integer> select(", "if(!dup)distinct.add(candidate)"):
+    if marker not in v3_visibility:
+        problems.append("V3 independent ML visibility policy missing: "+marker)
+if (java / "OcrV3LatinTokenRecovery.java").exists():
+    problems.append("Obsolete Latin-token prefix patch must be removed")
+if "unmapped_ml_elements=" not in v3_workspace:
+    problems.append("V3 has no independent ML visual-vs-Paddle mapping diagnostics")
+v3_local_region=(java / "OcrV3LocalRegion.java").read_text()
+v3_local_decision=(java / "OcrV3LocalTextDecision.java").read_text()
+v3_sdk=(ROOT / "apps/YFloat/ppocr-sdk/src/main/java/com/paddle/ocr/PaddleOCR.kt").read_text()
+v3_engine=(ROOT / "apps/YFloat/ppocr-sdk/src/main/java/com/paddle/ocr/engine/OCREngine.kt").read_text()
+for marker in ("recognizeRegion(context:Context", "requireSession(app)",
+               "requireSession(app).sdk.recognizeRegion(source,bounds)"):
+    if marker not in v3_paddle:
+        problems.append("V3 on-demand Paddle ROI recognition disconnected: "+marker)
+for marker in ("suspend fun recognizeRegion(bitmap: Bitmap, rect: Rect)",
+               "engine.recognizeRegion(bitmap,rect)"):
+    if marker not in v3_sdk:
+        problems.append("Paddle SDK direct region API missing: "+marker)
+for marker in ("fun recognizeRegion(bitmap: android.graphics.Bitmap, region: Rect)",
+               "recognitionEngine.recognize(listOf(crop))"):
+    if marker not in v3_engine:
+        problems.append("Paddle region must bypass second DB text detector: "+marker)
+for marker in ("OcrV3LocalRegion.plan(", "OcrV3Paddle.recognizeRegion(",
+               "selection.needsLocalRecognition(", "pendingLocalWords"):
+    if marker not in v3_workspace:
+        problems.append("V3 missing safe on-demand local recognition flow: "+marker)
+for marker in ("Map<Integer,String> localPaddle", "int activeWordIndex()",
+               "OcrV3LocalTextDecision.needsRecognition(",
+               "OcrV3LocalTextDecision.choose("):
+    if marker not in v3_selection:
+        problems.append("ML selection not independent from Paddle source: "+marker)
+if "return page.selectedText(unique)" not in v3_selection:
+    problems.append("V3 original Paddle text slicing removed")
+for name in ("OcrV3LocalRegionTest.java","OcrV3LocalTextDecisionTest.java",
+             "OcrV3WordVisibilityTest.java"):
+    if not (FEATURE / "feature/src/test/java/com/yagay/YFloat" / name).is_file():
+        problems.append("V3 independent selection/region regression missing: "+name)
 if "OcrV3StrokeRange" not in v3_selection or "strokeRange.extend(" not in v3_selection:
     problems.append("V3 proven freehand selection no longer isolated")
 # BLUE STYLE: Paddle supplies OCR source spans only. Rendering must be owned
@@ -764,8 +797,8 @@ if "OcrV3StrokeRange" not in v3_selection or "strokeRange.extend(" not in v3_sel
 v3_ml_visual=(java / "OcrV3MlSelectionVisual.java").read_text()
 for marker in ("mlBoxes=List.copyOf(renderBoxes)",
                "OcrV3MlSelectionVisual.expanded(mlBoxes,expansion)",
-               "mlBox=word.box", "mlBox=word.symbols.get(best).box",
-               "wordId,symbolMatched"):
+               "Rect box=symbol.box",
+               "wordId,true"):
     if marker not in v3_selection:
         problems.append("V3 mixed ML/Paddle highlight render path: "+marker)
 for marker in ("final boolean mlSymbol;", "this.wordId=wordId;this.mlSymbol=mlSymbol;"):

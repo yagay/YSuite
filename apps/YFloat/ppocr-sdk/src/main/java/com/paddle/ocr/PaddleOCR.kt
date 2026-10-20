@@ -16,6 +16,8 @@ package com.paddle.ocr
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Rect
+import com.paddle.ocr.model.OCRResult
 import com.paddle.ocr.engine.OCREngine
 import com.paddle.ocr.engine.OCREngineResult
 import com.paddle.ocr.model.OCRBox
@@ -98,6 +100,17 @@ class PaddleOCR private constructor(
             throw OCRError.InvalidImage()
         }
         return withContext(Dispatchers.IO) { engine.detect(bitmap).boxes }
+    }
+
+    /**
+     * Detection-free local recognition for an already located on-screen word.
+     * Rect is in ORIGINAL bitmap coordinates. It does not run DB detection,
+     * change the OCR model, or get text from the geometry provider.
+     */
+    suspend fun recognizeRegion(bitmap: Bitmap, rect: Rect): OCRResult? {
+        if (bitmap.isRecycled || bitmap.width <= 0 || bitmap.height <= 0)
+            throw OCRError.InvalidImage()
+        return withContext(Dispatchers.IO) { engine.recognizeRegion(bitmap,rect) }
     }
 
     suspend fun recognize(imageBytes: ByteArray): OCRRunResult {

@@ -19,10 +19,18 @@ import kotlinx.coroutines.withContext
 import kotlin.math.ceil
 import kotlin.math.floor
 
-/** Independent V3 local Paddle recognizer. No legacy OCR adapters are called. */
+/**
+ * Independent local Paddle V3. One warmed ONNX session serves both the
+ * original full-frame recognition and a detection-free ML-region CTC pass.
+ * Only Paddle supplies copyable text; ML never substitutes its transcription.
+ */
 object OcrV3Paddle {
     interface Callback {
         fun success(page:OcrV3Page)
+        fun failure(error:Throwable)
+    }
+    interface RegionCallback {
+        fun success(raw:String,confidence:Float)
         fun failure(error:Throwable)
     }
     private data class Session(val model:Int,val stamp:String,val sdk:PaddleOCR)
@@ -30,58 +38,89 @@ object OcrV3Paddle {
     private val lock=Mutex()
     private var session:Session?=null
 
+    /** Called under lock. No concurrent model reload during local recognition. */
+    private suspend fun requireSession(app:Context):Session {
+        val preference=FloatSettings(app).circleFullOcrEngine()
+        val model=when(preference){
+            1->OcrModelManager.TINY
+            2->OcrModelManager.SMALL
+            3->OcrModelManager.MEDIUM
+            4->OcrModelManager.MOBILE
+            else->listOf(OcrModelManager.SMALL,OcrModelManager.MEDIUM,
+                OcrModelManager.MOBILE,OcrModelManager.TINY)
+                .firstOrNull{OcrModelManager.isReady(app,it)}
+                ?:throw IllegalStateException("Download an offline Paddle model first")
+        }
+        check(OcrModelManager.isReady(app,model)){
+            "Selected offline Paddle model is not installed"
+        }
+        val files=listOf(OcrModelManager.detFile(app,model),
+            OcrModelManager.recFile(app,model),
+            OcrModelManager.ymlFile(app,model))
+        val stamp=files.joinToString("|"){
+            "${it.absolutePath}:${it.length()}:${it.lastModified()}"
+        }
+        var existing=session
+        if(existing!=null&&(existing.model!=model||existing.stamp!=stamp)){
+            existing.sdk.release()
+            existing=null
+            session=null
+        }
+        if(existing==null){
+            check(OcrModelManager.verifyIntegrity(app,model)){
+                "Paddle model integrity check failed"
+            }
+            check(OpenCVUtils.init(app)){"OpenCV initialization failed"}
+            existing=Session(model,stamp,PaddleOCR.create(
+                app,PaddleOCRConfig(),
+                EngineConfig(numThreads=Runtime.getRuntime()
+                    .availableProcessors().coerceIn(1,4)),
+                files[0].absolutePath,files[1].absolutePath,
+                files[2].absolutePath))
+            session=existing
+        }
+        return checkNotNull(existing)
+    }
+
     @JvmStatic fun recognize(context:Context, source:Bitmap, callback:Callback){
         val app=context.applicationContext
         scope.launch {
             try {
-                require(!source.isRecycled && source.width>0 && source.height>0)
+                require(!source.isRecycled&&source.width>0&&source.height>0)
                 val page=lock.withLock {
-                    val preference=FloatSettings(app).circleFullOcrEngine()
-                    val model=when(preference){
-                        1->OcrModelManager.TINY
-                        2->OcrModelManager.SMALL
-                        3->OcrModelManager.MEDIUM
-                        4->OcrModelManager.MOBILE
-                        else->listOf(OcrModelManager.SMALL,OcrModelManager.MEDIUM,
-                            OcrModelManager.MOBILE,OcrModelManager.TINY)
-                            .firstOrNull{OcrModelManager.isReady(app,it)}
-                            ?:throw IllegalStateException("Download an offline Paddle model first")
-                    }
-                    check(OcrModelManager.isReady(app,model)){
-                        "Selected offline Paddle model is not installed"
-                    }
-                    val files=listOf(OcrModelManager.detFile(app,model),
-                        OcrModelManager.recFile(app,model),
-                        OcrModelManager.ymlFile(app,model))
-                    val stamp=files.joinToString("|"){
-                        "${it.absolutePath}:${it.length()}:${it.lastModified()}"
-                    }
-                    var existing=session
-                    if(existing!=null && (existing.model!=model||existing.stamp!=stamp)){
-                        existing.sdk.release()
-                        existing=null;session=null
-                    }
-                    if(existing==null){
-                        check(OcrModelManager.verifyIntegrity(app,model)){
-                            "Paddle model integrity check failed"
-                        }
-                        check(OpenCVUtils.init(app)){"OpenCV initialization failed"}
-                        existing=Session(model,stamp,PaddleOCR.create(
-                            app,PaddleOCRConfig(),
-                            EngineConfig(numThreads=Runtime.getRuntime()
-                                .availableProcessors().coerceIn(1,4)),
-                            files[0].absolutePath,files[1].absolutePath,
-                            files[2].absolutePath))
-                        session=existing
-                    }
-                    val result=checkNotNull(existing).sdk.recognize(source)
+                    val result=requireSession(app).sdk.recognize(source)
                     parse(result.results)
                 }
                 withContext(Dispatchers.Main){callback.success(page)}
             }catch(t:Throwable){
                 withContext(Dispatchers.Main){callback.failure(t)}
             }finally{
-                // The OCR input is a private copy owned by V3.
+                if(!source.isRecycled)source.recycle()
+            }
+        }
+    }
+
+    /**
+     * Runs CTC recognition on source pixels inside the requested source-space
+     * rectangle with NO DB detector stage. The input bitmap is private and
+     * always recycled. It cannot mutate the page or ML geometry.
+     */
+    @JvmStatic fun recognizeRegion(context:Context, source:Bitmap,
+                                  region:Rect, callback:RegionCallback){
+        val app=context.applicationContext
+        val bounds=Rect(region)
+        scope.launch {
+            try {
+                require(!source.isRecycled&&source.width>0&&source.height>0)
+                val result=lock.withLock{
+                    requireSession(app).sdk.recognizeRegion(source,bounds)
+                }
+                withContext(Dispatchers.Main){
+                    callback.success(result?.text ?: "",result?.confidence ?: 0f)
+                }
+            }catch(t:Throwable){
+                withContext(Dispatchers.Main){callback.failure(t)}
+            }finally{
                 if(!source.isRecycled)source.recycle()
             }
         }
