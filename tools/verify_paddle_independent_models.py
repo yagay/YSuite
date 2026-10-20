@@ -704,9 +704,20 @@ for marker in ("final String raw;", "final List<Glyph> glyphs;",
                "OcrV3TextSlice.extract("):
     if marker not in v3_page:
         problems.append("V3 immutable Paddle text schema incomplete: "+marker)
-if "new Word(w.block,w.box,indices)" not in v3_selection or (
-        "return page.selectedText(unique)" not in v3_selection):
+v3_mapper=(java / "OcrV3WordMapper.java").read_text()
+v3_geometry=(java / "OcrV3GeometryMatch.java").read_text()
+if "OcrV3WordMapper.map(page,ml)" not in v3_selection or (
+        "return page.selectedText(unique)" not in v3_selection) or (
+        "new OcrV3Selection.Word(ml.block,ml.box,original)" not in v3_mapper):
     problems.append("ML-to-Paddle V3 text mapping is not safe")
+if "OcrV3GeometryMatch.score(" not in v3_mapper or (
+        "if(covered<.35)" not in v3_geometry):
+    problems.append("V3 source alignment is not geometry-owned")
+if "ctc_source_misses=" not in v3_workspace or (
+        "mapped_paddle_glyphs=" not in v3_workspace):
+    problems.append("OCR V3 has no source-versus-alignment diagnostics")
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3GeometryMatchTest.java").is_file():
+    problems.append("V3 geometric OCR mismatch regressions are missing")
 if "page.fullText" not in v3_selection:
     problems.append("V3 explicit all no longer returns original Paddle string")
 for marker in ("TextRecognition.getClient(", "ChineseTextRecognizerOptions",
