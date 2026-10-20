@@ -737,7 +737,7 @@ v3_stroke=(java / "OcrV3StrokeRange.java").read_text()
 for marker in ("new OcrV3ExpansionController(buildUnits(),words.size())",
                "expansion.prepare(", "expansion.begin(", "expansion.drag(",
                "expansion.unit(", "page.selectedText(unique)",
-               "w.symbols"):
+               "word.symbols"):
     if marker not in v3_selection:
         problems.append("V3 glyph-level expansion path disconnected: "+marker)
 for marker in ("ordered.sort", "offsetX", "offsetY", "void release()",
