@@ -67,3 +67,39 @@ controller. V3 uses the PUBLIC recognition hierarchy and locally draws
 the familiar blue selection UI. The screenshot overlay is a real
 device feature, so final visual/touch accuracy still requires testing
 on an Android device after CI.
+
+
+## 2026-10-20 — recognition-versus-selection diagnosis
+
+The on-device diagnostic at 06:59–07:01 records four completed
+Paddle runs (43–52 lines, 242–251 source glyphs) and concurrent
+ML Kit runs (98–101 word Elements), without a reported model failure.
+It did NOT report how many words remained selectable after alignment.
+
+V3 originally required a verbatim ML Symbol-to-Paddle CTC character
+match. OCR engines may independently tokenize words differently or
+recognize different Unicode characters, causing otherwise correct ML
+Element boxes to disappear from the selection UI.
+
+**Updated V3-only architecture:**
+- `OcrV3GeometryMatch`: pure geometry overlap/coverage for true
+  Paddle character boxes and ML Element boxes; no text equality gate
+  or snapping across blank wallpaper
+- `OcrV3WordMapper`: assigns each real Paddle glyph at most once,
+  resolves overlapping Chinese/Latin ML detection passes using
+  coverage and tighter real boxes; preserves ML TextBlocks/Lines
+- `OcrV3Selection`: hit-testing and selection still use only ML
+  Element coordinates; new direct text strokes select Elements inside
+  the same TextBlock without turning a text stroke into an image crop
+- `OcrV3Workspace`: emits `OCR_V3_ALIGNMENT` with selectable
+  elements, source glyph matches/misses, and `OCR_V3_TAP` and
+  `OCR_V3_STROKE` events without logging private OCR text
+- `OcrV3Paddle`: records genuine CTC characters reported by SDK,
+  source-substring hits, unaligned source characters, invalid
+  source geometry, and whole-line-only fallbacks
+
+ML recognition strings remain **non-copyable**; there is still no
+post-CTC whitespace correction, fabricated glyph, or old V2 mapping
+dependency. A wrong Paddle transcription must be diagnosed
+separately with an actual screenshot/output comparison because
+aggregate log counts cannot reveal textual accuracy.
