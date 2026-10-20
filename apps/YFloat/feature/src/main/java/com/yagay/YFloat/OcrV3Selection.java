@@ -116,6 +116,51 @@ final class OcrV3Selection {
 
     int matchedGlyphs(){return mapping.mappedGlyphs;}
     int unmatchedGlyphs(){return mapping.unmappedGlyphs;}
+    int recoveredSourceGlyphs(){return mapping.recoveredGlyphs;}
+
+    /**
+     * No recognized words are written to diagnostics. Length-only source
+     * comparison distinguishes an upstream Paddle text omission from a
+     * downstream selection/alignment omission on a tapped ML Element.
+     */
+    String textCoverageDiagnostic(){
+        if(all||expanded||anchor<0||extent!=anchor||
+                anchor>=words.size())return "";
+        Word word=words.get(anchor);
+        int mlChars=0;
+        for(OcrV3MlLayout.Symbol symbol:word.symbols)
+            mlChars+=symbol.observed.length();
+        int sourceChars=0,tokenChars=0;
+        for(int glyphId:word.paddle){
+            if(glyphId<0||glyphId>=page.glyphs.size())continue;
+            OcrV3Page.Glyph glyph=page.glyphs.get(glyphId);
+            sourceChars+=glyph.text.length();
+            if(glyph.line<0||glyph.line>=page.lines.size())continue;
+            String raw=page.lines.get(glyph.line).raw;
+            int start=glyph.start,end=glyph.end;
+            if(start<0||end>raw.length()||start>=end)continue;
+            // Only original source ASCII-token boundaries. No guessing from
+            // app names and no ML text substitution.
+            boolean latin=true;
+            for(int k=start;k<end;k++){
+                char c=raw.charAt(k);
+                if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||
+                        (c>='0'&&c<='9'))){latin=false;break;}
+            }
+            if(!latin)continue;
+            while(start>0&&asciiAlphaNum(raw.charAt(start-1)))start--;
+            while(end<raw.length()&&asciiAlphaNum(raw.charAt(end)))end++;
+            tokenChars=Math.max(tokenChars,end-start);
+        }
+        return " ml_symbol_chars="+mlChars+
+                " paddle_mapped_chars="+sourceChars+
+                " paddle_source_token_chars="+tokenChars+
+                " source_token_recovered_total="+mapping.recoveredGlyphs;
+    }
+
+    private static boolean asciiAlphaNum(char c){
+        return c>='A'&&c<='Z'||c>='a'&&c<='z'||c>='0'&&c<='9';
+    }
     int missingMlSymbols(){return mapping.missingSymbols;}
     int size(){return words.size();}
     int expansionUnits(){return expansion.size();}

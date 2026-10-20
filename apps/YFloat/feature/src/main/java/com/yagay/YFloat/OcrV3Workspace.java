@@ -160,6 +160,7 @@ final class OcrV3Workspace extends View {
                 " aligned_elements="+selection.size()+
                 " mapped_paddle_glyphs="+selection.matchedGlyphs()+
                 " unmatched_paddle_glyphs="+selection.unmatchedGlyphs()+
+                " source_token_recovered="+selection.recoveredSourceGlyphs()+
                 " ml_elements_without_symbols="+selection.missingMlSymbols()+
                 " copy_source=paddle_only");
         status=selection.size()==0
@@ -349,7 +350,8 @@ final class OcrV3Workspace extends View {
         if(bounds.isEmpty()){FloatActionMenu.dismiss();return;}
         Rect anchor=frame.bitmapRectToScreen(bounds);
         DiagnosticLog.i(app,"OCR_V3_MENU",
-                "type=text chars="+value.length()+" anchor="+anchor.toShortString());
+                "type=text chars="+value.length()+" anchor="+anchor.toShortString()+
+                selection.textCoverageDiagnostic());
         FloatActionMenu.showTextAt(app,value,this::selectAllFromMenu,anchor);
     }
 

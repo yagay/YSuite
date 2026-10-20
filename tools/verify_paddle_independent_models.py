@@ -744,6 +744,19 @@ for marker in ("ordered.sort", "offsetX", "offsetY", "void release()",
                "if(a>b)", "distanceSquared", "maxDistance*maxDistance"):
     if marker not in v3_expansion:
         problems.append("V3 expansion controller missing invariant: "+marker)
+v3_source_recovery=(java / "OcrV3LatinTokenRecovery.java").read_text()
+for marker in ("OcrV3LatinTokenRecovery.recover(", "recovered.recovered",
+               "assignments.get(owner).add(id)"):
+    if marker not in v3_mapper:
+        problems.append("V3 source-token ownership recovery not wired: "+marker)
+if "source_token_recovered=" not in v3_workspace or (
+        "paddle_source_token_chars=" not in v3_selection):
+    problems.append("V3 cannot distinguish Paddle source omissions from ML mapping misses")
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3LatinTokenRecoveryTest.java").is_file():
+    problems.append("V3 source-token prefix regression test missing")
+if "glyphs.size()!=initialOwners.length" not in v3_source_recovery or (
+        "group.ambiguous" not in v3_source_recovery):
+    problems.append("V3 source-token recovery must not invent or reassign source text")
 if "OcrV3StrokeRange" not in v3_selection or "strokeRange.extend(" not in v3_selection:
     problems.append("V3 proven freehand selection no longer isolated")
 # BLUE STYLE: Paddle supplies OCR source spans only. Rendering must be owned

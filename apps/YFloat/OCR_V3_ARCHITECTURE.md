@@ -151,3 +151,31 @@ falling back to real ML Element boxes. Paddle's glyph boxes are used for
 alignment only; Paddle original text and spacing remain the sole clipboard
 source. Regression tests enforce ML-only geometry, no multiplied translucent
 blue for multi-glyph words, partial symbol boundaries and ML Element fallback.
+
+## 2026-10-20 — original Latin label prefix lost during ML alignment
+
+A device report showed a selected app label fragment (“atsApp” rather
+than “WhatsApp”). The source diagnostic logged 241 raw Paddle glyphs,
+but only 228 were mapped into selectable ML Kit Elements. Prior logs
+contained counts only; there is no raw OCR string in them, so they
+cannot establish whether Paddle itself omitted the prefix or the
+geometric mapping dropped it.
+
+`OcrV3LatinTokenRecovery` (pure Java) now restores **already recognized**
+but geometrically orphaned Paddle glyphs only when they belong to one
+unbroken original ASCII alphanumeric token that has at least two
+independent glyph-to-ML anchors, at least half of the source glyphs
+are anchored, and every anchor agrees on exactly one ML Element.
+It does **not** recover missing recognition text, invent brand names,
+reassign characters across multiple ML Elements, or join labels
+separated by a source space. Original ML Element/Symbol coordinates
+remain the only source of the blue UI.
+
+`OCR_V3_ALIGNMENT` now includes the number of source glyphs recovered;
+single-word `OCR_V3_MENU` events include **counts only** for ML
+symbols, Paddle mapped glyph characters, and Paddle's original ASCII
+token length. This makes it possible to distinguish “Paddle source
+already short” from “Paddle source complete but mapping incomplete”
+on the user's next actual screenshot without exposing recognized text
+into app diagnostics. A truly missing Paddle character still requires
+recognizer/image-model accuracy work, not alignment heuristics.

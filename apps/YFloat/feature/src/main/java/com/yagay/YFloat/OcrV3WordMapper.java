@@ -2,6 +2,7 @@ package com.yagay.YFloat;
 
 import android.graphics.Rect;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -16,20 +17,23 @@ import java.util.Map;
 final class OcrV3WordMapper {
     static final class Result {
         final List<OcrV3Selection.Word> words;
-        final int mappedGlyphs,unmappedGlyphs,missingSymbols;
-        Result(List<OcrV3Selection.Word> words,int mapped,int unmapped,int noSymbols){
+        final int mappedGlyphs,unmappedGlyphs,missingSymbols,recoveredGlyphs;
+        Result(List<OcrV3Selection.Word> words,int mapped,int unmapped,
+               int noSymbols,int recoveredGlyphs){
             this.words=List.copyOf(words);
-            mappedGlyphs=mapped;unmappedGlyphs=unmapped;missingSymbols=noSymbols;
+            mappedGlyphs=mapped;unmappedGlyphs=unmapped;
+            missingSymbols=noSymbols;this.recoveredGlyphs=recoveredGlyphs;
         }
     }
     private OcrV3WordMapper(){}
 
     static Result map(OcrV3Page page,List<OcrV3MlLayout.Word> source){
         if(page==null||source==null||source.isEmpty())
-            return new Result(List.of(),0,page==null?0:page.glyphs.size(),0);
+            return new Result(List.of(),0,page==null?0:page.glyphs.size(),0,0);
         List<ArrayList<Integer>> assignments=new ArrayList<>(source.size());
         for(int i=0;i<source.size();i++)assignments.add(new ArrayList<>());
-        int mapped=0;
+        int[] owners=new int[page.glyphs.size()];
+        Arrays.fill(owners,-1);
         for(int glyphIndex=0;glyphIndex<page.glyphs.size();glyphIndex++){
             OcrV3Page.Glyph glyph=page.glyphs.get(glyphIndex);
             Rect g=glyph.rect;
@@ -52,10 +56,23 @@ final class OcrV3WordMapper {
                     }
                 if(score>bestScore){best=j;bestScore=score;}
             }
-            if(best>=0){
-                assignments.get(best).add(glyphIndex);
-                mapped++;
-            }
+            if(best>=0)owners[glyphIndex]=best;
+        }
+        ArrayList<String> sourceLines=new ArrayList<>(page.lines.size());
+        for(OcrV3Page.Line line:page.lines)sourceLines.add(line.raw);
+        ArrayList<OcrV3LatinTokenRecovery.Span> sourceGlyphs=
+                new ArrayList<>(page.glyphs.size());
+        for(OcrV3Page.Glyph glyph:page.glyphs)
+            sourceGlyphs.add(new OcrV3LatinTokenRecovery.Span(
+                    glyph.line,glyph.start,glyph.end));
+        OcrV3LatinTokenRecovery.Result recovered=
+                OcrV3LatinTokenRecovery.recover(sourceLines,sourceGlyphs,owners);
+        int mapped=0;
+        for(int id=0;id<recovered.owners.length;id++){
+            int owner=recovered.owners[id];
+            if(owner<0)continue;
+            assignments.get(owner).add(id);
+            mapped++;
         }
         ArrayList<Integer> kept=new ArrayList<>();
         int withoutSymbols=0;
@@ -83,6 +100,7 @@ final class OcrV3WordMapper {
             OcrV3MlLayout.Word ml=source.get(i);
             result.add(new OcrV3Selection.Word(ml.block,ml.box,original,ml.symbols));
         }
-        return new Result(result,mapped,page.glyphs.size()-mapped,withoutSymbols);
+        return new Result(result,mapped,page.glyphs.size()-mapped,
+                withoutSymbols,recovered.recovered);
     }
 }
