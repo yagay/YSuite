@@ -39,6 +39,7 @@ final class OcrV3Selection {
     private final OcrV3WordMapper.Result mapping;
     private final OcrV3StrokeRange strokeRange;
     private final OcrV3ExpansionController expansion;
+    private final List<OcrV3MlSelectionVisual.Box> mlBoxes;
     private int anchor=-1,extent=-1; // current ML word selection
     private boolean all,expanded;
 
@@ -53,51 +54,61 @@ final class OcrV3Selection {
                     w.block,b.left,b.top,b.right,b.bottom));
         }
         strokeRange=new OcrV3StrokeRange(boxes);
+        ArrayList<OcrV3MlSelectionVisual.Box> renderBoxes=new ArrayList<>();
+        for(Word word:words){
+            Rect r=word.box;
+            renderBoxes.add(new OcrV3MlSelectionVisual.Box(
+                    r.left,r.top,r.right,r.bottom));
+        }
+        mlBoxes=List.copyOf(renderBoxes);
         expansion=new OcrV3ExpansionController(buildUnits(),words.size());
     }
 
-    /** Prefer matching ML symbols; use genuine Paddle glyph rectangles when
-     * ML does not expose enough usable symbols. Never synthesize character
-     * widths from guessed OCR text or rewrite OCR strings. */
+    /**
+     * Convert each genuine Paddle source glyph into one ML-owned hit region.
+     * Paddle boxes are consulted ONLY to associate an ML Symbol; they are
+     * deliberately never forwarded to the highlight renderer or handles.
+     * If no ML Symbol matches, the real ML Element rectangle is used.
+     */
     private List<OcrV3ExpansionController.Unit> buildUnits(){
         ArrayList<OcrV3ExpansionController.Unit> out=new ArrayList<>();
         Set<Integer> owned=new HashSet<>();
         for(int wordId=0;wordId<words.size();wordId++){
-            Word w=words.get(wordId);
-            boolean[] used=new boolean[w.symbols.size()];
-            for(int glyphId:w.paddle){
+            Word word=words.get(wordId);
+            boolean[] used=new boolean[word.symbols.size()];
+            for(int glyphId:word.paddle){
                 if(glyphId<0||glyphId>=page.glyphs.size()||
                         !owned.add(glyphId))continue;
-                OcrV3Page.Glyph g=page.glyphs.get(glyphId);
-                Rect geometry=g.rect;
+                OcrV3Page.Glyph glyph=page.glyphs.get(glyphId);
+                Rect source=glyph.rect; // alignment ONLY; never a UI box
                 int best=-1;
                 double bestScore=Double.NEGATIVE_INFINITY;
-                if(!geometry.isEmpty()){
-                    for(int i=0;i<w.symbols.size();i++){
+                if(!source.isEmpty()){
+                    for(int i=0;i<word.symbols.size();i++){
                         if(used[i])continue;
-                        OcrV3MlLayout.Symbol s=w.symbols.get(i);
-                        Rect r=s.box;
-                        if(r.isEmpty())continue;
+                        OcrV3MlLayout.Symbol symbol=word.symbols.get(i);
+                        Rect candidate=symbol.box;
+                        if(candidate.isEmpty())continue;
                         double score=OcrV3GeometryMatch.score(
-                                geometry.left,geometry.top,
-                                geometry.right,geometry.bottom,
-                                r.left,r.top,r.right,r.bottom);
+                                source.left,source.top,
+                                source.right,source.bottom,
+                                candidate.left,candidate.top,
+                                candidate.right,candidate.bottom);
                         if(!Double.isFinite(score))continue;
-                        if(g.text.equals(s.observed))score+=.03d;
+                        if(glyph.text.equals(symbol.observed))score+=.03d;
                         if(score>bestScore){bestScore=score;best=i;}
                     }
                 }
-                if(best>=0){
+                boolean symbolMatched=best>=0;
+                Rect mlBox=word.box; // fallback: genuine ML Kit Element
+                if(symbolMatched){
                     used[best]=true;
-                    geometry=w.symbols.get(best).box;
-                }else if(geometry.isEmpty()||
-                        !Rect.intersects(geometry,w.box)){
-                    geometry=w.box; // exact ML Element, not a fabricated glyph
+                    mlBox=word.symbols.get(best).box;
                 }
                 out.add(new OcrV3ExpansionController.Unit(
-                        glyphId,g.line,g.start,
-                        geometry.left,geometry.top,
-                        geometry.right,geometry.bottom,wordId));
+                        glyphId,glyph.line,glyph.start,
+                        mlBox.left,mlBox.top,mlBox.right,mlBox.bottom,
+                        wordId,symbolMatched));
             }
         }
         return List.copyOf(out);
@@ -197,16 +208,32 @@ final class OcrV3Selection {
     int first(){return expanded?expansion.first():anchor;}
     int last(){return expanded?expansion.last():extent;}
 
+    /**
+     * SINGLE visual geometry path: ML Element rectangles for complete words,
+     * genuine ML Symbol bounds for a partial boundary word. Paddle is used
+     * only by text() and cannot change the visible blue highlight style.
+     */
+    private OcrV3MlSelectionVisual.Snapshot expandedVisual(){
+        return OcrV3MlSelectionVisual.expanded(mlBoxes,expansion);
+    }
+
+    private static Rect rect(OcrV3MlSelectionVisual.Box b){
+        return b==null?new Rect():new Rect(b.left,b.top,b.right,b.bottom);
+    }
+
+    int fallbackMlWords(){
+        return expanded&&expansion.hasRange()
+                ?expandedVisual().fallbackWords:0;
+    }
+
     List<Rect> highlights(){
         if(!selected())return List.of();
         ArrayList<Rect> boxes=new ArrayList<>();
-        if(all){
-            for(Word w:words)boxes.add(new Rect(w.box));
-        }else if(expanded&&expansion.hasRange()){
-            for(int i=expansion.first();i<=expansion.last();i++){
-                OcrV3ExpansionController.Unit g=expansion.unit(i);
-                boxes.add(new Rect(g.left,g.top,g.right,g.bottom));
-            }
+        if(expanded&&expansion.hasRange()){
+            for(OcrV3MlSelectionVisual.Box box:expandedVisual().highlights)
+                boxes.add(rect(box));
+        }else if(all){
+            for(Word word:words)boxes.add(new Rect(word.box));
         }else if(anchor>=0&&extent>=0){
             for(int i=Math.min(anchor,extent);i<=Math.max(anchor,extent);i++)
                 if(words.get(i).block.equals(words.get(anchor).block))
@@ -217,19 +244,13 @@ final class OcrV3Selection {
 
     Rect firstBox(){
         if(!selected())return new Rect();
-        if(expanded&&expansion.hasRange()){
-            OcrV3ExpansionController.Unit u=expansion.unit(expansion.first());
-            return new Rect(u.left,u.top,u.right,u.bottom);
-        }
+        if(expanded&&expansion.hasRange())return rect(expandedVisual().start);
         return new Rect(words.get(anchor).box);
     }
 
     Rect lastBox(){
         if(!selected())return new Rect();
-        if(expanded&&expansion.hasRange()){
-            OcrV3ExpansionController.Unit u=expansion.unit(expansion.last());
-            return new Rect(u.left,u.top,u.right,u.bottom);
-        }
+        if(expanded&&expansion.hasRange())return rect(expandedVisual().end);
         return new Rect(words.get(extent).box);
     }
 

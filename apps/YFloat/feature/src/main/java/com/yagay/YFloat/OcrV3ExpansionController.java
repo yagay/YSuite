@@ -23,11 +23,17 @@ final class OcrV3ExpansionController {
         final int line, offset;
         final int left, top, right, bottom;
         final int wordId;
+        /** True only for a genuine matched ML Kit Symbol rectangle. */
+        final boolean mlSymbol;
         Unit(int glyphId,int line,int offset,int left,int top,
              int right,int bottom,int wordId){
+            this(glyphId,line,offset,left,top,right,bottom,wordId,false);
+        }
+        Unit(int glyphId,int line,int offset,int left,int top,
+             int right,int bottom,int wordId,boolean mlSymbol){
             this.glyphId=glyphId;this.line=line;this.offset=offset;
             this.left=left;this.top=top;this.right=right;this.bottom=bottom;
-            this.wordId=wordId;
+            this.wordId=wordId;this.mlSymbol=mlSymbol;
         }
         float centerX(){return (left+right)/2f;}
         float centerY(){return (top+bottom)/2f;}

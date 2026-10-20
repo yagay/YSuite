@@ -126,3 +126,28 @@ tap/stroke word selection is unaffected until the user actively expands.
 Important: screen-layout reading order depends on Paddle's original line
 sequence. Highly complex multiple-column/icon layouts may still require
 device-level validation; geometry ordering alone cannot infer semantics.
+
+## 2026-10-20 — unified ML-only blue selection renderer
+
+The 17:03 diagnostic confirmed successful handle expansion (ranges such as
+104..120 to 120..223) and matching text action popup. However, the earlier
+expanded() path painted an independent rounded rectangle for EVERY selected
+Paddle glyph. When a glyph lacked ML Symbol correspondence, the code passed
+the Paddle glyph box to the UI. That caused visibly different blue heights,
+shape, and stacked alpha immediately after touching a selection handle.
+
+**Architecture invariant**: the OCR visual ALWAYS uses genuine ML Kit geometry,
+before AND after drag. The new Android-free `OcrV3MlSelectionVisual` groups
+selected Paddle **source indexes** by their mapped ML Element, and paints
+exactly one rounded rectangle per selected Element, retaining the exact ML
+Element vertical position and height. A fully selected word looks identical
+in tap/stroke and expanded states. A partially selected word can horizontally
+clip to a real ML Symbol span; absent exact ML Symbol alignment it highlights
+the entire real ML Element rather than drawing a Paddle glyph box. Neither
+made-up widths nor Paddle CTC boxes can enter the UI renderer.
+
+The `OcrV3ExpansionController` provides finger targets from real ML Symbols,
+falling back to real ML Element boxes. Paddle's glyph boxes are used for
+alignment only; Paddle original text and spacing remain the sole clipboard
+source. Regression tests enforce ML-only geometry, no multiplied translucent
+blue for multi-glyph words, partial symbol boundaries and ML Element fallback.

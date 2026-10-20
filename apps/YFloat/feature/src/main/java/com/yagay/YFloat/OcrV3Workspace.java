@@ -406,7 +406,9 @@ final class OcrV3Workspace extends View {
                             "phase=end first="+selection.first()+
                             " last="+selection.last()+
                             " fine="+selection.expanded()+
-                            " chars="+selection.text().length());
+                            " chars="+selection.text().length()+
+                            " renderer=ml_element_symbol_only"+
+                            " ml_element_fallbacks="+selection.fallbackMlWords());
                     selection.release();
                 }
                 downOnHandle=false;

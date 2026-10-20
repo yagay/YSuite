@@ -746,6 +746,27 @@ for marker in ("ordered.sort", "offsetX", "offsetY", "void release()",
         problems.append("V3 expansion controller missing invariant: "+marker)
 if "OcrV3StrokeRange" not in v3_selection or "strokeRange.extend(" not in v3_selection:
     problems.append("V3 proven freehand selection no longer isolated")
+# BLUE STYLE: Paddle supplies OCR source spans only. Rendering must be owned
+# solely by ML Elements/Symbols, for tap, stroke, handles and select-all.
+v3_ml_visual=(java / "OcrV3MlSelectionVisual.java").read_text()
+for marker in ("mlBoxes=List.copyOf(renderBoxes)",
+               "OcrV3MlSelectionVisual.expanded(mlBoxes,expansion)",
+               "mlBox=word.box", "mlBox=word.symbols.get(best).box",
+               "wordId,symbolMatched"):
+    if marker not in v3_selection:
+        problems.append("V3 mixed ML/Paddle highlight render path: "+marker)
+for marker in ("final boolean mlSymbol;", "this.wordId=wordId;this.mlSymbol=mlSymbol;"):
+    if marker not in v3_expansion:
+        problems.append("V3 glyph geometry lost ML provenance: "+marker)
+for marker in ("if(b.selected<b.count)", "if(b.allSymbols&&b.left<b.right)",
+               "finalBox=mlElement", "selected.add(finalBox)",
+               "new Box(b.left,mlElement.top,"):
+    if marker not in v3_ml_visual:
+        problems.append("V3 ML-only style not shared by handle expansions: "+marker)
+if not (FEATURE / "feature/src/test/java/com/yagay/YFloat/OcrV3MlSelectionVisualTest.java").is_file():
+    problems.append("V3 unified ML highlight visual tests missing")
+if "geometry=glyph.rect" in v3_selection or "geometry=g.rect" in v3_selection:
+    problems.append("V3 must never display raw Paddle glyph rectangles")
 if "moveHandle(e)" not in v3_workspace or "phase=end" not in v3_workspace:
     problems.append("V3 handle UP coordinate/diagnostics missing")
 for name in ("OcrV3ExpansionControllerTest.java", "OcrV3StrokeSelectionTest.java"):
