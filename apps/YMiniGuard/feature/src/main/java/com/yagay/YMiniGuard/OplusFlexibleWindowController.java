@@ -672,11 +672,21 @@ final class OplusFlexibleWindowController {
                         || reason.contains(
                                 "pauseBackTasks"));
 
+        // ColorOS may pause a real FlexibleTask with a makeInvisible reason
+        // while userLeaving and resumingPackage remain unset. Only selected
+        // background-playback apps qualify; the keyguard UI stays hideable.
+        boolean nativeMiniHidden =
+                isNativeOplusWindow(session)
+                        && reason != null
+                        && (reason.contains("makeInvisible")
+                        || reason.contains("setVisibility"));
+
         if (!session.backgroundProtected
                 && !switchingPackage
                 && !explicitLeave
                 && !uiSleeping
-                && !recentsBackground) {
+                && !recentsBackground
+                && !nativeMiniHidden) {
             return false;
         }
 
@@ -694,6 +704,8 @@ final class OplusFlexibleWindowController {
                         + " uiSleeping=" + uiSleeping
                         + " recentsBackground="
                         + recentsBackground
+                        + " nativeMiniHidden="
+                        + nativeMiniHidden
                         + " reason=" + reason);
 
         return true;
