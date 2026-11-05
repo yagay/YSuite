@@ -639,12 +639,22 @@ final class OplusFlexibleWindowController {
                                 "pauseInRecentsAnim")
                         || reason.contains(
                                 "pauseBackTasks"));
+        // ColorOS can hide a genuine FlexibleTask without a userLeaving
+        // transition. This is only eligible for an already selected native
+        // mini window; never generalize to fullscreen activities.
+        boolean nativeMiniHidden =
+                isNativeOplusWindow(session)
+                        && GuardConfig.foregroundPackage(session.packageName)
+                        && reason != null
+                        && (reason.contains("makeInvisible")
+                        || reason.contains("setVisibility"));
 
         if (!session.backgroundProtected
                 && !switchingPackage
                 && !explicitLeave
                 && !uiSleeping
-                && !recentsBackground) {
+                && !recentsBackground
+                && !nativeMiniHidden) {
             return false;
         }
 
@@ -662,6 +672,8 @@ final class OplusFlexibleWindowController {
                         + " uiSleeping=" + uiSleeping
                         + " recentsBackground="
                         + recentsBackground
+                        + " nativeMiniHidden="
+                        + nativeMiniHidden
                         + " reason=" + reason);
 
         return true;
