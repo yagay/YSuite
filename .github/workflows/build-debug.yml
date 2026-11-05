@@ -229,6 +229,14 @@ jobs:
           print("Xposed entry:", entries[0])
           PY
 
+      - name: Audit 16 KiB ELF and APK alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find suite/YSuite/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$APK"
+          python3 tools/check_apk_16kb.py "$APK" --strict
+
       - name: Prepare fixed debug APK name
         shell: bash
         run: |
