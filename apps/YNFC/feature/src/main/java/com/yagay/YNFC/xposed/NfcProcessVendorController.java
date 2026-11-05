@@ -135,9 +135,11 @@ final class NfcProcessVendorController {
             for (Method m : proxy.getClass().getMethods()) {
                 if (!"getNfcAdapterVendorInterface".equals(m.getName())) continue;
                 Class<?>[] p = m.getParameterTypes();
-                if (p.length == 1 && p[0] == String.class) {
+                // OEM/AIDL revisions expose either a named vendor or a no-argument
+                // accessor. Never guess Binder transaction codes when neither exists.
+                if (p.length == 0 || (p.length == 1 && p[0] == String.class)) {
                     m.setAccessible(true);
-                    Object result = m.invoke(proxy, VENDOR_NAME);
+                    Object result = p.length == 0 ? m.invoke(proxy) : m.invoke(proxy, VENDOR_NAME);
                     if (result instanceof IBinder) return (IBinder) result;
                     if (result != null) {
                         try {
