@@ -504,9 +504,8 @@ final class OplusFlexibleWindowController {
         for (Session session :
                 sessions.values()) {
             if (!session.active
-                    || !GuardConfig
-                    .foregroundPackage(
-                            session.packageName)) {
+                    || !(GuardConfig.foregroundPackage(session.packageName)
+                    || GuardConfig.backgroundPlaybackPackage(session.packageName))) {
                 continue;
             }
 
@@ -536,9 +535,8 @@ final class OplusFlexibleWindowController {
             for (Session session :
                     sessions.values()) {
                 if (!session.active
-                        || !GuardConfig
-                        .foregroundPackage(
-                                session.packageName)) {
+                        || !(GuardConfig.foregroundPackage(session.packageName)
+                    || GuardConfig.backgroundPlaybackPackage(session.packageName))) {
                     continue;
                 }
 
@@ -601,8 +599,9 @@ final class OplusFlexibleWindowController {
 
         if (session == null
                 || !session.active
-                || !GuardConfig.backgroundPlaybackPackage(
-                session.packageName)) {
+                || !(GuardConfig.backgroundPlaybackPackage(session.packageName)
+                || (GuardConfig.foregroundPackage(session.packageName)
+                && isNativeOplusWindow(session)))) {
             return false;
         }
 
@@ -712,8 +711,9 @@ final class OplusFlexibleWindowController {
 
         if (session == null
                 || !session.active
-                || !GuardConfig.backgroundPlaybackPackage(
-                session.packageName)) {
+                || !(GuardConfig.backgroundPlaybackPackage(session.packageName)
+                || (GuardConfig.foregroundPackage(session.packageName)
+                && isNativeOplusWindow(session)))) {
             return false;
         }
 
