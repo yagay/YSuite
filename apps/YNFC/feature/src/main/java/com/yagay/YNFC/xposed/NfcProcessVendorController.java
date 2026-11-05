@@ -56,7 +56,14 @@ final class NfcProcessVendorController {
             // not depend on transaction numbering. If the OEM interface cannot be reflected, use
             // only transaction IDs reflected from the current Stub; never guess a numeric ID.
             Object mainProxy = asInterface(INFC_STUB, main);
-            IBinder vendor = getVendorBinderViaProxy(mainProxy);
+            // ColorOS may expose the NFC service as a local Binder implementation
+            // while its framework AIDL Stub differs from the SDK-facing class.
+            // Probe the in-process interface first, without hardcoding an OEM tx ID.
+            Object localMain = null;
+            try { localMain = main.queryLocalInterface(mainDescriptor); }
+            catch (Throwable ignored) { }
+            IBinder vendor = getVendorBinderViaProxy(localMain);
+            if (vendor == null) vendor = getVendorBinderViaProxy(mainProxy);
             String path = "aidl-proxy";
             if (vendor == null) {
                 int txGetVendor = resolveRequiredTransaction(INFC_STUB, "TRANSACTION_getNfcAdapterVendorInterface");
@@ -135,9 +142,11 @@ final class NfcProcessVendorController {
             for (Method m : proxy.getClass().getMethods()) {
                 if (!"getNfcAdapterVendorInterface".equals(m.getName())) continue;
                 Class<?>[] p = m.getParameterTypes();
-                if (p.length == 1 && p[0] == String.class) {
+                // OEM/AIDL revisions expose either a named vendor or a no-argument
+                // accessor. Never guess Binder transaction codes when neither exists.
+                if (p.length == 0 || (p.length == 1 && p[0] == String.class)) {
                     m.setAccessible(true);
-                    Object result = m.invoke(proxy, VENDOR_NAME);
+                    Object result = p.length == 0 ? m.invoke(proxy) : m.invoke(proxy, VENDOR_NAME);
                     if (result instanceof IBinder) return (IBinder) result;
                     if (result != null) {
                         try {
