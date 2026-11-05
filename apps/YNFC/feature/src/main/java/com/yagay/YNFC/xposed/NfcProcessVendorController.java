@@ -56,7 +56,14 @@ final class NfcProcessVendorController {
             // not depend on transaction numbering. If the OEM interface cannot be reflected, use
             // only transaction IDs reflected from the current Stub; never guess a numeric ID.
             Object mainProxy = asInterface(INFC_STUB, main);
-            IBinder vendor = getVendorBinderViaProxy(mainProxy);
+            // ColorOS may expose the NFC service as a local Binder implementation
+            // while its framework AIDL Stub differs from the SDK-facing class.
+            // Probe the in-process interface first, without hardcoding an OEM tx ID.
+            Object localMain = null;
+            try { localMain = main.queryLocalInterface(mainDescriptor); }
+            catch (Throwable ignored) { }
+            IBinder vendor = getVendorBinderViaProxy(localMain);
+            if (vendor == null) vendor = getVendorBinderViaProxy(mainProxy);
             String path = "aidl-proxy";
             if (vendor == null) {
                 int txGetVendor = resolveRequiredTransaction(INFC_STUB, "TRANSACTION_getNfcAdapterVendorInterface");
