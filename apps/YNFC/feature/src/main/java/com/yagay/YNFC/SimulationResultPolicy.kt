@@ -10,13 +10,18 @@ internal object SimulationResultPolicy {
             state.rfAccepted && state.rfUid.equals(uid, ignoreCase = true)
 
     /** STOP completed without writing a UID in this NFC process. This is NOT RF stock proof. */
-    fun isStopNoOverride(state: RuntimeStatus, generation: Long): Boolean =
-        !state.simulationEnabled && state.commandGeneration == generation &&
+    fun isStopNoOverride(state: RuntimeStatus, generation: Long): Boolean {
+        val terminal = !state.simulationEnabled && state.commandGeneration == generation &&
             state.handledGeneration == generation && state.commandStatus == "NO_OVERRIDE" &&
             state.commandAction == "STOP" && state.currentPid > 0 &&
-            state.commandPid == state.currentPid &&
-            state.operationState == "IDLE" && !state.rfAccepted &&
+            state.commandPid > 0 && !state.rfAccepted
+        if (!terminal) return false
+        // If the OS already replaced com.android.nfc after the no-write STOP,
+        // another process restart cannot improve UID restoration.
+        if (state.commandPid != state.currentPid) return true
+        return state.operationState == "IDLE" &&
             state.verificationConfidence == "NO_MODIFICATION"
+    }
 
     fun isStopSuccess(state: RuntimeStatus, generation: Long): Boolean {
         val common = state.commandGeneration == generation && state.handledGeneration == generation &&
