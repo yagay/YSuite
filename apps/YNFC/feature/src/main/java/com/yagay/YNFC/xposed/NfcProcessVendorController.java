@@ -46,9 +46,7 @@ final class NfcProcessVendorController {
                 return new Result(false, "TYPE_A_NFC_UNAVAILABLE",
                         "NFC service absent or descriptor mismatch", null);
             }
-            Object local = main.queryLocalInterface(INFC_DESCRIPTOR);
-            IBinder vendor = getVendorBinderViaProxy(local);
-            if (vendor == null) vendor = getVendorBinderViaProxy(asInterface(INFC_STUB, main));
+            IBinder vendor = findVerifiedVendorBinder(main);
             if (vendor == null) {
                 // Avoid arbitrary Binder transactions during capability probes.
                 return new Result(false, "TYPE_A_VENDOR_UNAVAILABLE",
@@ -92,9 +90,7 @@ final class NfcProcessVendorController {
             if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
                 return new Result(false, "TYPE_A_NO_NFC", "NFC service unavailable", null);
             }
-            Object mainLocal = main.queryLocalInterface(INFC_DESCRIPTOR);
-            IBinder vendor = getVendorBinderViaProxy(mainLocal);
-            if (vendor == null) vendor = getVendorBinderViaProxy(asInterface(INFC_STUB, main));
+            IBinder vendor = findVerifiedVendorBinder(main);
             if (!alive(vendor) || !VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))) {
                 return new Result(false, "TYPE_A_VENDOR_UNAVAILABLE",
                         "No verified vendor Binder through Java interface", null);
@@ -118,6 +114,29 @@ final class NfcProcessVendorController {
             return new Result(false, "TYPE_A_EXCEPTION",
                     error.getClass().getName() + ": " + error.getMessage(), VENDOR_DESCRIPTOR);
         }
+    }
+
+    /**
+     * Shared vendor discovery for Type-A probe and execution. Never trust an
+     * OEM transaction unless the returned interface descriptor is exact.
+     */
+    private static IBinder findVerifiedVendorBinder(IBinder main) throws Exception {
+        if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) return null;
+        IBinder vendor = getVendorBinderViaProxy(main.queryLocalInterface(INFC_DESCRIPTOR));
+        if (vendor == null) vendor = getVendorBinderViaProxy(asInterface(INFC_STUB, main));
+        if (vendor == null) {
+            int tx = resolveRequiredTransaction(INFC_STUB,
+                    "TRANSACTION_getNfcAdapterVendorInterface");
+            if (tx > 0) {
+                vendor = getVendorBinderTransact(main, tx);
+            } else if (isOplusHardware()) {
+                // ColorOS 16 NXP evidence: INfcAdapter vendor getter is txn 6.
+                // Descriptor mismatch means the current firmware is unsupported.
+                vendor = getVendorBinderTransact(main, 6);
+            }
+        }
+        return alive(vendor) && VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))
+                ? vendor : null;
     }
 
     private static boolean hasTypeAApi(Object receiver) {
