@@ -220,22 +220,15 @@ final class NfcProcessVendorController {
                         "enableNfcShareMode(" + enabled + ") via AIDL proxy", vendorDescriptor);
             }
 
+            // A controller name and Binder descriptor do not prove the entire
+            // AIDL transaction table. Do not assume txn 15 is share mode on
+            // every ColorOS revision; accept only the current Stub's value.
             int txShare = resolveRequiredTransaction(VENDOR_STUB, "TRANSACTION_enableNfcShareMode");
-            if (txShare <= 0 && isOplusHardware()) {
-                // OplusNfcTool: IVendorNfcAdapter.enableNfcShareMode is tx 15.
-                // Only use it after the vendor descriptor and a read-only
-                // NFCC identity probe both agree with the verified OPlus ABI.
-                String controller = queryNfccIdentity(vendor);
-                if (isRecognizedOplusNfcc(controller)) {
-                    txShare = 15;
-                    path += "/validated-nfcc=" + controller;
-                } else {
-                    return new Result(false, "SHARE_MODE_CAPABILITY",
-                            "Cannot verify OPlus vendor ABI from NFCC identity; no raw vendor transaction",
-                            vendorDescriptor);
-                }
+            if (txShare <= 0) {
+                return new Result(false, "SHARE_MODE_CAPABILITY",
+                        "No callable or reflected share-mode method; unsafe raw transaction disabled",
+                        vendorDescriptor);
             }
-            if (txShare <= 0) return new Result(false, "SHARE_MODE_CAPABILITY", "No proxy method or reflected share-mode transaction", vendorDescriptor);
             boolean accepted = transactShareMode(vendor, enabled, txShare);
             return new Result(accepted, accepted ? "TRIGGERED" : "SHARE_MODE",
                     "enableNfcShareMode(" + enabled + ") via " + path + "/reflected-tx=" + txShare,
