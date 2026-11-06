@@ -1411,9 +1411,41 @@ public class NfcInjectionModule extends XposedModule {
         if (trigger.success) {
             writeSimpleCommandState("TRIGGERED", trigger.detail + "; waiting for RF confirmation", cfg.generation, action, false);
         } else {
-            writeSimpleCommandState("TRIGGER_FAILED", trigger.stage + ": " + trigger.detail, cfg.generation, action, false);
-            writeSemanticState("FAILED", "UNKNOWN", "TRIGGER_FAILED", false, null);
+            failRfTriggerCommand(cfg, trigger);
         }
+    }
+
+    /**
+     * Persist RF trigger errors as a single terminal generation update.
+     * A split TRIGGER_FAILED + semantic FAILED write left command_handled_generation
+     * stale, full_diag_stage stuck at COMMAND_PENDING and UI waiting indefinitely.
+     */
+    private void failRfTriggerCommand(SimConfig cfg, NfcProcessVendorController.Result trigger) {
+        String detail = trigger.stage + ": " + trigger.detail;
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_action", cfg.active ? "APPLY" : "STOP");
+        v.put("command_status", "FAILED");
+        v.put("command_detail", detail);
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", "FAILED");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", "TRIGGER_FAILED");
+        v.put("rf_accepted", false);
+        v.put("rf_status", "TRIGGER_FAILED");
+        v.put("rf_uid", "");
+        v.put("rf_source", "rf-trigger");
+        v.put("rf_pid", Process.myPid());
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_verification", "FAILED");
+        v.put("rf_error", detail);
+        v.put("full_diag_stage", "TRIGGER_FAILED");
+        v.put("full_diag_summary", detail);
+        writeValuesWithRetry(v, 20, 100L);
+        completedGeneration = cfg.generation;
+        completedPid = Process.myPid();
     }
 
     /**
