@@ -104,7 +104,7 @@
     <string name="ynfc_hook_problem_build">已加载的 NFC Hook 与 APK 版本不同，更新 YSuite 后请重启设备。</string>
     <string name="ynfc_hook_problem_unknown">NFC Hook 尚未就绪，请检查目标进程和诊断日志。</string>
     <string name="ynfc_vendor_type_a_mode">实验性 ColorOS Vendor Type-A</string>
-    <string name="ynfc_vendor_type_a_desc">使用已保存的 UID、ATQA、SAK 调用厂商 Type-A 接口。仅能确认厂商是否接受，实际模拟需外部读卡验证；与 RF Hook 独立。</string>
+    <string name="ynfc_vendor_type_a_desc">关闭＝仅 UID 的 Root/LSPosed RF/NCI 模式（推荐）；开启＝实验性 ColorOS Vendor Type-A，需要厂商签名/特权 NFC 权限。实际 UID 必须使用外部读卡设备验证。</string>
     <string name="ynfc_vendor_type_a_stop_first">请先停止当前模拟，再切换执行后端。</string>
     <string name="ynfc_vendor_api_accepted">厂商已接受 Type-A 配置请求，但尚未通过外部读卡器验证实际模拟效果。</string>
     <string name="ynfc_vendor_permission_denied">ColorOS 拒绝了 Vendor Type-A：NFC 系统进程缺少 com.oplus.permission.safe.NFC（签名或特权权限），普通运行时授权无法解决。请先停止模拟恢复 NFC，详情见诊断日志。</string>
