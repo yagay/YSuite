@@ -4,6 +4,8 @@ import android.os.Build;
 import android.os.IBinder;
 import java.util.Locale;
 import android.os.Parcel;
+import dalvik.system.PathClassLoader;
+import java.io.File;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -18,6 +20,12 @@ final class NfcProcessVendorController {
     private static final String VENDOR_STUB = "com.vendor.nfc.IVendorNfcAdapter$Stub";
     private static final int STARTUP_RETRY_COUNT = 30;
     private static final long STARTUP_RETRY_DELAY_MS = 100L;
+    private static final String VENDOR_CLIENT = "com.vendor.nfc.VendorNfcAdapter";
+    private static final String[] VENDOR_JARS = {
+            "/system_ext/framework/nfcvendorlib.jar",
+            "/system_ext/framework/oplusex/com.oplus.NfcNci/nfcvendorlib.jar",
+            "/system_ext/framework/com.vendor.nfc.jar"
+    };
 
     static final class Result {
         final boolean success;
@@ -46,11 +54,17 @@ final class NfcProcessVendorController {
                 return new Result(false, "TYPE_A_NFC_UNAVAILABLE",
                         "NFC service absent or descriptor mismatch", null);
             }
-            IBinder vendor = findVerifiedVendorBinder(main);
+            StringBuilder trace = new StringBuilder();
+            IBinder vendor = findVerifiedVendorBinder(main, trace);
             if (vendor == null) {
-                // Avoid arbitrary Binder transactions during capability probes.
+                Object wrapper = getOplusVendorClient(trace);
+                if (hasTypeAApi(wrapper)) {
+                    return new Result(true, "TYPE_A_WRAPPER_PRESENT",
+                            "OEM vendor client has Type-A method; Binder and RF acceptance unverified; " + trace,
+                            null);
+                }
                 return new Result(false, "TYPE_A_VENDOR_UNAVAILABLE",
-                        "Vendor service not exposed through a callable interface", null);
+                        "No verified vendor Binder or callable OEM client: " + trace, null);
             }
             String descriptor = safeDescriptor(vendor);
             if (!alive(vendor) || !VENDOR_DESCRIPTOR.equals(descriptor)) {
@@ -60,11 +74,17 @@ final class NfcProcessVendorController {
             Object impl = vendor.queryLocalInterface(descriptor);
             if (hasTypeAApi(impl) || hasTypeAApi(asInterface(VENDOR_STUB, vendor))) {
                 return new Result(true, "TYPE_A_API_PRESENT",
-                        "Callable setHceTypeAConfig signature found; controller acceptance not verified",
+                        "Callable Type-A method found; controller acceptance unverified; " + trace,
+                        descriptor);
+            }
+            Object wrapper = getOplusVendorClient(trace);
+            if (hasTypeAApi(wrapper)) {
+                return new Result(true, "TYPE_A_WRAPPER_PRESENT",
+                        "Callable OEM Type-A wrapper; controller acceptance unverified; " + trace,
                         descriptor);
             }
             return new Result(false, "TYPE_A_UNVERIFIED",
-                    "No callable setHceTypeAConfig method; transaction number must not be guessed",
+                    "Vendor Binder exists but no callable Type-A method; " + trace,
                     descriptor);
         } catch (Throwable error) {
             return new Result(false, "TYPE_A_PROBE_FAILED",
@@ -92,12 +112,9 @@ final class NfcProcessVendorController {
             if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
                 return new Result(false, "TYPE_A_NO_NFC", "NFC service unavailable", null);
             }
-            IBinder vendor = findVerifiedVendorBinder(main);
-            if (!alive(vendor) || !VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))) {
-                return new Result(false, "TYPE_A_VENDOR_UNAVAILABLE",
-                        "No verified vendor Binder through Java interface", null);
-            }
-            Object local = vendor.queryLocalInterface(VENDOR_DESCRIPTOR);
+            StringBuilder trace = new StringBuilder();
+            IBinder vendor = findVerifiedVendorBinder(main, trace);
+            Object local = vendor == null ? null : vendor.queryLocalInterface(VENDOR_DESCRIPTOR);
             Object proxy = asInterface(VENDOR_STUB, vendor);
             Object[] args = new Object[]{enabled, atqa == null ? null : atqa.clone(),
                     sak == null ? null : sak.clone(), uid == null ? null : uid.clone()};
@@ -105,13 +122,21 @@ final class NfcProcessVendorController {
             Boolean accepted = invokeBooleanMethod(local, "setHceTypeAConfig", types, args);
             if (accepted == null) accepted = invokeBooleanMethod(proxy, "setHceTypeAConfig", types, args);
             if (accepted == null) {
+                Object wrapper = getOplusVendorClient(trace);
+                if (hasTypeAApi(wrapper)) {
+                    accepted = invokeBooleanMethod(wrapper, "setHceTypeAConfig", types, args);
+                    appendTrace(trace, "path=vendor-client-wrapper");
+                }
+            }
+            if (accepted == null) {
                 return new Result(false, "TYPE_A_API_MISSING",
-                        "No callable vendor Type-A method; raw transaction 16 is deliberately disabled",
-                        VENDOR_DESCRIPTOR);
+                        "No callable Type-A method; raw transaction 16 disabled; " + trace,
+                        vendor == null ? null : VENDOR_DESCRIPTOR);
             }
             return new Result(accepted, accepted ? "TYPE_A_API_ACCEPTED" : "TYPE_A_REJECTED",
-                    accepted ? "OEM accepted Type-A request; RF/controller verification still required"
-                            : "OEM rejected Type-A request", VENDOR_DESCRIPTOR);
+                    (accepted ? "OEM accepted Type-A request; external reader verification required; "
+                            : "OEM rejected Type-A request; ") + trace,
+                    vendor == null ? null : VENDOR_DESCRIPTOR);
         } catch (Throwable error) {
             return new Result(false, "TYPE_A_EXCEPTION",
                     error.getClass().getName() + ": " + error.getMessage(), VENDOR_DESCRIPTOR);
@@ -122,23 +147,91 @@ final class NfcProcessVendorController {
      * Shared vendor discovery for Type-A probe and execution. Never trust an
      * OEM transaction unless the returned interface descriptor is exact.
      */
-    private static IBinder findVerifiedVendorBinder(IBinder main) throws Exception {
-        if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) return null;
-        IBinder vendor = getVendorBinderViaProxy(main.queryLocalInterface(INFC_DESCRIPTOR));
-        if (vendor == null) vendor = getVendorBinderViaProxy(asInterface(INFC_STUB, main));
-        if (vendor == null) {
-            int tx = resolveRequiredTransaction(INFC_STUB,
-                    "TRANSACTION_getNfcAdapterVendorInterface");
+    private static IBinder findVerifiedVendorBinder(IBinder main, StringBuilder trace) throws Exception {
+        if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
+            appendTrace(trace, "main=NFC_BINDER_UNAVAILABLE");
+            return null;
+        }
+        Object local = null;
+        try { local = main.queryLocalInterface(INFC_DESCRIPTOR); }
+        catch (Throwable t) { appendTrace(trace, "local-error=" + t.getClass().getSimpleName()); }
+        appendTrace(trace, "local=" + (local == null ? "null" : local.getClass().getName()));
+        IBinder vendor = getVendorBinderViaProxy(local, trace);
+        if (!verifiedVendor(vendor, trace, "local")) {
+            Object platformProxy = asInterface(INFC_STUB, main);
+            appendTrace(trace, "proxy=" + (platformProxy == null ? "null" : platformProxy.getClass().getName()));
+            vendor = getVendorBinderViaProxy(platformProxy, trace);
+        }
+        if (!verifiedVendor(vendor, trace, "proxy")) {
+            int tx = resolveRequiredTransaction(INFC_STUB, "TRANSACTION_getNfcAdapterVendorInterface");
+            appendTrace(trace, "reflected-getter-tx=" + tx);
             if (tx > 0) {
-                vendor = getVendorBinderTransact(main, tx);
+                vendor = getVendorBinderTransact(main, tx, trace);
             } else if (isOplusHardware()) {
-                // ColorOS 16 NXP evidence: INfcAdapter vendor getter is txn 6.
-                // Descriptor mismatch means the current firmware is unsupported.
-                vendor = getVendorBinderTransact(main, 6);
+                // Compatibility probe from documented ColorOS 16. The reply
+                // MUST carry the exact OEM descriptor; never infer the vendor
+                // method table from successful tx6 alone.
+                vendor = getVendorBinderTransact(main, 6, trace);
+            } else {
+                appendTrace(trace, "tx6-skipped=not-oplus");
             }
         }
-        return alive(vendor) && VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))
-                ? vendor : null;
+        if (!verifiedVendor(vendor, trace, "transaction")) return null;
+        return vendor;
+    }
+
+    private static boolean verifiedVendor(IBinder binder, StringBuilder trace, String path) {
+        if (!alive(binder)) {
+            appendTrace(trace, path + "=no-binder");
+            return false;
+        }
+        String descriptor = safeDescriptor(binder);
+        appendTrace(trace, path + "-descriptor=" + descriptor);
+        return VENDOR_DESCRIPTOR.equals(descriptor);
+    }
+
+    private static void appendTrace(StringBuilder trace, String item) {
+        if (trace != null && trace.length() < 1400) {
+            if (trace.length() != 0) trace.append("; ");
+            trace.append(item);
+        }
+    }
+
+    private static Object getOplusVendorClient(StringBuilder trace) {
+        try {
+            Class<?> cls = loadVendorClass(VENDOR_CLIENT);
+            if (cls == null) {
+                appendTrace(trace, "vendor-client-class=missing");
+                return null;
+            }
+            Method factory = cls.getDeclaredMethod("getVendorNfcAdapter");
+            factory.setAccessible(true);
+            Object instance = factory.invoke(null);
+            appendTrace(trace, "vendor-client=" + (instance == null ? "null" : instance.getClass().getName()));
+            return instance;
+        } catch (Throwable t) {
+            appendTrace(trace, "vendor-client-error=" + t.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private static Class<?> loadVendorClass(String name) {
+        try { return Class.forName(name); }
+        catch (Throwable ignored) { }
+        ClassLoader thread = Thread.currentThread().getContextClassLoader();
+        if (thread != null) {
+            try { return Class.forName(name, false, thread); }
+            catch (Throwable ignored) { }
+        }
+        for (String jar : VENDOR_JARS) {
+            if (!new File(jar).isFile()) continue;
+            try {
+                ClassLoader loader = new PathClassLoader(
+                        jar, NfcProcessVendorController.class.getClassLoader());
+                return Class.forName(name, false, loader);
+            } catch (Throwable ignored) { }
+        }
+        return null;
     }
 
     private static boolean hasTypeAApi(Object receiver) {
@@ -284,36 +377,59 @@ final class NfcProcessVendorController {
     private static Object asInterface(String stubClass, IBinder binder) {
         if (binder == null) return null;
         try {
-            Class<?> stub = Class.forName(stubClass);
+            Class<?> stub = loadVendorClass(stubClass);
+            if (stub == null) return null;
             Method m = stub.getDeclaredMethod("asInterface", IBinder.class);
             m.setAccessible(true);
             return m.invoke(null, binder);
         } catch (Throwable ignored) { return null; }
     }
 
-    private static IBinder getVendorBinderViaProxy(Object proxy) {
-        if (proxy == null) return null;
-        try {
-            for (Method m : proxy.getClass().getMethods()) {
-                if (!"getNfcAdapterVendorInterface".equals(m.getName())) continue;
-                Class<?>[] p = m.getParameterTypes();
-                // OEM/AIDL revisions expose either a named vendor or a no-argument
-                // accessor. Never guess Binder transaction codes when neither exists.
-                if (p.length == 0 || (p.length == 1 && p[0] == String.class)) {
-                    m.setAccessible(true);
-                    Object result = p.length == 0 ? m.invoke(proxy) : m.invoke(proxy, VENDOR_NAME);
-                    if (result instanceof IBinder) return (IBinder) result;
-                    if (result != null) {
-                        try {
-                            Method asBinder = result.getClass().getMethod("asBinder");
-                            Object b = asBinder.invoke(result);
-                            if (b instanceof IBinder) return (IBinder) b;
-                        } catch (Throwable ignored) { }
-                    }
+    private static IBinder getVendorBinderViaProxy(Object receiver) {
+        return getVendorBinderViaProxy(receiver, null);
+    }
+
+    private static IBinder getVendorBinderViaProxy(Object receiver, StringBuilder trace) {
+        if (receiver == null) return null;
+        // The OEM getter may be inherited or declared non-public on NfcService;
+        // try exact method signatures only, never arbitrary methods or tx codes.
+        for (Class<?>[] parameters : new Class<?>[][]{{String.class}, {}}) {
+            Method method = null;
+            try { method = receiver.getClass().getMethod("getNfcAdapterVendorInterface", parameters); }
+            catch (NoSuchMethodException ignored) { }
+            if (method == null) {
+                for (Class<?> c = receiver.getClass(); c != null; c = c.getSuperclass()) {
+                    try {
+                        method = c.getDeclaredMethod("getNfcAdapterVendorInterface", parameters);
+                        break;
+                    } catch (NoSuchMethodException ignored) { }
                 }
             }
-        } catch (Throwable ignored) { }
+            if (method == null) continue;
+            try {
+                method.setAccessible(true);
+                Object result = parameters.length == 0
+                        ? method.invoke(receiver) : method.invoke(receiver, VENDOR_NAME);
+                IBinder binder = unwrapBinder(result);
+                appendTrace(trace, "getter=" + receiver.getClass().getSimpleName()
+                        + "/" + parameters.length + "-arg result="
+                        + (binder == null ? "null" : safeDescriptor(binder)));
+                if (binder != null) return binder;
+            } catch (Throwable t) {
+                appendTrace(trace, "getter-error=" + t.getClass().getSimpleName());
+            }
+        }
         return null;
+    }
+
+    private static IBinder unwrapBinder(Object result) {
+        if (result instanceof IBinder) return (IBinder) result;
+        if (result == null) return null;
+        try {
+            Method method = result.getClass().getMethod("asBinder");
+            Object b = method.invoke(result);
+            return b instanceof IBinder ? (IBinder) b : null;
+        } catch (Throwable ignored) { return null; }
     }
 
     /** Returns null when the capability/signature is absent, otherwise the boolean result. */
@@ -336,7 +452,8 @@ final class NfcProcessVendorController {
 
     private static int resolveRequiredTransaction(String stubClass, String fieldName) {
         try {
-            Class<?> c = Class.forName(stubClass);
+            Class<?> c = loadVendorClass(stubClass);
+            if (c == null) return -1;
             Field f = c.getDeclaredField(fieldName);
             f.setAccessible(true);
             return f.getInt(null);
@@ -344,15 +461,30 @@ final class NfcProcessVendorController {
     }
 
     private static IBinder getVendorBinderTransact(IBinder mainBinder, int transaction) throws Exception {
+        return getVendorBinderTransact(mainBinder, transaction, null);
+    }
+
+    private static IBinder getVendorBinderTransact(
+            IBinder mainBinder, int transaction, StringBuilder trace) throws Exception {
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
             data.writeInterfaceToken(INFC_DESCRIPTOR);
             data.writeString(VENDOR_NAME);
-            if (!mainBinder.transact(transaction, data, reply, 0)) return null;
+            boolean transacted = mainBinder.transact(transaction, data, reply, 0);
+            appendTrace(trace, "getter-tx=" + transaction + " transacted=" + transacted);
+            if (!transacted) return null;
             reply.setDataPosition(0);
-            reply.readException();
-            return reply.readStrongBinder();
+            try {
+                reply.readException();
+            } catch (Throwable error) {
+                appendTrace(trace, "getter-tx-exception=" + error.getClass().getSimpleName());
+                return null;
+            }
+            IBinder binder = reply.readStrongBinder();
+            appendTrace(trace, "getter-tx-descriptor="
+                    + (binder == null ? "null" : safeDescriptor(binder)));
+            return binder;
         } finally {
             reply.recycle();
             data.recycle();
