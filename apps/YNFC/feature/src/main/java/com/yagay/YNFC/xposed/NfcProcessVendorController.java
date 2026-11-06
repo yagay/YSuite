@@ -1,6 +1,8 @@
 package com.yagay.YNFC.xposed;
 
+import android.os.Build;
 import android.os.IBinder;
+import java.util.Locale;
 import android.os.Parcel;
 
 import java.lang.reflect.Field;
@@ -67,11 +69,28 @@ final class NfcProcessVendorController {
             String path = "aidl-proxy";
             if (vendor == null) {
                 int txGetVendor = resolveRequiredTransaction(INFC_STUB, "TRANSACTION_getNfcAdapterVendorInterface");
-                if (txGetVendor <= 0) return new Result(false, "GET_VENDOR_CAPABILITY", "No proxy method or reflected vendor transaction", null);
-                vendor = getVendorBinderTransact(main, txGetVendor);
-                path = "reflected-transaction";
+                if (txGetVendor > 0) {
+                    vendor = getVendorBinderTransact(main, txGetVendor);
+                    path = "reflected-transaction";
+                } else if (isOplusHardware()) {
+                    // OplusNfcTool documents transaction 6 on its verified NXP SN220T
+                    // stack. The platform SDK Stub may not expose the OEM method.
+                    // Restrict this fallback to OPlus devices and VERIFY the returned
+                    // binder's descriptor before attempting any vendor operation.
+                    vendor = getVendorBinderTransact(main, 6);
+                    path = "oplus-nxp-vendor-tx6";
+                    if (vendor != null && !VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))) {
+                        return new Result(false, "GET_VENDOR_DESCRIPTOR",
+                                "OPlus transaction 6 did not return IVendorNfcAdapter; refusing vendor calls",
+                                safeDescriptor(vendor));
+                    }
+                } else {
+                    return new Result(false, "GET_VENDOR_CAPABILITY",
+                            "No reflected vendor transaction and device is not OPlus", null);
+                }
             }
-            if (!alive(vendor)) return new Result(false, "GET_VENDOR_BINDER", "Vendor binder unavailable", null);
+            if (!alive(vendor)) return new Result(false, "GET_VENDOR_BINDER",
+                    "No vendor binder available via " + path, null);
 
             String vendorDescriptor = safeDescriptor(vendor);
             if (!VENDOR_DESCRIPTOR.equals(vendorDescriptor)) {
@@ -111,6 +130,15 @@ final class NfcProcessVendorController {
         } catch (Throwable t) {
             return new Result(false, "EXCEPTION", t.getClass().getName() + ": " + String.valueOf(t.getMessage()), null);
         }
+    }
+
+    private static boolean isOplusHardware() {
+        String brand = Build.BRAND == null ? "" : Build.BRAND.toLowerCase(Locale.ROOT);
+        String manufacturer = Build.MANUFACTURER == null
+                ? "" : Build.MANUFACTURER.toLowerCase(Locale.ROOT);
+        return brand.contains("oppo") || brand.contains("oneplus") || brand.contains("realme")
+                || manufacturer.contains("oppo") || manufacturer.contains("oneplus")
+                || manufacturer.contains("realme");
     }
 
     private static boolean isTransient(String stage) {
