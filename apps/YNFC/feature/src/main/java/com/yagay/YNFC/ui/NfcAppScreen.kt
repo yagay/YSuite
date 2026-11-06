@@ -236,6 +236,29 @@ fun NfcAppScreen(
                     )
                 }
             }
+            // When an APK updates Hook internals but retains the same
+            // stable protocol version, LSPosed cannot replace already-loaded
+            // classes until com.android.nfc itself is reloaded. This remains
+            // optional, explicit, and never reboots the whole phone.
+            if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
+                status.hookPid == status.currentPid && status.hookBuild == BuildConfig.HOOK_BUILD
+            ) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_hook_manual_reload_title),
+                        subtitle = stringResource(R.string.ynfc_hook_manual_reload_desc),
+                    ) {
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_hook_reload_button),
+                            onClick = {
+                                operationMessage = null
+                                onReloadNfcHook { operationMessage = it }
+                            },
+                            enabled = !status.simulationEnabled,
+                        )
+                    }
+                }
+            }
             if (logsEnabled) {
                 item {
                     YSection(
