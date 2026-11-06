@@ -769,6 +769,10 @@ public class NfcInjectionModule extends XposedModule {
                 }
             }
 
+            // Vendor Type-A owns its controller writes. Never mutate RF_CONFIG_WRITE
+            // on the same command generation or during Vendor stop/recovery.
+            if (cfg.useVendorTypeA()) return chain.proceed();
+
             // A natural RF write in a new NFC process is the best lifecycle recovery trigger. Mark
             // it as a lifecycle reapply before mutating so a successful native result updates only
             // observed RF evidence; the original user APPLY command history remains untouched.
@@ -1125,6 +1129,11 @@ public class NfcInjectionModule extends XposedModule {
      */
     private void runLifecycleRecovery(String reason) {
         SimConfig cfg = readConfig();
+        if (cfg.useVendorTypeA()) {
+            Log.i(TAG, "VENDOR_TYPE_A lifecycle: RF replay skipped reason=" + reason
+                    + " generation=" + cfg.generation + "; revalidation required after controller reset");
+            return;
+        }
         int pid = Process.myPid();
         if (!cfg.initialized || !cfg.active || cfg.uid == null || cfg.generation <= 0L ||
                 cfg.handledGeneration != cfg.generation || !"SUCCESS".equals(cfg.commandStatus)) return;
@@ -1378,23 +1387,23 @@ public class NfcInjectionModule extends XposedModule {
         Log.i(TAG, "COMMAND " + action + " reason=" + reason + " generation=" + cfg.generation + " uid=" + cfg.uid + " pid=" + pid +
                 " restoreMode=" + restoreMode);
 
+        if (cfg.useVendorTypeA()) {
+            runVendorTypeACommand(cfg, reason);
+            return;
+        }
+
         if (!cfg.active && controllerReinitRequired) {
             requestControllerRestart(cfg, "Appended LA_NFCID1 requires NFC process/controller restart; direct stock delete is not assumed safe");
             return;
         }
 
-        // Type-A Vendor capability discovery is read-only. ConfigProvider has
-        // no independently verified per-card ATQA/SAK; RF is the sole writer.
-        // A callable method is not proof of over-the-air emulation.
+        // RF backend remains independent; Vendor discovery is informational only.
         if (cfg.active) {
             NfcProcessVendorController.Result typeA = vendorController.probeTypeA();
             Log.i(TAG, "VENDOR_TYPE_A_DISCOVERY generation=" + cfg.generation
                     + " capability=" + typeA.stage + " methodPresent=" + typeA.success
                     + " selectedBackend=RF_HOOK"
                     + " detail=" + typeA.detail);
-        } else {
-            Log.i(TAG, "VENDOR_TYPE_A_DISCOVERY generation=" + cfg.generation
-                    + " selectedBackend=RF_RESTORE; no Vendor Type-A write");
         }
 
         NfcProcessVendorController.Result trigger = triggerRfRefresh(cfg, cfg.active, "command:" + reason);
@@ -1405,6 +1414,105 @@ public class NfcInjectionModule extends XposedModule {
             writeSimpleCommandState("TRIGGER_FAILED", trigger.stage + ": " + trigger.detail, cfg.generation, action, false);
             writeSemanticState("FAILED", "UNKNOWN", "TRIGGER_FAILED", false, null);
         }
+    }
+
+    /**
+     * Opt-in ColorOS Vendor Type-A. A Vendor return value proves only acceptance
+     * by the OEM API, not external RF identity. RF Hook and replay stay idle.
+     * STOP always hands off to the existing controller restart/stock restoration.
+     */
+    private void runVendorTypeACommand(SimConfig cfg, String reason) {
+        byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
+        byte[] sak = strictTypeAHex(cfg.sak, 1);
+        byte[] atqa = strictTypeAHex(cfg.atqa, 2);
+        String action = cfg.active ? "APPLY" : "STOP";
+        if (uid == null || sak == null || atqa == null) {
+            String error = "Vendor Type-A requires explicit valid UID (4/7/10 bytes), "
+                    + "SAK (1 byte), and ATQA (2 bytes); source=stored card";
+            Log.w(TAG, "VENDOR_TYPE_A_INVALID " + error);
+            if (!cfg.active) {
+                requestControllerRestart(cfg, error + "; recover stock controller");
+            } else {
+                writeSimpleCommandState("FAILED", error, cfg.generation, action, true);
+                writeSemanticState("FAILED", "UNKNOWN", "TYPE_A_INVALID_PARAMETERS", false, null);
+            }
+            return;
+        }
+
+        if (!cfg.active) {
+            // Never assume the vendor disable call alone restores eSE and RF
+            // routing. Always restart the NFC process afterward for stock state.
+            NfcProcessVendorController.Result disabled =
+                    vendorController.setTypeAConfig(false, atqa, sak, uid);
+            Log.i(TAG, "VENDOR_TYPE_A_STOP stage=" + disabled.stage
+                    + " accepted=" + disabled.success + " reason=" + reason);
+            requestControllerRestart(cfg, "Vendor Type-A disable: " + disabled.stage
+                    + "; stock NFC process/controller restart required");
+            return;
+        }
+
+        NfcProcessVendorController.Result capability = vendorController.probeTypeA();
+        Log.i(TAG, "VENDOR_TYPE_A_DISCOVERY generation=" + cfg.generation
+                + " selectedBackend=VENDOR capability=" + capability.stage
+                + " methodPresent=" + capability.success + " detail=" + capability.detail);
+        if (!capability.success) {
+            writeSimpleCommandState("FAILED", "Vendor Type-A unavailable: "
+                    + capability.stage + ": " + capability.detail,
+                    cfg.generation, "APPLY", true);
+            writeSemanticState("FAILED", "UNKNOWN", "TYPE_A_UNAVAILABLE", false, null);
+            return;
+        }
+
+        NfcProcessVendorController.Result result =
+                vendorController.setTypeAConfig(true, atqa, sak, uid);
+        Log.i(TAG, "VENDOR_TYPE_A_APPLY generation=" + cfg.generation
+                + " stage=" + result.stage + " accepted=" + result.success
+                + " uid=" + cfg.uid + " reason=" + reason);
+        if (!result.success) {
+            writeSimpleCommandState("FAILED", "Vendor Type-A rejected: "
+                    + result.stage + ": " + result.detail, cfg.generation, "APPLY", true);
+            writeSemanticState("FAILED", "UNKNOWN", "TYPE_A_REJECTED", false, null);
+            return;
+        }
+
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_status", "VENDOR_API_ACCEPTED");
+        v.put("command_detail", "OEM accepted Type-A configuration; external reader verification required");
+        v.put("command_action", "APPLY");
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", "VERIFYING");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", "UNVERIFIED");
+        v.put("rf_status", "VENDOR_API_ACCEPTED");
+        v.put("rf_accepted", false);
+        v.put("rf_uid", "");
+        v.put("rf_source", "vendor-type-a");
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_verification", "EXTERNAL_READER_REQUIRED");
+        v.put("full_diag_stage", "VENDOR_API_ACCEPTED");
+        v.put("full_diag_summary", "Vendor method accepted; NFC controller/reader not verified");
+        writeValuesWithRetry(v, 20, 100L);
+    }
+
+    private static byte[] strictTypeAHex(String raw, int... allowedBytes) {
+        if (raw == null) return null;
+        String hex = raw.replaceAll("[\\s:.-]", "").trim();
+        if (hex.isEmpty() || !hex.matches("(?i)[0-9a-f]+") || (hex.length() & 1) != 0)
+            return null;
+        boolean validLength = false;
+        for (int length : allowedBytes) {
+            if (hex.length() == length * 2) {
+                validLength = true;
+                break;
+            }
+        }
+        if (!validLength) return null;
+        byte[] result = new byte[hex.length() / 2];
+        for (int i = 0; i < result.length; i++)
+            result[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+        return result;
     }
 
     private synchronized void clearRestoreState() {
