@@ -74,6 +74,52 @@ final class NfcProcessVendorController {
         }
     }
 
+    /**
+     * Direct Vendor Type-A backend, separate from the RF_CONFIG_WRITE hook.
+     * The caller must provide explicit card parameters; never invent ATQA/SAK
+     * from a UID. A true result means OEM API accepted the request, NOT that an
+     * external reader or the NFCC has verified the over-the-air identity.
+     */
+    Result setTypeAConfig(boolean enabled, byte[] atqa, byte[] sak, byte[] uid) {
+        if (enabled && (atqa == null || atqa.length != 2
+                || sak == null || sak.length != 1
+                || uid == null || (uid.length != 4 && uid.length != 7 && uid.length != 10))) {
+            return new Result(false, "TYPE_A_INVALID_PARAMETERS",
+                    "Explicit ATQA(2), SAK(1), UID(4/7/10) required", null);
+        }
+        try {
+            IBinder main = serviceManagerBinder();
+            if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
+                return new Result(false, "TYPE_A_NO_NFC", "NFC service unavailable", null);
+            }
+            Object mainLocal = main.queryLocalInterface(INFC_DESCRIPTOR);
+            IBinder vendor = getVendorBinderViaProxy(mainLocal);
+            if (vendor == null) vendor = getVendorBinderViaProxy(asInterface(INFC_STUB, main));
+            if (!alive(vendor) || !VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))) {
+                return new Result(false, "TYPE_A_VENDOR_UNAVAILABLE",
+                        "No verified vendor Binder through Java interface", null);
+            }
+            Object local = vendor.queryLocalInterface(VENDOR_DESCRIPTOR);
+            Object proxy = asInterface(VENDOR_STUB, vendor);
+            Object[] args = new Object[]{enabled, atqa == null ? null : atqa.clone(),
+                    sak == null ? null : sak.clone(), uid == null ? null : uid.clone()};
+            Class<?>[] types = new Class<?>[]{boolean.class, byte[].class, byte[].class, byte[].class};
+            Boolean accepted = invokeBooleanMethod(local, "setHceTypeAConfig", types, args);
+            if (accepted == null) accepted = invokeBooleanMethod(proxy, "setHceTypeAConfig", types, args);
+            if (accepted == null) {
+                return new Result(false, "TYPE_A_API_MISSING",
+                        "No callable vendor Type-A method; raw transaction 16 is deliberately disabled",
+                        VENDOR_DESCRIPTOR);
+            }
+            return new Result(accepted, accepted ? "TYPE_A_API_ACCEPTED" : "TYPE_A_REJECTED",
+                    accepted ? "OEM accepted Type-A request; RF/controller verification still required"
+                            : "OEM rejected Type-A request", VENDOR_DESCRIPTOR);
+        } catch (Throwable error) {
+            return new Result(false, "TYPE_A_EXCEPTION",
+                    error.getClass().getName() + ": " + error.getMessage(), VENDOR_DESCRIPTOR);
+        }
+    }
+
     private static boolean hasTypeAApi(Object receiver) {
         if (receiver == null) return false;
         try {
