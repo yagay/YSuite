@@ -31,6 +31,9 @@ internal class SimulationCoordinator(
                 state.commandGeneration != generation -> YLocale.text(R.string.ynfc_sim_command_superseded)
                 state.commandStatus == "VENDOR_API_ACCEPTED" ->
                     YLocale.text(R.string.ynfc_vendor_api_accepted)
+                state.commandStatus == "FAILED" &&
+                    state.verificationConfidence == "TYPE_A_PERMISSION_DENIED" ->
+                    YLocale.text(R.string.ynfc_vendor_permission_denied)
                 state.commandStatus == "FAILED" || state.commandStatus == "TRIGGER_FAILED" ->
                     YLocale.text(
                         R.string.ynfc_sim_apply_failure,
