@@ -42,7 +42,7 @@
 
 ## Research
 
-- https://gist.github.com/PeronGH/8e272a007edfc192c0aff8d3fa5c605
+- https://gist.github.com/PeronGH/8e272a007edfc192c0aff8d3a6b187da
 - https://github.com/skb8/OplusNfcTool
 
 Note: the reverse-engineering reference covers a specific ColorOS 16 NXP stack;
