@@ -29,27 +29,14 @@ internal class SimulationCoordinator(
             AppLogger.i("SIMULATION: serial COMMAND APPLY generation=$generation uid=${card.uid} backend=$backend")
             var state = runtimeRepository.read(includeRootPid = true)
             if (!hookReady(state)) {
-                // An NFC process may be restarting independently. Let the
-                // current process report its Hook before considering a reload.
-                state = waitForHookOnly(3_000)
-                if (!hookReady(state) && runtimeRepository.isCurrentCommandGeneration(generation)) {
-                    // Only an installed but old Hook needs a one-time NFC
-                    // service reload after an APK upgrade. Missing injection
-                    // must not repeatedly kill NFC on every Apply.
-                    val oldHookInCurrentProcess = state.currentPid > 0 &&
-                        state.hookPid == state.currentPid &&
-                        state.hookInstalled && state.hookBuild != expectedHookBuild
-                    if (oldHookInCurrentProcess) {
-                        val restart = nfcSystemService.restartNfcProcessKeepingEnabled(
-                            "upgrade_hook_build_$expectedHookBuild"
-                        )
-                        AppLogger.i("SIMULATION: reload outdated NFC Hook once generation=$generation\\n$restart")
-                        state = waitForHookOnly(12_000)
-                    } else {
-                        AppLogger.i("SIMULATION: no automatic NFC restart: Hook absent/transitional " +
-                            "generation=$generation pid=${state.currentPid} hookPid=${state.hookPid}")
-                    }
-                }
+                // APK installation must never restart NFC implicitly. An already
+                // loaded LSPosed hook cannot be hot-swapped; if its code version
+                // differs, offer an explicit NFC-service-only reload in the UI.
+                // A missing scope/injection is not solved by repeated restarts.
+                AppLogger.i("SIMULATION: NFC Hook not ready; no automatic restart " +
+                    "generation=$generation currentPid=${state.currentPid} " +
+                    "hookPid=${state.hookPid} hookBuild=${state.hookBuild} " +
+                    "expectedHook=$expectedHookBuild")
             }
 
             if (hookReady(state)) {
@@ -135,6 +122,44 @@ internal class SimulationCoordinator(
                 YLocale.text(R.string.ynfc_sim_stop_restart_unconfirmed)
             }
             onDone(state, message)
+        }
+    }
+
+    /**
+     * Explicit user-initiated reload for a stale in-process Hook. This does
+     * not restart Android, only com.android.nfc. Serialized with APPLY/STOP.
+     * A missing scope is not a valid reason to kill the NFC service.
+     */
+    fun reloadNfcHook(onDone: (RuntimeStatus, String) -> Unit) {
+        executor.execute {
+            var state = runtimeRepository.read(includeRootPid = true)
+            if (runtimeRepository.simulationEnabled()) {
+                onDone(state, YLocale.text(R.string.ynfc_hook_reload_stop_first))
+                return@execute
+            }
+            val installedOldHook = state.currentPid > 0 && state.scopeOk &&
+                state.hookInstalled && state.hookPid == state.currentPid &&
+                state.hookBuild > 0 && state.hookBuild != expectedHookBuild
+            if (!installedOldHook) {
+                onDone(state, if (hookReady(state)) {
+                    YLocale.text(R.string.ynfc_hook_reload_already_current)
+                } else {
+                    YLocale.text(R.string.ynfc_sim_hook_not_ready)
+                })
+                return@execute
+            }
+            val previousPid = state.currentPid
+            val result = nfcSystemService.restartNfcProcessKeepingEnabled(
+                "user_requested_hook_reload_$expectedHookBuild"
+            )
+            AppLogger.i("SIMULATION: user requested NFC service Hook reload " +
+                "previousPid=$previousPid\\n$result")
+            state = waitForHookOnly(12_000)
+            onDone(state, if (hookReady(state) && state.currentPid != previousPid) {
+                YLocale.text(R.string.ynfc_hook_reload_success)
+            } else {
+                YLocale.text(R.string.ynfc_hook_reload_failed)
+            })
         }
     }
 
