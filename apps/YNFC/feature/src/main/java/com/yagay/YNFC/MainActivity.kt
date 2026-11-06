@@ -32,6 +32,7 @@ class MainActivity : YComposeActivity() {
     private var savedCardsState by mutableStateOf<List<CardModel>>(emptyList())
     private var readModeEnabled by mutableStateOf(false)
     private var pollingDisabled by mutableStateOf(false)
+    private var vendorTypeAEnabled by mutableStateOf(false)
 
     override fun onBeforeYContent(savedInstanceState: Bundle?) {
         nfcReader = NfcReaderController(this)
@@ -45,6 +46,7 @@ class MainActivity : YComposeActivity() {
         simulationCoordinator = SimulationCoordinator(configClient, runtimeRepository, nfcSystemService, EXPECTED_HOOK_BUILD)
         savedCardsState = cardRepository.load()
         pollingDisabled = readProviderMap()[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
+        vendorTypeAEnabled = readProviderMap()[ConfigProvider.KEY_BACKEND] == "VENDOR"
         AppLogger.i("NFC controller started; LSPosed in-process command engine enabled")
     }
 
@@ -123,6 +125,10 @@ class MainActivity : YComposeActivity() {
             scannedCard = scannedCardState,
             readModeEnabled = readModeEnabled,
             pollingDisabled = pollingDisabled,
+            vendorTypeAEnabled = vendorTypeAEnabled,
+            onVendorTypeAEnabledChange = { requested ->
+                if (!getSimulationEnabled()) vendorTypeAEnabled = requested
+            },
             initialLogsEnabled = initialLogsEnabled,
             diagnosticsCollector = diagnosticsCollector,
             readRuntimeStatus = { readRuntimeStatus(includeRootPid = false) },
@@ -160,7 +166,7 @@ class MainActivity : YComposeActivity() {
 
     private fun simulateCard(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
         stopReadMode("simulation_start")
-        simulationCoordinator.simulate(card, onDone)
+        simulationCoordinator.simulate(card, if (vendorTypeAEnabled) "VENDOR" else "RF", onDone)
     }
 
     private fun stopSimulation(onDone: (RuntimeStatus, String) -> Unit) {
