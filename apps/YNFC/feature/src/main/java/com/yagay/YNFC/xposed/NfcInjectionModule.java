@@ -797,6 +797,17 @@ public class NfcInjectionModule extends XposedModule {
             // on the same command generation or during Vendor stop/recovery.
             if (cfg.useVendorTypeA()) return chain.proceed();
 
+            // A terminal failed APPLY is not a pending request. If a later OEM
+            // RF write happens naturally, it must not silently apply a UID
+            // while the UI still reports FAILED; only a new APPLY generation
+            // can authorize another UID configuration attempt.
+            if (cfg.active && cfg.generation == cfg.handledGeneration &&
+                    !"SUCCESS".equals(cfg.commandStatus)) {
+                if (cfg.diagnostics) Log.i(TAG, "RFPROBE SKIP_TERMINAL_APPLY status="
+                        + cfg.commandStatus + " generation=" + cfg.generation);
+                return chain.proceed();
+            }
+
             // A natural RF write in a new NFC process is the best lifecycle recovery trigger. Mark
             // it as a lifecycle reapply before mutating so a successful native result updates only
             // observed RF evidence; the original user APPLY command history remains untouched.
@@ -1090,13 +1101,23 @@ public class NfcInjectionModule extends XposedModule {
             return new NfcProcessVendorController.Result(true, "JAVA_TRIGGERED", javaTrigger.detail, null);
         }
 
-        NfcProcessVendorController.Result fallback = vendorController.setShareMode(enabled);
-        String fallbackTarget = "vendor-controller:" + fallback.stage;
-        pendingTriggerTarget = fallbackTarget;
-        persistRefreshRuntime(fallback.success ? "TRIGGERED" : "TRIGGER_FAILED", fallbackTarget,
-                "vendor-fallback", cfg.generation, false);
-        if (!fallback.success) clearTriggerWindow(cfg.generation);
-        return fallback;
+        // RF UID-only must not depend on the ColorOS Vendor Binder: on this
+        // firmware OPlusNfcAdapterService is signature-privileged and the
+        // OEM tx6 getter is unavailable. A candidate method discovered in
+        // dex is not a callable *observed instance*. Never fake a successful
+        // trigger, guess an OEM Binder transaction, or restart NFC to retry.
+        String detail = javaTrigger.stage + ": " + javaTrigger.detail
+                + "; no observed in-process RF refresh instance; "
+                + "Vendor Binder fallback disabled for RF UID-only. "
+                + "Waiting for an actual native NFC-A configuration write is "
+                + "not evidence that UID emulation succeeded.";
+        persistRefreshRuntime("RF_TRIGGER_UNAVAILABLE", "",
+                "rf-no-vendor-fallback", cfg.generation, false);
+        clearTriggerWindow(cfg.generation);
+        Log.w(TAG, "RF_TRIGGER_UNAVAILABLE generation=" + cfg.generation
+                + " pid=" + Process.myPid() + " " + detail);
+        return new NfcProcessVendorController.Result(
+                false, "RF_TRIGGER_UNAVAILABLE", detail, null);
     }
 
     private void armTriggerWindow(long generation, String source, long windowMs) {
@@ -1518,15 +1539,8 @@ public class NfcInjectionModule extends XposedModule {
             }
         }
 
-        // RF backend remains independent; Vendor discovery is informational only.
-        if (cfg.active) {
-            NfcProcessVendorController.Result typeA = vendorController.probeTypeA();
-            Log.i(TAG, "VENDOR_TYPE_A_DISCOVERY generation=" + cfg.generation
-                    + " capability=" + typeA.stage + " methodPresent=" + typeA.success
-                    + " selectedBackend=RF_HOOK"
-                    + " detail=" + typeA.detail);
-        }
-
+        // RF UID-only is fully independent of the ColorOS Vendor backend.
+        // Do not probe or call OEM Type-A/ShareMode just to start RF mode.
         NfcProcessVendorController.Result trigger = triggerRfRefresh(cfg, cfg.active, "command:" + reason);
         if (isGenerationCompleted(cfg.generation, pid)) return;
         if (trigger.success) {
