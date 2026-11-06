@@ -72,6 +72,7 @@ fun NfcAppScreen(
     onSimulate: (CardModel, (String) -> Unit) -> Unit,
     onStopSimulation: ((String) -> Unit) -> Unit,
     onDeleteCard: (CardModel, Boolean) -> Unit,
+    onReloadNfcHook: ((String) -> Unit) -> Unit,
     onExportLogs: (() -> Unit) -> Unit,
 ) {
     val runtimeViewModel: RuntimeStatusViewModel = viewModel()
@@ -109,6 +110,26 @@ fun NfcAppScreen(
     ) { padding ->
         YPageList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
+            if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
+                status.hookPid == status.currentPid && status.hookBuild > 0 &&
+                status.hookBuild != BuildConfig.HOOK_BUILD
+            ) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_hook_reload_title),
+                        subtitle = stringResource(R.string.ynfc_hook_reload_desc),
+                    ) {
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_hook_reload_button),
+                            onClick = {
+                                operationMessage = null
+                                onReloadNfcHook { operationMessage = it }
+                            },
+                            enabled = !status.simulationEnabled,
+                        )
+                    }
+                }
+            }
             item {
                 YSwitchItem(
                     title = stringResource(R.string.ynfc_polling_guard),
