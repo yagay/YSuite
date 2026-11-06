@@ -73,6 +73,16 @@ class DiagnosticsCollector(
         runCatching { cardRepository.load() }.getOrDefault(emptyList()).forEach { card ->
             appendLine("card uid=${card.uid} sak=${card.sak} atqa=${card.atqa}")
         }
+        // Read-only permission inventory: a Root shell and an LSPosed hook do
+        // not grant the NFC process the OEM signature/privileged permission.
+        // Keep this bounded and avoid mutating framework permission state.
+        appendLine("--- COLOROS NFC PERMISSION (READ ONLY) ---")
+        appendLine(runRoot("""
+            echo '[NFC process identity]'; ps -A | grep '[c]om.android.nfc' | head -n 3 || true
+            echo '[permission definition]'; dumpsys package permissions 2>/dev/null | grep -F -B 3 -A 12 'com.oplus.permission.safe.NFC' | head -n 60 || true
+            echo '[NFC package requests/grants]'; dumpsys package com.android.nfc 2>/dev/null | grep -F -B 5 -A 7 'com.oplus.permission.safe.NFC' | head -n 60 || true
+            echo '[safe.NFC permission query]'; cmd package check-permission com.oplus.permission.safe.NFC com.android.nfc 2>&1 | head -n 8 || true
+        """.trimIndent(), 10, 20_000))
         appendLine("--- APP LOGS ---")
         appendLine(runCatching { AppLogger.readAll() }.getOrElse {
             "App logs unavailable: ${it.javaClass.simpleName}: ${it.message}"
