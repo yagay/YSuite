@@ -129,6 +129,11 @@ public class NfcInjectionModule extends XposedModule {
     private volatile long reversibleCapturedGeneration = Long.MIN_VALUE;
     private volatile boolean controllerReinitRequired;
     private volatile String restoreMode = "NONE";
+    // Conservative in-process safety barriers. A failed/throwing native UID
+    // write might already have affected the controller: only a generation with
+    // *no attempted write* may skip restoration/restart.
+    private volatile boolean nativeUidMutationAttempted;
+    private volatile boolean vendorTypeAWriteAttempted;
 
     @Override public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param) {
         super.onModuleLoaded(param);
@@ -873,6 +878,7 @@ public class NfcInjectionModule extends XposedModule {
 
             Object[] rewrittenArgs = args.clone();
             rewrittenArgs[payloadArg] = rewritten.data;
+            nativeUidMutationAttempted = true;
             Object result = chain.proceed(rewrittenArgs);
             NativeOutcome outcome = interpretNativeResult(method, result);
             if (outcome.accepted) {
@@ -1457,7 +1463,8 @@ public class NfcInjectionModule extends XposedModule {
         // Provider is the durable command authority. A new com.android.nfc process must not replay
         // an already handled generation just because this Java instance lost its in-memory cache.
         boolean persistedTerminal = cfg.generation > 0L && cfg.handledGeneration == cfg.generation &&
-                ("SUCCESS".equals(cfg.commandStatus) || "FAILED".equals(cfg.commandStatus));
+                ("SUCCESS".equals(cfg.commandStatus) || "FAILED".equals(cfg.commandStatus)
+                        || "NO_OVERRIDE".equals(cfg.commandStatus));
         if (persistedTerminal) {
             completedGeneration = cfg.generation;
             completedPid = pid;
@@ -1499,9 +1506,16 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
 
-        if (!cfg.active && controllerReinitRequired) {
-            requestControllerRestart(cfg, "Appended LA_NFCID1 requires NFC process/controller restart; direct stock delete is not assumed safe");
-            return;
+        if (!cfg.active) {
+            if (noUidWriteToRestore()) {
+                completeNoOverrideStop(cfg, "No UID RF/NCI configuration was written in this NFC process; no restart required");
+                return;
+            }
+            if (controllerReinitRequired || (nativeUidMutationAttempted && reversibleStockPayload == null)) {
+                requestControllerRestart(cfg,
+                        "A UID RF/NCI write was attempted without a reversible stock snapshot; NFC controller restart required");
+                return;
+            }
         }
 
         // RF backend remains independent; Vendor discovery is informational only.
@@ -1555,12 +1569,59 @@ public class NfcInjectionModule extends XposedModule {
         completedPid = Process.myPid();
     }
 
+    private boolean noUidWriteToRestore() {
+        return !nativeUidMutationAttempted && !vendorTypeAWriteAttempted
+                && !controllerReinitRequired && reversibleStockPayload == null;
+    }
+
+    /**
+     * Terminal STOP acknowledgement for a controller never modified by YNFC
+     * in this process. This is NOT a VERIFIED stock RF response: it only proves
+     * that stopping needs no UID rollback or NFC service restart.
+     */
+    private void completeNoOverrideStop(SimConfig cfg, String detail) {
+        int pid = Process.myPid();
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_action", "STOP");
+        v.put("command_status", "NO_OVERRIDE");
+        v.put("command_detail", detail);
+        v.put("command_pid", pid);
+        v.put("operation_state", "IDLE");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", "NO_MODIFICATION");
+        v.put("rf_status", "NO_OVERRIDE");
+        v.put("rf_accepted", false);
+        v.put("rf_uid", "");
+        v.put("rf_source", "no-uid-write");
+        v.put("rf_pid", pid);
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_controller_epoch", cfg.controllerEpoch);
+        v.put("rf_verification", "NO_UID_WRITE");
+        v.put("rf_error", "");
+        v.put("full_diag_stage", "STOP_NO_OVERRIDE");
+        v.put("full_diag_summary", detail);
+        writeValuesWithRetry(v, 20, 100L);
+        completedGeneration = cfg.generation;
+        completedPid = pid;
+        Log.i(TAG, "STOP_NO_OVERRIDE generation=" + cfg.generation
+                + " pid=" + pid + " no NFC restart");
+    }
+
     /**
      * Opt-in ColorOS Vendor Type-A. A Vendor return value proves only acceptance
      * by the OEM API, not external RF identity. RF Hook and replay stay idle.
      * STOP always hands off to the existing controller restart/stock restoration.
      */
     private void runVendorTypeACommand(SimConfig cfg, String reason) {
+        // A rejected Vendor APPLY (e.g. OEM signature permission denial) has
+        // never modified Type-A hardware. Do not restart NFC merely to STOP.
+        if (!cfg.active && noUidWriteToRestore()) {
+            completeNoOverrideStop(cfg, "Vendor Type-A never changed the controller in this NFC process; no restart required");
+            return;
+        }
         byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
         byte[] sak = strictTypeAHex(cfg.sak, 1);
         byte[] atqa = strictTypeAHex(cfg.atqa, 2);
@@ -1599,8 +1660,15 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
 
+        boolean previousAttempt = vendorTypeAWriteAttempted;
+        vendorTypeAWriteAttempted = true;
         NfcProcessVendorController.Result result =
                 vendorController.setTypeAConfig(true, atqa, sak, uid);
+        // Permission denial occurs before an OEM configuration is dispatched.
+        // Keep an older successful/uncertain attempt sticky if one existed.
+        if ("TYPE_A_PERMISSION_DENIED".equals(result.stage)) {
+            vendorTypeAWriteAttempted = previousAttempt;
+        }
         Log.i(TAG, "VENDOR_TYPE_A_APPLY generation=" + cfg.generation
                 + " stage=" + result.stage + " accepted=" + result.success
                 + " uid=" + cfg.uid + " reason=" + reason);
