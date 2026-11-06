@@ -57,6 +57,8 @@ fun NfcAppScreen(
     scannedCard: CardModel?,
     readModeEnabled: Boolean,
     pollingDisabled: Boolean,
+    vendorTypeAEnabled: Boolean,
+    onVendorTypeAEnabledChange: (Boolean) -> Unit,
     initialLogsEnabled: Boolean,
     diagnosticsCollector: DiagnosticsCollector,
     readRuntimeStatus: () -> RuntimeStatus,
@@ -113,6 +115,20 @@ fun NfcAppScreen(
                     subtitle = stringResource(R.string.ynfc_polling_guard_desc),
                     checked = pollingDisabled,
                     onCheckedChange = { onPollingDisabledChange(it) },
+                )
+            }
+            item {
+                YSwitchItem(
+                    title = stringResource(R.string.ynfc_vendor_type_a_mode),
+                    subtitle = if (status.simulationEnabled) {
+                        stringResource(R.string.ynfc_vendor_type_a_stop_first)
+                    } else {
+                        stringResource(R.string.ynfc_vendor_type_a_desc)
+                    },
+                    checked = vendorTypeAEnabled,
+                    onCheckedChange = { requested ->
+                        if (!status.simulationEnabled) onVendorTypeAEnabledChange(requested)
+                    },
                 )
             }
             item {
