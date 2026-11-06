@@ -160,6 +160,11 @@ class MainActivity : YComposeActivity() {
                 savedCardsState = savedCardsState.filterNot { it.uid.equals(card.uid, true) }
                 cardRepository.save(savedCardsState)
             },
+            onReloadNfcHook = { onMessage ->
+                simulationCoordinator.reloadNfcHook { _, message ->
+                    runOnUiThread { onMessage(message) }
+                }
+            },
             onExportLogs = ::saveDiagnosticWithoutSharing,
         )
     }
