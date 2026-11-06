@@ -116,4 +116,6 @@
     <string name="ynfc_hook_reload_already_current">NFC Hook 已是当前版本，无需重载。</string>
     <string name="ynfc_hook_reload_success">NFC 服务已加载新版 Hook，无需重启手机。</string>
     <string name="ynfc_hook_reload_failed">未能确认新版 NFC Hook。请检查 LSPosed 作用域及诊断日志；不会自动再次重启。</string>
+    <string name="ynfc_hook_manual_reload_title">手动刷新 NFC Hook</string>
+    <string name="ynfc_hook_manual_reload_desc">只有安装了更新进程内 Hook 代码的测试版才需要使用。仅重载 NFC 服务一次，不重启手机，也不会自动执行。</string>
 </resources>
