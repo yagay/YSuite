@@ -31,6 +31,7 @@ open class ConfigProvider : ContentProvider() {
         const val EXTRA_UID = "uid"
         const val EXTRA_SAK = "sak"
         const val EXTRA_ATQA = "atqa"
+        const val EXTRA_BACKEND = "simulation_backend"
         const val EXTRA_GENERATION = "generation"
         const val EXTRA_PID = "pid"
         const val RESULT_GENERATION = "generation"
@@ -50,6 +51,7 @@ open class ConfigProvider : ContentProvider() {
         const val KEY_UID = "uid"
         const val KEY_SAK = "sak"
         const val KEY_ATQA = "atqa"
+        const val KEY_BACKEND = "simulation_backend"
 
         const val KEY_COMMAND_GENERATION = "command_generation"
         const val KEY_COMMAND_CONSUMED_GENERATION = "command_consumed_generation"
@@ -255,6 +257,12 @@ open class ConfigProvider : ContentProvider() {
                 val uid = extras?.getString(EXTRA_UID)
                 val sak = extras?.getString(EXTRA_SAK)
                 val atqa = extras?.getString(EXTRA_ATQA)
+                val backend = if (extras?.getString(EXTRA_BACKEND) == "VENDOR") "VENDOR" else "RF"
+                val previousBackend = prefs().getString(KEY_BACKEND, "RF") ?: "RF"
+                if (enabled && prefs().getBoolean(KEY_SIMULATION_ENABLED, false) && backend != previousBackend) {
+                    Log.w("NfcConfigProvider", "Backend switch rejected while simulation active; STOP first")
+                    return Bundle().apply { putBoolean(RESULT_SUCCESS, false) }
+                }
                 val previous = (prefs().all[KEY_COMMAND_GENERATION] as? Number)?.toLong() ?: 0L
                 val generation = maxOf(previous + 1L, System.currentTimeMillis())
                 val action = if (enabled) "APPLY" else "STOP"
@@ -262,6 +270,7 @@ open class ConfigProvider : ContentProvider() {
                     put(KEY_APP_BUILD, APP_BUILD)
                     put(KEY_STATE_GENERATION, generation)
                     put(KEY_SIMULATION_ENABLED, enabled)
+                    if (enabled) put(KEY_BACKEND, backend)
                     if (enabled && !uid.isNullOrBlank()) {
                         put(KEY_UID, uid)
                         put(KEY_SAK, sak.orEmpty())
