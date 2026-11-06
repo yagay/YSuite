@@ -656,6 +656,16 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
 
+        // Capability discovery must not toggle share mode or write RF settings.
+        // Current command schema has UID only; it cannot safely select the direct
+        // Type-A engine until explicit ATQA and SAK reach the NFC process.
+        NfcProcessVendorController.Result typeA = vendorController.probeTypeA();
+        Log.i(TAG, "TYPE_A_CAPABILITY stage=" + typeA.stage
+                + " callable=" + typeA.success
+                + " detail=" + typeA.detail
+                + " selectedBackend=RF_HOOK"
+                + " reason=explicit_atqa_sak_not_in_command_schema");
+
         List<HookTarget> installTargets = new ArrayList<>();
         List<HookTarget> triggerTargets = discoveryEngine.discoverKnownTriggerCandidates(cl);
         persistTriggerCandidates(pid, triggerTargets);
