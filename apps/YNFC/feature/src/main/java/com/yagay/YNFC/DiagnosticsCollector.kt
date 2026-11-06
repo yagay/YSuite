@@ -1,6 +1,7 @@
 package com.yagay.YNFC
 
 import android.content.Context
+import android.content.pm.PackageManager
 import com.yagay.YNFC.system.NfcSystemService
 import com.yagay.YNFC.system.RootShell
 
@@ -18,6 +19,7 @@ class DiagnosticsCollector(
     private val cardRepository: CardRepository
 ) {
     private val packageName = context.packageName
+    private val packageManager = context.applicationContext.packageManager
 
     fun fetchLogs(source: LogSource): String {
         val pid = currentNfcPid()
@@ -81,8 +83,18 @@ class DiagnosticsCollector(
             echo '[NFC process identity]'; ps -A | grep '[c]om.android.nfc' | head -n 3 || true
             echo '[permission definition]'; dumpsys package permissions 2>/dev/null | grep -F -B 3 -A 12 'com.oplus.permission.safe.NFC' | head -n 60 || true
             echo '[NFC package requests/grants]'; dumpsys package com.android.nfc 2>/dev/null | grep -F -B 5 -A 7 'com.oplus.permission.safe.NFC' | head -n 60 || true
-            echo '[safe.NFC permission query]'; cmd package check-permission com.oplus.permission.safe.NFC com.android.nfc 2>&1 | head -n 8 || true
+            echo '[NFC app location]'; pm path com.android.nfc 2>/dev/null | head -n 5 || true
         """.trimIndent(), 10, 20_000))
+        appendLine("[safe.NFC PackageManager authorization]")
+        appendLine(runCatching {
+            val permission = "com.oplus.permission.safe.NFC"
+            val status = packageManager.checkPermission(permission, "com.android.nfc")
+            when (status) {
+                PackageManager.PERMISSION_GRANTED -> "com.android.nfc=GRANTED"
+                PackageManager.PERMISSION_DENIED -> "com.android.nfc=DENIED"
+                else -> "com.android.nfc=UNKNOWN($status)"
+            }
+        }.getOrElse { "Permission query unavailable: ${it.javaClass.simpleName}: ${it.message}" })
         appendLine("--- APP LOGS ---")
         appendLine(runCatching { AppLogger.readAll() }.getOrElse {
             "App logs unavailable: ${it.javaClass.simpleName}: ${it.message}"
