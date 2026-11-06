@@ -109,4 +109,11 @@
     <string name="ynfc_vendor_api_accepted">厂商已接受 Type-A 配置请求，但尚未通过外部读卡器验证实际模拟效果。</string>
     <string name="ynfc_vendor_permission_denied">ColorOS 拒绝了 Vendor Type-A：NFC 系统进程缺少 com.oplus.permission.safe.NFC（签名或特权权限），普通运行时授权无法解决。请先停止模拟恢复 NFC，详情见诊断日志。</string>
     <string name="ynfc_sim_stop_no_override">当前 NFC 进程没有执行 UID 写入，已停止模拟，无需重启 NFC 服务；原厂射频状态尚未经过独立验证。</string>
+    <string name="ynfc_hook_reload_title">NFC Hook 可更新</string>
+    <string name="ynfc_hook_reload_desc">当前 NFC 服务运行的是旧版 Hook。安装 APK 不需要重启手机；只有需要使用新版 Hook 时，才手动重载 NFC 服务，期间 NFC 会短暂中断。</string>
+    <string name="ynfc_hook_reload_button">仅重载 NFC 服务</string>
+    <string name="ynfc_hook_reload_stop_first">请先停止 UID 模拟，再重载 NFC 服务。</string>
+    <string name="ynfc_hook_reload_already_current">NFC Hook 已是当前版本，无需重载。</string>
+    <string name="ynfc_hook_reload_success">NFC 服务已加载新版 Hook，无需重启手机。</string>
+    <string name="ynfc_hook_reload_failed">未能确认新版 NFC Hook。请检查 LSPosed 作用域及诊断日志；不会自动再次重启。</string>
 </resources>
