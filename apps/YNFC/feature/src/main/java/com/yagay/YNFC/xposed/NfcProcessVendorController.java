@@ -481,7 +481,16 @@ final class NfcProcessVendorController {
                 appendTrace(trace, "getter-tx-exception=" + error.getClass().getSimpleName());
                 return null;
             }
-            IBinder binder = reply.readStrongBinder();
+            IBinder binder;
+            try {
+                binder = reply.readStrongBinder();
+            } catch (RuntimeException error) {
+                // Android 17 may have a different transaction table: a valid
+                // reply is not necessarily a Binder reply. Do not parse blindly.
+                appendTrace(trace, "getter-tx-reply-not-binder="
+                        + error.getClass().getSimpleName());
+                return null;
+            }
             appendTrace(trace, "getter-tx-descriptor="
                     + (binder == null ? "null" : safeDescriptor(binder)));
             return binder;
