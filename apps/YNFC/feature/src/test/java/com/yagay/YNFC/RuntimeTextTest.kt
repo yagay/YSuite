@@ -35,6 +35,20 @@ class RuntimeTextTest {
         assertEquals(listOf("same", "new", "extra", "tail"), target)
     }
 
+    @Test fun failedVendorCommandIsNeverReportedAsEnabledEmulation() {
+        val status = RuntimeStatus(
+            simulationEnabled = true,
+            commandGeneration = 123,
+            handledGeneration = 123,
+            commandAction = "APPLY",
+            commandStatus = "FAILED",
+            verificationConfidence = "TYPE_A_PERMISSION_DENIED"
+        )
+        val text = RuntimeText.statusSummary(status, expectedHookBuild = 43, readModeEnabled = false)
+        assertTrue(text.contains("CONFIG: REQUESTED_BUT_FAILED"))
+        assertTrue(text.contains("confidence=TYPE_A_PERMISSION_DENIED"))
+    }
+
     @Test fun summaryIncludesSemanticProof() {
         val summary = RuntimeText.statusSummary(
             RuntimeStatus(operationState = "IDLE", effectiveState = "ACTIVE", rfAccepted = true),
