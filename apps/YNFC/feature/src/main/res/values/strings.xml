@@ -116,4 +116,6 @@
     <string name="ynfc_hook_reload_already_current">NFC Hook is already current. No reload required.</string>
     <string name="ynfc_hook_reload_success">NFC service reloaded with the updated Hook. Phone reboot not required.</string>
     <string name="ynfc_hook_reload_failed">Could not confirm the new NFC Hook. Check LSPosed scope and diagnostic logs; no further restart was attempted.</string>
+    <string name="ynfc_hook_manual_reload_title">Manual NFC Hook refresh</string>
+    <string name="ynfc_hook_manual_reload_desc">Only use this after installing a test build with new in-process Hook code. Reloads the NFC service once, not the phone. No automatic restart.</string>
 </resources>
