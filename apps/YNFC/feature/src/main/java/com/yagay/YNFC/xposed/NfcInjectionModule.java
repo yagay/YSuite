@@ -940,16 +940,21 @@ public class NfcInjectionModule extends XposedModule {
             if (key.equals(lastRfWriterProbeKey)) return;
             lastRfWriterProbeKey = key;
         }
-        ContentValues v = baseHookState();
-        v.put("rf_uid_writer_observed_pid", pid);
-        v.put("rf_uid_writer_target", fingerprint);
-        v.put("rf_uid_writer_payload_bytes", bytes);
-        v.put("rf_uid_writer_payload_score", score);
-        v.put("rf_uid_writer_payload_shape", shape);
-        v.put("rf_uid_writer_observed_at", System.currentTimeMillis());
-        writeValuesWithRetry(v, 3, 50L);
+        // Never call ContentProvider from the RF writer's intercept thread:
+        // OEM native configuration may hold NFC controller locks here.
         Log.i(TAG, "UID_WRITER_OBSERVED pid=" + pid + " target=" + fingerprint
                 + " shape=" + shape + " bytes=" + bytes + " score=" + score);
+        commandExecutor.execute(() -> {
+            if (Process.myPid() != pid) return;
+            ContentValues v = baseHookState();
+            v.put("rf_uid_writer_observed_pid", pid);
+            v.put("rf_uid_writer_target", fingerprint);
+            v.put("rf_uid_writer_payload_bytes", bytes);
+            v.put("rf_uid_writer_payload_score", score);
+            v.put("rf_uid_writer_payload_shape", shape);
+            v.put("rf_uid_writer_observed_at", System.currentTimeMillis());
+            writeValuesWithRetry(v, 3, 50L);
+        });
     }
 
     private void installRefreshTriggerHook(ClassLoader cl, int pid, HookTarget target) throws Exception {
