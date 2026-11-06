@@ -1383,6 +1383,20 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
 
+        // Type-A Vendor capability discovery is read-only. ConfigProvider has
+        // no independently verified per-card ATQA/SAK; RF is the sole writer.
+        // A callable method is not proof of over-the-air emulation.
+        if (cfg.active) {
+            NfcProcessVendorController.Result typeA = vendorController.probeTypeA();
+            Log.i(TAG, "VENDOR_TYPE_A_DISCOVERY generation=" + cfg.generation
+                    + " capability=" + typeA.stage + " methodPresent=" + typeA.success
+                    + " selectedBackend=RF_HOOK"
+                    + " detail=" + typeA.detail);
+        } else {
+            Log.i(TAG, "VENDOR_TYPE_A_DISCOVERY generation=" + cfg.generation
+                    + " selectedBackend=RF_RESTORE; no Vendor Type-A write");
+        }
+
         NfcProcessVendorController.Result trigger = triggerRfRefresh(cfg, cfg.active, "command:" + reason);
         if (isGenerationCompleted(cfg.generation, pid)) return;
         if (trigger.success) {
