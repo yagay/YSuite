@@ -5,9 +5,10 @@ import android.os.Bundle
 
 /** Typed app-side API for durable commands owned by ConfigProvider. */
 class ConfigClient(private val resolver: ContentResolver) {
-    fun publishCommand(enabled: Boolean, card: CardModel?): Long {
+    fun publishCommand(enabled: Boolean, card: CardModel?, backend: String = "RF"): Long {
         val extras = Bundle().apply {
             putBoolean(ConfigProvider.EXTRA_ENABLED, enabled)
+            if (enabled) putString(ConfigProvider.EXTRA_BACKEND, backend)
             card?.let {
                 putString(ConfigProvider.EXTRA_UID, it.uid)
                 putString(ConfigProvider.EXTRA_SAK, it.sak)
