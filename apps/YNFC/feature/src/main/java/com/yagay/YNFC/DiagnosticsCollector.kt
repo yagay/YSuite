@@ -49,6 +49,41 @@ class DiagnosticsCollector(
         return output.ifBlank { "No matching logs found for ${source.label}" }
     }
 
+    /**
+     * Fast export path for the user-facing button. Full forensic capture can
+     * invoke dozens of independent root processes and take several minutes,
+     * leaving the UI apparently stuck. Capture one bounded NFC logcat snapshot,
+     * plus app logs and the actual provider state, without depending on Root
+     * being available at all.
+     */
+    fun buildExportReport(statusSummary: (RuntimeStatus) -> String): String = buildString {
+        val capturedAt = System.currentTimeMillis()
+        val snapshot = runtimeRepository.readProviderMap().toMap()
+        val state = runtimeRepository.decode(snapshot, null)
+        appendLine("=== YNFC DIAGNOSTIC EXPORT ${BuildConfig.VERSION_NAME} ===")
+        appendLine("Captured epoch ms: $capturedAt")
+        appendLine("NFC scope: com.android.nfc")
+        appendLine("--- STATUS ---")
+        appendLine(runCatching { statusSummary(state) }.getOrElse {
+            "Status unavailable: ${it.javaClass.simpleName}: ${it.message}"
+        })
+        appendLine("--- PROVIDER SNAPSHOT ---")
+        snapshot.toSortedMap().forEach { (key, value) -> appendLine("$key=$value") }
+        appendLine("--- SAVED CARD PARAMETERS ---")
+        runCatching { cardRepository.load() }.getOrDefault(emptyList()).forEach { card ->
+            appendLine("card uid=${card.uid} sak=${card.sak} atqa=${card.atqa}")
+        }
+        appendLine("--- APP LOGS ---")
+        appendLine(runCatching { AppLogger.readAll() }.getOrElse {
+            "App logs unavailable: ${it.javaClass.simpleName}: ${it.message}"
+        })
+        appendLine("--- ROOT LOGCAT NFC/LSPOSED/COLOROS ---")
+        appendLine(runRoot("""
+            logcat -b all -d -t 2200 -v threadtime 2>/dev/null | grep -i -E 'YNFC|NfcUIDSim|VENDOR_TYPE_A|NfcService|NxpNfc|STNfc|NfcAdaptation|RFPROBE|NFCID1|LSPosed|NfcHal|com.android.nfc' | tail -n 1400 || true
+        """.trimIndent(), 12, 700_000))
+        appendLine("--- EXPORT COMPLETE ---")
+    }
+
     fun buildFullReport(statusSummary: (RuntimeStatus) -> String): String = buildString {
         val snapshotAt = System.currentTimeMillis()
         val snapshotMap = runtimeRepository.readProviderMap().toMap()
