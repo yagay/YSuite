@@ -1433,8 +1433,7 @@ public class NfcInjectionModule extends XposedModule {
             if (!cfg.active) {
                 requestControllerRestart(cfg, error + "; recover stock controller");
             } else {
-                writeSimpleCommandState("FAILED", error, cfg.generation, action, true);
-                writeSemanticState("FAILED", "UNKNOWN", "TYPE_A_INVALID_PARAMETERS", false, null);
+                failVendorTypeACommand(cfg, "TYPE_A_INVALID_PARAMETERS", error);
             }
             return;
         }
@@ -1456,10 +1455,8 @@ public class NfcInjectionModule extends XposedModule {
                 + " selectedBackend=VENDOR capability=" + capability.stage
                 + " methodPresent=" + capability.success + " detail=" + capability.detail);
         if (!capability.success) {
-            writeSimpleCommandState("FAILED", "Vendor Type-A unavailable: "
-                    + capability.stage + ": " + capability.detail,
-                    cfg.generation, "APPLY", true);
-            writeSemanticState("FAILED", "UNKNOWN", "TYPE_A_UNAVAILABLE", false, null);
+            failVendorTypeACommand(cfg, "TYPE_A_UNAVAILABLE",
+                    "Vendor Type-A unavailable: " + capability.stage + ": " + capability.detail);
             return;
         }
 
@@ -1469,9 +1466,8 @@ public class NfcInjectionModule extends XposedModule {
                 + " stage=" + result.stage + " accepted=" + result.success
                 + " uid=" + cfg.uid + " reason=" + reason);
         if (!result.success) {
-            writeSimpleCommandState("FAILED", "Vendor Type-A rejected: "
-                    + result.stage + ": " + result.detail, cfg.generation, "APPLY", true);
-            writeSemanticState("FAILED", "UNKNOWN", "TYPE_A_REJECTED", false, null);
+            failVendorTypeACommand(cfg, "TYPE_A_REJECTED",
+                    "Vendor Type-A rejected: " + result.stage + ": " + result.detail);
             return;
         }
 
@@ -1493,6 +1489,34 @@ public class NfcInjectionModule extends XposedModule {
         v.put("rf_verification", "EXTERNAL_READER_REQUIRED");
         v.put("full_diag_stage", "VENDOR_API_ACCEPTED");
         v.put("full_diag_summary", "Vendor method accepted; NFC controller/reader not verified");
+        writeValuesWithRetry(v, 20, 100L);
+    }
+
+    private void failVendorTypeACommand(SimConfig cfg, String stage, String detail) {
+        // Publish all terminal fields together. ConfigProvider protects terminal
+        // generations against subsequent partial writes, so separate status and
+        // semantic updates could leave the runtime showing stale PENDING values.
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_action", cfg.active ? "APPLY" : "STOP");
+        v.put("command_status", "FAILED");
+        v.put("command_detail", detail);
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", "FAILED");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", stage);
+        v.put("rf_accepted", false);
+        v.put("rf_status", stage);
+        v.put("rf_uid", "");
+        v.put("rf_source", "vendor-type-a");
+        v.put("rf_pid", Process.myPid());
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_error", detail);
+        v.put("rf_verification", "FAILED");
+        v.put("full_diag_stage", stage);
+        v.put("full_diag_summary", detail);
         writeValuesWithRetry(v, 20, 100L);
     }
 
