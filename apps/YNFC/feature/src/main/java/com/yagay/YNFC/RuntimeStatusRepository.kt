@@ -90,6 +90,14 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             map[ConfigProvider.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
             map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
             map[ConfigProvider.KEY_OPERATION_STATE] == "FAILED"
+        // NO_OVERRIDE is terminal in-process command evidence, not a native
+        // RF proof. Keep its explanatory UI visible across an unrelated
+        // controller epoch update without claiming a verified UID/stock RF.
+        val noOverrideVisible = currentPid > 0 && commandPid == currentPid &&
+            currentCommandGeneration != null && currentCommandGeneration > 0L &&
+            map[ConfigProvider.KEY_COMMAND_STATUS] == "NO_OVERRIDE" &&
+            map[ConfigProvider.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
+            map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() == currentCommandGeneration
         val lifecycleReverifyPending = rfFresh &&
             map[ConfigProvider.KEY_REFRESH_TRIGGER_STATUS] in setOf(
                 "LIFECYCLE_INVALIDATED",
@@ -98,13 +106,14 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             )
         val visibleRfStatus = when {
             rawRfStatus == "IDLE" -> "IDLE"
-            terminalFailureVisible -> rawRfStatus
+            terminalFailureVisible || noOverrideVisible -> rawRfStatus
             rfFresh -> rawRfStatus
             restartTransition -> "RESETTING($rawRfStatus)"
             rfPid == 0 && rawRfStatus in setOf("WAITING", "APPLYING", "STOPPING") -> rawRfStatus
             else -> "STALE($rawRfStatus)"
         }
-        val semanticVisible = rfFresh || rfPid == 0 || restartTransition || terminalFailureVisible
+        val semanticVisible = rfFresh || rfPid == 0 || restartTransition ||
+            terminalFailureVisible || noOverrideVisible
         val rawOperation = map[ConfigProvider.KEY_OPERATION_STATE] ?: "IDLE"
         return RuntimeStatus(
             appBuild = map[ConfigProvider.KEY_APP_BUILD]?.toIntOrNull() ?: 0,
