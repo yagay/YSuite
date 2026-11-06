@@ -68,6 +68,10 @@ public class NfcInjectionModule extends XposedModule {
     private final NfcProcessVendorController vendorController = new NfcProcessVendorController();
     private final RefreshTriggerEngine refreshTriggerEngine = new RefreshTriggerEngine();
     private final RfReplayEngine replayEngine = new RfReplayEngine();
+    // Observe the actual NFC-A/NCI writer separately from hook installation.
+    // A discovered method is not evidence that the controller ever received an
+    // eligible UID-setting packet.
+    private volatile String lastRfWriterProbeKey = "";
 
     private volatile HookTarget activeTarget;
     private volatile ClassLoader nfcClassLoader;
@@ -740,9 +744,14 @@ public class NfcInjectionModule extends XposedModule {
             if (HookConfigStore.isPassive()) return chain.proceed();
             Object[] args = chain.getArgs().toArray();
             int payloadArg = findSingleByteArrayArg(args);
-            if (payloadArg < 0) return chain.proceed();
+            if (payloadArg < 0) {
+                observeUidWriter(target, pid, -1, 0, "NO_SINGLE_BYTE_ARRAY");
+                return chain.proceed();
+            }
             byte[] original = (byte[]) args[payloadArg];
             int payloadScore = payloadEngine.inspectScore(original);
+            observeUidWriter(target, pid, original == null ? -1 : original.length,
+                    payloadScore, payloadScore > 0 ? "NCI_PAYLOAD_CANDIDATE" : "UNSUPPORTED_PAYLOAD");
             if (payloadScore <= 0) return chain.proceed();
 
             HookTarget owner = activeTarget;
@@ -914,6 +923,33 @@ public class NfcInjectionModule extends XposedModule {
             }
             return result;
         });
+    }
+
+    /**
+     * UID-only RF capability evidence for the current NFC process.
+     *
+     * The historical replay target may belong to another PID/controller
+     * generation; never consider it proof. Emit one observation per unique
+     * target and payload shape, without invoking or modifying any RF method.
+     */
+    private void observeUidWriter(HookTarget target, int pid, int bytes, int score, String shape) {
+        String fingerprint = target == null ? "unknown" : target.fingerprint();
+        String key = pid + "|" + fingerprint + "|" + shape;
+        if (key.equals(lastRfWriterProbeKey)) return;
+        synchronized (this) {
+            if (key.equals(lastRfWriterProbeKey)) return;
+            lastRfWriterProbeKey = key;
+        }
+        ContentValues v = baseHookState();
+        v.put("rf_uid_writer_observed_pid", pid);
+        v.put("rf_uid_writer_target", fingerprint);
+        v.put("rf_uid_writer_payload_bytes", bytes);
+        v.put("rf_uid_writer_payload_score", score);
+        v.put("rf_uid_writer_payload_shape", shape);
+        v.put("rf_uid_writer_observed_at", System.currentTimeMillis());
+        writeValuesWithRetry(v, 3, 50L);
+        Log.i(TAG, "UID_WRITER_OBSERVED pid=" + pid + " target=" + fingerprint
+                + " shape=" + shape + " bytes=" + bytes + " score=" + score);
     }
 
     private void installRefreshTriggerHook(ClassLoader cl, int pid, HookTarget target) throws Exception {
