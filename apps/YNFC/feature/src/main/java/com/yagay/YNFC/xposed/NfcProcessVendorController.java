@@ -137,6 +137,14 @@ final class NfcProcessVendorController {
                     (accepted ? "OEM accepted Type-A request; external reader verification required; "
                             : "OEM rejected Type-A request; ") + trace,
                     vendor == null ? null : VENDOR_DESCRIPTOR);
+        } catch (SecurityException denied) {
+            // The ColorOS vendor service enforces its OEM permission against
+            // the actual Binder caller. A method being callable does not mean
+            // com.android.nfc (uid 1027 on some builds) is authorized.
+            // Report the denial, do not retry with another transaction ID.
+            return new Result(false, "TYPE_A_PERMISSION_DENIED",
+                    denied.getClass().getName() + ": " + denied.getMessage(),
+                    VENDOR_DESCRIPTOR);
         } catch (Throwable error) {
             return new Result(false, "TYPE_A_EXCEPTION",
                     error.getClass().getName() + ": " + error.getMessage(), VENDOR_DESCRIPTOR);
