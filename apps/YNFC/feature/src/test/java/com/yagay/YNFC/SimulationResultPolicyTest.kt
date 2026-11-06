@@ -27,6 +27,27 @@ class SimulationResultPolicyTest {
         assertFalse(SimulationResultPolicy.isApplySuccess(state, 10, "DEADBEEF"))
     }
 
+    @Test fun stopWithoutNativeUidWriteDoesNotClaimRfStockVerification() {
+        val state = RuntimeStatus(
+            currentPid = 1234,
+            commandGeneration = 25,
+            handledGeneration = 25,
+            commandPid = 1234,
+            commandAction = "STOP",
+            commandStatus = "NO_OVERRIDE",
+            operationState = "IDLE",
+            verificationConfidence = "NO_MODIFICATION",
+            rfAccepted = false,
+            simulationEnabled = false
+        )
+        assertTrue(SimulationResultPolicy.isStopNoOverride(state, 25))
+        assertFalse(SimulationResultPolicy.isStopSuccess(state, 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(commandPid = 1235), 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(simulationEnabled = true), 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(rfAccepted = true), 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(commandStatus = "FAILED"), 25))
+    }
+
     @Test fun stopRequiresVerifiedStockProof() {
         val state = verifiedState("STOCK")
         assertTrue(SimulationResultPolicy.isStopSuccess(state, 10))
