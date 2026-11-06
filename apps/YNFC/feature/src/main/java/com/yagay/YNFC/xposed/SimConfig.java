@@ -9,10 +9,6 @@ final class SimConfig {
     final String sak;
     final String atqa;
     final String backend;
-
-    boolean useVendorTypeA() { return "VENDOR".equals(backend); }
-    final String sak;
-    final String atqa;
     final String commandAction;
     final String commandStatus;
     final long generation;
@@ -21,8 +17,10 @@ final class SimConfig {
     final long controllerEpoch;
     final int commandPid;
 
+    boolean useVendorTypeA() { return "VENDOR".equals(backend); }
+
     SimConfig(boolean initialized, boolean active, String uid, String sak, String atqa,
-              boolean diagnostics, long generation,
+              String backend, boolean diagnostics, long generation,
               long consumedGeneration, long handledGeneration, String commandAction,
               String commandStatus, int commandPid, long controllerEpoch) {
         this.initialized = initialized;
@@ -31,8 +29,6 @@ final class SimConfig {
         this.sak = sak;
         this.atqa = atqa;
         this.backend = "VENDOR".equals(backend) ? "VENDOR" : "RF";
-        this.sak = sak;
-        this.atqa = atqa;
         this.diagnostics = diagnostics;
         this.generation = generation;
         this.consumedGeneration = consumedGeneration;
@@ -44,12 +40,13 @@ final class SimConfig {
     }
 
     SimConfig withControllerEpoch(long epoch) {
-        return new SimConfig(initialized, active, uid, sak, atqa, diagnostics, generation, consumedGeneration,
-                handledGeneration, commandAction, commandStatus, commandPid, epoch);
+        return new SimConfig(initialized, active, uid, sak, atqa, backend, diagnostics, generation,
+                consumedGeneration, handledGeneration, commandAction,
+                commandStatus, commandPid, epoch);
     }
 
     static SimConfig uninitialized() {
-        return new SimConfig(false, false, null, null, null, false, 0L, Long.MIN_VALUE,
-                Long.MIN_VALUE, "", "", 0, 0L);
+        return new SimConfig(false, false, null, null, null, "RF", false, 0L,
+                Long.MIN_VALUE, Long.MIN_VALUE, "", "", 0, 0L);
     }
 }
