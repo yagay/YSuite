@@ -9,7 +9,15 @@ internal object RuntimeText {
         appendLine("SCOPE: ${if (status.scopeOk) "SUCCESS" else "NOT DETECTED/STALE"}")
         appendLine("HOOK: ${if (status.hookInstalled) "SUCCESS" else "NOT INSTALLED/STALE"}")
         appendLine("DIAGNOSIS: ${hookDiagnosis(status, expectedHookBuild)}")
-        appendLine("CONFIG: ${if (status.simulationEnabled) "ENABLED" else "IDLE"} uid=${status.selectedUid}")
+        val configState = when {
+            status.simulationEnabled &&
+                status.commandAction == "APPLY" &&
+                status.commandGeneration == status.handledGeneration &&
+                status.commandStatus in setOf("FAILED", "TRIGGER_FAILED") -> "REQUESTED_BUT_FAILED"
+            status.simulationEnabled -> "REQUESTED"
+            else -> "IDLE"
+        }
+        appendLine("CONFIG: $configState uid=${status.selectedUid}")
         appendLine("SEMANTIC: operation=${status.operationState} effective=${status.effectiveState} confidence=${status.verificationConfidence} accepted=${status.rfAccepted}")
         appendLine("COMMAND: generation=${status.commandGeneration} consumed=${status.consumedGeneration} completed=${status.handledGeneration} action=${status.commandAction} status=${status.commandStatus} detail=${status.commandDetail}")
         appendLine("READ_MODE: ${if (readModeEnabled) "ENABLED" else "IDLE"}")
