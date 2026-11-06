@@ -142,7 +142,9 @@ public final class HookConfigStore {
             long rfEpoch = NfcHookUtils.parseLong(values.get("rf_controller_epoch"), 0L);
             controllerEpoch = rfEpoch > 0L ? rfEpoch : 1L;
         }
-        return new SimConfig(true, active, uid, diagnostics, generation, consumed, handled,
+        return new SimConfig(true, active, uid,
+                valueOrEmpty(values.get("sak")), valueOrEmpty(values.get("atqa")),
+                diagnostics, generation, consumed, handled,
                 action, status, commandPid, controllerEpoch);
     }
 
