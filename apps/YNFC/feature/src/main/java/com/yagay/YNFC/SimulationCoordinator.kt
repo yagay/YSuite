@@ -20,6 +20,17 @@ internal class SimulationCoordinator(
      */
     fun simulate(card: CardModel, backend: String, onDone: (RuntimeStatus, String) -> Unit) {
         executor.execute {
+            // Never publish APPLY to a stale/incompatible in-process Hook.
+            // Wait briefly for an already-restarting NFC service, but never
+            // restart it automatically as a side effect of an APK upgrade.
+            var ready = runtimeRepository.read(includeRootPid = true)
+            if (!hookReady(ready)) ready = waitForHookOnly(2_000)
+            if (!hookReady(ready)) {
+                AppLogger.i("SIMULATION: APPLY not published; NFC Hook mismatch or missing. " +
+                    "hook=${ready.hookBuild} expected=$expectedHookBuild pid=${ready.currentPid}")
+                onDone(ready, YLocale.text(R.string.ynfc_sim_hook_not_ready))
+                return@execute
+            }
             val generation = configClient.publishCommand(enabled = true, card = card, backend = backend)
             if (generation <= 0L) {
                 onDone(runtimeRepository.read(includeRootPid = true),
