@@ -103,4 +103,8 @@
     <string name="ynfc_hook_problem_install">YNFC 已进入作用域，但 Hook 未安装。请导出聚焦的 LSPosed 日志，排查安装失败。</string>
     <string name="ynfc_hook_problem_build">已加载的 NFC Hook 与 APK 版本不同，更新 YSuite 后请重启设备。</string>
     <string name="ynfc_hook_problem_unknown">NFC Hook 尚未就绪，请检查目标进程和诊断日志。</string>
+    <string name="ynfc_vendor_type_a_mode">实验性 ColorOS Vendor Type-A</string>
+    <string name="ynfc_vendor_type_a_desc">使用已保存的 UID、ATQA、SAK 调用厂商 Type-A 接口。仅能确认厂商是否接受，实际模拟需外部读卡验证；与 RF Hook 独立。</string>
+    <string name="ynfc_vendor_type_a_stop_first">请先停止当前模拟，再切换执行后端。</string>
+    <string name="ynfc_vendor_api_accepted">厂商已接受 Type-A 配置请求，但尚未通过外部读卡器验证实际模拟效果。</string>
 </resources>
