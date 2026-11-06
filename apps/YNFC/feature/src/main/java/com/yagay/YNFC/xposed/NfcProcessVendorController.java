@@ -79,9 +79,11 @@ final class NfcProcessVendorController {
      * external reader or the NFCC has verified the over-the-air identity.
      */
     Result setTypeAConfig(boolean enabled, byte[] atqa, byte[] sak, byte[] uid) {
-        if (enabled && (atqa == null || atqa.length != 2
+        // Never pass null native arrays, even for disable; the OEM method may
+        // dereference them before checking the enabled flag.
+        if (atqa == null || atqa.length != 2
                 || sak == null || sak.length != 1
-                || uid == null || (uid.length != 4 && uid.length != 7 && uid.length != 10))) {
+                || uid == null || (uid.length != 4 && uid.length != 7 && uid.length != 10)) {
             return new Result(false, "TYPE_A_INVALID_PARAMETERS",
                     "Explicit ATQA(2), SAK(1), UID(4/7/10) required", null);
         }
