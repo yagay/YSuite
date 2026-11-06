@@ -13,8 +13,8 @@ internal class SimulationCoordinator(
 ) : AutoCloseable {
     private val executor = Executors.newSingleThreadExecutor()
 
-    fun simulate(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
-        val generation = configClient.publishCommand(enabled = true, card = card)
+    fun simulate(card: CardModel, backend: String, onDone: (RuntimeStatus, String) -> Unit) {
+        val generation = configClient.publishCommand(enabled = true, card = card, backend = backend)
         AppLogger.i("SIMULATION: COMMAND APPLY published generation=$generation uid=${card.uid} sak=${card.sak} atqa=${card.atqa}")
         executor.execute {
             var state = runtimeRepository.read(includeRootPid = true)
@@ -29,6 +29,8 @@ internal class SimulationCoordinator(
                     YLocale.text(R.string.ynfc_sim_apply_success, card.uid)
                 !state.hookInstalled -> YLocale.text(R.string.ynfc_sim_hook_not_ready)
                 state.commandGeneration != generation -> YLocale.text(R.string.ynfc_sim_command_superseded)
+                state.commandStatus == "VENDOR_API_ACCEPTED" ->
+                    YLocale.text(R.string.ynfc_vendor_api_accepted)
                 state.commandStatus == "FAILED" || state.commandStatus == "TRIGGER_FAILED" ->
                     YLocale.text(
                         R.string.ynfc_sim_apply_failure,
@@ -96,6 +98,8 @@ internal class SimulationCoordinator(
                 state.consumedGeneration == generation) return state
             if (state.commandGeneration == generation && state.handledGeneration == generation &&
                 state.commandStatus == "FAILED") return state
+            if (apply && state.commandGeneration == generation &&
+                state.commandStatus == "VENDOR_API_ACCEPTED") return state
             Thread.sleep(100)
         }
         return state
