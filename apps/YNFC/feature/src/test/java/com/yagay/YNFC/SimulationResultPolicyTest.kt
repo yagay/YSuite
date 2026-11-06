@@ -42,7 +42,9 @@ class SimulationResultPolicyTest {
         )
         assertTrue(SimulationResultPolicy.isStopNoOverride(state, 25))
         assertFalse(SimulationResultPolicy.isStopSuccess(state, 25))
-        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(commandPid = 1235), 25))
+        // Replaced process means NFC has already restarted; don't restart again.
+        assertTrue(SimulationResultPolicy.isStopNoOverride(state.copy(currentPid = 1235), 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(commandPid = 0), 25))
         assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(simulationEnabled = true), 25))
         assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(rfAccepted = true), 25))
         assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(commandStatus = "FAILED"), 25))
