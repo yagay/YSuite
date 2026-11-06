@@ -71,6 +71,20 @@ class DiagnosticsCollector(
         })
         appendLine("--- PROVIDER SNAPSHOT ---")
         snapshot.toSortedMap().forEach { (key, value) -> appendLine("$key=$value") }
+        appendLine("--- UID-ONLY RF ENTRYPOINT COMPARISON ---")
+        appendLine("legacy_changeRfParamsByConfig=${snapshot["rf_uid_legacy_entry"] ?: "NOT_REPORTED"}")
+        appendLine("modern_setNciConfig=${snapshot["rf_uid_modern_entry"] ?: "NOT_REPORTED"}")
+        appendLine("inventory_pid=${snapshot["rf_uid_inventory_pid"] ?: "0"}")
+        val observedWriterPid = snapshot["rf_uid_writer_observed_pid"]?.toIntOrNull() ?: 0
+        val actualNfcPid = snapshot["runtime_pid"]?.toIntOrNull() ?: 0
+        appendLine("writer_observation=${if (actualNfcPid > 0 && actualNfcPid == observedWriterPid) "CURRENT_PID_NOT_UID_PROOF" else "NO_CURRENT_PID_INVOCATION_PROOF"}")
+        appendLine("writer_pid=$observedWriterPid current_pid=$actualNfcPid")
+        appendLine("writer_target=${snapshot["rf_uid_writer_target"] ?: "NOT_OBSERVED"}")
+        appendLine("writer_shape=${snapshot["rf_uid_writer_payload_shape"] ?: "NOT_OBSERVED"}")
+        appendLine("writer_prefix=${snapshot["rf_uid_writer_payload_prefix"] ?: ""}")
+        appendLine("writer_score=${snapshot["rf_uid_writer_payload_score"] ?: "0"}")
+        appendLine("writer_observed_at=${snapshot["rf_uid_writer_observed_at"] ?: "0"}")
+        appendLine("NOTE: A writer invocation or a native return is not proof of the UID seen by an external reader.")
         appendLine("--- SAVED CARD PARAMETERS ---")
         runCatching { cardRepository.load() }.getOrDefault(emptyList()).forEach { card ->
             appendLine("card uid=${card.uid} sak=${card.sak} atqa=${card.atqa}")
