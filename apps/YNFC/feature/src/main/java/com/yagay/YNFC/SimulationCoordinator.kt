@@ -148,15 +148,14 @@ internal class SimulationCoordinator(
                 onDone(state, YLocale.text(R.string.ynfc_hook_reload_stop_first))
                 return@execute
             }
-            val installedOldHook = state.currentPid > 0 && state.scopeOk &&
+            // Explicit refresh also supports recompiling Hook internals while
+            // retaining a stable protocol/HOOK_BUILD=46. The user, not APK
+            // installation, decides when to reload the target NFC service.
+            val injectableHook = state.currentPid > 0 && state.scopeOk &&
                 state.hookInstalled && state.hookPid == state.currentPid &&
-                state.hookBuild > 0 && state.hookBuild != expectedHookBuild
-            if (!installedOldHook) {
-                onDone(state, if (hookReady(state)) {
-                    YLocale.text(R.string.ynfc_hook_reload_already_current)
-                } else {
-                    YLocale.text(R.string.ynfc_sim_hook_not_ready)
-                })
+                state.hookBuild > 0
+            if (!injectableHook) {
+                onDone(state, YLocale.text(R.string.ynfc_sim_hook_not_ready))
                 return@execute
             }
             val previousPid = state.currentPid
