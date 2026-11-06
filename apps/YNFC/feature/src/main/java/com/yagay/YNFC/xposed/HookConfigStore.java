@@ -146,7 +146,7 @@ public final class HookConfigStore {
             controllerEpoch = rfEpoch > 0L ? rfEpoch : 1L;
         }
         return new SimConfig(true, active, uid,
-                valueOrEmpty(values.get("sak")), valueOrEmpty(values.get("atqa")),
+                valueOrEmpty(sak), valueOrEmpty(atqa), valueOrEmpty(backend),
                 diagnostics, generation, consumed, handled,
                 action, status, commandPid, controllerEpoch);
     }
