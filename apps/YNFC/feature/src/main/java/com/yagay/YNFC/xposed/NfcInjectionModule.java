@@ -31,8 +31,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.yagay.YNFC.xposed.NfcHookUtils.*;
 
@@ -1101,14 +1104,25 @@ public class NfcInjectionModule extends XposedModule {
             return new NfcProcessVendorController.Result(true, "JAVA_TRIGGERED", javaTrigger.detail, null);
         }
 
+        // NfcService exposes a verified, no-Binder Java routing refresh on
+        // this firmware. Run on its own main looper, not the Provider/Hook IO
+        // thread; actual RF/UID success still needs a native writer callback.
+        NfcProcessVendorController.Result routing = triggerRfRoutingOnMain();
+        if (routing.success) {
+            pendingTriggerTarget = "nfc-service:applyRouting(boolean)";
+            persistRefreshRuntime("TRIGGERED", pendingTriggerTarget,
+                    "rf-java-routing", cfg.generation, false);
+            return routing;
+        }
+
         // RF UID-only must not depend on the ColorOS Vendor Binder: on this
         // firmware OPlusNfcAdapterService is signature-privileged and the
         // OEM tx6 getter is unavailable. A candidate method discovered in
         // dex is not a callable *observed instance*. Never fake a successful
         // trigger, guess an OEM Binder transaction, or restart NFC to retry.
         String detail = javaTrigger.stage + ": " + javaTrigger.detail
-                + "; no observed in-process RF refresh instance; "
-                + "Vendor Binder fallback disabled for RF UID-only. "
+                + "; NFC routing fallback: " + routing.stage + ": " + routing.detail
+                + "; Vendor Binder fallback disabled for RF UID-only. "
                 + "Waiting for an actual native NFC-A configuration write is "
                 + "not evidence that UID emulation succeeded.";
         persistRefreshRuntime("RF_TRIGGER_UNAVAILABLE", "",
@@ -1118,6 +1132,89 @@ public class NfcInjectionModule extends XposedModule {
                 + " pid=" + Process.myPid() + " " + detail);
         return new NfcProcessVendorController.Result(
                 false, "RF_TRIGGER_UNAVAILABLE", detail, null);
+    }
+
+    /**
+     * Safe, bounded fallback through the already-known NfcService routing
+     * method. It never fabricates an OEM Binder transaction or guesses a
+     * NativeNfcManager argument schema. Success only proves applyRouting()
+     * was invoked; the RF write Hook must still supply independent evidence.
+     */
+    private NfcProcessVendorController.Result triggerRfRoutingOnMain() {
+        final ClassLoader loader = nfcClassLoader;
+        if (loader == null) {
+            return new NfcProcessVendorController.Result(false,
+                    "RF_ROUTING_UNAVAILABLE", "NFC class loader unavailable", null);
+        }
+        final AtomicReference<NfcProcessVendorController.Result> outcome = new AtomicReference<>();
+        final CountDownLatch done = new CountDownLatch(1);
+        boolean queued = pollingMainHandler.post(() -> {
+            try {
+                Class<?> service = Class.forName("com.android.nfc.NfcService", false, loader);
+                NfcDiscoveryCapabilityRegistry.ServiceAdapter adapter =
+                        NfcDiscoveryCapabilityRegistry.resolveRouting(service);
+                if (!adapter.available()) {
+                    outcome.set(new NfcProcessVendorController.Result(false,
+                            "RF_ROUTING_UNAVAILABLE", adapter.detail, null));
+                    return;
+                }
+                Object owner = adapter.getInstance.invoke(null);
+                if (owner == null || !Boolean.TRUE.equals(adapter.isEnabled.invoke(owner))) {
+                    outcome.set(new NfcProcessVendorController.Result(false,
+                            "RF_ROUTING_NFC_NOT_READY", "NfcService is disabled or unavailable", null));
+                    return;
+                }
+                adapter.applyRouting.invoke(owner, true);
+                outcome.set(new NfcProcessVendorController.Result(true,
+                        "RF_ROUTING_REQUESTED",
+                        "NfcService.applyRouting(true) invoked on NFC main looper; "
+                        + "awaiting a native RF_UID write, not claiming UID acceptance", null));
+            } catch (Throwable error) {
+                Throwable cause = error.getCause() == null ? error : error.getCause();
+                outcome.set(new NfcProcessVendorController.Result(false,
+                        "RF_ROUTING_EXCEPTION",
+                        cause.getClass().getSimpleName() + ": " + cause.getMessage(), null));
+            } finally {
+                done.countDown();
+            }
+        });
+        if (!queued) return new NfcProcessVendorController.Result(false,
+                "RF_ROUTING_UNAVAILABLE", "NFC main handler rejected refresh request", null);
+        try {
+            if (!done.await(1_800L, TimeUnit.MILLISECONDS)) {
+                return new NfcProcessVendorController.Result(false,
+                        "RF_ROUTING_TIMEOUT", "NFC main looper did not complete routing refresh", null);
+            }
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            return new NfcProcessVendorController.Result(false,
+                    "RF_ROUTING_INTERRUPTED", "Interrupted while waiting for NFC main looper", null);
+        }
+        NfcProcessVendorController.Result result = outcome.get();
+        return result != null ? result : new NfcProcessVendorController.Result(false,
+                "RF_ROUTING_UNAVAILABLE", "No NFC routing outcome recorded", null);
+    }
+
+    /** A routing request is not UID proof. Terminalize if no native RF write occurred. */
+    private void scheduleRfTriggerTimeout(SimConfig cfg, int pid) {
+        lifecycleExecutor.execute(() -> {
+            sleep(TRIGGER_RF_WINDOW_MS + 500L);
+            if (Process.myPid() != pid || isGenerationCompleted(cfg.generation, pid)) return;
+            SimConfig latest = readConfig();
+            if (!latest.initialized || latest.generation != cfg.generation ||
+                    latest.handledGeneration == cfg.generation ||
+                    !("TRIGGERED".equals(latest.commandStatus) ||
+                            "RUNNING".equals(latest.commandStatus))) return;
+            boolean observed = confirmedTriggerGeneration == cfg.generation;
+            NfcProcessVendorController.Result timeout =
+                    new NfcProcessVendorController.Result(false,
+                            observed ? "RF_UID_WRITE_NOT_ACCEPTED" : "RF_NATIVE_WRITE_NOT_OBSERVED",
+                            observed
+                                    ? "RF configuration writer invoked but no native-accepted UID change recorded"
+                                    : "Java routing refresh completed without a current-PID NFC-A UID configuration writer callback",
+                            null);
+            failRfTriggerCommand(latest, timeout);
+        });
     }
 
     private void armTriggerWindow(long generation, String source, long windowMs) {
@@ -1545,6 +1642,7 @@ public class NfcInjectionModule extends XposedModule {
         if (isGenerationCompleted(cfg.generation, pid)) return;
         if (trigger.success) {
             writeSimpleCommandState("TRIGGERED", trigger.detail + "; waiting for RF confirmation", cfg.generation, action, false);
+            scheduleRfTriggerTimeout(cfg, pid);
         } else {
             failRfTriggerCommand(cfg, trigger);
         }
