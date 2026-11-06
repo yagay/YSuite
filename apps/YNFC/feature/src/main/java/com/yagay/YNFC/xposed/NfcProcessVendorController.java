@@ -33,6 +33,59 @@ final class NfcProcessVendorController {
         }
     }
 
+    /**
+     * Read-only capability discovery. A vendor Binder descriptor or a known
+     * NFCC string alone does NOT establish that arbitrary Type-A configuration
+     * transactions are supported. Only a real callable method exposed by the
+     * running OEM implementation qualifies for the direct backend.
+     */
+    Result probeTypeA() {
+        try {
+            IBinder main = serviceManagerBinder();
+            if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
+                return new Result(false, "TYPE_A_NFC_UNAVAILABLE",
+                        "NFC service absent or descriptor mismatch", null);
+            }
+            Object local = main.queryLocalInterface(INFC_DESCRIPTOR);
+            IBinder vendor = getVendorBinderViaProxy(local);
+            if (vendor == null) vendor = getVendorBinderViaProxy(asInterface(INFC_STUB, main));
+            if (vendor == null) {
+                // Avoid arbitrary Binder transactions during capability probes.
+                return new Result(false, "TYPE_A_VENDOR_UNAVAILABLE",
+                        "Vendor service not exposed through a callable interface", null);
+            }
+            String descriptor = safeDescriptor(vendor);
+            if (!alive(vendor) || !VENDOR_DESCRIPTOR.equals(descriptor)) {
+                return new Result(false, "TYPE_A_DESCRIPTOR_MISMATCH",
+                        "Vendor Binder is not IVendorNfcAdapter", descriptor);
+            }
+            Object impl = vendor.queryLocalInterface(descriptor);
+            if (hasTypeAApi(impl) || hasTypeAApi(asInterface(VENDOR_STUB, vendor))) {
+                return new Result(true, "TYPE_A_API_PRESENT",
+                        "Callable setHceTypeAConfig signature found; controller acceptance not verified",
+                        descriptor);
+            }
+            return new Result(false, "TYPE_A_UNVERIFIED",
+                    "No callable setHceTypeAConfig method; transaction number must not be guessed",
+                    descriptor);
+        } catch (Throwable error) {
+            return new Result(false, "TYPE_A_PROBE_FAILED",
+                    error.getClass().getSimpleName() + ": " + error.getMessage(), null);
+        }
+    }
+
+    private static boolean hasTypeAApi(Object receiver) {
+        if (receiver == null) return false;
+        try {
+            Method m = receiver.getClass().getMethod("setHceTypeAConfig",
+                    boolean.class, byte[].class, byte[].class, byte[].class);
+            return m.getReturnType() == boolean.class
+                    || m.getReturnType() == Boolean.class;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
+    }
+
     Result setShareMode(boolean enabled) {
         Result last = null;
         for (int attempt = 0; attempt < STARTUP_RETRY_COUNT; attempt++) {
