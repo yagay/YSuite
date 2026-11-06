@@ -122,6 +122,20 @@ final class NfcProcessVendorController {
             }
 
             int txShare = resolveRequiredTransaction(VENDOR_STUB, "TRANSACTION_enableNfcShareMode");
+            if (txShare <= 0 && isOplusHardware()) {
+                // OplusNfcTool: IVendorNfcAdapter.enableNfcShareMode is tx 15.
+                // Only use it after the vendor descriptor and a read-only
+                // NFCC identity probe both agree with the verified OPlus ABI.
+                String controller = queryNfccIdentity(vendor);
+                if (isRecognizedOplusNfcc(controller)) {
+                    txShare = 15;
+                    path += "/validated-nfcc=" + controller;
+                } else {
+                    return new Result(false, "SHARE_MODE_CAPABILITY",
+                            "Cannot verify OPlus vendor ABI from NFCC identity; no raw vendor transaction",
+                            vendorDescriptor);
+                }
+            }
             if (txShare <= 0) return new Result(false, "SHARE_MODE_CAPABILITY", "No proxy method or reflected share-mode transaction", vendorDescriptor);
             boolean accepted = transactShareMode(vendor, enabled, txShare);
             return new Result(accepted, accepted ? "TRIGGERED" : "SHARE_MODE",
@@ -230,6 +244,33 @@ final class NfcProcessVendorController {
             reply.recycle();
             data.recycle();
         }
+    }
+
+    private static String queryNfccIdentity(IBinder vendor) {
+        if (vendor == null || !VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))) return null;
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        try {
+            data.writeInterfaceToken(VENDOR_DESCRIPTOR);
+            // Read-only IVendorNfcAdapter.getNfcc transaction from OplusNfcTool.
+            if (!vendor.transact(2, data, reply, 0)) return null;
+            reply.setDataPosition(0);
+            reply.readException();
+            return reply.readString();
+        } catch (Throwable ignored) {
+            return null;
+        } finally {
+            reply.recycle();
+            data.recycle();
+        }
+    }
+
+    private static boolean isRecognizedOplusNfcc(String identity) {
+        if (identity == null || identity.length() < 3 || identity.length() > 100) return false;
+        String name = identity.toUpperCase(Locale.ROOT);
+        return name.contains("SN100") || name.contains("SN110")
+                || name.contains("SN220") || name.contains("NQ330")
+                || name.contains("NXP") || name.contains("ST54");
     }
 
     private static boolean transactShareMode(IBinder vendor, boolean enabled, int transaction) throws Exception {
