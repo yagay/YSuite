@@ -97,7 +97,7 @@
     <string name="ynfc_simulate">Emulate</string>
     <string name="ynfc_delete">Delete</string>
     <string name="ynfc_hook_problem_process">NFC service process not found. Check Android NFC is enabled.</string>
-    <string name="ynfc_hook_problem_injection">No NFC Hook callback. Enable com.android.nfc in YSuite's LSPosed scope, then reload the NFC service process if necessary. Root alone does not activate the Hook; a full phone reboot is normally unnecessary.</string>
+    <string name="ynfc_hook_problem_injection">No NFC Hook callback. Enable the com.android.nfc scope for YSuite in LSPosed, then reload the NFC service process if necessary. Root alone does not activate the Hook; a full phone reboot is normally unnecessary.</string>
     <string name="ynfc_hook_problem_stale">Hook belongs to an older NFC process. Wait for the new NFC service to load its Hook; no full phone reboot is needed.</string>
     <string name="ynfc_hook_problem_scope">NFC process exists, but its LSPosed scope is not confirmed. Verify the com.android.nfc scope, then reload only the NFC service if needed.</string>
     <string name="ynfc_hook_problem_install">YNFC scope reported, but no Hook was installed. Export focused LSPosed logs to see the installation failure.</string>
