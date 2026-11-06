@@ -130,6 +130,9 @@ public final class HookConfigStore {
         boolean active = Boolean.parseBoolean(values.get("simulation_enabled"));
         boolean diagnostics = Boolean.parseBoolean(values.get("diagnostic_logging_enabled"));
         String uid = values.get("uid");
+        String sak = values.get("sak");
+        String atqa = values.get("atqa");
+        String backend = values.get("simulation_backend");
         long generation = NfcHookUtils.parseLong(values.get("command_generation"), 0L);
         long consumed = NfcHookUtils.parseLong(values.get("command_consumed_generation"), Long.MIN_VALUE);
         long handled = NfcHookUtils.parseLong(values.get("command_handled_generation"), Long.MIN_VALUE);
