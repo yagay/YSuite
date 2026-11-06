@@ -105,6 +105,10 @@ public final class GuardModule extends XposedModule {
                 systemClassLoader);
         installOplusLockKeepaliveHooks(
                 systemClassLoader);
+        // The ColorOS FlexibleTask callback does not fire on every physical
+        // keyguard transition. Observe WindowManager's canonical state too.
+        installKeyguardControllerStateHook(
+                systemClassLoader);
         installActivityRecordCaptureHook(
                 systemClassLoader);
         installActivityManagerHooks(
@@ -1113,6 +1117,75 @@ public final class GuardModule extends XposedModule {
      * fire for an "always foreground" app whose task was a real OPlus
      * FlexibleWindow/floating task at the moment keyguard started.
      */
+    /**
+     * Fallback for ColorOS builds that update KeyguardController directly
+     * without notifying FlexibleTaskController. Invoke before the OEM's hide
+     * transition so playback protection is armed before makeInvisible.
+     *
+     * No visibility/surface behavior is overridden by this observer.
+     */
+    private void installKeyguardControllerStateHook(ClassLoader loader) {
+        Class<?> controller =
+                load(loader, "com.android.server.wm.KeyguardController");
+        if (controller == null) {
+            diag("KEYGUARD_FALLBACK_UNAVAILABLE",
+                    "class=KeyguardController");
+            return;
+        }
+
+        for (Method method : controller.getDeclaredMethods()) {
+            if (!"setKeyguardShown".equals(method.getName())
+                    || method.getReturnType() != void.class
+                    || method.getParameterCount() < 2) {
+                continue;
+            }
+
+            // AOSP: setKeyguardShown(int displayId, boolean keyguardShowing, ...).
+            Class<?>[] params = method.getParameterTypes();
+            if (params[0] != int.class || params[1] != boolean.class) {
+                continue;
+            }
+
+            String key = "keyguard-fallback:" + method.toGenericString();
+            try {
+                method.setAccessible(true);
+                if (!installedHooks.add(key)) continue;
+                hook(method).intercept(chain -> {
+                    List<Object> args = chain.getArgs();
+                    if (args.size() < 2 || !(args.get(0) instanceof Integer)
+                            || !(args.get(1) instanceof Boolean)) {
+                        return chain.proceed();
+                    }
+                    int displayId = (Integer) args.get(0);
+                    boolean showing = (Boolean) args.get(1);
+                    // Avoid secondary-display events affecting a primary
+                    // display playback session.
+                    if (displayId != 0) return chain.proceed();
+
+                    EngineBridge current = engine;
+                    if (showing && current != null) {
+                        current.onKeyguardStateChanged(true);
+                        diag("KEYGUARD_FALLBACK_ARM",
+                                "displayId=" + displayId + " showing=true");
+                    }
+                    Object result = chain.proceed();
+                    if (!showing && current != null) {
+                        current.onKeyguardStateChanged(false);
+                        diag("KEYGUARD_FALLBACK_RELEASE",
+                                "displayId=" + displayId + " showing=false");
+                    }
+                    return result;
+                });
+                diag("KEYGUARD_FALLBACK_INSTALLED",
+                        "method=" + method.toGenericString());
+            } catch (Throwable error) {
+                installedHooks.remove(key);
+                log(Log.WARN, TAG, "Keyguard fallback hook skipped: "
+                        + method.toGenericString(), error);
+            }
+        }
+    }
+
     private void installOplusLockKeepaliveHooks(
             ClassLoader loader
     ) {
