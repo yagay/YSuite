@@ -193,6 +193,28 @@ fun NfcAppScreen(
                     },
                 )
             }
+            // Export must remain available when live log display is disabled.
+            item {
+                YSection(
+                    title = stringResource(R.string.ynfc_export_logs),
+                    subtitle = stringResource(R.string.ynfc_diagnostic_logs_desc),
+                ) {
+                    YPrimaryButton(
+                        text = if (diagnosticRunning) {
+                            stringResource(R.string.ynfc_saving)
+                        } else {
+                            stringResource(R.string.ynfc_export_logs)
+                        },
+                        onClick = {
+                            if (!diagnosticRunning) {
+                                diagnosticRunning = true
+                                onExportLogs { diagnosticRunning = false }
+                            }
+                        },
+                        enabled = !diagnosticRunning,
+                    )
+                }
+            }
             if (logsEnabled) {
                 item {
                     YSection(
@@ -226,20 +248,6 @@ fun NfcAppScreen(
                             }
                         }
                         YHorizontalActions {
-                            YPrimaryButton(
-                                text = if (diagnosticRunning) {
-                                    stringResource(R.string.ynfc_saving)
-                                } else {
-                                    stringResource(R.string.ynfc_export_logs)
-                                },
-                                onClick = {
-                                    if (!diagnosticRunning) {
-                                        diagnosticRunning = true
-                                        onExportLogs { diagnosticRunning = false }
-                                    }
-                                },
-                                enabled = !diagnosticRunning,
-                            )
                             YSecondaryButton(
                                 text = stringResource(R.string.ynfc_clear_logs),
                                 onClick = { AppLogger.clear(); logLines.clear() },
