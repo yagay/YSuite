@@ -37,13 +37,13 @@ internal object RuntimeText {
             "HOOK_REPORT_MISSING: no current NFC Hook callback was observed. Check LSPosed target loading, process-specific Hook logs and status-provider delivery; Root access does not confirm Hook installation."
         (status.scopePid > 0 && status.scopePid != status.currentPid) ||
             (status.hookPid > 0 && status.hookPid != status.currentPid) ->
-            "STALE_PROCESS: the NFC process restarted; the installed hook has not reported from the current PID. Verify LSPosed scope and reboot."
+            "STALE_PROCESS: NFC service changed PID; wait for Hook injection or check LSPosed scope. Do not reboot the entire phone."
         !status.scopeOk ->
             "SCOPE_NOT_CONFIRMED: check YSuite's com.android.nfc scope and current-process callback."
         !status.hookInstalled ->
             "HOOK_NOT_INSTALLED: module reached the NFC process but did not install its hooks; inspect focused YSuite/YNFC logs."
         status.hookBuild != expectedHookBuild ->
-            "HOOK_BUILD_MISMATCH: installed NFC hook is older than this APK; restart com.android.nfc or reboot after updating YSuite."
+            "HOOK_BUILD_MISMATCH: loaded NFC Hook code does not match the APK. Use the explicit 'Reload NFC service' action when you need the new Hook; no phone reboot is required."
         else -> "HOOK_READY"
     }
 
