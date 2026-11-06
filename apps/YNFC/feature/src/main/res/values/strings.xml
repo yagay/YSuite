@@ -108,4 +108,5 @@
     <string name="ynfc_vendor_type_a_stop_first">Stop the current simulation before changing the backend.</string>
     <string name="ynfc_vendor_api_accepted">Vendor Type-A request accepted by OEM; actual card emulation has NOT been verified by an external reader.</string>
     <string name="ynfc_vendor_permission_denied">ColorOS denied Vendor Type-A because the NFC system process lacks com.oplus.permission.safe.NFC (signature|privileged). This cannot be fixed with a normal runtime permission grant. Stop emulation to restore NFC; see diagnostics for details.</string>
+    <string name="ynfc_sim_stop_no_override">No UID was written in the current NFC process. Simulation stopped without restarting NFC; stock RF was not independently verified.</string>
 </resources>
