@@ -22,12 +22,15 @@ import com.yagay.YNFC.xposed.discovery.HookDiscoveryEngine;
 import com.yagay.YNFC.xposed.discovery.HookTarget;
 import com.yagay.YNFC.xposed.payload.RewriteResult;
 import com.yagay.YNFC.xposed.payload.RfPayloadEngine;
+import com.yagay.YNFC.xposed.payload.UidPayloadProbe;
 import com.yagay.YNFC.xposed.profile.HookProfileStore;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -71,7 +74,7 @@ public class NfcInjectionModule extends XposedModule {
     // Observe the actual NFC-A/NCI writer separately from hook installation.
     // A discovered method is not evidence that the controller ever received an
     // eligible UID-setting packet.
-    private volatile String lastRfWriterProbeKey = "";
+    private final Set<String> observedUidWriterShapes = new HashSet<>();
 
     private volatile HookTarget activeTarget;
     private volatile ClassLoader nfcClassLoader;
@@ -660,15 +663,19 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
 
-        // Capability discovery must not toggle share mode or write RF settings.
-        // Current command schema has UID only; it cannot safely select the direct
-        // Type-A engine until explicit ATQA and SAK reach the NFC process.
+        // Read-only inventory differentiates the old NXP changeRfParamsByConfig
+        // from today's NativeNfcManager#setNciConfig. Historical replay
+        // snapshots from a previous PID are not usable RF evidence.
+        inspectUidEntryPoints(cl, pid);
+
+        // Vendor capability discovery is informational; the user-selected RF
+        // backend continues to own only the UID (NCI LA_NFCID1) mutation.
         NfcProcessVendorController.Result typeA = vendorController.probeTypeA();
         Log.i(TAG, "TYPE_A_CAPABILITY stage=" + typeA.stage
                 + " callable=" + typeA.success
                 + " detail=" + typeA.detail
-                + " selectedBackend=RF_HOOK"
-                + " reason=explicit_atqa_sak_not_in_command_schema");
+                + " selectedBackend=CONFIG_DRIVEN"
+                + " note=uid_only_rf_does_not_require_atqa_sak");
 
         List<HookTarget> installTargets = new ArrayList<>();
         List<HookTarget> triggerTargets = discoveryEngine.discoverKnownTriggerCandidates(cl);
@@ -745,13 +752,16 @@ public class NfcInjectionModule extends XposedModule {
             Object[] args = chain.getArgs().toArray();
             int payloadArg = findSingleByteArrayArg(args);
             if (payloadArg < 0) {
-                observeUidWriter(target, pid, -1, 0, "NO_SINGLE_BYTE_ARRAY");
+                observeUidWriter(target, pid, -1, 0, "NO_SINGLE_BYTE_ARRAY", "");
                 return chain.proceed();
             }
             byte[] original = (byte[]) args[payloadArg];
             int payloadScore = payloadEngine.inspectScore(original);
+            // Distinguish a complete CORE_SET_CONFIG command from TLV-only
+            // or vendor-private byte arrays before making any RF assumptions.
             observeUidWriter(target, pid, original == null ? -1 : original.length,
-                    payloadScore, payloadScore > 0 ? "NCI_PAYLOAD_CANDIDATE" : "UNSUPPORTED_PAYLOAD");
+                    payloadScore, UidPayloadProbe.shape(original),
+                    UidPayloadProbe.prefixHex(original, 12));
             if (payloadScore <= 0) return chain.proceed();
 
             HookTarget owner = activeTarget;
@@ -932,18 +942,18 @@ public class NfcInjectionModule extends XposedModule {
      * generation; never consider it proof. Emit one observation per unique
      * target and payload shape, without invoking or modifying any RF method.
      */
-    private void observeUidWriter(HookTarget target, int pid, int bytes, int score, String shape) {
+    private void observeUidWriter(HookTarget target, int pid, int bytes, int score,
+                                  String shape, String prefix) {
         String fingerprint = target == null ? "unknown" : target.fingerprint();
         String key = pid + "|" + fingerprint + "|" + shape;
-        if (key.equals(lastRfWriterProbeKey)) return;
-        synchronized (this) {
-            if (key.equals(lastRfWriterProbeKey)) return;
-            lastRfWriterProbeKey = key;
+        synchronized (observedUidWriterShapes) {
+            // Bounded per-process records. No repeated Provider writes on the
+            // NFC native configuration call stack.
+            if (observedUidWriterShapes.size() >= 20 || !observedUidWriterShapes.add(key)) return;
         }
-        // Never call ContentProvider from the RF writer's intercept thread:
-        // OEM native configuration may hold NFC controller locks here.
         Log.i(TAG, "UID_WRITER_OBSERVED pid=" + pid + " target=" + fingerprint
-                + " shape=" + shape + " bytes=" + bytes + " score=" + score);
+                + " shape=" + shape + " bytes=" + bytes + " score=" + score
+                + " prefix=" + prefix);
         commandExecutor.execute(() -> {
             if (Process.myPid() != pid) return;
             ContentValues v = baseHookState();
@@ -952,9 +962,65 @@ public class NfcInjectionModule extends XposedModule {
             v.put("rf_uid_writer_payload_bytes", bytes);
             v.put("rf_uid_writer_payload_score", score);
             v.put("rf_uid_writer_payload_shape", shape);
+            v.put("rf_uid_writer_payload_prefix", prefix);
             v.put("rf_uid_writer_observed_at", System.currentTimeMillis());
             writeValuesWithRetry(v, 3, 50L);
         });
+    }
+
+    /**
+     * Class inventory only: never call an OEM method just because it shares a
+     * familiar name. A discovered method can still be unsuitable for rewriting.
+     */
+    private void inspectUidEntryPoints(ClassLoader cl, int pid) {
+        String[] classes = {
+                "com.android.nfc.dhimpl.NxpNativeNfcManager",
+                "com.android.nfc.dhimpl.NativeNfcManager",
+                "com.android.nfc.nxp.NxpNfcService$NxpNfcAdapterService"
+        };
+        String legacy = describeUidMethod(cl, classes, "changeRfParamsByConfig");
+        String modern = describeUidMethod(cl, classes, "setNciConfig");
+        ContentValues values = baseHookState();
+        values.put("rf_uid_inventory_pid", pid);
+        values.put("rf_uid_legacy_entry", legacy);
+        values.put("rf_uid_modern_entry", modern);
+        writeValuesWithRetry(values, 8, 75L);
+        Log.i(TAG, "UID_ENTRY_INVENTORY pid=" + pid + " legacy=" + legacy
+                + " modern=" + modern);
+    }
+
+    private static String describeUidMethod(ClassLoader cl, String[] candidates, String targetName) {
+        StringBuilder result = new StringBuilder();
+        for (String className : candidates) {
+            try {
+                Class<?> c = Class.forName(className, false, cl);
+                boolean found = false;
+                for (Method method : c.getDeclaredMethods()) {
+                    if (!targetName.equals(method.getName())) continue;
+                    if (result.length() != 0) result.append(" | ");
+                    result.append(className).append('#').append(targetName).append('(');
+                    Class<?>[] args = method.getParameterTypes();
+                    for (int i = 0; i < args.length; i++) {
+                        if (i != 0) result.append(',');
+                        result.append(args[i].getSimpleName());
+                    }
+                    result.append("):").append(method.getReturnType().getSimpleName());
+                    found = true;
+                }
+                if (!found) {
+                    if (result.length() != 0) result.append(" | ");
+                    result.append(className).append(":METHOD_ABSENT");
+                }
+            } catch (ClassNotFoundException error) {
+                if (result.length() != 0) result.append(" | ");
+                result.append(className).append(":CLASS_ABSENT");
+            } catch (Throwable error) {
+                if (result.length() != 0) result.append(" | ");
+                result.append(className).append(":INSPECT_ERROR_")
+                        .append(error.getClass().getSimpleName());
+            }
+        }
+        return result.toString();
     }
 
     private void installRefreshTriggerHook(ClassLoader cl, int pid, HookTarget target) throws Exception {
