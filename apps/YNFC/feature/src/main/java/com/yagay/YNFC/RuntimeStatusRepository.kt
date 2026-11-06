@@ -80,6 +80,16 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
         )
         val restartTransition = map[ConfigProvider.KEY_COMMAND_STATUS] == "RESTART_REQUIRED" &&
             map[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull() == map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull()
+        // A current-generation terminal FAILED result is authoritative command
+        // metadata, not RF proof. It must stay visible even when controller RF
+        // evidence has a stale epoch, e.g. ColorOS Type-A permission denial.
+        val currentCommandGeneration = map[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull()
+        val terminalFailureVisible = currentPid > 0 && commandPid == currentPid &&
+            currentCommandGeneration != null && currentCommandGeneration > 0L &&
+            map[ConfigProvider.KEY_COMMAND_STATUS] == "FAILED" &&
+            map[ConfigProvider.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
+            map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
+            map[ConfigProvider.KEY_OPERATION_STATE] == "FAILED"
         val lifecycleReverifyPending = rfFresh &&
             map[ConfigProvider.KEY_REFRESH_TRIGGER_STATUS] in setOf(
                 "LIFECYCLE_INVALIDATED",
@@ -88,12 +98,13 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             )
         val visibleRfStatus = when {
             rawRfStatus == "IDLE" -> "IDLE"
+            terminalFailureVisible -> rawRfStatus
             rfFresh -> rawRfStatus
             restartTransition -> "RESETTING($rawRfStatus)"
             rfPid == 0 && rawRfStatus in setOf("WAITING", "APPLYING", "STOPPING") -> rawRfStatus
             else -> "STALE($rawRfStatus)"
         }
-        val semanticVisible = rfFresh || rfPid == 0 || restartTransition
+        val semanticVisible = rfFresh || rfPid == 0 || restartTransition || terminalFailureVisible
         val rawOperation = map[ConfigProvider.KEY_OPERATION_STATE] ?: "IDLE"
         return RuntimeStatus(
             appBuild = map[ConfigProvider.KEY_APP_BUILD]?.toIntOrNull() ?: 0,
@@ -123,14 +134,14 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             rfAccepted = rfFresh && providerAccepted,
             rfStatus = visibleRfStatus,
             rfUid = if (rfFresh) map[ConfigProvider.KEY_RF_UID]?.takeIf { it.isNotBlank() } else null,
-            rfSource = if (rfFresh) map[ConfigProvider.KEY_RF_SOURCE]?.takeIf { it.isNotBlank() } else null,
+            rfSource = if (rfFresh || terminalFailureVisible) map[ConfigProvider.KEY_RF_SOURCE]?.takeIf { it.isNotBlank() } else null,
             rfResult = if (rfFresh) map[ConfigProvider.KEY_RF_RESULT]?.takeIf { it.isNotBlank() } else null,
             rfNativeResult = if (rfFresh) map[ConfigProvider.KEY_RF_NATIVE_RESULT]?.takeIf { it.isNotBlank() } else null,
             rfNativeResultType = if (rfFresh) map[ConfigProvider.KEY_RF_NATIVE_RESULT_TYPE]?.takeIf { it.isNotBlank() } else null,
-            rfError = if (rfFresh) map[ConfigProvider.KEY_RF_ERROR]?.takeIf { it.isNotBlank() } else null,
+            rfError = if (rfFresh || terminalFailureVisible) map[ConfigProvider.KEY_RF_ERROR]?.takeIf { it.isNotBlank() } else null,
             rfPid = rfPid,
             rfGeneration = map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() ?: 0L,
-            rfVerification = if (rfFresh) map[ConfigProvider.KEY_RF_VERIFICATION]?.takeIf { it.isNotBlank() } else if (restartTransition) "LIFECYCLE_PENDING" else null,
+            rfVerification = if (rfFresh || terminalFailureVisible) map[ConfigProvider.KEY_RF_VERIFICATION]?.takeIf { it.isNotBlank() } else if (restartTransition) "LIFECYCLE_PENDING" else null,
             fullDiagStage = map[ConfigProvider.KEY_FULL_DIAG_STAGE]?.takeIf { it.isNotBlank() },
             fullDiagSummary = map[ConfigProvider.KEY_FULL_DIAG_SUMMARY]?.takeIf { it.isNotBlank() },
             pollingDisabled = map[ConfigProvider.KEY_POLLING_DISABLED].toBoolean(),
