@@ -8,6 +8,11 @@ final class SimConfig {
     final String uid;
     final String sak;
     final String atqa;
+    final String backend;
+
+    boolean useVendorTypeA() { return "VENDOR".equals(backend); }
+    final String sak;
+    final String atqa;
     final String commandAction;
     final String commandStatus;
     final long generation;
@@ -23,6 +28,9 @@ final class SimConfig {
         this.initialized = initialized;
         this.active = active;
         this.uid = uid;
+        this.sak = sak;
+        this.atqa = atqa;
+        this.backend = "VENDOR".equals(backend) ? "VENDOR" : "RF";
         this.sak = sak;
         this.atqa = atqa;
         this.diagnostics = diagnostics;
