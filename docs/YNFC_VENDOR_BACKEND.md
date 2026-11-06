@@ -10,8 +10,9 @@
   The direct method requires explicit 2-byte ATQA, 1-byte SAK and a 4/7/10-byte
   UID, a verified `IVendorNfcAdapter` Binder descriptor, and a callable OEM
   Java/AIDL method. It does not guess transaction 16.
-- **Selection:** not enabled for user commands yet. The current provider command
-  snapshot has a UID but no independently supplied ATQA/SAK. At initialization
+- **Selection:** not enabled for user commands yet. The Provider already persists explicit UID/ATQA/SAK. HookConfigStore and
+  SimConfig now retain all three values; a serialized arbitration/verification
+  path is still required before enabling direct writes. At initialization
   `TYPE_A_CAPABILITY` reports the callable method and logs
   `selectedBackend=RF_HOOK`. Until explicit parameters, backend arbitration
   and card restore have been integrated, direct Type-A calls must not run
@@ -32,7 +33,7 @@
 
 ## Remaining integration
 
-1. Add durable, user-visible ATQA/SAK fields per card with validation and backup.
+1. Validate the already-persisted ATQA/SAK fields at the controller boundary and preserve them in backup.
 2. Route APPLY / STOP through one serialized backend coordinator per generation.
 3. Verify vendor confirmation and actual RF behavior; implement safe rollback,
    controller lifecycle recovery and app UI status.
