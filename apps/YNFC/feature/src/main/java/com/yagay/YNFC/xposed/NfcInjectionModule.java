@@ -1750,6 +1750,8 @@ public class NfcInjectionModule extends XposedModule {
     }
 
     private synchronized void clearRestoreState() {
+        // Explicit stock restoration was accepted on the same native writer.
+        nativeUidMutationAttempted = false;
         reversibleStockPayload = null;
         reversibleTargetFingerprint = null;
         reversibleCapturedGeneration = Long.MIN_VALUE;
