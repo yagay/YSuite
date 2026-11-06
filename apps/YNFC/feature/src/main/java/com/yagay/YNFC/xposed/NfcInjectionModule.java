@@ -1498,8 +1498,11 @@ public class NfcInjectionModule extends XposedModule {
                 + " stage=" + result.stage + " accepted=" + result.success
                 + " uid=" + cfg.uid + " reason=" + reason);
         if (!result.success) {
-            failVendorTypeACommand(cfg, "TYPE_A_REJECTED",
-                    "Vendor Type-A rejected: " + result.stage + ": " + result.detail);
+            boolean permissionDenied = "TYPE_A_PERMISSION_DENIED".equals(result.stage);
+            failVendorTypeACommand(cfg,
+                    permissionDenied ? "TYPE_A_PERMISSION_DENIED" : "TYPE_A_REJECTED",
+                    (permissionDenied ? "Vendor Type-A permission denied: " : "Vendor Type-A rejected: ")
+                            + result.stage + ": " + result.detail);
             return;
         }
 
