@@ -120,4 +120,13 @@
     <string name="ynfc_hook_manual_reload_desc">只有安装了更新进程内 Hook 代码的测试版才需要使用。仅重载 NFC 服务一次，不重启手机，也不会自动执行。</string>
     <string name="ynfc_type_a_disable_failed">ColorOS 原生 NFC-A 关闭被拒绝，尚未确认恢复原厂 RF；请检查诊断日志。</string>
     <string name="ynfc_rf_uid_writer_not_observed">UID 置换未生效：虽然刷新了 NFC 路由，但当前进程没有调用可用的 NCI UID 写入方法。RF 模式只替换已有 LA_NFCID1，不会追加新的参数。此固件可能需要先定位并验证原生 HAL 层的实际写入位置。</string>
+    <string name="ynfc_file_intercept_mode">文件驱动 NFC-A 拦截替换（实验性）</string>
+    <string name="ynfc_file_intercept_desc">仅在 ColorOS 自然调用 HceAccessCard 时替换 UID/ATQA/SAK；不会主动发送厂商 NFC-A 写入命令，需用外部读卡器验证实际 UID。</string>
+    <string name="ynfc_profile_import_title">从文件导入 NFC-A 配置</string>
+    <string name="ynfc_profile_import_desc">导入不超过 4 KB 的 NFC_A JSON 文件，验证参数后保存为卡片；不会直接覆盖系统文件。</string>
+    <string name="ynfc_profile_import_button">导入 JSON 配置</string>
+    <string name="ynfc_profile_imported">NFC-A 配置已导入，已选择拦截模式。点击保存卡片的“模拟”按钮以启用拦截。</string>
+    <string name="ynfc_profile_import_failed">配置导入失败：%1$s</string>
+    <string name="ynfc_intercept_call_accepted">ColorOS HCE 方法使用了导入参数并返回成功，但实际射频 UID 未验证，请使用外部 NFC 读卡器确认。</string>
+    <string name="ynfc_intercept_call_waiting">启用拦截后未发生 ColorOS Type-A 配置调用，UID 尚未被替换。</string>
 </resources>
