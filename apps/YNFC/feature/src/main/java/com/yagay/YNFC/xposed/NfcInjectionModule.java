@@ -1047,7 +1047,9 @@ public class NfcInjectionModule extends XposedModule {
                 disabledFailureGeneration = Long.MIN_VALUE;
             }
 
-            RewriteResult rewritten = payloadEngine.rewrite(original, hexToBytes(uidHex));
+            // Replacement only: never append a second NFCID1 when the real controller
+            // does not supply a fully parsed, unique existing LA_NFCID1 field.
+            RewriteResult rewritten = payloadEngine.replaceExisting(original, hexToBytes(uidHex));
             if (!rewritten.changed) {
                 writeRfProgress(cfg, "WAITING", uidHex, target.methodName + ": " + rewritten.reason, rewritten.codecId);
                 return chain.proceed();
