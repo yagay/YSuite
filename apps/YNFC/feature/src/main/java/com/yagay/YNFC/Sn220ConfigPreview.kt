@@ -57,7 +57,7 @@ internal object Sn220ConfigPreview {
         check(frame[target + 1] == count)
         check(frame.size == 3 + frame[2])
 
-        val formatted = frame.chunked(12)
+        val formatted = frame.chunked(16)
             .joinToString(",\n") { chunk ->
                 "    " + chunk.joinToString(", ") { String.format(Locale.ROOT, "%02X", it) }
             }
