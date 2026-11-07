@@ -155,6 +155,11 @@ class MainActivity : YComposeActivity() {
                     importProfileLauncher.launch(arrayOf("application/json", "text/plain"))
                 }
             },
+            onReloadFileIntercept = { onMessage ->
+                simulationCoordinator.reloadNfcForFileIntercept { _, message ->
+                    runOnUiThread { onMessage(message) }
+                }
+            },
             initialLogsEnabled = initialLogsEnabled,
             diagnosticsCollector = diagnosticsCollector,
             readRuntimeStatus = { readRuntimeStatus(includeRootPid = false) },
